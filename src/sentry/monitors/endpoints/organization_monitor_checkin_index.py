@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
@@ -57,6 +58,11 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         queryset = MonitorCheckIn.objects.filter(
             monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
         )
+
+        environments = get_environments(request, organization)
+
+        if environments:
+            queryset = queryset.filter(monitor_environment__environment__in=environments)
 
         return self.paginate(
             request=request,

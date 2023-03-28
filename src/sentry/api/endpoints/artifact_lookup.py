@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
+from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
 from sentry.models import DebugIdArtifactBundle, Distribution, File, Release, ReleaseFile
 from sentry.models.artifactbundle import ArtifactBundleArchive, ReleaseArtifactBundle
 from sentry.models.project import Project
@@ -116,27 +117,29 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         individual_files = try_resolve_urls(urls, project, release_name, dist_name, bundle_file_ids)
 
         # Then: Construct our response
-        url_constructor = UrlConstructor(request)
+        url_constructor = UrlConstructor(project)
 
         found_artifacts = []
         for file_id in bundle_file_ids:
             found_artifacts.append(
                 {
+                    "id": str(file_id),
                     "type": "bundle",
                     "url": url_constructor.url_for_file_id(file_id),
                 }
             )
 
-        for file in individual_files:
+        for release_file in individual_files:
             found_artifacts.append(
                 {
+                    "id": str(release_file.file.id),
                     "type": "file",
-                    "url": url_constructor.url_for_file_id(file.id),
+                    "url": url_constructor.url_for_file_id(release_file.file.id),
                     # The `name` is the url/abs_path of the file,
                     # as in: `"~/path/to/file.min.js"`.
-                    "abs_path": file.name,
+                    "abs_path": release_file.name,
                     # These headers should ideally include the `Sourcemap` reference
-                    "headers": file.headers,
+                    "headers": release_file.file.headers,
                 }
             )
 
@@ -276,7 +279,7 @@ def collect_legacy_artifact_bundles_containing_urls(
     return list(filter(lambda url: not url_in_any_artifact_index(url), urls))
 
 
-def get_releasefiles_matching_urls(urls: List[str], release: Release) -> Sequence[File]:
+def get_releasefiles_matching_urls(urls: List[str], release: Release) -> Sequence[ReleaseFile]:
     # Exclude files which are also present in archive:
     file_list = (
         ReleaseFile.public_objects.filter(release_id=release.id)
@@ -288,9 +291,7 @@ def get_releasefiles_matching_urls(urls: List[str], release: Release) -> Sequenc
     for url in urls[1:]:
         condition |= Q(name__icontains=url)
     file_list = file_list.filter(condition)
-    file_list = file_list[:MAX_RELEASEFILES_QUERY]
-
-    return map(lambda release_file: release_file.file, file_list)
+    return file_list[:MAX_RELEASEFILES_QUERY]
 
 
 def url_exists_in_manifest(manifest: dict, url: str) -> bool:
@@ -325,9 +326,8 @@ def find_file_in_archive_index(archive_index: dict, url: str) -> Optional[File]:
 
 
 class UrlConstructor:
-    def __init__(self, request: Request):
-        # TODO: is there a better way to construct a url to this same route?
-        self.base_url = request.build_absolute_uri(request.path)
+    def __init__(self, project: Project):
+        self.base_url = get_internal_artifact_lookup_source_url(project)
 
     def url_for_file_id(self, file_id: int) -> str:
         # NOTE: Returning a self-route that requires authentication (via Bearer token)

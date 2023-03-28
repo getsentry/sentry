@@ -183,7 +183,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={t('Artifact Bundle')}
+        title={tabDebugIdBundlesActive ? t('Debug ID Bundle') : t('Release Bundle')}
         subtitle={
           <VersionAndDetails>
             {params.bundleId}

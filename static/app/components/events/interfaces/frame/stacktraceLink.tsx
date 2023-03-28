@@ -10,6 +10,7 @@ import {
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -41,6 +42,10 @@ import useProjects from 'sentry/utils/useProjects';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
+
+const HookCodecovStacktraceLink = HookOrDefault({
+  hookName: 'component:codecov-integration-stacktrace-link',
+});
 
 const supportedStacktracePlatforms: PlatformKey[] = [
   'go',
@@ -111,14 +116,12 @@ function shouldShowCodecovFeatures(
   organization: Organization,
   match: StacktraceLinkResult
 ) {
-  const enabled =
-    organization.features.includes('codecov-stacktrace-integration') &&
-    organization.codecovAccess;
-
   const codecovStatus = match.codecov?.status;
   const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
 
-  return enabled && validStatus && match.config?.provider.key === 'github';
+  return (
+    organization.codecovAccess && validStatus && match.config?.provider.key === 'github'
+  );
 }
 
 function shouldShowCodecovPrompt(
@@ -126,9 +129,7 @@ function shouldShowCodecovPrompt(
   match: StacktraceLinkResult
 ) {
   const enabled =
-    organization.features.includes('codecov-integration') &&
-    organization.features.includes('codecov-stacktrace-integration-v2') &&
-    !organization.codecovAccess;
+    organization.features.includes('codecov-integration') && !organization.codecovAccess;
 
   return enabled && match.config?.provider.key === 'github';
 }
@@ -172,26 +173,6 @@ function CodecovLink({
     <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
       <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       {t('Open in Codecov')}
-    </OpenInLink>
-  );
-}
-
-function CodecovPrompt({organization}: {organization: Organization}) {
-  const onOpenCodecovLink = () => {
-    trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_PROMPT_CLICKED, {
-      view: 'stacktrace_link',
-      organization,
-    });
-  };
-
-  return (
-    <OpenInLink
-      href="https://about.codecov.io/sign-up-sentry-codecov/"
-      openInNewTab
-      onClick={onOpenCodecovLink}
-    >
-      <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-      {t('Add Codecov test coverage')}
     </OpenInLink>
   );
 }
@@ -307,7 +288,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             event={event}
           />
         ) : shouldShowCodecovPrompt(organization, match) ? (
-          <CodecovPrompt organization={organization} />
+          <HookCodecovStacktraceLink organization={organization} />
         ) : null}
       </StacktraceLinkWrapper>
     );
