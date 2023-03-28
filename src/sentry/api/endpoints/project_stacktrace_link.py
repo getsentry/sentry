@@ -265,7 +265,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                should_get_coverage = codecov_enabled(project.organization, request.user)
+                should_get_coverage = codecov_enabled(project.organization)
                 scope.set_tag("codecov.enabled", should_get_coverage)
                 if should_get_coverage:
                     codecov_data = fetch_codecov_data(config=current_config)

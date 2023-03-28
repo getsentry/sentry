@@ -126,6 +126,7 @@ const Title = styled('div')`
 
 const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
+  margin-right: ${space(1)};
 `;
 
 const RepeatedFrames = styled('div')`
