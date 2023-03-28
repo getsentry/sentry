@@ -40,23 +40,16 @@ const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 type PlatformDoc = {html: string; link: string};
 
 function OnboardingProductSelection({organization}: {organization: Organization}) {
-  const {
-    logExperiment: productSelectionLogExperiment,
-    experimentAssignment: productSelectionAssignment,
-  } = useExperiment('OnboardingProductSelectionExperiment', {
-    logExperimentOnMount: false,
-  });
+  const {experimentAssignment: productSelectionAssignment} = useExperiment(
+    'OnboardingProductSelectionExperiment',
+    {
+      logExperimentOnMount: false,
+    }
+  );
 
   const docsWithProductSelection = !!organization.features?.includes(
     'onboarding-docs-with-product-selection'
   );
-
-  // log experiment on mount if feature enabled
-  useEffect(() => {
-    if (docsWithProductSelection) {
-      productSelectionLogExperiment();
-    }
-  }, [productSelectionLogExperiment, docsWithProductSelection]);
 
   if (!docsWithProductSelection) {
     return null;
