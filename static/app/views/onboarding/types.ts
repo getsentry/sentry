@@ -18,6 +18,7 @@ export type StepProps = Pick<
   orgId: string;
   search: string;
   stepIndex: number;
+  selectedProjectSlug?: string;
 };
 
 export type StepDescriptor = {

@@ -39,6 +39,43 @@ const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
 type PlatformDoc = {html: string; link: string};
 
+function OnboardingProductSelection({organization}: {organization: Organization}) {
+  const {
+    experimentAssignment: productSelectionAssignment,
+    logExperiment: productSelectionLogExperiment,
+  } = useExperiment('OnboardingProductSelectionExperiment', {
+    logExperimentOnMount: false,
+  });
+
+  const docsWithProductSelection = !!organization.features?.includes(
+    'onboarding-docs-with-product-selection'
+  );
+
+  useEffect(() => {
+    if (docsWithProductSelection) {
+      productSelectionLogExperiment();
+    }
+  }, [productSelectionLogExperiment, docsWithProductSelection]);
+
+  if (!docsWithProductSelection) {
+    return null;
+  }
+
+  if (productSelectionAssignment === 'variant1') {
+    return (
+      <ProductSelection
+        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
+      />
+    );
+  }
+
+  if (productSelectionAssignment === 'variant2') {
+    return <ProductSelection />;
+  }
+
+  return null;
+}
+
 type Props = {
   search: string;
 } & StepProps;
@@ -56,6 +93,7 @@ function ProjectDocs(props: {
       Platform documentation is not rendered in for tests in CI
     </Alert>
   );
+
   const missingExampleWarning = () => {
     const missingExample =
       props.platformDocs && props.platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
@@ -108,10 +146,9 @@ function ProjectDocs(props: {
         )}
         platform={currentPlatform}
       />
-      {currentPlatform === 'javascript-react' &&
-        props.organization.features?.includes(
-          'onboarding-docs-with-product-selection'
-        ) && <ProductSelection />}
+      {currentPlatform === 'javascript-react' && (
+        <OnboardingProductSelection organization={props.organization} />
+      )}
       {getDynamicText({
         value: !props.hasError ? docs : loadingError,
         fixed: testOnlyAlert,
@@ -120,18 +157,21 @@ function ProjectDocs(props: {
   );
 }
 
-function SetupDocs({search, route, router, location}: Props) {
+function SetupDocs({search, route, router, location, ...props}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects: rawProjects} = useProjects();
   const [clientState, setClientState] = usePersistedOnboardingState();
-
-  const {logExperiment, experimentAssignment} = useExperiment(
-    'OnboardingNewFooterExperiment',
-    {
-      logExperimentOnMount: false,
-    }
+  const [selectedProjectSlug, _setSelectedProjectSlug] = useState(
+    props.selectedProjectSlug
   );
+
+  const {
+    logExperiment: newFooterLogExperiment,
+    experimentAssignment: newFooterAssignment,
+  } = useExperiment('OnboardingNewFooterExperiment', {
+    logExperimentOnMount: false,
+  });
 
   const singleSelectPlatform = !!organization?.features.includes(
     'onboarding-remove-multiselect-platform'
@@ -176,7 +216,8 @@ function SetupDocs({search, route, router, location}: Props) {
   const firstProjectNoError = projects.findIndex(p => selectedProjectsSet.has(p.slug));
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
-  const project = projects[projectIndex];
+  const project =
+    projects[projectIndex] ?? rawProjects.find(p => p.slug === selectedProjectSlug);
 
   // find the next project that doesn't have a first event
   const nextProject = projects.find(
@@ -201,7 +242,7 @@ function SetupDocs({search, route, router, location}: Props) {
       return;
     }
 
-    let platform = String(project.platform);
+    let loadPlatform = String(project.platform);
     if (
       organization.features?.includes('onboarding-docs-with-product-selection') &&
       project.platform === 'javascript-react'
@@ -214,13 +255,13 @@ function SetupDocs({search, route, router, location}: Props) {
         products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
         products.includes(PRODUCT.SESSION_REPLAY)
       ) {
-        platform = ReactDocVariant.ErrorMonitoringPerformanceAndReplay;
+        loadPlatform = ReactDocVariant.ErrorMonitoringPerformanceAndReplay;
       } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
-        platform = ReactDocVariant.ErrorMonitoringAndPerformance;
+        loadPlatform = ReactDocVariant.ErrorMonitoringAndPerformance;
       } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
-        platform = ReactDocVariant.ErrorMonitoringAndSessionReplay;
+        loadPlatform = ReactDocVariant.ErrorMonitoringAndSessionReplay;
       } else {
-        platform = ReactDocVariant.ErrorMonitoring;
+        loadPlatform = ReactDocVariant.ErrorMonitoring;
       }
     }
 
@@ -229,7 +270,7 @@ function SetupDocs({search, route, router, location}: Props) {
         api,
         orgSlug: organization.slug,
         projectSlug: project.slug,
-        platform: platform as PlatformKey,
+        platform: loadPlatform as PlatformKey,
       });
       setPlatformDocs(loadedDocs);
       setLoadedPlatform(project.platform);
@@ -239,9 +280,11 @@ function SetupDocs({search, route, router, location}: Props) {
       throw error;
     }
   }, [
-    project,
+    project?.slug,
+    project?.platform,
     api,
-    organization,
+    organization.slug,
+    organization.features,
     integrationSlug,
     integrationUseManualSetup,
     location.query.product,
@@ -249,14 +292,14 @@ function SetupDocs({search, route, router, location}: Props) {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData, location.query.product]);
+  }, [fetchData, location.query.product, project?.platform]);
 
   // log experiment on mount if feature enabled
   useEffect(() => {
     if (heartbeatFooter) {
-      logExperiment();
+      newFooterLogExperiment();
     }
-  }, [logExperiment, heartbeatFooter]);
+  }, [newFooterLogExperiment, heartbeatFooter]);
 
   if (!project) {
     return null;
@@ -330,7 +373,7 @@ function SetupDocs({search, route, router, location}: Props) {
       </Wrapper>
 
       {heartbeatFooter ? (
-        experimentAssignment === 'variant2' ? (
+        newFooterAssignment === 'variant2' ? (
           <FooterWithViewSampleErrorButton
             projectSlug={project.slug}
             projectId={project.id}
@@ -339,7 +382,7 @@ function SetupDocs({search, route, router, location}: Props) {
             location={location}
             newOrg
           />
-        ) : experimentAssignment === 'variant1' ? (
+        ) : newFooterAssignment === 'variant1' ? (
           <Footer
             projectSlug={project.slug}
             projectId={project.id}
