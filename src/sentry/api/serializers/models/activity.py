@@ -77,7 +77,7 @@ class ActivitySerializer(Serializer):
 
         return {
             item: {
-                "user": users[str(item.user_id)] if item.user_id else None,
+                "user": users.get(str(item.user_id)) if item.user_id else None,
                 "source": groups.get(item.data["source_id"])
                 if item.type == ActivityType.UNMERGE_DESTINATION.value
                 else None,
