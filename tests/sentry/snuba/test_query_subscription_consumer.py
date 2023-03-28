@@ -7,9 +7,11 @@ from unittest import mock
 import pytest
 import pytz
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
 from django.conf import settings
+from sentry_kafka_schemas import get_schema
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -30,6 +32,10 @@ class BaseQuerySubscriptionTest:
     @cached_property
     def topic(self):
         return settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
+
+    @cached_property
+    def jsoncodec(self):
+        return JsonCodec(get_schema(self.topic)["schema"])
 
     @cached_property
     def valid_wrapper(self):
@@ -111,7 +117,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
 class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def run_test(self, message):
-        parse_message_value(json.dumps(message), self.topic)
+        parse_message_value(json.dumps(message), self.topic, self.jsoncodec)
 
     def run_invalid_schema_test(self, message):
         with pytest.raises(InvalidSchemaError):

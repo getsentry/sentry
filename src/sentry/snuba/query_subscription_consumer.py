@@ -72,7 +72,7 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(value: str, topic: str) -> PayloadV3:
+def parse_message_value(value: str, topic: str, jsoncodec: JsonCodec) -> PayloadV3:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
@@ -87,7 +87,6 @@ def parse_message_value(value: str, topic: str) -> PayloadV3:
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
         try:
-            jsoncodec = JsonCodec(get_schema(topic)["schema"])
             jsoncodec.validate(wrapper)
         except ValidationError:
             old_version = True
@@ -133,6 +132,7 @@ def handle_message(
     message_offset: int,
     message_partition: int,
     topic: str,
+    logical_topic: str,
     dataset: str,
 ) -> None:
     """
@@ -147,7 +147,8 @@ def handle_message(
             with metrics.timer(
                 "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}
             ):
-                contents = parse_message_value(message_value, topic)
+                jsoncodec = JsonCodec(get_schema(logical_topic)["schema"])
+                contents = parse_message_value(message_value, logical_topic, jsoncodec)
         except InvalidMessageError:
             # If the message is in an invalid format, just log the error
             # and continue
@@ -276,6 +277,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                         message_value,
                         offset,
                         partition,
+                        self.topic,
                         logical_topic,
                         self.dataset.value,
                     )
