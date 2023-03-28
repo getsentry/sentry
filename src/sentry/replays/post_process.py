@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import collections
-from typing import Any, Iterable, Iterator
+from typing import Any, Generator, Iterable, Iterator
 
 
 def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
@@ -11,7 +11,7 @@ def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> l
 
 def generate_restricted_fieldset(
     fields: list[str] | None,
-    response: Iterable[dict[str, Any]],
+    response: Generator[dict[str, Any], None, None],
 ) -> Iterator[dict[str, Any]]:
     """Return only the fields requested by the client."""
     if fields:
@@ -27,7 +27,9 @@ def _strip_dashes(field: str) -> str:
     return field
 
 
-def generate_normalized_output(response: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
+def generate_normalized_output(
+    response: list[dict[str, Any]]
+) -> Generator[dict[str, Any], None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         item["id"] = _strip_dashes(item.pop("replay_id", None))
