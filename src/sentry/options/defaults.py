@@ -602,6 +602,11 @@ register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", defa
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
+register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
+
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
