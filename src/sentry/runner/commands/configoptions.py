@@ -93,8 +93,7 @@ def set(key, val):
     except UnknownOption:
         options.register(key)
         options.set(key, val)
-        opt = options.lookup_key(key)
-        return f"Registered key: {opt.name} ({opt.type}) = {options.get(opt.name)}"
+        return f"Registered a new key: {key} = {val}"
 
 
 def delete(key):
