@@ -240,6 +240,11 @@ const mockGroupApis = (
     url: '/organizations/org-slug/users/',
     body: [],
   });
+
+  MockApiClient.addMockResponse({
+    url: `/customers/org-slug/policies/`,
+    body: {},
+  });
 };
 
 describe('groupEventDetails', () => {
