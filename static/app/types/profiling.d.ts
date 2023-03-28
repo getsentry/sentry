@@ -183,7 +183,6 @@ declare namespace Profiling {
       deviceModel: string;
       deviceOSName: string;
       deviceOSVersion: string;
-      durationNS: number;
       environment: string;
       organizationID: number;
       platform: string;
