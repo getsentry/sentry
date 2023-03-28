@@ -277,6 +277,7 @@ def __translated_payload(
     payload["tags"] = new_tags
     payload["use_case_id"] = "release-health"
 
+    payload.pop("unit", None)
     del payload["name"]
     return payload
 
