@@ -428,13 +428,13 @@ class ReplayQueryConfig(QueryConfig):
 
     # Click
     click_alt = ListField(field_alias="replay_click.alt", is_sortable=False)
-    click_aria_label = ListField(field_alias="replay_click.label", is_sortable=False)
     click_class = ListField(field_alias="replay_click.class", is_sortable=False)
     click_id = ListField(field_alias="replay_click.id", is_sortable=False)
+    click_aria_label = ListField(field_alias="replay_click.label", is_sortable=False)
     click_role = ListField(field_alias="replay_click.role", is_sortable=False)
     click_tag = ListField(field_alias="replay_click.tag", is_sortable=False)
     click_testid = ListField(field_alias="replay_click.testid", is_sortable=False)
-    click_text = ListField(field_alias="replay_click.text", is_sortable=False)
+    click_text = ListField(field_alias="replay_click.textContent", is_sortable=False)
     click_title = ListField(field_alias="replay_click.title", is_sortable=False)
 
     # Tag

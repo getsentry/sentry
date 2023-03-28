@@ -936,7 +936,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.role:form",
                 "replay_click.tag:header",
                 "replay_click.testid:2",
-                "replay_click.text:World",
+                "replay_click.textContent:World",
                 "replay_click.title:NotMyTitle",
             ]
             for query in queries:
