@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     Set,
     Union,
+    cast,
 )
 
 import rapidjson
@@ -358,7 +359,7 @@ class IndexerBatch:
                 # to 2. This is used by the consumer to determine how to decode the
                 # tag values.
                 new_payload_v2: GenericMetric = {
-                    "tags": new_tags,
+                    "tags": cast(Dict[str, str], new_tags),
                     "version": 2,
                     "retention_days": old_payload_value.get("retention_days", 90),
                     "mapping_meta": output_message_meta,
