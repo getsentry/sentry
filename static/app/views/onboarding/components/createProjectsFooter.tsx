@@ -59,15 +59,31 @@ export default function CreateProjectsFooter({
       return;
     }
 
+    const createProjectForPlatforms = platforms
+      .filter(platform => !clientState.platformToProjectIdMap[platform])
+      // filter out platforms that already have a project
+      .filter(platform => !projects.find(p => p.platform === platform));
+
+    if (createProjectForPlatforms.length === 0) {
+      setClientState({
+        platformToProjectIdMap: clientState.platformToProjectIdMap,
+        selectedPlatforms: platforms,
+        state: 'projects_selected',
+        url: 'setup-docs/',
+      });
+      trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
+        platforms: platforms.join(','),
+        platform_count: platforms.length,
+        organization,
+      });
+      onComplete(platforms);
+      return;
+    }
+
     try {
       addLoadingMessage(
         singleSelectPlatform ? t('Creating project') : t('Creating projects')
       );
-
-      const createProjectForPlatforms = platforms
-        .filter(platform => !clientState.platformToProjectIdMap[platform])
-        // filter out platforms that already have a project
-        .filter(platform => !projects.find(p => p.platform === platform));
 
       const responses = await Promise.all(
         createProjectForPlatforms.map(platform =>
