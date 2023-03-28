@@ -18,7 +18,7 @@ class OrganizationMemberMapping(Model):
     - map a user or an email to a specific organization to indicate an organization membership
     """
 
-    __include_in_export__ = True
+    __include_in_export__ = False
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     date_added = models.DateTimeField(default=timezone.now)
