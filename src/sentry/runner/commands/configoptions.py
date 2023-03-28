@@ -1,5 +1,6 @@
 import click
 import yaml
+
 from sentry import options
 
 
@@ -23,7 +24,7 @@ def fetchAll():
 @configoptions.command()
 @click.argument("filename", required=True)
 def patch(filename):
-    with open(filename, "r") as stream:
+    with open(filename) as stream:
 
         # todo: add more file validation?
         file = yaml.safe_load(stream)
