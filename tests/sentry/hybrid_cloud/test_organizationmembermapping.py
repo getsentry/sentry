@@ -126,3 +126,30 @@ class OrganizationMappingTest(TransactionTestCase):
             == orgmember_mapping.invite_status
             == fields["invite_status"]
         )
+
+
+@region_silo_test(stable=True)
+class ReceiverTest(TransactionTestCase):
+    def test_process_organization_member_updates_receiver(self):
+        with exempt_from_silo_limits():
+            inviter = self.create_user("foo@example.com")
+            assert OrganizationMemberMapping.objects.all().count() == 0
+        fields = {
+            "organization_id": self.organization.id,
+            "role": "member",
+            "email": "mail@testserver.com",
+            "inviter_id": inviter.id,
+            "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
+        }
+        org_member = OrganizationMember.objects.create(**fields)
+        region_outbox = OrganizationMember.outbox_for_update(
+            org_id=self.organization.id, org_member_id=org_member.id
+        )
+        region_outbox.save()
+        region_outbox.drain_shard()
+
+        with exempt_from_silo_limits():
+            assert OrganizationMemberMapping.objects.all().count() == 1
+            OrganizationMemberMapping.objects.filter(
+                organization_id=self.organization.id, email=fields["email"]
+            ).exists()
