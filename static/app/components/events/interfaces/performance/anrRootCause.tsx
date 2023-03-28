@@ -11,9 +11,12 @@ import {Event, Organization} from 'sentry/types';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
 
+// Group types and type_id defined in issues/grouptype.py
 enum AnrRootCauseAllowlist {
   PerformanceFileIOMainThreadGroupType = 1008,
   PerformanceDBMainThreadGroupType = 1013,
+  ProfileImageDecodeGroupType = 2002,
+  ProfileJSONDecodeType = 2003,
 }
 
 interface Props {
