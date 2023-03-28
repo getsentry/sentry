@@ -50,7 +50,7 @@ def update_organization_mapping_from_instance(
 
 
 class OrganizationMappingService(RpcService):
-    name = "organization_mapping"
+    key = "organization_mapping"
     local_mode = SiloMode.CONTROL
 
     @classmethod

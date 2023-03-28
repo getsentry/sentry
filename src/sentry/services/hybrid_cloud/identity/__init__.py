@@ -26,7 +26,7 @@ class RpcIdentity(RpcModel):
 
 
 class IdentityService(RpcService):
-    name = "identity"
+    key = "identity"
     local_mode = SiloMode.CONTROL
 
     @classmethod

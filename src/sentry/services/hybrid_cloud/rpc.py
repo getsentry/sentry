@@ -131,12 +131,12 @@ class RpcService(InterfaceWithLifecycle):
     declared and decorated by `@rpc_service`. Then extend that base service class
     with the local (database-backed) implementation.
 
-    The base service should provide two class-level constants: `name` (the slug that
+    The base service should provide two class-level constants: `key` (the slug that
     maps to the service in a URL) and `local_mode` (the silo mode in which to use the
     local implementation).
     """
 
-    name: str
+    key: str
     local_mode: SiloMode
 
     _signatures: Mapping[str, RpcMethodSignature]
@@ -146,8 +146,8 @@ class RpcService(InterfaceWithLifecycle):
             # These class attributes are required on any RpcService subclass that has
             # at least one method decorated by `@rpc_method`. (They can be left off
             # if and when we make an intermediate abstract class.)
-            if not isinstance(getattr(cls, "name", None), str):
-                raise RpcServiceSetupException("`name` class attribute (str) is required")
+            if not isinstance(getattr(cls, "key", None), str):
+                raise RpcServiceSetupException("`key` class attribute (str) is required")
             if not isinstance(getattr(cls, "local_mode", None), SiloMode):
                 raise RpcServiceSetupException(
                     "`local_mode` class attribute (SiloMode) is required"
@@ -245,7 +245,7 @@ class RpcService(InterfaceWithLifecycle):
                         f"Could not serialize arguments for {cls.__name__}.{method_name}"
                     ) from e
 
-                return dispatch_remote_call(region, cls.name, method_name, serial_arguments)
+                return dispatch_remote_call(region, cls.key, method_name, serial_arguments)
 
             def remote_method_with_fallback(service_obj: RpcService, **kwargs: Any) -> Any:
                 # See RpcServiceUnimplementedException documentation
@@ -280,7 +280,7 @@ class RpcService(InterfaceWithLifecycle):
             for mode in SiloMode
         }
         service = DelegatingRpcService(cls, constructors, cls._signatures)
-        _global_service_registry[cls.name] = service
+        _global_service_registry[cls.key] = service
         return service
 
     def close(self) -> None:

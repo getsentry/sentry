@@ -48,7 +48,7 @@ class UserOptionFilterArgs(TypedDict, total=False):
 
 
 class UserOptionService(RpcService):
-    name = "user_option"
+    key = "user_option"
     local_mode = SiloMode.CONTROL
 
     @classmethod

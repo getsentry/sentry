@@ -32,7 +32,7 @@ class RpcNotificationSetting(RpcModel):
 
 
 class NotificationsService(RpcService):
-    name = "notifications"
+    key = "notifications"
     local_mode = SiloMode.CONTROL
 
     @classmethod

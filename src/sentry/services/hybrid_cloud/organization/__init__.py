@@ -165,7 +165,7 @@ class RpcUserOrganizationContext(RpcModel):
 
 
 class OrganizationService(RpcService):
-    name = "organization"
+    key = "organization"
     local_mode = SiloMode.REGION
 
     @classmethod

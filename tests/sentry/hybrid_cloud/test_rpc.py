@@ -44,4 +44,4 @@ class RpcServiceTest(TestCase):
 
         with override_settings(SILO_MODE=SiloMode.REGION):
             service = OrganizationService.create_delegation()
-            dispatch_to_local_service(service.name, "add_organization_member", serial_arguments)
+            dispatch_to_local_service(service.key, "add_organization_member", serial_arguments)

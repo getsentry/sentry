@@ -32,7 +32,7 @@ class RpcProjectKey(RpcModel):
 
 
 class ProjectKeyService(RpcService):
-    name = "project_key"
+    key = "project_key"
     local_mode = SiloMode.REGION
 
     @classmethod

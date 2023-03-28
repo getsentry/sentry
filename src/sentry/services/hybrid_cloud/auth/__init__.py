@@ -286,7 +286,7 @@ class RpcOrganizationAuthConfig(RpcModel):
 
 
 class AuthService(RpcService):
-    name = "auth"
+    key = "auth"
     local_mode = SiloMode.CONTROL
 
     @classmethod

@@ -121,7 +121,7 @@ class UserUpdateArgs(TypedDict, total=False):
 
 
 class UserService(RpcService):
-    name = "user"
+    key = "user"
     local_mode = SiloMode.CONTROL
 
     @classmethod

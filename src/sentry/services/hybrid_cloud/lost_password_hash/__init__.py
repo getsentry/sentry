@@ -14,7 +14,7 @@ from sentry.silo import SiloMode
 
 
 class LostPasswordHashService(RpcService):
-    name = "lost_password_hash"
+    key = "lost_password_hash"
     local_mode = SiloMode.CONTROL
 
     @classmethod

@@ -64,7 +64,7 @@ class RpcOrganizationIntegration(RpcModel):
 
 
 class IntegrationService(RpcService):
-    name = "integration"
+    key = "integration"
     local_mode = SiloMode.CONTROL
 
     @classmethod

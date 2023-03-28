@@ -112,7 +112,7 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
 
 
 class AppService(RpcService):
-    name = "app"
+    key = "app"
     local_mode = SiloMode.CONTROL
 
     @classmethod
