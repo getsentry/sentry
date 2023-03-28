@@ -5,7 +5,7 @@ from typing import Any, Generator, Mapping, Sequence
 from rest_framework import serializers
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project
+from sentry.models import Project, Rule
 from sentry.rules import EventState
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
@@ -140,7 +140,9 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, rule: Rule
+    ) -> Generator[CallbackFuture, None, None]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

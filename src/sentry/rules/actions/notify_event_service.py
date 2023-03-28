@@ -18,7 +18,7 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import SentryApp, SentryAppInstallation
+from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
@@ -173,7 +173,9 @@ class NotifyEventServiceAction(EventAction):
             return f"(Legacy) {title}"
         return title
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, rule: Rule
+    ) -> Generator[CallbackFuture, None, None]:
         service = self.get_option("service")
 
         extra = {"event_id": event.event_id}

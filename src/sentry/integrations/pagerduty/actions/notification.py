@@ -34,7 +34,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     def _get_service(self):
         return PagerDutyService.objects.get(id=self.get_option("service"))
 
-    def after(self, event, state):
+    def after(self, event, state, rule):
         integration = self.get_integration()
         if not integration:
             logger.exception("Integration removed, however, the rule still refers to it.")

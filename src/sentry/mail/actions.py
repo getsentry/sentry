@@ -34,7 +34,7 @@ class NotifyEmailAction(EventAction):
             self.data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
         return self.label.format(**self.data)
 
-    def after(self, event, state):
+    def after(self, event, state, rule):
         group = event.group
         extra = {"event_id": event.event_id, "group_id": group.id}
         group = event.group

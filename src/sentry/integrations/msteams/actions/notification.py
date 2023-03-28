@@ -36,7 +36,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             a for a in super().get_integrations() if a.metadata.get("installation_type") != "tenant"
         ]
 
-    def after(self, event, state):
+    def after(self, event, state, rule):
         channel = self.get_option("channel_id")
 
         integration = self.get_integration()
