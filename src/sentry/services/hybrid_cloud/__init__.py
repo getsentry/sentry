@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import datetime
 import inspect
 import logging
 import threading
@@ -13,6 +14,7 @@ from typing import (
     Dict,
     Generator,
     Generic,
+    Iterable,
     List,
     Mapping,
     Type,
@@ -33,20 +35,82 @@ from sentry.utils.pagination_factory import (
 
 logger = logging.getLogger(__name__)
 
+import pydantic
+
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.api.base import Endpoint
 T = TypeVar("T")
 
+ArgumentDict = Mapping[str, Any]
+
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
+
+DEFAULT_DATE = datetime.datetime(2000, 1, 1)
 
 
 class InterfaceWithLifecycle(ABC):
     @abstractmethod
     def close(self) -> None:
         pass
+
+
+class RpcModel(pydantic.BaseModel):
+    """A serializable object that may be part of an RPC schema."""
+
+    @classmethod
+    def get_field_names(cls) -> Iterable[str]:
+        return iter(cls.__fields__.keys())
+
+    @classmethod
+    def serialize_by_field_name(
+        cls,
+        obj: Any,
+        name_transform: Callable[[str], str] | None = None,
+        value_transform: Callable[[Any], Any] | None = None,
+    ) -> RpcModel:
+        """Serialize an object with field names matching this model class.
+
+        This class method may be called only on an instantiable subclass. The
+        returned value is an instance of that subclass. The optional "transform"
+        arguments, if present, modify each field name or attribute value before it is
+        passed through to the serialized object. Raises AttributeError if the
+        argument does not have an attribute matching each field name (after
+        transformation, if any) of this RpcModel class.
+
+        This method should not necessarily be used for every serialization operation.
+        It is useful for model types, such as "flags" objects, where new fields may
+        be added in the future and we'd like them to be serialized automatically. For
+        more stable or more complex models, it is more suitable to list the fields
+        out explicitly in a constructor call.
+        """
+
+        fields = {}
+
+        for rpc_field_name in cls.get_field_names():
+            if name_transform is not None:
+                obj_field_name = name_transform(rpc_field_name)
+            else:
+                obj_field_name = rpc_field_name
+
+            try:
+                value = getattr(obj, obj_field_name)
+            except AttributeError as e:
+                msg = (
+                    f"While serializing to {cls.__name__}, could not extract "
+                    f"{obj_field_name!r} from {type(obj).__name__}"
+                )
+                if name_transform is not None:
+                    msg += f" (transformed from {rpc_field_name!r})"
+                raise AttributeError(msg) from e
+
+            if value_transform is not None:
+                value = value_transform(value)
+            fields[rpc_field_name] = value
+
+        return cls(**fields)
 
 
 ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)

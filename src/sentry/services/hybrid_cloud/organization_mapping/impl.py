@@ -1,5 +1,4 @@
-from dataclasses import fields
-from typing import Optional
+from typing import Optional, cast
 
 from django.db import transaction
 
@@ -52,12 +51,9 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
     def serialize_organization_mapping(
         self, org_mapping: OrganizationMapping
     ) -> RpcOrganizationMapping:
-        args = {
-            field.name: getattr(org_mapping, field.name)
-            for field in fields(RpcOrganizationMapping)
-            if hasattr(org_mapping, field.name)
-        }
-        return RpcOrganizationMapping(**args)
+        return cast(
+            RpcOrganizationMapping, RpcOrganizationMapping.serialize_by_field_name(org_mapping)
+        )
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         with transaction.atomic():
