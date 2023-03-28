@@ -42,7 +42,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(results) == 1
 
         responses.add(
@@ -81,7 +81,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Hellboy", "channel_id": "nb"}
         )
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(results) == 1
 
         responses.add(
@@ -114,7 +114,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(results) == 1
 
         responses.add(

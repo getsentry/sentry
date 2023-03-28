@@ -47,7 +47,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
 
         assert rule.id == SENTRY_APP_ALERT_ACTION
 
-        futures = list(rule.after(event=event, state=self.get_state()))
+        futures = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(futures) == 1
         assert futures[0].callback is notify_sentry_app
         assert futures[0].kwargs["sentry_app"].id == self.app.id

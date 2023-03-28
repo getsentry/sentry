@@ -123,7 +123,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"targetType": "IssueOwners"})
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(results) == 1
 
     def test_full_integration(self):

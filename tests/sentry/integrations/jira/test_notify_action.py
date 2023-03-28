@@ -76,7 +76,9 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
             content_type="application/json",
         )
 
-        results = list(self.jira_rule.after(event=event, state=self.get_state()))
+        results = list(
+            self.jira_rule.after(event=event, state=self.get_state(), rule=self.jira_rule.rule)
+        )
         assert len(results) == 1
 
         # Trigger rule callback
@@ -156,7 +158,9 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
             data={"provider": self.integration.provider},
         )
 
-        results = list(self.jira_rule.after(event=event, state=self.get_state()))
+        results = list(
+            self.jira_rule.after(event=event, state=self.get_state(), rule=self.jira_rule.rule)
+        )
         assert len(results) == 1
         results[0].callback(event, futures=[])
 

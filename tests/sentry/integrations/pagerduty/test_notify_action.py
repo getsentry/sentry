@@ -53,7 +53,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(results) == 1
 
         responses.add(
@@ -76,7 +76,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_applies_correctly_performance_issue(self):
         event = self.create_performance_issue()
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(results) == 1
 
         responses.add(
@@ -111,7 +111,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         event.occurrence = occurrence
 
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(results) == 1
 
         responses.add(
@@ -203,7 +203,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": integration.id, "service": service.id})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event, state=self.get_state(), rule=rule))
         assert len(results) == 1
 
         responses.add(
