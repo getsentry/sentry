@@ -170,35 +170,7 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    # Decompress and load the recording JSON. This is a performance test. We don't care about the
-    # result but knowing its performance characteristics and the failure rate of this operation
-    # will inform future releases.
-    try:
-        with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
-            decompressed_segment = decompress(recording_segment)
-            parsed_segment_data = json.loads(decompressed_segment, use_rapid_json=True)
-            _report_size_metrics(len(recording_segment), len(decompressed_segment))
-
-        # Emit DOM search metadata to Clickhouse.
-        with transaction.start_child(
-            op="replays.usecases.ingest.parse_and_emit_replay_actions",
-            description="parse_and_emit_replay_actions",
-        ):
-            parse_and_emit_replay_actions(
-                retention_days=message.retention_days,
-                project_id=message.project_id,
-                replay_id=message.replay_id,
-                segment_data=parsed_segment_data,
-            )
-    except Exception:
-        logging.exception(
-            "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
-                message.org_id,
-                message.project_id,
-                message.replay_id,
-                headers["segment_id"],
-            )
-        )
+    handle_replay_clicks(message, headers, recording_segment, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -286,3 +258,37 @@ def decompress(data: bytes) -> bytes:
 def _report_size_metrics(size_compressed: int, size_uncompressed: int) -> None:
     metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
     metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
+
+
+def handle_replay_clicks(
+    message: RecordingIngestMessage,
+    headers: RecordingSegmentHeaders,
+    segment_bytes: bytes,
+    transaction: Span,
+) -> None:
+    try:
+        with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
+            decompressed_segment = decompress(segment_bytes)
+            parsed_segment_data = json.loads(decompressed_segment, use_rapid_json=True)
+            _report_size_metrics(len(segment_bytes), len(decompressed_segment))
+
+        # Emit DOM search metadata to Clickhouse.
+        with transaction.start_child(
+            op="replays.usecases.ingest.parse_and_emit_replay_actions",
+            description="parse_and_emit_replay_actions",
+        ):
+            parse_and_emit_replay_actions(
+                retention_days=message.retention_days,
+                project_id=message.project_id,
+                replay_id=message.replay_id,
+                segment_data=parsed_segment_data,
+            )
+    except Exception:
+        logging.exception(
+            "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
+                message.org_id,
+                message.project_id,
+                message.replay_id,
+                headers["segment_id"],
+            )
+        )
