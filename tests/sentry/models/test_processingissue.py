@@ -197,7 +197,8 @@ class ProcessingIssueTest(TestCase):
     def test_with_release_dist_pair_and_previous_issue_with_same_release_dist(self, release_filter):
         project = self.create_project(name="foo")
         release = self.create_release(version="1.0", project=project)
-        dist = release.add_dist("android")
+        dist_1 = release.add_dist("android")
+        dist_2 = release.add_dist("ios")
 
         scope = "ab"
         object = "cd"
@@ -206,14 +207,14 @@ class ProcessingIssueTest(TestCase):
         raw_event = RawEvent.objects.create(
             project_id=project.id,
             event_id="abc",
-            data=CanonicalKeyDict({"release": release.version, "dist": dist.name}),
+            data=CanonicalKeyDict({"release": release.version, "dist": dist_2.name}),
         )
 
         ProcessingIssue.objects.create(
             project_id=project.id,
             checksum=checksum,
             type=EventError.NATIVE_MISSING_DSYM,
-            data={"release": release.version, "dist": dist.name},
+            data={"release": release.version, "dist": dist_1.name},
         )
 
         manager = ProcessingIssueManager()
@@ -228,7 +229,7 @@ class ProcessingIssueTest(TestCase):
         )
         assert len(issues) == 1
         assert issues[0].data == {
-            "dist": dist.name,
+            "dist": dist_2.name,
             "release": release.version,
         }
 

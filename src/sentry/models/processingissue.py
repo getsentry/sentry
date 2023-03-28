@@ -80,28 +80,6 @@ class ProcessingIssueManager(BaseManager):
         eventstore.bind_nodes(rv, "data")
         return rv, has_more
 
-    @staticmethod
-    def is_release_newer(org_id, release, other_release):
-        if release == other_release:
-            return False
-
-        if other_release is None:
-            return True
-
-        releases = {
-            release.version: float(release.date_added.timestamp())
-            for release in Release.objects.filter(
-                organization_id=org_id, version__in=[release, other_release]
-            )
-        }
-        release_date = releases.get(release)
-        other_release_date = releases.get(other_release)
-
-        if release_date is not None and other_release_date is not None:
-            return release_date > other_release_date
-
-        return False
-
     def record_processing_issue(self, raw_event, scope, object, type, data=None):
         """Records a new processing issue for the given raw event."""
         checksum = get_processing_issue_checksum(scope, object)
@@ -120,26 +98,23 @@ class ProcessingIssueManager(BaseManager):
         issue, created = ProcessingIssue.objects.get_or_create(
             project_id=raw_event.project_id, checksum=checksum, type=type, defaults=dict(data=data)
         )
-        issue.datetime = timezone.now()
 
         if not created:
             prev_release = issue.data.get("release")
-            if release and self.is_release_newer(
+            if Release.is_release_newer_or_equal(
                 raw_event.project.organization.id, release, prev_release
             ):
                 issue.data["release"] = release
-
                 # In case we have a dist, we want to remove it, since we are changing release. Then in the next step
                 # we might either add the dist or not.
                 # This code is put to avoid the edge case in which a newer release comes without a dist and a previous
                 # dist existed.
                 if "dist" in issue.data:
                     issue.data.pop("dist")
-
                 if dist:
                     issue.data["dist"] = dist
 
-        # We want to save the updated data.
+        issue.datetime = timezone.now()
         issue.save()
 
         # In case the issue moved away from unresolved we want to make
