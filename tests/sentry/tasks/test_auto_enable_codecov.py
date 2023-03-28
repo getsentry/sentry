@@ -5,7 +5,7 @@ import responses
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
-from sentry.tasks.auto_enable_codecov import enable_for_organization, schedule_organizations
+from sentry.tasks.auto_enable_codecov import enable_for_org
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 
@@ -13,10 +13,9 @@ from sentry.testutils.helpers import apply_feature_flag_on_cls
 @apply_feature_flag_on_cls("organizations:auto-enable-codecov")
 class AutoEnableCodecovTest(TestCase):
     def setUp(self):
-        self.org_1 = self.create_organization()
-        self.org_2 = self.create_organization()
+        self.organization = self.create_organization()
         self.integration = self.create_integration(
-            organization=self.org_1,
+            organization=self.organization,
             provider="github",
             external_id="id",
         )
@@ -40,12 +39,12 @@ class AutoEnableCodecovTest(TestCase):
     )
     def test_has_codecov_integration(self, mock_get_repositories):
         AuditLogEntry.objects.all().delete()
-        assert not self.org_1.flags.codecov_access.is_set
-        enable_for_organization(self.org_1.id)
+        assert not self.organization.flags.codecov_access.is_set
+        enable_for_org(self.organization.id)
 
         assert mock_get_repositories.call_count == 1
 
-        org = Organization.objects.get(id=self.org_1.id)
+        org = Organization.objects.get(id=self.organization.id)
         assert org.flags.codecov_access
 
         audit = AuditLogEntry.objects.filter(
@@ -59,16 +58,10 @@ class AutoEnableCodecovTest(TestCase):
         return_value={"repositories": [{"full_name": "fakegit/abc"}]},
     )
     def test_no_codecov_integration(self, mock_get_repositories):
-        assert not self.org_1.flags.codecov_access.is_set
-        enable_for_organization(self.org_1.id)
+        assert not self.organization.flags.codecov_access.is_set
+        enable_for_org(self.organization.id)
 
         assert mock_get_repositories.call_count == 1
 
-        org = Organization.objects.get(id=self.org_1.id)
+        org = Organization.objects.get(id=self.organization.id)
         assert not org.flags.codecov_access.is_set
-
-    @patch("sentry.tasks.auto_enable_codecov.enable_for_organization")
-    def test_schedules_for_orgs(self, mock_enable_for_organization):
-        schedule_organizations()
-
-        assert mock_enable_for_organization.call_count == 3
