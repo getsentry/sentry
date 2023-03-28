@@ -17,7 +17,7 @@ CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}"
-CODECOV_TIMEOUT = 10
+CODECOV_TIMEOUT = 5
 
 logger = logging.getLogger(__name__)
 
