@@ -883,7 +883,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
-        "task": "sentry.tasks.auto_enable_codecov",
+        "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30
         "schedule": crontab(minute=30, hour="0"),
         "options": {"expires": 3600},

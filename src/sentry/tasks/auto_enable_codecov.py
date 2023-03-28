@@ -11,15 +11,15 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_enable_codecov",
+    name="sentry.tasks.auto_enable_codecov.enable_for_org",
     queue="auto_enable_codecov",
     max_retries=0,
 )  # type: ignore
-def auto_enable_codecov(dry_run=False) -> None:
+def enable_for_org(dry_run=False) -> None:
     """
     Set the codecov_access flag to True for organizations with a valid Codecov integration.
     """
-    logger.info("Starting task for sentry.tasks.auto_enable_codecov")
+    logger.info("Starting task for sentry.tasks.auto_enable_codecov.enable_for_org")
     for organization in RangeQuerySetWrapper(
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):

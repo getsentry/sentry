@@ -5,7 +5,7 @@ import responses
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
-from sentry.tasks.auto_enable_codecov import auto_enable_codecov
+from sentry.tasks.auto_enable_codecov import enable_for_org
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 
@@ -40,8 +40,8 @@ class AutoEnableCodecovTest(TestCase):
     )
     def test_has_codecov_integration(self, mock_get_repositories):
         AuditLogEntry.objects.all().delete()
-        assert not self.org_1.flags.codecov_access.is_set
-        auto_enable_codecov(self.org_1.id)
+        assert not self.organization.flags.codecov_access.is_set
+        enable_for_org(self.organization.id)
 
         assert mock_get_repositories.call_count == 1
 
@@ -59,8 +59,8 @@ class AutoEnableCodecovTest(TestCase):
         return_value={"repositories": [{"full_name": "fakegit/abc"}]},
     )
     def test_no_codecov_integration(self, mock_get_repositories):
-        assert not self.org_1.flags.codecov_access.is_set
-        auto_enable_codecov(self.org_1.id)
+        assert not self.organization.flags.codecov_access.is_set
+        enable_for_org(self.organization.id)
 
         assert mock_get_repositories.call_count == 1
 
