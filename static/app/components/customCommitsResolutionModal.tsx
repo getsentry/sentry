@@ -78,7 +78,7 @@ function CustomCommitsResolutionModal({
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">
-          {t('Save Changes')}
+          {t('Resolve')}
         </Button>
       </Footer>
     </form>
