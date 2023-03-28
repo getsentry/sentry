@@ -79,7 +79,7 @@ class MonitorDetails extends AsyncView<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>
             {!monitor.lastCheckIn ? (
-              <MonitorOnboarding />
+              <MonitorOnboarding orgId={this.orgSlug} monitor={monitor} />
             ) : (
               <Fragment>
                 <StyledPageFilterBar condensed>
