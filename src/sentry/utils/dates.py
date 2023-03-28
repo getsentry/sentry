@@ -116,7 +116,7 @@ def parse_stats_period(period: str) -> Optional[timedelta]:
             }
         )
     except OverflowError:
-        return None
+        return timedelta.max
 
 
 def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:

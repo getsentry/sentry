@@ -19,4 +19,4 @@ def test_parse_stats_period():
     assert parse_stats_period("20f") is None
     assert parse_stats_period("-1s") is None
     assert parse_stats_period("4w") == datetime.timedelta(weeks=4)
-    assert parse_stats_period("900000000000d") is None
+    assert parse_stats_period("900000000000d") is datetime.timedelta.max
