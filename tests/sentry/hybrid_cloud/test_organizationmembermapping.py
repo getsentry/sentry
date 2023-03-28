@@ -4,7 +4,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
 )
 from sentry.testutils import TransactionTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
 
 
 @control_silo_test(stable=True)
@@ -16,7 +16,6 @@ class OrganizationMappingTest(TransactionTestCase):
             "organization_id": self.organization.id,
             "role": "member",
             "user_id": self.user.id,
-            "email": "mail@testserver.com",
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
@@ -33,7 +32,7 @@ class OrganizationMappingTest(TransactionTestCase):
         )
         assert rpc_orgmember_mapping.role == orgmember_mapping.role == "member"
         assert rpc_orgmember_mapping.user_id == orgmember_mapping.user_id == self.user.id
-        assert rpc_orgmember_mapping.email == orgmember_mapping.email == fields["email"]
+        assert rpc_orgmember_mapping.email is orgmember_mapping.email is None
         assert rpc_orgmember_mapping.inviter_id == orgmember_mapping.inviter_id == inviter.id
         assert (
             rpc_orgmember_mapping.invite_status
@@ -82,7 +81,6 @@ class OrganizationMappingTest(TransactionTestCase):
         fields = {
             "organization_id": self.organization.id,
             "role": "member",
-            "user_id": self.user.id,
             "email": "mail@testserver.com",
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
@@ -90,7 +88,10 @@ class OrganizationMappingTest(TransactionTestCase):
         organizationmember_mapping_service.create_mapping(**fields)
         assert (
             OrganizationMemberMapping.objects.filter(
-                organization_id=self.organization.id, user_id=self.user.id, role="member"
+                organization_id=self.organization.id,
+                user_id=None,
+                email="mail@testserver.com",
+                role="member",
             ).count()
             == 1
         )
@@ -104,10 +105,10 @@ class OrganizationMappingTest(TransactionTestCase):
         )
 
         assert not OrganizationMemberMapping.objects.filter(
-            organization_id=self.organization.id, user_id=self.user.id, role="member"
+            organization_id=self.organization.id, email="mail@testserver.com", role="member"
         ).exists()
         orgmember_mapping = OrganizationMemberMapping.objects.get(
-            organization_id=self.organization.id, user_id=self.user.id
+            organization_id=self.organization.id, email="mail@testserver.com"
         )
 
         assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
@@ -117,7 +118,7 @@ class OrganizationMappingTest(TransactionTestCase):
             == self.organization.id
         )
         assert rpc_orgmember_mapping.role == orgmember_mapping.role == next_role
-        assert rpc_orgmember_mapping.user_id == orgmember_mapping.user_id == self.user.id
+        assert rpc_orgmember_mapping.user_id is orgmember_mapping.user_id is None
         assert rpc_orgmember_mapping.email == orgmember_mapping.email == fields["email"]
         assert rpc_orgmember_mapping.inviter_id == orgmember_mapping.inviter_id == inviter.id
         assert (
