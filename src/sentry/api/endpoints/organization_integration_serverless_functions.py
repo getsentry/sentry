@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
+from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -18,12 +18,12 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
 
 
 @region_silo_endpoint
-class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegrationBaseEndpoint):
+class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         """
         Get the list of repository project path configs in an integration
         """
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         install = integration_service.get_installation(
             integration=integration, organization_id=organization.id
@@ -40,7 +40,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         return self.respond(serverless_functions)
 
     def post(self, request: Request, organization, integration_id) -> Response:
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
         install = integration_service.get_installation(
             integration=integration, organization_id=organization.id
         )

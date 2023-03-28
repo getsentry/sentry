@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import options
-from sentry.models import Project, ProjectKey
+from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 
@@ -193,15 +193,12 @@ def get_supported_functions(lambda_client):
 
 
 def get_dsn_for_project(organization_id, project_id):
-    try:
-        project = Project.objects.get(organization_id=organization_id, id=project_id)
-    except Project.DoesNotExist:
-        raise IntegrationError("No valid project")
-
-    enabled_dsn = ProjectKey.get_default(project=project)
+    enabled_dsn = project_key_service.get_project_key(
+        project_id=project_id, role=ProjectKeyRole.store
+    )
     if not enabled_dsn:
         raise IntegrationError("Project does not have DSN enabled")
-    return enabled_dsn.get_dsn(public=True)
+    return enabled_dsn.dsn_public
 
 
 def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_left=3):
