@@ -235,6 +235,23 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert list(resp.data.keys()) == ["id"]
             assert UUID(resp.data["id"])
 
+    def test_with_dsn_auth_and_slug(self):
+        monitor = self._create_monitor(slug="my-test-monitor")
+
+        for path_func in self._get_path_functions():
+            path = path_func(monitor.slug)
+
+            resp = self.client.post(
+                path,
+                {"status": "ok"},
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 201, resp.content
+
+            # DSN auth should only return id
+            assert list(resp.data.keys()) == ["id"]
+            assert UUID(resp.data["id"])
+
     def test_with_dsn_auth_invalid_project(self):
         project2 = self.create_project()
 
