@@ -13,10 +13,9 @@ from sentry.testutils.helpers import apply_feature_flag_on_cls
 @apply_feature_flag_on_cls("organizations:auto-enable-codecov")
 class AutoEnableCodecovTest(TestCase):
     def setUp(self):
-        self.org_1 = self.create_organization()
-        self.org_2 = self.create_organization()
+        self.organization = self.create_organization()
         self.integration = self.create_integration(
-            organization=self.org_1,
+            organization=self.organization,
             provider="github",
             external_id="id",
         )
@@ -45,7 +44,7 @@ class AutoEnableCodecovTest(TestCase):
 
         assert mock_get_repositories.call_count == 1
 
-        org = Organization.objects.get(id=self.org_1.id)
+        org = Organization.objects.get(id=self.organization.id)
         assert org.flags.codecov_access
 
         audit = AuditLogEntry.objects.filter(
@@ -64,5 +63,5 @@ class AutoEnableCodecovTest(TestCase):
 
         assert mock_get_repositories.call_count == 1
 
-        org = Organization.objects.get(id=self.org_1.id)
+        org = Organization.objects.get(id=self.organization.id)
         assert not org.flags.codecov_access.is_set

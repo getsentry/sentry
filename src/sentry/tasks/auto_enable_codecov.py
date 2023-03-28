@@ -36,7 +36,7 @@ def enable_for_org(dry_run=False) -> None:
                         "codecov_access": organization.flags.codecov_access,
                     },
                 )
-                return
+                continue
 
             has_integration, error = has_codecov_integration(organization)
             if not has_integration:
@@ -44,7 +44,7 @@ def enable_for_org(dry_run=False) -> None:
                     "No codecov integration exists for organization",
                     extra={"organization_id": organization.id, "error": error},
                 )
-                return
+                continue
 
             organization.flags.codecov_access = True
             organization.save()
