@@ -92,7 +92,7 @@ class GetSendToMemberTest(_ParticipantsTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            actor=RpcActor.from_rpc_user(self.user),
             project=self.project,
         )
 
@@ -133,13 +133,13 @@ class GetSendToTeamTest(_ParticipantsTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            team=self.team,
+            actor=RpcActor.from_orm_team(self.team),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
 
     def get_send_to_team(
@@ -161,7 +161,7 @@ class GetSendToTeamTest(_ParticipantsTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.project,
         )
 
@@ -172,7 +172,7 @@ class GetSendToTeamTest(_ParticipantsTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            actor=RpcActor.from_orm_team(self.team),
         )
         assert self.get_send_to_team() == {
             ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
@@ -182,7 +182,7 @@ class GetSendToTeamTest(_ParticipantsTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            team=self.team,
+            actor=RpcActor.from_orm_team(self.team),
         )
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
@@ -267,7 +267,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            team=self.team2,
+            actor=RpcActor.from_orm_team(self.team2),
         )
 
         self.integration.add_organization(self.project.organization, self.user)
@@ -298,7 +298,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.project,
         )
 
@@ -323,7 +323,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user2,
+            actor=RpcActor.from_orm_user(self.user2),
             project=self.project,
         )
         self.assert_recipients_are(
@@ -340,7 +340,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user2,
+            actor=RpcActor.from_orm_user(self.user2),
         )
 
         # Per-project setting.
@@ -348,7 +348,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user2,
+            actor=RpcActor.from_orm_user(self.user2),
             project=self.project,
         )
 
@@ -634,50 +634,56 @@ class GetOwnersCase(_ParticipantsTest):
     # If no event to match, we assume fallthrough is enabled
     def test_get_owners_no_event(self):
         self.create_ownership(self.project)
-        recipients = get_owners(project=self.project)
+        recipients, outcome = get_owners(project=self.project)
         self.assert_recipients(
             expected=[self.user_1, self.user_2, self.user_3], received=recipients
         )
+        assert outcome == "everyone"
 
     # If no match, and fallthrough is disabled
     def test_get_owners_empty(self):
         self.create_ownership(self.project)
         event = self.create_event(self.project)
-        recipients = get_owners(project=self.project, event=event)
+        recipients, outcome = get_owners(project=self.project, event=event)
         self.assert_recipients(expected=[], received=recipients)
+        assert outcome == "empty"
 
     # If no match, and fallthrough is enabled
     def test_get_owners_everyone(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
-        recipients = get_owners(project=self.project, event=event)
+        recipients, outcome = get_owners(project=self.project, event=event)
         self.assert_recipients(
             expected=[self.user_1, self.user_2, self.user_3], received=recipients
         )
+        assert outcome == "everyone"
 
     # If matched, and all-recipients flag
     def test_get_owners_match(self):
         with self.feature("organizations:notification-all-recipients"):
             self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
             event = self.create_event(self.project)
-            recipients = get_owners(project=self.project, event=event)
+            recipients, outcome = get_owners(project=self.project, event=event)
             self.assert_recipients(
                 expected=[self.team_1, self.team_2, self.user_1], received=recipients
             )
+            assert outcome == "match"
 
     # If matched, and no all-recipients flag
     def test_get_owners_single_participant(self):
         self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
         event = self.create_event(self.project)
-        recipients = get_owners(project=self.project, event=event)
+        recipients, outcome = get_owners(project=self.project, event=event)
         self.assert_recipients(expected=[self.user_1], received=recipients)
+        assert outcome == "match"
 
     # If matched, we don't look at the fallthrough flag
     def test_get_owners_match_ignores_fallthrough(self):
         self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3], True)
         event_2 = self.create_event(self.project)
-        recipients_2 = get_owners(project=self.project, event=event_2)
+        recipients_2, outcome = get_owners(project=self.project, event=event_2)
         self.assert_recipients(expected=[self.user_1], received=recipients_2)
+        assert outcome == "match"
 
     def test_get_owner_reason(self):
         self.create_ownership(self.project, [], True)
@@ -761,7 +767,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                actor=RpcActor.from_orm_user(user),
             )
 
     def test_feature_off_no_owner(self):
@@ -864,7 +870,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                actor=RpcActor.from_orm_user(user),
             )
 
         event = self.store_event("admin.lol", self.project)
@@ -889,7 +895,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                actor=RpcActor.from_orm_user(user),
             )
 
         event = self.store_event("admin.lol", self.project)
@@ -916,7 +922,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                actor=RpcActor.from_orm_user(user),
             )
 
         event = self.store_event("admin.lol", self.project)
