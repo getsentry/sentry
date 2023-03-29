@@ -31,6 +31,7 @@ describe('normalizeUrl', function () {
       ['/settings/sentry/members/', '/settings/members/'],
       ['/settings/sentry/members/3/', '/settings/members/3/'],
       ['/settings/sentry/teams/peeps/', '/settings/teams/peeps/'],
+      ['/settings/sentry/teams/payments/', '/settings/teams/payments/'],
       ['/settings/sentry/billing/receipts/', '/settings/billing/receipts/'],
       [
         '/settings/acme/developer-settings/release-bot/',
@@ -59,9 +60,18 @@ describe('normalizeUrl', function () {
         '/getting-started/project-slug/python',
       ],
       ['/settings/projects/python/filters/', '/settings/projects/python/filters/'],
+      ['/settings/projects/onboarding/abc123/', '/settings/projects/onboarding/abc123/'],
+      [
+        '/settings/projects/join-request/abc123/',
+        '/settings/projects/join-request/abc123/',
+      ],
       [
         '/settings/projects/python/filters/discarded/',
         '/settings/projects/python/filters/discarded/',
+      ],
+      [
+        '/settings/projects/getting-started/abc123/',
+        '/settings/projects/getting-started/abc123/',
       ],
       // Team settings links in breadcrumbs can be pre-normalized from breadcrumbs
       ['/settings/teams/peeps/', '/settings/teams/peeps/'],

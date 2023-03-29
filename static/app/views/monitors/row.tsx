@@ -93,9 +93,12 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
     <Fragment>
       <MonitorName>
         <MonitorBadge status={monitor.status} />
-        <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
-          {monitor.name}
-        </Link>
+        <NameAndSlug>
+          <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
+            {monitor.name}
+          </Link>
+          <MonitorSlug>{monitor.slug}</MonitorSlug>
+        </NameAndSlug>
       </MonitorName>
       <StatusColumn>
         <TextOverflow>
@@ -112,9 +115,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
             : null}
         </TextOverflow>
       </StatusColumn>
-      <ScheduleColumn>
-        <TextOverflow>{scheduleAsText(monitor.config)}</TextOverflow>
-      </ScheduleColumn>
+      <ScheduleColumn>{scheduleAsText(monitor.config)}</ScheduleColumn>
       <NextCheckin>
         {monitor.nextCheckIn &&
         monitor.status !== MonitorStatus.DISABLED &&
@@ -154,6 +155,17 @@ const MonitorName = styled('div')`
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const NameAndSlug = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+`;
+
+const MonitorSlug = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
 `;
 
 const StatusColumn = styled('div')`

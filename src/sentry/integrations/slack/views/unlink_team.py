@@ -4,7 +4,8 @@ from rest_framework.response import Response
 
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import ExternalActor, Identity, Integration
+from sentry.models import ExternalActor, Integration
+from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -56,8 +57,8 @@ class SlackUnlinkTeamView(BaseView):
         channel_id = params["channel_id"]
 
         external_teams = ExternalActor.objects.filter(
-            organization=organization,
-            integration=integration,
+            organization_id=organization.id,
+            integration_id=integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name=channel_name,
             external_id=channel_id,
@@ -78,7 +79,9 @@ class SlackUnlinkTeamView(BaseView):
                 },
             )
 
-        if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
+        if not identity_service.get_identity(
+            provider_id=idp.id, identity_ext_id=params["slack_id"]
+        ):
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
         # Someone may have accidentally added multiple teams so unlink them all.

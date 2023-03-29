@@ -10,7 +10,6 @@ from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEn
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
@@ -328,7 +327,6 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
 
-@apply_feature_flag_on_cls("organizations:codecov-stacktrace-integration")
 class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)

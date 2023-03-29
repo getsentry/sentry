@@ -30,7 +30,7 @@ describe('CustomCommitsResolutionModal', function () {
 
     expect(commitsMock).toHaveBeenCalled();
     await selectEvent.select(screen.getByText('e.g. d86b832'), 'f7f395d14b2f');
-    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
     expect(onSelected).toHaveBeenCalledWith({
       inCommit: {

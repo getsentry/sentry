@@ -107,9 +107,16 @@ def parse_stats_period(period: str) -> Optional[timedelta]:
     value = int(value)
     if not unit:
         unit = "s"
-    return timedelta(
-        **{{"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[unit]: value}
-    )
+    try:
+        return timedelta(
+            **{
+                {"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[
+                    unit
+                ]: value
+            }
+        )
+    except OverflowError:
+        return timedelta.max
 
 
 def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:
