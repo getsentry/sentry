@@ -136,6 +136,15 @@ def get_user_actions(
                     }
                 )
 
+        # look for request / response breadcrumbs and report metrics on them
+        if event.get("type") == 5 and event.get("data", {}).get("tag") == "performanceSpan":
+            if event["data"].get("payload", {}).get("op") == "resource.fetch":
+                # we can assume if the op matches the rest of the keys are defined
+                request_size = event["data"]["payload"]["data"]["request"]["size"]
+                response_size = event["data"]["payload"]["data"]["response"]["size"]
+                metrics.timing("replays.usecases.ingest.request_body_size", request_size)
+                metrics.timing("replays.usecases.ingest.response_body_size", response_size)
+
     return result
 
 
