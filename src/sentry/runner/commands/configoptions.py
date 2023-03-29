@@ -4,6 +4,8 @@ import yaml
 from sentry import options
 from sentry.runner.decorators import configuration
 
+# todo: implement dryrun
+
 
 @click.group()
 @configuration
@@ -29,13 +31,15 @@ def fetchAll():
 
 @configoptions.command()
 @click.argument("filename", required=True)
+# @click.option(
+#     "--dryrun", default=False , required=False, help="Output exactly what changes would be made and in which order."
+# )
 @configuration
 def patch(filename):
     "Updates, gets, and deletes options that are each subsectioned in the given file."
     with open(filename) as stream:
         # todo: add more file validation?
-        file = yaml.safe_load(stream)
-        data = file["data"]
+        data = yaml.safe_load(stream)
         keysToFetch = data["fetch"]
         keysToUpdate = data["update"]
         keysToDelete = data["delete"]
@@ -52,13 +56,14 @@ def patch(filename):
 
 @configoptions.command()
 @click.argument("filename", required=True)
+# @click.option(
+#     "--dryrun", default=False , required=False, help="Output exactly what changes would be made and in which order."
+# )
 @configuration
 def strict(filename):
     "Deletes everything not in the uploaded file, and applies all of the changes in the file."
     with open(filename) as stream:
-        # todo: add more file validation?
-        file = yaml.safe_load(stream)
-        data = file["data"]
+        data = yaml.safe_load(stream)
         file_keys = (key[0] for key in data)
 
         db_keys = (opt.name for opt in options.all())
