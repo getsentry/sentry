@@ -45,12 +45,12 @@ def generate_normalized_output(
         )
         item["user"] = {
             "id": item.pop("user_id", None),
-            "name": item.pop("user_name", None),
+            "username": item.pop("user_username", None),
             "email": item.pop("user_email", None),
             "ip": item.pop("user_ip", None),
         }
         item["user"]["display_name"] = (
-            item["user"]["name"]
+            item["user"]["username"]
             or item["user"]["email"]
             or item["user"]["id"]
             or item["user"]["ip"]

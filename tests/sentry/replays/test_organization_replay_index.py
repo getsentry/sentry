@@ -153,7 +153,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             assert len(response_data["data"][0]["user"]) == 5
             assert "id" in response_data["data"][0]["user"]
-            assert "name" in response_data["data"][0]["user"]
+            assert "username" in response_data["data"][0]["user"]
             assert "email" in response_data["data"][0]["user"]
             assert "ip" in response_data["data"][0]["user"]
             assert "display_name" in response_data["data"][0]["user"]
@@ -512,7 +512,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "duration:>15",
                 "user.id:123",
                 "user:username123",
-                "user.name:username123",
+                "user.username:username123",
                 "user.email:username@example.com",
                 "user.email:*@example.com",
                 "user.ip:127.0.0.1",
@@ -727,7 +727,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "device.family",
                 "device.model",
                 "user.id",
-                "user.name",
+                "user.username",
                 "user.email",
                 "activity",
             ]

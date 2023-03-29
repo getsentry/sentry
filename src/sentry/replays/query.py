@@ -405,7 +405,7 @@ class ReplayQueryConfig(QueryConfig):
     url = ListField(query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
-    user_name = String(field_alias="user.name", query_alias="user_name")
+    user_username = String(field_alias="user.username")
     user_ip_address = String(field_alias="user.ip", query_alias="user_ip")
     os_name = String(field_alias="os.name", query_alias="os_name")
     os_version = String(field_alias="os.version", query_alias="os_version")
@@ -420,7 +420,7 @@ class ReplayQueryConfig(QueryConfig):
 
     # These are object-type fields.  User's who query by these fields are likely querying by
     # the "name" value.
-    user = String(field_alias="user", query_alias="user_name")
+    user = String(field_alias="user", query_alias="user_username")
     os = String(field_alias="os", query_alias="os_name")
     browser = String(field_alias="browser", query_alias="browser_name")
     device = String(field_alias="device", query_alias="device_name")
@@ -554,7 +554,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "count_segments": ["count_segments"],
     "is_archived": ["is_archived"],
     "activity": ["activity", "count_errors", "count_urls"],
-    "user": ["user_id", "user_email", "user_name", "user_ip"],
+    "user": ["user_id", "user_email", "user_username", "user_ip"],
     "os": ["os_name", "os_version"],
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
@@ -563,7 +563,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
     "user.email": ["user_email"],
-    "user.name": ["user_name"],
+    "user.username": ["user_username"],
     "user.ip": ["user_ip"],
     "os.name": ["os_name"],
     "os.version": ["os_version"],
@@ -651,7 +651,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     "dist": take_any_from_aggregation(column_name="dist"),
     "user_id": take_any_from_aggregation(column_name="user_id"),
     "user_email": take_any_from_aggregation(column_name="user_email"),
-    "user_name": take_any_from_aggregation(column_name="user_name"),
+    "user_username": take_any_from_aggregation(column_name="user_name", alias="user_username"),
     "user_ip": Function(
         "IPv4NumToString",
         parameters=[take_any_from_aggregation(column_name="ip_address_v4", aliased=False)],
