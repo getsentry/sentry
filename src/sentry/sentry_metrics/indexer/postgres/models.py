@@ -77,7 +77,7 @@ class PerfStringIndexer(BaseIndexer):
         app_label = "sentry"
         constraints = [
             models.UniqueConstraint(
-                fields=("string", "organization_id"), name="perf_unique_org_string"
+                fields=["string", "organization_id"], name="perf_unique_org_string"
             ),
         ]
 
