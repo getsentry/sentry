@@ -228,7 +228,7 @@ def mock_replay_click(
                                 "testid": kwargs.pop("testid", ""),
                                 "aria_label": kwargs.pop("aria_label", ""),
                                 "title": kwargs.pop("title", ""),
-                                "event_hash": uuid.uuid4().hex,
+                                "event_hash": str(uuid.uuid4()),
                                 "timestamp": sec(timestamp),
                             }
                         ],
