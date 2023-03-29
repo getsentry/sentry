@@ -37,7 +37,7 @@ def assert_expected_response(
     """Assert a received response matches what was expected."""
     # Compare the response structure and values to the expected response.
     for key, value in expected_response.items():
-        assert key in response, key
+        assert key in response, f"key: {key}"
         response_value = response.pop(key)
 
         if isinstance(response_value, dict):
@@ -46,7 +46,7 @@ def assert_expected_response(
                 if isinstance(v, list):
                     assert sorted(response_value[k]) == sorted(v)
                 else:
-                    assert response_value[k] == v
+                    assert response_value[k] == v, f"value: {v}, expected: {response_value[k]}"
         elif isinstance(response_value, list):
             assert len(response_value) == len(value), f'"{response_value}" "{value}"'
             for item in response_value:
@@ -106,7 +106,7 @@ def mock_expected_response(
             "id": kwargs.pop("user_id", "123"),
             "display_name": kwargs.pop("user_display_name", "username"),
             "email": kwargs.pop("user_email", "username@example.com"),
-            "name": kwargs.pop("user_name", "username"),
+            "username": kwargs.pop("user_name", "username"),
             "ip": kwargs.pop("user_ip", "127.0.0.1"),
         },
         "tags": kwargs.pop("tags", {}),
