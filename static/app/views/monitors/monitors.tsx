@@ -31,7 +31,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {MonitorRow} from './row';
+import {MonitorRow} from './components/row';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
