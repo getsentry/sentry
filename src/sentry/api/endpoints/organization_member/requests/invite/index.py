@@ -12,6 +12,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
 )
@@ -78,15 +79,14 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         result = serializer.validated_data
 
         with transaction.atomic():
-            om = OrganizationMember.objects.create(
+            rpc_org_member = organization_service.add_organization_member(
                 organization=organization,
                 email=result["email"],
                 role=result["role"],
                 inviter_id=request.user.id,
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
-
-            organizationmember_mapping_service.create_with_organization_member(om)
+            om = OrganizationMember.objects.get(id=rpc_org_member.id)
 
             # Do not set team-roles when inviting a member
             if "teams" in result or "teamRoles" in result:
@@ -102,11 +102,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 data=om.get_audit_log_data(),
                 event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
             )
-
-            outbox = OrganizationMember.outbox_for_update(
-                org_id=organization.id, org_member_id=om.id
-            )
-            outbox.save()
 
         async_send_notification(InviteRequestNotification, om, request.user)
 
