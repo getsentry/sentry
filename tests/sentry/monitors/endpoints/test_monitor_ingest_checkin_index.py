@@ -219,10 +219,27 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 == "Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+"
             )
 
-    def test_with_dsn_auth(self):
+    def test_with_dsn_auth_and_guid(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
             path = path_func(monitor.guid)
+
+            resp = self.client.post(
+                path,
+                {"status": "ok"},
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 201, resp.content
+
+            # DSN auth should only return id
+            assert list(resp.data.keys()) == ["id"]
+            assert UUID(resp.data["id"])
+
+    def test_with_dsn_auth_and_slug(self):
+        monitor = self._create_monitor(slug="my-test-monitor")
+
+        for path_func in self._get_path_functions():
+            path = path_func(monitor.slug)
 
             resp = self.client.post(
                 path,
@@ -271,7 +288,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         path = reverse(self.endpoint, args=[monitor.slug])
         resp = self.client.post(path, **self.token_auth_headers)
 
-        assert resp.status_code == 403
+        assert resp.status_code == 404
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()

@@ -825,7 +825,7 @@ class AuthHelper(Pipeline):
         self.disable_2fa_required()
 
         self.provider_model = AuthProvider.objects.create(
-            organization=self.organization, provider=self.provider.key, config=config
+            organization_id=self.organization.id, provider=self.provider.key, config=config
         )
 
         self.auth_handler(identity).handle_attach_identity(om)

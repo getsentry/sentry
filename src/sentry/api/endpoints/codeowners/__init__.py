@@ -6,16 +6,15 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
+from sentry.utils.codeowners import HIGHER_MAX_RAW_LENGTH, MAX_RAW_LENGTH
 
-# Max accepted string length of the CODEOWNERS file
-MAX_RAW_LENGTH = 100_000
-HIGHER_MAX_RAW_LENGTH = 3_000_000
+from .analytics import *  # NOQA
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
@@ -32,8 +31,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
             "organizations:scaleable-codeowners-search",
             self.context["project"].organization,
         ):
-            return HIGHER_MAX_RAW_LENGTH
-        return MAX_RAW_LENGTH
+            return int(HIGHER_MAX_RAW_LENGTH)
+        # typecast needed for typing, though these will always be ints
+        return int(MAX_RAW_LENGTH)
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         # If it already exists, set default attrs with existing values
@@ -54,6 +54,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         existing_raw = self.instance.raw if self.instance else ""
         max_length = self.get_max_length()
         if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
+            analytics.record(
+                "codeowners.max_length_exceeded",
+                organization_id=self.context["project"].organization.id,
+            )
             raise serializers.ValidationError(
                 {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
