@@ -169,7 +169,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    config = serializers.JSONField(required=False, allow_null=True)
+    providerConfig = serializers.JSONField(required=False, allow_null=True)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -382,22 +382,17 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        # both provider and config required to configure provider
-        if "provider" in data and "config" in data:
+        # both provider and providerConfig required to configure provider
+        if "provider" in data and "providerConfig" in data:
             provider_name = data["provider"]
-            config = data["config"]
-            try:
-                provider = AuthProvider.objects.get(organization=org)
-                provider.provider = provider_name
-                provider.config = config
-                provider.save(update_fields=["provider", "config"])
-            except AuthProvider.DoesNotExist:
-                AuthProvider.objects.create(
-                    provider=provider_name, organization=org, organization_id=org.id, config=config
-                )
-        elif "provider" in data or "config" in data:
+            provider_config = data["providerConfig"]
+            AuthProvider.objects.update_or_create(
+                organization=org,
+                defaults={"provider": provider_name, "config": provider_config},
+            )
+        elif "provider" in data or "providerConfig" in data:
             raise serializers.ValidationError(
-                "Both provider and config are required to configure provider"
+                "Both provider and providerConfig are required to configure provider"
             )
 
         org_tracked_field = {
