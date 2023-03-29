@@ -73,7 +73,7 @@ def report_pydantic_type_validation_error(
                 "errors": str(errors),
             },
         )
-        sentry_sdk.capture_message("Pydantic type validation error")
+        sentry_sdk.capture_exception(TypeError("Pydantic type validation error"))
 
 
 def _hack_pydantic_type_validation() -> None:
