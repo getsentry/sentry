@@ -89,7 +89,7 @@ def _hack_pydantic_type_validation() -> None:
 
     See https://github.com/pydantic/pydantic/issues/897
 
-    TODO: Remove this kludge when we are reasonable confident it is no longer
+    TODO: Remove this kludge when we are reasonably confident it is no longer
           producing any warnings
     """
 
