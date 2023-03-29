@@ -8,13 +8,12 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {PanelTable} from 'sentry/components/panels';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType} from 'sentry/types';
-import {Crumb} from 'sentry/types/breadcrumbs';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {Breadcrumb} from './breadcrumb';
@@ -31,7 +30,7 @@ type Props = Pick<
   React.ComponentProps<typeof Breadcrumb>,
   'event' | 'organization' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
 > & {
-  breadcrumbs: Crumb[];
+  breadcrumbs: BreadcrumbWithMeta[];
   emptyMessage: Pick<
     React.ComponentProps<typeof PanelTable>,
     'emptyMessage' | 'emptyAction'
@@ -50,9 +49,6 @@ function Breadcrumbs({
   emptyMessage,
 }: Props) {
   const [scrollbarSize, setScrollbarSize] = useState(0);
-  const entryIndex = event.entries.findIndex(
-    entry => entry.type === EntryType.BREADCRUMBS
-  );
 
   const listRef = useRef<List>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -81,8 +77,8 @@ function Breadcrumbs({
   });
 
   function renderRow({index, key, parent, style}: ListRowProps) {
-    const breadcrumb = breadcrumbs[index];
-    const isLastItem = breadcrumbs[0].id === breadcrumb.id;
+    const {breadcrumb, meta} = breadcrumbs[index];
+    const isLastItem = index === breadcrumbs.length - 1;
     const {height} = style;
     return (
       <CellMeasurer
@@ -100,7 +96,7 @@ function Breadcrumbs({
             organization={organization}
             searchTerm={searchTerm}
             breadcrumb={breadcrumb}
-            meta={event._meta?.entries?.[entryIndex]?.data?.values?.[index]}
+            meta={meta}
             event={event}
             relativeTime={relativeTime}
             displayRelativeTime={displayRelativeTime}

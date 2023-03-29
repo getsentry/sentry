@@ -1,3 +1,4 @@
+import {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {Organization} from 'sentry/types';
 import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
@@ -11,7 +12,7 @@ type Props = {
   event: Event;
   organization: Organization;
   searchTerm: string;
-  meta?: Record<any, any>;
+  meta?: BreadcrumbMeta;
 };
 
 export function Data({breadcrumb, event, organization, searchTerm, meta}: Props) {
