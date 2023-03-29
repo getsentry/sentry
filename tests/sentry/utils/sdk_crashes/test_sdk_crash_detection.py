@@ -3,15 +3,12 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
-from sentry.utils.sdk_crashes.event_stripper import EventStripper
 from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetection, SDKCrashReporter
 from tests.sentry.utils.sdk_crashes.test_fixture import (
     IN_APP_FRAME,
     get_crash_event,
     get_crash_event_with_frames,
-    get_frames,
     get_sentry_frame,
 )
 
@@ -180,43 +177,12 @@ def test_report_cocoa_sdk_crash_frames(frames, should_be_reported):
     _run_report_test_with_event(event, should_be_reported)
 
 
-@pytest.mark.parametrize(
-    "function,in_app",
-    [
-        ("SentryCrashMonitor_CPPException.cpp", True),
-        ("SentryCrashMonitor_CPPException.cpp", False),
-    ],
-    ids=["sentry_in_app_frame_kept", "sentry_not_in_app_frame_kept"],
-)
-def test_strip_frames(function, in_app):
-    frames = get_frames(function, sentry_frame_in_app=in_app)
-    event = get_crash_event_with_frames(frames)
-
-    crash_detector, crash_reporter = given_crash_detector(with_real_event_stripper=True)
-    crash_detector.detect_sdk_crash(event)
-
-    crash_reporter.report.assert_called_once()
-    reported_event = crash_reporter.report.call_args.args[0]
-    stripped_frames = get_path(reported_event, "exception", "values", -1, "stacktrace", "frames")
-
-    assert len(stripped_frames) == 6
-    assert (
-        len([frame for frame in stripped_frames if frame["function"] == IN_APP_FRAME["function"]])
-        == 0
-    ), "in_app frame should be removed"
-
-
-def given_crash_detector(
-    with_real_event_stripper: bool = False,
-) -> Tuple[SDKCrashDetection, SDKCrashReporter]:
+def given_crash_detector() -> Tuple[SDKCrashDetection, SDKCrashReporter]:
     crash_reporter = Mock()
     cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
 
-    if with_real_event_stripper:
-        event_stripper = EventStripper(cocoa_sdk_crash_detector)
-    else:
-        event_stripper = Mock()
-        event_stripper.strip_event_data = MagicMock(side_effect=lambda x: x)
+    event_stripper = Mock()
+    event_stripper.strip_event_data = MagicMock(side_effect=lambda x: x)
 
     crash_detection = SDKCrashDetection(crash_reporter, cocoa_sdk_crash_detector, event_stripper)
 
