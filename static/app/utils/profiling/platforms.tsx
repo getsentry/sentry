@@ -34,6 +34,10 @@ export function getDocsPlatformSDKForPlatform(
     return 'node';
   }
 
+  if (platform === 'javascript-nextjs') {
+    return 'node';
+  }
+
   if (platform.startsWith('python')) {
     return 'python';
   }
