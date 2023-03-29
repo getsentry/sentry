@@ -70,8 +70,6 @@ _DEFAULT_DAEMONS = {
         "sentry",
         "run",
         "query-subscription-consumer",
-        "--commit-batch-size",
-        "1",
         "--force-offset-reset",
         "latest",
     ],
