@@ -278,7 +278,7 @@ const config: Config.InitialOptions = {
       init: {
         // jest project under Sentry organization (dev productivity team)
         dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
-        // Use production env to reduce sampling on production branch
+        // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'production' : 'ci') : 'local',
         tracesSampleRate: CI ? 1 : 0.5,
         profilesSampleRate: 0.1,
