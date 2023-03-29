@@ -18,6 +18,7 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.decoder.base import ValidationError
 from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
@@ -97,8 +98,6 @@ class IndexerBatch:
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
             try:
                 parsed_payload = json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
-                if self.__input_codec:
-                    self.__input_codec.validate(parsed_payload)
                 self.parsed_payloads_by_offset[partition_offset] = parsed_payload
             except rapidjson.JSONDecodeError:
                 self.skipped_offsets.add(partition_offset)
@@ -108,6 +107,18 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
+
+            try:
+                if self.__input_codec:
+                    self.__input_codec.validate(parsed_payload)
+            except ValidationError:
+                # For now while this is still experimental, those errors are
+                # not supposed to be fatal.
+                logger.warn(
+                    "process_messages.invalid_schema",
+                    extra={"payload_value": str(msg.payload.value)},
+                    exc_info=True,
+                )
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
