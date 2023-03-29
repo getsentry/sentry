@@ -278,7 +278,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def add_organization_member(
         self,
         *,
-        organization: RpcOrganization,
+        organization: RpcOrganization | Organization,
         user: RpcUser | None = None,
         email: str | None = None,
         flags: RpcOrganizationMemberFlags | None = None,
