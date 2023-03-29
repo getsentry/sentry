@@ -414,7 +414,7 @@ class GroupUpdateTest(APITestCase):
         # migrating to DRF 3.x.
         with exempt_from_silo_limits():
             api_key = ApiKey.objects.create(
-                organization=self.organization, scope_list=["event:write"]
+                organization_id=self.organization.id, scope_list=["event:write"]
             )
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
