@@ -330,7 +330,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "require2FA": True,
             "allowJoinRequests": False,
             "provider": "github",
-            "config": {"option": "test"},
+            "providerConfig": {"option": "test"},
         }
 
         # needed to set require2FA
@@ -786,30 +786,36 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
     def test_configure_auth_provider(self):
-        config = {"option": "test_one"}
-        config_two = {"option": "test_two"}
-        provider = "provider_one"
-        provider_two = "provider_two"
+        provider_config = {"option": "old"}
+        updated_provider_config = {"option": "updated"}
+        provider = "old_provider"
+        updated_provider = "updated_provider"
         self.get_success_response(
-            self.organization.slug, method="put", provider=provider, config=config
+            self.organization.slug, method="put", provider=provider, providerConfig=provider_config
         )
         auth_provider = AuthProvider.objects.get(organization=self.organization.id)
         assert auth_provider.provider == provider
-        assert auth_provider.config == config
+        assert auth_provider.config == provider_config
 
         self.get_success_response(
-            self.organization.slug, method="put", provider=provider_two, config=config_two
+            self.organization.slug,
+            method="put",
+            provider=updated_provider,
+            providerConfig=updated_provider_config,
         )
         auth_provider = AuthProvider.objects.get(organization=self.organization.id)
-        assert auth_provider.provider == provider_two
-        assert auth_provider.config == config_two
+        assert auth_provider.provider == updated_provider
+        assert auth_provider.config == updated_provider_config
 
     def test_invalid_auth_provider_configuration(self):
         self.get_error_response(
             self.organization.slug, method="put", provider="provider", status_code=400
         )
         self.get_error_response(
-            self.organization.slug, method="put", config={"option": "test"}, status_code=400
+            self.organization.slug,
+            method="put",
+            providerConfig={"option": "test"},
+            status_code=400,
         )
 
 
