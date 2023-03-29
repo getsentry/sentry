@@ -1439,6 +1439,7 @@ class PostProcessGroupPerformanceTest(
             is_new_group_environment=True,
         )
 
+        # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda)
         call_order = []
         mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
         mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
