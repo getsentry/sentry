@@ -286,17 +286,15 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
 }
 
 export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
-  if (isGapSpan(span)) {
-    return undefined;
-  }
-
   const label = span?.description ?? getSpanID(span);
 
-  if (span.op === 'http.client') {
-    try {
-      return decodeURIComponent(label);
-    } catch {
-      // Do nothing
+  if (!isGapSpan(span)) {
+    if (span.op === 'http.client') {
+      try {
+        return decodeURIComponent(label);
+      } catch {
+        // Do nothing
+      }
     }
   }
 
