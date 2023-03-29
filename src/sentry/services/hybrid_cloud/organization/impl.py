@@ -286,6 +286,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         inviter_id: int | None = None,
         invite_status: int | None = None,
     ) -> RpcOrganizationMember:
+        assert (user is None and email) or (user and email is None), "Must set either user or email"
         with transaction.atomic():
             org_member: OrganizationMember = OrganizationMember.objects.create(
                 organization_id=organization.id,
