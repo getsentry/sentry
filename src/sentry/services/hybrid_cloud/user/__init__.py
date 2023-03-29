@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 class RpcAvatar(RpcModel):
     id: int = 0
-    file_id: int = 0
+    file_id: Optional[int] = None
     ident: str = ""
     avatar_type: str = "letter_avatar"
 
