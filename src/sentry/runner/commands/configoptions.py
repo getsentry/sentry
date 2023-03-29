@@ -1,14 +1,9 @@
 import click
-import yaml
 
-from sentry import options
 from sentry.runner.decorators import configuration
-
-# todo: implement dryrun
 
 
 @click.group()
-@configuration
 def configoptions():
     "Manages Sentry options."
 
@@ -23,8 +18,10 @@ def fetch(key):
 
 @configoptions.command()
 @configuration
-def fetchAll():
+def list():
     "Fetches all options."
+    from sentry import options
+
     for opt in options.all():
         click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
 
@@ -40,7 +37,10 @@ def fetchAll():
 @configuration
 def patch(filename, dryrun):
     "Updates, gets, and deletes options that are each subsectioned in the given file."
+    import yaml
+
     if dryrun:
+        click.echo("Dryrun flag on. ")
         with open(filename) as stream:
             data = yaml.safe_load(stream)
             keysToFetch = data["fetch"]
@@ -85,10 +85,12 @@ def patch(filename, dryrun):
 @configuration
 def strict(filename, dryrun):
     "Deletes everything not in the uploaded file, and applies all of the changes in the file."
+    import yaml
+
+    from sentry import options
 
     if dryrun:
         click.echo("Dryrun flag on. ")
-
         with open(filename) as stream:
             data = yaml.safe_load(stream)
             file_keys = (key[0] for key in data)
@@ -104,6 +106,8 @@ def strict(filename, dryrun):
                 click.echo(f"Would update {key}, {val}.")
 
     else:
+        click.echo("testing strict no dryrun.")
+        click.echo(filename)
         with open(filename) as stream:
             data = yaml.safe_load(stream)
             file_keys = (key[0] for key in data)
@@ -120,16 +124,18 @@ def strict(filename, dryrun):
 
 
 def get(key):
+    from sentry import options
     from sentry.options.manager import UnknownOption
 
     try:
         opt = options.lookup_key(key)
-        return f"{opt.name} ({opt.type}) = {options.get(opt.name)}"
+        return f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}"
     except UnknownOption:
         return "unknown option: %s" % key
 
 
 def set(key, val):
+    from sentry import options
     from sentry.options.manager import UnknownOption
 
     try:
@@ -144,6 +150,7 @@ def set(key, val):
 
 
 def delete(key):
+    from sentry import options
     from sentry.options.manager import UnknownOption
 
     try:
