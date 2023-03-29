@@ -155,7 +155,7 @@ Retrieve a collection of replays.
           "email": "john.doe@example.com",
           "id": "30246326",
           "ip_address": "213.164.1.114",
-          "name": "John Doe"
+          "username": "John Doe"
         }
       }
     ]
@@ -218,7 +218,7 @@ Retrieve a single replay instance.
         "email": "john.doe@example.com",
         "id": "30246326",
         "ip": "213.164.1.114",
-        "name": "John Doe"
+        "username": "John Doe"
       }
     }
   }
