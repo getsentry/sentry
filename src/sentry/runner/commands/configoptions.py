@@ -50,7 +50,7 @@ def patch(filename, dryrun):
             for key in keysToFetch:
                 click.echo(f"Key {key} would be fetched.")
 
-            for key, val in keysToUpdate:
+            for key, val in keysToUpdate.items():
                 click.echo(f"Would update {key}, {val}.")
 
             for key in keysToDelete:
@@ -67,7 +67,7 @@ def patch(filename, dryrun):
             for key in keysToFetch:
                 click.echo(get(key))
 
-            for key, val in keysToUpdate:
+            for key, val in keysToUpdate.items():
                 click.echo(set(key, val))
 
             for key in keysToDelete:
@@ -102,7 +102,7 @@ def strict(filename, dryrun):
                 if key not in file_keys:
                     click.echo(f"Would delete {key}.")
 
-            for key, val in data:
+            for key, val in data.items():
                 click.echo(f"Would update {key}, {val}.")
 
     else:
@@ -119,7 +119,7 @@ def strict(filename, dryrun):
                 if key not in file_keys:
                     click.echo(delete(key))
 
-            for key, val in data:
+            for key, val in data.items():
                 click.echo(set(key, val))
 
 
