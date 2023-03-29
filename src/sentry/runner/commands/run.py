@@ -449,18 +449,6 @@ def post_process_forwarder(**options):
 )
 @click.option("--topic", default=None, help="Topic to get subscription updates from.")
 @click.option(
-    "--commit-batch-size",
-    default=100,
-    type=int,
-    help="How many messages to process before committing offsets.",
-)
-@click.option(
-    "--commit-batch-timeout-ms",
-    default=5000,
-    type=int,
-    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
-)
-@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
