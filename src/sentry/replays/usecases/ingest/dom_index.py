@@ -107,7 +107,10 @@ def get_user_actions(
 ) -> List[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types."""
     result: List[ReplayActionsEventPayloadClick] = []
-    for event in events[:EVENT_LIMIT]:
+    for event in events:
+        if len(result) == 20:
+            break
+
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
             payload = event["data"].get("payload", {})
             if payload.get("category") == "ui.click":
