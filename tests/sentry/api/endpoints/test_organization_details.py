@@ -331,6 +331,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowJoinRequests": False,
             "apdexThreshold": 450,
             "provider": "github",
+            "config": {"test": "test"},
         }
 
         # needed to set require2FA
