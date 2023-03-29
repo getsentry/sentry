@@ -162,6 +162,7 @@ class IntegrationService(RpcService):
     ) -> bool:
         pass
 
+    @rpc_method
     @abstractmethod
     def get_organization_integrations(
         self,
