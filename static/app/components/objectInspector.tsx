@@ -29,6 +29,7 @@ function ObjectInspector({data, theme, ...props}: Props) {
       TREENODE_FONT_SIZE: 'inherit',
       TREENODE_LINE_HEIGHT: 'inherit',
       BASE_BACKGROUND_COLOR: 'none',
+      ARROW_FONT_SIZE: '10px',
 
       OBJECT_PREVIEW_OBJECT_MAX_PROPERTIES: 1,
       ...theme,

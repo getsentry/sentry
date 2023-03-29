@@ -2275,10 +2275,10 @@
     htmlparser2 "^4.1.0"
     title-case "^3.0.2"
 
-"@sentry-internal/react-inspector@6.0.1-3":
-  version "6.0.1-3"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/react-inspector/-/react-inspector-6.0.1-3.tgz#f9ea0165c876c795e98adffd5b74c8524926c1f5"
-  integrity sha512-X0n+xxL74grDiDo7bo37ShulE4eBfv7Hnc/jp1LfpJp4np8C4zBXmB0v9ztNOB3lJJXP7Yj7VfskDSPVFRmlWA==
+"@sentry-internal/react-inspector@6.0.1-4":
+  version "6.0.1-4"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/react-inspector/-/react-inspector-6.0.1-4.tgz#10758f3461cf2cf48df8c80f0514c55ca18872c5"
+  integrity sha512-uL2RyvW8EqDEchnbo8Hu/c4IpBqM3LLxUpZPHs8o40kynerzPset6bC/m5SU124gEhy4PqjdvJ7DhTYR75NetQ==
 
 "@sentry-internal/rrweb-player@1.106.0":
   version "1.106.0"
