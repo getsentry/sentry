@@ -48,7 +48,7 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
-    def __post_init__(self) -> None:
+    def validate(self) -> None:
         from sentry import options
         from sentry.api.utils import generate_region_url
         from sentry.utils.snowflake import REGION_ID
