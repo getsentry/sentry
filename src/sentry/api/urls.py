@@ -415,7 +415,6 @@ from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_processingissues import (
     ProjectProcessingIssuesDiscardEndpoint,
     ProjectProcessingIssuesEndpoint,
-    ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
@@ -2140,11 +2139,6 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/$",
         ProjectProcessingIssuesEndpoint.as_view(),
         name="sentry-api-0-project-processing-issues",
-    ),
-    url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/fix$",
-        ProjectProcessingIssuesFixEndpoint.as_view(),
-        name="sentry-api-0-project-fix-processing-issues",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/reprocessing/$",
