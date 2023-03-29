@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import cloneDeep from 'lodash/cloneDeep';
@@ -26,13 +26,14 @@ interface NotificationActionManagerProps {
    */
   availableActions: AvailableNotificationAction[];
   /**
-   * Updates the notification alert count on the parent component
-   */
-  onUpdate: (projectId: number, alertCount: number) => void;
-  /**
    * The project associated with the notification actions
+   * TODO(enterprise): refactor to account for multiple projects
    */
   project: Project;
+  /**
+   * Updates the notification alert count for this project
+   */
+  updateAlertCount: (projectId: number, alertCount: number) => void;
   /**
    * Optional list of roles to display as recipients of Sentry notifications
    */
@@ -44,9 +45,8 @@ function NotificationActionManager({
   availableActions,
   recipientRoles,
   project,
-  onUpdate,
+  updateAlertCount,
 }: NotificationActionManagerProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
 
@@ -98,10 +98,6 @@ function NotificationActionManager({
     }
   });
 
-  useEffect(() => {
-    setNotificationActions(actions);
-  }, [actions]);
-
   function renderNotificationActions() {
     if (!notificationActions) {
       return null;
@@ -136,7 +132,7 @@ function NotificationActionManager({
     const updatedActions = cloneDeep(notificationActions);
     updatedActions.push(actionInstance);
     setNotificationActions(updatedActions);
-    onUpdate(parseInt(project.id, 10), updatedActions.length);
+    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
   }
 
   function removeNotificationAction(index: number) {
@@ -144,7 +140,7 @@ function NotificationActionManager({
     const updatedActions = cloneDeep(notificationActions);
     updatedActions.splice(index, 1);
     setNotificationActions(updatedActions);
-    onUpdate(parseInt(project.id, 10), updatedActions.length);
+    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
   }
 
   function updateNotificationAction(index: number, updatedAction: NotificationAction) {
@@ -183,7 +179,7 @@ function NotificationActionManager({
     return menuItems;
   };
 
-  function renderAddButton() {
+  function renderAddAlertButton() {
     return (
       <DropdownMenu
         items={getMenuItems()}
@@ -198,11 +194,10 @@ function NotificationActionManager({
               e.preventDefault();
 
               triggerProps.onClick?.(e);
-              setIsExpanded(!isExpanded);
             }}
           >
             {t('Add Action')}
-            <StyledIconChevron direction={isExpanded ? 'up' : 'down'} />
+            <StyledIconChevron direction="down" />
           </Button>
         )}
       />
@@ -212,7 +207,7 @@ function NotificationActionManager({
   return (
     <Fragment>
       {renderNotificationActions()}
-      {renderAddButton()}
+      {renderAddAlertButton()}
     </Fragment>
   );
 }
