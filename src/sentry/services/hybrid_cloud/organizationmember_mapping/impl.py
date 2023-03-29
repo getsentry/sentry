@@ -17,7 +17,6 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
-    @transaction.atomic
     def create_mapping(
         self,
         *,
@@ -31,16 +30,17 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         assert (user_id is None and email) or (
             user_id and email is None
         ), "Must set either user or email"
-        org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
-            organization_id=organization_id,
-            user_id=user_id,
-            email=email,
-            defaults={
-                "role": role,
-                "inviter_id": inviter_id,
-                "invite_status": invite_status,
-            },
-        )
+        with transaction.atomic():
+            org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
+                organization_id=organization_id,
+                user_id=user_id,
+                email=email,
+                defaults={
+                    "role": role,
+                    "inviter_id": inviter_id,
+                    "invite_status": invite_status,
+                },
+            )
         return self._serialize_rpc(org_member_mapping)
 
     def create_with_organization_member(
