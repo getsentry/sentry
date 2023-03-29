@@ -38,7 +38,6 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
-  isDotnet,
   isExpandable,
 } from './utils';
 
@@ -215,7 +214,6 @@ export class Line extends Component<Props, State> {
       <ToggleContextButton
         className="btn-toggle"
         data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
-        css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
         size="zero"
         title={t('Toggle Context')}
         tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}

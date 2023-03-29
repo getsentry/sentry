@@ -191,11 +191,29 @@ export function parseAssembly(assembly: string | null) {
 
   const pieces = assembly ? assembly.split(',') : [];
 
-  if (pieces.length === 4) {
+  if (pieces.length > 0) {
     name = pieces[0];
-    version = pieces[1].split('Version=')[1];
-    culture = pieces[2].split('Culture=')[1];
-    publicKeyToken = pieces[3].split('PublicKeyToken=')[1];
+  }
+
+  for (let i = 1; i < pieces.length; i++) {
+    const [key, value] = pieces[i].trim().split('=');
+
+    // eslint-disable-next-line default-case
+    switch (key) {
+      case 'Version':
+        version = value;
+        break;
+      case 'Culture':
+        if (value !== 'neutral') {
+          culture = value;
+        }
+        break;
+      case 'PublicKeyToken':
+        if (value !== 'null') {
+          publicKeyToken = value;
+        }
+        break;
+    }
   }
 
   return {name, version, culture, publicKeyToken};
