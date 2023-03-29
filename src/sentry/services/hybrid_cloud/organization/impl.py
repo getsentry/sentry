@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
 
+from django.db import transaction
+
 from sentry import roles
 from sentry.models import (
     Organization,
@@ -281,13 +283,19 @@ class DatabaseBackedOrganizationService(OrganizationService):
         flags: RpcOrganizationMemberFlags | None,
         role: str | None,
     ) -> RpcOrganizationMember:
-        member = OrganizationMember.objects.create(
-            organization_id=organization.id,
-            user_id=user.id,
-            flags=self._deserialize_member_flags(flags) if flags else 0,
-            role=role or organization.default_role,
-        )
-        return self.serialize_member(member)
+        with transaction.atomic():
+            org_member: OrganizationMember = OrganizationMember.objects.create(
+                organization_id=organization.id,
+                user_id=user.id,
+                flags=self._deserialize_member_flags(flags) if flags else 0,
+                role=role or organization.default_role,
+            )
+            region_outbox = org_member.outbox_for_update(
+                org_id=organization.id, org_member_id=org_member.id
+            )
+            region_outbox.save()
+            region_outbox.drain_shard(max_updates_to_drain=1000)
+        return self.serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         OrganizationMemberTeam.objects.create(
