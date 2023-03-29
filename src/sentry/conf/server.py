@@ -1321,6 +1321,8 @@ SENTRY_FEATURES = {
     "organizations:anr-improvements": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
+    # Enables synthesis of device.class in ingest
+    "organizations:device-class-synthesis": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable product selection in the setup-docs page. The docs reflects the selected products.
