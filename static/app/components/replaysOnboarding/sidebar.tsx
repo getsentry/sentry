@@ -8,12 +8,14 @@ import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+// TODO: should be time to move this
+import {Flex} from 'sentry/components/profiling/flex';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
 import {
   generateDocKeys,
   isPlatformSupported,
 } from 'sentry/components/replaysOnboarding/utils';
-import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
+import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {replayPlatforms} from 'sentry/data/platformCategories';
@@ -184,12 +186,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         }
         return (
           <div key={index}>
-            <OnboardingStep
-              docContent={docContents[docKey]}
-              docKey={docKey}
-              prefix="replay"
-              project={currentProject}
-            />
+            <OnboardingStepV2 step={index + 1} content={docContents[docKey]} />
             {footer}
           </div>
         );
@@ -198,8 +195,40 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 }
 
+// TODO: we'll have to move this into a folder for common consumption w/ Profiling, Performance etc.
+interface OnboardingStepV2Props {
+  content: string;
+  step: number;
+}
+
+function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
+  return (
+    <Flex>
+      <div>
+        <TaskStepNumber>{step}</TaskStepNumber>
+      </div>
+      <Flex.Item>
+        <DocumentationWrapper dangerouslySetInnerHTML={{__html: content}} />
+      </Flex.Item>
+    </Flex>
+  );
+}
+
+const TaskStepNumber = styled('div')`
+  display: flex;
+  margin-right: ${space(1.5)};
+  background-color: ${p => p.theme.yellow300};
+  border-radius: 50%;
+  font-weight: bold;
+  height: ${space(4)};
+  width: ${space(4)};
+  justify-content: center;
+  align-items: center;
+`;
+
 const TaskSidebarPanel = styled(SidebarPanel)`
-  width: 450px;
+  width: 600px;
+  max-width: 100%;
 `;
 
 const TopRightBackgroundImage = styled('img')`
