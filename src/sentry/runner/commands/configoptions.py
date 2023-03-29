@@ -31,50 +31,92 @@ def fetchAll():
 
 @configoptions.command()
 @click.argument("filename", required=True)
-# @click.option(
-#     "--dryrun", default=False , required=False, help="Output exactly what changes would be made and in which order."
-# )
+@click.option(
+    "--dryrun",
+    default=False,
+    required=False,
+    help="Output exactly what changes would be made and in which order.",
+)
 @configuration
-def patch(filename):
+def patch(filename, dryrun):
     "Updates, gets, and deletes options that are each subsectioned in the given file."
-    with open(filename) as stream:
-        # todo: add more file validation?
-        data = yaml.safe_load(stream)
-        keysToFetch = data["fetch"]
-        keysToUpdate = data["update"]
-        keysToDelete = data["delete"]
+    if dryrun:
+        with open(filename) as stream:
+            data = yaml.safe_load(stream)
+            keysToFetch = data["fetch"]
+            keysToUpdate = data["update"]
+            keysToDelete = data["delete"]
 
-        for key in keysToFetch:
-            click.echo(get(key))
+            for key in keysToFetch:
+                click.echo(f"Key {key} would be fetched.")
 
-        for key, val in keysToUpdate:
-            click.echo(set(key, val))
+            for key, val in keysToUpdate:
+                click.echo(f"Would update {key}, {val}.")
 
-        for key in keysToDelete:
-            click.echo(delete(key))
+            for key in keysToDelete:
+                click.echo(f"Would delete {key}.")
+
+    else:
+        with open(filename) as stream:
+            # todo: add more file validation?
+            data = yaml.safe_load(stream)
+            keysToFetch = data["fetch"]
+            keysToUpdate = data["update"]
+            keysToDelete = data["delete"]
+
+            for key in keysToFetch:
+                click.echo(get(key))
+
+            for key, val in keysToUpdate:
+                click.echo(set(key, val))
+
+            for key in keysToDelete:
+                click.echo(delete(key))
 
 
 @configoptions.command()
 @click.argument("filename", required=True)
-# @click.option(
-#     "--dryrun", default=False , required=False, help="Output exactly what changes would be made and in which order."
-# )
+@click.option(
+    "--dryrun",
+    default=False,
+    required=False,
+    help="Output exactly what changes would be made and in which order.",
+)
 @configuration
-def strict(filename):
+def strict(filename, dryrun):
     "Deletes everything not in the uploaded file, and applies all of the changes in the file."
-    with open(filename) as stream:
-        data = yaml.safe_load(stream)
-        file_keys = (key[0] for key in data)
 
-        db_keys = (opt.name for opt in options.all())
+    if dryrun:
+        click.echo("Dryrun flag on. ")
 
-        # update the database to remove all keys NOT in the given file.
-        for key in db_keys:
-            if key not in file_keys:
-                delete(key)
+        with open(filename) as stream:
+            data = yaml.safe_load(stream)
+            file_keys = (key[0] for key in data)
 
-        for key, val in data:
-            set(key, val)
+            db_keys = (opt.name for opt in options.all())
+
+            # update the database to remove all keys NOT in the given file.
+            for key in db_keys:
+                if key not in file_keys:
+                    click.echo(f"Would delete {key}.")
+
+            for key, val in data:
+                click.echo(f"Would update {key}, {val}.")
+
+    else:
+        with open(filename) as stream:
+            data = yaml.safe_load(stream)
+            file_keys = (key[0] for key in data)
+
+            db_keys = (opt.name for opt in options.all())
+
+            # update the database to remove all keys NOT in the given file.
+            for key in db_keys:
+                if key not in file_keys:
+                    click.echo(delete(key))
+
+            for key, val in data:
+                click.echo(set(key, val))
 
 
 def get(key):
