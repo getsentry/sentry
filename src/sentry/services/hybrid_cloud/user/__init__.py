@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, eq=True)
 class RpcAvatar:
     id: int = 0
-    file_id: int = 0
+    file_id: Optional[int] = None
     ident: str = ""
     avatar_type: str = "letter_avatar"
 
