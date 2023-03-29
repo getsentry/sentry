@@ -8,8 +8,6 @@ import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
-// TODO: should be time to move this
-import {Flex} from 'sentry/components/profiling/flex';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
 import {
   generateDocKeys,
@@ -203,16 +201,23 @@ interface OnboardingStepV2Props {
 
 function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
   return (
-    <Flex>
+    <OnboardingStepContainer>
       <div>
         <TaskStepNumber>{step}</TaskStepNumber>
       </div>
-      <Flex.Item>
+      <div>
         <DocumentationWrapper dangerouslySetInnerHTML={{__html: content}} />
-      </Flex.Item>
-    </Flex>
+      </div>
+    </OnboardingStepContainer>
   );
 }
+
+const OnboardingStepContainer = styled('div')`
+  display: flex;
+  & > :last-child {
+    overflow: hidden;
+  }
+`;
 
 const TaskStepNumber = styled('div')`
   display: flex;
