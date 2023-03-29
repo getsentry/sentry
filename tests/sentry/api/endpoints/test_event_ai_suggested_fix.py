@@ -17,7 +17,7 @@ def auto_login(client, default_user):
     assert client.login(username=default_user.username, password="admin")
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def openai_mock(monkeypatch):
     def dummy_response(*a, **kw):
         return {"choices": [{"message": {"content": "AI generated response"}}]}
@@ -57,7 +57,7 @@ def openai_policy():
 
 
 @pytest.mark.django_db
-def test_consent(client, default_project, test_event, openai_mock, openai_policy):
+def test_consent(client, default_project, test_event, openai_policy):
     path = reverse(
         "sentry-api-0-event-ai-fix-suggest",
         kwargs={

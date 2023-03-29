@@ -111,10 +111,14 @@ def get_openai_policy(organization):
     results = openai_policy_check.send(
         sender=EventAiSuggestedFixEndpoint, organization=organization
     )
-    for _, result in results:
-        if result is not None:
-            return result
-    return "allowed"
+    result = "allowed"
+
+    # Last one wins
+    for _, new_result in results:
+        if new_result is not None:
+            result = new_result
+
+    return result
 
 
 def describe_event_for_ai(event):
