@@ -74,3 +74,15 @@ def test_strip_frames(function, in_app):
         len([frame for frame in stripped_frames if frame["function"] == IN_APP_FRAME["function"]])
         == 0
     ), "in_app frame should be removed"
+
+
+def test_strip_event_data_strips_non_referenced_dsyms():
+    event_stripper = EventStripper(Mock())
+
+    stripped_event = event_stripper.strip_event_data(get_crash_event())
+
+    debug_meta_images = get_path(stripped_event, "debug_meta", "images")
+
+    image_addresses = set(map(lambda image: image["image_addr"], debug_meta_images))
+    expected_image_addresses = {"0x1025e8000", "0x102b8c000", "0x102f68000", "0x19c9eb000"}
+    assert image_addresses == expected_image_addresses

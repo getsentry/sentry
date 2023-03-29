@@ -34,6 +34,10 @@ class EventStripper:
         stripped_frames = self._strip_frames(frames)
         new_event["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
+        debug_meta_images = get_path(event, "debug_meta", "images")
+        stripped_debug_meta_images = self._strip_debugMeta(debug_meta_images, stripped_frames)
+        new_event["debug_meta"]["images"] = stripped_debug_meta_images
+
         return new_event
 
     def _filter_event(self, pair):
@@ -48,6 +52,16 @@ class EventStripper:
         if key in {"os", "device"}:
             return True
         return False
+
+    def _strip_debugMeta(
+        self, debug_meta_images: Sequence[Mapping[str, Any]], frames: Sequence[Mapping[str, Any]]
+    ) -> Sequence[Mapping[str, Any]]:
+
+        frame_image_addresses = set(map(lambda frame: frame["image_addr"], frames))
+
+        return [
+            image for image in debug_meta_images if image["image_addr"] in frame_image_addresses
+        ]
 
     def _strip_frames(self, frames: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
         """

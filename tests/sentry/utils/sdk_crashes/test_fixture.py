@@ -20,6 +20,7 @@ def get_sentry_frame(function: str, in_app: bool = False) -> Mapping[str, Any]:
         "function": function,
         "package": "Sentry",
         "in_app": in_app,
+        "image_addr": "0x102f68000",
     }
 
 
@@ -31,6 +32,7 @@ def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Map
             "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
             "package": "SentryApp",
             "filename": "LoginViewController.swift",
+            "image_addr": "0x102b8c000",
         },
         IN_APP_FRAME,
         {
@@ -38,30 +40,35 @@ def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Map
             "symbol": "-[UIViewController _setViewAppearState:isAnimating:]",
             "package": "UIKitCore",
             "in_app": False,
+            "image_addr": "0x19c9eb000",
         },
         {
             "function": "-[UIViewController __viewDidAppear:]",
             "symbol": "-[UIViewController __viewDidAppear:]",
             "package": "UIKitCore",
             "in_app": False,
+            "image_addr": "0x19c9eb000",
         },
         {
             "function": "-[UIViewController _endAppearanceTransition:]",
             "symbol": "-[UIViewController _endAppearanceTransition:]",
             "package": "UIKitCore",
             "in_app": False,
+            "image_addr": "0x19c9eb000",
         },
         {
             "function": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
             "symbol": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
             "package": "UIKitCore",
             "in_app": False,
+            "image_addr": "0x19c9eb000",
         },
         {
             "function": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
             "symbol": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
             "package": "UIKitCore",
             "in_app": False,
+            "image_addr": "0x19c9eb000",
         },
     ]
 
@@ -139,16 +146,51 @@ def get_crash_event_with_frames(
                 "type": "os",
             },
         },
-        # Todo add referenced in stacktrace
         "debug_meta": {
             "images": [
                 {
-                    "name": "CrashProbeiOS",
-                    "image_vmaddr": "0x0000000100000000",
-                    "image_addr": "0x0000000100088000",
-                    "type": "apple",
-                    "image_size": 65536,
-                    "uuid": "2C656702-AA16-3E5F-94D9-D4430DA53398",
+                    "code_file": "/private/var/containers/Bundle/Application/9EB557CD-D653-4F51-BFCE-AECE691D4347/SentryApp.app/iOS-SentryApp",
+                    "debug_id": "97862189-a5be-3af8-bcaa-7066ae872592",
+                    "arch": "arm64",
+                    "image_addr": "0x1025e8000",
+                    "image_size": 170224,
+                    "image_vmaddr": "0x187011000",
+                    "type": "macho",
+                },
+                {
+                    "code_file": "/private/var/containers/Bundle/Application/9EB557CD-D653-4F51-BFCE-AECE691D4347/iOS-Swift.app/iOS-Swift",
+                    "debug_id": "97862189-a5be-3af8-bcaa-7066ae872591",
+                    "arch": "arm64",
+                    "image_addr": "0x102b8c000",
+                    "image_size": 180224,
+                    "image_vmaddr": "0x100000000",
+                    "type": "macho",
+                },
+                {
+                    "code_file": "/private/var/containers/Bundle/Application/9EB557CD-D653-4F51-BFCE-AECE691D4347/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                    "debug_id": "4726c693-2359-3e9a-bd3a-559760d87486",
+                    "arch": "arm64",
+                    "image_addr": "0x102f68000",
+                    "image_size": 786432,
+                    "type": "macho",
+                },
+                {
+                    "code_file": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                    "debug_id": "b0858d8e-7220-37bf-873f-ecc2b0a358c3",
+                    "arch": "arm64e",
+                    "image_addr": "0x19c9eb000",
+                    "image_size": 25309184,
+                    "image_vmaddr": "0x18907f000",
+                    "type": "macho",
+                },
+                {
+                    "code_file": "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+                    "debug_id": "b2273be9-538a-3f56-b9c7-801f39550f58",
+                    "arch": "arm64e",
+                    "image_addr": "0x19b98e000",
+                    "image_size": 3977216,
+                    "image_vmaddr": "0x188022000",
+                    "in_app": False,
                 },
             ]
         },
