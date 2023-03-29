@@ -83,8 +83,9 @@ export default function ReplayOnboardingPanel() {
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <Alert icon={<IconInfo />}>
           {tct(
-            `[projectMsg] Select a project using our [link], or equivalent framework SDK.`,
+            `[projectMsg] [action] a project using our [link], or equivalent framework SDK.`,
             {
+              action: primaryAction === 'create' ? t('Create') : t('Select'),
               projectMsg: (
                 <strong>
                   {t(`Session Replay isn't available for %s.`, selectedProjects[0].slug)}
