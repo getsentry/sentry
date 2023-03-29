@@ -18,6 +18,8 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = True
 
+    atomic = True
+
     dependencies = [
         ("sentry", "0396_add_usecase_to_indexer"),
     ]
