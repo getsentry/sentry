@@ -238,6 +238,26 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         }
 
 
+@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
+@pytest.mark.django_db
+def test_clusterer_only_runs_when_enough_transactions(
+    mock_update_rules, default_organization, task_runner
+):
+    project = Project(id=123, name="test_project", organization_id=default_organization.id)
+
+    _store_transaction_name(project, "/transaction/number/1")
+    with Feature({"organizations:transaction-name-clusterer": True}):
+        cluster_projects([project])
+    assert mock_update_rules.call_count == 0
+
+    _store_transaction_name(project, "/transaction/number/2")
+    with Feature({"organizations:transaction-name-clusterer": True}):
+        cluster_projects([project])
+    assert mock_update_rules.call_count == 1
+
+
 @pytest.mark.django_db
 def test_get_deleted_project():
     deleted_project = Project(pk=666, organization=Organization(pk=666))
