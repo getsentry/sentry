@@ -1,10 +1,9 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Event, EventOrGroupType} from 'sentry/types/event';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {QuickContextHoverWrapper} from './quickContextWrapper';

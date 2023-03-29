@@ -1,5 +1,4 @@
 import {ReactNode} from 'react';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +8,7 @@ import {
   formatSort,
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization} = initializeOrg();
