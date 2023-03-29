@@ -618,42 +618,42 @@ register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", d
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
 # Performance issue option for *all* performance issues detection
-register("performance.issues.all.problem-detection", default=0.0)
+register("performance.issues.all.problem-detection", default=100.0)
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
-register("performance.issues.compressed_assets.problem-creation", default=0.0)
-register("performance.issues.compressed_assets.la-rollout", default=0.0)
-register("performance.issues.compressed_assets.ea-rollout", default=0.0)
-register("performance.issues.compressed_assets.ga-rollout", default=0.0)
-register("performance.issues.consecutive_db.problem-creation", default=0.0)
-register("performance.issues.consecutive_db.la-rollout", default=0.0)
-register("performance.issues.consecutive_db.ea-rollout", default=0.0)
-register("performance.issues.consecutive_db.ga-rollout", default=0.0)
-register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
-register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
-register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
-register("performance.issues.file_io_main_thread.problem-creation", default=0.0)
-register("performance.issues.db_main_thread.problem-creation", default=0.0)
-register("performance.issues.n_plus_one_api_calls.problem-creation", default=0.0)
-register("performance.issues.n_plus_one_api_calls.la-rollout", default=0.0)
-register("performance.issues.n_plus_one_api_calls.ea-rollout", default=0.0)
-register("performance.issues.n_plus_one_api_calls.ga-rollout", default=0.0)
-register("performance.issues.slow_db_query.problem-creation", default=0.0)
-register("performance.issues.slow_db_query.la-rollout", default=0.0)
-register("performance.issues.slow_db_query.ea-rollout", default=0.0)
-register("performance.issues.slow_db_query.ga-rollout", default=0.0)
-register("performance.issues.render_blocking_assets.problem-creation", default=0.0)
-register("performance.issues.render_blocking_assets.la-rollout", default=0.0)
-register("performance.issues.render_blocking_assets.ea-rollout", default=0.0)
-register("performance.issues.render_blocking_assets.ga-rollout", default=0.0)
-register("performance.issues.m_n_plus_one_db.problem-creation", default=0.0)
-register("performance.issues.m_n_plus_one_db.la-rollout", default=0.0)
-register("performance.issues.m_n_plus_one_db.ea-rollout", default=0.0)
-register("performance.issues.m_n_plus_one_db.ga-rollout", default=0.0)
+register("performance.issues.compressed_assets.problem-creation", default=10.0)
+register("performance.issues.compressed_assets.la-rollout", default=10.0)
+register("performance.issues.compressed_assets.ea-rollout", default=10.0)
+register("performance.issues.compressed_assets.ga-rollout", default=10.0)
+register("performance.issues.consecutive_db.problem-creation", default=10.0)
+register("performance.issues.consecutive_db.la-rollout", default=10.0)
+register("performance.issues.consecutive_db.ea-rollout", default=10.0)
+register("performance.issues.consecutive_db.ga-rollout", default=10.0)
+register("performance.issues.n_plus_one_db.problem-detection", default=10.0)
+register("performance.issues.n_plus_one_db.problem-creation", default=10.0)
+register("performance.issues.n_plus_one_db_ext.problem-creation", default=10.0)
+register("performance.issues.file_io_main_thread.problem-creation", default=10.0)
+register("performance.issues.db_main_thread.problem-creation", default=10.0)
+register("performance.issues.n_plus_one_api_calls.problem-creation", default=10.0)
+register("performance.issues.n_plus_one_api_calls.la-rollout", default=10.0)
+register("performance.issues.n_plus_one_api_calls.ea-rollout", default=10.0)
+register("performance.issues.n_plus_one_api_calls.ga-rollout", default=10.0)
+register("performance.issues.slow_db_query.problem-creation", default=10.0)
+register("performance.issues.slow_db_query.la-rollout", default=10.0)
+register("performance.issues.slow_db_query.ea-rollout", default=10.0)
+register("performance.issues.slow_db_query.ga-rollout", default=10.0)
+register("performance.issues.render_blocking_assets.problem-creation", default=10.0)
+register("performance.issues.render_blocking_assets.la-rollout", default=10.0)
+register("performance.issues.render_blocking_assets.ea-rollout", default=10.0)
+register("performance.issues.render_blocking_assets.ga-rollout", default=10.0)
+register("performance.issues.m_n_plus_one_db.problem-creation", default=10.0)
+register("performance.issues.m_n_plus_one_db.la-rollout", default=10.0)
+register("performance.issues.m_n_plus_one_db.ea-rollout", default=10.0)
+register("performance.issues.m_n_plus_one_db.ga-rollout", default=10.0)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
-register("performance.issues.n_plus_one_db.count_threshold", default=5)
+register("performance.issues.n_plus_one_db.count_threshold", default=0)
 register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
 register("performance.issues.render_blocking_assets.fcp_minimum_threshold", default=2000.0)
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
@@ -661,12 +661,12 @@ register("performance.issues.render_blocking_assets.fcp_ratio_threshold", defaul
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
 # System-wide option for sending occurrences to the issues platform
-register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
+register("performance.issues.send_to_issues_platform", default=True, flags=FLAG_MODIFIABLE_BOOL)
 
 # System-wide option for performance issue creation through issues platform
 register(
     "performance.issues.create_issues_through_platform",
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL,
 )
 
