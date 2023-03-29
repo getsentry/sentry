@@ -9,16 +9,16 @@ interface Props {
   index: number;
   isCurrent: boolean;
   isHovered: boolean;
-  startTimestampMs: number;
-  style: CSSProperties;
-  breadcrumbIndex?: number[][];
-  expandPaths?: string[];
-  onDimensionChange?: (
+  onDimensionChange: (
     index: number,
     path: string,
     expandedState: Record<string, boolean>,
     event: MouseEvent<HTMLDivElement>
   ) => void;
+  startTimestampMs: number;
+  style: CSSProperties;
+  breadcrumbIndex?: number[][];
+  expandPaths?: string[];
 }
 
 function BreadcrumbRow({

@@ -13,24 +13,36 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
 
-interface Props {
+interface BaseProps {
   crumb: Crumb;
-  index: number;
   isCurrent: boolean;
   isHovered: boolean;
   onClick: null | MouseCallback;
   startTimestampMs: number;
   expandPaths?: string[];
-  onDimensionChange?: (
+  onMouseEnter?: MouseCallback;
+  onMouseLeave?: MouseCallback;
+  style?: CSSProperties;
+}
+interface NoDimensionChangeProps extends BaseProps {
+  index?: undefined;
+  onDimensionChange?: undefined;
+}
+
+interface WithDimensionChangeProps extends BaseProps {
+  /**
+   * Only required if onDimensionChange is used
+   */
+  index: number;
+  onDimensionChange: (
     index: number,
     path: string,
     expandedState: Record<string, boolean>,
     event: MouseEvent<HTMLDivElement>
   ) => void;
-  onMouseEnter?: MouseCallback;
-  onMouseLeave?: MouseCallback;
-  style?: CSSProperties;
 }
+
+type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
 function BreadcrumbItem({
   crumb,
