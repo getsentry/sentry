@@ -3,7 +3,7 @@ from typing import List, OrderedDict, Set
 import sentry_sdk
 
 from sentry import quotas
-from sentry.dynamic_sampling.rules.biases.base import Bias, BiasParams
+from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
     get_prioritise_by_project_sample_rate,
@@ -40,7 +40,7 @@ def _get_rules_of_enabled_biases(
         if rule_type in ALWAYS_ALLOWED_RULE_TYPES or (
             rule_type.value in enabled_biases and 0.0 < base_sample_rate < 1.0
         ):
-            rules += bias.get_rules(BiasParams(project, base_sample_rate))
+            rules += bias.generate_rules(project, base_sample_rate)
 
     log_rules(project.organization.id, project.id, rules)
 
