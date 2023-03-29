@@ -152,4 +152,4 @@ def _initialize_publisher() -> KafkaPublisher:
 
 
 def encode_as_uuid(message: str) -> str:
-    return uuid.UUID(md5(message.encode()).hexdigest()).hex
+    return str(uuid.UUID(md5(message.encode()).hexdigest()))

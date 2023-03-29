@@ -1,5 +1,6 @@
 import datetime
 import typing
+import uuid
 from enum import Enum
 
 from sentry.utils import json
@@ -190,6 +191,47 @@ def mock_replay(
                             "headers": {"User-Agent": kwargs.pop("user_agent", "Firefox")},
                         },
                         "extra": {},
+                    }
+                ).encode()
+            )
+        ),
+    }
+
+
+def mock_replay_click(
+    timestamp: datetime.datetime,
+    project_id: str,
+    replay_id: str,
+    **kwargs: typing.Dict[str, typing.Any],
+) -> typing.Dict[str, typing.Any]:
+    return {
+        "type": "replay_event",
+        "start_time": sec(timestamp),
+        "replay_id": replay_id,
+        "project_id": project_id,
+        "retention_days": kwargs.pop("retention_days", 30),
+        "payload": list(
+            bytes(
+                json.dumps(
+                    {
+                        "type": "replay_actions",
+                        "replay_id": replay_id,
+                        "clicks": [
+                            {
+                                "node_id": kwargs["node_id"],
+                                "tag": kwargs["tag"],
+                                "id": kwargs.pop("id", ""),
+                                "class": kwargs.pop("class_", []),
+                                "text": kwargs.pop("text", ""),
+                                "role": kwargs.pop("role", ""),
+                                "alt": kwargs.pop("alt", ""),
+                                "testid": kwargs.pop("testid", ""),
+                                "aria_label": kwargs.pop("aria_label", ""),
+                                "title": kwargs.pop("title", ""),
+                                "event_hash": str(uuid.uuid4()),
+                                "timestamp": sec(timestamp),
+                            }
+                        ],
                     }
                 ).encode()
             )

@@ -56,7 +56,7 @@ def test_get_user_actions():
     assert user_actions[0]["aria_label"] == "test"
     assert user_actions[0]["title"] == "3"
     assert user_actions[0]["timestamp"] == 1674298825
-    assert len(user_actions[0]["event_hash"]) == 32
+    assert len(user_actions[0]["event_hash"]) == 36
 
 
 def test_parse_replay_actions():
@@ -118,7 +118,7 @@ def test_parse_replay_actions():
     assert action["testid"] == "2"
     assert action["title"] == "3"
     assert action["timestamp"] == 1
-    assert len(action["event_hash"]) == 32
+    assert len(action["event_hash"]) == 36
 
 
 def test_encode_as_uuid():
