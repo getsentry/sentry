@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0395_add_index_to_date_added"),
+        ("sentry", "0396_add_usecase_to_indexer"),
     ]
 
     operations = [
@@ -27,19 +27,27 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_perfstringindexer" ADD COLUMN "use_case_id" varchar(120) NOT NULL DEFAULT 'performance';
+                    ALTER TABLE sentry_perfstringindexer ADD CONSTRAINT perf_unique_org_string_usecase UNIQUE (string, organization_id, use_case_id);
+                    ALTER TABLE sentry_perfstringindexer DROP CONSTRAINT perf_unique_org_string;
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_perfstringindexer" DROP COLUMN "use_case_id";
+                    ALTER TABLE sentry_perfstringindexer DROP CONSTRAINT perf_unique_org_string_usecase;
+                    ALTER TABLE sentry_perfstringindexer ADD CONSTRAINT perf_unique_org_string UNIQUE (string, organization_id);
                     """,
                     hints={"tables": ["sentry_perfstringindexer"]},
                 ),
             ],
             state_operations=[
-                migrations.AddField(
+                migrations.AddConstraint(
                     model_name="perfstringindexer",
-                    name="use_case_id",
-                    field=models.CharField(default="performance", max_length=120),
+                    constraint=models.UniqueConstraint(
+                        fields=("string", "organization_id", "use_case_id"),
+                        name="perf_unique_org_string_usecase",
+                    ),
+                ),
+                migrations.RemoveConstraint(
+                    model_name="perfstringindexer",
+                    name="perf_unique_org_string",
                 ),
             ],
         )
