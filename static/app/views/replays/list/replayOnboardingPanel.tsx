@@ -44,6 +44,8 @@ export default function ReplayOnboardingPanel() {
     pageFilters.selection.projects.includes(Number(p.id))
   );
 
+  const hasSelectedProjects = selectedProjects.length > 0;
+
   const allProjectsUnsupported = projects.projects.every(
     p => !replayPlatforms.includes(p.platform!)
   );
@@ -58,7 +60,9 @@ export default function ReplayOnboardingPanel() {
   // disable "create" if the user has insufficient permissions
   // disable "setup" if the current selected pageFilters are not supported
   const primaryActionDisabled =
-    primaryAction === 'create' ? !canCreateProjects : allSelectedProjectsUnsupported;
+    primaryAction === 'create'
+      ? !canCreateProjects
+      : allSelectedProjectsUnsupported && hasSelectedProjects;
 
   const breakpoints = preferences.collapsed
     ? {
@@ -76,14 +80,14 @@ export default function ReplayOnboardingPanel() {
 
   return (
     <Fragment>
-      {allSelectedProjectsUnsupported && (
+      {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <Alert icon={<IconInfo />}>
           {tct(
             `[projectMsg] Select a project using our [link], or equivalent framework SDK.`,
             {
               projectMsg: (
                 <strong>
-                  {t(`Session Replay isn't available for %s.`, selectedProjects[0]?.slug)}
+                  {t(`Session Replay isn't available for %s.`, selectedProjects[0].slug)}
                 </strong>
               ),
               link: (
