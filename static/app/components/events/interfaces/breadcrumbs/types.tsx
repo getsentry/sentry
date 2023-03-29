@@ -1,6 +1,6 @@
 import {Crumb} from 'sentry/types/breadcrumbs';
 
-export type BreadcrumbMeta = Record<any, any>;
+export type BreadcrumbMeta = Record<string, any>;
 
 export type BreadcrumbWithMeta = {
   breadcrumb: Crumb;
