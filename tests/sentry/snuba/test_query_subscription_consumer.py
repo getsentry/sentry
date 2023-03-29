@@ -45,7 +45,10 @@ class BaseQuerySubscriptionTest:
     def valid_payload(self):
         return {
             "subscription_id": "1234",
-            "result": {"data": [{"hello": 50}]},
+            "result": {
+                "data": [{"hello": 50}],
+                "meta": [{"name": "count", "type": "UInt64"}],
+            },
             "request": {
                 "some": "data",
                 "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY

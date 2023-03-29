@@ -81,16 +81,14 @@ def parse_message_value(value: str, jsoncodec: JsonCodec) -> PayloadV3:
     """
     old_version = False
 
-    with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
-        wrapper: SubscriptionResult = json.loads(value)
-
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
         try:
-            jsoncodec.validate(wrapper)
+            wrapper = jsoncodec.decode(value, validate=True)
         except ValidationError:
             old_version = True
             metrics.incr("snuba_query_subscriber.message_wrapper.old_validation")
             try:
+                wrapper: SubscriptionResult = json.loads(value)
                 jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
             except jsonschema.ValidationError:
                 metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
