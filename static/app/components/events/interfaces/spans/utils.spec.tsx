@@ -64,6 +64,18 @@ describe('formatSpanTreeLabel', () => {
       } as RawSpanType)
     ).toBe('GET /items?query=hello world');
   });
+
+  it('returns the description for gap spans', () => {
+    expect(
+      formatSpanTreeLabel({
+        isOrphan: false,
+        start_timestamp: 0,
+        timestamp: 0,
+        type: 'gap',
+        description: 'Missing instrumentation',
+      })
+    ).toBe('Missing instrumentation');
+  });
 });
 
 describe('getCumulativeAlertLevelFromErrors', () => {
