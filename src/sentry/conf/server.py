@@ -1267,7 +1267,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable Session Replay showing in the sidebar
+    # Enable Session Replay DOM search
     "organizations:session-replay-dom-search": False,
     # Enabled for those orgs who participated in the Replay Beta program
     "organizations:session-replay-beta-grace": False,
