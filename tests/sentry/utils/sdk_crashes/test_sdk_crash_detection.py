@@ -5,6 +5,7 @@ import pytest
 
 from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
+from sentry.utils.sdk_crashes.event_stripper import EventStripper
 from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetection, SDKCrashReporter
 from tests.sentry.utils.sdk_crashes.test_fixture import (
     IN_APP_FRAME,
@@ -191,7 +192,7 @@ def test_strip_frames(function, in_app):
     frames = get_frames(function, sentry_frame_in_app=in_app)
     event = get_crash_event_with_frames(frames)
 
-    crash_detector, crash_reporter = given_crash_detector()
+    crash_detector, crash_reporter = given_crash_detector(with_real_event_stripper=True)
     crash_detector.detect_sdk_crash(event)
 
     crash_reporter.report.assert_called_once()
@@ -205,12 +206,17 @@ def test_strip_frames(function, in_app):
     ), "in_app frame should be removed"
 
 
-def given_crash_detector() -> Tuple[SDKCrashDetection, SDKCrashReporter]:
+def given_crash_detector(
+    with_real_event_stripper: bool = False,
+) -> Tuple[SDKCrashDetection, SDKCrashReporter]:
     crash_reporter = Mock()
-    event_stripper = Mock()
     cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
 
-    event_stripper.strip_event_data = MagicMock(side_effect=lambda x: x)
+    if with_real_event_stripper:
+        event_stripper = EventStripper(cocoa_sdk_crash_detector)
+    else:
+        event_stripper = Mock()
+        event_stripper.strip_event_data = MagicMock(side_effect=lambda x: x)
 
     crash_detection = SDKCrashDetection(crash_reporter, cocoa_sdk_crash_detector, event_stripper)
 

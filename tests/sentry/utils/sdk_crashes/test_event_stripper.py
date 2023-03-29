@@ -1,9 +1,11 @@
+from unittest.mock import Mock
+
 from sentry.utils.sdk_crashes.event_stripper import EventStripper
 from tests.sentry.utils.sdk_crashes.test_fixture import get_crash_event
 
 
 def test_strip_event_data_keeps_allowed_keys():
-    event_stripper = EventStripper()
+    event_stripper = EventStripper(Mock())
 
     stripped_event = event_stripper.strip_event_data(get_crash_event())
 
@@ -29,7 +31,7 @@ def test_strip_event_data_keeps_allowed_keys():
 
 
 def test_strip_event_data_strips_context():
-    event_stripper = EventStripper()
+    event_stripper = EventStripper(Mock())
 
     stripped_event = event_stripper.strip_event_data(get_crash_event())
 
