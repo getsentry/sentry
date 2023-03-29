@@ -168,7 +168,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    authProvider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     providerConfig = serializers.JSONField(required=False, allow_null=True)
 
     @memoize
@@ -263,6 +263,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
+    def validate_authProvider(self, value):
+        if value not in ("github", "google", "saml2", "jumpcloud", "okta", "onelogin", "rippling"):
+            raise serializers.ValidationError(
+                "authProvider must be one of github, google, saml2, jumpcloud, okta, onelogin, or rippling"
+            )
+        return value
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
@@ -273,10 +280,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
-        # both provider and providerConfig required to configure provider
-        if ("provider" in attrs) ^ ("providerConfig" in attrs):
+        # both authProvider and providerConfig required to configure provider
+        if ("authProvider" in attrs) ^ ("providerConfig" in attrs):
             raise serializers.ValidationError(
-                "Both provider and providerConfig are required to configure provider"
+                "Both authProvider and providerConfig are required to configure an auth provider"
             )
         return attrs
 
@@ -387,8 +394,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        if "provider" in data and "providerConfig" in data:
-            provider_name = data["provider"]
+        if "authProvider" in data and "providerConfig" in data:
+            provider_name = data["authProvider"]
             provider_config = data["providerConfig"]
             AuthProvider.objects.update_or_create(
                 organization=org,
