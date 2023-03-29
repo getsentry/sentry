@@ -270,12 +270,12 @@ class OrganizationService(RpcService):
         self,
         *,
         organization: RpcOrganization,
-        user: Optional[RpcUser],
-        email: Optional[str],
-        flags: Optional[RpcOrganizationMemberFlags],
-        role: Optional[str],
-        inviter_id: Optional[int],
-        invite_status: Optional[int],
+        user: Optional[RpcUser] = None,
+        email: Optional[str] = None,
+        flags: Optional[RpcOrganizationMemberFlags] = None,
+        role: Optional[str] = None,
+        inviter_id: Optional[int] = None,
+        invite_status: Optional[int] = None,
     ) -> RpcOrganizationMember:
         pass
 
