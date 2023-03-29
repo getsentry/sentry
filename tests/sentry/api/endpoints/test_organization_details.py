@@ -329,7 +329,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "apdexThreshold": 450,
             "provider": "github",
             "config": {"test": "test"},
         }
