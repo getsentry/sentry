@@ -6,13 +6,17 @@ import zlib
 from datetime import datetime, timezone
 from typing import TypedDict, Union
 
+from django.conf import settings
 from sentry_sdk import Hub
 from sentry_sdk.tracing import Span
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
+from sentry.replays.feature import has_feature_access
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
+from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -41,22 +45,22 @@ class RecordingSegmentChunkMessage(TypedDict):
 
 
 class RecordingSegmentMessage(TypedDict):
-    replay_id: str  # the uuid of the encompassing replay event
+    retention_days: int
     org_id: int
     project_id: int
+    replay_id: str  # the uuid of the encompassing replay event
     key_id: int | None
     received: int
-    retention_days: int
     replay_recording: ReplayRecordingSegment
 
 
 class RecordingMessage(TypedDict):
+    retention_days: int
     replay_id: str
     key_id: int | None
     org_id: int
     project_id: int
     received: int
-    retention_days: int
     payload: bytes
 
 
@@ -66,12 +70,12 @@ class MissingRecordingSegmentHeaders(ValueError):
 
 @dataclasses.dataclass
 class RecordingIngestMessage:
+    retention_days: int
+    org_id: int
+    project_id: int
     replay_id: str
     key_id: int | None
-    org_id: int
     received: int
-    project_id: int
-    retention_days: int
     payload_with_headers: bytes
 
 
@@ -100,6 +104,16 @@ def ingest_recording_chunked(
                 logger.exception("Missing recording-segment.")
                 return None
 
+            logger.info(
+                "ingest_recording_chunked.info",
+                extra={
+                    "organization_id": message_dict["org_id"],
+                    "project_id": message_dict["project_id"],
+                    "replay_id": message_dict["replay_id"],
+                    "num_parts": message_dict["replay_recording"]["chunks"],
+                    "size_compressed": len(recording_segment_with_headers),
+                },
+            )
             message = RecordingIngestMessage(
                 replay_id=message_dict["replay_id"],
                 key_id=message_dict.get("key_id"),
@@ -159,21 +173,7 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    # Decompress and load the recording JSON. This is a performance test. We don't care about the
-    # result but knowing its performance characteristics and the failure rate of this operation
-    # will inform future releases.
-    try:
-        with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
-            json.loads(decompress(recording_segment))
-    except Exception:
-        logging.exception(
-            "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
-                message.org_id,
-                message.project_id,
-                message.replay_id,
-                headers["segment_id"],
-            )
-        )
+    replay_click_post_processor(message, headers, recording_segment, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -243,7 +243,7 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
     except ValueError:
         raise MissingRecordingSegmentHeaders
     else:
-        return json.loads(recording_headers), recording_segment
+        return json.loads(recording_headers, use_rapid_json=True), recording_segment
 
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
@@ -256,3 +256,49 @@ def decompress(data: bytes) -> bytes:
         return data
     else:
         return zlib.decompress(data, zlib.MAX_WBITS | 32)
+
+
+def _report_size_metrics(size_compressed: int, size_uncompressed: int) -> None:
+    metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
+    metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
+
+
+def replay_click_post_processor(
+    message: RecordingIngestMessage,
+    headers: RecordingSegmentHeaders,
+    segment_bytes: bytes,
+    transaction: Span,
+) -> None:
+    if not has_feature_access(
+        message.org_id,
+        options.get("replay.ingest.dom-click-search"),
+        settings.SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST,
+    ):
+        return None
+
+    try:
+        with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
+            decompressed_segment = decompress(segment_bytes)
+            parsed_segment_data = json.loads(decompressed_segment, use_rapid_json=True)
+            _report_size_metrics(len(segment_bytes), len(decompressed_segment))
+
+        # Emit DOM search metadata to Clickhouse.
+        with transaction.start_child(
+            op="replays.usecases.ingest.parse_and_emit_replay_actions",
+            description="parse_and_emit_replay_actions",
+        ):
+            parse_and_emit_replay_actions(
+                retention_days=message.retention_days,
+                project_id=message.project_id,
+                replay_id=message.replay_id,
+                segment_data=parsed_segment_data,
+            )
+    except Exception:
+        logging.exception(
+            "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
+                message.org_id,
+                message.project_id,
+                message.replay_id,
+                headers["segment_id"],
+            )
+        )

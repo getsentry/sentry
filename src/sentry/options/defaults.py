@@ -230,6 +230,13 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
+# The sample rate at which to allow dom-click-search.
+register(
+    "replay.ingest.dom-click-search",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -602,6 +609,11 @@ register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", defa
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
+register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
+
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
@@ -672,8 +684,4 @@ register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions", 30)
 # the number of large transactions to retrieve from Snuba for transaction re-balancing
 register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
-# Killswitch for deriving code mappings
-register("post_process.derive-code-mappings", default=True)
-# Allows adjusting the GA percentage
-register("derive-code-mappings.general-availability-rollout", default=0.0)
 register("hybrid_cloud.outbox_rate", default=0.0)
