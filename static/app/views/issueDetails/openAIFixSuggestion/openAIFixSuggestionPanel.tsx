@@ -86,6 +86,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
     {
       staleTime: Infinity,
       retry: false,
+      enabled: showSuggestedFix,
     }
   );
 
