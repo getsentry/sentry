@@ -20,6 +20,10 @@ class RegionCategory(Enum):
     SINGLE_TENANT = "SINGLE_TENANT"
 
 
+class RegionConfigurationError(Exception):
+    """Indicate that a region was misconfigured or could not be initialized."""
+
+
 @dataclass(frozen=True, eq=True)
 class Region:
     """A region of the Sentry platform, hosted by a region silo."""
@@ -64,7 +68,7 @@ class Region:
         ):
             expected_address = generate_region_url(self.name)
             if self.address != expected_address:
-                raise Exception(
+                raise RegionConfigurationError(
                     f"Expected address for {self.name} to be: {expected_address}. Was defined as: {self.address}"
                 )
 
