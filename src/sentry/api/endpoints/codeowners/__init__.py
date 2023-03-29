@@ -56,7 +56,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
             analytics.record(
                 "codeowners.max_length_exceeded",
-                organization_id=self.context["project"].organization,
+                organization_id=self.context["project"].organization.id,
             )
             raise serializers.ValidationError(
                 {"raw": f"Raw needs to be <= {max_length} characters in length"}

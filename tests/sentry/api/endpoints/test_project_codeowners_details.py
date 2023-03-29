@@ -137,7 +137,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
 
             mock_record.assert_called_with(
                 "codeowners.max_length_exceeded",
-                organization_id=self.organization,
+                organization_id=self.organization.id,
             )
 
             # Test that we allow this to be modified for existing large rows
