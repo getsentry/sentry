@@ -129,7 +129,7 @@ def test_encode_as_uuid():
     assert isinstance(uuid.UUID(a), uuid.UUID)
 
 
-def test_parse_request_response():
+def test_parse_request_response_latest():
     events = [
         {
             "type": 5,
@@ -171,4 +171,114 @@ def test_parse_request_response():
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 2949),
             mock.call("replays.usecases.ingest.response_body_size", 94),
+        ]
+
+
+def test_parse_request_response_no_info():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1680009712.507,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.fetch",
+                    "description": "https://api2.amplitude.com/2/httpapi",
+                    "startTimestamp": 1680009712.507,
+                    "endTimestamp": 1680009712.671,
+                    "data": {
+                        "method": "POST",
+                        "statusCode": 200,
+                    },
+                },
+            },
+        },
+    ]
+    parse_replay_actions(1, "1", 30, events)
+    # just make sure we don't raise
+
+
+def test_parse_request_response_old_format_request_only():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1680009712.507,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.fetch",
+                    "description": "https://api2.amplitude.com/2/httpapi",
+                    "startTimestamp": 1680009712.507,
+                    "endTimestamp": 1680009712.671,
+                    "data": {
+                        "method": "POST",
+                        "statusCode": 200,
+                        "requestBodySize": 1002,
+                    },
+                },
+            },
+        },
+    ]
+    with mock.patch("sentry.utils.metrics.timing") as timing:
+        parse_replay_actions(1, "1", 30, events)
+        assert timing.call_args_list == [
+            mock.call("replays.usecases.ingest.request_body_size", 1002),
+        ]
+
+
+def test_parse_request_response_old_format_response_only():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1680009712.507,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.fetch",
+                    "description": "https://api2.amplitude.com/2/httpapi",
+                    "startTimestamp": 1680009712.507,
+                    "endTimestamp": 1680009712.671,
+                    "data": {
+                        "method": "POST",
+                        "statusCode": 200,
+                        "responseBodySize": 1002,
+                    },
+                },
+            },
+        },
+    ]
+    with mock.patch("sentry.utils.metrics.timing") as timing:
+        parse_replay_actions(1, "1", 30, events)
+        assert timing.call_args_list == [
+            mock.call("replays.usecases.ingest.response_body_size", 1002),
+        ]
+
+
+def test_parse_request_response_old_format_request_and_response():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1680009712.507,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.xhr",
+                    "description": "https://api2.amplitude.com/2/httpapi",
+                    "startTimestamp": 1680009712.507,
+                    "endTimestamp": 1680009712.671,
+                    "data": {
+                        "method": "POST",
+                        "statusCode": 200,
+                        "requestBodySize": 1002,
+                        "responseBodySize": 8001,
+                    },
+                },
+            },
+        },
+    ]
+    with mock.patch("sentry.utils.metrics.timing") as timing:
+        parse_replay_actions(1, "1", 30, events)
+        assert timing.call_args_list == [
+            mock.call("replays.usecases.ingest.request_body_size", 1002),
+            mock.call("replays.usecases.ingest.response_body_size", 8001),
         ]

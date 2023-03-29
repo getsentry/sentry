@@ -138,12 +138,31 @@ def get_user_actions(
 
         # look for request / response breadcrumbs and report metrics on them
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "performanceSpan":
-            if event["data"].get("payload", {}).get("op") == "resource.fetch":
-                # we can assume if the op matches the rest of the keys are defined
-                request_size = event["data"]["payload"]["data"]["request"]["size"]
-                response_size = event["data"]["payload"]["data"]["response"]["size"]
-                metrics.timing("replays.usecases.ingest.request_body_size", request_size)
-                metrics.timing("replays.usecases.ingest.response_body_size", response_size)
+            if event["data"].get("payload", {}).get("op") in ("resource.fetch", "resource.xhr"):
+
+                # these first two cover SDKs 7.44 and 7.45
+                if event["data"]["payload"]["data"].get("requestBodySize"):
+                    metrics.timing(
+                        "replays.usecases.ingest.request_body_size",
+                        event["data"]["payload"]["data"]["requestBodySize"],
+                    )
+                if event["data"]["payload"]["data"].get("responseBodySize"):
+                    metrics.timing(
+                        "replays.usecases.ingest.response_body_size",
+                        event["data"]["payload"]["data"]["responseBodySize"],
+                    )
+
+                # what the most recent SDKs send:
+                if event["data"]["payload"]["data"].get("request", {}).get("size"):
+                    metrics.timing(
+                        "replays.usecases.ingest.request_body_size",
+                        event["data"]["payload"]["data"]["request"]["size"],
+                    )
+                if event["data"]["payload"]["data"].get("response", {}).get("size"):
+                    metrics.timing(
+                        "replays.usecases.ingest.response_body_size",
+                        event["data"]["payload"]["data"]["response"]["size"],
+                    )
 
     return result
 
