@@ -65,9 +65,14 @@ def report_pydantic_type_validation_error(
 ) -> None:
     with sentry_sdk.push_scope() as scope:
         scope.set_level("warning")
-        scope.set_tag("field", field.name)
-        scope.set_extra("value_type", str(type(value)))
-        scope.set_extra("errors", str(errors))
+        scope.set_context(
+            "pydantic_validation",
+            {
+                "field": field.name,
+                "value_type": str(type(value)),
+                "errors": str(errors),
+            },
+        )
         sentry_sdk.capture_message("Pydantic type validation error")
 
 
