@@ -6,7 +6,7 @@ import {Node} from '@react-types/shared';
 import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from '../control';
+import {SelectFilterContext} from '../list';
 import {
   SectionGroup,
   SectionHeader,
@@ -32,16 +32,15 @@ export function GridListSection({node, listState, size}: GridListSectionProps) {
   const titleId = domId('grid-section-title-');
   const {separatorProps} = useSeparator({elementType: 'li'});
 
-  const {filterOption} = useContext(SelectContext);
-  const filteredOptions = useMemo(() => {
-    return [...node.childNodes].filter(child => {
-      return filterOption(child.props);
-    });
-  }, [node.childNodes, filterOption]);
-
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&
     node.value.showToggleAllButton;
+
+  const hiddenOptions = useContext(SelectFilterContext);
+  const childNodes = useMemo(
+    () => [...node.childNodes].filter(child => !hiddenOptions.has(child.props.value)),
+    [node.childNodes, hiddenOptions]
+  );
 
   return (
     <Fragment>
@@ -63,7 +62,7 @@ export function GridListSection({node, listState, size}: GridListSectionProps) {
           </SectionHeader>
         )}
         <SectionGroup role="presentation">
-          {filteredOptions.map(child => (
+          {childNodes.map(child => (
             <GridListOption
               key={child.key}
               node={child}
