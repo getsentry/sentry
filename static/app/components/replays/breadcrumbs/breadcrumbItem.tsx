@@ -109,20 +109,26 @@ function BreadcrumbItem({
             {description}
           </Description>
         ) : (
-          <ObjectInspector
-            data={description}
-            expandPaths={expandPaths}
-            onExpand={handleDimensionChange}
-            theme={{
-              TREENODE_FONT_SIZE: '0.7rem',
-              ARROW_FONT_SIZE: '0.5rem',
-            }}
-          />
+          <InspectorWrapper>
+            <ObjectInspector
+              data={description}
+              expandPaths={expandPaths}
+              onExpand={handleDimensionChange}
+              theme={{
+                TREENODE_FONT_SIZE: '0.7rem',
+                ARROW_FONT_SIZE: '0.5rem',
+              }}
+            />
+          </InspectorWrapper>
         )}
       </CrumbDetails>
     </CrumbItem>
   );
 }
+
+const InspectorWrapper = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+`;
 
 const CrumbDetails = styled('div')`
   display: flex;
