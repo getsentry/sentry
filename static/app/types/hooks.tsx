@@ -194,6 +194,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
+  'feature-disabled:starfish-view': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
 };
 

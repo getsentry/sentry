@@ -1689,6 +1689,16 @@ function buildRoutes() {
           {performanceChildRoutes}
         </Route>
       )}
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={make(() => import('sentry/views/starfish/content'))}
+        />
+      )}
+      <Route
+        path="organizations/:orgId/starfish/"
+        component={make(() => import('sentry/views/starfish/content'))}
+      />
       <Route
         path="/organizations/:orgId/performance/"
         component={withDomainRedirect(make(() => import('sentry/views/performance')))}

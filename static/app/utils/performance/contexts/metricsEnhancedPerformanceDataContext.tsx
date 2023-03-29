@@ -4,6 +4,7 @@ import Tag from 'sentry/components/tag';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {PerformanceWidgetSetting as StarfishSettings} from 'sentry/views/starfish/landing/widgets/widgetDefinitions';
 
 import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
 import {createDefinedContext} from './utils';
@@ -23,7 +24,7 @@ export const MEPDataProvider = ({
   chartSetting,
 }: {
   children: ReactNode;
-  chartSetting?: PerformanceWidgetSetting;
+  chartSetting?: PerformanceWidgetSetting | StarfishSettings;
 }) => {
   const {setAutoSampleState} = useMEPSettingContext();
   const [isMetricsData, _setIsMetricsData] = useState<boolean | undefined>(undefined); // Uses undefined to cover 'not initialized'
