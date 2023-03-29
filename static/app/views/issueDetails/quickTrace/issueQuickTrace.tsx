@@ -17,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, IssueCategory, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -95,7 +96,7 @@ function IssueQuickTrace({group, event, location, organization, quickTrace}: Pro
   if (
     !quickTrace ||
     quickTrace.error ||
-    quickTrace.trace === null ||
+    !defined(quickTrace.trace) ||
     quickTrace.trace.length === 0
   ) {
     return <TransactionMissingPlaceholder group={group} type={quickTrace?.type} />;
