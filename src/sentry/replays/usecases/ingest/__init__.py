@@ -6,12 +6,15 @@ import zlib
 from datetime import datetime, timezone
 from typing import TypedDict, Union
 
+from django.conf import settings
 from sentry_sdk import Hub
 from sentry_sdk.tracing import Span
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
+from sentry.replays.feature import has_feature_access
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
 from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
@@ -170,7 +173,7 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    handle_replay_clicks(message, headers, recording_segment, transaction)
+    replay_click_post_processor(message, headers, recording_segment, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -260,12 +263,19 @@ def _report_size_metrics(size_compressed: int, size_uncompressed: int) -> None:
     metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
 
 
-def handle_replay_clicks(
+def replay_click_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
     transaction: Span,
 ) -> None:
+    if not has_feature_access(
+        message.org_id,
+        options.get("replay.ingest.dom-click-search"),
+        settings.SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST,
+    ):
+        return None
+
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(segment_bytes)
