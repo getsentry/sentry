@@ -9,6 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -243,14 +244,14 @@ function NotificationActionItem({
       return (
         <NotificationActionFormContainer>
           <NotificationActionCell>{renderDescription()}</NotificationActionCell>
-          <NotificationActionButtonContainer>
+          <ButtonBar>
             <Button onClick={handleCancel} size="xs">
               {t('Cancel')}
             </Button>
             <Button priority="primary" size="xs" onClick={handleSave}>
               {t('Save')}
             </Button>
-          </NotificationActionButtonContainer>
+          </ButtonBar>
         </NotificationActionFormContainer>
       );
     }
@@ -310,7 +311,7 @@ const StyledCard = styled(Card)<{isEditing: boolean}>`
 `;
 
 const IconContainer = styled('div')`
-  margin-right: ${space(0.5)};
+  margin-right: ${space(1)};
   display: flex;
   align-items: center;
 `;
@@ -325,10 +326,7 @@ export const NotificationActionCell = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  > * {
-    margin-left: ${space(0.5)};
-    margin-right: ${space(0.5)};
-  }
+  gap: ${space(0.5)};
 `;
 
 export const NotificationActionFormContainer = styled('div')`
@@ -337,22 +335,9 @@ export const NotificationActionFormContainer = styled('div')`
   width: 100%;
 `;
 
-export const NotificationActionButtonContainer = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-end;
-
-  > * {
-    margin-left: ${space(1)};
-  }
-`;
-
 const NotificationRecipient = styled(Badge)`
   border-radius: 5px;
   font-weight: normal;
-  margin-right: 4px;
 `;
 
 export default NotificationActionItem;

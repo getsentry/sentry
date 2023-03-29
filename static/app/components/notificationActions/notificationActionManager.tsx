@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import NotificationActionItem from 'sentry/components/notificationActions/notificationActionItem';
 import {IconAdd, IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {
@@ -166,12 +166,12 @@ function NotificationActionManager({
 
         menuItems.push({
           key: serviceType,
-          label: tct('Send a [service] notification', {
-            service:
-              serviceType !== NotificationActionService.SENTRY_NOTIFICATION
-                ? capitalize(serviceType)
-                : 'Sentry',
-          }),
+          label: t(
+            'Send a %s notification',
+            serviceType !== NotificationActionService.SENTRY_NOTIFICATION
+              ? capitalize(serviceType)
+              : 'Sentry'
+          ),
           onAction: () => addNotificationAction(validActions[0].action),
         });
       }
