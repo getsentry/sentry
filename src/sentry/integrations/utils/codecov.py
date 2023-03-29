@@ -160,7 +160,7 @@ def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
         with configure_scope() as scope:
             scope.set_tag("codecov.timeout", True)
             scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
-            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOU)
+            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOUT)
         data = {"status": status.HTTP_408_REQUEST_TIMEOUT}
     except Exception as error:
         data = {"status": status.HTTP_500_INTERNAL_SERVER_ERROR}
