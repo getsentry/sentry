@@ -42,7 +42,9 @@ import {
   ReprocessingStatus,
 } from '../utils';
 
-const IssueFeedback = HookOrDefault({hookName: 'component:qualitative-issue-feedback'});
+const IssuePriorityFeedback = HookOrDefault({
+  hookName: 'component:issue-priority-feedback',
+});
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
@@ -264,7 +266,10 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                     return (
                       <StyledLayoutMain>
                         {this.renderGroupStatusBanner()}
-                        <IssueFeedback organization={organization} group={group} />
+                        <IssuePriorityFeedback
+                          organization={organization}
+                          group={group}
+                        />
                         <QuickTraceContext.Provider value={results}>
                           {eventWithMeta && (
                             <GroupEventHeader
