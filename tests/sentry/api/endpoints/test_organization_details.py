@@ -330,7 +330,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "require2FA": True,
             "allowJoinRequests": False,
             "provider": "github",
-            "config": {"test": "test"},
+            "config": {"option": "test"},
         }
 
         # needed to set require2FA
