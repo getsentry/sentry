@@ -17,6 +17,7 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
+from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
@@ -285,7 +286,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         flags: RpcOrganizationMemberFlags | None = None,
         role: str | None = None,
         inviter_id: int | None = None,
-        invite_status: int | None = None,
+        invite_status: int | None = InviteStatus.APPROVED.value,
     ) -> RpcOrganizationMember:
         assert (user is None and email) or (user and email is None), "Must set either user or email"
         with transaction.atomic():

@@ -277,7 +277,7 @@ class OrganizationService(RpcService):
         flags: Optional[RpcOrganizationMemberFlags] = None,
         role: Optional[str] = None,
         inviter_id: Optional[int] = None,
-        invite_status: Optional[int] = None,
+        invite_status: Optional[int] = InviteStatus.APPROVED.value,
     ) -> RpcOrganizationMember:
         pass
 
