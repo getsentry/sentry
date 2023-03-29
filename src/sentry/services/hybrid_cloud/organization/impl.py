@@ -69,6 +69,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             has_global_access=member.has_global_access,
             scopes=list(member.get_scopes()),
             flags=cls._serialize_member_flags(member),
+            invite_status=member.invite_status,
         )
 
         omts = OrganizationMemberTeam.objects.filter(
