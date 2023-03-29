@@ -2,16 +2,16 @@ from typing import Any, Mapping, Sequence
 
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
-from sentry.utils.sdk_crashes.sdk_crash_detection import CocoaSDKCrashDetector
+from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
 class EventStripper:
     def __init__(
         self,
-        cocoa_sdk_crash_detector: CocoaSDKCrashDetector,
+        sdk_crash_detector: SDKCrashDetector,
     ):
         self
-        self.cocoa_sdk_crash_detector = cocoa_sdk_crash_detector
+        self.sdk_crash_detector = sdk_crash_detector
 
     ALLOWED_EVENT_KEYS = {
         "type",
@@ -56,6 +56,5 @@ class EventStripper:
         return [
             frame
             for frame in frames
-            if self.cocoa_sdk_crash_detector.is_sdk_frame(frame)
-            or frame.get("in_app", True) is False
+            if self.sdk_crash_detector.is_sdk_frame(frame) or frame.get("in_app", True) is False
         ]

@@ -4,11 +4,8 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 from sentry.utils.safe import get_path
-from sentry.utils.sdk_crashes.sdk_crash_detection import (
-    CocoaSDKCrashDetector,
-    SDKCrashDetection,
-    SDKCrashReporter,
-)
+from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
+from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetection, SDKCrashReporter
 from tests.sentry.utils.sdk_crashes.test_fixture import (
     IN_APP_FRAME,
     get_crash_event,
