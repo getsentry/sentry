@@ -40,6 +40,7 @@ progressbar2>=3.41.0
 python-rapidjson>=1.4
 psycopg2-binary>=2.8.6
 PyJWT>=2.4.0
+pydantic>=1.10.2
 python-dateutil>=2.8.1
 python-memcached>=1.59
 python-u2flib-server>=5.0.0
