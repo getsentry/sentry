@@ -22,6 +22,10 @@ FILE_PATH_PREFIX_LENGTH = {
     "./": 2,
 }
 
+# We want tasks which hit the GH API multiple times to give up if they hit too many
+# "can't reach GitHub"-type errors.
+MAX_CONNECTION_ERRORS = 10
+
 
 class Repo(NamedTuple):
     name: str

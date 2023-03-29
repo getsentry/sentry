@@ -1,4 +1,4 @@
-import {CSSProperties, useCallback} from 'react';
+import {CSSProperties, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -15,18 +15,28 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
+  index: number;
   isCurrent: boolean;
   isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
+  expandPaths?: string[];
+  onDimensionChange?: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>
+  ) => void;
 };
 
-function ConsoleLogRow({
+function UnmemoizedConsoleLogRow({
+  index,
   breadcrumb,
   isHovered,
   isCurrent,
   startTimestampMs,
   style,
+  expandPaths,
+  onDimensionChange,
 }: Props) {
   const {currentTime} = useReplayContext();
 
@@ -44,6 +54,11 @@ function ConsoleLogRow({
   const onMouseLeave = useCallback(
     () => handleMouseLeave(breadcrumb),
     [handleMouseLeave, breadcrumb]
+  );
+  const handleDimensionChange = useCallback(
+    (path, expandedState) =>
+      onDimensionChange && onDimensionChange(index, path, expandedState),
+    [onDimensionChange, index]
   );
 
   const hasOccurred =
@@ -67,7 +82,11 @@ function ConsoleLogRow({
           </IssueLinkWrapper>
         ) : null}
         <ErrorBoundary mini>
-          <MessageFormatter breadcrumb={breadcrumb} />
+          <MessageFormatter
+            expandPaths={expandPaths}
+            breadcrumb={breadcrumb}
+            onDimensionChange={handleDimensionChange}
+          />
         </ErrorBoundary>
       </Message>
       <TimestampButton
@@ -136,4 +155,5 @@ const Message = styled('div')`
   word-break: break-word;
 `;
 
+const ConsoleLogRow = memo(UnmemoizedConsoleLogRow);
 export default ConsoleLogRow;

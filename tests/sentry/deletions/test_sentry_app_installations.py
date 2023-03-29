@@ -53,7 +53,7 @@ class TestSentryAppIntallationDeletionTask(TestCase):
 
     def test_deletes_installation_provider(self):
         SentryAppInstallationForProvider.objects.create(
-            sentry_app_installation=self.install, organization=self.org, provider="vercel"
+            sentry_app_installation=self.install, organization_id=self.org.id, provider="vercel"
         )
         deletions.exec_sync(self.install)
 

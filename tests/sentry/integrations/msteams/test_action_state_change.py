@@ -43,7 +43,9 @@ class BaseEventTest(APITestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
+        OrganizationIntegration.objects.create(
+            organization_id=self.org.id, integration=self.integration
+        )
 
         self.idp = IdentityProvider.objects.create(
             type="msteams", external_id="f3ll0wsh1p", config={}
@@ -178,7 +180,7 @@ class StatusActionTest(BaseEventTest):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_ignore_issue_with_additional_user_auth(self, verify):
-        auth_idp = AuthProvider.objects.create(organization=self.org, provider="nobody")
+        auth_idp = AuthProvider.objects.create(organization_id=self.org.id, provider="nobody")
         AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         resp = self.post_webhook(action_type=ACTION_TYPE.IGNORE, ignore_input="-1")
@@ -276,7 +278,7 @@ class StatusActionTest(BaseEventTest):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        OrganizationIntegration.objects.create(organization=org2, integration=integration2)
+        OrganizationIntegration.objects.create(organization_id=org2.id, integration=integration2)
 
         idp2 = IdentityProvider.objects.create(type="msteams", external_id="54rum4n", config={})
         Identity.objects.create(
