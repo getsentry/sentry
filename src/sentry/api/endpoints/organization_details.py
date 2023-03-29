@@ -169,7 +169,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     config = serializers.JSONField(required=False, allow_null=True)
 
     @memoize
