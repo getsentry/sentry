@@ -193,32 +193,39 @@ class MonitorTestCase(TestCase):
             },
         ) == dict(event)
 
-    def test_save_defaults_slug_to_guid(self):
+    def test_save_defaults_slug_to_name(self):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
+            name="My Awesome Monitor",
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
-        assert str(monitor.guid) == monitor.slug
+        assert monitor.slug == "my-awesome-monitor"
 
-    def test_save_defaults_slug_to_guid_only_on_create(self):
+    def test_save_defaults_slug_unique(self):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
+            name="My Awesome Monitor",
+            slug="my-awesome-monitor",
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
-        original_monitor_guid = monitor.guid
+        assert monitor.slug == "my-awesome-monitor"
 
-        # Simulate existing monitors entries that don't have a slug set
-        monitor.slug = ""
-        monitor.name = "New name"
-        monitor.save()
+        # Create another monitor with the same name
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="My Awesome Monitor",
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
 
-        assert monitor.guid == original_monitor_guid
+        assert monitor.slug.startswith("my-awesome-monitor-")
 
 
 @region_silo_test(stable=True)
