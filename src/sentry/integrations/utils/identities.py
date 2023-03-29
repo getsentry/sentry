@@ -33,7 +33,7 @@ def get_identity_or_404(
     qs = OrganizationMember.objects.get_for_integration(integration, user)
     if organization_id:
         qs = qs.filter(organization_id=organization_id)
-    organization = qs.values_list("organization", flat=True).first()
+    organization = qs.first().organization if qs else None
     if organization is None:
         raise Http404
     return organization, integration, idp

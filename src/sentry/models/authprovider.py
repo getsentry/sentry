@@ -11,7 +11,6 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.organizationmember import OrganizationMember
 
@@ -41,7 +40,7 @@ class AuthProviderDefaultTeams(Model):
 class AuthProvider(Model):
     __include_in_export__ = True
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)
+    organization = FlexibleForeignKey("sentry.Organization", unique=True)
     provider = models.CharField(max_length=128)
     config = JSONField()
 
@@ -115,7 +114,7 @@ class AuthProvider(Model):
         # check if we have a scim app already
 
         if SentryAppInstallationForProvider.objects.filter(
-            organization_id=self.organization_id, provider="okta_scim"
+            organization=self.organization_id, provider="okta_scim"
         ).exists():
             logger.warning(
                 "SCIM installation already exists",
@@ -162,7 +161,7 @@ class AuthProvider(Model):
 
         if self.flags.scim_enabled:
             install = SentryAppInstallationForProvider.objects.get(
-                organization_id=self.organization_id, provider=f"{self.provider}_scim"
+                organization=self.organization_id, provider=f"{self.provider}_scim"
             )
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs
             # We run this update before the app is uninstalled to avoid ending up in a situation where there are

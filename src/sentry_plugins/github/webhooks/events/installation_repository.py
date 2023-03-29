@@ -15,7 +15,7 @@ class InstallationRepositoryEventWebhook(Webhook):
         repos_added = event["repositories_added"]
 
         if repos_added:
-            for org_id in integration.organizationintegrations.values_list(
+            for org_id in integration.organizationintegration_set.values_list(
                 "organization_id", flat=True
             ):
                 for r in repos_added:

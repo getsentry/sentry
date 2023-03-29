@@ -2,13 +2,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
+from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.services.hybrid_cloud.integration import integration_service
 
 
 @region_silo_endpoint
-class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint):
+class OrganizationIntegrationIssuesEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     def put(self, request: Request, organization, integration_id) -> Response:
         """
         Migrate plugin linked issues to integration linked issues

@@ -45,7 +45,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
                 help_text=_("Enable SCIM to manage Memberships and Teams via your Provider"),
                 required=False,
             )
-            if provider.can_use_scim(organization, request.user)
+            if provider.can_use_scim(organization.id, request.user)
             else None
         )
 
@@ -61,7 +61,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
         "require_link": not auth_provider.flags.allow_unlinked,
         "default_role": organization.default_role,
     }
-    if provider.can_use_scim(organization, request.user):
+    if provider.can_use_scim(organization.id, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
 
     form = AuthProviderSettingsForm(

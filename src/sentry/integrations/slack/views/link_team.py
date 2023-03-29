@@ -146,6 +146,7 @@ class SlackLinkTeamView(BaseView):
 
         if not created:
             message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
+
             integration_service.send_message(
                 integration_id=integration.id,
                 organization_id=team.organization_id,
@@ -171,7 +172,6 @@ class SlackLinkTeamView(BaseView):
             actor=RpcActor.from_orm_team(team),
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
-
         integration_service.send_message(
             integration_id=integration.id,
             organization_id=team.organization_id,

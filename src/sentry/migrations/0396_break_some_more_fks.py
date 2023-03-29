@@ -386,7 +386,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0393_create_groupforecast_table"),
+        ("sentry", "0395_add_index_to_date_added"),
     ]
 
     operations = (

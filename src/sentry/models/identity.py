@@ -18,11 +18,11 @@ from sentry.db.models import (
     control_silo_only_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models import User
+    from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
 logger = logging.getLogger(__name__)
 

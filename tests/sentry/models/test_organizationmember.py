@@ -191,7 +191,6 @@ class OrganizationMemberTest(TestCase):
             organization=self.organization,
             role="member",
             user=user,
-            email="test@example.com",
             token="abc-def",
             token_expires_at="2018-01-01 10:00:00",
         )

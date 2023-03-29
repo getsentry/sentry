@@ -85,6 +85,7 @@ class NotificationsService(InterfaceWithLifecycle):
     ) -> None:
         pass
 
+    @abstractmethod
     def remove_notification_settings(self, *, actor_id: int, provider: ExternalProviders) -> None:
         """
         Delete notification settings based on an actor_id

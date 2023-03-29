@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
@@ -23,10 +23,10 @@ class IntegrationSerializer(serializers.Serializer):
     domain = serializers.URLField(required=False, allow_blank=True)
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
-        org_integration = self.get_organization_integration(organization, integration_id)
+        org_integration = self.get_organization_integration(organization.id, integration_id)
 
         return self.respond(
             serialize(
@@ -55,7 +55,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                 update_kwargs["metadata"] = metadata
             integration_service.update_integration(integration_id=integration.id, **update_kwargs)
 
-            org_integration = self.get_organization_integration(organization, integration_id)
+            org_integration = self.get_organization_integration(organization.id, integration_id)
 
             return self.respond(
                 serialize(

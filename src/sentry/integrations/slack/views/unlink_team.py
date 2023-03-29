@@ -57,7 +57,7 @@ class SlackUnlinkTeamView(BaseView):
         channel_id = params["channel_id"]
 
         external_teams = ExternalActor.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             integration_id=integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name=channel_name,
