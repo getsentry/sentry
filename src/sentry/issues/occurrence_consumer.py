@@ -23,7 +23,6 @@ from django.utils import timezone
 from sentry import nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -265,15 +264,15 @@ def _process_message(
             txn.set_tag("project_id", project.id)
             txn.set_tag("project_slug", project.slug)
 
-            group_type = get_group_type_by_type_id(occurrence_data["type"])
-            if not group_type.allow_ingest(organization):
-                metrics.incr(
-                    "occurrence_ingest.dropped_feature_disabled",
-                    sample_rate=1.0,
-                    tags={"occurrence_type": occurrence_data["type"]},
-                )
-                txn.set_tag("result", "dropped_feature_disabled")
-                return None
+            # group_type = get_group_type_by_type_id(occurrence_data["type"])
+            # if not group_type.allow_ingest(organization):
+            #     metrics.incr(
+            #         "occurrence_ingest.dropped_feature_disabled",
+            #         sample_rate=1.0,
+            #         tags={"occurrence_type": occurrence_data["type"]},
+            #     )
+            #     txn.set_tag("result", "dropped_feature_disabled")
+            #     return None
 
             if "event_data" in kwargs:
                 txn.set_tag("result", "success")

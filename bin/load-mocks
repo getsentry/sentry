@@ -63,6 +63,7 @@ from sentry.signals import mocks_loaded
 from sentry.similarity import features
 from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
+from sentry.utils.samples import PERFORMANCE_ISSUE_CREATORS
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import create_trace, generate_user, random_normal
 
@@ -902,8 +903,9 @@ def create_mock_transactions(
                     time.sleep(0.05)
 
     if load_performance_issues:
+        perf_issues = list(PERFORMANCE_ISSUE_CREATORS.keys())
 
-        def load_n_plus_one_issue():
+        def load_n_plus_one_issue(for_project):
             trace_id = uuid4().hex
             transaction_user = generate_user()
             frontend_root_span_id = uuid4().hex[:16]
@@ -960,7 +962,7 @@ def create_mock_transactions(
             }
 
             create_sample_event(
-                project=backend_project,
+                project=for_project,
                 platform="transaction",
                 transaction="/n_plus_one_db/backend/",
                 event_id=uuid4().hex,
@@ -974,12 +976,13 @@ def create_mock_transactions(
                     source_span,
                 ]
                 + repeating_spans,
+                performance_issues=perf_issues,
             )
 
             time.sleep(1.0)
 
             create_sample_event(
-                project=backend_project,
+                project=for_project,
                 platform="transaction",
                 transaction="/file-io-main-thread/",
                 event_id=uuid4().hex,
@@ -1022,9 +1025,10 @@ def create_mock_transactions(
                         },
                     },
                 ],
+                performance_issues=perf_issues,
             )
 
-        def load_uncompressed_asset_issue():
+        def load_uncompressed_asset_issue(for_project):
             time.sleep(1.0)
             transaction_user = generate_user()
             trace_id = uuid4().hex
@@ -1058,7 +1062,7 @@ def create_mock_transactions(
             ]
 
             create_sample_event(
-                project=backend_project,
+                project=for_project,
                 platform="transaction",
                 transaction="/uncompressed-asset/",
                 event_id=uuid4().hex,
@@ -1068,9 +1072,10 @@ def create_mock_transactions(
                 trace=trace_id,
                 parent_span_id=parent_span_id,
                 spans=[parent_span] + spans,
+                performance_issues=perf_issues,
             )
 
-        def load_consecutive_db_issue():
+        def load_consecutive_db_issue(for_project):
             time.sleep(1.0)
             transaction_user = generate_user()
             trace_id = uuid4().hex
@@ -1117,7 +1122,7 @@ def create_mock_transactions(
             ]
 
             create_sample_event(
-                project=backend_project,
+                project=for_project,
                 platform="transaction",
                 transaction="/consecutive-db/",
                 event_id=uuid4().hex,
@@ -1127,9 +1132,10 @@ def create_mock_transactions(
                 trace=trace_id,
                 parent_span_id=parent_span_id,
                 spans=[parent_span] + spans,
+                performance_issues=perf_issues,
             )
 
-        def load_render_blocking_asset_issue():
+        def load_render_blocking_asset_issue(for_project):
             transaction_user = generate_user()
             trace_id = uuid4().hex
             parent_span_id = uuid4().hex[:16]
@@ -1148,7 +1154,7 @@ def create_mock_transactions(
             ]
 
             create_sample_event(
-                project=frontend_project,
+                project=for_project,
                 platform="transaction",
                 transaction="/render-blocking-asset/",
                 event_id=uuid4().hex,
@@ -1161,9 +1167,10 @@ def create_mock_transactions(
                 measurements={
                     "fcp": {"value": 2500.0},
                 },
+                performance_issues=perf_issues,
             )
 
-        def load_m_n_plus_one_issue():
+        def load_m_n_plus_one_issue(for_project):
             trace_id = uuid4().hex
             transaction_user = generate_user()
 
@@ -1204,7 +1211,7 @@ def create_mock_transactions(
             }
 
             create_sample_event(
-                project=backend_project,
+                project=for_project,
                 platform="transaction",
                 transaction="/m_n_plus_one_db/backend/",
                 event_id=uuid4().hex,
@@ -1213,22 +1220,24 @@ def create_mock_transactions(
                 start_timestamp=timestamp,
                 trace=trace_id,
                 spans=[parent_span] + repeating_spans,
+                performance_issues=perf_issues,
             )
 
-        def load_performance_issues():
+        def load_performance_issues(for_project):
             print(f"    > Loading performance issues data")  # NOQA
             print(f"    > Loading n plus one issue")  # NOQA
-            load_n_plus_one_issue()
+            load_n_plus_one_issue(for_project)
             print(f"    > Loading consecutive db issue")  # NOQA
-            load_consecutive_db_issue()
+            load_consecutive_db_issue(for_project)
             print(f"    > Loading uncompressed asset issue")  # NOQA
-            load_uncompressed_asset_issue()
+            load_uncompressed_asset_issue(for_project)
             print(f"    > Loading render blocking asset issue")  # NOQA
-            load_render_blocking_asset_issue()
+            load_render_blocking_asset_issue(for_project)
             print(f"    > Loading MN+1 issue")  # NOQA
-            load_m_n_plus_one_issue()
+            load_m_n_plus_one_issue(for_project)
 
-        load_performance_issues()
+        for proj in [backend_project, frontend_project]:
+            load_performance_issues(proj)
 
 
 if __name__ == "__main__":
