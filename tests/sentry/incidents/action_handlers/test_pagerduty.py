@@ -34,7 +34,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         self.service = PagerDutyService.objects.create(
             service_name=service[0]["service_name"],
             integration_key=service[0]["integration_key"],
-            organization_integration=self.integration.organizationintegrations.first(),
+            organization_integration=self.integration.organizationintegration_set.first(),
         )
 
     def test_build_incident_attachment(self):
@@ -114,7 +114,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         PagerDutyService.objects.create(
             service_name=service[0]["service_name"],
             integration_key=service[0]["integration_key"],
-            organization_integration=self.integration.organizationintegrations.first(),
+            organization_integration=self.integration.organizationintegration_set.first(),
         )
         self.run_fire_test()
 

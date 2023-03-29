@@ -24,8 +24,8 @@ class IntegrationManager(BaseManager):
     def get_active_integrations(self, organization_id: str):
         return self.filter(
             status=ObjectStatus.ACTIVE,
-            organizationintegrations__status=ObjectStatus.ACTIVE,
-            organizationintegrations__organization_id=organization_id,
+            organizationintegration__status=ObjectStatus.ACTIVE,
+            organizationintegration__organization_id=organization_id,
         )
 
 

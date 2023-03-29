@@ -81,7 +81,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             integration = Integration.objects.get(
                 id=integration_id,
                 provider=provider,
-                organizationintegrations__organization_id=organization.id,
+                organizationintegration__organization_id=organization.id,
                 status=ObjectStatus.VISIBLE,
             )
         except Integration.DoesNotExist:

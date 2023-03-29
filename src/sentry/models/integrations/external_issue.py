@@ -26,7 +26,7 @@ class ExternalIssueManager(BaseManager):
     ) -> QuerySet:
         kwargs = dict(
             integration_id=integration.id,
-            integration__organizationintegrations__organization_id=F("organization_id"),
+            integration__organizationintegration__organization_id=F("organization_id"),
         )
 
         if external_issue_key is not None:

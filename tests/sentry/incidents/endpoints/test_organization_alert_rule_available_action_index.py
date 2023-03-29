@@ -63,7 +63,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         service = PagerDutyService.objects.create(
             service_name=service_name,
             integration_key=SERVICES[0]["integration_key"],
-            organization_integration=integration.organizationintegrations.first(),
+            organization_integration=integration.organizationintegration_set.first(),
         )
 
         data = build_action_response(

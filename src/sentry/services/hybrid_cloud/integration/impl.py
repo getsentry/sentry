@@ -91,13 +91,13 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if integration_ids is not None:
             integration_kwargs["id__in"] = integration_ids
         if organization_id is not None:
-            integration_kwargs["organizationintegrations__organization_id"] = organization_id
+            integration_kwargs["organizationintegration__organization_id"] = organization_id
         if status is not None:
             integration_kwargs["status"] = status
         if providers is not None:
             integration_kwargs["provider__in"] = providers
         if org_integration_status is not None:
-            integration_kwargs["organizationintegrations__status"] = org_integration_status
+            integration_kwargs["organizationintegration__status"] = org_integration_status
 
         if not integration_kwargs:
             return []
@@ -125,7 +125,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if external_id is not None:
             integration_kwargs["external_id"] = external_id
         if organization_id is not None:
-            integration_kwargs["organizationintegrations__organization_id"] = organization_id
+            integration_kwargs["organizationintegration__organization_id"] = organization_id
 
         if not integration_kwargs:
             return None
