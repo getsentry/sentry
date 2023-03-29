@@ -213,6 +213,7 @@ class SnubaEventStorage(EventStorage):
             if event.get_event_type() == "transaction" and not skip_transaction_groupevent:
                 logger.warning("eventstore.passed-group-id-for-transaction")
                 return event.for_group(Group.objects.get(id=group_id))
+                # event.group_id = group_id
             else:
                 event.group_id = group_id
 

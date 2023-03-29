@@ -2319,7 +2319,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
         # Granular, per-project option
         per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
-        if per_project_rate > random.random():
+        if per_project_rate > random.random() or True:
             kwargs = _create_kwargs(job)
             kwargs["culprit"] = job["culprit"]
             kwargs["data"] = materialize_metadata(
