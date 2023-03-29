@@ -87,10 +87,10 @@ export default function ReplayOnboardingPanel() {
         <Feature
           features={['session-replay-ga']}
           organization={organization}
-          renderDisabled={() => <SetupReplaysCTA />}
+          renderDisabled={() => <SetupReplaysCTA disableSetup={allProjectsUnsupported} />}
         >
           <OnboardingCTAHook organization={organization}>
-            <SetupReplaysCTA />
+            <SetupReplaysCTA disableSetup={allProjectsUnsupported} />
           </OnboardingCTAHook>
         </Feature>
       </OnboardingPanel>
@@ -98,7 +98,7 @@ export default function ReplayOnboardingPanel() {
   );
 }
 
-function SetupReplaysCTA() {
+function SetupReplaysCTA({disableSetup}: {disableSetup: boolean}) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   return (
@@ -110,7 +110,7 @@ function SetupReplaysCTA() {
         )}
       </p>
       <ButtonList gap={1}>
-        <Button onClick={activateSidebar} priority="primary">
+        <Button onClick={activateSidebar} priority="primary" disabled={disableSetup}>
           {t('Set Up Replays')}
         </Button>
         <Button
