@@ -290,9 +290,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         with transaction.atomic():
             org_member: OrganizationMember = OrganizationMember.objects.create(
                 organization_id=organization.id,
-                user_id=user.id,
+                user_id=user.id if user else None,
+                email=email,
                 flags=self._deserialize_member_flags(flags) if flags else 0,
                 role=role or organization.default_role,
+                inviter_id=inviter_id,
+                invite_status=invite_status,
             )
             region_outbox = org_member.outbox_for_update(
                 org_id=organization.id, org_member_id=org_member.id
