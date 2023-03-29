@@ -5,6 +5,8 @@ import functools
 from types import TracebackType
 from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type, cast
 
+from django.db.models import Q
+
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud import DelegatedBySiloMode, InterfaceWithLifecycle, hc_test_stub
@@ -101,16 +103,28 @@ def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
 class HybridCloudTestMixin:
     @exempt_from_silo_limits()
     def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):
-        org_member_mapping = OrganizationMemberMapping.objects.get(
+        org_member_mapping_query = OrganizationMemberMapping.objects.filter(
             organization_id=org_member.organization_id,
             email=org_member.email,
             user_id=org_member.user_id,
         )
 
+        assert org_member_mapping_query.count() == 1
+        org_member_mapping = org_member_mapping_query.get()
+
         email = org_member_mapping.email
         user_id = org_member_mapping.user_id
         # only either user_id or email should have a value, but not both.
         assert (email is None and user_id) or (email and user_id is None)
+
+        assert (
+            OrganizationMember.objects.filter(
+                Q(email=email) | Q(user_id=user_id),
+            )
+            .filter(organization_id=org_member.organization_id)
+            .count()
+            == 1
+        )
 
         assert org_member_mapping.role == org_member.role
         if org_member.inviter:
