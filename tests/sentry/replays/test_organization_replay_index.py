@@ -919,7 +919,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.tag:div",
                 "replay_click.tag:button",
                 "replay_click.testid:1",
-                "replay_click.text:Hello",
+                "replay_click.textContent:Hello",
                 "replay_click.title:MyTitle",
             ]
             for query in queries:
