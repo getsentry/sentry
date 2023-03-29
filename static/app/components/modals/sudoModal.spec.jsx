@@ -146,18 +146,12 @@ describe('Sudo Modal', function () {
     );
 
     const api = new Client();
-    const successCb = jest.fn();
-    const errorCb = jest.fn();
 
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    // Should return w/ `sudoRequired`
-    api.request('/organizations/org-slug/', {
-      method: 'DELETE',
-      success: successCb,
-      error: errorCb,
-    });
+    // Should return w/ `sudoRequired` and trigger the the modal to open
+    api.requestPromise('/organizations/org-slug/', {method: 'DELETE'});
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
