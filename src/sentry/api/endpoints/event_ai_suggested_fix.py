@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 import openai
 from django.conf import settings
+from django.dispatch import Signal
 from django.http import HttpResponse
 
 from sentry import eventstore, features
@@ -20,6 +21,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 openai.api_key = settings.OPENAI_API_KEY
+
+openai_policy_check = Signal()
 
 FUN_PROMPT_CHOICES = [
     "[haiku about the error]",
@@ -101,6 +104,21 @@ BLOCKED_TAGS = frozenset(
         "otel",
     ]
 )
+
+
+def get_openai_policy(organization):
+    """Uses a signal to determine what the policy for OpenAI should be."""
+    results = openai_policy_check.send(
+        sender=EventAiSuggestedFixEndpoint, organization=organization
+    )
+    result = "allowed"
+
+    # Last one wins
+    for _, new_result in results:
+        if new_result is not None:
+            result = new_result
+
+    return result
 
 
 def describe_event_for_ai(event):
@@ -187,6 +205,26 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
+
+        # Check the OpenAI access policy
+        policy = get_openai_policy(request.organization)
+        policy_failure = None
+        if policy == "subprocessor":
+            policy_failure = "subprocessor"
+        elif policy == "individual_consent":
+            if request.GET.get("consent") != "yes":
+                policy_failure = "individual_consent"
+        elif policy == "allowed":
+            pass
+        else:
+            logger.warning("Unknown OpenAI policy state")
+
+        if policy_failure is not None:
+            return HttpResponse(
+                json.dumps({"restriction": policy_failure}),
+                content_type="application/json",
+                status=401,
+            )
 
         # Cache the suggestion for a certain amount by primary hash, so even when new events
         # come into the group, we are sharing the same response.
