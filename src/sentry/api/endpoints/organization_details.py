@@ -273,6 +273,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
+        # both provider and providerConfig required to configure provider
+        if ("provider" in attrs and "providerConfig" not in attrs) or (
+            "providerConfig" in attrs and "provider" not in attrs
+        ):
+            raise serializers.ValidationError(
+                "Both provider and providerConfig are required to configure provider"
+            )
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
@@ -382,17 +389,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        # both provider and providerConfig required to configure provider
         if "provider" in data and "providerConfig" in data:
             provider_name = data["provider"]
             provider_config = data["providerConfig"]
             AuthProvider.objects.update_or_create(
                 organization=org,
                 defaults={"provider": provider_name, "config": provider_config},
-            )
-        elif "provider" in data or "providerConfig" in data:
-            raise serializers.ValidationError(
-                "Both provider and providerConfig are required to configure provider"
             )
 
         org_tracked_field = {
@@ -549,8 +551,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     {"slug": ["An organization with this slug already exists."]},
                     status=status.HTTP_409_CONFLICT,
                 )
-            except serializers.ValidationError as e:
-                return self.respond(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
             # Send outbox message to clean up mappings after organization
             # creation transaction
