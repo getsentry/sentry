@@ -45,8 +45,6 @@ topic_to_dataset: Dict[str, Dataset] = {
     settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
     settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
     settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
-    settings.KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,  # TODO: Remove once we switch onto KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
-    settings.KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,  # TODO: Remove once we switch onto KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
     settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: Dataset.Sessions,
     settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
 }
