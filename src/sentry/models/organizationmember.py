@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -92,11 +92,34 @@ class OrganizationMemberManager(BaseManager):
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
-    def get_for_integration(self, integration: RpcIntegration | int, actor: RpcUser) -> QuerySet:
-        return self.filter(
-            user_id=actor.id,
-            organization__organizationintegration__integration_id=extract_id_from(integration),
-        ).select_related("organization")
+    def get_for_integration(
+        self, integration: RpcIntegration | int, user: RpcUser, organization_id: int | None = None
+    ) -> QuerySet:
+        # This can be moved into the integration service once OrgMemberMapping is completed.
+        # We are forced to do an ORM -> service -> ORM call to reduce query size while avoiding
+        # cross silo queries until we have a control silo side to map users through.
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        if organization_id is not None:
+            if (
+                integration_service.get_organization_integration(
+                    integration_id=extract_id_from(integration), organization_id=organization_id
+                )
+                is None
+            ):
+                return self.filter(Q())
+            return self.filter(organization_id=organization_id, user_id=user.id)
+
+        org_ids = list(self.filter(user_id=user.id).values_list("organization_id", flat=True))
+        org_ids = [
+            oi.organization_id
+            for oi in integration_service.get_organization_integrations(
+                organization_ids=org_ids, integration_id=extract_id_from(integration)
+            )
+        ]
+        return self.filter(user_id=user.id, organization_id__in=org_ids).select_related(
+            "organization"
+        )
 
     def get_member_invite_query(self, id: int) -> QuerySet:
         return self.filter(

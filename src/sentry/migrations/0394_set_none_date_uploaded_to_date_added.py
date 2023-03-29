@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
     checked = False
 
     dependencies = [
-        ("sentry", "0394_set_none_date_uploaded_to_date_added"),
+        ("sentry", "0393_create_groupforecast_table"),
     ]
 
     operations = [

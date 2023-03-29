@@ -49,7 +49,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             paginator_cls=OffsetPaginator,
             order_by="name",
             queryset=Integration.objects.filter(
-                organizations=organization_id,
+                organizationintegration__organization_id=organization_id,
                 provider__in=provider_keys,
             ),
         )

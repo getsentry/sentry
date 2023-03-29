@@ -10,13 +10,14 @@ from rest_framework.response import Response
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
 from sentry.api.base import Endpoint, pending_silo_endpoint
-from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Project, Rule
+from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Rule
 from sentry.models.activity import ActivityIntegration
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
+from ...services.hybrid_cloud.integration import integration_service
 from .card_builder import AdaptiveCard
 from .card_builder.help import (
     build_help_command_card,
@@ -362,14 +363,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
         team_id = integration.external_id
         client = MsTeamsClient(integration)
 
-        try:
-            group = Group.objects.select_related("project__organization").get(
-                project__in=Project.objects.filter(
-                    organization__in=integration.organizations.all()
-                ),
-                id=group_id,
+        group = Group.objects.select_related("project__organization").filter(id=group_id).first()
+        if group:
+            integration = integration_service.get_organization_integration(
+                integration_id=integration.id, organization_id=group.project.organization_id
             )
-        except Group.DoesNotExist:
+            if integration is None:
+                group = None
+
+        if not group:
             logger.info(
                 "msteams.action.invalid-issue",
                 extra={"team_id": team_id, "integration_id": integration.id},
