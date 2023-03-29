@@ -109,7 +109,7 @@ def _hack_pydantic_type_validation() -> None:
         return result, None
 
     functools.update_wrapper(validate, builtin_validate)
-    pydantic.fields.ModelField.validate = validate
+    pydantic.fields.ModelField.validate = validate  # type: ignore
 
 
 _hack_pydantic_type_validation()
