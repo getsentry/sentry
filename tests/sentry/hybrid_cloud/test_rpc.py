@@ -44,7 +44,9 @@ class RpcServiceTest(TestCase):
 
         assert mock_report.call_count == 2
         field_names = {c.args[0].name for c in mock_report.call_args_list}
+        model_classes = [c.args[3] for c in mock_report.call_args_list]
         assert field_names == {"id", "actor_type"}
+        assert model_classes == [RpcActor] * 2
 
     def test_dispatch_to_local_service(self):
         user = self.create_user()
