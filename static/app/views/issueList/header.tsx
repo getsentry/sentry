@@ -125,7 +125,7 @@ function IssueListHeader({
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      <StyledTabs selectedKey={query}>
+      <StyledTabs selectedKey={query} onSelectionChange={() => {}}>
         <TabList hideBorder>
           {[
             ...visibleTabs.map(
