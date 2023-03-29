@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Mapping, MutableMapping, Optional, Sequence, TypedDict
+from typing import Dict, Mapping, MutableMapping, Optional, Sequence, TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -66,7 +66,7 @@ class InboundMessage(TypedDict):
     # Note: This is only the subset of fields we access in this file.
     org_id: int
     name: str
-    tags: Mapping[str, str]
+    tags: Dict[str, str]
 
 
 class TimeseriesCardinalityLimiter:
