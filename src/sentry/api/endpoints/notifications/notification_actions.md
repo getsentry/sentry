@@ -1,17 +1,16 @@
-
 # Notification Actions
 
 ## Background
 
 Notification Actions are meant to be a generic abstraction of the actions we fire when alert rules go off.
-In fact the structure of the model for `NotificationAction` was abstracted from `AlertRuleTriggerAction` but is intentionally unrelated to issues/events/incidents.
-Instead, they are meant to help new features of Sentry fire notifications to integrations instead of through personal notifications. You can think of these as organization notifications, which can be configured across the whole organization/project, rather than per recipient.
+The structure of the model for `NotificationAction` was abstracted from `AlertRuleTriggerAction` but decouples it from issues/events/incidents.
+Instead, they are meant to help send notifications to third-party integrations rather than individual channels such as email, or personal notifications settings. These notifications can be configured across the whole organization/project, rather than per recipient. It was originally designed for Spike Protection, but should be generic enough to apply to any other part of Sentry.
 
 Some examples of possible notification actions:
 - Receiving audit log entries to a slack channel
 - Creating jira tickets from new user feedback items
 - Triggering a GitHub notification whenever a release is created in Sentry
-- Quota notifications or billing updates to
+- Sending quota notifications or billing updates to a specific non-user email
 - Project notifications send to a slack channel instead of the teams/members
 
 ## How they work

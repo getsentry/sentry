@@ -40,7 +40,7 @@ class SCIMMemberTestsPermissions(APITestCase):
         assert response.status_code == 403
 
     def test_cant_use_scim_even_with_authprovider(self):
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(url)
         assert response.status_code == 403
