@@ -1,14 +1,11 @@
 import {useCallback} from 'react';
 
 import ActionButton from 'sentry/components/actions/button';
-import Confirm from 'sentry/components/confirm';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import {Group} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {useCustomerPolicies} from 'sentry/views/issueDetails/openAIFixSuggestion/useCustomerPolicies';
-import {useOpenAISuggestionLocalStorage} from 'sentry/views/issueDetails/openAIFixSuggestion/useOpenAISuggestionLocalStorage';
 import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 type Props = {
@@ -29,55 +26,28 @@ export function OpenAIFixSuggestionButton({
   const organization = useOrganization();
   const router = useRouter();
 
-  const [agreedForwardDataToOpenAI, setAgreedForwardDataToOpenAI] =
-    useOpenAISuggestionLocalStorage();
-  const {hasSignedDPA} = useCustomerPolicies();
-
   const handleShowAISuggestion = useCallback(() => {
+    onClick();
     router.push({
       pathname: `/issues/${groupId}/`,
       query: {...router.location.query, showSuggestedFix: true},
     });
-  }, [router, groupId]);
-
-  const handleDataForwardToOpenAIAgreement = useCallback(() => {
-    setAgreedForwardDataToOpenAI(true);
-    router.push({
-      pathname: `/issues/${groupId}/`,
-      query: {...router.location.query, showSuggestedFix: true},
-    });
-  }, [router, groupId, setAgreedForwardDataToOpenAI]);
+  }, [router, groupId, onClick]);
 
   if (!organization.features.includes('open-ai-suggestion')) {
     return null;
   }
 
-  const byPassNoGuaranteeModal = hasSignedDPA || agreedForwardDataToOpenAI;
-
   return (
-    <Confirm
-      bypass={byPassNoGuaranteeModal}
-      priority="primary"
-      message={t(
-        'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
-      )}
+    <ActionButton
+      className={className}
       disabled={disabled}
-      onConfirm={
-        byPassNoGuaranteeModal
-          ? handleShowAISuggestion
-          : handleDataForwardToOpenAIAgreement
-      }
+      size={size}
+      onClick={handleShowAISuggestion}
+      title={experimentalFeatureTooltipDesc}
     >
-      <ActionButton
-        className={className}
-        disabled={disabled}
-        size={size}
-        onClick={onClick}
-        title={experimentalFeatureTooltipDesc}
-      >
-        {t('Suggested Fix')}
-        <FeatureBadge type="experimental" noTooltip />
-      </ActionButton>
-    </Confirm>
+      {t('Suggested Fix')}
+      <FeatureBadge type="experimental" noTooltip />
+    </ActionButton>
   );
 }
