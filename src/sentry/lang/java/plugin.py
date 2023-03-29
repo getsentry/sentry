@@ -218,32 +218,6 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         abs_path_dollar_index = abs_path.rfind("$")
         return abs_path_dollar_index < 0
 
-    # TODO needs testing
-    # extracts info from frame and builds the path for looking up the source file in the source bundle
-    # e.g. ~/com.example.sampleapp.MainActivity.java
-    # def _build_source_file_name(self, frame):
-    #     abs_path = frame["abs_path"]
-    #     module = frame["module"]
-    #
-    #     if self._is_valid_path(abs_path):
-    #         # extract package from module (io.sentry.Sentry -> io.sentry) and append abs_path
-    #         module_dot_index = module.rfind(".")
-    #         if module_dot_index >= 0:
-    #             source_file_name = module[:module_dot_index] + "."
-    #         else:
-    #             source_file_name = ""
-    #         source_file_name += abs_path
-    #     else:
-    #         # use module as filename (excluding inner classes, marked by $) and append .java
-    #         module_dollar_index = module.rfind("$")
-    #         if module_dollar_index >= 0:
-    #             source_file_name = module[:module_dollar_index]
-    #         else:
-    #             source_file_name = module
-    #         source_file_name += ".java"
-    #
-    #     return "~/" + source_file_name
-
     def _build_source_file_name(self, frame):
         abs_path = frame["abs_path"]
         module = frame["module"]
