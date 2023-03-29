@@ -3,7 +3,12 @@ import uuid
 
 from django.urls import reverse
 
-from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
+from sentry.replays.testutils import (
+    assert_expected_response,
+    mock_expected_response,
+    mock_replay,
+    mock_replay_click,
+)
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
@@ -862,3 +867,80 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
+
+    def test_get_replays_filter_clicks(self):
+        """Test replays conform to the interchange format."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=2,
+                tag="button",
+                id="myid",
+                class_=["class1", "class3"],
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                "replay_click.alt:Alt",
+                "replay_click.class:class1",
+                "replay_click.class:class2",
+                "replay_click.class:class3",
+                "replay_click.id:myid",
+                "replay_click.label:AriaLabel",
+                "replay_click.role:button",
+                "replay_click.tag:div",
+                "replay_click.tag:button",
+                "replay_click.testid:1",
+                "replay_click.textContent:Hello",
+                "replay_click.title:MyTitle",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+
+            queries = [
+                "replay_click.alt:NotAlt",
+                "replay_click.class:class4",
+                "replay_click.id:other",
+                "replay_click.label:NotAriaLabel",
+                "replay_click.role:form",
+                "replay_click.tag:header",
+                "replay_click.testid:2",
+                "replay_click.textContent:World",
+                "replay_click.title:NotMyTitle",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
