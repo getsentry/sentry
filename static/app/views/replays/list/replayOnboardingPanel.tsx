@@ -10,6 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -36,13 +37,28 @@ export default function ReplayOnboardingPanel() {
   const preferences = useLegacyStore(PreferencesStore);
   const pageFilters = usePageFilters();
   const projects = useProjects();
+  const organization = useOrganization();
+  const canCreateProjects = organization.access.includes('project:admin');
+
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
   );
 
-  const allProjectsUnsupported = selectedProjects.every(
+  const allProjectsUnsupported = projects.projects.every(
     p => !replayPlatforms.includes(p.platform!)
   );
+
+  const allSelectedProjectsUnsupported = selectedProjects.every(
+    p => !replayPlatforms.includes(p.platform!)
+  );
+
+  // if all projects are unsupported we should prompt the user to create a project
+  // else we prompt to setup
+  const primaryAction = allProjectsUnsupported ? 'create' : 'setup';
+  // disable "create" if the user has insufficient permissions
+  // disable "setup" if the current selected pageFilters are not supported
+  const primaryActionDisabled =
+    primaryAction === 'create' ? !canCreateProjects : allSelectedProjectsUnsupported;
 
   const breakpoints = preferences.collapsed
     ? {
@@ -58,18 +74,16 @@ export default function ReplayOnboardingPanel() {
         xlarge: '1450px',
       };
 
-  const organization = useOrganization();
-
   return (
     <Fragment>
-      {allProjectsUnsupported && (
+      {allSelectedProjectsUnsupported && (
         <Alert icon={<IconInfo />}>
           {tct(
             `[projectMsg] Select a project using our [link], or equivalent framework SDK.`,
             {
               projectMsg: (
                 <strong>
-                  {t(`Session Replay isn't available for %s.`, selectedProjects[0].slug)}
+                  {t(`Session Replay isn't available for %s.`, selectedProjects[0]?.slug)}
                 </strong>
               ),
               link: (
@@ -87,10 +101,20 @@ export default function ReplayOnboardingPanel() {
         <Feature
           features={['session-replay-ga']}
           organization={organization}
-          renderDisabled={() => <SetupReplaysCTA disableSetup={allProjectsUnsupported} />}
+          renderDisabled={() => (
+            <SetupReplaysCTA
+              orgSlug={organization.slug}
+              primaryAction={primaryAction}
+              disabled={primaryActionDisabled}
+            />
+          )}
         >
           <OnboardingCTAHook organization={organization}>
-            <SetupReplaysCTA disableSetup={allProjectsUnsupported} />
+            <SetupReplaysCTA
+              orgSlug={organization.slug}
+              primaryAction={primaryAction}
+              disabled={primaryActionDisabled}
+            />
           </OnboardingCTAHook>
         </Feature>
       </OnboardingPanel>
@@ -98,8 +122,62 @@ export default function ReplayOnboardingPanel() {
   );
 }
 
-function SetupReplaysCTA({disableSetup}: {disableSetup: boolean}) {
+interface SetupReplaysCTAProps {
+  orgSlug: string;
+  primaryAction: 'setup' | 'create';
+  disabled?: boolean;
+}
+
+export function SetupReplaysCTA({
+  disabled,
+  primaryAction = 'setup',
+  orgSlug,
+}: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
+
+  function renderCTA() {
+    if (primaryAction === 'setup') {
+      return (
+        <Tooltip
+          title={
+            <span data-test-id="setup-replays-tooltip">
+              {t('Select a supported project from the projects dropdown.')}
+            </span>
+          }
+          disabled={!disabled} // we only want to show the tooltip when the button is disabled
+        >
+          <Button
+            data-test-id="setup-replays-btn"
+            onClick={activateSidebar}
+            priority="primary"
+            disabled={disabled}
+          >
+            {t('Set Up Replays')}
+          </Button>
+        </Tooltip>
+      );
+    }
+
+    return (
+      <Tooltip
+        title={
+          <span data-test-id="create-project-tooltip">
+            {t('Only admins, managers, and owners, can create projects.')}
+          </span>
+        }
+        disabled={!disabled}
+      >
+        <Button
+          data-test-id="create-project-btn"
+          to={`/organizations/${orgSlug}/projects/new/`}
+          priority="primary"
+          disabled={disabled}
+        >
+          {t('Create Project')}
+        </Button>
+      </Tooltip>
+    );
+  }
 
   return (
     <Fragment>
@@ -110,9 +188,7 @@ function SetupReplaysCTA({disableSetup}: {disableSetup: boolean}) {
         )}
       </p>
       <ButtonList gap={1}>
-        <Button onClick={activateSidebar} priority="primary" disabled={disableSetup}>
-          {t('Set Up Replays')}
-        </Button>
+        {renderCTA()}
         <Button
           href="https://docs.sentry.io/platforms/javascript/session-replay/"
           external
