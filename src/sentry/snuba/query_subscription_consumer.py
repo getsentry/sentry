@@ -1,6 +1,6 @@
 import logging
 from random import random
-from typing import Callable, Dict, Mapping
+from typing import Callable, Dict, Mapping, cast
 
 import jsonschema
 import pytz
@@ -72,7 +72,7 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(value: str, jsoncodec: JsonCodec) -> PayloadV3:
+def parse_message_value(value: bytes, jsoncodec: JsonCodec) -> PayloadV3:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
@@ -83,12 +83,12 @@ def parse_message_value(value: str, jsoncodec: JsonCodec) -> PayloadV3:
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
         try:
-            wrapper = jsoncodec.decode(value, validate=True)
+            wrapper = cast(SubscriptionResult, jsoncodec.decode(value, validate=True))
         except ValidationError:
             old_version = True
             metrics.incr("snuba_query_subscriber.message_wrapper.old_validation")
             try:
-                wrapper: SubscriptionResult = json.loads(value)
+                wrapper = json.loads(value)
                 jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
             except jsonschema.ValidationError:
                 metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
@@ -120,7 +120,7 @@ def parse_message_value(value: str, jsoncodec: JsonCodec) -> PayloadV3:
 
 
 def handle_message(
-    message_value: str,
+    message_value: bytes,
     message_offset: int,
     message_partition: int,
     topic: str,
