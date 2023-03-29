@@ -101,14 +101,15 @@ export const MEPSettingProvider = ({
   const canUseMEP = canUseMetricsData(organization);
 
   const allowedStates = [MEPState.metricsOnly, MEPState.transactionsOnly];
-  const _metricSettingFromParam = location
-    ? decodeScalar(location.query[METRIC_SETTING_PARAM])
-    : MEPState.metricsOnly;
   let defaultMetricsState = MEPState.metricsOnly;
 
   if (forceTransactions) {
     defaultMetricsState = MEPState.transactionsOnly;
   }
+
+  const _metricSettingFromParam = location
+    ? decodeScalar(location.query[METRIC_SETTING_PARAM])
+    : defaultMetricsState;
 
   const metricSettingFromParam =
     allowedStates.find(s => s === _metricSettingFromParam) ?? defaultMetricsState;

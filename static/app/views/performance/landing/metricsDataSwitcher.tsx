@@ -1,26 +1,16 @@
-import {Fragment, useEffect} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
 import {
   MetricDataSwitcherOutcome,
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
-import {
-  canUseMetricsData,
-  MEPState,
-  METRIC_SEARCH_SETTING_PARAM,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 interface MetricDataSwitchProps {
   children: (props: MetricDataSwitcherOutcome) => React.ReactNode;
-  eventView: EventView;
-  location: Location;
   organization: Organization;
   hideLoadingIndicator?: boolean;
 }
@@ -64,58 +54,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
     );
   }
 
-  return (
-    <Fragment>
-      <MetricsSwitchHandler
-        eventView={props.eventView}
-        location={props.location}
-        outcome={metricsCardinality.outcome}
-        switcherChildren={props.children}
-      />
-    </Fragment>
-  );
-}
-
-interface SwitcherHandlerProps {
-  eventView: EventView;
-  location: Location;
-  outcome: MetricDataSwitcherOutcome;
-  switcherChildren: MetricDataSwitchProps['children'];
-}
-
-function MetricsSwitchHandler({
-  switcherChildren,
-  outcome,
-  location,
-  eventView,
-}: SwitcherHandlerProps) {
-  const {query} = location;
-  const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
-  const hasQuery = decodeScalar(query.query, '');
-  const queryIsTransactionsBased = mepSearchState === MEPState.transactionsOnly;
-
-  const shouldAdjustQuery =
-    hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly;
-
-  useEffect(() => {
-    if (shouldAdjustQuery) {
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: undefined,
-          [METRIC_SEARCH_SETTING_PARAM]: undefined,
-        },
-      });
-    }
-  }, [shouldAdjustQuery, location]);
-
-  if (hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly) {
-    eventView.query = ''; // TODO: Create switcher provider and move it to the route level to remove the need for this.
-  }
-
-  return <Fragment>{switcherChildren(outcome)}</Fragment>;
+  return <Fragment>{props.children(metricsCardinality.outcome)}</Fragment>;
 }
 
 const LoadingContainer = styled('div')`

@@ -21,6 +21,7 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {
   getTransactionMEPParamsIfApplicable,
   getUnfilteredTotalsEventView,
@@ -67,17 +68,24 @@ function TransactionOverview(props: Props) {
   }, [selection, organization, api]);
 
   return (
-    <MEPSettingProvider>
-      <PageLayout
-        location={location}
-        organization={organization}
-        projects={projects}
-        tab={Tab.TransactionSummary}
-        getDocumentTitle={getDocumentTitle}
-        generateEventView={generateEventView}
-        childComponent={OverviewContentWrapper}
-      />
-    </MEPSettingProvider>
+    <MetricsDataSwitcher organization={organization}>
+      {metricsDataSide => (
+        <MEPSettingProvider
+          location={location}
+          forceTransactions={metricsDataSide.forceTransactionsOnly}
+        >
+          <PageLayout
+            location={location}
+            organization={organization}
+            projects={projects}
+            tab={Tab.TransactionSummary}
+            getDocumentTitle={getDocumentTitle}
+            generateEventView={generateEventView}
+            childComponent={OverviewContentWrapper}
+          />
+        </MEPSettingProvider>
+      )}
+    </MetricsDataSwitcher>
   );
 }
 

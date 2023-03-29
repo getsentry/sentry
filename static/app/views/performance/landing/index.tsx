@@ -199,11 +199,7 @@ export function PerformanceLanding(props: Props) {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsDataSwitcher
-                      organization={organization}
-                      eventView={eventView}
-                      location={location}
-                    >
+                    <MetricsDataSwitcher organization={organization}>
                       {metricsDataSide => {
                         return (
                           <MEPSettingProvider
