@@ -5,8 +5,6 @@ import functools
 from types import TracebackType
 from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type, cast
 
-from django.db.models import Q
-
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud import DelegatedBySiloMode, InterfaceWithLifecycle, hc_test_stub
@@ -119,10 +117,10 @@ class HybridCloudTestMixin:
 
         assert (
             OrganizationMember.objects.filter(
-                Q(email=email) | Q(user_id=user_id),
-            )
-            .filter(organization_id=org_member.organization_id)
-            .count()
+                organization_id=org_member.organization_id,
+                user_id=user_id,
+                email=email,
+            ).count()
             == 1
         )
 
