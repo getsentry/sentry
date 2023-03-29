@@ -8,8 +8,10 @@ import {
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -29,6 +31,7 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
+  const {currentTime, currentHoverTime} = useReplayContext();
   const items = useMemo(
     () =>
       (breadcrumbs || []).filter(crumb => !['console'].includes(crumb.category || '')),
@@ -36,10 +39,45 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   );
 
   const listRef = useRef<ReactVirtualizedList>(null);
+
+  const itemLookup = useMemo(
+    () =>
+      breadcrumbs &&
+      breadcrumbs
+        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .sort(([a], [b]) => a - b),
+    [breadcrumbs]
+  );
+
+  const current = useMemo(
+    () =>
+      breadcrumbs
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentTime,
+          })
+        : undefined,
+    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime && breadcrumbs
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+          })
+        : undefined,
+    [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
+  );
+
+  const deps = useMemo(() => [items], [items]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
   });
 
   useScrollToCurrentItem({
@@ -60,8 +98,9 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <BreadcrumbRow
+          isCurrent={current?.id === item.id}
+          isHovered={hovered?.id === item.id}
           breadcrumb={item}
-          breadcrumbs={items}
           startTimestampMs={startTimestampMs}
           style={style}
         />

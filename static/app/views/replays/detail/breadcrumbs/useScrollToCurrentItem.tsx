@@ -12,15 +12,23 @@ type Opts = {
 };
 function useScrollToCurrentItem({breadcrumbs, ref, startTimestampMs}: Opts) {
   const {currentTime} = useReplayContext();
+  const itemLookup = useMemo(
+    () =>
+      breadcrumbs &&
+      breadcrumbs
+        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .sort(([a], [b]) => a - b),
+    [breadcrumbs]
+  );
+
   const current = useMemo(
     () =>
       getPrevReplayEvent({
+        itemLookup,
         items: breadcrumbs || [],
         targetTimestampMs: startTimestampMs + currentTime,
-        allowEqual: true,
-        allowExact: true,
       }),
-    [breadcrumbs, currentTime, startTimestampMs]
+    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
   );
 
   useEffect(() => {

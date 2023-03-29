@@ -43,7 +43,7 @@ class ObjectField(serializers.Field):
 
 class CronJobConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
-        choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys()))
+        choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())), required=False
     )
     """
     Currently supports "crontab" or "interval"
@@ -53,6 +53,13 @@ class CronJobConfigValidator(serializers.Serializer):
     """
     Varies depending on the schedule_type. Is either a crontab string, or a 2
     element tuple for intervals (e.g. [1, 'day'])
+
+    It is also possible to pass an object with the following formats
+
+    >>> { "type": "interval", "value": 5, "unit": "day", }
+    >>> { "type": "crontab", "value": "0 * * * *", }
+
+    When using this format the `schedule_type` is not required
     """
 
     checkin_margin = EmptyIntegerField(required=False, allow_null=True, default=None)
@@ -80,23 +87,41 @@ class CronJobConfigValidator(serializers.Serializer):
     def validate(self, attrs):
         if "schedule_type" in attrs:
             schedule_type = attrs["schedule_type"]
+        elif self.instance:
+            schedule_type = self.instance.get("schedule_type")
         else:
-            schedule_type = self.instance["schedule_type"]
+            schedule_type = None
 
         schedule = attrs.get("schedule")
         if not schedule:
             return attrs
 
+        # Translate alternative schedule type key
+        if isinstance(schedule, dict) and schedule.get("type"):
+            schedule_type = schedule.get("type")
+            schedule_type = SCHEDULE_TYPES.get(schedule_type)
+
+        if schedule_type is None:
+            raise ValidationError("Missing or invalid schedule type")
+
         if schedule_type == ScheduleType.INTERVAL:
+            # Translate alternative style schedule configuration
+            if isinstance(schedule, dict):
+                schedule = [schedule.get("value"), schedule.get("unit")]
+
             if not isinstance(schedule, list):
-                raise ValidationError("Invalid schedule for schedule_type")
+                raise ValidationError("Invalid schedule for for 'interval' type")
             if not isinstance(schedule[0], int):
-                raise ValidationError("Invalid schedule for schedule unit count (index 0)")
+                raise ValidationError("Invalid schedule for schedule unit count")
             if schedule[1] not in INTERVAL_NAMES:
-                raise ValidationError("Invalid schedule for schedule unit name (index 1)")
+                raise ValidationError("Invalid schedule for schedule unit name")
         elif schedule_type == ScheduleType.CRONTAB:
+            # Translate alternative style schedule configuration
+            if isinstance(schedule, dict):
+                schedule = schedule.get("value")
+
             if not isinstance(schedule, str):
-                raise ValidationError("Invalid schedule for schedule_type")
+                raise ValidationError("Invalid schedule for 'crontab' type")
             schedule = schedule.strip()
             if schedule.startswith("@"):
                 try:
@@ -105,7 +130,8 @@ class CronJobConfigValidator(serializers.Serializer):
                     raise ValidationError("Schedule was not parseable")
             if not croniter.is_valid(schedule):
                 raise ValidationError("Schedule was not parseable")
-            attrs["schedule"] = schedule
+        attrs["schedule"] = schedule
+        attrs["schedule_type"] = schedule_type
         return attrs
 
 

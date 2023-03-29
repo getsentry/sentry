@@ -1,4 +1,4 @@
-import {CSSProperties, forwardRef} from 'react';
+import {CSSProperties, forwardRef, MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import FileSize from 'sentry/components/fileSize';
@@ -6,6 +6,8 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
@@ -19,6 +21,7 @@ type Props = {
   handleMouseLeave: (span: NetworkSpan) => void;
   isCurrent: boolean;
   isHovered: boolean;
+  rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   span: NetworkSpan;
   startTimestampMs: number;
@@ -34,6 +37,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       handleMouseLeave,
       isCurrent,
       isHovered,
+      rowIndex,
       sortConfig,
       span,
       startTimestampMs,
@@ -41,7 +45,18 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     }: Props,
     ref
   ) => {
+    // Rows include the sortable header, the dataIndex does not
+    const dataIndex = String(rowIndex - 1);
+
+    const organization = useOrganization();
     const {currentTime} = useReplayContext();
+    const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
+
+    const isDetailsOpen = getParamValue() === dataIndex;
+
+    const hasNetworkDetails =
+      organization.features.includes('session-replay-network-details') &&
+      ['resource.fetch', 'resource.xhr'].includes(span.op);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
@@ -54,12 +69,14 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
         : undefined,
       hasOccurredAsc: isByTimestamp ? sortConfig.asc : undefined,
       isCurrent,
+      isDetailsOpen,
       isHovered,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
+      onClick: hasNetworkDetails ? () => setParamValue(dataIndex) : undefined,
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
-      style,
       ref,
+      style,
     };
     const size = span.data.size ?? span.data.responseBodySize;
 
@@ -84,11 +101,11 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Tooltip
-            title={span.op.replace('resource.', '')}
+            title={span.op.split('.')?.[1] ?? span.op}
             isHoverable
             showOnlyOnOverflow
           >
-            <Text>{span.op.replace('resource.', '')}</Text>
+            <Text>{span.op.split('.')?.[1] ?? span.op}</Text>
           </Tooltip>
         </Cell>
       ),
@@ -108,7 +125,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps} numeric>
           <TimestampButton
             format="mm:ss.SSS"
-            onClick={() => handleClick(span)}
+            onClick={(event: MouseEvent) => {
+              event.stopPropagation();
+              handleClick(span);
+            }}
             startTimestampMs={startTimestampMs}
             timestampMs={startMs}
           />
@@ -156,14 +176,19 @@ const Cell = styled('div')<{
   hasOccurred: boolean | undefined;
   hasOccurredAsc: boolean | undefined;
   isCurrent: boolean;
+  isDetailsOpen: boolean;
   isHovered: boolean;
   isStatusError: boolean;
   numeric?: boolean;
+  onClick?: undefined | (() => void);
 }>`
   display: flex;
   align-items: center;
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
+  cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
+
+  font-weight: ${p => (p.isDetailsOpen ? 'bold' : 'inherit')};
 
   ${cellBackground}
   ${cellBorder}
