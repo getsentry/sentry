@@ -15,35 +15,35 @@ replay_publisher: Optional[KafkaPublisher] = None
 ReplayActionsEventPayloadClick = TypedDict(
     "ReplayActionsEventPayloadClick",
     {
-        "node_id": int,
-        "tag": str,
-        "id": str,
-        "class": List[str],
-        "role": str,
-        "aria_label": str,
         "alt": str,
+        "aria_label": str,
+        "class": List[str],
+        "event_hash": str,
+        "id": str,
+        "node_id": int,
+        "role": str,
+        "tag": str,
         "testid": str,
-        "title": str,
         "text": str,
         "timestamp": int,
-        "event_hash": str,
+        "title": str,
     },
 )
 
 
 class ReplayActionsEventPayload(TypedDict):
-    type: Literal["replay_actions"]
-    replay_id: str
     clicks: List[ReplayActionsEventPayloadClick]
+    replay_id: str
+    type: Literal["replay_actions"]
 
 
 class ReplayActionsEvent(TypedDict):
-    type: Literal["replay_event"]
-    start_time: float
-    replay_id: str
-    project_id: int
-    retention_days: int
     payload: List[bytes]
+    project_id: int
+    replay_id: str
+    retention_days: int
+    start_time: float
+    type: Literal["replay_event"]
 
 
 def parse_and_emit_replay_actions(
