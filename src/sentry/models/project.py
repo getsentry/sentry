@@ -188,7 +188,9 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:project", duration=5, name="project_slug")
+            lock = locks.get(
+                f"slug:project:{self.organization_id}", duration=5, name="project_slug"
+            )
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(
                     self,
