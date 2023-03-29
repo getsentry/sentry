@@ -274,9 +274,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
         # both provider and providerConfig required to configure provider
-        if ("provider" in attrs and "providerConfig" not in attrs) or (
-            "providerConfig" in attrs and "provider" not in attrs
-        ):
+        if ("provider" in attrs) ^ ("providerConfig" in attrs):
             raise serializers.ValidationError(
                 "Both provider and providerConfig are required to configure provider"
             )
