@@ -35,17 +35,23 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
   return (
     <StyledClippedBox clipHeight={150}>
       <Pills>
-        {event.tags.map((tag, index) => (
-          <EventTagsPill
-            key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
-            tag={tag}
-            projectSlug={projectSlug}
-            organization={organization}
-            query={generateQueryWithTag({...location.query, referrer: 'event-tags'}, tag)}
-            streamPath={streamPath}
-            meta={meta?.[index]}
-          />
-        ))}
+        {event.tags.map((tag, index) =>
+          !organization.features.includes('device-classification') &&
+          tag.key === 'device.class' ? null : (
+            <EventTagsPill
+              key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
+              tag={tag}
+              projectSlug={projectSlug}
+              organization={organization}
+              query={generateQueryWithTag(
+                {...location.query, referrer: 'event-tags'},
+                tag
+              )}
+              streamPath={streamPath}
+              meta={meta?.[index]}
+            />
+          )
+        )}
       </Pills>
     </StyledClippedBox>
   );
