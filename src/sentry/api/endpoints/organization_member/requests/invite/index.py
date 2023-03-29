@@ -13,9 +13,6 @@ from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
-    organizationmember_mapping_service,
-)
 
 from ... import save_team_assignments
 from ...index import OrganizationMemberSerializer
