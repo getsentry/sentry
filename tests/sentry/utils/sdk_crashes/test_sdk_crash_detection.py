@@ -4,7 +4,11 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 from sentry.utils.safe import get_path
-from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetector, SDKCrashReporter
+from sentry.utils.sdk_crashes.sdk_crash_detection import (
+    CocoaSDKCrashDetector,
+    SDKCrashDetection,
+    SDKCrashReporter,
+)
 from tests.sentry.utils.sdk_crashes.test_fixture import (
     IN_APP_FRAME,
     get_crash_event,
@@ -204,12 +208,14 @@ def test_strip_frames(function, in_app):
     ), "in_app frame should be removed"
 
 
-def given_crash_detector() -> Tuple[SDKCrashDetector, SDKCrashReporter]:
+def given_crash_detector() -> Tuple[SDKCrashDetection, SDKCrashReporter]:
     crash_reporter = Mock()
     event_stripper = Mock()
+    cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
+
     event_stripper.strip_event_data = MagicMock(side_effect=lambda x: x)
 
-    crash_detection = SDKCrashDetector(crash_reporter, event_stripper)
+    crash_detection = SDKCrashDetection(crash_reporter, cocoa_sdk_crash_detector, event_stripper)
 
     return crash_detection, crash_reporter
 

@@ -144,7 +144,7 @@ from sentry.utils.performance_issues.performance_detection import (
     detect_performance_problems,
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetector, SDKCrashReporter
+from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetection, SDKCrashReporter
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -2271,7 +2271,7 @@ def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping)
 
 def _detect_sdk_crashes(jobs: Sequence[Job]):
     for job in jobs:
-        sdk_crash_detector = SDKCrashDetector(sdk_crash_reporter=SDKCrashReporter())
+        sdk_crash_detector = SDKCrashDetection(sdk_crash_reporter=SDKCrashReporter())
         sdk_crash_detector.detect_sdk_crash(job["data"])
 
 
