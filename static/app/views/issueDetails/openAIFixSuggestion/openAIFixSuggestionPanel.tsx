@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -17,6 +16,7 @@ import marked from 'sentry/utils/marked';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {AiLoaderMessage} from 'sentry/views/issueDetails/openAIFixSuggestion/aiLoaderMessage';
 import {useCustomerPolicies} from 'sentry/views/issueDetails/openAIFixSuggestion/useCustomerPolicies';
 import {useOpenAISuggestionLocalStorage} from 'sentry/views/issueDetails/openAIFixSuggestion/useOpenAISuggestionLocalStorage';
 import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
@@ -115,7 +115,10 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
         <Fragment>
           <PanelBody withPadding>
             {dataIsLoading ? (
-              <LoadingIndicator />
+              <AiLoaderWrapper>
+                <div className="ai-loader" />
+                <AiLoaderMessage />
+              </AiLoaderWrapper>
             ) : dataIsError ? (
               <LoadingErrorWithoutMarginBottom onRetry={dataRefetch} />
             ) : (
@@ -178,7 +181,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
 
 const FixSuggestionPanel = styled(Panel)`
   margin-top: ${space(1.5)};
-  margin-bottom: 0;
+  margin-bottom: ${space(1.5)};
   overflow: hidden;
 `;
 
@@ -206,4 +209,9 @@ const LoadingErrorWithoutMarginBottom = styled(LoadingError)`
 
 const FeatureBadgeNotUppercase = styled(FeatureBadge)`
   text-transform: capitalize;
+`;
+
+const AiLoaderWrapper = styled('div')`
+  text-align: center;
+  padding-bottom: ${space(4)};
 `;
