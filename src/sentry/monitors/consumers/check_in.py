@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Optional
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -17,12 +17,61 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
+    MonitorType,
 )
 from sentry.monitors.utils import signal_first_checkin
+from sentry.monitors.validators import CronJobConfigValidator
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
+
+
+def _ensure_monitor_with_config(
+    project: Project,
+    monitor_slug: str,
+    config: Optional[Dict],
+):
+    try:
+        monitor = Monitor.objects.get(
+            slug=monitor_slug,
+            project_id=project.id,
+            organization_id=project.organization_id,
+        )
+    except Monitor.DoesNotExist:
+        monitor = None
+
+    if not config:
+        return monitor
+
+    validator = CronJobConfigValidator(data=config)
+
+    if not validator.is_valid():
+        logger.debug("monitor_config for %s is not valid", monitor_slug)
+        return monitor
+
+    validated_config = validator.validated_data
+    created = False
+
+    # Create monitor
+    if not monitor:
+        monitor, created = Monitor.objects.update_or_create(
+            organization_id=project.organization_id,
+            slug=monitor_slug,
+            defaults={
+                "project_id": project.id,
+                "name": monitor_slug,
+                "status": MonitorStatus.ACTIVE,
+                "type": MonitorType.CRON_JOB,
+                "config": validated_config,
+            },
+        )
+
+    # Update existing monitor
+    if monitor and not created and monitor.config != validated_config:
+        monitor.update(config=validated_config)
+
+    return monitor
 
 
 def _process_message(wrapper: Dict) -> None:
@@ -33,16 +82,12 @@ def _process_message(wrapper: Dict) -> None:
 
     project = Project.objects.get_from_cache(id=project_id)
 
-    # TODO: Same as the check-in endpoints. Keep in sync or factor out.
     try:
         with transaction.atomic():
-            try:
-                monitor = Monitor.objects.select_for_update().get(
-                    slug=params["monitor_slug"],
-                    project_id=project_id,
-                    organization_id=project.organization_id,
-                )
-            except Monitor.DoesNotExist:
+            monitor_config = params.get("monitor_config")
+            monitor = _ensure_monitor_with_config(project, params["monitor_slug"], monitor_config)
+
+            if not monitor:
                 logger.debug("monitor does not exist: %s", params["monitor_slug"])
                 return
 

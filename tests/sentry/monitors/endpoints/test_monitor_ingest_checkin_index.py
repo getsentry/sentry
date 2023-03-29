@@ -169,7 +169,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
@@ -186,7 +189,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
@@ -201,7 +207,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 400, resp.content
@@ -214,6 +223,23 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
             path = path_func(monitor.guid)
+
+            resp = self.client.post(
+                path,
+                {"status": "ok"},
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 201, resp.content
+
+            # DSN auth should only return id
+            assert list(resp.data.keys()) == ["id"]
+            assert UUID(resp.data["id"])
+
+    def test_with_dsn_auth_and_slug(self):
+        monitor = self._create_monitor(slug="my-test-monitor")
+
+        for path_func in self._get_path_functions():
+            path = path_func(monitor.slug)
 
             resp = self.client.post(
                 path,

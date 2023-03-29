@@ -654,7 +654,7 @@ class TestWebhookRequests(TestCase):
         assert requests_count == 1
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["organization_id"] == self.install.organization_id
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen",
@@ -676,7 +676,7 @@ class TestWebhookRequests(TestCase):
         assert requests_count == 1
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["organization_id"] == self.install.organization_id
         assert first_request["response_body"] == html_content
 
     @patch(
@@ -699,7 +699,7 @@ class TestWebhookRequests(TestCase):
         assert requests_count == 1
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["organization_id"] == self.install.organization_id
         assert json.loads(first_request["response_body"]) == json_content
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -715,7 +715,7 @@ class TestWebhookRequests(TestCase):
         assert requests_count == 1
         assert first_request["response_code"] == 200
         assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["organization_id"] == self.install.organization_id
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
     def test_saves_error_for_request_timeout(self, safe_urlopen):
@@ -734,7 +734,7 @@ class TestWebhookRequests(TestCase):
         assert requests_count == 1
         assert first_request["response_code"] == 0
         assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["organization_id"] == self.install.organization_id
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen",
@@ -755,6 +755,6 @@ class TestWebhookRequests(TestCase):
         assert requests_count == 1
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["organization_id"] == self.install.organization_id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == "1"

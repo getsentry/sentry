@@ -52,6 +52,22 @@ function getFrameSuggestions(eventData?: Event) {
   return uniq(frames.map(frame => frame.filename || frame.absPath || ''));
 }
 
+/**
+ * Attempt to remove the origin from a URL
+ */
+function getUrlPath(maybeUrl?: string) {
+  if (!maybeUrl) {
+    return '';
+  }
+
+  try {
+    const url = new URL(maybeUrl);
+    return `*${url.pathname}`;
+  } catch {
+    return maybeUrl;
+  }
+}
+
 function OwnershipSuggestions({
   paths,
   urls,
@@ -67,7 +83,7 @@ function OwnershipSuggestions({
   }
 
   const pathSuggestion = paths.length ? `path:${paths[0]} ${email}` : null;
-  const urlSuggestion = urls.length ? `url:${urls[0]} ${email}` : null;
+  const urlSuggestion = urls.length ? `url:${getUrlPath(urls[0])} ${email}` : null;
 
   const transactionTag = eventData?.tags?.find(({key}) => key === 'transaction');
   const transactionSuggestion = transactionTag
