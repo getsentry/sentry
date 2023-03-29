@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
                     ALTER TABLE sentry_perfstringindexer ADD COLUMN use_case_id varchar(120) NOT NULL DEFAULT 'performance';
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_perfstringindexer" DROP COLUMN use_case_id;
+                    ALTER TABLE sentry_perfstringindexer DROP COLUMN use_case_id;
                     """,
                     hints={"tables": ["sentry_perfstringindexer"]},
                 ),
