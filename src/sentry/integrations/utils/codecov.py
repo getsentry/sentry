@@ -8,7 +8,7 @@ import requests
 from rest_framework import status
 from sentry_sdk import configure_scope
 
-from sentry import features, options
+from sentry import options
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 
@@ -17,7 +17,7 @@ CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}"
-CODECOV_TIMEOUT = 10
+CODECOV_TIMEOUT = 5
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +30,9 @@ class CodecovIntegrationError(Enum):
     )
 
 
-def codecov_enabled(organization: Organization, user: Any) -> bool:
-    flag_enabled = features.has(
-        "organizations:codecov-stacktrace-integration", organization, actor=user
-    )
-    setting_enabled = organization.flags.codecov_access
-    return bool(flag_enabled and setting_enabled)
+def codecov_enabled(organization: Organization) -> bool:
+    # We only need to check the organization flag since the flag will not be set if the plan-based feature flag is False.
+    return bool(organization.flags.codecov_access)
 
 
 def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
@@ -163,7 +160,7 @@ def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
         with configure_scope() as scope:
             scope.set_tag("codecov.timeout", True)
             scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
-            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOU)
+            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOUT)
         data = {"status": status.HTTP_408_REQUEST_TIMEOUT}
     except Exception as error:
         data = {"status": status.HTTP_500_INTERNAL_SERVER_ERROR}

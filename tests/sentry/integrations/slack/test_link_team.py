@@ -18,7 +18,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationScopeType
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -91,7 +91,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.login_as(user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -123,10 +123,11 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        team_settings = NotificationSetting.objects.filter(
-            scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
-        )
-        assert len(team_settings) == 1
+        with exempt_from_silo_limits():
+            team_settings = NotificationSetting.objects.filter(
+                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+            )
+            assert len(team_settings) == 1
 
     @responses.activate
     def test_link_team_with_valid_role_through_team(self):
@@ -160,9 +161,10 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
-        OrganizationIntegration.objects.create(
-            organization=organization2, integration=self.integration
-        )
+        with exempt_from_silo_limits():
+            OrganizationIntegration.objects.create(
+                organization_id=organization2.id, integration=self.integration
+            )
 
         # Team order should not matter.
         for team in (self.team, team2):
@@ -175,7 +177,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(external_actors) == 1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -209,9 +211,10 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        team_settings = NotificationSetting.objects.filter(
-            scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
-        )
+        with exempt_from_silo_limits():
+            team_settings = NotificationSetting.objects.filter(
+                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+            )
         assert len(team_settings) == 0
 
     @responses.activate
@@ -251,9 +254,10 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        team_settings = NotificationSetting.objects.filter(
-            scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
-        )
+        with exempt_from_silo_limits():
+            team_settings = NotificationSetting.objects.filter(
+                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+            )
         assert len(team_settings) == 0
 
     @responses.activate
@@ -261,9 +265,10 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
-        OrganizationIntegration.objects.create(
-            organization=organization2, integration=self.integration
-        )
+        with exempt_from_silo_limits():
+            OrganizationIntegration.objects.create(
+                organization_id=organization2.id, integration=self.integration
+            )
         self.link_team(team2)
 
         # Team order should not matter.
