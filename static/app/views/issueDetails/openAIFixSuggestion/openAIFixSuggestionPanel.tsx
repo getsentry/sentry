@@ -1,8 +1,6 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import aiLoaderImg from 'sentry-images/spot/ai-loader.gif';
-
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -118,10 +116,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
           <PanelBody withPadding>
             {dataIsLoading ? (
               <AiLoaderWrapper>
-                <AiLoader
-                  src={aiLoaderImg}
-                  alt={t('Loading indicator, Sentry spinning wheel')}
-                />
+                <div className="ai-loader" />
                 <AiLoaderMessage />
               </AiLoaderWrapper>
             ) : dataIsError ? (
@@ -218,11 +213,5 @@ const FeatureBadgeNotUppercase = styled(FeatureBadge)`
 
 const AiLoaderWrapper = styled('div')`
   text-align: center;
-  padding-bottom: ${space(3)};
-`;
-
-const AiLoader = styled('img')`
-  max-width: 350px;
-  margin-top: -30px;
-  margin-bottom: -45px;
+  padding-bottom: ${space(4)};
 `;
