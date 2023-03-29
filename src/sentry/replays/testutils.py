@@ -216,11 +216,7 @@ def mock_replay_click(
                     {
                         "type": "replay_actions",
                         "replay_id": replay_id,
-                        "segment_id": None,
-                        "platform": "javascript",
-                        "event_hash": uuid.uuid4().hex,
-                        "timestamp": sec(timestamp),
-                        "click": [
+                        "clicks": [
                             {
                                 "node_id": kwargs["node_id"],
                                 "tag": kwargs["tag"],
@@ -232,6 +228,8 @@ def mock_replay_click(
                                 "testid": kwargs.pop("testid", ""),
                                 "aria_label": kwargs.pop("aria_label", ""),
                                 "title": kwargs.pop("title", ""),
+                                "event_hash": uuid.uuid4().hex,
+                                "timestamp": sec(timestamp),
                             }
                         ],
                     }
