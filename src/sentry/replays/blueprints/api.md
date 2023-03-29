@@ -54,7 +54,7 @@ This document is structured by resource with each resource having actions that c
     Additionally, you can filter by these hidden fields.
 
     | Field               | Type          | Description                                                    |
-    | --------------------| ------------- | -------------------------------------------------------------- |
+    | ------------------- | ------------- | -------------------------------------------------------------- |
     | replay_click.alt    | string        | The alt attribute of the HTML element.                         |
     | replay_click.class  | array[string] | An array of HTML element classes.                              |
     | replay_click.id     | string        | The ID of an HTML element.                                     |
@@ -155,7 +155,7 @@ Retrieve a collection of replays.
           "email": "john.doe@example.com",
           "id": "30246326",
           "ip_address": "213.164.1.114",
-          "name": "John Doe"
+          "username": "John Doe"
         }
       }
     ]
@@ -218,7 +218,7 @@ Retrieve a single replay instance.
         "email": "john.doe@example.com",
         "id": "30246326",
         "ip": "213.164.1.114",
-        "name": "John Doe"
+        "username": "John Doe"
       }
     }
   }
