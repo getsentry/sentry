@@ -101,6 +101,10 @@ function BreadcrumbItem({
             data={description}
             expandPaths={expandPaths}
             onExpand={handleDimensionChange}
+            theme={{
+              TREENODE_FONT_SIZE: '0.7rem',
+              ARROW_FONT_SIZE: '0.5rem',
+            }}
           />
         )}
       </CrumbDetails>
