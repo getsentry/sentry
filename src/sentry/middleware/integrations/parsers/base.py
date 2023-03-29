@@ -19,6 +19,12 @@ from sentry.utils.sdk import capture_exception
 logger = logging.getLogger(__name__)
 
 
+class RegionResult:
+    def __init__(self, response: HttpResponse = None, error: Exception = None):
+        self.response = response
+        self.error = error
+
+
 class BaseRequestParser(abc.ABC):
     """Base Class for Integration Request Parsers"""
 
@@ -57,7 +63,7 @@ class BaseRequestParser(abc.ABC):
 
     def get_response_from_region_silos(
         self, regions: Sequence[Region]
-    ) -> Mapping[str, HttpResponse | Exception]:
+    ) -> Mapping[str, RegionResult]:
         """
         Used to handle the requests on a given list of regions (synchronously).
         Returns a mapping of region name to response/exception.
@@ -80,9 +86,9 @@ class BaseRequestParser(abc.ABC):
                 except Exception as e:
                     capture_exception(e)
                     logger.error(self.log_name("region_proxy_error"), extra={"region": region.name})
-                    region_to_response_map[region.name] = e
+                    region_to_response_map[region.name] = RegionResult(error=e)
                 else:
-                    region_to_response_map[region.name] = region_response
+                    region_to_response_map[region.name] = RegionResult(result=region_response)
 
         if len(region_to_response_map) == 0:
             logger.error(

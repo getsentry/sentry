@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import logging
 
-from django.http import HttpResponse, JsonResponse
 from rest_framework.request import Request
 from sentry_sdk import capture_exception
 
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 
@@ -42,7 +41,7 @@ class SlackRequestParser(BaseRequestParser):
     Django views which will not map to an existing integration
     """
 
-    def get_integration(self) -> APIIntegration | None:
+    def get_integration(self) -> RpcIntegration | None:
         view_class_name = self.match.func.view_class.__name__
         if view_class_name in self.endpoint_classes:
             # We need convert the raw Django request to a Django Rest Framework request
@@ -90,13 +89,12 @@ class SlackRequestParser(BaseRequestParser):
         # By convention, we just assume it's the first returned region.
         first_region = regions[0]
         response_map = self.get_response_from_region_silos(regions=[first_region])
-        result = response_map[first_region.name]
-        if type(result) in [HttpResponse, JsonResponse]:
-            return result
-        else:
+        region_result = response_map[first_region.name]
+        if region_result.error is not None:
             logger.error(
                 self.create_log_name("region_error"),
                 extra={"path": self.request.path, "region": first_region.name},
             )
-            capture_exception(result)
+            capture_exception(region_result.error)
             return self.get_response_from_control_silo()
+        return region_result.response
