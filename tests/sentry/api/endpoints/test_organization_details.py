@@ -329,7 +329,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "provider": "github",
+            "authProvider": "github",
             "providerConfig": {"option": "test"},
         }
 
@@ -786,34 +786,44 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
     def test_configure_auth_provider(self):
-        provider_config = {"option": "old"}
-        updated_provider_config = {"option": "updated"}
-        provider = "old_provider"
-        updated_provider = "updated_provider"
+        old_config = {"option": "old"}
+        new_config = {"option": "new"}
+        old_provider = "github"
+        new_provider = "google"
         self.get_success_response(
-            self.organization.slug, method="put", provider=provider, providerConfig=provider_config
+            self.organization.slug,
+            method="put",
+            authProvider=old_provider,
+            providerConfig=old_config,
         )
         auth_provider = AuthProvider.objects.get(organization=self.organization.id)
-        assert auth_provider.provider == provider
-        assert auth_provider.config == provider_config
+        assert auth_provider.provider == old_provider
+        assert auth_provider.config == old_config
 
         self.get_success_response(
             self.organization.slug,
             method="put",
-            provider=updated_provider,
-            providerConfig=updated_provider_config,
+            authProvider=new_provider,
+            providerConfig=new_config,
         )
         auth_provider = AuthProvider.objects.get(organization=self.organization.id)
-        assert auth_provider.provider == updated_provider
-        assert auth_provider.config == updated_provider_config
+        assert auth_provider.provider == new_provider
+        assert auth_provider.config == new_config
 
     def test_invalid_auth_provider_configuration(self):
         self.get_error_response(
-            self.organization.slug, method="put", provider="provider", status_code=400
+            self.organization.slug, method="put", authProvider="github", status_code=400
         )
         self.get_error_response(
             self.organization.slug,
             method="put",
+            providerConfig={"option": "test"},
+            status_code=400,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            method="put",
+            authProvider="not_valid",
             providerConfig={"option": "test"},
             status_code=400,
         )
