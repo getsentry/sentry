@@ -17,7 +17,14 @@ from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_c
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId, get_redis_client_for_ds
+from sentry.dynamic_sampling.rules.utils import (
+    DecisionDropCount,
+    DecisionKeepCount,
+    OrganizationId,
+    ProjectId,
+    get_redis_client_for_ds,
+)
+from sentry.dynamic_sampling.snuba_utils import get_orgs_with_project_counts_without_modulo
 from sentry.models import Organization, Project
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -43,8 +50,13 @@ logger = logging.getLogger(__name__)
 def prioritise_projects() -> None:
     metrics.incr("sentry.tasks.dynamic_sampling.prioritise_projects.start", sample_rate=1.0)
     with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_projects", sample_rate=1.0):
-        for org_id, projects_with_tx_count in fetch_projects_with_total_volumes().items():
-            process_projects_sample_rates.delay(org_id, projects_with_tx_count)
+        for orgs in get_orgs_with_project_counts_without_modulo(
+            MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
+        ):
+            for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
+                org_ids=orgs
+            ).items():
+                process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(
@@ -56,17 +68,21 @@ def prioritise_projects() -> None:
     time_limit=2 * 60 + 5,
 )  # type: ignore
 def process_projects_sample_rates(
-    org_id: OrganizationId, projects_with_tx_count: Sequence[Tuple[ProjectId, int]]
+    org_id: OrganizationId,
+    projects_with_tx_count_and_rates: Sequence[
+        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+    ],
 ) -> None:
     """
     Takes a single org id and a list of project ids
     """
     with metrics.timer("sentry.tasks.dynamic_sampling.process_projects_sample_rates.core"):
-        adjust_sample_rates(org_id, projects_with_tx_count)
+        adjust_sample_rates(org_id, projects_with_tx_count_and_rates)
 
 
 def adjust_sample_rates(
-    org_id: int, projects_with_tx_count: Sequence[Tuple[ProjectId, int]]
+    org_id: int,
+    projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
 ) -> None:
     """
     This function apply model and adjust sample rate per project in org
@@ -75,7 +91,8 @@ def adjust_sample_rates(
     """
     projects = []
     project_ids_with_counts = {}
-    for project_id, count_per_root in projects_with_tx_count:
+    # TODO: replace it in another PR with calculating actual sample rate
+    for project_id, count_per_root, _, _ in projects_with_tx_count:
         project_ids_with_counts[project_id] = count_per_root
 
     sample_rate = None

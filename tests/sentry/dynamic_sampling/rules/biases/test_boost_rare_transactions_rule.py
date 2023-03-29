@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.dynamic_sampling import RESERVED_IDS, RuleType
-from sentry.dynamic_sampling.rules.biases.base import BiasParams
 from sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule import (
     RareTransactionsRulesBias,
 )
@@ -39,12 +38,9 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
     """
     project, fake_get_trans_res_rates = _create_mocks()
     rate = 0.2
-
     get_transactions_resampling_rates.side_effect = fake_get_trans_res_rates
 
-    bias = RareTransactionsRulesBias()
-    rules = bias.get_rules(BiasParams(project=project, base_sample_rate=rate))
-
+    rules = RareTransactionsRulesBias().generate_rules(project=project, base_sample_rate=rate)
     expected = [
         {
             "samplingValue": {"type": "factor", "value": 0.1 / rate},
@@ -90,6 +86,5 @@ def test_transaction_boost_unknown_projects():
     project, fake_get_trans_res_rates = _create_mocks()
     rate = 0.2
 
-    bias = RareTransactionsRulesBias()
-    rules = bias.get_rules(BiasParams(project=project, base_sample_rate=rate))
+    rules = RareTransactionsRulesBias().generate_rules(project=project, base_sample_rate=rate)
     assert rules == []
