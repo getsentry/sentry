@@ -279,9 +279,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self,
         *,
         organization: RpcOrganization,
-        user: RpcUser,
-        flags: RpcOrganizationMemberFlags | None,
-        role: str | None,
+        user: RpcUser | None = None,
+        email: str | None = None,
+        flags: RpcOrganizationMemberFlags | None = None,
+        role: str | None = None,
+        inviter_id: int | None = None,
+        invite_status: int | None = None,
     ) -> RpcOrganizationMember:
         with transaction.atomic():
             org_member: OrganizationMember = OrganizationMember.objects.create(
