@@ -1,16 +1,21 @@
+import logging
+
 import sentry_sdk
-from symbolic import ProguardMapper
+from symbolic import ProguardMapper, SourceView
 
 from sentry.lang.java.processing import deobfuscate_exception_value
 from sentry.lang.java.utils import (
     deobfuscate_view_hierarchy,
     get_proguard_images,
+    get_source_images,
     has_proguard_file,
 )
-from sentry.models import EventError, ProjectDebugFile
+from sentry.models import ArtifactBundleArchive, EventError, ProjectDebugFile
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
+
+logger = logging.getLogger()
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
@@ -125,6 +130,186 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         return
 
 
+def trim_line(line, column=0):
+    """
+    Trims a line down to a goal of 140 characters, with a little
+    wiggle room to be sensible and tries to trim around the given
+    `column`. So it tries to extract 60 characters before and after
+    the provided `column` and yield a better context.
+    """
+    line = line.strip("\n")
+    ll = len(line)
+    if ll <= 150:
+        return line
+    if column > ll:
+        column = ll
+    start = max(column - 60, 0)
+    # Round down if it brings us close to the edge
+    if start < 5:
+        start = 0
+    end = min(start + 140, ll)
+    # Round up to the end if it's close
+    if end > ll - 5:
+        end = ll
+    # If we are bumped all the way to the end,
+    # make sure we still get a full 140 characters in the line
+    if end == ll:
+        start = max(end - 140, 0)
+    line = line[start:end]
+    if end < ll:
+        # we've snipped from the end
+        line += " {snip}"
+    if start > 0:
+        # we've snipped from the beginning
+        line = "{snip} " + line
+    return line
+
+
+def get_source_context(source, lineno, context=5):
+    if not source:
+        return None, None, None
+
+    # lineno's in JS are 1-indexed
+    # just in case. sometimes math is hard
+    if lineno > 0:
+        lineno -= 1
+
+    lower_bound = max(0, lineno - context)
+    upper_bound = min(lineno + 1 + context, len(source))
+
+    try:
+        pre_context = source[lower_bound:lineno]
+    except IndexError:
+        pre_context = []
+
+    try:
+        context_line = source[lineno]
+    except IndexError:
+        context_line = ""
+
+    try:
+        post_context = source[(lineno + 1) : upper_bound]
+    except IndexError:
+        post_context = []
+
+    return pre_context or None, context_line, post_context or None
+
+
+class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
+    def __init__(self, *args, **kwargs):
+        StacktraceProcessor.__init__(self, *args, **kwargs)
+
+        self.images = get_source_images(self.data)
+        logger.warning(f"images lookup: ({self.images})")
+        self.available = len(self.images) > 0
+
+    def handles_frame(self, frame, stacktrace_info):
+        # platform = frame.get("platform") or self.data.get("platform")
+        return self.available and "abs_path" in frame and "module" in frame and "lineno" in frame
+
+    def preprocess_step(self, processing_task):
+        return self.available
+
+    def process_exception(self, exception):
+        return False
+
+    # if path contains a $ sign it has most likely been obfuscated
+    def _is_valid_path(self, abs_path):
+        abs_path_dollar_index = abs_path.rfind("$")
+        return abs_path_dollar_index < 0
+
+    # TODO needs testing
+    # extracts info from frame and builds the path for looking up the source file in the source bundle
+    # e.g. ~/com.example.sampleapp.MainActivity.java
+    # def _build_source_file_name(self, frame):
+    #     abs_path = frame["abs_path"]
+    #     module = frame["module"]
+    #
+    #     if self._is_valid_path(abs_path):
+    #         # extract package from module (io.sentry.Sentry -> io.sentry) and append abs_path
+    #         module_dot_index = module.rfind(".")
+    #         if module_dot_index >= 0:
+    #             source_file_name = module[:module_dot_index] + "."
+    #         else:
+    #             source_file_name = ""
+    #         source_file_name += abs_path
+    #     else:
+    #         # use module as filename (excluding inner classes, marked by $) and append .java
+    #         module_dollar_index = module.rfind("$")
+    #         if module_dollar_index >= 0:
+    #             source_file_name = module[:module_dollar_index]
+    #         else:
+    #             source_file_name = module
+    #         source_file_name += ".java"
+    #
+    #     return "~/" + source_file_name
+
+    def _build_source_file_name(self, frame):
+        abs_path = frame["abs_path"]
+        module = frame["module"]
+
+        if self._is_valid_path(abs_path):
+            # extract package from module (io.sentry.Sentry -> io.sentry) and append abs_path
+            module_dot_index = module.rfind(".")
+            if module_dot_index >= 0:
+                source_file_name = module[:module_dot_index].replace(".", "/") + "/"
+            else:
+                source_file_name = ""
+            source_file_name += abs_path
+        else:
+            # use module as filename (excluding inner classes, marked by $) and append .java
+            module_dollar_index = module.rfind("$")
+            if module_dollar_index >= 0:
+                source_file_name = module[:module_dollar_index].replace(".", "/")
+            else:
+                source_file_name = module.replace(".", "/")
+            source_file_name += ".java"
+
+        return "~/" + source_file_name
+
+    def process_frame(self, processable_frame, processing_task):
+        frame = processable_frame.frame
+        new_frame = dict(frame)
+        raw_frame = dict(frame)
+        # TODO could be undefined but inApp later
+        in_app = raw_frame.get("in_app", False)
+        if not in_app:
+            return
+
+        logger.warning(f"raw frame: ({raw_frame})")
+        lineno = raw_frame["lineno"]
+
+        source_file_name = self._build_source_file_name(raw_frame)
+        logger.warning(f"source_file_name ({source_file_name})")
+
+        # TODO unable to use dif cache as file can't be recognized as ZIP by ArtifactBundleArchive(file)
+        difs = ProjectDebugFile.objects.find_by_debug_ids(self.project, self.images)
+
+        for key, dif in difs.items():
+            file = dif.file.getfile(prefetch=True)
+            archive = ArtifactBundleArchive(file)
+            try:
+                result, _ = archive.get_file_by_url(source_file_name)
+                source_view = SourceView.from_bytes(result.read())
+                source_context = get_source_context(source_view, lineno)
+
+                (pre_context, context_line, post_context) = source_context
+
+                if pre_context is not None and len(pre_context) > 0:
+                    new_frame["pre_context"] = [trim_line(x) for x in pre_context]
+                if context_line is not None:
+                    new_frame["context_line"] = trim_line(context_line, new_frame.get("colno") or 0)
+                if post_context is not None and len(post_context) > 0:
+                    new_frame["post_context"] = [trim_line(x) for x in post_context]
+            except KeyError:
+                # file not available in source bundle, proceed
+                pass
+            finally:
+                archive.close()
+
+        return [new_frame], None, None
+
+
 class JavaPlugin(Plugin2):
     can_disable = False
 
@@ -133,7 +318,7 @@ class JavaPlugin(Plugin2):
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if "java" in platforms:
-            return [JavaStacktraceProcessor]
+            return [JavaStacktraceProcessor, JavaSourceLookupStacktraceProcessor]
 
     def get_event_preprocessors(self, data):
         if has_proguard_file(data):
