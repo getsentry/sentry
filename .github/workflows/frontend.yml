@@ -119,10 +119,10 @@ jobs:
         if: steps.dependencies.outcome == 'success'
         run: yarn tsc -p config/tsconfig.ci.json
 
-  frontend-browser-tests:
+  frontend-jest-tests:
     if: needs.files-changed.outputs.frontend == 'true'
     needs: files-changed
-    name: Browser tests
+    name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-20.04
@@ -208,7 +208,7 @@ jobs:
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
   frontend-required-check:
-    needs: [typescript-and-lint, frontend-browser-tests]
+    needs: [typescript-and-lint, frontend-jest-tests]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
