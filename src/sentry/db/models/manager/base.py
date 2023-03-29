@@ -312,13 +312,13 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                 if settings.DEBUG:
                     raise ValueError("Unexpected value type returned from cache")
                 logger.error("Cache response returned invalid value %r", retval)
-                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+                return self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
 
             if key == pk_name and int(value) != retval.pk:
                 if settings.DEBUG:
                     raise ValueError("Unexpected value returned from cache")
                 logger.error("Cache response returned invalid value %r", retval)
-                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+                return self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
 
             kwargs = {**kwargs, "replica": True} if use_replica else {**kwargs}
             retval._state.db = router.db_for_read(self.model, **kwargs)
