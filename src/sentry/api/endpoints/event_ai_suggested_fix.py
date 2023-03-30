@@ -3,7 +3,6 @@ import random
 from collections import OrderedDict
 
 import openai
-import sentry_sdk
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse
@@ -11,7 +10,7 @@ from django.http import HttpResponse
 from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import OpenAIError, ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -124,6 +123,45 @@ def get_openai_policy(organization):
     return result
 
 
+def trim_frames(frames, frame_allowance=MAX_STACKTRACE_FRAMES):
+    frames_len = 0
+    app_frames = []
+    system_frames = []
+    for frame in frames:
+        frames_len += 1
+        if frame.get("in_app"):
+            app_frames.append(frame)
+        else:
+            system_frames.append(frame)
+
+    if frames_len <= frame_allowance:
+        return frames
+
+    remaining = frames_len - frame_allowance
+    app_count = len(app_frames)
+    system_allowance = max(frame_allowance - app_count, 0)
+    if system_allowance:
+        half_max = int(system_allowance / 2)
+        # prioritize trimming system frames
+        for frame in system_frames[half_max:-half_max]:
+            frame["delete"] = True
+            remaining -= 1
+
+    else:
+        for frame in system_frames:
+            frame["delete"] = True
+            remaining -= 1
+
+    if remaining:
+        app_allowance = app_count - remaining
+        half_max = int(app_allowance / 2)
+
+        for frame in app_frames[half_max:-half_max]:
+            frame["delete"] = True
+
+    return [x for x in frames if not x.get("delete")]
+
+
 def describe_event_for_ai(event):
     data = OrderedDict()
     tags = data.setdefault("tags", OrderedDict())
@@ -170,7 +208,7 @@ def describe_event_for_ai(event):
                         stack_frame["code"] = line
                 stacktrace.append(stack_frame)
             if stacktrace:
-                exception["stacktrace"] = stacktrace
+                exception["stacktrace"] = trim_frames(stacktrace)
         exceptions.append(exception)
 
     msg = event.get("message")
@@ -240,24 +278,19 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
             event_info = describe_event_for_ai(event.data)
 
-            try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    temperature=0.5,
-                    messages=[
-                        {"role": "system", "content": prompt},
-                        {
-                            "role": "user",
-                            "content": json.dumps(event_info),
-                        },
-                    ],
-                )
-            except openai.InvalidRequestError as exc:
-                sentry_sdk.capture_exception(exc)
-                raise OpenAIError
-            else:
-                suggestion = response["choices"][0]["message"]["content"]
-                cache.set(cache_key, suggestion, 300)
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                temperature=0.5,
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {
+                        "role": "user",
+                        "content": json.dumps(event_info),
+                    },
+                ],
+            )
+            suggestion = response["choices"][0]["message"]["content"]
+            cache.set(cache_key, suggestion, 300)
 
         return HttpResponse(
             json.dumps({"suggestion": suggestion}),
