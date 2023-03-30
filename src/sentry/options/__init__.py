@@ -63,6 +63,7 @@ get = default_manager.get
 set = default_manager.set
 delete = default_manager.delete
 register = default_manager.register
+unregister = default_manager.unregister
 all = default_manager.all
 filter = default_manager.filter
 isset = default_manager.isset
