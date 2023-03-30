@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -20,27 +21,35 @@ export const OrgRoleInfo = ({
   const {orgRoleList} = organization;
   const {orgRole, orgRolesFromTeams} = member;
 
-  const orgRoleFromMember = orgRoleList.find(r => r.id === orgRole);
-  if (!orgRoleFromMember) {
-    throw new Error();
+  const orgRoleFromMember = useMemo(() => {
+    const role = orgRoleList.find(r => r.id === orgRole);
+    return role;
+  }, [orgRole, orgRoleList]);
+
+  const effectiveOrgRoleId = useMemo(() => {
+    const memberOrgRoles = orgRolesFromTeams.map(r => r.role.id);
+    if (orgRoleFromMember) {
+      memberOrgRoles.concat(orgRoleFromMember.id);
+    }
+    return getEffectiveOrgRole(memberOrgRoles, orgRoleList);
+  }, [orgRoleFromMember, orgRolesFromTeams, orgRoleList]);
+
+  const effectiveOrgRole = useMemo(() => {
+    return orgRoleList.find(r => r.id === effectiveOrgRoleId);
+  }, [orgRoleList, effectiveOrgRoleId]);
+
+  if (!orgRoleFromMember || !effectiveOrgRole) {
+    addErrorMessage(t('Missing member org role'));
+    return <Fragment>{t('None')}</Fragment>;
   }
 
   if (!orgRolesFromTeams || orgRolesFromTeams.length === 0) {
     return <Fragment>{orgRoleFromMember.name}</Fragment>;
   }
 
-  const effectiveOrgRoleId = getEffectiveOrgRole(
-    orgRolesFromTeams.map(r => r.role.id).concat([orgRoleFromMember.id]),
-    orgRoleList
-  );
-  const effectiveOrgRole = orgRoleList.find(r => r.id === effectiveOrgRoleId);
-  if (!effectiveOrgRole) {
-    throw new Error();
-  }
-
   const urlPrefix = `/settings/${organization.slug}/`;
 
-  const node = (
+  const tooltipBody = (
     <TooltipWrapper>
       <div>{t('This user recieved org-level roles from several sources.')}</div>
 
@@ -70,7 +79,7 @@ export const OrgRoleInfo = ({
           'Sentry will grant them permissions equivalent to the union-set of all their role.'
         )}{' '}
         <ExternalLink href="https://docs.sentry.io/product/accounts/membership/#roles">
-          See docs here
+          {t('See docs here')}
         </ExternalLink>
         .
       </div>
@@ -80,7 +89,7 @@ export const OrgRoleInfo = ({
   return (
     <Wrapper>
       {effectiveOrgRole.name}
-      <Tooltip isHoverable title={node}>
+      <Tooltip isHoverable title={tooltipBody}>
         <IconInfo />
       </Tooltip>
     </Wrapper>
