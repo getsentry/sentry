@@ -23,7 +23,8 @@ def list():
     from sentry import options
 
     for opt in options.all():
-        click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
+        # click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
+        click.echo(f"{opt.name}: {options.get(opt.name)}")
 
 
 @configoptions.command()
@@ -106,23 +107,19 @@ def strict(filename, dryrun):
         # update the database to remove all keys NOT in the given file.
         for key in db_keys:
             if key not in kv_generator:
-                if dryrun:
-                    click.echo(f"Would delete {key}.")
-                else:
-                    pass
-                    # click.echo(delete(key))
+                click.echo(delete(key, dryrun))
 
         for line in data.split("\n"):
             if line:
-                key, val = line.split(": ")
-                if dryrun:
-                    click.echo(f"Would update {key}, {val}.")
-                else:
-                    pass
-                    # click.echo(set(key, val))
+                line_tuple = line.split(": ")
+                key = line_tuple[0]
+                val = ""
+                if len(line_tuple) > 1:
+                    val = line_tuple[1]
+                click.echo(set(key, val, dryrun))
 
 
-def get(key):
+def get(key, dryrun=False):
     from sentry import options
     from sentry.options.manager import UnknownOption
 
@@ -133,28 +130,31 @@ def get(key):
         return "unknown option: %s" % key
 
 
-def set(key, val):
+def set(key, val, dryrun=False):
     from sentry import options
     from sentry.options.manager import UnknownOption
 
     try:
         opt = options.lookup_key(key)
-        options.set(key, val)
+        if not dryrun:
+            options.set(key, val)
         return f"Updated key: {opt.name} ({opt.type}) = {options.get(opt.name)}"
 
     except UnknownOption:
-        options.register(key)
-        options.set(key, val)
+        if not dryrun:
+            options.register(key)
+            options.set(key, val)
         return f"Registered a new key: {key} = {val}"
 
 
-def delete(key):
+def delete(key, dryrun=False):
     from sentry import options
     from sentry.options.manager import UnknownOption
 
     try:
         options.lookup_key(key)
-        options.delete(key)
+        if not dryrun:
+            options.delete(key)
         return f"Deleted key: {key}"
     except UnknownOption:
         return "unknown option: %s" % key
