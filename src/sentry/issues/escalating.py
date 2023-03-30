@@ -12,7 +12,7 @@ class InvalidProjectsToGroupsMap(Exception):
     pass
 
 
-def query_groups_past_counts(projects_to_groups: Dict[str, List[str]]) -> JSONData:
+def query_groups_past_counts(projects_to_groups: Dict[int, List[int]]) -> JSONData:
     """Single Snuba query to find the total counts per hour per every group in the last 2 weeks."""
     list_of_projects = list(projects_to_groups.keys())
     list_of_groups = list(itertools.chain.from_iterable(projects_to_groups.values()))
