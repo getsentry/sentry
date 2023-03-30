@@ -58,7 +58,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.click_when_visible('button[aria-label="Custom Search"]')
         self.browser.snapshot("issue list with no saved searches", desktop_only=True)
 
-        self.browser.click('[aria-label="Create a new saved search"]')
+        self.browser.click('[aria-label="Add saved search"]')
 
         self.browser.wait_until('[role="dialog"]')
         self.browser.snapshot("create saved search modal open", desktop_only=True)

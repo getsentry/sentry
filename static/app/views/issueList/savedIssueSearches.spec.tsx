@@ -257,9 +257,7 @@ describe('SavedIssueSearches', function () {
     render(<SavedIssueSearches {...defaultProps} />);
     renderGlobalModal();
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: /create a new saved search/i})
-    );
+    await userEvent.click(await screen.findByRole('button', {name: /add saved search/i}));
 
     const modal = screen.getByRole('dialog');
 

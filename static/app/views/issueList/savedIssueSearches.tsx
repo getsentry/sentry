@@ -11,7 +11,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
-import {IconAdd, IconEllipsis} from 'sentry/icons';
+import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
@@ -148,13 +148,9 @@ function CreateNewSavedSearchButton({
   };
 
   return (
-    <Button
-      aria-label={t('Create a new saved search')}
-      onClick={onClick}
-      icon={<IconAdd size="sm" />}
-      borderless
-      size="sm"
-    />
+    <Button onClick={onClick} priority="link" size="sm">
+      {t('Add saved search')}
+    </Button>
   );
 }
 
@@ -165,7 +161,7 @@ const SavedIssueSearches = ({
   sort,
 }: SavedIssueSearchesProps) => {
   const theme = useTheme();
-  const [isOpen] = useSyncedLocalStorageState(
+  const [isOpen, setIsOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
@@ -215,8 +211,16 @@ const SavedIssueSearches = ({
       <Fragment>
         <HeadingContainer>
           <Heading>{t('Saved Searches')}</Heading>
-          <CreateNewSavedSearchButton {...{organization, query, sort}} />
+          <Button
+            aria-label={t('Collapse sidebar')}
+            borderless
+            onClick={() => setIsOpen(false)}
+            icon={<IconClose size="sm" />}
+          />
         </HeadingContainer>
+        <CreateSavedSearchWrapper>
+          <CreateNewSavedSearchButton {...{organization, query, sort}} />
+        </CreateSavedSearchWrapper>
         <SearchesContainer>
           {shownOrgSavedSearches.map(item => (
             <SavedSearchItem
@@ -294,6 +298,11 @@ const HeadingContainer = styled('div')`
 const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: 0;
+`;
+
+const CreateSavedSearchWrapper = styled('div')`
+  padding: 0 ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const SearchesContainer = styled('ul')`
