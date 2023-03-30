@@ -1,7 +1,12 @@
+import re
 import tempfile
 from unittest import mock
 
-from sentry.lang.dart.utils import _deobfuscate_view_hierarchy, generate_dart_symbols_map
+from sentry.lang.dart.utils import (
+    VIEW_HIERARCHY_TYPE_REGEX,
+    _deobfuscate_view_hierarchy,
+    generate_dart_symbols_map,
+)
 
 MOCK_DEBUG_FILE = b'["","","_NativeInteger","_NativeInteger","SemanticsAction","er","ButtonTheme","mD","_entry","_YMa"]'
 MOCK_DEBUG_MAP = {
@@ -11,6 +16,20 @@ MOCK_DEBUG_MAP = {
     "mD": "ButtonTheme",
     "_YMa": "_entry",
 }
+
+
+def test_view_hierarchy_type_regex():
+    matcher = re.match(VIEW_HIERARCHY_TYPE_REGEX, "abc")
+    assert matcher
+    assert matcher.groups() == ("abc", None)
+
+    matcher = re.match(VIEW_HIERARCHY_TYPE_REGEX, "abc<xyz>")
+    assert matcher
+    assert matcher.groups() == ("abc", "xyz")
+
+    matcher = re.match(VIEW_HIERARCHY_TYPE_REGEX, "_abc<_xyz@1>")
+    assert matcher
+    assert matcher.groups() == ("_abc", "_xyz@1")
 
 
 def test_generate_dart_symbols_map():

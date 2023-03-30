@@ -9,6 +9,10 @@ from sentry.models import Project, ProjectDebugFile
 from sentry.utils import json
 from sentry.utils.safe import get_path
 
+# Obfuscated type values are either in the form of "xyz" or "xyz<abc>" where
+# both "xyz" or "abc" need to be deobfuscated. It may also be possible for
+# the values to be more complicated such as "_xyz", so the regex should capture
+# any values other than "<" and ">".
 VIEW_HIERARCHY_TYPE_REGEX = re.compile(r"([^<>]+)(?:<([^<>]+)>)?")
 
 
@@ -79,10 +83,6 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
         return
 
     with sentry_sdk.start_span(op="dart_symbols.deobfuscate_view_hierarchy_data"):
-        # Obfuscated type values are either in the form of "xyz" or "xyz<abc>" where
-        # both "xyz" or "abc" need to be deobfuscated. It may also be possible for
-        # the values to be more complicated such as "_xyz", so the regex should capture
-        # values other than "<" and ">".
         for dart_symbols_uuid in dart_symbols_uuids:
             map = generate_dart_symbols_map(dart_symbols_uuid, project)
             if map is None:
