@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from urllib.parse import urlencode
 
@@ -15,9 +17,11 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
 )
+from sentry.incidents.subscription_processor import SubscriptionUpdate
 from sentry.models import Project
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -32,7 +36,7 @@ SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
 @instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
-def send_subscriber_notifications(activity_id):
+def send_subscriber_notifications(activity_id: int) -> None:
     from sentry.incidents.logic import get_incident_subscribers, unsubscribe_from_incident
 
     try:
@@ -67,7 +71,9 @@ def send_subscriber_notifications(activity_id):
             msg.send_async([subscriber_user.email])
 
 
-def generate_incident_activity_email(activity, user, activity_user=None):
+def generate_incident_activity_email(
+    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser = None
+) -> None:
     incident = activity.incident
     return MessageBuilder(
         subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
@@ -78,7 +84,9 @@ def generate_incident_activity_email(activity, user, activity_user=None):
     )
 
 
-def build_activity_context(activity, user, activity_user=None):
+def build_activity_context(
+    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser = None
+) -> None:
     if activity_user is None:
         activity_user = user_service.get_user(user_id=activity.user_id)
 
@@ -112,7 +120,9 @@ def build_activity_context(activity, user, activity_user=None):
 
 
 @register_subscriber(SUBSCRIPTION_METRICS_LOGGER)
-def handle_subscription_metrics_logger(subscription_update, subscription):
+def handle_subscription_metrics_logger(
+    subscription_update: SubscriptionUpdate, subscription: QuerySubscription
+) -> None:
     """
     Logs results from a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
@@ -143,7 +153,9 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
 
 
 @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
-def handle_snuba_query_update(subscription_update, subscription):
+def handle_snuba_query_update(
+    subscription_update: SubscriptionUpdate, subscription: QuerySubscription
+) -> None:
     """
     Handles a subscription update for a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
