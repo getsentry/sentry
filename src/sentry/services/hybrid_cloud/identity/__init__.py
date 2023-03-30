@@ -4,32 +4,39 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, cast
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models.identity import Identity, IdentityProvider
 
 
-@dataclass(frozen=True)
-class RpcIdentityProvider:
+class RpcIdentityProvider(RpcModel):
     id: int
     type: str
     external_id: str
 
 
-@dataclass(frozen=True)
-class RpcIdentity:
+class RpcIdentity(RpcModel):
     id: int
     idp_id: int
     user_id: int
     external_id: str
 
 
-class IdentityService(InterfaceWithLifecycle):
+class IdentityService(RpcService):
+    key = "identity"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.identity.impl import DatabaseBackedIdentityService
+
+        return DatabaseBackedIdentityService()
+
     def _serialize_identity_provider(
         self, identity_provider: "IdentityProvider"
     ) -> RpcIdentityProvider:
@@ -47,6 +54,7 @@ class IdentityService(InterfaceWithLifecycle):
             external_id=identity.external_id,
         )
 
+    @rpc_method
     @abstractmethod
     def get_provider(
         self,
@@ -61,6 +69,7 @@ class IdentityService(InterfaceWithLifecycle):
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def get_identity(
         self,
@@ -75,6 +84,7 @@ class IdentityService(InterfaceWithLifecycle):
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def get_user_identities_by_provider_type(
         self,
@@ -91,16 +101,4 @@ class IdentityService(InterfaceWithLifecycle):
         pass
 
 
-def impl_with_db() -> IdentityService:
-    from sentry.services.hybrid_cloud.identity.impl import DatabaseBackedIdentityService
-
-    return DatabaseBackedIdentityService()
-
-
-identity_service: IdentityService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
-)
+identity_service: IdentityService = cast(IdentityService, IdentityService.create_delegation())

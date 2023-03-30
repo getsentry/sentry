@@ -5,6 +5,7 @@ from sentry.models import (
     Repository,
     Team,
     User,
+    UserAvatar,
     UserEmail,
 )
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
@@ -639,3 +640,17 @@ class ResolveActorsTestCase(TestCase):
             owner5: actor5,
             owner6: actor6,
         }
+
+    def test_with_user_avatar(self):
+        # Check for regressions associated with serializing to RpcUser with a
+        # non-null UserAvatar
+
+        user = self.create_user()
+        UserAvatar.objects.create(user=user)
+
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org, members=[user])
+        project = self.create_project(organization=org, teams=[team])
+
+        owner = Owner("user", user.email)
+        resolve_actors([owner], project.id)

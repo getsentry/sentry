@@ -129,10 +129,10 @@ const Context = ({
 
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
-      <div className="empty-context">
+      <EmptyContext>
         <StyledIconFlag size="xs" />
-        <p>{t('No additional details are available for this frame.')}</p>
-      </div>
+        {t('No additional details are available for this frame.')}
+      </EmptyContext>
     ) : null;
   }
 
@@ -206,9 +206,7 @@ const Context = ({
         />
       )}
 
-      {hasAssembly && (
-        <Assembly {...parseAssembly(frame.package)} filePath={frame.absPath} />
-      )}
+      {hasAssembly && <Assembly {...parseAssembly(frame.package)} />}
     </Wrapper>
   );
 };
@@ -229,4 +227,13 @@ const Wrapper = styled('ol')<{startLineNo: number}>`
   && {
     border-radius: 0 !important;
   }
+`;
+
+const EmptyContext = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding: 20px;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
