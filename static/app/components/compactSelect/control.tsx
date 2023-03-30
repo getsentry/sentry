@@ -1,4 +1,4 @@
-import {createContext, Fragment, useCallback, useMemo, useState} from 'react';
+import {createContext, Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -188,6 +188,7 @@ export function Control({
    * Search/filter value, used to filter out the list of displayed elements
    */
   const [search, setSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
   const updateSearch = useCallback(
     (newValue: string) => {
       setSearch(newValue);
@@ -245,6 +246,12 @@ export function Control({
       if (open) {
         // Wait for overlay to appear/disappear
         await new Promise(resolve => resolve(null));
+
+        // Focus on search box if present
+        if (searchable) {
+          searchRef.current?.focus();
+          return;
+        }
 
         const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
           `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
@@ -341,6 +348,11 @@ export function Control({
     },
   });
 
+  const showClearButton = useMemo(
+    () => selectedOptions.flat().length > 0,
+    [selectedOptions]
+  );
+
   const contextValue = useMemo(
     () => ({
       registerListState,
@@ -389,12 +401,12 @@ export function Control({
             data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
-              {(menuTitle || clearable) && (
+              {(menuTitle || (clearable && showClearButton)) && (
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
-                    {clearable && (
+                    {clearable && showClearButton && (
                       <ClearButton onClick={clearSelection} size="zero" borderless>
                         {t('Clear')}
                       </ClearButton>
@@ -404,6 +416,7 @@ export function Control({
               )}
               {searchable && (
                 <SearchInput
+                  ref={searchRef}
                   placeholder={searchPlaceholder}
                   value={search}
                   onFocus={onSearchFocus}
