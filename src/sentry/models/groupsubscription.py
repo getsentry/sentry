@@ -119,7 +119,9 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         """
         from sentry.notifications.utils.participants import ParticipantMap
 
-        all_possible_users = [RpcActor.from_rpc_user(u) for u in user_service.get_from_group(group)]
+        all_possible_users = [
+            RpcActor.from_rpc_user(u) for u in user_service.get_from_group(group=group)
+        ]
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
         )

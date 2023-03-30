@@ -895,8 +895,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-prioritize-transactions": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
-        # Run job every 4 hours at min 10
-        "schedule": crontab(minute=10, hour="*/4"),
+        # Run job every hour at min 10
+        "schedule": crontab(minute=10),
     },
 }
 
@@ -1282,6 +1282,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
+    # Enable the new experimental starfish view
+    "organizations:starfish-view": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Enable access to Notification Actions and their endpoints
@@ -1321,6 +1323,8 @@ SENTRY_FEATURES = {
     "organizations:anr-improvements": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
+    # Enables synthesis of device.class in ingest
+    "organizations:device-class-synthesis": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable product selection in the setup-docs page. The docs reflects the selected products.
@@ -2688,12 +2692,6 @@ KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
 
-# To be deprecated. Should be replaced by the single KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS topic
-KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS = (
-    "generic-metrics-distributions-subscription-results"
-)
-KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS = "generic-metrics-sets-subscription-results"
-
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
@@ -2720,8 +2718,7 @@ KAFKA_SNUBA_GENERICS_METRICS_CS = "snuba-metrics-generics-cloudspanner"
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics-sets": KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics-distributions": KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS,
+    "generic-metrics": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
     "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
     "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
@@ -2739,8 +2736,6 @@ KAFKA_TOPICS = {
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
@@ -3151,6 +3146,7 @@ SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organiza
 # Temporary allowlist for specially configured organizations to use the direct-storage
 # driver.
 SENTRY_REPLAYS_STORAGE_ALLOWLIST = []
+SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST = []
 
 SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
