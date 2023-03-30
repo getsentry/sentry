@@ -8,7 +8,6 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import {
-  DESCRIPTIONS,
   EVENT_CHOICES,
   PERMISSIONS_MAP,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
@@ -52,6 +51,15 @@ function SubscriptionBox({
   if (webhookDisabled) {
     message = t('Cannot enable webhook subscription without specifying a webhook url');
   }
+
+  const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
+    // Swap ignored for escalating if the feature is enabled
+    issue: `created, resolved, assigned, ${
+      features.includes('escalating-issues') ? 'escalating' : 'ignored'
+    }`,
+    error: 'created',
+    comment: 'created, edited, deleted',
+  };
 
   return (
     <Tooltip disabled={!disabled} title={message} key={resource}>
