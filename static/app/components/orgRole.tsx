@@ -8,7 +8,7 @@ import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization} from 'sentry/types';
-import {sortOrgRoles} from 'sentry/utils/orgRole';
+import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 
 export const OrgRoleInfo = ({
   organization,
@@ -29,19 +29,19 @@ export const OrgRoleInfo = ({
     return <Fragment>{orgRoleFromMember.name}</Fragment>;
   }
 
-  const topOrgRoleId = sortOrgRoles(
+  const effectiveOrgRoleId = getEffectiveOrgRole(
     orgRolesFromTeams.map(r => r.role.id).concat([orgRoleFromMember.id]),
     orgRoleList
-  )[0];
-  const topOrgRole = orgRoleList.find(r => r.id === topOrgRoleId);
-  if (!topOrgRole) {
+  );
+  const effectiveOrgRole = orgRoleList.find(r => r.id === effectiveOrgRoleId);
+  if (!effectiveOrgRole) {
     throw new Error();
   }
 
   const urlPrefix = `/settings/${organization.slug}/`;
 
   const node = (
-    <RoleTooltip>
+    <TooltipWrapper>
       <div>{t('This user recieved org-level roles from several sources.')}</div>
 
       <ListWrapper>
@@ -67,19 +67,19 @@ export const OrgRoleInfo = ({
 
       <div>
         {t(
-          'Sentry will grant them permissions equivalent to their highest org-level role.'
+          'Sentry will grant them permissions equivalent to the union-set of all their role.'
         )}{' '}
         <ExternalLink href="https://docs.sentry.io/product/accounts/membership/#roles">
           See docs here
         </ExternalLink>
         .
       </div>
-    </RoleTooltip>
+    </TooltipWrapper>
   );
 
   return (
     <Wrapper>
-      {topOrgRole.name}
+      {effectiveOrgRole.name}
       <Tooltip isHoverable title={node}>
         <IconInfo />
       </Tooltip>
@@ -96,7 +96,7 @@ const Wrapper = styled('span')`
   }
 `;
 
-const RoleTooltip = styled('div')`
+const TooltipWrapper = styled('div')`
   width: 200px;
   display: grid;
   row-gap: ${space(1.5)};
