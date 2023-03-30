@@ -30,25 +30,6 @@ type Props = {
   quickTrace: undefined | QuickTraceQueryChildrenProps;
 };
 
-function PlaceholderEventNode({group}: {group: Group}) {
-  if (group.issueCategory !== IssueCategory.ERROR) {
-    return (
-      <EventNode type="black" icon={null}>
-        {t('This Event')}
-      </EventNode>
-    );
-  }
-
-  return (
-    <EventNode type="error" data-test-id="event-node">
-      <ErrorNodeContent>
-        <IconFire size="xs" />
-        {t('This Event')}
-      </ErrorNodeContent>
-    </EventNode>
-  );
-}
-
 function TransactionMissingPlaceholder({
   type,
   group,
@@ -85,7 +66,12 @@ function TransactionMissingPlaceholder({
             ???
           </EventNode>
           <TraceConnector />
-          <PlaceholderEventNode group={group} />
+          <EventNode type="error" data-test-id="event-node">
+            <ErrorNodeContent>
+              <IconFire size="xs" />
+              {t('This Event')}
+            </ErrorNodeContent>
+          </EventNode>
         </QuickTraceContainer>
       </Tooltip>
     </QuickTraceWrapper>
