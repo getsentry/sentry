@@ -4,8 +4,8 @@ import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   QueryKey,
-  useQueries,
   useApiQuery,
+  useQueries,
   UseQueryOptions,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
