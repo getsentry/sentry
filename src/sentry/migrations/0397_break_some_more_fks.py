@@ -376,7 +376,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0395_add_index_to_date_added"),
+        ("sentry", "0396_add_usecase_to_indexer"),
     ]
 
     operations = (
