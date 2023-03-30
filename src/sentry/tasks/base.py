@@ -3,7 +3,7 @@ from __future__ import annotations
 import resource
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, Sequence, Type
+from typing import Any, Callable, Optional, Sequence, Type, TypeVar, cast
 
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 import celery
@@ -16,6 +16,8 @@ else:
 from sentry.celery import app
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception, configure_scope
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def get_rss_usage():
@@ -40,10 +42,10 @@ def load_model_from_db(cls, instance_or_id, allow_cache=True):
     return instance_or_id
 
 
-def instrumented_task(name, stat_suffix=None, **kwargs):
-    def wrapped(func):
+def instrumented_task(name: str, stat_suffix: Optional[F] = None, **kwargs: Any) -> F:
+    def wrapped(func: F) -> F:
         @wraps(func)
-        def _wrapped(*args, **kwargs):
+        def _wrapped(*args: Any, **kwargs: Any) -> F:
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
             transaction_id = kwargs.pop("__transaction_id", None)
@@ -71,7 +73,8 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
         kwargs["trail"] = False
         return app.task(name=name, **kwargs)(_wrapped)
 
-    return wrapped
+    # return wrapped
+    return cast(F, wrapped)
 
 
 def retry(

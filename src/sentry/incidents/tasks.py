@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -17,7 +18,6 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
 )
-from sentry.incidents.subscription_processor import SubscriptionUpdate
 from sentry.models import Project
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.snuba.dataset import Dataset
@@ -27,6 +27,9 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.incidents.subscription_processor import SubscriptionUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -72,8 +75,8 @@ def send_subscriber_notifications(activity_id: int) -> None:
 
 
 def generate_incident_activity_email(
-    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser = None
-) -> None:
+    activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
+) -> MessageBuilder:
     incident = activity.incident
     return MessageBuilder(
         subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
@@ -85,8 +88,8 @@ def generate_incident_activity_email(
 
 
 def build_activity_context(
-    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser = None
-) -> None:
+    activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
+) -> Dict[str, Any]:
     if activity_user is None:
         activity_user = user_service.get_user(user_id=activity.user_id)
 
@@ -126,7 +129,7 @@ def handle_subscription_metrics_logger(
     """
     Logs results from a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
-    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResults
+    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResult
     :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
@@ -135,7 +138,7 @@ def handle_subscription_metrics_logger(
         if subscription.snuba_query.dataset == Dataset.Metrics.value:
             processor = SubscriptionProcessor(subscription)
             # XXX: Temporary hack so that we can extract these values without raising an exception
-            processor.reset_trigger_counts = lambda *arg, **kwargs: None
+            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore
             aggregation_value = processor.get_aggregation_value(subscription_update)
 
             logger.info(
@@ -159,7 +162,7 @@ def handle_snuba_query_update(
     """
     Handles a subscription update for a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
-    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResults
+    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResult
     :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
@@ -175,7 +178,14 @@ def handle_snuba_query_update(
     default_retry_delay=60,
     max_retries=5,
 )
-def handle_trigger_action(action_id, incident_id, project_id, method, metric_value=None, **kwargs):
+def handle_trigger_action(
+    action_id: int,
+    incident_id: int,
+    project_id: int,
+    method: str,
+    metric_value: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
     from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
 
     try:
@@ -233,7 +243,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
     default_retry_delay=60,
     max_retries=2,
 )
-def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
+def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
     from sentry.incidents.models import AlertRule
 
