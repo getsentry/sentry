@@ -588,13 +588,13 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "sdk.version": ["sdk_version"],
     # Click actions
     "replay_click.alt": ["click.alt"],
-    "replay_click.aria_label": ["click.aria_label"],
+    "replay_click.label": ["click.aria_label"],
     "replay_click.class": ["click.class"],
     "replay_click.id": ["click.id"],
     "replay_click.role": ["click.role"],
     "replay_click.tag": ["click.tag"],
     "replay_click.testid": ["click.testid"],
-    "replay_click.text": ["click.text"],
+    "replay_click.textContent": ["click.text"],
     "replay_click.title": ["click.title"],
 }
 

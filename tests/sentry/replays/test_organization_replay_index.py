@@ -923,7 +923,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.title:MyTitle",
             ]
             for query in queries:
-                response = self.client.get(self.url + f"?query={query}")
+                response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
