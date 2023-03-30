@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import operator
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Optional, Tuple, TypedDict
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, TypeVar
 
 from django.conf import settings
 from django.db import transaction
@@ -56,11 +58,13 @@ ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 #  functionality, then maybe we should move this to constants
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: Optional[int] = None
 
+T = TypeVar("T")
+
 
 class SubscriptionUpdate(TypedDict):
     subscription_id: int
     values: Dict[str, List[Any]]
-    timestamp: float
+    timestamp: datetime
     interval: int
     partition: int
     offset: int
@@ -80,7 +84,7 @@ class SubscriptionProcessor:
         AlertRuleThresholdType.BELOW: (operator.lt, operator.gt),
     }
 
-    def __init__(self, subscription):
+    def __init__(self, subscription: QuerySubscription) -> None:
         self.subscription = subscription
         try:
             self.alert_rule = AlertRule.objects.get_for_subscription(subscription)
@@ -107,11 +111,11 @@ class SubscriptionProcessor:
         return self._active_incident
 
     @active_incident.setter
-    def active_incident(self, active_incident: Incident):
+    def active_incident(self, active_incident: Incident) -> None:
         self._active_incident = active_incident
 
     @property
-    def incident_triggers(self) -> List[IncidentTrigger]:
+    def incident_triggers(self) -> Dict[int, IncidentTrigger]:
         if not hasattr(self, "_incident_triggers"):
             incident = self.active_incident
             incident_triggers = {}
@@ -158,7 +162,8 @@ class SubscriptionProcessor:
             len(self.triggers) == 1
             or trigger.label == WARNING_TRIGGER_LABEL
         ):
-            return self.alert_rule.resolve_threshold
+            resolve_threshold: float = self.alert_rule.resolve_threshold
+            return resolve_threshold
 
         # Since we only support gt/lt thresholds we have an off-by-one with auto
         # resolve. If we have an alert threshold of > 0, and no resolve threshold, then
@@ -173,11 +178,12 @@ class SubscriptionProcessor:
         else:
             resolve_add = -0.000001
 
-        return trigger.alert_threshold + resolve_add
+        threshold: float = trigger.alert_threshold + resolve_add
+        return threshold
 
     def get_comparison_aggregation_value(
-        self, subscription_update: SubscriptionUpdate, aggregation_value: int
-    ) -> int:
+        self, subscription_update: SubscriptionUpdate, aggregation_value: float
+    ) -> Optional[float]:
         # For comparison alerts run a query over the comparison period and use it to calculate the
         # % change.
         delta = timedelta(seconds=self.alert_rule.comparison_delta)
@@ -216,17 +222,18 @@ class SubscriptionProcessor:
 
         except Exception:
             logger.exception("Failed to run comparison query")
-            return
+            return None
 
         if not comparison_aggregate:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
-            return
+            return None
 
-        return (aggregation_value / comparison_aggregate) * 100
+        result: float = (aggregation_value / comparison_aggregate) * 100
+        return result
 
     def get_crash_rate_alert_aggregation_value(
         self, subscription_update: SubscriptionUpdate
-    ) -> int:
+    ) -> Optional[float]:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values.
         The subscription update looks like
@@ -248,7 +255,7 @@ class SubscriptionProcessor:
         if aggregation_value is None:
             self.reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return
+            return None
 
         try:
             total_count = subscription_update["values"]["data"][0][
@@ -261,7 +268,7 @@ class SubscriptionProcessor:
                     metrics.incr(
                         "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
                     )
-                    return
+                    return None
         except KeyError:
             # If for whatever reason total session count was not sent in the update,
             # ignore the minimum threshold comparison and continue along with processing the
@@ -273,12 +280,12 @@ class SubscriptionProcessor:
         # The subscription aggregation for crash rate alerts uses the Discover percentage
         # function, which would technically return a ratio of sessions_crashed/sessions and
         # so we need to calculate the crash free percentage out of that returned value
-        aggregation_value = round((1 - aggregation_value) * 100, 3)
-        return aggregation_value
+        aggregation_value_result: int = round((1 - aggregation_value) * 100, 3)
+        return aggregation_value_result
 
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: SubscriptionUpdate
-    ) -> int:
+    ) -> Optional[float]:
         """Handle both update formats. Once all subscriptions have been updated
         to v2, we can remove v1 and replace this function with current v2.
         """
@@ -299,7 +306,7 @@ class SubscriptionProcessor:
 
     def _get_crash_rate_alert_metrics_aggregation_value_v1(
         self, subscription_update: SubscriptionUpdate
-    ) -> int:
+    ) -> Optional[float]:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -333,14 +340,14 @@ class SubscriptionProcessor:
         if total_session_count == 0:
             self.reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return
+            return None
 
         if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
             min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
             if total_session_count < min_threshold:
                 self.reset_trigger_counts()
                 metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-                return
+                return None
 
         aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
 
@@ -348,7 +355,7 @@ class SubscriptionProcessor:
 
     def _get_crash_rate_alert_metrics_aggregation_value_v2(
         self, subscription_update: SubscriptionUpdate
-    ) -> int:
+    ) -> Optional[float]:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -371,20 +378,20 @@ class SubscriptionProcessor:
         if total_session_count == 0:
             self.reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return
+            return None
 
         if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
             min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
             if total_session_count < min_threshold:
                 self.reset_trigger_counts()
                 metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-                return
+                return None
 
-        aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
+        aggregation_value: int = round((1 - crash_count / total_session_count) * 100, 3)
 
         return aggregation_value
 
-    def get_aggregation_value(self, subscription_update: SubscriptionUpdate) -> float:
+    def get_aggregation_value(self, subscription_update: SubscriptionUpdate) -> Optional[float]:
         if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
             aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
         elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:
@@ -721,13 +728,13 @@ def build_trigger_stat_keys(
 
 
 def build_alert_rule_trigger_stat_key(
-    alert_rule_id: int, project_id: int, trigger_id: int, stat_key: str
+    alert_rule_id: int, project_id: int, trigger_id: str, stat_key: str
 ) -> str:
     key_base = ALERT_RULE_BASE_KEY % (alert_rule_id, project_id)
     return ALERT_RULE_BASE_TRIGGER_STAT_KEY % (key_base, trigger_id, stat_key)
 
 
-def partition(iterable: Iterable, n: int) -> Tuple[Iterable, int]:
+def partition(iterable: Sequence[T], n: int) -> Sequence[Sequence[T]]:
     """
     Partitions an iterable into tuples of size n. Expects the iterable length to be a
     multiple of n.
@@ -740,7 +747,7 @@ def partition(iterable: Iterable, n: int) -> Tuple[Iterable, int]:
 
 def get_alert_rule_stats(
     alert_rule: AlertRule, subscription: QuerySubscription, triggers: List[AlertRuleTrigger]
-) -> Tuple[int, Dict[str, int], Dict[str, int]]:
+) -> Tuple[datetime, Dict[str, int], Dict[str, int]]:
     """
     Fetches stats about the alert rule, specific to the current subscription
     :return: A tuple containing the stats about the alert rule and subscription.
@@ -760,6 +767,7 @@ def get_alert_rule_stats(
     trigger_results = results[1:]
     trigger_alert_counts = {}
     trigger_resolve_counts = {}
+
     for trigger, trigger_result in zip(
         triggers, partition(trigger_results, len(ALERT_RULE_TRIGGER_STAT_KEYS))
     ):
@@ -773,8 +781,8 @@ def update_alert_rule_stats(
     alert_rule: AlertRule,
     subscription: QuerySubscription,
     last_update: datetime,
-    alert_counts: Dict[int, int],
-    resolve_counts: Dict[int, int],
+    alert_counts: Dict[str, int],
+    resolve_counts: Dict[str, int],
 ) -> None:
     """
     Updates stats about the alert rule, subscription and triggers if they've changed.
@@ -797,6 +805,6 @@ def update_alert_rule_stats(
     pipeline.execute()
 
 
-def get_redis_client():
+def get_redis_client() -> Any:
     cluster_key = getattr(settings, "SENTRY_INCIDENT_RULES_REDIS_CLUSTER", "default")
     return redis.redis_clusters.get(cluster_key)
