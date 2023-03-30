@@ -1184,7 +1184,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         with self.feature("organizations:discover-basic"):
             query = {
                 "field": ["id", "project.id"],
-                "query": "error.main_thread:true",
+                "query": "error.main_thread:false",
                 "project": [self.project.id],
             }
             response = self.do_request(query)
