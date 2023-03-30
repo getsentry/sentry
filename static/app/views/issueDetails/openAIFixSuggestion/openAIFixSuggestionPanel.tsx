@@ -8,6 +8,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -107,9 +108,9 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
                 query: {...router.location.query, showSuggestedFix: undefined},
               }}
             >
-              {t('Cancel')}
+              {t('Dismiss')}
             </Button>
-            <Button priority="primary" to="/settings/legal/">
+            <Button priority="primary" to={`/settings/${organization.slug}/legal/`}>
               {t('Accept in Settings')}
             </Button>
           </ButtonBar>
@@ -133,7 +134,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
                 query: {...router.location.query, showSuggestedFix: undefined},
               }}
             >
-              {t('Cancel')}
+              {t('Dismiss')}
             </Button>
             <Button
               priority="primary"
@@ -178,12 +179,16 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
       </FixSuggestionPanelHeader>
       {expandedSuggestedFix && (
         <Fragment>
-          <StyledPanelBody withPadding isLoading={dataIsLoading}>
+          <StyledPanelBody withPadding whiteBg={dataIsLoading && individualConsent}>
             {dataIsLoading ? (
-              <AiLoaderWrapper>
-                <div className="ai-loader" />
-                <AiLoaderMessage />
-              </AiLoaderWrapper>
+              !individualConsent ? (
+                <LoadingIndicator />
+              ) : (
+                <AiLoaderWrapper>
+                  <div className="ai-loader" />
+                  <AiLoaderMessage />
+                </AiLoaderWrapper>
+              )
             ) : dataIsError ? (
               PolicyErrorState ? (
                 PolicyErrorState
@@ -254,8 +259,9 @@ const FixSuggestionPanel = styled(Panel)`
   overflow: hidden;
 `;
 
-const StyledPanelBody = styled(PanelBody)<{isLoading: boolean}>`
-  background: ${p => (p.isLoading ? 'white' : undefined)};
+const StyledPanelBody = styled(PanelBody)<{whiteBg: boolean}>`
+  background: ${p => (p.whiteBg ? 'white' : undefined)};
+  min-height: 268px;
 `;
 
 const FixSuggestionPanelHeader = styled(PanelHeader)<{isExpanded: boolean}>`
@@ -286,5 +292,5 @@ const FeatureBadgeNotUppercase = styled(FeatureBadge)`
 
 const AiLoaderWrapper = styled('div')`
   text-align: center;
-  padding-bottom: ${space(4)};
+  padding-bottom: ${space(1.5)};
 `;
