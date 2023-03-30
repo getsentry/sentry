@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 import pytz
 from croniter import croniter
@@ -23,8 +24,11 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import Environment, Project
+from sentry.models import Environment
 from sentry.utils.retries import TimedRetryPolicy
+
+if TYPE_CHECKING:
+    from sentry.models.group import Project
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
