@@ -13,11 +13,12 @@ import {
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import EventReplay from 'sentry/components/events/eventReplay';
+import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -60,6 +61,10 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.Newest
+  );
+
+  const entryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.BREADCRUMBS
   );
 
   const initialBreadcrumbs = useMemo(() => {
@@ -160,7 +165,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     return filterLevels;
   }
 
-  function applySearchTerm(breadcrumbs: Crumb[], newSearchTerm: string) {
+  function applySearchTerm(breadcrumbs: BreadcrumbWithMeta[], newSearchTerm: string) {
     if (!newSearchTerm.trim()) {
       return breadcrumbs;
     }
@@ -172,11 +177,11 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
       .replace(/((^")|("$))/g, '')
       .toLocaleLowerCase();
 
-    return breadcrumbs.filter(obj =>
+    return breadcrumbs.filter(({breadcrumb}) =>
       Object.keys(
-        pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
+        pick(breadcrumb, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
       ).some(key => {
-        const info = obj[key];
+        const info = breadcrumb[key];
 
         if (!defined(info) || !String(info).trim()) {
           return false;
@@ -192,7 +197,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   }
 
   function applySelectedFilters(
-    breadcrumbs: Crumb[],
+    breadcrumbs: BreadcrumbWithMeta[],
     selectedFilterOptions: SelectOption<string>[]
   ) {
     const checkedTypeOptions = new Set(
@@ -209,21 +214,21 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
     if (!![...checkedTypeOptions].length && !![...checkedLevelOptions].length) {
       return breadcrumbs.filter(
-        filteredCrumb =>
-          checkedTypeOptions.has(filteredCrumb.type) &&
-          checkedLevelOptions.has(filteredCrumb.level)
+        ({breadcrumb}) =>
+          checkedTypeOptions.has(breadcrumb.type) &&
+          checkedLevelOptions.has(breadcrumb.level)
       );
     }
 
     if ([...checkedTypeOptions].length) {
-      return breadcrumbs.filter(filteredCrumb =>
-        checkedTypeOptions.has(filteredCrumb.type)
+      return breadcrumbs.filter(({breadcrumb}) =>
+        checkedTypeOptions.has(breadcrumb.type)
       );
     }
 
     if ([...checkedLevelOptions].length) {
-      return breadcrumbs.filter(filteredCrumb =>
-        checkedLevelOptions.has(filteredCrumb.level)
+      return breadcrumbs.filter(({breadcrumb}) =>
+        checkedLevelOptions.has(breadcrumb.level)
       );
     }
 
@@ -231,8 +236,12 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   }
 
   const displayedBreadcrumbs = useMemo(() => {
+    const breadcrumbsWithMeta = initialBreadcrumbs.map((breadcrumb, index) => ({
+      breadcrumb,
+      meta: event._meta?.entries?.[entryIndex]?.data?.values?.[index],
+    }));
     const filteredBreadcrumbs = applySearchTerm(
-      applySelectedFilters(initialBreadcrumbs, filterSelections),
+      applySelectedFilters(breadcrumbsWithMeta, filterSelections),
       searchTerm
     );
 
@@ -242,7 +251,14 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     return sort === BreadcrumbSort.Newest
       ? [...filteredBreadcrumbs].reverse()
       : filteredBreadcrumbs;
-  }, [filterSelections, initialBreadcrumbs, searchTerm, sort]);
+  }, [
+    entryIndex,
+    event._meta?.entries,
+    filterSelections,
+    initialBreadcrumbs,
+    searchTerm,
+    sort,
+  ]);
 
   function getEmptyMessage() {
     if (displayedBreadcrumbs.length) {
