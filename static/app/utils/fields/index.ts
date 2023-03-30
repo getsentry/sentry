@@ -1170,15 +1170,6 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.ACTIVITY,
   ReplayFieldKey.BROWSER_NAME,
   ReplayFieldKey.BROWSER_VERSION,
-  ReplayFieldKey.CLICK_ALT,
-  ReplayFieldKey.CLICK_CLASS,
-  ReplayFieldKey.CLICK_ID,
-  ReplayFieldKey.CLICK_LABEL,
-  ReplayFieldKey.CLICK_ROLE,
-  ReplayFieldKey.CLICK_TAG,
-  ReplayFieldKey.CLICK_TEXT_CONTENT,
-  ReplayFieldKey.CLICK_TITLE,
-  ReplayFieldKey.CLICK_TESTID,
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
   ReplayFieldKey.COUNT_URLS,
@@ -1218,51 +1209,6 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
     desc: t('Version number of the browser'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_ALT]: {
-    desc: t('`alt` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_CLASS]: {
-    desc: t('`class` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_ID]: {
-    desc: t('`id` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_LABEL]: {
-    desc: t('`aria-label` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_ROLE]: {
-    desc: t('`role` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_TAG]: {
-    desc: t('`tag` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_TESTID]: {
-    desc: t('`data-testid` or `data-test-id` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_TEXT_CONTENT]: {
-    desc: t('textContent of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_TITLE]: {
-    desc: t('`title` of an element that was clicked'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1308,9 +1254,70 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
 };
 
+export const REPLAY_CLICK_FIELDS = [
+  ReplayFieldKey.CLICK_ALT,
+  ReplayFieldKey.CLICK_CLASS,
+  ReplayFieldKey.CLICK_ID,
+  ReplayFieldKey.CLICK_LABEL,
+  ReplayFieldKey.CLICK_ROLE,
+  ReplayFieldKey.CLICK_TAG,
+  ReplayFieldKey.CLICK_TEXT_CONTENT,
+  ReplayFieldKey.CLICK_TITLE,
+  ReplayFieldKey.CLICK_TESTID,
+];
+
+// This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
+const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
+  [ReplayFieldKey.CLICK_ALT]: {
+    desc: t('`alt` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.CLICK_CLASS]: {
+    desc: t('`class` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.CLICK_ID]: {
+    desc: t('`id` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.CLICK_LABEL]: {
+    desc: t('`aria-label` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.CLICK_ROLE]: {
+    desc: t('`role` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.CLICK_TAG]: {
+    desc: t('`tag` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.CLICK_TESTID]: {
+    desc: t('`data-testid` or `data-test-id` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.CLICK_TEXT_CONTENT]: {
+    desc: t('textContent of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.CLICK_TITLE]: {
+    desc: t('`title` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' = 'event'
+  type: 'event' | 'replay' | 'replay_click' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
@@ -1319,6 +1326,11 @@ export const getFieldDefinition = (
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key];
+      }
+      return null;
+    case 'replay_click':
+      if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
+        return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       return null;
     case 'event':

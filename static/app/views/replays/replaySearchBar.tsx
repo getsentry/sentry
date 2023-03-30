@@ -13,7 +13,12 @@ import {
   TagValue,
 } from 'sentry/types';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import {FieldKind, getFieldDefinition, REPLAY_FIELDS} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  getFieldDefinition,
+  REPLAY_CLICK_FIELDS,
+  REPLAY_FIELDS,
+} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useTags from 'sentry/utils/useTags';
 
@@ -28,34 +33,45 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 function prepareQuery(searchQuery: string) {
   return searchQuery.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
 }
-const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
+const getReplayFieldDefinition = (key: string, type: 'replay' | 'replay_click') =>
+  getFieldDefinition(key, type);
 
-function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
+function fieldDefinitionsToTagCollection(
+  fieldKeys: string[],
+  type: 'replay' | 'replay_click'
+): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(key => [
       key,
       {
         key,
         name: key,
-        kind: getReplayFieldDefinition(key)?.kind,
+        kind: getReplayFieldDefinition(key, type)?.kind,
       },
     ])
   );
 }
 
-const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
+const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS, 'replay');
+const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(
+  REPLAY_CLICK_FIELDS,
+  'replay_click'
+);
 
-function getSupportedTags(supportedTags: TagCollection) {
+function getSupportedTags(supportedTags: TagCollection, organization: Organization) {
   return {
     ...Object.fromEntries(
       Object.keys(supportedTags).map(key => [
         key,
         {
           ...supportedTags[key],
-          kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
+          kind: getReplayFieldDefinition(key, 'replay')?.kind ?? FieldKind.TAG,
         },
       ])
     ),
+    ...(organization && organization.features.includes('session-replay-dom-search')
+      ? REPLAY_CLICK_FIELDS_AS_TAGS
+      : {}),
     ...REPLAY_FIELDS_AS_TAGS,
   };
 }
@@ -103,7 +119,7 @@ function ReplaySearchBar(props: Props) {
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={getSupportedTags(tags)}
+      supportedTags={getSupportedTags(tags, organization)}
       placeholder={t('Search for users, duration, count_errors, and more')}
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
