@@ -136,6 +136,35 @@ def get_user_actions(
                     }
                 )
 
+        # look for request / response breadcrumbs and report metrics on them
+        if event.get("type") == 5 and event.get("data", {}).get("tag") == "performanceSpan":
+            if event["data"].get("payload", {}).get("op") in ("resource.fetch", "resource.xhr"):
+                event_payload_data = event["data"]["payload"]["data"]
+
+                # these first two cover SDKs 7.44 and 7.45
+                if event_payload_data.get("requestBodySize"):
+                    metrics.timing(
+                        "replays.usecases.ingest.request_body_size",
+                        event_payload_data["requestBodySize"],
+                    )
+                if event_payload_data.get("responseBodySize"):
+                    metrics.timing(
+                        "replays.usecases.ingest.response_body_size",
+                        event_payload_data["responseBodySize"],
+                    )
+
+                # what the most recent SDKs send:
+                if event_payload_data.get("request", {}).get("size"):
+                    metrics.timing(
+                        "replays.usecases.ingest.request_body_size",
+                        event_payload_data["request"]["size"],
+                    )
+                if event_payload_data.get("response", {}).get("size"):
+                    metrics.timing(
+                        "replays.usecases.ingest.response_body_size",
+                        event_payload_data["response"]["size"],
+                    )
+
     return result
 
 
