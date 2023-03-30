@@ -740,6 +740,7 @@ CELERY_QUEUES = [
         routing_key="dynamicsampling",
     ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
+    Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -898,7 +899,7 @@ CELERYBEAT_SCHEDULE = {
         # Run job every hour at min 10
         "schedule": crontab(minute=10),
     },
-    "schedule-weekly-escalating-forecast": {
+    "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         "schedule": crontab(minute=0, hour=0, day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3 * 4},
