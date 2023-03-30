@@ -4,7 +4,7 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, TypeVar
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, TypeVar, cast
 
 from django.conf import settings
 from django.db import transaction
@@ -738,11 +738,11 @@ def partition(iterable: Sequence[T], n: int) -> Sequence[Sequence[T]]:
     """
     Partitions an iterable into tuples of size n. Expects the iterable length to be a
     multiple of n.
-    partition('ABCDEF', 3) --> [('ABC', 'DEF')]
+    partition('ABCDEF', 3) --> [('A', 'B', 'C'), ('D', 'E', 'F')]
     """
     assert len(iterable) % n == 0
     args = [iter(iterable)] * n
-    return zip(*args)
+    return cast(Sequence[Sequence[T]], zip(*args))
 
 
 def get_alert_rule_stats(
