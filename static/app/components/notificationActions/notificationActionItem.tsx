@@ -163,6 +163,7 @@ function NotificationActionItem({
       });
       addSuccessMessage(formProps.successMessage);
       onUpdate(index, resp);
+      setUpdatedAction(resp);
       setIsEditing(false);
     } catch (err) {
       addErrorMessage(formProps.errorMessage);
@@ -244,7 +245,7 @@ function NotificationActionItem({
       return (
         <NotificationActionFormContainer>
           <NotificationActionCell>{renderDescription()}</NotificationActionCell>
-          <ButtonBar>
+          <ButtonBar gap={0.5}>
             <Button onClick={handleCancel} size="xs">
               {t('Cancel')}
             </Button>

@@ -76,6 +76,7 @@ const PagerdutyForm = ({
           [service.action.targetIdentifier, value]
         );
         setSelectedDisplay(value);
+        onChange('targetIdentifier', service.action.targetIdentifier);
       },
     }));
   };
