@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 from sentry.api.paginator import OffsetPaginator
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
     RpcIntegration,
     RpcOrganizationIntegration,
 )
+from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 
 if TYPE_CHECKING:
     from datetime import datetime
