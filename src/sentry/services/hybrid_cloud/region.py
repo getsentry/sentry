@@ -6,15 +6,11 @@ from typing import TYPE_CHECKING
 
 from sentry.db.models import BaseManager
 from sentry.services.hybrid_cloud import ArgumentDict
-from sentry.services.hybrid_cloud.rpc import (
-    RpcServiceSetupException,
-    RpcServiceUnimplementedException,
-)
+from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.types.region import Region, get_region_by_name
 
 if TYPE_CHECKING:
     from sentry.models import OrganizationMapping
-    from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 
 
 class RegionResolution(ABC):
@@ -39,35 +35,14 @@ class RegionResolution(ABC):
 
 @dataclass(frozen=True)
 class ByOrganizationObject(RegionResolution):
-    """Resolve from a parameter representing an organization object.
+    """Resolve from a parameter representing an organization object."""
 
-    The name of the parameter may be omitted if the method has exactly one parameter
-    that is an RpcOrganizationSummary, which is used by default.
-    """
-
-    parameter_name: str | None = None
+    parameter_name: str = "organization"
 
     def resolve(self, arguments: ArgumentDict) -> Region:
-        value = (
-            self._find_organization_summary(arguments)
-            if self.parameter_name is None
-            else arguments[self.parameter_name]
-        )
+        value = arguments[self.parameter_name]
         mapping = self.organization_mapping_manager.get(organization_id=value.id)
         return self._resolve_from_mapping(mapping)
-
-    @staticmethod
-    def _find_organization_summary(arguments: ArgumentDict) -> RpcOrganizationSummary:
-        from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-
-        org_values = [arg for arg in arguments.values() if isinstance(arg, RpcOrganizationSummary)]
-        if not org_values:
-            raise RpcServiceSetupException("Method has no RpcOrganizationSummary parameter")
-        if len(org_values) != 1:
-            raise RpcServiceSetupException(
-                "Method has multiple RpcOrganizationSummary parameters (specify one by name)"
-            )
-        return org_values[0]
 
 
 @dataclass(frozen=True)
