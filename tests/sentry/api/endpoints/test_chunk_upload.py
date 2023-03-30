@@ -48,6 +48,18 @@ class ChunkUploadTest(APITestCase):
 
         assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
 
+    def test_chunk_parameters_with_project(self):
+        project = self.create_project()
+        project.update_option("sentry:artifact_bundles", True)
+        response = self.client.get(
+            self.url,
+            data={"project": project.slug},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            format="json",
+        )
+
+        assert response.data["accept"] == []
+
     def test_accept_with_feature_flag_enabled_and_disabled(self):
         with self.feature({"organizations:artifact-bundles": False}):
             response = self.client.get(

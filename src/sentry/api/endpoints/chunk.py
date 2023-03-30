@@ -3,17 +3,20 @@ import re
 from gzip import GzipFile
 from io import BytesIO
 
+import jsonschema
 from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import options
 from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.models import FileBlob
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models import FileBlob, Project, ProjectStatus
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.utils import json
 from sentry.utils.files import get_max_file_size
 from sentry.utils.http import absolute_uri
 
@@ -23,7 +26,7 @@ MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = "sha1"
 SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+).*$")
 API_PREFIX = "/api/0"
-CHUNK_UPLOAD_ACCEPT = (
+CHUNK_UPLOAD_ACCEPT_ORG_BOUND = (
     "debug_files",  # DIF assemble
     "release_files",  # Release files assemble
     "pdbs",  # PDB upload and debug id override
@@ -31,8 +34,9 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
-    # TODO: This is currently turned on by a feature flag
-    # "artifact_bundles",  # Artifact bundles containing source maps.
+)
+CHUNK_UPLOAD_ACCEPT_PROJECT_BOUND = (
+    "artifact_bundles",  # Artifact bundles containing source maps.
 )
 
 
@@ -81,12 +85,34 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
-        # TODO: artifact bundles are still feature flagged.
-        accept = CHUNK_UPLOAD_ACCEPT
-        if features.has(
-            "organizations:artifact-bundles", organization=organization, actor=request.user
-        ):
-            accept += ("artifact_bundles",)
+        schema = {
+            "type": "object",
+            "properties": {
+                "projects": {"type": "string", "pattern": "^[^/]+$"},
+            },
+            "additionalProperties": False,
+        }
+
+        try:
+            data = json.loads(request.body)
+            jsonschema.validate(data, schema)
+        except jsonschema.ValidationError as e:
+            return Response({"error": str(e).splitlines()[0]}, status=400)
+        except Exception:
+            return Response({"error": "Invalid json body"}, status=400)
+
+        accept = CHUNK_UPLOAD_ACCEPT_ORG_BOUND
+        project_slug = data.get("project")
+        if project_slug is not None:
+            try:
+                project = Project.objects.get(
+                    organization=organization, status=ProjectStatus.VISIBLE, slug=project_slug
+                )
+            except Project.DoesNotExist:
+                raise ResourceDoesNotExist
+            else:
+                if project.get_option("sentry:artifact_bundles", None):
+                    accept += CHUNK_UPLOAD_ACCEPT_PROJECT_BOUND
 
         return Response(
             {
