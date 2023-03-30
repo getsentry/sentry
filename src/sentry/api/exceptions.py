@@ -139,9 +139,3 @@ class RequestTimeout(SentryAPIException):
     status_code = status.HTTP_408_REQUEST_TIMEOUT
     code = "request-timeout"
     message = "Proxied request timed out"
-
-
-class OpenAIError(SentryAPIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    code = "open-ai-error"
-    message = "An error occurred with the OpenAI integration"
