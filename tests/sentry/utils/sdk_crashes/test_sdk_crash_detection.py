@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Mapping, Sequence, Tuple
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -177,8 +177,15 @@ def test_report_cocoa_sdk_crash_frames(frames, should_be_reported):
     _run_report_test_with_event(event, should_be_reported)
 
 
+def test_sdk_crash_detected_event_is_not_reported():
+    event = get_crash_event()
+    event["type"] = "extracted_sdk_crash"
+
+    _run_report_test_with_event(event, should_be_reported=False)
+
+
 def given_crash_detector() -> Tuple[SDKCrashDetection, SDKCrashReporter]:
-    crash_reporter = Mock()
+    crash_reporter = Mock(spec=SDKCrashReporter)
     cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
 
     event_stripper = Mock()
@@ -200,8 +207,13 @@ def _run_report_test_with_event(event, should_be_reported):
         assert_no_sdk_crash_reported(crash_reporter)
 
 
-def assert_sdk_crash_reported(crash_reporter: SDKCrashReporter, expected_data: dict):
-    crash_reporter.report.assert_called_once_with(expected_data)
+def assert_sdk_crash_reported(
+    crash_reporter: SDKCrashReporter, expected_event: Sequence[Mapping[str, Any]]
+):
+    crash_reporter.report.assert_called_once_with(expected_event)
+
+    reported_event = crash_reporter.report.call_args.args[0]
+    assert reported_event["type"] == "extracted_sdk_crash"
 
 
 def assert_no_sdk_crash_reported(crash_reporter: SDKCrashReporter):
