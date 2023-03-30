@@ -83,6 +83,12 @@ def sourcemap_images_from_data(data):
     return get_path(data, "debug_meta", "images", default=(), filter=is_sourcemap_image)
 
 
+# Most people don't upload release artifacts for their third-party libraries,
+# so ignore missing node_modules files or chrome extensions
+def should_skip_missing_source_error(abs_path):
+    "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
+
+
 def map_symbolicator_process_js_errors(errors):
     if errors is None:
         return []
@@ -90,17 +96,22 @@ def map_symbolicator_process_js_errors(errors):
     mapped_errors = []
 
     for error in errors:
-        if error["type"] == "invalid_abs_path":
-            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": error["abs_path"]})
-        if error["type"] == "missing_sourcemap":
-            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": error["abs_path"]})
-        elif error["type"] == "invalid_location":
+        ty = error["type"]
+        abs_path = error["abs_path"]
+
+        if ty == "invalid_abs_path" and not should_skip_missing_source_error(abs_path):
+            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+        elif ty == "missing_sourcemap" and not should_skip_missing_source_error(abs_path):
+            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+        elif ty == "malformed_sourcemap":
+            mapped_errors.append({"type": EventError.JS_INVALID_SOURCEMAP, "url": abs_path})
+        elif ty == "invalid_location":
             mapped_errors.append(
                 {
                     "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
                     "column": error["col"],
                     "row": error["line"],
-                    "source": error["abs_path"],
+                    "source": abs_path,
                 }
             )
 
