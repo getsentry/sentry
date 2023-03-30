@@ -5,6 +5,7 @@ from sentry.models import (
     CommitFileChange,
     File,
     Release,
+    ReleaseArtifactBundle,
     ReleaseCommit,
     ReleaseFile,
     Repository,
@@ -87,7 +88,7 @@ class ReleaseMetaTest(APITestCase):
         assert data["releaseFileCount"] == 1
         assert len(data["projects"]) == 2
 
-    def test_artifact_count(self):
+    def test_artifact_count_without_weak_association(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -115,3 +116,37 @@ class ReleaseMetaTest(APITestCase):
 
         data = json.loads(response.content)
         assert data["releaseFileCount"] == 2
+
+    def test_artifact_count_with_weak_existing_association(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+
+        self.create_release_archive(release=release.version)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        bundle = self.create_artifact_bundle(org=org, artifact_count=10)
+        ReleaseArtifactBundle.objects.create(
+            organization_id=org.id, release_name=release.version, artifact_bundle=bundle
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-meta",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+
+        data = json.loads(response.content)
+        assert data["releaseFileCount"] == 10
