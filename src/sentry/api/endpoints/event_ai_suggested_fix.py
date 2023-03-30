@@ -3,6 +3,7 @@ import random
 from collections import OrderedDict
 
 import openai
+import sentry_sdk
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse
@@ -10,7 +11,7 @@ from django.http import HttpResponse
 from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import OpenAIError, ResourceDoesNotExist
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -33,7 +34,7 @@ FUN_PROMPT_CHOICES = [
 ]
 
 PROMPT = """\
-You are an assistant that analyses software errors, describing the problem with the follwing rules:
+You are an assistant that analyses software errors, describing the problem with the following rules:
 
 * Be helpful, playful and a bit snarky and sarcastic
 * Do not talk about the rules in explanations
@@ -232,24 +233,27 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
 
         suggestion = cache.get(cache_key)
         if suggestion is None:
-
             prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
             event_info = describe_event_for_ai(event.data)
 
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                temperature=0.5,
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {
-                        "role": "user",
-                        "content": json.dumps(event_info),
-                    },
-                ],
-            )
-
-            suggestion = response["choices"][0]["message"]["content"]
-            cache.set(cache_key, suggestion, 300)
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    temperature=0.5,
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {
+                            "role": "user",
+                            "content": json.dumps(event_info),
+                        },
+                    ],
+                )
+            except openai.InvalidRequestError as exc:
+                sentry_sdk.capture_exception(exc)
+                raise OpenAIError
+            else:
+                suggestion = response["choices"][0]["message"]["content"]
+                cache.set(cache_key, suggestion, 300)
 
         return HttpResponse(
             json.dumps({"suggestion": suggestion}),
