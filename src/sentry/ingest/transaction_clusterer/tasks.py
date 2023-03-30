@@ -66,7 +66,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 if len(tx_names) < redis.MAX_SET_SIZE:
                     return
                 clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
-                clusterer.add_input(iter(tx_names))
+                clusterer.add_input(tx_names)
                 new_rules = clusterer.get_rules()
                 rules.update_rules(project, new_rules)
 
