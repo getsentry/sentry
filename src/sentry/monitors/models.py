@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 import pytz
 from croniter import croniter
@@ -22,7 +21,10 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.models import Environment, Project
+from sentry.utils.retries import TimedRetryPolicy
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -184,15 +186,18 @@ class Monitor(Model):
     __repr__ = sane_repr("guid", "project_id", "name")
 
     def save(self, *args, **kwargs):
-        # TODO(epurkhsier): This logic is to be removed when the `guid` field
-        # is removed and a slug is required when creating monitors
+        if not self.slug:
+            lock = locks.get(
+                f"slug:monitor:{self.organization_id}", duration=5, name="monitor_slug"
+            )
+            with TimedRetryPolicy(10)(lock.acquire):
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization_id=self.organization_id,
+                    max_length=50,
+                )
 
-        # NOTE: We ONLY set a slug while saving when creating a new monitor and
-        # the slug has not been set. Otherwise existing monitors without slugs
-        # would have their guids changed
-        if self._state.adding is True and not self.slug:
-            self.guid = uuid4()
-            self.slug = str(self.guid)
         return super().save(*args, **kwargs)
 
     def get_schedule_type_display(self):

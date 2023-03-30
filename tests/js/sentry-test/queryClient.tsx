@@ -1,7 +1,6 @@
-import {QueryClient} from '@tanstack/react-query';
 import merge from 'lodash/merge';
 
-import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG, QueryClient} from 'sentry/utils/queryClient';
 
 export const makeTestQueryClient = () =>
   new QueryClient(

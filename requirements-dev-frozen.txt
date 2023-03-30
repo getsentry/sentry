@@ -48,6 +48,7 @@ drf-spectacular==0.22.1
 email-reply-parser==0.5.12
 exceptiongroup==1.0.0rc9
 execnet==1.9.0
+fastjsonschema==2.16.2
 fido2==0.9.2
 filelock==3.7.0
 flake8==6.0.0
@@ -125,6 +126,7 @@ pyasn1-modules==0.2.4
 pycodestyle==2.10.0
 pycountry==17.5.14
 pycparser==2.21
+pydantic==1.10.2
 pyflakes==3.0.1
 pyjwt==2.4.0
 pyopenssl==23.0.0
@@ -163,6 +165,7 @@ s3transfer==0.5.2
 selenium==4.3.0
 sentry-arroyo==2.7.1
 sentry-cli==2.16.0
+sentry-kafka-schemas==0.0.19
 sentry-relay==0.8.19
 sentry-sdk==1.17.0
 simplejson==3.17.6

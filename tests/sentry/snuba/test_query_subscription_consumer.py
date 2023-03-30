@@ -7,9 +7,11 @@ from unittest import mock
 import pytest
 import pytz
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
 from django.conf import settings
+from sentry_kafka_schemas import get_schema
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -32,6 +34,10 @@ class BaseQuerySubscriptionTest:
         return settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
 
     @cached_property
+    def jsoncodec(self):
+        return JsonCodec(get_schema(self.topic)["schema"])
+
+    @cached_property
     def valid_wrapper(self):
         return {"version": 3, "payload": self.valid_payload}
 
@@ -39,7 +45,10 @@ class BaseQuerySubscriptionTest:
     def valid_payload(self):
         return {
             "subscription_id": "1234",
-            "result": {"data": [{"hello": 50}]},
+            "result": {
+                "data": [{"hello": 50}],
+                "meta": [{"name": "count", "type": "UInt64"}],
+            },
             "request": {
                 "some": "data",
                 "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY
@@ -47,15 +56,6 @@ class BaseQuerySubscriptionTest:
                         AND tags[3] IN tuple(13, 4)""",
             },
             "entity": "metrics_counters",
-            "timestamp": "2020-01-01T01:23:45.1234",
-        }
-
-    @cached_property
-    def old_payload(self):
-        return {
-            "subscription_id": "1234",
-            "result": {"data": [{"hello": 50}]},
-            "request": {"some": "data"},
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
@@ -120,7 +120,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
 class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def run_test(self, message):
-        parse_message_value(json.dumps(message))
+        parse_message_value(json.dumps(message), self.jsoncodec)
 
     def run_invalid_schema_test(self, message):
         with pytest.raises(InvalidSchemaError):
@@ -148,7 +148,7 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
 
     def test_invalid_version(self):
         with pytest.raises(InvalidMessageError) as excinfo:
-            self.run_test({"version": 50, "payload": {}})
+            self.run_test({"version": 50, "payload": self.valid_payload})
         assert str(excinfo.value) == "Version specified in wrapper has no schema"
 
     def test_valid(self):
@@ -158,9 +158,6 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         payload = deepcopy(self.valid_payload)
         payload["result"]["data"][0]["hello"] = float("nan")
         self.run_test({"version": 3, "payload": payload})
-
-    def test_old_version(self):
-        self.run_test({"version": 2, "payload": self.old_payload})
 
     def test_invalid_wrapper(self):
         self.run_invalid_schema_test({})
