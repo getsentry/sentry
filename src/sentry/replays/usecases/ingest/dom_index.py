@@ -115,8 +115,10 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             if payload.get("category") == "ui.click":
                 node = payload.get("data", {}).get("node", {})
-                attributes = node.get("attributes", {})
+                if not is_valid_node(node):
+                    continue
 
+                attributes = node.get("attributes", {})
                 result.append(
                     {
                         "node_id": node["id"],
@@ -153,3 +155,8 @@ def _initialize_publisher() -> KafkaPublisher:
 
 def encode_as_uuid(message: str) -> str:
     return str(uuid.UUID(md5(message.encode()).hexdigest()))
+
+
+def is_valid_node(node: Optional[dict]) -> bool:
+    """Return True if this is a valid node."""
+    return node and "id" in node and "tagName" in node
