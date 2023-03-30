@@ -223,7 +223,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             return HttpResponse(
                 json.dumps({"restriction": policy_failure}),
                 content_type="application/json",
-                status=401,
+                status=403,
             )
 
         # Cache the suggestion for a certain amount by primary hash, so even when new events
