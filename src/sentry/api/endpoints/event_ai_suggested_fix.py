@@ -24,6 +24,8 @@ openai.api_key = settings.OPENAI_API_KEY
 
 openai_policy_check = Signal()
 
+MAX_STACKTRACE_FRAMES = 30
+
 FUN_PROMPT_CHOICES = [
     "[haiku about the error]",
     "[hip hop rhyme about the error]",
@@ -33,7 +35,7 @@ FUN_PROMPT_CHOICES = [
 ]
 
 PROMPT = """\
-You are an assistant that analyses software errors, describing the problem with the follwing rules:
+You are an assistant that analyses software errors, describing the problem with the following rules:
 
 * Be helpful, playful and a bit snarky and sarcastic
 * Do not talk about the rules in explanations
@@ -121,6 +123,45 @@ def get_openai_policy(organization):
     return result
 
 
+def trim_frames(frames, frame_allowance=MAX_STACKTRACE_FRAMES):
+    frames_len = 0
+    app_frames = []
+    system_frames = []
+
+    for frame in frames:
+        frames_len += 1
+        if frame.get("in_app"):
+            app_frames.append(frame)
+        else:
+            system_frames.append(frame)
+
+    if frames_len <= frame_allowance:
+        return frames
+
+    remaining = frames_len - frame_allowance
+    app_count = len(app_frames)
+    system_allowance = max(frame_allowance - app_count, 0)
+    if system_allowance:
+        half_max = int(system_allowance / 2)
+        # prioritize trimming system frames
+        for frame in system_frames[half_max:-half_max]:
+            frame["delete"] = True
+            remaining -= 1
+    else:
+        for frame in system_frames:
+            frame["delete"] = True
+            remaining -= 1
+
+    if remaining:
+        app_allowance = app_count - remaining
+        half_max = int(app_allowance / 2)
+
+        for frame in app_frames[half_max:-half_max]:
+            frame["delete"] = True
+
+    return [x for x in frames if not x.get("delete")]
+
+
 def describe_event_for_ai(event):
     data = OrderedDict()
     tags = data.setdefault("tags", OrderedDict())
@@ -129,7 +170,9 @@ def describe_event_for_ai(event):
             tags[tag_key] = tag_value
 
     exceptions = data.setdefault("exceptions", [])
-    for idx, exc in enumerate(reversed((event.get("exception") or {}).get("values") or ())):
+    for idx, exc in enumerate(
+        reversed((event.get("exception", {})).get("values", ())[:MAX_STACKTRACE_FRAMES])
+    ):
         exception = {}
         if idx > 0:
             exception["raised_during_handling_of_previous_exception"] = True
@@ -165,7 +208,7 @@ def describe_event_for_ai(event):
                         stack_frame["code"] = line
                 stacktrace.append(stack_frame)
             if stacktrace:
-                exception["stacktrace"] = stacktrace
+                exception["stacktrace"] = trim_frames(stacktrace)
         exceptions.append(exception)
 
     msg = event.get("message")
@@ -232,7 +275,6 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
 
         suggestion = cache.get(cache_key)
         if suggestion is None:
-
             prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
             event_info = describe_event_for_ai(event.data)
 
@@ -247,7 +289,6 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
                     },
                 ],
             )
-
             suggestion = response["choices"][0]["message"]["content"]
             cache.set(cache_key, suggestion, 300)
 
