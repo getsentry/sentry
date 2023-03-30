@@ -105,7 +105,25 @@ def get_user_actions(
     replay_id: str,
     events: List[Dict[str, Any]],
 ) -> List[ReplayActionsEventPayloadClick]:
-    """Return a list of ReplayActionsEventPayloadClick types."""
+    """Return a list of ReplayActionsEventPayloadClick types.
+
+    The node object is a partially destructured HTML element with an additional RRWeb
+    identifier included. Node objects are not recursive and truncate their children. Text is
+    extracted and stored on the textContent key.
+
+    For example, the follow DOM element:
+
+        <div id="a" class="b c">Hello<span>, </span>world!</div>
+
+    Would be destructured as:
+
+        {
+            "id": 217,
+            "tagName": "div",
+            "attributes": {"id": "a", "class": "b c"},
+            "textContent": "Helloworld!"
+        }
+    """
     result: List[ReplayActionsEventPayloadClick] = []
     for event in events:
         if len(result) == 20:
