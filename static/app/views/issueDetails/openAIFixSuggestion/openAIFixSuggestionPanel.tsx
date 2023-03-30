@@ -178,7 +178,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
       </FixSuggestionPanelHeader>
       {expandedSuggestedFix && (
         <Fragment>
-          <PanelBody withPadding>
+          <StyledPanelBody withPadding isLoading={dataIsLoading}>
             {dataIsLoading ? (
               <AiLoaderWrapper>
                 <div className="ai-loader" />
@@ -186,7 +186,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
               </AiLoaderWrapper>
             ) : dataIsError ? (
               PolicyErrorState ? (
-                <PolicyErrorState />
+                PolicyErrorState
               ) : (
                 <LoadingErrorWithoutMarginBottom onRetry={dataRefetch} />
               )
@@ -200,7 +200,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
                 }}
               />
             )}
-          </PanelBody>
+          </StyledPanelBody>
           {!dataIsLoading && !dataIsError && (
             <PanelFooter>
               <Feedback>
@@ -252,6 +252,10 @@ const FixSuggestionPanel = styled(Panel)`
   margin-top: ${space(1.5)};
   margin-bottom: ${space(1.5)};
   overflow: hidden;
+`;
+
+const StyledPanelBody = styled(PanelBody)<{isLoading: boolean}>`
+  background: ${p => (p.isLoading ? 'white' : undefined)};
 `;
 
 const FixSuggestionPanelHeader = styled(PanelHeader)<{isExpanded: boolean}>`
