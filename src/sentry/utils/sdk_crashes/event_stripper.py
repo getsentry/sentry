@@ -57,7 +57,7 @@ class EventStripper:
         self, debug_meta_images: Sequence[Mapping[str, Any]], frames: Sequence[Mapping[str, Any]]
     ) -> Sequence[Mapping[str, Any]]:
 
-        frame_image_addresses = set(map(lambda frame: frame["image_addr"], frames))
+        frame_image_addresses = {frame["image_addr"] for frame in frames}
 
         return [
             image for image in debug_meta_images if image["image_addr"] in frame_image_addresses
