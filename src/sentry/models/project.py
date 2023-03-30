@@ -32,6 +32,7 @@ from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.monitors.models import Monitor
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
@@ -348,6 +349,15 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             Rule.objects.filter(id__in=rule_ids).update(
                 environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
             )
+
+        # Manually move over organization id's for Monitors
+        try:
+            Monitor.objects.filter(organization_id=old_org_id).update(
+                organization_id=organization.id
+            )
+        except IntegrityError:
+            # not sure what to do here
+            pass
 
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
