@@ -329,7 +329,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "authProvider": "github",
+            "providerName": "github",
             "providerConfig": {"option": "test"},
         }
 
@@ -793,7 +793,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(
             self.organization.slug,
             method="put",
-            authProvider=old_provider,
+            providerName=old_provider,
             providerConfig=old_config,
         )
         auth_provider = AuthProvider.objects.get(organization=self.organization.id)
@@ -803,7 +803,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(
             self.organization.slug,
             method="put",
-            authProvider=new_provider,
+            providerName=new_provider,
             providerConfig=new_config,
         )
         auth_provider = AuthProvider.objects.get(organization=self.organization.id)
@@ -812,7 +812,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_invalid_auth_provider_configuration(self):
         self.get_error_response(
-            self.organization.slug, method="put", authProvider="github", status_code=400
+            self.organization.slug, method="put", providerName="github", status_code=400
         )
         self.get_error_response(
             self.organization.slug,
@@ -823,7 +823,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(
             self.organization.slug,
             method="put",
-            authProvider="not_valid",
+            providerName="not_valid",
             providerConfig={"option": "test"},
             status_code=400,
         )

@@ -168,7 +168,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    authProvider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    providerName = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     providerConfig = serializers.JSONField(required=False, allow_null=True)
 
     @memoize
@@ -263,10 +263,19 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
-    def validate_authProvider(self, value):
-        if value not in ("github", "google", "saml2", "jumpcloud", "okta", "onelogin", "rippling"):
+    def validate_providerName(self, value):
+        if value not in (
+            "github",
+            "google",
+            "saml2",
+            "auth0",
+            "jumpcloud",
+            "okta",
+            "onelogin",
+            "rippling",
+        ):
             raise serializers.ValidationError(
-                "authProvider must be one of github, google, saml2, jumpcloud, okta, onelogin, or rippling"
+                "providerName must be one of github, google, saml2, auth0, jumpcloud, okta, onelogin, or rippling"
             )
         return value
 
@@ -280,10 +289,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
-        # both authProvider and providerConfig required to configure provider
-        if ("authProvider" in attrs) != ("providerConfig" in attrs):
+        if ("providerName" in attrs) != ("providerConfig" in attrs):
             raise serializers.ValidationError(
-                "Both authProvider and providerConfig are required to configure an auth provider"
+                "Both providerName and providerConfig are required to configure an auth provider"
             )
         return attrs
 
@@ -394,8 +402,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        if "authProvider" in data and "providerConfig" in data:
-            provider_name = data["authProvider"]
+        if "providerName" in data and "providerConfig" in data:
+            provider_name = data["providerName"]
             provider_config = data["providerConfig"]
             AuthProvider.objects.update_or_create(
                 organization=org,
