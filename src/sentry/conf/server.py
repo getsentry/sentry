@@ -895,8 +895,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-prioritize-transactions": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
-        # Run job every 4 hours at min 10
-        "schedule": crontab(minute=10, hour="*/4"),
+        # Run job every hour at min 10
+        "schedule": crontab(minute=10),
     },
 }
 
