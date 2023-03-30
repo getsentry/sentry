@@ -77,7 +77,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_visible = self._create_monitor(name="visible")
 
         response = self.get_success_response(
-            self.organization.slug, environment="production", include_new=True
+            self.organization.slug, environment="production", includeNew=True
         )
         self.check_valid_response(response, [monitor, monitor_visible])
 
