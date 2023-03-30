@@ -8,25 +8,38 @@ import base64
 import contextlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
-from django.contrib.auth.models import AnonymousUser
 from pydantic.fields import Field
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
-from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.organization import (
-    RpcOrganization,
-    RpcOrganizationMember,
-    RpcOrganizationMemberSummary,
-)
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-from sentry.utils.linksign import find_signature
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
+    from sentry.services.hybrid_cloud.organization import (
+        RpcOrganization,
+        RpcOrganizationMember,
+        RpcOrganizationMemberSummary,
+    )
 
 
 class RpcAuthenticatorType(IntEnum):
@@ -38,6 +51,8 @@ class RpcAuthenticatorType(IntEnum):
     def from_authenticator(
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
+        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+
         if auth == ApiKeyAuthentication:
             return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
@@ -45,6 +60,8 @@ class RpcAuthenticatorType(IntEnum):
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
+        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+
         if self == self.API_KEY_AUTHENTICATION:
             return ApiKeyAuthentication()
         if self == self.TOKEN_AUTHENTICATION:
@@ -114,6 +131,8 @@ class AuthenticationRequest:
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
+    from sentry.utils.linksign import find_signature
+
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
@@ -202,7 +221,7 @@ class AuthenticationContext:
     auth: Optional[AuthenticatedToken] = None
     user: Optional[RpcUser] = None
 
-    def _get_user(self) -> Union[RpcUser, AnonymousUser]:
+    def _get_user(self) -> Union[RpcUser, "AnonymousUser"]:
         """
         Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
         """
@@ -322,7 +341,7 @@ class AuthService(RpcService):
         user_id: int,
         is_superuser: bool,
         organization_id: Optional[int],
-        org_member: Optional[RpcOrganizationMemberSummary],
+        org_member: Optional["RpcOrganizationMemberSummary"],
     ) -> RpcAuthState:
         pass
 
@@ -352,10 +371,10 @@ class AuthService(RpcService):
         self,
         *,
         request: Request,
-        organization: RpcOrganization,
+        organization: "RpcOrganization",
         auth_identity: RpcAuthIdentity,
         auth_provider: RpcAuthProvider,
-    ) -> Tuple[RpcUser, RpcOrganizationMember]:
+    ) -> Tuple[RpcUser, "RpcOrganizationMember"]:
         pass
 
     @rpc_method
