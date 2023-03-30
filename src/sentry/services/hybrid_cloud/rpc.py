@@ -107,7 +107,10 @@ class RpcMethodSignature:
         if self._region_resolution is None:
             raise RpcServiceSetupException(f"{self.service_name} does not run on the region silo")
 
-        return self._region_resolution.resolve(arguments)
+        try:
+            return self._region_resolution.resolve(arguments)
+        except Exception as e:
+            raise RpcServiceUnimplementedException("Error while resolving region") from e
 
 
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
