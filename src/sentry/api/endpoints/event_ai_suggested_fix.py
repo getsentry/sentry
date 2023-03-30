@@ -25,6 +25,8 @@ openai.api_key = settings.OPENAI_API_KEY
 
 openai_policy_check = Signal()
 
+MAX_STACKTRACE_FRAMES = 50
+
 FUN_PROMPT_CHOICES = [
     "[haiku about the error]",
     "[hip hop rhyme about the error]",
@@ -130,7 +132,9 @@ def describe_event_for_ai(event):
             tags[tag_key] = tag_value
 
     exceptions = data.setdefault("exceptions", [])
-    for idx, exc in enumerate(reversed((event.get("exception") or {}).get("values") or ())):
+    for idx, exc in enumerate(
+        reversed((event.get("exception", {})).get("values", ())[:MAX_STACKTRACE_FRAMES])
+    ):
         exception = {}
         if idx > 0:
             exception["raised_during_handling_of_previous_exception"] = True

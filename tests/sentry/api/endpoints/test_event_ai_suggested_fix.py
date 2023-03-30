@@ -100,6 +100,29 @@ def test_open_ai_error(client, default_project, test_event, openai_policy):
         },
     )
 
+    openai_policy["result"] = "allowed"
+    response = client.get(path)
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": {
+            "code": "open-ai-error",
+            "extra": {},
+            "message": "An error occurred with the OpenAI integration",
+        }
+    }
+
+
+@pytest.mark.django_db
+def test_large_error(client, default_project, test_large_event, openai_policy):
+    path = reverse(
+        "sentry-api-0-event-ai-fix-suggest",
+        kwargs={
+            "organization_slug": default_project.organization.slug,
+            "project_slug": default_project.slug,
+            "event_id": test_large_event.event_id,
+        },
+    )
+
     with patch(
         "sentry.api.endpoints.event_ai_suggested_fix.openai.ChatCompletion.create",
         side_effect=openai.InvalidRequestError("", ""),
