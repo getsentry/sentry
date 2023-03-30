@@ -208,6 +208,11 @@ def serialize_rpc_user(user: User) -> RpcUser:
     # And process the _base_query special data additions
     args["permissions"] = frozenset(getattr(user, "permissions", None) or ())
 
+    if args["name"] is None:
+        # This field is non-nullable according to the Django schema, but may be null
+        # on some servers due to migration history
+        args["name"] = ""
+
     roles: FrozenSet[str] = frozenset()
     if hasattr(user, "roles") and user.roles is not None:
         roles = frozenset(flatten(user.roles))
