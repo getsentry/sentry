@@ -43,6 +43,7 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.redis import RetryingRedisCluster
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -805,6 +806,6 @@ def update_alert_rule_stats(
     pipeline.execute()
 
 
-def get_redis_client() -> Any:
+def get_redis_client() -> RetryingRedisCluster:
     cluster_key = getattr(settings, "SENTRY_INCIDENT_RULES_REDIS_CLUSTER", "default")
     return redis.redis_clusters.get(cluster_key)
