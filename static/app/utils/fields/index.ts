@@ -1149,6 +1149,18 @@ enum ReplayFieldKey {
   URLS = 'urls',
 }
 
+enum ReplayClickFieldKey {
+  CLICK_ALT = 'replay_click.alt',
+  CLICK_CLASS = 'replay_click.class',
+  CLICK_ID = 'replay_click.id',
+  CLICK_LABEL = 'replay_click.label',
+  CLICK_ROLE = 'replay_click.role',
+  CLICK_TAG = 'replay_click.tag',
+  CLICK_TESTID = 'replay_click.testid',
+  CLICK_TEXT_CONTENT = 'replay_click.textContent',
+  CLICK_TITLE = 'replay_click.title',
+}
+
 /**
  * Some fields inside the ReplayRecord type are intentionally omitted:
  * `environment` -> Not backend support, omitted because we have a dropdown for it
@@ -1169,6 +1181,7 @@ export const REPLAY_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
+
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
@@ -1244,14 +1257,78 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
 };
 
+export const REPLAY_CLICK_FIELDS = [
+  ReplayClickFieldKey.CLICK_ALT,
+  ReplayClickFieldKey.CLICK_CLASS,
+  ReplayClickFieldKey.CLICK_ID,
+  ReplayClickFieldKey.CLICK_LABEL,
+  ReplayClickFieldKey.CLICK_ROLE,
+  ReplayClickFieldKey.CLICK_TAG,
+  ReplayClickFieldKey.CLICK_TEXT_CONTENT,
+  ReplayClickFieldKey.CLICK_TITLE,
+  ReplayClickFieldKey.CLICK_TESTID,
+];
+
+// This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
+const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinition> = {
+  [ReplayClickFieldKey.CLICK_ALT]: {
+    desc: t('`alt` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_CLASS]: {
+    desc: t('`class` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_ID]: {
+    desc: t('`id` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_LABEL]: {
+    desc: t('`aria-label` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_ROLE]: {
+    desc: t('`role` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TAG]: {
+    desc: t('`tag` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TESTID]: {
+    desc: t('`data-testid` or `data-test-id` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TEXT_CONTENT]: {
+    desc: t('textContent of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TITLE]: {
+    desc: t('`title` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' = 'event'
+  type: 'event' | 'replay' | 'replay_click' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
       if (key in REPLAY_FIELD_DEFINITIONS) {
         return REPLAY_FIELD_DEFINITIONS[key];
+      }
+      if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
+        return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key];
