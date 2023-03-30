@@ -24,7 +24,7 @@ openai.api_key = settings.OPENAI_API_KEY
 
 openai_policy_check = Signal()
 
-MAX_STACKTRACE_FRAMES = 50
+MAX_STACKTRACE_FRAMES = 30
 
 FUN_PROMPT_CHOICES = [
     "[haiku about the error]",
@@ -127,6 +127,7 @@ def trim_frames(frames, frame_allowance=MAX_STACKTRACE_FRAMES):
     frames_len = 0
     app_frames = []
     system_frames = []
+
     for frame in frames:
         frames_len += 1
         if frame.get("in_app"):
@@ -146,7 +147,6 @@ def trim_frames(frames, frame_allowance=MAX_STACKTRACE_FRAMES):
         for frame in system_frames[half_max:-half_max]:
             frame["delete"] = True
             remaining -= 1
-
     else:
         for frame in system_frames:
             frame["delete"] = True
