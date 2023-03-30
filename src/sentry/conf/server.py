@@ -1213,6 +1213,8 @@ SENTRY_FEATURES = {
     "organizations:issue-list-removal-action": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
+    # Display CPU and memory metrics in transactions with profiles
+    "organizations:mobile-cpu-memory-in-transactions": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
