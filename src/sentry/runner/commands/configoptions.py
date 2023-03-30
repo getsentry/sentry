@@ -3,6 +3,10 @@ import click
 from sentry.runner.decorators import configuration
 
 
+def create_key_value_generator(data, newline_separator, kv_separator):
+    return (line.split(kv_separator) for line in data.split(newline_separator) if line)
+
+
 @click.group()
 def configoptions():
     "Manages Sentry options."
@@ -87,26 +91,21 @@ def strict(filename, dryrun):
 
     with open(filename) as stream:
         configmap_data = yaml.safe_load(stream)
-
         data = configmap_data.get("data", {}).get("options-strict.yaml", "")
 
-        kv_generator = (line.split(": ") for line in data.split("\n") if line)
-
+        kv_generator = create_key_value_generator(data, "\n", ": ")
         db_keys = (opt.name for opt in options.all())
-
-        # update the database to remove all keys NOT in the given file.
         for key in db_keys:
             if key not in kv_generator:
                 click.echo(delete(key, dryrun))
 
-        for line in data.split("\n"):
-            if line:
-                line_tuple = line.split(": ")
-                key = line_tuple[0]
-                val = ""
-                if len(line_tuple) > 1:
-                    val = line_tuple[1]
-                click.echo(set(key, val, dryrun))
+        kv_generator = create_key_value_generator(data, "\n", ": ")
+        for line in kv_generator:
+            key = line[0]
+            val = ""
+            if len(line) > 1:
+                val = line[1]
+            click.echo(set(key, val, dryrun))
 
 
 def get(key, dryrun=False):
