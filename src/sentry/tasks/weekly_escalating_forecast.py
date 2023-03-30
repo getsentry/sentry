@@ -18,7 +18,7 @@ def query_groups_past_counts(groups: List[Group]) -> JSONData:
 
 
 @instrumented_task(
-    name="sentry.tasks.weekly_escalating_forecast",
+    name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
     queue="weekly_escalating_forecast",
     max_retries=5,
 )  # type: ignore
