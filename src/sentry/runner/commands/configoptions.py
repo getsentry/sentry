@@ -78,6 +78,7 @@ def patch(filename, dryrun):
 @click.argument("filename", required=True)
 @click.option(
     "--dryrun",
+    is_flag=True,
     default=False,
     required=False,
     help="Output exactly what changes would be made and in which order.",
