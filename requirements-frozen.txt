@@ -130,7 +130,7 @@ sqlparse==0.3.0
 statsd==3.3
 stripe==2.61.0
 structlog==22.1.0
-symbolic==12.1.1
+symbolic==12.1.2
 toronado==0.1.0
 tqdm==4.64.1
 trio==0.21.0
