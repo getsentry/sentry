@@ -114,7 +114,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
 
         # Ensure required fields are provided and valid
         valid_fields = set()
-        schema = alert_rule_component.schema.get("settings", {})
+        schema = alert_rule_component.app_schema.get("settings", {})
         for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
             field_value = self._get_setting_value(field_name)
@@ -158,4 +158,4 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
         sentry_app = installations[0].sentry_app
         alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
 
-        return str(alert_rule_component.schema.get("title"))
+        return str(alert_rule_component.app_schema.get("title"))

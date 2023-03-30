@@ -74,6 +74,15 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
             },
             "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + 1,
         },
+        {
+            "samplingValue": {"type": "factor", "value": 0.01 / rate},
+            "type": "transaction",
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + 2,
+        },
     ]
     assert rules == expected
 

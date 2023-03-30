@@ -1,5 +1,3 @@
-from functools import reduce
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -53,13 +51,14 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
 
         union_qs = Activity.objects.none()
         if project_ids:
-            union_qs = reduce(
-                lambda qs1, qs2: qs1.union(qs2, all=True),
-                [
-                    base_qs.filter(project_id=project)[: paginator.max_limit]
-                    for project in project_ids
-                ],
-            )
+            projects_qs = [
+                base_qs.filter(project_id=project)[: paginator.max_limit] for project in project_ids
+            ]
+
+            if len(project_ids) > 1:
+                union_qs = union_qs.union(*projects_qs, all=True)
+            else:
+                union_qs = projects_qs[0]
 
         # We do `select_related` here to make the unions less heavy. This way we only join these
         # table for the rows we actually want.
