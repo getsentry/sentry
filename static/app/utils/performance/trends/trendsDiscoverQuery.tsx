@@ -69,7 +69,7 @@ function TrendsDiscoverQuery(props: Props) {
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
       {...props}
-      route="events-trends-stats"
+      route="new-events-trends-stats"
       getRequestPayload={getTrendsRequestPayload}
     >
       {({tableData, ...rest}) => {
