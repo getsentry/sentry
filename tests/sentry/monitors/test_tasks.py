@@ -18,7 +18,6 @@ class CheckMonitorsTest(TestCase):
     def test_missing_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        environment = self.create_environment()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -30,7 +29,7 @@ class CheckMonitorsTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=environment,
+            environment=self.environment,
             next_checkin=monitor.next_checkin,
             status=monitor.status,
         )
@@ -48,7 +47,6 @@ class CheckMonitorsTest(TestCase):
     def test_missing_checkin_but_disabled(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        environment = self.create_environment()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -60,7 +58,7 @@ class CheckMonitorsTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=environment,
+            environment=self.environment,
             next_checkin=monitor.next_checkin,
             status=monitor.status,
         )
@@ -75,7 +73,6 @@ class CheckMonitorsTest(TestCase):
     def test_missing_checkin_but_pending_deletion(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        environment = self.create_environment()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -87,7 +84,7 @@ class CheckMonitorsTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=environment,
+            environment=self.environment,
             next_checkin=monitor.next_checkin,
             status=monitor.status,
         )
@@ -102,7 +99,6 @@ class CheckMonitorsTest(TestCase):
     def test_missing_checkin_but_deletion_in_progress(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        environment = self.create_environment()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -114,7 +110,7 @@ class CheckMonitorsTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=environment,
+            environment=self.environment,
             next_checkin=monitor.next_checkin,
             status=monitor.status,
         )
@@ -131,7 +127,6 @@ class CheckMonitorsTest(TestCase):
     def test_not_missing_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        environment = self.create_environment()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -143,7 +138,7 @@ class CheckMonitorsTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=environment,
+            environment=self.environment,
             next_checkin=monitor.next_checkin,
             status=monitor.status,
         )
@@ -161,7 +156,6 @@ class CheckMonitorsTest(TestCase):
     def test_timeout_with_no_future_complete_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        environment = self.create_environment()
 
         current_datetime = timezone.now() - timedelta(hours=24)
 
@@ -177,7 +171,7 @@ class CheckMonitorsTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=environment,
+            environment=self.environment,
             next_checkin=monitor.next_checkin,
             status=monitor.status,
         )
@@ -216,7 +210,6 @@ class CheckMonitorsTest(TestCase):
     def test_timeout_with_future_complete_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        environment = self.create_environment()
 
         current_datetime = timezone.now() - timedelta(hours=24)
 
@@ -232,7 +225,7 @@ class CheckMonitorsTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=environment,
+            environment=self.environment,
             next_checkin=monitor.next_checkin,
             status=monitor.status,
         )
@@ -269,7 +262,6 @@ class CheckMonitorsTest(TestCase):
     def test_timeout_with_via_configuration(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        environment = self.create_environment()
 
         current_datetime = timezone.now() - timedelta(hours=24)
 
@@ -285,7 +277,7 @@ class CheckMonitorsTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=environment,
+            environment=self.environment,
             next_checkin=monitor.next_checkin,
             status=monitor.status,
         )
