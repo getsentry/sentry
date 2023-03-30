@@ -8,7 +8,6 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -179,16 +178,12 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
       </FixSuggestionPanelHeader>
       {expandedSuggestedFix && (
         <Fragment>
-          <StyledPanelBody withPadding whiteBg={dataIsLoading && individualConsent}>
+          <StyledPanelBody withPadding whiteBg={dataIsLoading}>
             {dataIsLoading ? (
-              !individualConsent ? (
-                <LoadingIndicator />
-              ) : (
-                <AiLoaderWrapper>
-                  <div className="ai-loader" />
-                  <AiLoaderMessage />
-                </AiLoaderWrapper>
-              )
+              <AiLoaderWrapper>
+                <div className="ai-loader" />
+                <AiLoaderMessage />
+              </AiLoaderWrapper>
             ) : dataIsError ? (
               PolicyErrorState ? (
                 PolicyErrorState

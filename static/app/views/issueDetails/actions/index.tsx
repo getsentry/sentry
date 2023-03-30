@@ -419,7 +419,16 @@ class Actions extends Component<Props> {
                   <FeatureBadge type="experimental" noTooltip />
                 </Tooltip>
               ),
-              onAction: () => this.trackIssueAction('open_ai_suggested_fix'),
+              onAction: () => {
+                this.trackIssueAction('open_ai_suggested_fix');
+                browserHistory.push({
+                  pathname: browserHistory.getCurrentLocation().pathname,
+                  query: {
+                    ...browserHistory.getCurrentLocation().query,
+                    showSuggestedFix: true,
+                  },
+                });
+              },
               hidden: !orgFeatures.has('open-ai-suggestion'),
             },
             {
