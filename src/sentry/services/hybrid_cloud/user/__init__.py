@@ -6,9 +6,10 @@
 import datetime
 from abc import abstractmethod
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, cast
 
 from pydantic.fields import Field
+from typing_extensions import TypedDict
 
 from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
