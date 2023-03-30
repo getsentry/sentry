@@ -78,7 +78,9 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ref,
       style,
     };
-    const size = span.data.size ?? span.data.responseBodySize;
+
+    // `data.responseBodySize` is from SDK version 7.44-7.45
+    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
 
     const renderFns = [
       () => (
