@@ -6,7 +6,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -26,7 +26,7 @@ export default function EditMonitor() {
     isError,
     data: monitor,
     refetch,
-  } = useQuery<Monitor>([queryKeyUrl], {
+  } = useApiQuery<Monitor>([queryKeyUrl], {
     staleTime: 0,
   });
 

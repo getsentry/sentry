@@ -1,5 +1,5 @@
 import type {Event, Frame, StacktraceLinkResult} from 'sentry/types';
-import {QueryKey, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {QueryKey, useApiQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 
 interface UseStacktraceLinkProps {
   event: Event;
@@ -29,7 +29,7 @@ function useStacktraceLink(
     lineNo: frame.lineNo,
   };
 
-  return useQuery<StacktraceLinkResult>(
+  return useApiQuery<StacktraceLinkResult>(
     stacktraceLinkQueryKey(orgSlug, projectSlug, query),
     {
       staleTime: Infinity,

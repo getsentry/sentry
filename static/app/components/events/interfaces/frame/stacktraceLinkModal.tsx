@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type DerivedCodeMapping = {
@@ -52,7 +52,7 @@ function StacktraceLinkModal({
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-  const {data: sugestedCodeMappings} = useQuery<DerivedCodeMapping[]>(
+  const {data: sugestedCodeMappings} = useApiQuery<DerivedCodeMapping[]>(
     [
       `/organizations/${organization.slug}/derive-code-mappings/`,
       {

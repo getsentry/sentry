@@ -2,7 +2,12 @@ import uniqBy from 'lodash/uniqBy';
 
 import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {
+  QueryKey,
+  useApiQuery,
+  useQueries,
+  UseQueryOptions,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 import {isFrameFilenamePathlike, sourceMapSdkDocsMap} from './utils';
@@ -101,7 +106,7 @@ export function useSourceMapDebug(
   props?: UseSourceMapDebugProps,
   options: Partial<UseQueryOptions<SourceMapDebugResponse>> = {}
 ) {
-  return useQuery<SourceMapDebugResponse>(props ? sourceMapDebugQuery(props) : [''], {
+  return useApiQuery<SourceMapDebugResponse>(props ? sourceMapDebugQuery(props) : [''], {
     staleTime: Infinity,
     retry: false,
     refetchOnWindowFocus: false,

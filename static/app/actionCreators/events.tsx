@@ -18,9 +18,9 @@ import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {
   QueryKey,
+  useApiQuery,
   useMutation,
   UseMutationOptions,
-  useQuery,
   useQueryClient,
   UseQueryOptions,
 } from 'sentry/utils/queryClient';
@@ -239,7 +239,7 @@ export const useFetchEventAttachments = (
   options: Partial<UseQueryOptions<FetchEventAttachmentResponse>> = {}
 ) => {
   const organization = useOrganization();
-  return useQuery<FetchEventAttachmentResponse>(
+  return useApiQuery<FetchEventAttachmentResponse>(
     [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`],
     {
       staleTime: Infinity,
