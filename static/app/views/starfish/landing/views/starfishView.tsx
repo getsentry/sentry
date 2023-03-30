@@ -21,10 +21,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           allowedCharts={[
             PerformanceWidgetSetting.TPM_AREA,
             PerformanceWidgetSetting.FAILURE_RATE_AREA,
-            PerformanceWidgetSetting.P50_DURATION_AREA,
-            PerformanceWidgetSetting.P75_DURATION_AREA,
             PerformanceWidgetSetting.P95_DURATION_AREA,
-            PerformanceWidgetSetting.P99_DURATION_AREA,
           ]}
         />
         <Table {...props} setError={usePageError().setPageError} />

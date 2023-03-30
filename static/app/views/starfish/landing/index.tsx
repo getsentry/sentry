@@ -4,13 +4,11 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -25,8 +23,6 @@ import {
 import useTeams from 'sentry/utils/useTeams';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
-
-import Onboarding from '../onboarding';
 
 import {StarfishView} from './views/starfishView';
 
@@ -69,8 +65,6 @@ export function StarfishLanding(props: Props) {
 
   let pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
-      <ProjectPageFilter />
-      <EnvironmentPageFilter />
       <DatePageFilter alignDropdown="left" />
     </PageFilterBar>
   );
@@ -123,32 +117,25 @@ export function StarfishLanding(props: Props) {
                         {...metricsDataSide}
                       />
                       <PageErrorAlert />
-                      {showOnboarding ? (
-                        <Fragment>
+                      <Fragment>
+                        <SearchContainerWithFilterAndMetrics>
                           {pageFilters}
-                          <Onboarding
+                        </SearchContainerWithFilterAndMetrics>
+                        {initiallyLoaded ? (
+                          <TeamKeyTransactionManager.Provider
                             organization={organization}
-                            project={onboardingProject}
-                          />
-                        </Fragment>
-                      ) : (
-                        <Fragment>
-                          {initiallyLoaded ? (
-                            <TeamKeyTransactionManager.Provider
-                              organization={organization}
-                              teams={teams}
-                              selectedTeams={['myteams']}
-                              selectedProjects={eventView.project.map(String)}
-                            >
-                              <GenericQueryBatcher>
-                                <StarfishView {...props} />
-                              </GenericQueryBatcher>
-                            </TeamKeyTransactionManager.Provider>
-                          ) : (
-                            <LoadingIndicator />
-                          )}
-                        </Fragment>
-                      )}
+                            teams={teams}
+                            selectedTeams={['myteams']}
+                            selectedProjects={eventView.project.map(String)}
+                          >
+                            <GenericQueryBatcher>
+                              <StarfishView {...props} />
+                            </GenericQueryBatcher>
+                          </TeamKeyTransactionManager.Provider>
+                        ) : (
+                          <LoadingIndicator />
+                        )}
+                      </Fragment>
                     </MEPSettingProvider>
                   );
                 }}
@@ -170,5 +157,17 @@ const SearchContainerWithFilter = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr;
+  }
+`;
+
+const SearchContainerWithFilterAndMetrics = styled('div')`
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr auto;
   }
 `;
