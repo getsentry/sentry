@@ -35,7 +35,7 @@ class EventStripper:
         new_event["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
         debug_meta_images = get_path(event, "debug_meta", "images")
-        stripped_debug_meta_images = self._strip_debugMeta(debug_meta_images, stripped_frames)
+        stripped_debug_meta_images = self._strip_debug_meta(debug_meta_images, stripped_frames)
         new_event["debug_meta"]["images"] = stripped_debug_meta_images
 
         return new_event
