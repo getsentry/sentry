@@ -74,14 +74,14 @@ function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
         isOpen={isOpen}
         highlighted={desyncedFilters.has('datetime')}
         data-test-id="page-filter-timerange-selector"
-        {...getActorProps()}
-      >
-        <DropdownTitle>
+        icon={
           <PageFilterPinIndicator filter="datetime">
             <IconCalendar />
           </PageFilterPinIndicator>
-          <TitleContainer>{label}</TitleContainer>
-        </DropdownTitle>
+        }
+        {...getActorProps()}
+      >
+        <TitleContainer>{label}</TitleContainer>
       </PageFilterDropdownButton>
     );
   };
@@ -104,18 +104,8 @@ function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
 }
 
 const TitleContainer = styled('div')`
-  flex: 1 1 0%;
-  margin-left: ${space(1)};
   text-align: left;
   ${p => p.theme.overflowEllipsis}
-`;
-
-const DropdownTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  width: max-content;
-  min-width: 0;
 `;
 
 export default DatePageFilter;

@@ -172,14 +172,12 @@ function ProjectPageFilter({
           highlighted={desyncedFilters.has('projects')}
           data-test-id="page-filter-project-selector"
           disabled={disabled}
+          icon={<PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>}
         >
-          <DropdownTitle>
-            <PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>
-            <TitleContainer>{title}</TitleContainer>
-            {selectedProjects.length > projectsToShow.length && (
-              <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
-            )}
-          </DropdownTitle>
+          <TitleContainer>{title}</TitleContainer>
+          {selectedProjects.length > projectsToShow.length && (
+            <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
+          )}
         </PageFilterDropdownButton>
       </GuideAnchor>
     );
@@ -187,14 +185,12 @@ function ProjectPageFilter({
 
   const customLoadingIndicator = (
     <PageFilterDropdownButton
+      icon={<IconProject />}
       showChevron={false}
       disabled
       data-test-id="page-filter-project-selector-loading"
     >
-      <DropdownTitle>
-        <IconProject />
-        <TitleContainer>{t('Loading\u2026')}</TitleContainer>
-      </DropdownTitle>
+      <TitleContainer>{t('Loading\u2026')}</TitleContainer>
     </PageFilterDropdownButton>
   );
 
@@ -215,21 +211,9 @@ function ProjectPageFilter({
   );
 }
 
-const TitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1 1 0%;
-  margin-left: ${space(1)};
+const TitleContainer = styled('span')`
   text-align: left;
   ${p => p.theme.overflowEllipsis}
-`;
-
-const DropdownTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  width: max-content;
-  min-width: 0;
 `;
 
 const StyledBadge = styled(Badge)`
