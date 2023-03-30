@@ -186,10 +186,15 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
-    def get_event_by_id(self, project_id, event_id, group_id=None):
+    def get_event_by_id(
+        self, project_id, event_id, group_id=None, skip_transaction_groupevent=False
+    ):
         """
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
+
+        skip_transaction_groupevent: Temporary hack parameter to skip converting a transaction
+        event into a `GroupEvent`. Used as part of `post_process_group`.
         """
 
         event_id = normalize_event_id(event_id)
@@ -205,7 +210,7 @@ class SnubaEventStorage(EventStorage):
 
         if group_id is not None and event.get_event_type() != "generic":
             # Set passed group_id if not a transaction
-            if event.get_event_type() == "transaction":
+            if event.get_event_type() == "transaction" and not skip_transaction_groupevent:
                 logger.warning("eventstore.passed-group-id-for-transaction")
                 return event.for_group(Group.objects.get(id=group_id))
             else:

@@ -466,7 +466,9 @@ def post_process_group(
                 return
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
-            event = eventstore.get_event_by_id(project_id, occurrence.event_id, group_id=group_id)
+            event = eventstore.get_event_by_id(
+                project_id, occurrence.event_id, group_id=group_id, skip_transaction_groupevent=True
+            )
 
         set_current_event_project(event.project_id)
 
