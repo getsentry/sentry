@@ -159,4 +159,4 @@ def encode_as_uuid(message: str) -> str:
 
 def is_valid_node(node: Optional[Dict[str, Any]]) -> bool:
     """Return True if this is a valid node."""
-    return node and "id" in node and "tagName" in node
+    return bool(node and "id" in node and "tagName" in node)
