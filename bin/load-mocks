@@ -1219,14 +1219,14 @@ def create_mock_transactions(
             print(f"    > Loading performance issues data")  # NOQA
             print(f"    > Loading n plus one issue")  # NOQA
             load_n_plus_one_issue()
-            print(f"    > Loading consecutive db issue")  # NOQA
-            load_consecutive_db_issue()
-            print(f"    > Loading uncompressed asset issue")  # NOQA
-            load_uncompressed_asset_issue()
-            print(f"    > Loading render blocking asset issue")  # NOQA
-            load_render_blocking_asset_issue()
-            print(f"    > Loading MN+1 issue")  # NOQA
-            load_m_n_plus_one_issue()
+            # print(f"    > Loading consecutive db issue")  # NOQA
+            # load_consecutive_db_issue()
+            # print(f"    > Loading uncompressed asset issue")  # NOQA
+            # load_uncompressed_asset_issue()
+            # print(f"    > Loading render blocking asset issue")  # NOQA
+            # load_render_blocking_asset_issue()
+            # print(f"    > Loading MN+1 issue")  # NOQA
+            # load_m_n_plus_one_issue()
 
         load_performance_issues()
 

@@ -29,7 +29,7 @@ def can_create_group(
             # system-wide option
             and options.get("performance.issues.create_issues_through_platform", False)
             # more-granular per-project option
-            and project.get_option("sentry:performance_issue_create_issue_through_platform", False)
+            and project.get_option("sentry:performance_issue_create_issue_through_platform", True)
         )
     )
 
@@ -41,5 +41,5 @@ def write_occurrence_to_platform(performance_problem: PerformanceProblem, projec
         # system-wide option
         and options.get("performance.issues.send_to_issues_platform", False)
         # more-granular per-project option
-        and project.get_option("sentry:performance_issue_send_to_issues_platform", False)
+        and project.get_option("sentry:performance_issue_send_to_issues_platform", True)
     )
