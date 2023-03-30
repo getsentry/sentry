@@ -645,7 +645,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
-    "sentry.tasks.schedule_weekly_escalating_forecast",
+    "sentry.tasks.weekly_escalating_forecast",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -899,7 +899,7 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=10),
     },
     "schedule-weekly-escalating-forecast": {
-        "task": "sentry.tasks.schedule_weekly_escalating_forecast.run_escalating_forecast",
+        "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         "schedule": crontab(minute=0, hour=0, day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3 * 4},
     },
