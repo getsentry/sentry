@@ -13,6 +13,7 @@ import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 import usePromptCheck from 'sentry/views/issueDetails/quickTrace/usePromptCheck';
 
 type Props = {
@@ -98,12 +99,16 @@ function IssueQuickTrace({
           errorDest="issue"
           transactionDest="performance"
         />
+        <TraceLink event={event} />
       </QuickTraceWrapper>
     </ErrorBoundary>
   );
 }
 
 const QuickTraceWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   margin-top: ${space(0.5)};
 `;
 
