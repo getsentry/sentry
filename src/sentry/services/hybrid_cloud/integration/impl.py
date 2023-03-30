@@ -171,19 +171,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         return [self._serialize_organization_integration(oi) for oi in ois]
 
-    def get_organization_integration(
-        self, *, integration_id: int, organization_id: int
-    ) -> RpcOrganizationIntegration | None:
-        organization_integration = OrganizationIntegration.objects.filter(
-            integration_id=integration_id, organization_id=organization_id
-        ).first()
-
-        return (
-            self._serialize_organization_integration(organization_integration)
-            if organization_integration
-            else None
-        )
-
     def get_organization_context(
         self,
         *,
@@ -192,6 +179,23 @@ class DatabaseBackedIntegrationService(IntegrationService):
         provider: str | None = None,
         external_id: str | None = None,
     ) -> Tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
+        integration, installs = self.get_organization_contexts(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+            external_id=external_id,
+        )
+
+        return integration, installs[0] if installs else None
+
+    def get_organization_contexts(
+        self,
+        *,
+        organization_id: int | None = None,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> Tuple[RpcIntegration | None, List[RpcOrganizationIntegration]]:
         integration = self.get_integration(
             organization_id=organization_id,
             integration_id=integration_id,
@@ -199,16 +203,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
             external_id=external_id,
         )
         if not integration:
-            return (None, None)
-        organization_integration = self.get_organization_integration(
+            return (None, [])
+        organization_integrations = self.get_organization_integrations(
             integration_id=integration.id,
             organization_id=organization_id,
         )
-        if not organization_integration:
-            return (integration, None)
         return (
             self._serialize_integration(integration),
-            self._serialize_organization_integration(organization_integration),
+            [self._serialize_organization_integration(oi) for oi in organization_integrations],
         )
 
     def update_integrations(

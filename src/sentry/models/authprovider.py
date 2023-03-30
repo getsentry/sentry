@@ -162,7 +162,7 @@ class AuthProvider(Model):
 
         if self.flags.scim_enabled:
             install = SentryAppInstallationForProvider.objects.get(
-                organization=self.organization_id, provider=f"{self.provider}_scim"
+                organization_id=self.organization_id, provider=f"{self.provider}_scim"
             )
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs
             # We run this update before the app is uninstalled to avoid ending up in a situation where there are

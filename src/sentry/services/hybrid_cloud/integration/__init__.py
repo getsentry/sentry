@@ -212,6 +212,22 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_organization_contexts(
+        self,
+        *,
+        organization_id: Optional[int] = None,
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+    ) -> Tuple[Optional[RpcIntegration], List[RpcOrganizationIntegration]]:
+        """
+        Returns a tuple of RpcIntegration and RpcOrganizationIntegrations. The integrations are selected
+        by either integration_id, or a combination of provider and external_id.
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
     def update_integrations(
         self,
         *,

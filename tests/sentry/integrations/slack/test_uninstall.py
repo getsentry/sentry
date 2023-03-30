@@ -28,7 +28,7 @@ class SlackUninstallTest(APITestCase):
 
     def uninstall(self) -> None:
         org_integration = OrganizationIntegration.objects.get(
-            integration=self.integration, organization=self.organization
+            integration=self.integration, organization_id=self.organization.id
         )
 
         with self.tasks():

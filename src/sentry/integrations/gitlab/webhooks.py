@@ -12,9 +12,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils.cleanup import clear_tags_and_context
-from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
+from sentry.models import Commit, CommitAuthor, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
@@ -229,14 +230,10 @@ class GitlabWebhookEndpoint(View):
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
-        integration, install = integration_service.get_organization_context(
+        integration, installs = integration_service.get_organization_contexts(
             provider=self.provider, external_id=external_id
         )
-        organization = None
-        if integration is not None and install is not None:
-            organization = Organization.objects.filter(id=install.organization_id).first()
-
-        if organization is None:
+        if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
             logger.exception(extra["reason"])
@@ -253,8 +250,7 @@ class GitlabWebhookEndpoint(View):
                     "id": integration.id,  # This is useful to query via Redash
                     "status": integration.status,  # 0 seems to be active
                 },
-                # I do not know how we could have multiple integration installation to many organizations
-                "slugs": organization.slug,
+                "org_ids": [install.organization_id for install in installs],
             },
         }
 
@@ -292,6 +288,9 @@ class GitlabWebhookEndpoint(View):
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
-        for organization in integration.organizations.all():
-            handler()(integration, organization, event)
+        for install in installs:
+            org_context = organization_service.get_organization_by_id(id=install.organization_id)
+            if org_context:
+                organization = org_context.organization
+                handler()(integration, organization, event)
         return HttpResponse(status=204)

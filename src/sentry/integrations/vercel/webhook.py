@@ -208,7 +208,7 @@ class VercelWebhookEndpoint(Endpoint):
             )
             return self.respond(status=404)
 
-        orgs = integration.organizations.all()
+        orgs = integration.organizationintegration_set.values_list("organization_id", flat=True)
 
         if len(orgs) == 0:
             # we already deleted the organization integration and
@@ -236,7 +236,7 @@ class VercelWebhookEndpoint(Endpoint):
                 )
                 create_audit_entry(
                     request=request,
-                    organization=orgs[0],
+                    organization_id=orgs[0],
                     target_object=integration.id,
                     event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                     actor_label="Vercel User",
