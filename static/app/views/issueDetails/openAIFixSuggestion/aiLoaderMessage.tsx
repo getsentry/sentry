@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
 
 import {t} from 'sentry/locale';
@@ -40,7 +41,12 @@ export function AiLoaderMessage() {
 
   return (
     <div>
-      <strong>{messages[messageIndex]}…</strong>
+      <Message>{messages[messageIndex]}…</Message>
     </div>
   );
 }
+
+// Hacky way until we have proper darkmode/lightmode ai loaders
+const Message = styled('strong')`
+  color: #3e3446;
+`;
