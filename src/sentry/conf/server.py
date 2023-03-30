@@ -645,6 +645,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.schedule_weekly_escalating_forecast",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -706,7 +707,6 @@ CELERY_QUEUES = [
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
-    Queue("process_owner_assignments", routing_key="process_owner_assignments"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -897,6 +897,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
         # Run job every hour at min 10
         "schedule": crontab(minute=10),
+    },
+    "schedule-weekly-escalating-forecast": {
+        "task": "sentry.tasks.schedule_weekly_escalating_forecast.run_escalating_forecast",
+        "schedule": crontab(minute=0, hour=0, day_of_week="saturday"),
+        "options": {"expires": 60 * 60 * 3 * 4},
     },
 }
 
