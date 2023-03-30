@@ -63,12 +63,10 @@ T = TypeVar("T")
 
 
 class SubscriptionUpdate(TypedDict):
-    subscription_id: int
-    values: Dict[str, List[Any]]
+    entity: str
+    subscription_id: str
+    values: Any
     timestamp: datetime
-    interval: int
-    partition: int
-    offset: int
 
 
 class SubscriptionProcessor:

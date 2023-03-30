@@ -27,6 +27,7 @@ from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
 )
 
 from sentry import options
+from sentry.incidents.subscription_processor import SubscriptionUpdate
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
@@ -34,8 +35,7 @@ from sentry.utils import kafka_config, metrics
 from sentry.utils.arroyo import MetricsWrapper
 
 logger = logging.getLogger(__name__)
-
-TQuerySubscriptionCallable = Callable[[PayloadV3, QuerySubscription], None]
+TQuerySubscriptionCallable = Callable[[SubscriptionUpdate, QuerySubscription], None]
 
 subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
 
@@ -68,7 +68,7 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(value: bytes, jsoncodec: JsonCodec) -> PayloadV3:
+def parse_message_value(value: bytes, jsoncodec: JsonCodec) -> SubscriptionUpdate:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
@@ -87,9 +87,12 @@ def parse_message_value(value: bytes, jsoncodec: JsonCodec) -> PayloadV3:
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working
     # here.
-    payload.setdefault("values", payload.get("result"))  # type: ignore
-    payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)  # type: ignore
-    return payload
+    return {
+        "entity": payload["entity"],
+        "subscription_id": payload["subscription_id"],
+        "values": payload["result"],
+        "timestamp": parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc),
+    }
 
 
 def handle_message(
