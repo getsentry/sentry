@@ -1,11 +1,24 @@
 import datetime
+import itertools
+from typing import Dict, List
 
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Query, Request
 
+from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
 
 
-def query_groups_past_counts():
+class InvalidProjectsToGroupsMap(Exception):
+    pass
+
+
+def query_groups_past_counts(projects_to_groups: Dict[str, List[str]]) -> JSONData:
+    """Single Snuba query to find the total counts per hour per every group in the last 2 weeks."""
+    list_of_projects = list(projects_to_groups.keys())
+    list_of_groups = list(itertools.chain.from_iterable(projects_to_groups.values()))
+    if not (list_of_groups and list_of_projects):
+        raise InvalidProjectsToGroupsMap("We expect non-empty lists.")
+
     query = Query(
         match=Entity("events"),
         select=[
@@ -15,8 +28,8 @@ def query_groups_past_counts():
         ],
         groupby=[Column("project_id"), Column("group_id"), Column("hourBucket")],
         where=[
-            Condition(Column("group_id"), Op.IN, Function("tuple", [32, 14])),
-            Condition(Column("project_id"), Op.IN, Function("tuple", [1, 2, 3, 4, 5])),
+            Condition(Column("project_id"), Op.IN, Function("tuple", list_of_projects)),
+            Condition(Column("group_id"), Op.IN, Function("tuple", list_of_groups)),
             Condition(Column("timestamp"), Op.GTE, datetime.datetime(2023, 3, 14)),
             Condition(Column("timestamp"), Op.LT, datetime.datetime(2023, 3, 29)),
         ],
@@ -27,12 +40,5 @@ def query_groups_past_counts():
     )
     request = Request(dataset="events", app_id="sentry.issues.escalating", query=query)
     request.validate()
-    return raw_snql_query(request, referrer="sentry.issues.escalating")
-
-
-# This is useful in order to call this module as a script
-# sentry exec src/sentry/issues/escalating.py
-if __name__ == "__main__":
-    import pprint
-
-    pprint.pprint(query_groups_past_counts())
+    data = raw_snql_query(request, referrer="sentry.issues.escalating")
+    return data["data"]
