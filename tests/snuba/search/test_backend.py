@@ -2468,7 +2468,31 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 count_hits=True,
             )
 
-            assert list(results) == list(results2) == list(result3) == list(results4) == []
+            results5 = self.make_query(
+                projects=[self.project],
+                search_filter_query="error.main_thread:0",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            results6 = self.make_query(
+                projects=[self.project],
+                search_filter_query="error.main_thread:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            assert (
+                list(results)
+                == list(results2)
+                == list(result3)
+                == list(results4)
+                == list(results5)
+                == list(results6)
+                == []
+            )
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):

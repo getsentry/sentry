@@ -485,7 +485,7 @@ class Columns(Enum):
         event_name="exception_main_thread",
         transaction_name=None,
         discover_name="exception_main_thread",
-        issue_platform_name="exception_main_thread",
+        issue_platform_name=None,
         alias="error.main_thread",
     )
     ERROR_RECEIVED = Column(
