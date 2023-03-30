@@ -1,22 +1,36 @@
-import datetime
-import itertools
-from typing import Dict, List
+# import datetime
+from datetime import datetime, timedelta
+
+# import itertools
+from typing import List, Tuple
 
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Query, Request
 
+from sentry.models import Group
 from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
+
+# from sentry.testutils.helpers.datetime import before_now
 
 
 class InvalidProjectsToGroupsMap(Exception):
     pass
 
 
-def query_groups_past_counts(projects_to_groups: Dict[int, List[int]]) -> JSONData:
-    """Single Snuba query to find the total counts per hour per every group in the last 2 weeks."""
-    list_of_projects = list(projects_to_groups.keys())
-    list_of_groups = list(itertools.chain.from_iterable(projects_to_groups.values()))
-    if not (list_of_groups and list_of_projects):
+def extract_project_and_group_ids(groups: List[Group]) -> Tuple[List[int], List[int]]:
+    """Return all project and group IDs from a list of Group"""
+    group_ids = []
+    project_ids = []
+    for group in groups:
+        project_ids.append(group.project_id)
+        group_ids.append(group.id)
+
+    return project_ids, group_ids
+
+
+def query_groups_past_counts(groups: List[Group]) -> JSONData:
+    project_ids, group_ids = extract_project_and_group_ids(groups)
+    if not (project_ids and group_ids):
         raise InvalidProjectsToGroupsMap("We expect non-empty lists.")
 
     query = Query(
@@ -28,12 +42,13 @@ def query_groups_past_counts(projects_to_groups: Dict[int, List[int]]) -> JSONDa
         ],
         groupby=[Column("project_id"), Column("group_id"), Column("hourBucket")],
         where=[
-            Condition(Column("project_id"), Op.IN, Function("tuple", list_of_projects)),
-            Condition(Column("group_id"), Op.IN, Function("tuple", list_of_groups)),
-            Condition(Column("timestamp"), Op.GTE, datetime.datetime(2023, 3, 14)),
-            Condition(Column("timestamp"), Op.LT, datetime.datetime(2023, 3, 29)),
+            Condition(Column("project_id"), Op.IN, Function("tuple", project_ids)),
+            Condition(Column("group_id"), Op.IN, Function("tuple", group_ids)),
+            # TODO: We need to verify the datetimes and timezones
+            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(days=14)),
+            Condition(Column("timestamp"), Op.LT, datetime.today()),
         ],
-        limit=Limit(1),  # Limit(10000),
+        limit=Limit(1),  # Limit(10000)
         offset=Offset(0),
         # TODO: ORDER BY project_id DESC, group_id DESC, hourBucket DESC
         # orderby=[OrderBy(Column("project_id"), Direction.DESC)]
