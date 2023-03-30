@@ -213,7 +213,7 @@ def process_commit_context(
                         key=context.get("commitId"),
                         date_added=context.get("committedDate"),
                         author=commit_author,
-                        message=context.get("message"),
+                        message=context.get("commitMessage"),
                     )
 
                     logger.info(
