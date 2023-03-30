@@ -59,7 +59,8 @@ class JavaScriptSdkLoader(BaseView):
         # bundle name is built up from left to right.
         # https://docs.sentry.io/platforms/javascript/install/cdn/
 
-        if has_performance:
+        # We depend on fixes in the tracing bundle that are only available in v7
+        if is_v7_sdk and has_performance:
             bundle_kind_modifier += ".tracing"
             is_lazy = False
 
