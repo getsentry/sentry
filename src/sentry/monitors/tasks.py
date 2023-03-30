@@ -8,7 +8,6 @@ from sentry.utils import metrics
 
 from .models import (
     CheckInStatus,
-    Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorFailure,
@@ -39,28 +38,6 @@ def check_monitors(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
 
-    qs = Monitor.objects.filter(
-        type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
-    ).exclude(
-        status__in=[
-            MonitorStatus.DISABLED,
-            MonitorStatus.PENDING_DELETION,
-            MonitorStatus.DELETION_IN_PROGRESS,
-        ]
-    )[
-        :MONITOR_LIMIT
-    ]
-    metrics.gauge("sentry.monitors.tasks.check_monitors.missing_count", qs.count())
-    for monitor in qs:
-        logger.info("monitor.missed-checkin", extra={"monitor_id": monitor.id})
-        # add missed checkin
-        checkin = MonitorCheckIn.objects.create(
-            project_id=monitor.project_id,
-            monitor=monitor,
-            status=CheckInStatus.MISSED,
-        )
-        monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
-
     qs = MonitorEnvironment.objects.filter(
         monitor__type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
     ).exclude(
@@ -84,6 +61,7 @@ def check_monitors(current_datetime=None):
             monitor_environment=monitor_environment,
             status=CheckInStatus.MISSED,
         )
+        monitor_environment.monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
         monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[
