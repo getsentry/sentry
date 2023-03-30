@@ -20,7 +20,7 @@ import {
   QueryKey,
   useMutation,
   UseMutationOptions,
-  useQuery,
+  useApiQuery,
   useQueryClient,
   UseQueryOptions,
 } from 'sentry/utils/queryClient';
@@ -239,7 +239,7 @@ export const useFetchEventAttachments = (
   options: Partial<UseQueryOptions<FetchEventAttachmentResponse>> = {}
 ) => {
   const organization = useOrganization();
-  return useQuery<FetchEventAttachmentResponse>(
+  return useApiQuery<FetchEventAttachmentResponse>(
     [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`],
     {
       staleTime: Infinity,
