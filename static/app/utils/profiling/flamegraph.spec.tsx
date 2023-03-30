@@ -1,3 +1,4 @@
+import {collapseSystemFrameStrategy} from 'sentry/utils/profiling/collapseSystemFrameStrategy';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
@@ -402,7 +403,7 @@ describe('flamegraph', () => {
       0,
       {
         sort: 'alphabetical',
-        collapseSystemFrames: true,
+        collapseStrategy: collapseSystemFrameStrategy,
       }
     );
 

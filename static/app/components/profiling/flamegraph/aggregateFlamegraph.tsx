@@ -22,6 +22,7 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {collapseSystemFrameStrategy} from 'sentry/utils/profiling/collapseSystemFrameStrategy';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -138,7 +139,7 @@ export function AggregateFlamegraph(): ReactElement {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,
-      collapseSystemFrames,
+      collapseStrategy: collapseSystemFrames ? collapseSystemFrameStrategy : undefined,
     });
 
     transaction.finish();

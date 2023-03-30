@@ -96,9 +96,9 @@ export class Flamegraph {
       inverted = false,
       sort = 'call order',
       configSpace,
-      collapseSystemFrames = false,
+      collapseStrategy,
     }: {
-      collapseSystemFrames?: boolean;
+      collapseStrategy?: (root: FlamegraphFrame) => FlamegraphFrame;
       configSpace?: Rect;
       inverted?: boolean;
       sort?: 'left heavy' | 'alphabetical' | 'call order';
@@ -136,8 +136,13 @@ export class Flamegraph {
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
 
-    if (collapseSystemFrames) {
-      this.collapseSystemFrames();
+    if (collapseStrategy) {
+      const {root, frames, depth} = buildCollapsedFlamegraph(
+        collapse(this.root, collapseStrategy)
+      );
+      this.root = root;
+      this.depth = depth;
+      this.frames = frames;
     }
 
     if (this.profile.duration > 0) {
@@ -357,39 +362,19 @@ export class Flamegraph {
 
     return matches;
   }
-
-  collapseSystemFrames() {
-    const {root, frames, depth} = buildCollapsedFlamegraph(collapse(this.root));
-    this.root = root;
-    this.depth = depth;
-    this.frames = frames;
-  }
 }
 
-const isSystemFrame = (frame: FlamegraphFrame) => !frame.node.frame.is_application;
-
-function collapse(frame: FlamegraphFrame) {
-  frame.children = frame.children.map(collapse);
+function collapse(
+  frame: FlamegraphFrame,
+  strategy: (frame: FlamegraphFrame) => FlamegraphFrame
+) {
+  frame.children = frame.children.map(f => collapse(f, strategy));
 
   if (frame.frame.isRoot) {
     return frame;
   }
 
-  const children = frame.children;
-
-  if (children.length === 1) {
-    const [child] = children;
-    if (isSystemFrame(frame) && isSystemFrame(child)) {
-      if (!child.collapsed) {
-        child.collapsed = [];
-      }
-      child.collapsed.push(frame);
-      child.parent = frame.parent;
-      frame = child;
-    }
-  }
-
-  return frame;
+  return strategy(frame);
 }
 
 function buildCollapsedFlamegraph(root: FlamegraphFrame) {
