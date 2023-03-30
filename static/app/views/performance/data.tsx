@@ -67,6 +67,8 @@ export enum PERFORMANCE_TERM {
   MOST_ISSUES = 'mostIssues',
   MOST_ERRORS = 'mostErrors',
   SLOW_HTTP_SPANS = 'slowHTTPSpans',
+  TIME_TO_FULL_DISPLAY = 'timeToFullDisplay',
+  TIME_TO_INITIAL_DISPLAY = 'timeToInitialDisplay',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -380,6 +382,12 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'The percentage of the transaction duration in which the application is in a stalled state.'
     ),
+  timeToFullDisplay: () =>
+    t(
+      'The time between application launch and complete display of all resources and views'
+    ),
+  timeToInitialDisplay: () =>
+    t('The time it takes for an application to produce its first frame'),
 };
 
 export function getTermHelp(
@@ -544,6 +552,9 @@ function generateMobilePerformanceEventView(
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
   ];
+  if (organization.features.includes('mobile-vitals')) {
+    fields.push('p75(measurements.time_to_initial_display)');
+  }
 
   // At this point, all projects are mobile projects.
   // If in addition to that, all projects are react-native projects,

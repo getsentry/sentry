@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
+import * as indicatorActions from 'sentry/actionCreators/indicator';
 import Indicators from 'sentry/components/indicators';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
@@ -41,9 +41,11 @@ describe('OrganizationSettingsForm', function () {
 
     const input = screen.getByRole('textbox', {name: 'Display Name'});
 
-    userEvent.clear(input);
-    userEvent.type(input, 'New Name');
-    userEvent.tab();
+    const saveOnBlur = jest.spyOn(indicatorActions, 'saveOnBlurUndoMessage');
+
+    await userEvent.clear(input);
+    await userEvent.type(input, 'New Name');
+    await userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/`,
@@ -55,40 +57,38 @@ describe('OrganizationSettingsForm', function () {
       })
     );
 
-    await new Promise(resolve => {
-      saveOnBlurUndoMessage.mockImplementationOnce(async function (
-        change,
-        model,
-        fieldName
-      ) {
-        expect(fieldName).toBe('name');
-        expect(change.old).toBe('Organization Name');
-        expect(change.new).toBe('New Name');
+    expect(saveOnBlur).toHaveBeenCalledWith(
+      {
+        new: 'New Name',
+        old: 'Organization Name',
+      },
+      expect.anything(),
+      'name'
+    );
 
-        // Test "undo" call undo directly
-        expect(model.getValue('name')).toBe('New Name');
-        model.undo();
-        expect(model.getValue('name')).toBe('Organization Name');
+    const model = saveOnBlur.mock.calls[0][1];
 
-        // `saveOnBlurUndoMessage` saves the new field, so reimplement this
-        await model.saveField('name', 'Organization Name');
+    // Test "undo" call undo directly
+    expect(model.getValue('name')).toBe('New Name');
+    model.undo();
+    expect(model.getValue('name')).toBe('Organization Name');
 
-        // Initial data should be updated to original name
-        expect(model.initialData.name).toBe('Organization Name');
+    // `saveOnBlurUndoMessage` saves the new field, so reimplement this
+    await model.saveField('name', 'Organization Name');
 
-        putMock.mockReset();
+    // Initial data should be updated to original name
+    expect(model.initialData.name).toBe('Organization Name');
 
-        // Blurring the name field again should NOT trigger a save
-        userEvent.click(input);
-        userEvent.tab();
+    putMock.mockReset();
 
-        expect(putMock).not.toHaveBeenCalled();
-        resolve();
-      });
-    });
+    // Blurring the name field again should NOT trigger a save
+    await userEvent.click(input);
+    await userEvent.tab();
+
+    expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('can change slug', function () {
+  it('can change slug', async function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -107,13 +107,13 @@ describe('OrganizationSettingsForm', function () {
 
     const input = screen.getByRole('textbox', {name: 'Organization Slug'});
 
-    userEvent.clear(input);
-    userEvent.type(input, 'NEW SLUG');
-    userEvent.tab();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'NEW SLUG');
+    await userEvent.tab();
 
     expect(putMock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(putMock).toHaveBeenCalledWith(
       '/organizations/org-slug/',
@@ -125,7 +125,7 @@ describe('OrganizationSettingsForm', function () {
     );
   });
 
-  it('can enable codecov', function () {
+  it('can enable codecov', async function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -143,12 +143,12 @@ describe('OrganizationSettingsForm', function () {
       {
         organization: {
           ...organization,
-          features: ['codecov-stacktrace-integration', 'codecov-integration'],
+          features: ['codecov-integration'],
         },
       }
     );
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/})
     );
 

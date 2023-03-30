@@ -477,13 +477,23 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
   return pairs;
 }
 
+/** Parses the span data and pulls out the URL. Accounts for different SDKs and
+     different versions of SDKs formatting and parsing the URL contents
+     differently. Mirror of `get_url_from_span`. Ideally, this should not exist,
+     and instead it should use the data provided by the backend */
 export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
   let URLString;
 
   URLString = span?.data?.url;
   if (URLString) {
     try {
-      return new URL(span?.data?.url, baseURL);
+      let url = span?.data?.url ?? '';
+      const query = span?.data?.['http.query'];
+      if (query) {
+        url += `?${query}`;
+      }
+
+      return new URL(url, baseURL);
     } catch (e) {
       // Ignore error
     }

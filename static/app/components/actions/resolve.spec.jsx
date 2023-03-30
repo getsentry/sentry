@@ -5,6 +5,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import ResolveActions from 'sentry/components/actions/resolve';
@@ -21,7 +22,7 @@ describe('ResolveActions', function () {
   });
 
   describe('disabled', function () {
-    it('does not call onUpdate when clicked', function () {
+    it('does not call onUpdate when clicked', async function () {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -33,13 +34,13 @@ describe('ResolveActions', function () {
       );
       const button = screen.getByRole('button', {name: 'Resolve'});
       expect(button).toBeDisabled();
-      userEvent.click(button);
+      await userEvent.click(button);
       expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('disableDropdown', function () {
-    it('main button calls onUpdate when clicked and dropdown menu disabled', function () {
+    it('main button calls onUpdate when clicked and dropdown menu disabled', async function () {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -52,7 +53,7 @@ describe('ResolveActions', function () {
 
       const button = screen.getByRole('button', {name: 'Resolve'});
       expect(button).toBeEnabled();
-      userEvent.click(button);
+      await userEvent.click(button);
       expect(spy).toHaveBeenCalled();
 
       // Dropdown menu is disabled
@@ -61,7 +62,7 @@ describe('ResolveActions', function () {
   });
 
   describe('resolved', function () {
-    it('calls onUpdate with unresolved status when clicked', function () {
+    it('calls onUpdate with unresolved status when clicked', async function () {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -77,13 +78,13 @@ describe('ResolveActions', function () {
       expect(button).toBeInTheDocument();
       expect(button).toHaveTextContent('');
 
-      userEvent.click(button);
+      await userEvent.click(button);
       expect(spy).toHaveBeenCalledWith({status: 'unresolved', statusDetails: {}});
     });
   });
 
   describe('auto resolved', function () {
-    it('cannot be unresolved manually', function () {
+    it('cannot be unresolved manually', async function () {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -96,13 +97,13 @@ describe('ResolveActions', function () {
         />
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
       expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('without confirmation', function () {
-    it('calls spy with resolved status when clicked', function () {
+    it('calls spy with resolved status when clicked', async function () {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -111,14 +112,14 @@ describe('ResolveActions', function () {
           projectSlug="proj-1"
         />
       );
-      userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved', statusDetails: {}});
     });
   });
 
   describe('with confirmation step', function () {
-    it('displays confirmation modal with message provided', function () {
+    it('displays confirmation modal with message provided', async function () {
       render(
         <ResolveActions
           onUpdate={spy}
@@ -132,13 +133,13 @@ describe('ResolveActions', function () {
       renderGlobalModal();
 
       const button = screen.getByRole('button', {name: 'Resolve'});
-      userEvent.click(button);
+      await userEvent.click(button);
 
       const confirmButton = screen.getByTestId('confirm-button');
       expect(confirmButton).toBeInTheDocument();
       expect(spy).not.toHaveBeenCalled();
 
-      userEvent.click(confirmButton);
+      await userEvent.click(confirmButton);
 
       expect(spy).toHaveBeenCalled();
     });
@@ -160,14 +161,15 @@ describe('ResolveActions', function () {
     );
     renderGlobalModal();
 
-    userEvent.click(screen.getByLabelText('More resolve options'));
-    userEvent.click(screen.getByText('Another existing release…'));
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    await userEvent.click(screen.getByText('Another existing release…'));
 
     selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();
-    userEvent.click(screen.getByText('1.2.0'));
+    await userEvent.click(screen.getByText('1.2.0'));
 
-    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    const modal = screen.getByRole('dialog');
+    await userEvent.click(within(modal).getByRole('button', {name: 'Resolve'}));
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'resolved',
       statusDetails: {

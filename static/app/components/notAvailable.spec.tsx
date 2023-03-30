@@ -13,7 +13,7 @@ describe('NotAvailable', function () {
     expect(screen.getByText('\u2014')).toBeInTheDocument();
     expect(screen.queryByText('Tooltip text')).not.toBeInTheDocument();
 
-    userEvent.hover(screen.getByText('\u2014'));
+    await userEvent.hover(screen.getByText('\u2014'));
 
     expect(await screen.findByText('Tooltip text')).toBeInTheDocument();
   });

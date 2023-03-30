@@ -273,6 +273,8 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
     const {access, features, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
+    // org:admin is a unique scope that only org owners have
+    const isOrgOwner = access.includes('org:admin');
     const hasTeamRoles = features.includes('team-roles');
 
     const {email, expired, pending, invite_link: inviteLink} = member;
@@ -402,6 +404,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
             <TeamSelect
               enforceIdpProvisioned
               disabled={!canEdit}
+              isOrgOwner={isOrgOwner}
               organization={organization}
               selectedOrgRole={orgRole}
               selectedTeamRoles={teamRoles}

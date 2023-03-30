@@ -515,6 +515,7 @@ function buildRoutes() {
         />
         <Route
           path="debug-id-bundles/"
+          name={t('Debug ID Bundles')}
           component={make(async () => {
             const {ProjectSourceMapsContainer} = await import(
               'sentry/views/settings/projectSourceMaps'
@@ -523,7 +524,45 @@ function buildRoutes() {
               default: ProjectSourceMapsContainer,
             };
           })}
-        />
+        >
+          <Route
+            name={t('Debug ID Bundle')}
+            path=":bundleId/"
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+        </Route>
+        <Route
+          path="release-bundles/"
+          name={t('Release Bundles')}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
+        >
+          <Route
+            name={t('Release Bundle')}
+            path=":bundleId/"
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+        </Route>
         <Route
           path=":name/"
           name={t('Archive')}
@@ -545,15 +584,7 @@ function buildRoutes() {
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
       </Route>
-      <Route path="dynamic-sampling/" name={t('Dynamic Sampling')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
-        />
-        <Route
-          path="rules/:rule/"
-          component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
-        />
-      </Route>
+      <Redirect from="dynamic-sampling/" to="performance/" />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -1658,6 +1689,16 @@ function buildRoutes() {
           {performanceChildRoutes}
         </Route>
       )}
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={make(() => import('sentry/views/starfish/content'))}
+        />
+      )}
+      <Route
+        path="organizations/:orgId/starfish/"
+        component={make(() => import('sentry/views/starfish/content'))}
+      />
       <Route
         path="/organizations/:orgId/performance/"
         component={withDomainRedirect(make(() => import('sentry/views/performance')))}

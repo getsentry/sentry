@@ -80,6 +80,7 @@ descendants, such as Event, so it can more efficiently bulk delete rows.
 
 
 from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
+from .defaults.artifactbundle import ArtifactBundleDeletionTask
 from .manager import DeletionTaskManager
 
 default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
@@ -157,6 +158,7 @@ def load_defaults():
     default_manager.register(models.SavedSearch, BulkModelDeletionTask)
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
+    default_manager.register(models.ArtifactBundle, ArtifactBundleDeletionTask)
 
 
 load_defaults()
@@ -164,3 +166,4 @@ load_defaults()
 get = default_manager.get
 register = default_manager.register
 exec_sync = default_manager.exec_sync
+exec_sync_many = default_manager.exec_sync_many

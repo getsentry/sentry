@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Line from '../../frame/line';
@@ -28,6 +29,7 @@ type Props = {
   debugFrames?: StacktraceFilenameQuery[];
   hideIcon?: boolean;
   isHoverPreviewed?: boolean;
+  maxDepth?: number;
   meta?: Record<any, any>;
   newestFirst?: boolean;
   organization?: Organization;
@@ -140,6 +142,7 @@ class Content extends Component<Props, State> {
       platform,
       includeSystemFrames,
       isHoverPreviewed,
+      maxDepth,
       meta,
       debugFrames,
       hideIcon,
@@ -167,7 +170,7 @@ class Content extends Component<Props, State> {
       lastFrameIdx = (data.frames ?? []).length - 1;
     }
 
-    const frames: React.ReactElement[] = [];
+    let frames: React.ReactElement[] = [];
     let nRepeats = 0;
 
     const maxLengthOfAllRelativeAddresses = (data.frames ?? []).reduce(
@@ -257,6 +260,10 @@ class Content extends Component<Props, State> {
       frames[lastFrame] = cloneElement(frames[lastFrame], {
         registers: data.registers,
       });
+    }
+
+    if (defined(maxDepth)) {
+      frames = frames.slice(-maxDepth);
     }
 
     if (newestFirst) {

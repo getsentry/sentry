@@ -9,7 +9,6 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
-  isDotnet,
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
@@ -303,16 +302,15 @@ function NativeFrame({
           </GroupingCell>
           <TypeCell>
             {frame.inApp ? (
-              <Tag>{t('In App')}</Tag>
+              <Tag type="info">{t('In App')}</Tag>
             ) : (
-              <Tag type="info">{t('System')}</Tag>
+              <Tag>{t('System')}</Tag>
             )}
           </TypeCell>
           <ExpandCell>
             {expandable && (
               <ToggleButton
                 size="zero"
-                css={isDotnet(platform) && {display: 'block !important'}} // remove important once we get rid of css files
                 title={t('Toggle Context')}
                 aria-label={t('Toggle Context')}
                 tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}

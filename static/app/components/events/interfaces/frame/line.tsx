@@ -10,6 +10,7 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import LeadHint from 'sentry/components/events/interfaces/frame/lineV2/leadHint';
 import StrictClick from 'sentry/components/strictClick';
+import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
@@ -37,7 +38,6 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
-  isDotnet,
   isExpandable,
 } from './utils';
 
@@ -211,19 +211,16 @@ export class Line extends Component<Props, State> {
     const {isExpanded} = this.state;
 
     return (
-      <ToggleContextButtonWrapper>
-        <ToggleContextButton
-          className="btn-toggle"
-          data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
-          css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
-          size="zero"
-          title={t('Toggle Context')}
-          tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
-          onClick={this.toggleContext}
-        >
-          <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
-        </ToggleContextButton>
-      </ToggleContextButtonWrapper>
+      <ToggleContextButton
+        className="btn-toggle"
+        data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
+        size="zero"
+        title={t('Toggle Context')}
+        tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+        onClick={this.toggleContext}
+      >
+        <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
+      </ToggleContextButton>
     );
   }
 
@@ -285,6 +282,7 @@ export class Line extends Component<Props, State> {
             </LeftLineTitle>
             {this.renderRepeats()}
           </DefaultLineTitleWrapper>
+          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
@@ -350,6 +348,7 @@ export class Line extends Component<Props, State> {
             />
           </NativeLineContent>
           {this.renderExpander()}
+          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
         </DefaultLine>
       </StrictClick>
     );
@@ -436,6 +435,7 @@ const LeftLineTitle = styled('div')`
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
+  margin-right: ${space(1)};
 `;
 
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
@@ -463,7 +463,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
 `;
 
@@ -471,12 +471,9 @@ const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
 `;
 
-const ToggleContextButtonWrapper = styled('span')`
-  margin-left: ${space(1)};
-`;
-
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
+  margin-left: ${space(1)};
   span:first-child {
     padding: 3px;
   }

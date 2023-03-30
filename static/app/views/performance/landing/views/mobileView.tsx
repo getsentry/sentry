@@ -11,9 +11,26 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 import {BasePerformanceViewProps} from './types';
 
 export function MobileView(props: BasePerformanceViewProps) {
-  const columnTitles = checkIsReactNative(props.eventView)
+  let columnTitles = checkIsReactNative(props.eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
+  const {organization} = props;
+  const allowedCharts = [
+    PerformanceWidgetSetting.TPM_AREA,
+    PerformanceWidgetSetting.COLD_STARTUP_AREA,
+    PerformanceWidgetSetting.WARM_STARTUP_AREA,
+    PerformanceWidgetSetting.SLOW_FRAMES_AREA,
+    PerformanceWidgetSetting.FROZEN_FRAMES_AREA,
+  ];
+  if (organization.features.includes('mobile-vitals')) {
+    columnTitles = [...columnTitles.slice(0, 5), 'ttid', ...columnTitles.slice(5, 0)];
+    allowedCharts.push(
+      ...[
+        PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
+        PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY,
+      ]
+    );
+  }
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div>
@@ -26,16 +43,7 @@ export function MobileView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.MOST_REGRESSED,
           ]}
         />
-        <TripleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.TPM_AREA,
-            PerformanceWidgetSetting.COLD_STARTUP_AREA,
-            PerformanceWidgetSetting.WARM_STARTUP_AREA,
-            PerformanceWidgetSetting.SLOW_FRAMES_AREA,
-            PerformanceWidgetSetting.FROZEN_FRAMES_AREA,
-          ]}
-        />
+        <TripleChartRow {...props} allowedCharts={allowedCharts} />
         <Table
           {...props}
           columnTitles={columnTitles}

@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 import pytz
 from croniter import croniter
@@ -20,6 +21,10 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
+from sentry.models import Environment, Project
+from sentry.utils.retries import TimedRetryPolicy
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -31,18 +36,16 @@ SCHEDULE_INTERVAL_MAP = {
 }
 
 
-def get_next_schedule(base_datetime, schedule_type, schedule):
+def get_next_schedule(last_checkin, schedule_type, schedule):
     if schedule_type == ScheduleType.CRONTAB:
-        itr = croniter(schedule, base_datetime)
+        itr = croniter(schedule, last_checkin)
         next_schedule = itr.get_next(datetime)
     elif schedule_type == ScheduleType.INTERVAL:
-        count, unit_name = schedule
-        # count is the "number of units" and unit_name is the "unit name of interval"
-        # which is inverse from what rrule calls them
+        interval, unit_name = schedule
         rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=count, dtstart=base_datetime, count=2
+            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=last_checkin, count=2
         )
-        if rule[0] > base_datetime:
+        if rule[0] > last_checkin:
             next_schedule = rule[0]
         else:
             next_schedule = rule[1]
@@ -59,6 +62,7 @@ def get_monitor_context(monitor):
 
     return {
         "id": str(monitor.guid),
+        "slug": monitor.slug,
         "name": monitor.name,
         "config": monitor.config,
         "status": monitor.get_status_display(),
@@ -182,15 +186,18 @@ class Monitor(Model):
     __repr__ = sane_repr("guid", "project_id", "name")
 
     def save(self, *args, **kwargs):
-        # TODO(epurkhsier): This logic is to be removed when the `guid` field
-        # is removed and a slug is required when creating monitors
+        if not self.slug:
+            lock = locks.get(
+                f"slug:monitor:{self.organization_id}", duration=5, name="monitor_slug"
+            )
+            with TimedRetryPolicy(10)(lock.acquire):
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization_id=self.organization_id,
+                    max_length=50,
+                )
 
-        # NOTE: We ONLY set a slug while saving when creating a new monitor and
-        # the slug has not been set. Otherwise existing monitors without slugs
-        # would have their guids changed
-        if self._state.adding is True and not self.slug:
-            self.guid = uuid4()
-            self.slug = str(self.guid)
         return super().save(*args, **kwargs)
 
     def get_schedule_type_display(self):
@@ -199,13 +206,12 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin(self, last_checkin=None):
-        if last_checkin is None:
-            last_checkin = self.last_checkin
+    def get_next_scheduled_checkin(self, last_checkin):
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
-        base_datetime = last_checkin.astimezone(tz)
-        next_checkin = get_next_schedule(base_datetime, schedule_type, self.config["schedule"])
+        next_checkin = get_next_schedule(
+            last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
+        )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
@@ -252,6 +258,16 @@ class Monitor(Model):
         insert_data_to_database_legacy(data)
         monitor_failed.send(monitor=self, sender=type(self))
         return True
+
+    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        params = {
+            "last_checkin": ts,
+            "next_checkin": self.get_next_scheduled_checkin(ts),
+        }
+        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+            params["status"] = MonitorStatus.OK
+
+        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
 @region_silo_only_model
@@ -312,6 +328,31 @@ class MonitorLocation(Model):
     __repr__ = sane_repr("guid", "name")
 
 
+class MonitorEnvironmentManager(BaseManager):
+    """
+    A manager that consolidates logic for monitor enviroment updates
+    """
+
+    def ensure_environment(
+        self, project: Project, monitor: Monitor, environment_name: str | None
+    ) -> MonitorEnvironment:
+        if not environment_name:
+            environment_name = "production"
+
+        # TODO: assume these objects exist once backfill is completed
+        environment = Environment.get_or_create(project=project, name=environment_name)
+
+        monitorenvironment_defaults = {
+            "status": monitor.status,
+            "next_checkin": monitor.next_checkin,
+            "last_checkin": monitor.last_checkin,
+        }
+
+        return MonitorEnvironment.objects.get_or_create(
+            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+        )[0]
+
+
 @region_silo_only_model
 class MonitorEnvironment(Model):
     __include_in_export__ = True
@@ -324,6 +365,8 @@ class MonitorEnvironment(Model):
     next_checkin = models.DateTimeField(null=True)
     last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+
+    objects = MonitorEnvironmentManager()
 
     class Meta:
         app_label = "sentry"
@@ -358,3 +401,13 @@ class MonitorEnvironment(Model):
             return False
 
         return True
+
+    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        params = {
+            "last_checkin": ts,
+            "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
+        }
+        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+            params["status"] = MonitorStatus.OK
+
+        MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)

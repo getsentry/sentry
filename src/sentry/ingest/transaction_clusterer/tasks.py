@@ -19,7 +19,7 @@ from .tree import TreeClusterer
 #: Minimum number of children in the URL tree which triggers a merge.
 #: See TreeClusterer for more information.
 #: NOTE: We could make this configurable through django settings or even per-project in the future.
-MERGE_THRESHOLD = 100
+MERGE_THRESHOLD = 200
 
 #: Number of projects to process in one celery task
 #: The number 100 was chosen at random and might still need tweaking.
@@ -62,13 +62,11 @@ def cluster_projects(projects: Sequence[Project]) -> None:
         if features.has("organizations:transaction-name-clusterer", project.organization):
             with sentry_sdk.start_span(op="txcluster_project") as span:
                 span.set_data("project_id", project.id)
-                merge_threshold = MERGE_THRESHOLD
-                if features.has(
-                    "organizations:transaction-name-clusterer-2x", project.organization
-                ):
-                    merge_threshold = 2 * MERGE_THRESHOLD
-                clusterer = TreeClusterer(merge_threshold=merge_threshold)
-                clusterer.add_input(redis.get_transaction_names(project))
+                tx_names = list(redis.get_transaction_names(project))
+                if len(tx_names) < redis.MAX_SET_SIZE:
+                    return
+                clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                clusterer.add_input(tx_names)
                 new_rules = clusterer.get_rules()
                 rules.update_rules(project, new_rules)
 

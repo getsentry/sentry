@@ -113,9 +113,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
       isMetricsData: false,
       organization,
@@ -140,9 +140,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
@@ -176,9 +176,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
@@ -215,9 +215,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
@@ -251,9 +251,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
@@ -288,9 +288,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );
@@ -318,9 +318,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -346,9 +346,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
   });
 
@@ -374,9 +374,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Edit Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Edit Widget'));
+    await userEvent.click(screen.getByText('Edit Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -402,14 +402,14 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Delete Widget'));
+    await userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
     renderGlobalModal();
     await screen.findByRole('dialog');
 
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock).toHaveBeenCalled();
   });
@@ -581,7 +581,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    await userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );

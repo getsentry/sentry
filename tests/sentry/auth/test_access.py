@@ -65,11 +65,11 @@ class AccessFactoryTestCase(TestCase):
 
     @exempt_from_silo_limits()
     def create_api_key(self, organization: Organization, **kwds):
-        return ApiKey.objects.create(organization=organization, **kwds)
+        return ApiKey.objects.create(organization_id=organization.id, **kwds)
 
     @exempt_from_silo_limits()
     def create_auth_provider(self, organization: Organization, **kwds):
-        return AuthProvider.objects.create(organization=organization, **kwds)
+        return AuthProvider.objects.create(organization_id=organization.id, **kwds)
 
     @exempt_from_silo_limits()
     def create_auth_identity(self, auth_provider: AuthProvider, user: User, **kwds):
@@ -388,7 +388,7 @@ class FromRequestTest(AccessFactoryTestCase):
         UserPermission.objects.create(user=self.superuser, permission="test.permission")
 
         self.org = self.create_organization()
-        AuthProvider.objects.create(organization=self.org)
+        AuthProvider.objects.create(organization_id=self.org.id)
 
         self.team1 = self.create_team(organization=self.org)
         self.project1 = self.create_project(organization=self.org, teams=[self.team1])
