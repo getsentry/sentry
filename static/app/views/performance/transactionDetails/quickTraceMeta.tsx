@@ -79,7 +79,7 @@ export default function QuickTraceMeta({
     footer = <ExternalLink href={docsLink}>{t('Read the docs')}</ExternalLink>;
   } else {
     if (quickTrace.isLoading) {
-      body = <Placeholder height="24px" />;
+      body = <Placeholder height="20px" />;
     } else if (quickTrace.error) {
       body = '\u2014';
     } else {
