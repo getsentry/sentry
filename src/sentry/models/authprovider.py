@@ -11,6 +11,7 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.organizationmember import OrganizationMember
 
@@ -40,7 +41,7 @@ class AuthProviderDefaultTeams(Model):
 class AuthProvider(Model):
     __include_in_export__ = True
 
-    organization = FlexibleForeignKey("sentry.Organization", unique=True)
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)
     provider = models.CharField(max_length=128)
     config = JSONField()
 
