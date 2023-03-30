@@ -43,37 +43,27 @@ def patch(filename, dryrun):
 
     if dryrun:
         click.echo("Dryrun flag on. ")
-        with open(filename) as stream:
-            data = yaml.safe_load(stream)
-            keysToFetch = data["fetch"]
-            keysToUpdate = data["update"]
-            keysToDelete = data["delete"]
+    with open(filename) as stream:
+        configmap_data = yaml.safe_load(stream)
+        data = configmap_data.get("data", {}).get("options-patch.yaml", "")
 
-            for key in keysToFetch:
-                click.echo(f"Key {key} would be fetched.")
+        keysToFetch = data.get("fetch", {})
+        keysToFetch = (line for line in keysToFetch.split("\n") if line)
 
-            for key, val in keysToUpdate.items():
-                click.echo(f"Would update {key}, {val}.")
+        keysToUpdate = data.get("update", {})
+        keysToUpdate = (line.split(": ") for line in keysToUpdate.split("\n") if line)
 
-            for key in keysToDelete:
-                click.echo(f"Would delete {key}.")
+        keysToDelete = data.get("delete", {})
+        keysToDelete = keysToFetch = (line for line in keysToDelete.split("\n") if line)
 
-    else:
-        with open(filename) as stream:
-            # todo: add more file validation?
-            data = yaml.safe_load(stream)
-            keysToFetch = data["fetch"]
-            keysToUpdate = data["update"]
-            keysToDelete = data["delete"]
+        for key in keysToFetch:
+            click.echo(get(key, dryrun))
 
-            for key in keysToFetch:
-                click.echo(get(key))
+        for key, val in keysToUpdate.items():
+            click.echo(set(key, dryrun))
 
-            for key, val in keysToUpdate.items():
-                click.echo(set(key, val))
-
-            for key in keysToDelete:
-                click.echo(delete(key))
+        for key in keysToDelete:
+            click.echo(delete(key, dryrun))
 
 
 @configoptions.command()
