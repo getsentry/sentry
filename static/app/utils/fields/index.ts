@@ -1327,13 +1327,11 @@ export const getFieldDefinition = (
       if (key in REPLAY_FIELD_DEFINITIONS) {
         return REPLAY_FIELD_DEFINITIONS[key];
       }
-      if (REPLAY_FIELDS.includes(key as FieldKey)) {
-        return EVENT_FIELD_DEFINITIONS[key];
-      }
-      return null;
-    case 'replay_click':
       if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[key];
+      }
+      if (REPLAY_FIELDS.includes(key as FieldKey)) {
+        return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
     case 'event':

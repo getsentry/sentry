@@ -33,30 +33,23 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 function prepareQuery(searchQuery: string) {
   return searchQuery.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
 }
-const getReplayFieldDefinition = (key: string, type: 'replay' | 'replay_click') =>
-  getFieldDefinition(key, type);
+const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
 
-function fieldDefinitionsToTagCollection(
-  fieldKeys: string[],
-  type: 'replay' | 'replay_click'
-): TagCollection {
+function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(key => [
       key,
       {
         key,
         name: key,
-        kind: getReplayFieldDefinition(key, type)?.kind,
+        ...getReplayFieldDefinition(key),
       },
     ])
   );
 }
 
-const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS, 'replay');
-const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(
-  REPLAY_CLICK_FIELDS,
-  'replay_click'
-);
+const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
+const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
 
 function getSupportedTags(supportedTags: TagCollection, organization: Organization) {
   return {
@@ -65,7 +58,7 @@ function getSupportedTags(supportedTags: TagCollection, organization: Organizati
         key,
         {
           ...supportedTags[key],
-          kind: getReplayFieldDefinition(key, 'replay')?.kind ?? FieldKind.TAG,
+          kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
         },
       ])
     ),
