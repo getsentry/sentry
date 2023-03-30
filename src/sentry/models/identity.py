@@ -22,6 +22,7 @@ from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models import User
+    from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class IdentityManager(BaseManager):
     def link_identity(
         self,
         user: User,
-        idp: IdentityProvider,
+        idp: IdentityProvider | RpcIdentityProvider,
         external_id: str,
         should_reattach: bool = True,
         defaults: Mapping[str, Any | None] = None,
@@ -90,7 +91,7 @@ class IdentityManager(BaseManager):
         }
         try:
             identity, created = self.get_or_create(
-                idp=idp, user=user, external_id=external_id, defaults=defaults
+                idp_id=idp.id, user=user, external_id=external_id, defaults=defaults
             )
             if not created:
                 identity.update(**defaults)
@@ -107,8 +108,10 @@ class IdentityManager(BaseManager):
         )
         return identity
 
-    def delete_identity(self, user: User, idp: IdentityProvider, external_id: str) -> None:
-        self.filter(Q(external_id=external_id) | Q(user=user), idp=idp).delete()
+    def delete_identity(
+        self, user: User, idp: IdentityProvider | RpcIdentityProvider, external_id: str
+    ) -> None:
+        self.filter(Q(external_id=external_id) | Q(user=user), idp_id=idp.id).delete()
         logger.info(
             "deleted-identity",
             extra={"external_id": external_id, "idp_id": idp.id, "user_id": user.id},
@@ -116,12 +119,12 @@ class IdentityManager(BaseManager):
 
     def create_identity(
         self,
-        idp: IdentityProvider,
+        idp: IdentityProvider | RpcIdentityProvider,
         external_id: str,
         user: User,
         defaults: Mapping[str, Any],
     ) -> Identity:
-        identity_model = self.create(idp=idp, user=user, external_id=external_id, **defaults)
+        identity_model = self.create(idp_id=idp.id, user=user, external_id=external_id, **defaults)
         logger.info(
             "created-identity",
             extra={
@@ -135,7 +138,7 @@ class IdentityManager(BaseManager):
 
     def reattach(
         self,
-        idp: IdentityProvider,
+        idp: IdentityProvider | RpcIdentityProvider,
         external_id: str,
         user: User,
         defaults: Mapping[str, Any],

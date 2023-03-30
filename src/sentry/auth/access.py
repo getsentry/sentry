@@ -467,7 +467,9 @@ class RpcBackedAccess(Access):
     def roles(self) -> Iterable[str] | None:
         if self.rpc_user_organization_context.member is None:
             return None
-        return organization_service.get_all_org_roles(self.rpc_user_organization_context.member)
+        return organization_service.get_all_org_roles(
+            organization_member=self.rpc_user_organization_context.member
+        )
 
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
@@ -565,7 +567,7 @@ class RpcBackedAccess(Access):
             return True
 
         if self.rpc_user_organization_context.member and features.has(
-            "organizations:team-roles", self.rpc_user_organization_context.organization.id
+            "organizations:team-roles", self.rpc_user_organization_context.organization
         ):
             memberships = self.rpc_user_organization_context.member.member_teams
             for membership in memberships:
@@ -625,19 +627,23 @@ class OrganizationMemberAccess(DbAccess):
 class OrganizationGlobalAccess(DbAccess):
     """Access to all an organization's teams and projects."""
 
-    def __init__(self, organization: Organization, scopes: Iterable[str], **kwargs: Any) -> None:
-        self._organization = organization
+    def __init__(
+        self, organization: Organization | int, scopes: Iterable[str], **kwargs: Any
+    ) -> None:
+        self._organization_id = (
+            organization.id if isinstance(organization, Organization) else organization
+        )
 
         super().__init__(has_global_access=True, scopes=frozenset(scopes), **kwargs)
 
     def has_team_access(self, team: Team) -> bool:
         return bool(
-            team.organization_id == self._organization.id and team.status == TeamStatus.VISIBLE
+            team.organization_id == self._organization_id and team.status == TeamStatus.VISIBLE
         )
 
     def has_project_access(self, project: Project) -> bool:
         return bool(
-            project.organization_id == self._organization.id
+            project.organization_id == self._organization_id
             and project.status == ProjectStatus.VISIBLE
         )
 
@@ -645,7 +651,7 @@ class OrganizationGlobalAccess(DbAccess):
     def accessible_team_ids(self) -> FrozenSet[int]:
         return frozenset(
             Team.objects.filter(
-                organization=self._organization, status=TeamStatus.VISIBLE
+                organization_id=self._organization_id, status=TeamStatus.VISIBLE
             ).values_list("id", flat=True)
         )
 
@@ -653,7 +659,7 @@ class OrganizationGlobalAccess(DbAccess):
     def accessible_project_ids(self) -> FrozenSet[int]:
         return frozenset(
             Project.objects.filter(
-                organization=self._organization, status=ProjectStatus.VISIBLE
+                organization_id=self._organization_id, status=ProjectStatus.VISIBLE
             ).values_list("id", flat=True)
         )
 
@@ -826,7 +832,7 @@ class SystemAccess(OrganizationlessAccess):
     def __init__(self) -> None:
         super().__init__(
             auth_state=RpcAuthState(
-                sso_state=RpcMemberSsoState(False, False),
+                sso_state=RpcMemberSsoState(is_required=False, is_valid=False),
                 permissions=[],
             ),
         )
@@ -1113,7 +1119,7 @@ def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
     assert not isinstance(auth, SystemToken)
     if auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
-            auth.organization, settings.SENTRY_SCOPES, sso_is_valid=True
+            auth.organization_id, settings.SENTRY_SCOPES, sso_is_valid=True
         )
     else:
         return DEFAULT

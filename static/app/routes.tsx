@@ -526,7 +526,7 @@ function buildRoutes() {
           })}
         >
           <Route
-            name={t('Artifact Bundle')}
+            name={t('Debug ID Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
@@ -551,7 +551,7 @@ function buildRoutes() {
           })}
         >
           <Route
-            name={t('Artifact Bundle')}
+            name={t('Release Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
@@ -1689,6 +1689,16 @@ function buildRoutes() {
           {performanceChildRoutes}
         </Route>
       )}
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={make(() => import('sentry/views/starfish/content'))}
+        />
+      )}
+      <Route
+        path="organizations/:orgId/starfish/"
+        component={make(() => import('sentry/views/starfish/content'))}
+      />
       <Route
         path="/organizations/:orgId/performance/"
         component={withDomainRedirect(make(() => import('sentry/views/performance')))}

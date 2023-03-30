@@ -16,8 +16,9 @@ import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {crontabAsText} from 'sentry/views/monitors/utils';
 
-import {MonitorBadge} from './components/monitorBadge';
-import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from './types';
+import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from '../types';
+
+import {MonitorBadge} from './monitorBadge';
 
 interface MonitorRowProps {
   monitor: Monitor;
@@ -93,9 +94,12 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
     <Fragment>
       <MonitorName>
         <MonitorBadge status={monitor.status} />
-        <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
-          {monitor.name}
-        </Link>
+        <NameAndSlug>
+          <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
+            {monitor.name}
+          </Link>
+          <MonitorSlug>{monitor.slug}</MonitorSlug>
+        </NameAndSlug>
       </MonitorName>
       <StatusColumn>
         <TextOverflow>
@@ -112,9 +116,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
             : null}
         </TextOverflow>
       </StatusColumn>
-      <ScheduleColumn>
-        <TextOverflow>{scheduleAsText(monitor.config)}</TextOverflow>
-      </ScheduleColumn>
+      <ScheduleColumn>{scheduleAsText(monitor.config)}</ScheduleColumn>
       <NextCheckin>
         {monitor.nextCheckIn &&
         monitor.status !== MonitorStatus.DISABLED &&
@@ -154,6 +156,17 @@ const MonitorName = styled('div')`
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const NameAndSlug = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+`;
+
+const MonitorSlug = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
 `;
 
 const StatusColumn = styled('div')`

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from django.db import router
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -12,7 +12,6 @@ from sentry.api.exceptions import ResourceDoesNotExist, SentryAPIException
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle
-from sentry.utils.db import atomic_transaction
 
 
 class InvalidSortByParameter(SentryAPIException):
@@ -125,21 +124,15 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         if bundle_id:
             try:
-                artifact_bundle = ArtifactBundle.objects.get(
-                    organization_id=project.organization_id, bundle_id=bundle_id
-                )
+                with transaction.atomic():
+                    ArtifactBundle.objects.get(
+                        organization_id=project.organization_id, bundle_id=bundle_id
+                    ).delete()
+
+                return Response(status=204)
             except ArtifactBundle.DoesNotExist:
                 return Response(
                     {"error": f"Couldn't find a bundle with bundle_id {bundle_id}"}, status=404
                 )
-
-            with atomic_transaction(using=router.db_for_write(ArtifactBundle)):
-                # We want to delete all the connections to a project.
-                ProjectArtifactBundle.objects.filter(artifact_bundle_id=artifact_bundle.id).delete()
-
-                # We also delete the bundle itself.
-                artifact_bundle.delete()
-
-                return Response(status=204)
 
         return Response({"error": f"Supplied an invalid bundle_id {bundle_id}"}, status=404)

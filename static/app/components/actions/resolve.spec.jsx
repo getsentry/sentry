@@ -5,6 +5,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import ResolveActions from 'sentry/components/actions/resolve';
@@ -167,7 +168,8 @@ describe('ResolveActions', function () {
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();
     await userEvent.click(screen.getByText('1.2.0'));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    const modal = screen.getByRole('dialog');
+    await userEvent.click(within(modal).getByRole('button', {name: 'Resolve'}));
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'resolved',
       statusDetails: {

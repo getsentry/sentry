@@ -7,6 +7,7 @@ from freezegun import freeze_time
 from sentry.models import EventUser, GroupStatus, Release, Team, User
 from sentry.search.base import ANY
 from sentry.search.utils import (
+    DEVICE_CLASS,
     InvalidQuery,
     convert_user_tag_to_query,
     get_latest_release,
@@ -722,3 +723,14 @@ class ConvertUserTagTest(TestCase):
 
     def test_non_user_tag(self):
         assert convert_user_tag_to_query("user", 'fake:123"456') is None
+
+
+def test_valid_device_class_mapping():
+    assert set(DEVICE_CLASS.keys()) == {"low", "medium", "high"}, "Only 3 possible classes"
+
+    # should all be integers
+    device_classes = {key: {int(value) for value in values} for key, values in DEVICE_CLASS.items()}
+
+    assert all(
+        0 not in values for values in device_classes.values()
+    ), "`0` is not a valid classes as it represents unclassified"

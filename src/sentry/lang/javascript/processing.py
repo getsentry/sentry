@@ -83,6 +83,41 @@ def sourcemap_images_from_data(data):
     return get_path(data, "debug_meta", "images", default=(), filter=is_sourcemap_image)
 
 
+# Most people don't upload release artifacts for their third-party libraries,
+# so ignore missing node_modules files or chrome extensions
+def should_skip_missing_source_error(abs_path):
+    "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
+
+
+def map_symbolicator_process_js_errors(errors):
+    if errors is None:
+        return []
+
+    mapped_errors = []
+
+    for error in errors:
+        ty = error["type"]
+        abs_path = error["abs_path"]
+
+        if ty == "invalid_abs_path" and not should_skip_missing_source_error(abs_path):
+            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+        elif ty == "missing_sourcemap" and not should_skip_missing_source_error(abs_path):
+            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+        elif ty == "malformed_sourcemap":
+            mapped_errors.append({"type": EventError.JS_INVALID_SOURCEMAP, "url": abs_path})
+        elif ty == "invalid_location":
+            mapped_errors.append(
+                {
+                    "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                    "column": error["col"],
+                    "row": error["line"],
+                    "source": abs_path,
+                }
+            )
+
+    return mapped_errors
+
+
 def process_payload(data):
     project = Project.objects.get_from_cache(id=data.get("project"))
 
@@ -115,6 +150,10 @@ def process_payload(data):
 
     if not _handle_response_status(data, response):
         return data
+
+    processing_errors = response.get("errors", [])
+    if len(processing_errors) > 0:
+        data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
 
     # TODO: should this really be a hard assert? Or rather an internal log?
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)

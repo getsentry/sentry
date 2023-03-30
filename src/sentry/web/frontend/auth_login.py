@@ -254,13 +254,15 @@ class AuthLoginView(BaseView):
 
                         if settings.SENTRY_SINGLE_ORGANIZATION:
                             om = organization_service.check_membership_by_email(
-                                org_context.organization.id, user.email
+                                organization_id=org_context.organization.id, email=user.email
                             )
+
                             if om is None:
+                                om = organization_service.check_membership_by_id(
+                                    organization_id=org_context.organization.id, user_id=user.id
+                                )
+                            if om is None or om.user_id is None:
                                 request.session.pop("_next", None)
-                            else:
-                                if om.user_id is None:
-                                    request.session.pop("_next", None)
 
                 # On login, redirect to onboarding
                 if self.active_organization:

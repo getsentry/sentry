@@ -98,8 +98,10 @@ class MonitorIngestEndpoint(Endpoint):
           validate
 
     [!!]: This type of endpoint supports lookup of monitors by slug AND by
-          GUID. However slug lookup is **ONLY** supported when the organization
-          slug is part of the URL parameters.
+          GUID. However slug lookup is **ONLY** supported in two scenarios:
+
+          - When the organization slug is part of the URL parameters.
+          - When using DSN auth
     """
 
     authentication_classes = (DSNAuthentication, TokenAuthentication, ApiKeyAuthentication)
@@ -131,6 +133,12 @@ class MonitorIngestEndpoint(Endpoint):
         # Include monitor_id in kwargs when upsert is enabled
         if self.allow_auto_create_monitors:
             kwargs["monitor_id"] = monitor_id
+
+        using_dsn_auth = isinstance(request.auth, ProjectKey)
+
+        # When using DSN auth we're able to infer the organization slug
+        if not organization_slug and using_dsn_auth:
+            organization_slug = request.auth.project.organization.slug
 
         # The only monitor endpoints that do not have the org slug in their
         # parameters are the GUID-style checkin endpoints
@@ -168,7 +176,7 @@ class MonitorIngestEndpoint(Endpoint):
 
         # Monitor ingestion supports upsert of monitors This is currently only
         # supported when using DSN auth.
-        if not monitor and not isinstance(request.auth, ProjectKey):
+        if not monitor and not using_dsn_auth:
             raise ResourceDoesNotExist
 
         # No monitor is allowed when using DSN auth. Use the project from the
@@ -184,7 +192,7 @@ class MonitorIngestEndpoint(Endpoint):
 
         # Validate that the authenticated project matches the monitor. This is
         # used for DSN style authentication
-        if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
+        if using_dsn_auth and project.id != request.auth.project_id:
             raise ResourceDoesNotExist
 
         # When looking up via GUID we do not check the organization slug,

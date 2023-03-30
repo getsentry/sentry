@@ -1,6 +1,6 @@
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
@@ -18,26 +18,19 @@ function FocusArea({}: Props) {
   const organization = useOrganization();
 
   switch (getActiveTab()) {
-    case 'console':
-      return (
-        <Console
-          breadcrumbs={replay?.getConsoleCrumbs()}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-        />
-      );
-    case 'network':
+    case TabKey.network:
       return (
         <NetworkList
           networkSpans={replay?.getNetworkSpans()}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
-    case 'trace':
+    case TabKey.trace:
       if (!replay) {
         return <Placeholder height="150px" />;
       }
       return <Trace organization={organization} replayRecord={replay.getReplay()} />;
-    case 'issues':
+    case TabKey.issues:
       if (!replay) {
         return <Placeholder height="150px" />;
       }
@@ -47,14 +40,14 @@ function FocusArea({}: Props) {
           projectId={replay.getReplay()?.project_id}
         />
       );
-    case 'dom':
+    case TabKey.dom:
       return (
         <DomMutations
           replay={replay}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
-    case 'memory':
+    case TabKey.memory:
       return (
         <MemoryChart
           currentTime={currentTime}
@@ -65,8 +58,14 @@ function FocusArea({}: Props) {
           startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
         />
       );
+    case TabKey.console:
     default:
-      return null;
+      return (
+        <Console
+          breadcrumbs={replay?.getConsoleCrumbs()}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+        />
+      );
   }
 }
 
