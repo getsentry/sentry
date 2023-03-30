@@ -109,7 +109,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
             >
               {t('Cancel')}
             </Button>
-            <Button priority="primary" to="/settings/legal/">
+            <Button priority="primary" to={`/settings/${organization.slug}/legal/`}>
               {t('Accept in Settings')}
             </Button>
           </ButtonBar>
