@@ -157,6 +157,6 @@ def encode_as_uuid(message: str) -> str:
     return str(uuid.UUID(md5(message.encode()).hexdigest()))
 
 
-def is_valid_node(node: Optional[dict]) -> bool:
+def is_valid_node(node: Optional[Dict[str, Any]]) -> bool:
     """Return True if this is a valid node."""
     return node and "id" in node and "tagName" in node
