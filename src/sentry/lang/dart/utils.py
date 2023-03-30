@@ -92,6 +92,10 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
             while windows_to_deobfuscate:
                 window = windows_to_deobfuscate.pop()
 
+                if window.get("type") is None:
+                    # If there is no type, then skip this window
+                    continue
+
                 matcher = re.match(VIEW_HIERARCHY_TYPE_REGEX, window.get("type"))
                 if not matcher:
                     continue
