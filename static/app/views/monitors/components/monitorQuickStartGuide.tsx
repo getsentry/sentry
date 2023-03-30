@@ -11,6 +11,9 @@ import {useQuery} from 'sentry/utils/queryClient';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
+  PHPCronQuickStart,
+  PHPLaravelCronQuickStart,
+  PythonCeleryCronQuickStart,
   PythonCronQuickStart,
   QuickStartProps,
 } from 'sentry/views/monitors/components/quickStartEntries';
@@ -40,7 +43,34 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   python: {
     label: 'Python',
     Guide: PythonCronQuickStart,
-    platforms: new Set(['python', 'python-celery']),
+    platforms: new Set([
+      'python',
+      'python-django',
+      'python-flask',
+      'python-fastapi',
+      'python-starlette',
+      'python-sanic',
+      'python-bottle',
+      'python-pylons',
+      'python-pyramid',
+      'python-tornado',
+      'python-rq',
+    ]),
+  },
+  pythonCelery: {
+    label: 'Celery',
+    Guide: PythonCeleryCronQuickStart,
+    platforms: new Set(['python-celery']),
+  },
+  php: {
+    label: 'PHP',
+    Guide: PHPCronQuickStart,
+    platforms: new Set(['php', 'php-monolog', 'php-symfony2']),
+  },
+  phpLaravel: {
+    label: 'Laravel',
+    Guide: PHPLaravelCronQuickStart,
+    platforms: new Set(['php-laravel']),
   },
 };
 

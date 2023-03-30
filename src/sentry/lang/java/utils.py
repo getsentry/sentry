@@ -5,12 +5,11 @@ from symbolic import ProguardMapper
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.eventstore.models import Event
+from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
-
-CACHE_TIMEOUT = 3600
 
 
 def is_valid_image(image):
@@ -80,7 +79,12 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
                     windows_to_deobfuscate.extend(children)
 
 
-def deobfuscate_view_hierarchy(data):
+def deobfuscation_template(data, map_type, deobfuscation_fn):
+    """
+    Template for operations involved in deobfuscating view hierarchies.
+
+    The provided deobfuscation function is expected to modify the view hierarchy dict in-place.
+    """
     project = Project.objects.get_from_cache(id=data["project"])
 
     cache_key = cache_key_for_event(data)
@@ -89,12 +93,12 @@ def deobfuscate_view_hierarchy(data):
     if not any(attachment.type == "event.view_hierarchy" for attachment in attachments):
         return
 
-    with sentry_sdk.start_transaction(name="proguard.deobfuscate_view_hierarchy", sampled=True):
+    with sentry_sdk.start_transaction(name=f"{map_type}.deobfuscate_view_hierarchy", sampled=True):
         new_attachments = []
         for attachment in attachments:
             if attachment.type == "event.view_hierarchy":
                 view_hierarchy = json.loads(attachment_cache.get_data(attachment))
-                _deobfuscate_view_hierarchy(data, project, view_hierarchy)
+                deobfuscation_fn(data, project, view_hierarchy)
 
                 # Reupload to cache as a unchunked data
                 new_attachments.append(
@@ -111,3 +115,7 @@ def deobfuscate_view_hierarchy(data):
                 new_attachments.append(attachment)
 
         attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
+
+
+def deobfuscate_view_hierarchy(data):
+    deobfuscation_template(data, "proguard", _deobfuscate_view_hierarchy)
