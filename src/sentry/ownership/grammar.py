@@ -581,6 +581,26 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
     return {o: actors.get((o.type, o.identifier.lower())) for o in owners}
 
 
+def remove_deleted_owners_from_schema(
+    rules: List[Dict[str, Any]], owners_id: Dict[str, int]
+) -> None:
+    valid_rules = rules
+
+    for rule in rules:
+        valid_owners = rule["owners"]
+        for rule_owner in rule["owners"]:
+
+            if rule_owner["identifier"] not in owners_id.keys():
+                valid_owners.remove(rule_owner)
+                if not valid_owners:
+                    valid_rules.remove(rule)
+                    break
+
+        rule["owners"] = valid_owners
+
+    rules = valid_rules
+
+
 def add_owner_ids_to_schema(rules: List[Dict[str, Any]], owners_id: Dict[str, int]) -> None:
     for rule in rules:
         for rule_owner in rule["owners"]:
@@ -589,7 +609,10 @@ def add_owner_ids_to_schema(rules: List[Dict[str, Any]], owners_id: Dict[str, in
 
 
 def create_schema_from_issue_owners(
-    issue_owners: str, project_id: int, add_owner_ids: bool = False
+    issue_owners: str,
+    project_id: int,
+    add_owner_ids: bool = False,
+    remove_deleted_owners: bool = False,
 ) -> Mapping[str, Any]:
     try:
         rules = parse_rules(issue_owners)
@@ -614,7 +637,9 @@ def create_schema_from_issue_owners(
         elif add_owner_ids:
             owners_id[owner.identifier] = actor[0]
 
-    if bad_actors:
+    if bad_actors and remove_deleted_owners:
+        remove_deleted_owners_from_schema(schema["rules"], owners_id)
+    elif bad_actors:
         bad_actors.sort()
         raise ValidationError({"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))})
 

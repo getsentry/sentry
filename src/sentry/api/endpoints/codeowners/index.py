@@ -31,7 +31,9 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # typ
                 associations,
                 codeowner.repository_project_path_config,
             )
-            codeowner.schema = create_schema_from_issue_owners(codeowner.raw, project.id, True)
+            codeowner.schema = create_schema_from_issue_owners(
+                codeowner.raw, project.id, add_owner_ids=True, remove_deleted_owners=True
+            )
 
             # Convert raw back to codeowner type to be saved
             codeowner.raw = raw
