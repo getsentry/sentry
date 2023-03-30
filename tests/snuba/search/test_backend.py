@@ -2470,7 +2470,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results5 = self.make_query(
                 projects=[self.project],
-                search_filter_query="error.main_thread:0",
+                search_filter_query="issue.category:profile error.main_thread:0",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -2478,7 +2478,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results6 = self.make_query(
                 projects=[self.project],
-                search_filter_query="error.main_thread:1",
+                search_filter_query="issue.category:profile error.main_thread:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
