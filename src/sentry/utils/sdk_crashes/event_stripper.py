@@ -53,7 +53,7 @@ class EventStripper:
             return True
         return False
 
-    def _strip_debugMeta(
+    def _strip_debug_meta(
         self, debug_meta_images: Sequence[Mapping[str, Any]], frames: Sequence[Mapping[str, Any]]
     ) -> Sequence[Mapping[str, Any]]:
 
