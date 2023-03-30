@@ -155,7 +155,7 @@ function Content({
       0
     );
 
-    const convertedFrames = frames
+    let convertedFrames = frames
       .map((frame, frameIndex) => {
         const prevFrame = frames[frameIndex - 1];
         const nextFrame = frames[frameIndex + 1];
@@ -241,7 +241,7 @@ function Content({
     }
 
     if (defined(maxDepth)) {
-      convertedFrames.splice(maxDepth);
+      convertedFrames = convertedFrames.slice(-maxDepth);
     }
 
     if (!newestFirst) {

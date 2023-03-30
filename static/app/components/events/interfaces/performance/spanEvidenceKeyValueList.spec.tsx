@@ -385,10 +385,10 @@ describe('SpanEvidenceKeyValueList', () => {
           extractSpanURLString({
             span_id: 'a',
             data: {
-              url: 'http://service.io',
+              url: 'http://service.io?id=2543',
             },
           })?.toString()
-        ).toEqual('http://service.io/');
+        ).toEqual('http://service.io/?id=2543');
       });
 
       it('Pulls out a relative URL if a base is provided', () => {
@@ -403,6 +403,19 @@ describe('SpanEvidenceKeyValueList', () => {
             'http://service.io'
           )?.toString()
         ).toEqual('http://service.io/item');
+      });
+
+      it('Fetches the query string from the span data if available', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            description: 'GET http://service.io/item',
+            data: {
+              url: 'http://service.io/item',
+              'http.query': 'id=153',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/item?id=153');
       });
 
       it('Falls back to span description if URL is faulty', () => {

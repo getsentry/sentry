@@ -1,3 +1,35 @@
+23.3.1
+------
+
+### Various fixes & improvements
+
+- fix(dynamic-sampling):Set low volume transaction boost default to True (#46179) by @RaduW
+- feat(replays): Add backend support for `session-replay-network-details` feature (#46200) by @ryan953
+- fix(roles): check for existence of org roles from team (#46197) by @cathteng
+- feat(escalating-issues): Add escalating group status (#45965) by @NisanthanNanthakumar
+- feat: Add a simple endpoint to lookup artifacts (#45757) by @Swatinem
+- fix(profiling): fix profiling timeout (#46193) by @JonasBa
+- fix(db-issue): Add db detector (#46154) by @wmak
+- chore(hybrid-cloud): Add outbox_runner to outbox tests (#46155) by @dashed
+- chore(hybrid-cloud): Update user type for sync_assignee_outbound (#46160) by @dashed
+- ref(profiling): Replace DataDog metric by a Sentry tag (#46156) by @phacops
+- fix(dashboards): Clear GroupStore when unmounting dashboard (#46189) by @edwardgou-sentry
+- fix(profiling): Show p75 only for suspect functions table (#46140) by @Zylphrex
+- feat(flag): Add flag for onboarding product selection - (#46184) by @priscilawebdev
+- ref(sourcemaps): Add date_uploaded field to bundle (#46172) by @iambriccardo
+- fix(sourcemaps): Change reverse sql type (#46180) by @iambriccardo
+- ref(sourcemaps): Remove date_last_accessed field from db (#46118) by @iambriccardo
+- chore(oss): add license to api docs spectacular ports (#46164) by @JoshFerge
+- fix(test): fix flake when time rolls to the next day (#46166) by @barkbarkimashark
+- feat(issue-platform): Hook up noise reduction config to occurrence ingestion (#46159) by @wedamija
+- chore(issue-platform): Remove unused features (#46161) by @wedamija
+- fix(codecov): Change endpoint for has_integration check (#46127) by @snigdhas
+- fix(profiling): Typo in format name sampled vs sample (#46150) by @Zylphrex
+- chore: Add missing license for jsonfield (#46148) by @markstory
+- fix(workflow): Add `ref_fallback` to issue details analytics (#46125) by @scttcper
+
+_Plus 233 more_
+
 23.3.0
 ------
 

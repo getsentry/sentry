@@ -34,17 +34,8 @@ class ProjectMonitorPermission(ProjectPermission):
 
 class MonitorEndpoint(Endpoint):
     """
-    Base endpoint class for monitors which will lookup the monitor ID and
+    Base endpoint class for monitors which will lookup the monitor and
     convert it to a Monitor object.
-
-    Currently this has two strategies for monitor lookup
-
-    1. Via the monitor slug. In this scenario the organization_slug MUST be
-       present, since monitor slugs are unique with the organization_slug
-
-    2. Via the monitor GUID. In this scenario the organization_slug is not
-       required as GUIDs are global to sentry. We will check that the
-       organization resulting from the monitor project
 
     [!!]: This base endpoint is NOT used for legacy ingestion endpoints, see
           MonitorIngestEndpoint for that.
@@ -67,22 +58,9 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            # Try lookup by slug first
             monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_id)
         except Monitor.DoesNotExist:
-            # Try lookup by GUID. We cannot consolidate this into one query as
-            # we need to validate the slug is a GUID before trying to query on
-            # the GUID column, otherwise we'll produce a postgres error
-            try:
-                UUID(monitor_id)
-            except ValueError:
-                # This error is a bit confusing, because this may also mean
-                # that we've failed to lookup their monitor by slug.
-                raise ParameterValidationError("Invalid monitor UUID")
-            try:
-                monitor = Monitor.objects.get(organization_id=organization.id, guid=monitor_id)
-            except Monitor.DoesNotExist:
-                raise ResourceDoesNotExist
+            raise ResourceDoesNotExist
 
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ProjectStatus.VISIBLE:
@@ -112,12 +90,18 @@ class MonitorIngestEndpoint(Endpoint):
     """
     This type of endpont explicitly only allows for DSN and Token / Key based authentication.
 
+    [!!]: These endpoints are legacy and will be replaced by relay based
+          checkin ingestion in the very near future.
+
     [!!]: These endpoints support routes which **do not specify the
           organization slug**! This endpoint is extra careful in those cases to
           validate
 
-    [!!]: These endpoints are legacy and will be replaced by relay based
-          checkin ingestion in the very near future.
+    [!!]: This type of endpoint supports lookup of monitors by slug AND by
+          GUID. However slug lookup is **ONLY** supported in two scenarios:
+
+          - When the organization slug is part of the URL parameters.
+          - When using DSN auth
     """
 
     authentication_classes = (DSNAuthentication, TokenAuthentication, ApiKeyAuthentication)
@@ -149,6 +133,12 @@ class MonitorIngestEndpoint(Endpoint):
         # Include monitor_id in kwargs when upsert is enabled
         if self.allow_auto_create_monitors:
             kwargs["monitor_id"] = monitor_id
+
+        using_dsn_auth = isinstance(request.auth, ProjectKey)
+
+        # When using DSN auth we're able to infer the organization slug
+        if not organization_slug and using_dsn_auth:
+            organization_slug = request.auth.project.organization.slug
 
         # The only monitor endpoints that do not have the org slug in their
         # parameters are the GUID-style checkin endpoints
@@ -186,7 +176,7 @@ class MonitorIngestEndpoint(Endpoint):
 
         # Monitor ingestion supports upsert of monitors This is currently only
         # supported when using DSN auth.
-        if not monitor and not isinstance(request.auth, ProjectKey):
+        if not monitor and not using_dsn_auth:
             raise ResourceDoesNotExist
 
         # No monitor is allowed when using DSN auth. Use the project from the
@@ -202,7 +192,7 @@ class MonitorIngestEndpoint(Endpoint):
 
         # Validate that the authenticated project matches the monitor. This is
         # used for DSN style authentication
-        if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
+        if using_dsn_auth and project.id != request.auth.project_id:
             raise ResourceDoesNotExist
 
         # When looking up via GUID we do not check the organization slug,

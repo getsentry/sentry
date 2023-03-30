@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django import forms
 from django.contrib import messages
 from django.db import transaction
@@ -12,7 +14,10 @@ from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.plugins.base import Response
+from sentry.services.hybrid_cloud.auth import RpcAuthProvider
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
+from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
@@ -40,7 +45,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
                 help_text=_("Enable SCIM to manage Memberships and Teams via your Provider"),
                 required=False,
             )
-            if provider.can_use_scim(organization, request.user)
+            if provider.can_use_scim(organization.id, request.user)
             else None
         )
 
@@ -56,7 +61,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
         "require_link": not auth_provider.flags.allow_unlinked,
         "default_role": organization.default_role,
     }
-    if provider.can_use_scim(organization, request.user):
+    if provider.can_use_scim(organization.id, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
 
     form = AuthProviderSettingsForm(
@@ -177,7 +182,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             "auth_provider": auth_provider,
             "provider_name": provider.name,
             "scim_api_token": auth_provider.get_scim_token(),
-            "scim_url": auth_provider.get_scim_url(),
+            "scim_url": get_scim_url(auth_provider, organization),
             "content": response,
         }
 
@@ -186,7 +191,7 @@ class OrganizationAuthSettingsView(OrganizationView):
     @transaction.atomic
     def handle(self, request: Request, organization) -> Response:
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             pass
         else:
@@ -224,3 +229,14 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         # Otherwise user is in bad state since frontend/react should handle this case
         return HttpResponseRedirect(Organization.get_url(organization.slug))
+
+
+def get_scim_url(
+    auth_provider: AuthProvider | RpcAuthProvider, organization: Organization | RpcOrganization
+) -> str | None:
+    if auth_provider.flags.scim_enabled:
+        # the SCIM protocol doesn't use trailing slashes in URLs
+        return absolute_uri(f"api/0/organizations/{organization.slug}/scim/v2")
+
+    else:
+        return None

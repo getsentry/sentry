@@ -14,6 +14,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -38,6 +39,7 @@ class DetectorType(Enum):
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
+    DB_MAIN_THREAD = "db_main_thread"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -51,6 +53,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
+    DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
 }
 
 
@@ -66,6 +69,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
+    DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
 }
 
 
@@ -167,19 +171,46 @@ def get_duration_between_spans(first_span: Span, second_span: Span):
 
 
 def get_url_from_span(span: Span) -> str:
+    """
+    Parses the span data and pulls out the URL. Accounts for different SDKs and
+    different versions of SDKs formatting and parsing the URL contents
+    differently.
+    """
+
     data = span.get("data") or {}
-    url = data.get("url") or ""
-    if not url:
-        # If data is missing, fall back to description
-        description = span.get("description") or ""
-        parts = description.split(" ", 1)
-        if len(parts) == 2:
-            url = parts[1]
 
-    if type(url) is dict:
-        url = url.get("pathname") or ""
+    # The most modern version is to provide URL information in the span
+    # data
+    url_data = data.get("url")
 
-    return url
+    if type(url_data) is dict:
+        # Some transactions mysteriously provide the URL as a dict that looks
+        # like JavaScript's URL object
+        url = url_data.get("pathname") or ""
+        url += url_data.get("search") or ""
+        return url
+
+    if type(url_data) is str:
+        # Usually the URL is a regular string, and so is the query. This
+        # is the standardized format for all SDKs, and is the preferred
+        # format going forward. Otherwise, if `http.query` is absent, `url`
+        # contains the query.
+        url = url_data
+        query_data = data.get("http.query")
+        if type(query_data) is str and len(query_data) > 0:
+            url += f"?{query_data}"
+
+        return url
+
+    # Attempt to parse the full URL from the span description, in case
+    # the previous approaches did not yield a good result
+    description = span.get("description") or ""
+    parts = description.split(" ", 1)
+    if len(parts) == 2:
+        url = parts[1]
+        return url
+
+    return ""
 
 
 def fingerprint_spans(spans: List[Span], unique_only: bool = False):

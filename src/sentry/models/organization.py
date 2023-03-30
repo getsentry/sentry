@@ -674,7 +674,7 @@ class Organization(Model, SnowflakeIdMixin):
         return "".join(parts)
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.priority > 0:
+        if role.id != "member":
             return role.scopes
 
         scopes = set(role.scopes)
@@ -697,7 +697,7 @@ class Organization(Model, SnowflakeIdMixin):
     def remove_organization_mapping(cls, instance, **kwargs):
         from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 
-        organization_mapping_service.delete(instance.id)
+        organization_mapping_service.delete(organization_id=instance.id)
 
 
 post_delete.connect(

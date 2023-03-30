@@ -36,7 +36,7 @@ export function SuspectFunctionsTable({
     [location.query.functionsCursor]
   );
   const functionsSort = useMemo(
-    () => decodeScalar(location.query.functionsSort, '-p99'),
+    () => decodeScalar(location.query.functionsSort, '-p75'),
     [location.query.functionsSort]
   );
 

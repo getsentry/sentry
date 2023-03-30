@@ -9,7 +9,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
@@ -33,7 +32,6 @@ type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
 interface PlatformPickerProps {
   setPlatform: (key: PlatformKey | null) => void;
   defaultCategory?: Category;
-  disabledPlatforms?: {[key in PlatformKey]?: string};
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
   noAutoFilter?: boolean;
@@ -60,6 +58,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   get platformList() {
     const {category} = this.state;
+
     const currentCategory = categoryList.find(({id}) => id === category);
 
     const filter = this.state.filter.toLowerCase();
@@ -107,7 +106,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform, listProps, listClassName, disabledPlatforms} = this.props;
+    const {setPlatform, listProps, listClassName} = this.props;
     const {filter, category} = this.state;
 
     return (
@@ -142,23 +141,17 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
         </NavContainer>
         <PlatformList className={listClassName} {...listProps}>
           {platformList.map(platform => {
-            const disabled = !!disabledPlatforms?.[platform.id as PlatformKey];
-            const content = (
+            return (
               <PlatformCard
                 data-test-id={`platform-${platform.id}`}
                 key={platform.id}
                 platform={platform}
-                disabled={disabled}
                 selected={this.props.platform === platform.id}
                 onClear={(e: React.MouseEvent) => {
                   setPlatform(null);
                   e.stopPropagation();
                 }}
                 onClick={() => {
-                  if (disabled) {
-                    return;
-                  }
-
                   trackAdvancedAnalyticsEvent('growth.select_platform', {
                     platform_id: platform.id,
                     source: this.props.source,
@@ -168,19 +161,6 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
                 }}
               />
             );
-
-            if (disabled) {
-              return (
-                <Tooltip
-                  title={disabledPlatforms?.[platform.id as PlatformKey]}
-                  key={platform.id}
-                >
-                  {content}
-                </Tooltip>
-              );
-            }
-
-            return content;
           })}
         </PlatformList>
         {platformList.length === 0 && (
@@ -282,13 +262,11 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   padding: 0 0 14px;
   border-radius: 4px;
   background: ${p => p.selected && p.theme.alert.info.backgroundLight};
+  cursor: pointer;
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};
   }
-
-  opacity: ${p => (p.disabled ? 0.2 : null)};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
 
   h3 {
     flex-grow: 1;

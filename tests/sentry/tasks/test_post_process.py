@@ -17,6 +17,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models import (
@@ -1357,13 +1358,14 @@ class PostProcessGroupPerformanceTest(
         )
         if cache_key is None:
             cache_key = write_event_to_cache(event)
-        post_process_group(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
-            group_states=group_states,
-        )
+        with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=cache_key,
+                group_states=group_states,
+            )
         return cache_key
 
     @patch("sentry.tasks.post_process.run_post_process_job")
@@ -1437,6 +1439,9 @@ class PostProcessGroupPerformanceTest(
             is_new_group_environment=True,
         )
 
+        # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
+        # but because post-processing is async, this causes the assert to fail because it doesn't
+        # wait for the side effects to happen
         call_order = []
         mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
         mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
@@ -1523,7 +1528,7 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature("organizations:profile-blocked-main-thread-ppg"):
+        with self.feature(ProfileFileIOGroupType.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,
