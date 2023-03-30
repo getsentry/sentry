@@ -30,13 +30,17 @@ class EventStripper:
         new_event = dict(filter(self._filter_event, event.items()))
         new_event["contexts"] = dict(filter(self._filter_contexts, new_event["contexts"].items()))
 
+        stripped_frames = []
         frames = get_path(event, "exception", "values", -1, "stacktrace", "frames")
-        stripped_frames = self._strip_frames(frames)
-        new_event["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
+
+        if frames is not None:
+            stripped_frames = self._strip_frames(frames)
+            new_event["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
         debug_meta_images = get_path(event, "debug_meta", "images")
-        stripped_debug_meta_images = self._strip_debug_meta(debug_meta_images, stripped_frames)
-        new_event["debug_meta"]["images"] = stripped_debug_meta_images
+        if debug_meta_images is not None:
+            stripped_debug_meta_images = self._strip_debug_meta(debug_meta_images, stripped_frames)
+            new_event["debug_meta"]["images"] = stripped_debug_meta_images
 
         return new_event
 
