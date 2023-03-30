@@ -362,7 +362,7 @@ class MonitorEnvironment(Model):
         from sentry.coreapi import insert_data_to_database_legacy
         from sentry.event_manager import EventManager
         from sentry.models import Project
-        from sentry.signals import monitor_failed
+        from sentry.signals import monitor_environment_failed
 
         if last_checkin is None:
             next_checkin_base = timezone.now()
@@ -403,7 +403,7 @@ class MonitorEnvironment(Model):
         event_manager.normalize()
         data = event_manager.get_data()
         insert_data_to_database_legacy(data)
-        monitor_failed.send(monitor=self, sender=type(self))
+        monitor_environment_failed.send(monitor_environment=self, sender=type(self))
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
