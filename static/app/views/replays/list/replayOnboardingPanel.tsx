@@ -88,7 +88,10 @@ export default function ReplayOnboardingPanel() {
               action: primaryAction === 'create' ? t('Create') : t('Select'),
               projectMsg: (
                 <strong>
-                  {t(`Session Replay isn't available for %s.`, selectedProjects[0].slug)}
+                  {t(
+                    `Session Replay isn't available for project %s.`,
+                    selectedProjects[0].slug
+                  )}
                 </strong>
               ),
               link: (
