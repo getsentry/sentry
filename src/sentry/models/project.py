@@ -32,7 +32,6 @@ from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
-from sentry.monitors.models import Monitor
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
@@ -304,6 +303,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
+        from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
