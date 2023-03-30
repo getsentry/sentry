@@ -74,7 +74,12 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
-            queryset = queryset.filter(monitorenvironment__environment__in=environments)
+            if request.GET.get("include_new"):
+                queryset = queryset.filter(
+                    Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
+                )
+            else:
+                queryset = queryset.filter(monitorenvironment__environment__in=environments)
 
         if query:
             tokens = tokenize_query(query)
