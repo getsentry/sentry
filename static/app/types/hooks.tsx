@@ -6,6 +6,7 @@ import {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import type {Group} from 'sentry/types';
 import {UseExperiment} from 'sentry/utils/useExperiment';
 import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -101,6 +102,11 @@ type CodecovLinkProps = {
   organization: Organization;
 };
 
+type QualitativeIssueFeedbackProps = {
+  group: Group;
+  organization: Organization;
+};
+
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 /**
@@ -121,6 +127,7 @@ export type ComponentHooks = {
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;

@@ -9,6 +9,7 @@ import {Client} from 'sentry/api';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import GroupSidebar from 'sentry/components/group/sidebar';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
@@ -40,6 +41,10 @@ import {
   getGroupMostRecentActivity,
   ReprocessingStatus,
 } from '../utils';
+
+const IssuePriorityFeedback = HookOrDefault({
+  hookName: 'component:issue-priority-feedback',
+});
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
@@ -261,6 +266,10 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                     return (
                       <StyledLayoutMain>
                         {this.renderGroupStatusBanner()}
+                        <IssuePriorityFeedback
+                          organization={organization}
+                          group={group}
+                        />
                         <QuickTraceContext.Provider value={results}>
                           {eventWithMeta && (
                             <GroupEventHeader
@@ -279,7 +288,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                     );
                   }}
                 </QuickTraceQuery>
-
                 <StyledLayoutSide>
                   <GroupSidebar
                     organization={organization}
