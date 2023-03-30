@@ -55,19 +55,18 @@ def get_next_schedule(last_checkin, schedule_type, schedule):
     return next_schedule
 
 
-def get_monitor_environment_context(monitor_environment):
-    config = monitor_environment.monitor.config.copy()
+def get_monitor_context(monitor):
+    config = monitor.config.copy()
     if "schedule_type" in config:
-        config["schedule_type"] = monitor_environment.monitor.get_schedule_type_display()
+        config["schedule_type"] = monitor.get_schedule_type_display()
 
     return {
-        "id": str(monitor_environment.monitor.guid),
-        "slug": monitor_environment.monitor.slug,
-        "name": monitor_environment.monitor.name,
-        "environment": monitor_environment.environment.name,
-        "config": monitor_environment.monitor.config,
-        "status": monitor_environment.get_status_display(),
-        "type": monitor_environment.monitor.get_type_display(),
+        "id": str(monitor.guid),
+        "slug": monitor.slug,
+        "name": monitor.name,
+        "config": monitor.config,
+        "status": monitor.get_status_display(),
+        "type": monitor.get_type_display(),
     }
 
 
@@ -216,6 +215,11 @@ class Monitor(Model):
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
+        from sentry.coreapi import insert_data_to_database_legacy
+        from sentry.event_manager import EventManager
+        from sentry.models import Project
+        from sentry.signals import monitor_failed
+
         if last_checkin is None:
             next_checkin_base = timezone.now()
             last_checkin = self.last_checkin or timezone.now()
@@ -240,6 +244,19 @@ class Monitor(Model):
         if not affected:
             return False
 
+        event_manager = EventManager(
+            {
+                "logentry": {"message": f"Monitor failure: {self.name} ({reason})"},
+                "contexts": {"monitor": get_monitor_context(self)},
+                "fingerprint": ["monitor", str(self.guid), reason],
+                "tags": {"monitor.id": str(self.guid)},
+            },
+            project=Project(id=self.project_id),
+        )
+        event_manager.normalize()
+        data = event_manager.get_data()
+        insert_data_to_database_legacy(data)
+        monitor_failed.send(monitor=self, sender=type(self))
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
@@ -359,11 +376,6 @@ class MonitorEnvironment(Model):
     __repr__ = sane_repr("monitor_id", "environment_id")
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        from sentry.coreapi import insert_data_to_database_legacy
-        from sentry.event_manager import EventManager
-        from sentry.models import Project
-        from sentry.signals import monitor_failed
-
         if last_checkin is None:
             next_checkin_base = timezone.now()
             last_checkin = self.last_checkin or timezone.now()
@@ -387,21 +399,6 @@ class MonitorEnvironment(Model):
         )
         if not affected:
             return False
-
-        event_manager = EventManager(
-            {
-                "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
-                "contexts": {"monitor": get_monitor_environment_context(self)},
-                "fingerprint": ["monitor", str(self.guid), reason],
-                "environment": self.environment.name,
-                "tags": {"monitor.id": str(self.guid)},
-            },
-            project=Project(id=self.project_id),
-        )
-        event_manager.normalize()
-        data = event_manager.get_data()
-        insert_data_to_database_legacy(data)
-        monitor_failed.send(monitor=self, sender=type(self))
 
         return True
 
