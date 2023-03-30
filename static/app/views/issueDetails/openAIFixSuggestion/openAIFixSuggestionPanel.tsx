@@ -186,7 +186,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
               </AiLoaderWrapper>
             ) : dataIsError ? (
               PolicyErrorState ? (
-                <PolicyErrorState />
+                PolicyErrorState
               ) : (
                 <LoadingErrorWithoutMarginBottom onRetry={dataRefetch} />
               )
