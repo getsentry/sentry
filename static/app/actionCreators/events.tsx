@@ -18,9 +18,9 @@ import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {
   QueryKey,
+  useApiQuery,
   useMutation,
   UseMutationOptions,
-  useApiQuery,
   useQueryClient,
   UseQueryOptions,
 } from 'sentry/utils/queryClient';
