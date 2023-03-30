@@ -1,3 +1,4 @@
+import logging
 from typing import Any, List, Mapping, Sequence, Tuple
 
 import sentry_sdk
@@ -7,6 +8,8 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
+
+logger = logging.getLogger("sentry.tasks.process_commit_context")
 
 
 def find_commit_context_for_event(
@@ -23,19 +26,50 @@ def find_commit_context_for_event(
     result = []
     for code_mapping in code_mappings:
         if not code_mapping.organization_integration:
+            logger.info(
+                "process_commit_context.no_integration",
+                extra={
+                    **extra,
+                    "code_mapping_id": code_mapping.id,
+                },
+            )
             continue
 
         stacktrace_path = get_stacktrace_path_from_event_frame(frame)
 
         if not stacktrace_path:
+            logger.info(
+                "process_commit_context.no_stacktrace_path",
+                extra={
+                    **extra,
+                    "code_mapping_id": code_mapping.id,
+                },
+            )
             continue
 
         src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
 
         # src_path can be none if the stacktrace_path is an invalid filepath
         if not src_path:
+            logger.info(
+                "process_commit_context.no_src_path",
+                extra={
+                    **extra,
+                    "code_mapping_id": code_mapping.id,
+                    "stacktrace_path": stacktrace_path,
+                },
+            )
             continue
 
+        logger.info(
+            "process_commit_context.found_stacktrace_and_src_paths",
+            extra={
+                **extra,
+                "code_mapping_id": code_mapping.id,
+                "stacktrace_path": stacktrace_path,
+                "src_path": src_path,
+            },
+        )
         integration = code_mapping.organization_integration.integration
         install = integration.get_installation(
             code_mapping.organization_integration.organization_id
@@ -55,6 +89,16 @@ def find_commit_context_for_event(
                 code_mapping_id=code_mapping.id,
                 provider=integration.provider,
                 error_message=e.text,
+            )
+            logger.error(
+                "process_commit_context.failed_to_fetch_commit_context",
+                extra={
+                    **extra,
+                    "code_mapping_id": code_mapping.id,
+                    "stacktrace_path": stacktrace_path,
+                    "src_path": src_path,
+                    "error_message": e.text,
+                },
             )
 
         if commit_context:
