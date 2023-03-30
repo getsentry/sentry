@@ -30,6 +30,7 @@ def list():
 @click.argument("filename", required=True)
 @click.option(
     "--dryrun",
+    is_flag=True,
     default=False,
     required=False,
     help="Output exactly what changes would be made and in which order.",
@@ -92,36 +93,33 @@ def strict(filename, dryrun):
 
     if dryrun:
         click.echo("Dryrun flag on. ")
-        with open(filename) as stream:
-            data = yaml.safe_load(stream)
-            file_keys = (key[0] for key in data)
 
-            db_keys = (opt.name for opt in options.all())
+    with open(filename) as stream:
+        configmap_data = yaml.safe_load(stream)
 
-            # update the database to remove all keys NOT in the given file.
-            for key in db_keys:
-                if key not in file_keys:
+        data = configmap_data.get("data", {}).get("options-strict.yaml", "")
+
+        kv_generator = (line.split(": ") for line in data.split("\n") if line)
+
+        db_keys = (opt.name for opt in options.all())
+
+        # update the database to remove all keys NOT in the given file.
+        for key in db_keys:
+            if key not in kv_generator:
+                if dryrun:
                     click.echo(f"Would delete {key}.")
+                else:
+                    pass
+                    # click.echo(delete(key))
 
-            for key, val in data.items():
-                click.echo(f"Would update {key}, {val}.")
-
-    else:
-        click.echo("testing strict no dryrun.")
-        click.echo(filename)
-        with open(filename) as stream:
-            data = yaml.safe_load(stream)
-            file_keys = (key[0] for key in data)
-
-            db_keys = (opt.name for opt in options.all())
-
-            # update the database to remove all keys NOT in the given file.
-            for key in db_keys:
-                if key not in file_keys:
-                    click.echo(delete(key))
-
-            for key, val in data.items():
-                click.echo(set(key, val))
+        for line in data.split("\n"):
+            if line:
+                key, val = line.split(": ")
+                if dryrun:
+                    click.echo(f"Would update {key}, {val}.")
+                else:
+                    pass
+                    # click.echo(set(key, val))
 
 
 def get(key):
