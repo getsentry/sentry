@@ -9,7 +9,7 @@ from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text, smart_str
-from google.api_core.exceptions import ServiceUnavailable
+from google.api_core.exceptions import GatewayTimeout, ServiceUnavailable
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
@@ -63,6 +63,7 @@ def try_repeated(func):
             RefreshError,
             RequestException,
             ServiceUnavailable,
+            GatewayTimeout,
         ) as e:
             if idx >= GCS_RETRIES:
                 metrics_tags.update({"success": "0", "exception_class": e.__class__.__name__})
