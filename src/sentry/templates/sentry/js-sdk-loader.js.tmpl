@@ -105,12 +105,6 @@
         };
 
         sdkLoaded(callbacks, SDK);
-
-        // Ensure we load the SDK in non-lazy mode, even if no Sentry.onLoad() was provided
-        // If it were provided, it would have already been called by sdkLoaded() above.
-        if (!sdkIsLoaded() && !lazy) {
-          SDK.init();
-        }
       } catch (o_O) {
         console.error(o_O);
       }
@@ -122,13 +116,11 @@
   function sdkIsLoaded() {
     var __sentry = _window['__SENTRY__'];
     // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
-    return !(typeof __sentry === 'undefined') && __sentry.hub && __sentry.hub.getClient();
+    return !!(!(typeof __sentry === 'undefined') && __sentry.hub && __sentry.hub.getClient());
   }
 
   function sdkLoaded(callbacks, SDK) {
     try {
-      var data = queue.data;
-
       // We have to make sure to call all callbacks first
       for (var i = 0; i < callbacks.length; i++) {
         if (typeof callbacks[i] === 'function') {
@@ -136,7 +128,12 @@
         }
       }
 
+      var data = queue.data;
+
       var initAlreadyCalled = sdkIsLoaded();
+
+      // Call init first, if provided
+      data.sort((a, b) => a.f === 'init' ? -1 : 1);
 
       // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
       // We replay all calls to `Sentry.*` now
@@ -195,7 +192,6 @@
       });
     }
   };
-
 
   [
     'init',
