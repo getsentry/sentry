@@ -67,11 +67,15 @@
     _newScriptTag.crossOrigin = 'anonymous';
 
     // Once our SDK is loaded
-    _newScriptTag.addEventListener('load', function() {
+    _newScriptTag.addEventListener('load', function () {
       try {
-        // Restore onerror/onunhandledrejection handlers
-        _window[_onerror] = _oldOnerror;
-        _window[_onunhandledrejection] = _oldOnunhandledrejection;
+        // Restore onerror/onunhandledrejection handlers - only if not mutated in the meanwhile
+        if (_window[_onerror] && _window[_onerror].__SENTRY_LOADER__) {
+          _window[_onerror] = _oldOnerror;
+        }
+        if (_window[_onunhandledrejection] && _window[_onunhandledrejection].__SENTRY_LOADER__) {
+          _window[_onunhandledrejection] = _oldOnunhandledrejection;
+        }
 
         // Add loader as SDK source
         _window.SENTRY_SDK_SOURCE = 'loader';
@@ -133,7 +137,7 @@
       var initAlreadyCalled = sdkIsLoaded();
 
       // Call init first, if provided
-      data.sort((a, b) => a.f === 'init' ? -1 : 1);
+      data.sort((a, b) => a.f === 'init' ? -1 : 0);
 
       // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
       // We replay all calls to `Sentry.*` now
@@ -211,7 +215,7 @@
   // Store reference to the old `onerror` handler and override it with our own function
   // that will just push exceptions to the queue and call through old handler if we found one
   var _oldOnerror = _window[_onerror];
-  _window[_onerror] = function(message, source, lineno, colno, exception) {
+  _window[_onerror] = function() {
     // Use keys as "data type" to save some characters"
     queue({
       e: [].slice.call(arguments)
@@ -219,6 +223,7 @@
 
     if (_oldOnerror) _oldOnerror.apply(_window, arguments);
   };
+  _window[_onerror].__SENTRY_LOADER__ = true;
 
   // Do the same store/queue/call operations for `onunhandledrejection` event
   var _oldOnunhandledrejection = _window[_onunhandledrejection];
@@ -228,6 +233,7 @@
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
+  _window[_onunhandledrejection].__SENTRY_LOADER__ = true;
 
   if (!lazy) {
     setTimeout(function () {
