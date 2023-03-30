@@ -22,6 +22,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -61,7 +62,10 @@ class InterfaceWithLifecycle(ABC):
 
 
 def report_pydantic_type_validation_error(
-    field: pydantic.fields.ModelField, value: Any, errors: pydantic.error_wrappers.ErrorList
+    field: pydantic.fields.ModelField,
+    value: Any,
+    errors: pydantic.error_wrappers.ErrorList,
+    model_class: Optional[Type[Any]],
 ) -> None:
     with sentry_sdk.push_scope() as scope:
         scope.set_level("warning")
@@ -71,6 +75,7 @@ def report_pydantic_type_validation_error(
                 "field": field.name,
                 "value_type": str(type(value)),
                 "errors": str(errors),
+                "model_class": str(model_class),
             },
         )
         sentry_sdk.capture_exception(TypeError("Pydantic type validation error"))
@@ -101,11 +106,15 @@ def _hack_pydantic_type_validation() -> None:
     builtin_validate = pydantic.fields.ModelField.validate
 
     def validate(
-        field: pydantic.fields.ModelField, value: Any, *args: Any, **kwargs: Any
+        field: pydantic.fields.ModelField,
+        value: Any,
+        *args: Any,
+        cls: Optional[Type[Union[pydantic.BaseModel, pydantic.dataclasses.Dataclass]]] = None,
+        **kwargs: Any,
     ) -> Tuple[Optional[Any], Optional[pydantic.error_wrappers.ErrorList]]:
-        result, errors = builtin_validate(field, value, *args, **kwargs)
+        result, errors = builtin_validate(field, value, *args, cls=cls, **kwargs)
         if errors:
-            report_pydantic_type_validation_error(field, value, errors)
+            report_pydantic_type_validation_error(field, value, errors, cls)
         return result, None
 
     functools.update_wrapper(validate, builtin_validate)
