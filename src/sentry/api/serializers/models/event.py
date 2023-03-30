@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Sequence
 
+import sqlparse
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
@@ -23,6 +24,7 @@ from sentry.utils.safe import get_path
 
 CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
+FORMATTED_BREADCRUMB_CATEGORIES = frozenset(["query", "sql.query"])
 
 
 def get_crash_files(events):
@@ -79,6 +81,14 @@ def get_tags_with_meta(event):
     return (tags, meta_with_chunks(tags, tags_meta))
 
 
+def format_breadcrumb_messages(breadcrumb_data):
+    for entry in breadcrumb_data["values"]:
+        if entry["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
+            entry["message_formatted"] = sqlparse.format(entry["message"], reindent_aligned=True)
+
+    return breadcrumb_data
+
+
 def get_entries(event: Event | GroupEvent, user: User, is_public: bool = False):
     # XXX(dcramer): These are called entries for future-proofing
     platform = event.platform
@@ -97,6 +107,9 @@ def get_entries(event: Event | GroupEvent, user: User, is_public: bool = False):
             continue
 
         entry = {"data": data, "type": interface.external_type}
+
+        if entry["type"] == "breadcrumbs":
+            entry["data"] = format_breadcrumb_messages(entry["data"])
 
         api_meta = None
         if meta.get(key):
