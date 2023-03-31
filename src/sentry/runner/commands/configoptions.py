@@ -5,7 +5,7 @@ import click
 from sentry.runner.decorators import configuration
 
 tracked = [
-    re.compile("key+"),
+    re.compile("sentry:test_key.+"),
 ]
 
 verbose = False
@@ -25,7 +25,7 @@ def configoptions():
 @configuration
 def fetch(key: str):
     "Fetches the option for the given key."
-    click.echo(get(key))
+    click.echo(_get(key))
 
 
 @configoptions.command()
@@ -63,7 +63,7 @@ def patch(filename: str, dryrun: bool):
         keysToFetch = data.get("fetch", {})
         keysToFetch = create_key_value_generator(keysToFetch, "\n", ": ")
         for key in keysToFetch:
-            get(key, dryrun)
+            _get(key, dryrun)
 
         keysToUpdate = data.get("update", {})
         keysToUpdate = create_key_value_generator(keysToUpdate, "\n", ": ")
@@ -111,8 +111,12 @@ def strict(filename: str, dryrun: bool) -> bool:
         kv_generator = create_key_value_generator(data, "\n", ": ")
         db_keys = (opt.name for opt in options.all())
         for key in db_keys:
+
+            if not can_change(key):
+                continue
+
             if key not in kv_generator:
-                success = delete(key, dryrun)
+                success = _delete(key, dryrun)
                 if success:
                     click.echo(f"Successfully deleted: {key} (dry run:{dryrun})")
                 else:
@@ -120,18 +124,36 @@ def strict(filename: str, dryrun: bool) -> bool:
 
         kv_generator = create_key_value_generator(data, "\n", ": ")
         for line in kv_generator:
+            click.echo(f"line: {line} {type(line)}")
             key = line[0]
             val = ""
+            click.echo(f"key: {key} {type(key)}")
             if len(line) > 1:
                 val = line[1]
-            success = set(key, val, dryrun)
+            click.echo(f"val: {val} {type(val)}")
+            click.echo(f"dryrun: {dryrun} {type(dryrun)}")
+            success = _set(key, val, dryrun)
             if success:
                 click.echo(f"Successfully updated: {key} = {val} (dry run:{dryrun})")
             else:
                 click.echo(f"Failed to update: {key} = {val} (dry run:{dryrun})")
 
 
-def get(key: str, dryrun=False) -> str:
+@configoptions.command()
+@click.argument("key", required=True)
+@click.option(
+    "--dryrun",
+    is_flag=True,
+    default=False,
+    required=False,
+    help="Output exactly what changes would be made and in which order.",
+)
+@configuration
+def get(key: str, dryrun: bool = False) -> str:
+    return _get(key, dryrun)
+
+
+def _get(key: str, dryrun: bool = False) -> str:
     from sentry import options
     from sentry.options.manager import UnknownOption
 
@@ -141,10 +163,25 @@ def get(key: str, dryrun=False) -> str:
         return opt
     except UnknownOption:
         click.echo("unknown option: %s" % key)
-        return None
+        return ""
 
 
-def set(key: str, val: str, dryrun=False) -> bool:
+@configoptions.command()
+@click.argument("key", required=True)
+@click.argument("val", required=True)
+@click.option(
+    "--dryrun",
+    is_flag=True,
+    default=False,
+    required=False,
+    help="Output exactly what changes would be made and in which order.",
+)
+@configuration
+def set(key: str, val: str, dryrun: bool = False) -> bool:
+    return _set(key, val, dryrun)
+
+
+def _set(key: str, val: str, dryrun: bool = False) -> bool:
     from sentry import options
     from sentry.options.manager import UnknownOption
 
@@ -171,22 +208,34 @@ def set(key: str, val: str, dryrun=False) -> bool:
             try:
                 options.set(key, val)
                 success = True
-                click.echo(f"Updated key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
+                click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
             except Exception:
-                click.echo(
-                    f"Failed to update key: {opt.name} ({opt.type}) = {options.get(opt.name)}"
-                )
+                click.echo(f"Failed to update key: {opt.name} ({opt.type}) = {val}")
 
     return success
 
 
-def delete(key: str, dryrun=False) -> bool:
+@configoptions.command()
+@click.argument("key", required=True)
+@click.option(
+    "--dryrun",
+    is_flag=True,
+    default=False,
+    required=False,
+    help="Output exactly what changes would be made and in which order.",
+)
+@configuration
+def delete(key: str, dryrun: bool = False) -> bool:
+    return _delete(key, dryrun)
+
+
+def _delete(key: str, dryrun: bool = False) -> bool:
     from sentry import options
     from sentry.options.manager import UnknownOption
 
     success = False
     if not can_change(key):
-        return success
+        return True
 
     try:
         options.lookup_key(key)
