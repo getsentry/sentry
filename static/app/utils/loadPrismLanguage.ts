@@ -40,7 +40,7 @@ export async function loadPrismLanguage(
   }
 ) {
   try {
-    const language = prismLanguageMap[lang];
+    const language = prismLanguageMap[lang.toLowerCase()];
 
     // If Prism doesn't have any grammar file available for the language
     if (!language) {
@@ -54,7 +54,7 @@ export async function loadPrismLanguage(
       return;
     }
 
-    await import(`prismjs/components/prism-${language.toLowerCase()}.min`);
+    await import(`prismjs/components/prism-${language}.min`);
     onLoad?.();
   } catch (error) {
     // eslint-disable-next-line no-console
