@@ -33,8 +33,10 @@ type Props = {
 
 function TransactionMissingPlaceholder({
   type,
+  event,
   group,
 }: {
+  event: Event;
   group: Group;
   type?: QuickTraceQueryChildrenProps['type'];
 }) {
@@ -49,32 +51,33 @@ function TransactionMissingPlaceholder({
 
   return (
     <QuickTraceWrapper>
-      <Tooltip
-        isHoverable
-        position="bottom"
-        title={tct(
-          'The [type] for this event cannot be found. [link:Read the  docs] to understand why.',
-          {
-            type: type === 'missing' ? t('transaction') : t('trace'),
-            link: (
-              <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting" />
-            ),
-          }
-        )}
-      >
-        <QuickTraceContainer data-test-id="missing-trace-placeholder">
+      <QuickTraceContainer data-test-id="missing-trace-placeholder">
+        <Tooltip
+          isHoverable
+          position="bottom"
+          title={tct(
+            'The [type] for this event cannot be found. [link:Read the  docs] to understand why.',
+            {
+              type: type === 'missing' ? t('transaction') : t('trace'),
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting" />
+              ),
+            }
+          )}
+        >
           <EventNode type="white" icon={null}>
             ???
           </EventNode>
-          <TraceConnector />
-          <EventNode type="error" data-test-id="event-node">
-            <ErrorNodeContent>
-              <IconFire size="xs" />
-              {t('This Event')}
-            </ErrorNodeContent>
-          </EventNode>
-        </QuickTraceContainer>
-      </Tooltip>
+        </Tooltip>
+        <TraceConnector />
+        <EventNode type="error" data-test-id="event-node">
+          <ErrorNodeContent>
+            <IconFire size="xs" />
+            {t('This Event')}
+          </ErrorNodeContent>
+        </EventNode>
+        <TraceLink event={event} />
+      </QuickTraceContainer>
     </QuickTraceWrapper>
   );
 }
@@ -86,7 +89,13 @@ function IssueQuickTrace({group, event, location, organization, quickTrace}: Pro
     !defined(quickTrace.trace) ||
     quickTrace.trace.length === 0
   ) {
-    return <TransactionMissingPlaceholder group={group} type={quickTrace?.type} />;
+    return (
+      <TransactionMissingPlaceholder
+        event={event}
+        group={group}
+        type={quickTrace?.type}
+      />
+    );
   }
 
   trackAdvancedAnalyticsEvent('issue.quick_trace_status', {
