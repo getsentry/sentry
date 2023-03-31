@@ -66,15 +66,33 @@ export interface IntervalConfig extends BaseConfig {
 
 export type MonitorConfig = CrontabConfig | IntervalConfig;
 
-export interface Monitor {
-  config: MonitorConfig;
+export interface MonitorEnvironment {
   dateCreated: string;
-  id: string;
   lastCheckIn: string;
   name: string;
   nextCheckIn: string;
+  status: MonitorStatus;
+}
+
+export interface Monitor {
+  config: MonitorConfig;
+  dateCreated: string;
+  environments: MonitorEnvironment[];
+  id: string;
+  /**
+   * @deprecated Each monitor environment has this
+   */
+  lastCheckIn: string;
+  name: string;
+  /**
+   * @deprecated Each monitor environment has this
+   */
+  nextCheckIn: string;
   project: Project;
   slug: string;
+  /**
+   * @deprecated This is going to be become a standard ObjectStatus type
+   */
   status: MonitorStatus;
   type: MonitorType;
 }
