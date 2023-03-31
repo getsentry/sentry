@@ -92,6 +92,17 @@ export const GroupEventCarousel = ({
     });
   };
 
+  const copyLink = () => {
+    copyToClipboard(
+      window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`)
+    );
+    trackAdvancedAnalyticsEvent('issue_details.copy_event_link_clicked', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      ...getAnalyticsDataForEvent(event),
+    });
+  };
+
   const quickTrace = useContext(QuickTraceContext);
 
   return (
@@ -176,10 +187,14 @@ export const GroupEventCarousel = ({
         <Button
           size={BUTTON_SIZE}
           icon={<IconOpen size={BUTTON_ICON_SIZE} />}
-          aria-label="Newest"
           onClick={downloadJson}
         >
           JSON
+        </Button>
+      )}
+      {xlargeViewport && (
+        <Button size={BUTTON_SIZE} onClick={copyLink}>
+          Copy Link
         </Button>
       )}
       <DropdownMenu
@@ -192,18 +207,15 @@ export const GroupEventCarousel = ({
         }}
         items={[
           {
+            key: 'copy-event-id',
+            label: t('Copy Event ID'),
+            onAction: () => copyToClipboard(event.id),
+          },
+          {
             key: 'copy-event-url',
             label: t('Copy Event Link'),
-            onAction: () => {
-              copyToClipboard(
-                window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`)
-              );
-              trackAdvancedAnalyticsEvent('issue_details.copy_event_link_clicked', {
-                organization,
-                ...getAnalyticsDataForGroup(group),
-                ...getAnalyticsDataForEvent(event),
-              });
-            },
+            hidden: xlargeViewport,
+            onAction: copyLink,
           },
           {
             key: 'json',
