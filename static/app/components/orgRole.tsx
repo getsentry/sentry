@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -30,16 +30,35 @@ export const OrgRoleInfo = ({
     return getEffectiveOrgRole(memberOrgRoles, orgRoleList);
   }, [orgRole, orgRolesFromTeams, orgRoleList]);
 
-  if (!orgRoleFromMember) {
-    Sentry.withScope(scope => {
-      scope.setExtra('context', {
-        memberId: member.id,
-        orgRole: member.orgRole,
+  useEffect(() => {
+    if (!orgRoleFromMember) {
+      Sentry.withScope(scope => {
+        scope.setExtra('context', {
+          memberId: member.id,
+          orgRole: member.orgRole,
+        });
+        Sentry.captureException(new Error('OrgMember has an invalid orgRole.'));
       });
-      Sentry.captureException(new Error('OrgMember has an invalid orgRole.'));
-    });
+    }
+  }, [orgRoleFromMember, member]);
 
-    // This code path should not happen, so this weird UI is fine.
+  useEffect(() => {
+    if (!effectiveOrgRole) {
+      Sentry.withScope(scope => {
+        scope.setExtra('context', {
+          memberId: member.id,
+          orgRoleFromMember,
+          orgRolesFromTeams,
+          orgRoleList,
+          effectiveOrgRole,
+        });
+        Sentry.captureException(new Error('OrgMember has no effectiveOrgRole.'));
+      });
+    }
+  }, [effectiveOrgRole, member, orgRoleFromMember, orgRolesFromTeams, orgRoleList]);
+
+  // This code path should not happen, so this weird UI is fine.
+  if (!orgRoleFromMember) {
     return <Fragment>{t('Error Role')}</Fragment>;
   }
 
@@ -48,17 +67,6 @@ export const OrgRoleInfo = ({
   }
 
   if (!effectiveOrgRole) {
-    Sentry.withScope(scope => {
-      scope.setExtra('context', {
-        memberId: member.id,
-        orgRoleFromMember,
-        orgRolesFromTeams,
-        orgRoleList,
-        effectiveOrgRole,
-      });
-      Sentry.captureException(new Error('OrgMember has no effectiveOrgRole.'));
-    });
-
     return <Fragment>{orgRoleFromMember.name}</Fragment>;
   }
 
