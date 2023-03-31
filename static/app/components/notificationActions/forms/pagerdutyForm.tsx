@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 // import {
 //   NotificationActionCell,
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -85,10 +85,14 @@ const PagerdutyForm = ({
         <DropdownMenu
           items={accountOptions}
           trigger={triggerProps => (
-            <Button {...triggerProps} aria-label={t('Selected Account')} size="xs">
+            <DropdownButton
+              {...triggerProps}
+              aria-label={t('Select Account')}
+              size="xs"
+              data-test-id="pagerduty-account-dropdown"
+            >
               {selectedAccount}
-              <StyledIconChevron direction="down" />
-            </Button>
+            </DropdownButton>
           )}
         />
 
@@ -97,10 +101,14 @@ const PagerdutyForm = ({
         <DropdownMenu
           items={getServiceOptions()}
           trigger={triggerProps => (
-            <Button {...triggerProps} aria-label={t('Selected Service')} size="xs">
+            <DropdownButton
+              {...triggerProps}
+              aria-label={t('Select Service')}
+              size="xs"
+              data-test-id="target-display-dropdown"
+            >
               {selectedDisplay}
-              <StyledIconChevron direction="down" />
-            </Button>
+            </DropdownButton>
           )}
         />
       </NotificationActionCell>
@@ -116,10 +124,6 @@ const PagerdutyForm = ({
     </NotificationActionFormContainer>
   );
 };
-
-const StyledIconChevron = styled(IconChevron)`
-  margin-left: ${space(1)};
-`;
 
 const NotificationActionCell = styled('div')`
   display: flex;

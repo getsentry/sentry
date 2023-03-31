@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Input from 'sentry/components/input';
 // import {
 //   NotificationActionCell,
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -73,10 +73,14 @@ const SlackForm = ({
         <DropdownMenu
           items={workspaceOptions}
           trigger={triggerProps => (
-            <Button {...triggerProps} aria-label={t('Add Alert')} size="xs">
+            <DropdownButton
+              {...triggerProps}
+              size="xs"
+              aria-label={t('Select Workspace')}
+              data-test-id="slack-workspace-dropdown"
+            >
               {selectedWorkspace}
-              <StyledIconChevron direction="down" />
-            </Button>
+            </DropdownButton>
           )}
         />
 
@@ -88,6 +92,7 @@ const SlackForm = ({
           value={action.targetDisplay ?? ''}
           size="xs"
           onChange={e => onChange('targetDisplay', e.target.value)}
+          data-test-id="target-display-input"
         />
 
         <div>{t('(with the channel id)')}</div>
@@ -98,6 +103,7 @@ const SlackForm = ({
           value={action.targetIdentifier ?? ''}
           size="xs"
           onChange={e => onChange('targetIdentifier', e.target.value)}
+          data-test-id="target-identifier-input"
         />
       </NotificationActionCell>
 
@@ -112,10 +118,6 @@ const SlackForm = ({
     </NotificationActionFormContainer>
   );
 };
-
-const StyledIconChevron = styled(IconChevron)`
-  margin-left: ${space(1)};
-`;
 
 const StyledInput = styled(Input)`
   width: 100px;
