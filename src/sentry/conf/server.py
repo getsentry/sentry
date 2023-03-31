@@ -896,7 +896,7 @@ CELERYBEAT_SCHEDULE = {
     "dynamic-sampling-prioritize-transactions": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
         # Run every 5 minutes
-        "schedule": timedelta(minutes=5),
+        "schedule": timedelta(minutes=6),
     },
 }
 
