@@ -351,13 +351,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             )
 
         # Manually move over organization id's for Monitors
-        try:
-            Monitor.objects.filter(organization_id=old_org_id).update(
-                organization_id=organization.id
-            )
-        except IntegrityError:
-            # not sure what to do here
-            pass
+        Monitor.objects.filter(organization_id=old_org_id).update(organization_id=organization.id)
 
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
