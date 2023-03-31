@@ -28,6 +28,8 @@ class HistoricGroupCounts(TestCase):  # type: ignore
             data={
                 "event_id": uuid4().hex,
                 "message": "some message",
+                # XXX: Let's create a method that help us control which hour this will fall under
+                # XXX: Write tests for this
                 "timestamp": before_now(minutes=minutes_ago).timestamp(),
                 "fingerprint": [fingerprint],
             },
@@ -37,26 +39,40 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         event = self._load_event_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
             {
+                "count()": 1,
                 "group_id": event.group_id,
                 "hourBucket": to_start_of_hour(event.datetime),
                 "project_id": event.project_id,
             }
         ]
 
-    def test_query_multiple_groups(self) -> None:
+    def test_query_multiple_groups_same_project(self) -> None:
         event1 = self._load_event_for_group(fingerprint="group-1")
-        event2 = self._load_event_for_group(fingerprint="group-2", minutes_ago=65)
+        group_1_id = event1.group_id
+        # one event in its own hour and two in another
+        event2 = self._load_event_for_group(fingerprint="group-2", minutes_ago=120)
+        group_2_id = event2.group_id
+        event3 = self._load_event_for_group(fingerprint="group-2", minutes_ago=60)
+        self._load_event_for_group(fingerprint="group-2", minutes_ago=60)
 
         assert query_groups_past_counts(Group.objects.all()) == [
             {
-                "group_id": event1.group_id,
+                "count()": 1,
+                "group_id": group_1_id,
                 "hourBucket": to_start_of_hour(event1.datetime),
-                "project_id": event1.project_id,
+                "project_id": self.project.id,
             },
             {
-                "group_id": event2.group_id,
+                "count()": 1,
+                "group_id": group_2_id,
                 "hourBucket": to_start_of_hour(event2.datetime),
-                "project_id": event2.project_id,
+                "project_id": self.project.id,
+            },
+            {
+                "count()": 2,
+                "group_id": group_2_id,
+                "hourBucket": to_start_of_hour(event3.datetime),
+                "project_id": self.project.id,
             },
         ]
 
