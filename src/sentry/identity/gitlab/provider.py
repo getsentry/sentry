@@ -98,7 +98,9 @@ class GitlabIdentityProvider(OAuth2Provider):
         kwargs["identity"] = identity
         data = self.get_refresh_token_params(refresh_token, *args, **kwargs)
 
-        req = safe_urlopen(url=refresh_token_url, headers={}, data=data, verify_ssl=kwargs["verify_ssl"])
+        req = safe_urlopen(
+            url=refresh_token_url, headers={}, data=data, verify_ssl=kwargs["verify_ssl"]
+        )
 
         try:
             body = safe_urlread(req)

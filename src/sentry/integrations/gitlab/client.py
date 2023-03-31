@@ -128,7 +128,7 @@ class GitLabApiClient(ApiClient):
             refresh_token_url="{}{}".format(
                 self.metadata["base_url"], GitLabApiClientPath.oauth_token
             ),
-            verify_ssl=self.metadata["verify_ssl"]
+            verify_ssl=self.metadata["verify_ssl"],
         )
 
     def get_user(self):
