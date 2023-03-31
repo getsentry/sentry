@@ -62,7 +62,7 @@ def fetch_projects_with_total_volumes(
         where += [Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, sample_rate)]
 
     keep_count = Function(
-        "count",
+        "countIf",
         [
             Function(
                 "equals",
@@ -72,7 +72,7 @@ def fetch_projects_with_total_volumes(
         alias="keep_count",
     )
     drop_count = Function(
-        "count",
+        "countIf",
         [
             Function(
                 "equals",

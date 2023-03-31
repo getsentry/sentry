@@ -9,7 +9,13 @@ from sentry.dynamic_sampling.rules.utils import ProjectId, TransactionName
 class DSElement:
     id: Union[ProjectId, TransactionName]
     count: float
+    count_keep: int
+    count_drop: int
     new_sample_rate: float = 0.0
+
+    @property
+    def actual_sample_rate(self) -> float:
+        return self.count_keep / (self.count_drop + self.count_keep)
 
 
 def total_elements(ds_elements: List[DSElement]) -> float:

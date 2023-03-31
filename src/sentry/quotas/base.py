@@ -469,3 +469,4 @@ class Quota(Service):
 
         :param project: The project model.
         """
+        return 0.25

@@ -1,7 +1,8 @@
 import logging
+from collections import namedtuple
 from typing import Sequence, Tuple
 
-from sentry import options, quotas
+from sentry import features, options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
 from sentry.dynamic_sampling.models.utils import DSElement
@@ -92,18 +93,22 @@ def adjust_sample_rates(
     projects = []
     project_ids_with_counts = {}
     # TODO: replace it in another PR with calculating actual sample rate
-    for project_id, count_per_root, _, _ in projects_with_tx_count:
-        project_ids_with_counts[project_id] = count_per_root
+    Counter = namedtuple("Counter", ["count", "count_keep", "count_drop"])
+    for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
+        project_ids_with_counts[project_id] = Counter(count_per_root, count_keep, count_drop)
 
     sample_rate = None
     for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
         sample_rate = quotas.get_blended_sample_rate(project)
         if sample_rate is None:
             continue
+        counts = project_ids_with_counts[project.id]
         projects.append(
             DSElement(
                 id=project.id,
-                count=project_ids_with_counts[project.id],
+                count=counts.count,
+                count_keep=counts.count_keep,
+                count_drop=counts.count_drop,
             )
         )
 
