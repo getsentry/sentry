@@ -62,8 +62,11 @@ def cluster_projects(projects: Sequence[Project]) -> None:
         if features.has("organizations:transaction-name-clusterer", project.organization):
             with sentry_sdk.start_span(op="txcluster_project") as span:
                 span.set_data("project_id", project.id)
+                tx_names = list(redis.get_transaction_names(project))
+                if len(tx_names) < redis.MAX_SET_SIZE:
+                    return
                 clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
-                clusterer.add_input(redis.get_transaction_names(project))
+                clusterer.add_input(tx_names)
                 new_rules = clusterer.get_rules()
                 rules.update_rules(project, new_rules)
 

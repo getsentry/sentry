@@ -465,7 +465,9 @@ class RpcBackedAccess(Access):
     def roles(self) -> Iterable[str] | None:
         if self.rpc_user_organization_context.member is None:
             return None
-        return organization_service.get_all_org_roles(self.rpc_user_organization_context.member)
+        return organization_service.get_all_org_roles(
+            organization_member=self.rpc_user_organization_context.member
+        )
 
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
@@ -569,7 +571,7 @@ class RpcBackedAccess(Access):
             "organizations:team-roles", self.rpc_user_organization_context.organization
         ):
             with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
-                project_teams_id = [p.id for p in project.teams.all()]
+                project_teams_id = set(project.teams.values_list("id", flat=True))
                 orgmember_teams = self.rpc_user_organization_context.member.member_teams
                 span.set_tag("organization", self.rpc_user_organization_context.organization.id)
                 span.set_tag(
@@ -843,7 +845,7 @@ class SystemAccess(OrganizationlessAccess):
     def __init__(self) -> None:
         super().__init__(
             auth_state=RpcAuthState(
-                sso_state=RpcMemberSsoState(False, False),
+                sso_state=RpcMemberSsoState(is_required=False, is_valid=False),
                 permissions=[],
             ),
         )

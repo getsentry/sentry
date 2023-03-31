@@ -85,7 +85,16 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
     start_time = time.time()
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     offset = 0
+
+    # TODO remove this when we are happy with the database load
+    #   We use this mechanism to be able to adjust the db load, we can control what percentage
+    #   of organisations are retrieved from the database.
     load_rate = int(options.get("dynamic-sampling.prioritise_transactions.load_rate") * 100)
+    if load_rate <= 99:
+        restrict_orgs = [Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, load_rate)]
+    else:
+        restrict_orgs = []
+
     last_result: List[Tuple[int, int]] = []
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
@@ -99,11 +108,11 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
                     Column("org_id"),
                 ],
                 where=[
-                    Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, load_rate),
                     Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
-                ],
+                ]
+                + restrict_orgs,
                 granularity=Granularity(3600),
                 orderby=[
                     OrderBy(Column("org_id"), Direction.ASC),
