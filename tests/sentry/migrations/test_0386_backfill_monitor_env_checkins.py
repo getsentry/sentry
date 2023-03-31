@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.models import ScheduledDeletion
@@ -142,11 +143,10 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
         self.checkin_multiple_env.refresh_from_db()
         self.checkin_old.refresh_from_db()
         self.checkin_new.refresh_from_db()
-        self.checkin_deleted.refresh_from_db()
 
         assert self.checkin_default.monitor_environment == self.monitor_env_default
         assert self.checkin_multiple_env.monitor_environment == self.monitor_env_multiple
         assert self.checkin_old.monitor_environment == self.monitor_env_new
         assert self.checkin_new.monitor_environment == self.monitor_env_new
-        # TODO this will need to be fixed when project deletion task is fixed for monitors
-        assert self.checkin_deleted.monitor_environment is None
+        with pytest.raises(MonitorCheckIn.DoesNotExist):
+            self.checkin_deleted.refresh_from_db()
