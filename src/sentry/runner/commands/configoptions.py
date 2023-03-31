@@ -1,6 +1,12 @@
+import re
+
 import click
 
 from sentry.runner.decorators import configuration
+
+tracked = [
+    re.compile("key+"),
+]
 
 
 def create_key_value_generator(data: str, newline_separator: str, kv_separator: str):
@@ -192,6 +198,13 @@ def delete(key: str, dryrun=False) -> bool:
 def can_change(key: str) -> bool:
     changable = False
     # TODO: Figure out how to look this up
+    for i in tracked:
+        is_match = i.match(key)
+        if is_match:
+            click.echo(f"Key({key}) matches a tracked Regex({i})")
+            changable = True
+            break
+
     if changable:
         click.echo(f"Key({key}) is mutable!")
     else:
