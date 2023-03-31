@@ -61,7 +61,7 @@ class ProjectPermissionTest(ProjectPermissionBase):
         user = self.create_user(is_superuser=False)
         member = self.create_member(user=user, organization=self.org, role="member")
         self.create_team_membership(team, member, role="admin")
-        assert self.has_object_perm("GET", self.project, user=user)
+        assert self.has_object_perm("GET", project, user=user)
         assert self.has_object_perm("POST", project, user=user)
         assert self.has_object_perm("PUT", project, user=user)
         assert self.has_object_perm("DELETE", project, user=user)
