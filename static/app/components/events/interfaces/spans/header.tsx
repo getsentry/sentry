@@ -424,8 +424,12 @@ class TraceViewHeader extends Component<PropType, State> {
           const hasProfileMeasurementsChart =
             organization.features.includes('mobile-cpu-memory-in-transactions') &&
             profiles?.type === 'resolved' &&
+            // Check that this profile is for android
+            'metadata' in profiles.data &&
+            profiles.data.metadata.platform === 'android' &&
+            // Check that this profile has measurements
             'measurements' in profiles?.data &&
-            defined(profiles?.data?.measurements?.cpu_usage);
+            defined(profiles.data.measurements?.cpu_usage);
 
           return (
             <HeaderContainer
