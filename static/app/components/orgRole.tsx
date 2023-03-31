@@ -109,12 +109,8 @@ export const OrgRoleInfo = ({
 };
 
 const Wrapper = styled('span')`
-  display: inline;
-
-  > :last-child {
-    vertical-align: middle;
-    margin: 0 ${space(0.5)};
-  }
+  display: inline-flex;
+  gap: ${space(0.5)};
 `;
 
 const TooltipWrapper = styled('div')`
