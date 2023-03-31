@@ -249,7 +249,11 @@ def _delete(key: str, dryrun: bool = False) -> bool:
 
 
 def can_change(key: str) -> bool:
-    changable = False
+    from sentry.options import manager
+
+    opt = get(key)
+    # if opt.flags
+    changable = not ((opt.flags & manager.FLAG_NOSTORE) and (opt.flags & manager.FLAG_IMMUTABLE))
     # TODO: Figure out how to look this up
     for i in tracked:
         is_match = i.match(key)
