@@ -1,5 +1,6 @@
 from sentry.api.bases.project import ProjectPermission
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -52,6 +53,18 @@ class ProjectPermissionTest(ProjectPermissionBase):
         assert not self.has_object_perm("POST", self.project, user=user)
         assert not self.has_object_perm("PUT", self.project, user=user)
         assert not self.has_object_perm("DELETE", self.project, user=user)
+
+    @with_feature("organizations:team-roles")
+    def test_member_with_team_access_and_team_role(self):
+        team = self.create_team(organization=self.org)
+        project = self.create_project(organization=self.org, teams=[team])
+        user = self.create_user(is_superuser=False)
+        member = self.create_member(user=user, organization=self.org, role="member")
+        self.create_team_membership(team, member, role="admin")
+        assert self.has_object_perm("GET", project, user=user)
+        assert self.has_object_perm("POST", project, user=user)
+        assert self.has_object_perm("PUT", project, user=user)
+        assert self.has_object_perm("DELETE", project, user=user)
 
     def test_admin_without_team_access(self):
         team = self.create_team(organization=self.org)
@@ -249,6 +262,18 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         assert not self.has_object_perm("POST", self.project, user=user)
         assert not self.has_object_perm("PUT", self.project, user=user)
         assert not self.has_object_perm("DELETE", self.project, user=user)
+
+    @with_feature("organizations:team-roles")
+    def test_member_with_team_access_and_team_role(self):
+        team = self.create_team(organization=self.org)
+        project = self.create_project(organization=self.org, teams=[team])
+        user = self.create_user(is_superuser=False)
+        member = self.create_member(user=user, organization=self.org, role="member")
+        self.create_team_membership(team, member, role="admin")
+        assert self.has_object_perm("GET", project, user=user)
+        assert self.has_object_perm("POST", project, user=user)
+        assert self.has_object_perm("PUT", project, user=user)
+        assert self.has_object_perm("DELETE", project, user=user)
 
     def test_admin_without_team_access(self):
         team = self.create_team(organization=self.org)
