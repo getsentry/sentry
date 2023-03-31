@@ -15,6 +15,11 @@ type SourceMapDebugParam = {
 
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
+interface ExternalIssueParams extends CommonGroupAnalyticsData {
+  external_issue_provider: string;
+  external_issue_type: 'plugin' | 'integration';
+}
+
 export type IssueEventParameters = {
   'event_cause.dismissed': {};
   'event_cause.docs_clicked': {};
@@ -34,6 +39,8 @@ export type IssueEventParameters = {
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
   'issue_details.event_details_clicked': GroupEventParams;
+  'issue_details.external_issue_created': ExternalIssueParams;
+  'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
@@ -237,4 +244,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue_details.external_issue_modal_opened':
+    'Issue Details: External Issue Modal Opened',
+  'issue_details.external_issue_created': 'Issue Details: External Issue Created',
 };

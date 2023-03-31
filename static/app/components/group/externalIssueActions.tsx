@@ -8,7 +8,10 @@ import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, GroupIntegration} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationItem from 'sentry/views/settings/organizationIntegrations/integrationItem';
 
 import ExternalIssueForm from './externalIssueForm';
@@ -25,6 +28,7 @@ type LinkedIssues = {
 };
 
 const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
+  const organization = useOrganization();
   const api = useApi();
   const {linked, unlinked} = configurations
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
@@ -62,11 +66,21 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
     });
   };
 
-  const doOpenModal = (integration: GroupIntegration) =>
+  const doOpenModal = (integration: GroupIntegration) => {
+    trackAdvancedAnalyticsEvent('issue_details.external_issue_modal_opened', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      external_issue_provider: integration.provider.key,
+      external_issue_type: 'integration',
+    });
+
     openModal(
-      deps => <ExternalIssueForm {...deps} {...{group, onChange, integration}} />,
+      deps => (
+        <ExternalIssueForm {...deps} {...{group, onChange, integration, organization}} />
+      ),
       {closeEvents: 'escape-key'}
     );
+  };
 
   return (
     <Fragment>
