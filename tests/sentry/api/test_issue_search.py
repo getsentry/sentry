@@ -321,10 +321,12 @@ class DeviceClassValueTest(TestCase):
         assert convert_device_class_value(["high"], [self.project], self.user, None) == ["3"]
         assert convert_device_class_value(["medium"], [self.project], self.user, None) == ["2"]
         assert convert_device_class_value(["low"], [self.project], self.user, None) == ["1"]
-        assert convert_device_class_value(["medium", "high"], [self.project], self.user, None) == [
+        assert sorted(
+            convert_device_class_value(["medium", "high"], [self.project], self.user, None)
+        ) == [
             "2",
             "3",
         ]
-        assert convert_device_class_value(
-            ["low", "medium", "high"], [self.project], self.user, None
+        assert sorted(
+            convert_device_class_value(["low", "medium", "high"], [self.project], self.user, None)
         ) == ["1", "2", "3"]
