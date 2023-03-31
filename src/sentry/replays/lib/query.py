@@ -162,7 +162,7 @@ class Selector(Field):
                 columns.append(Column("click_aria_label"))
                 values.append(query.aria_label)
             if query.classes:
-                columns.append(Column("click_class"))
+                columns.append(Column("click_classes"))
                 values.append(query.classes)
             if query.id:
                 columns.append(Column("click_id"))
