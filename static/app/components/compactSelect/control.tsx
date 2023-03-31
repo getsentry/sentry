@@ -19,6 +19,7 @@ import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
 
+import {SingleListProps} from './list';
 import {SelectOption} from './types';
 
 export interface SelectContextValue {
@@ -59,7 +60,16 @@ export const SelectContext = createContext<SelectContextValue>({
   overlayIsOpen: false,
 });
 
-export interface ControlProps extends UseOverlayProps {
+export interface ControlProps
+  extends Omit<
+      React.BaseHTMLAttributes<HTMLDivElement>,
+      // omit keys from SingleListProps because those will be passed to <List /> instead
+      keyof Omit<
+        SingleListProps<React.Key>,
+        'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+      >
+    >,
+    UseOverlayProps {
   children?: React.ReactNode;
   className?: string;
   /**
