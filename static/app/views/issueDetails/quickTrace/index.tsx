@@ -14,10 +14,9 @@ type Props = {
   group: Group;
   location: Location;
   organization: Organization;
-  isPerformanceIssue?: boolean;
 };
 
-function QuickTrace({event, organization, location, isPerformanceIssue}: Props) {
+function QuickTrace({group, event, organization, location}: Props) {
   const hasPerformanceView = organization.features.includes('performance-view');
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
   const quickTrace = useContext(QuickTraceContext);
@@ -35,7 +34,7 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
       organization={organization}
       event={event}
       location={location}
-      isPerformanceIssue={isPerformanceIssue}
+      group={group}
       quickTrace={quickTrace}
     />
   );
