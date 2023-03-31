@@ -28,7 +28,7 @@ from sentry.models import Environment
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
-    from sentry.models.group import Project
+    from sentry.models import Project
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
