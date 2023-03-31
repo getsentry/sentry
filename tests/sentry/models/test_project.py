@@ -20,6 +20,7 @@ from sentry.models import (
     User,
     UserOption,
 )
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.models import SnubaQuery
@@ -66,6 +67,14 @@ class ProjectTest(TestCase):
             data={},
         )
 
+        monitor = Monitor.objects.create(
+            name="test-monitor",
+            organization_id=from_org.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
         project.transfer_to(organization=to_org)
 
         project = Project.objects.get(id=project.id)
@@ -77,6 +86,11 @@ class ProjectTest(TestCase):
         assert updated_rule.id == rule.id
         assert updated_rule.environment_id != rule.environment_id
         assert updated_rule.environment_id == Environment.get_or_create(project, "production").id
+
+        updated_monitor = Monitor.objects.get(name="test-monitor")
+        assert updated_monitor.id == monitor.id
+        assert updated_monitor.organization_id != monitor.organization_id
+        assert updated_monitor.project_id == monitor.project_id
 
     def test_transfer_to_organization_slug_collision(self):
         from_org = self.create_organization()
