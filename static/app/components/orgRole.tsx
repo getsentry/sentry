@@ -4,9 +4,8 @@ import * as Sentry from '@sentry/react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization} from 'sentry/types';
 import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
@@ -44,7 +43,7 @@ export const OrgRoleInfo = ({
     return <Fragment>{t('Error Role')}</Fragment>;
   }
 
-  if (!orgRolesFromTeams || orgRolesFromTeams.length === 0) {
+  if (orgRolesFromTeams.length === 0) {
     return <Fragment>{orgRoleFromMember.name}</Fragment>;
   }
 
@@ -69,16 +68,16 @@ export const OrgRoleInfo = ({
     <TooltipWrapper>
       <div>{t('This user recieved org-level roles from several sources.')}</div>
 
-      <ListWrapper>
+      <div>
         <TeamRow>
           <TeamLink to={`${urlPrefix}member/${member.id}/`}>
             {t('User-specific')}
           </TeamLink>
           <div>: {orgRoleFromMember.name}</div>
         </TeamRow>
+      </div>
 
-        <br />
-
+      <div>
         <div>{t('Teams')}:</div>
         {orgRolesFromTeams
           .sort((a, b) => a.teamSlug.localeCompare(b.teamSlug))
@@ -88,7 +87,7 @@ export const OrgRoleInfo = ({
               <div>: {r.role.name}</div>
             </TeamRow>
           ))}
-      </ListWrapper>
+      </div>
 
       <div>
         {tct(
@@ -106,9 +105,7 @@ export const OrgRoleInfo = ({
   return (
     <Wrapper>
       {effectiveOrgRole.name}
-      <Tooltip isHoverable title={tooltipBody}>
-        <IconInfo />
-      </Tooltip>
+      <QuestionTooltip isHoverable size="sm" title={tooltipBody} />
     </Wrapper>
   );
 };
@@ -124,9 +121,6 @@ const TooltipWrapper = styled('div')`
   row-gap: ${space(1.5)};
   text-align: left;
   overflow: hidden;
-`;
-const ListWrapper = styled('div')`
-  display: block;
 `;
 
 const TeamRow = styled('div')`
