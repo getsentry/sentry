@@ -23,20 +23,15 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            database_operations=[],
-            state_operations=[
-                migrations.AddConstraint(
-                    model_name="perfstringindexer",
-                    constraint=models.UniqueConstraint(
-                        fields=("string", "organization_id", "use_case_id"),
-                        name="perf_unique_org_string_usecase",
-                    ),
-                ),
-                migrations.RemoveConstraint(
-                    model_name="perfstringindexer",
-                    name="perf_unique_org_string",
-                ),
-            ],
-        )
+        migrations.AddConstraint(
+            model_name="perfstringindexer",
+            constraint=models.UniqueConstraint(
+                fields=("string", "organization_id", "use_case_id"),
+                name="perf_unique_org_string_usecase",
+            ),
+        ),
+        migrations.RemoveConstraint(
+            model_name="perfstringindexer",
+            name="perf_unique_org_string",
+        ),
     ]
