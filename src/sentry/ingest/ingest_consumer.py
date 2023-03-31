@@ -38,6 +38,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.sdk import mark_scope_as_unsafe
+from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -367,10 +368,14 @@ def process_individual_attachment(message, projects) -> None:
         logger.info("Organization has no event attachments: %s", project_id)
         return
 
-    # Attachments may be uploaded for events that already exist. Fetch the
-    # existing group_id, so that the attachment can be fetched by group-level
-    # APIs. This is inherently racy.
-    event = eventstore.get_event_by_id(project.id, event_id)
+    try:
+        # Attachments may be uploaded for events that already exist. Fetch the
+        # existing group_id, so that the attachment can be fetched by group-level
+        # APIs. This is inherently racy.
+        event = eventstore.get_event_by_id(project.id, event_id)
+    except RateLimitExceeded as e:
+        event = None
+        logger.exception(e)
 
     group_id = None
     if event is not None:
