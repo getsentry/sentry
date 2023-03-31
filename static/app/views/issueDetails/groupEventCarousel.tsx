@@ -6,8 +6,8 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Clipboard from 'sentry/components/clipboard';
+import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
@@ -138,13 +138,11 @@ export const GroupEventCarousel = ({
             {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
                 {getDynamicText({
-                  fixed: '1d ago',
+                  fixed: 'Jan 1, 12:00 AM',
                   value: (
-                    <TimeSince
-                      date={event.dateCreated ?? event.dateReceived}
-                      tooltipBody={<EventCreatedTooltip event={event} />}
-                      unitStyle="short"
-                    />
+                    <Tooltip showUnderline title={<EventCreatedTooltip event={event} />}>
+                      <DateTime date={event.dateCreated ?? event.dateReceived} />
+                    </Tooltip>
                   ),
                 })}
                 {isOverLatencyThreshold && (
