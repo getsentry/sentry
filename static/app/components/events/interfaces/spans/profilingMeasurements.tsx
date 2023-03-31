@@ -76,6 +76,7 @@ function Chart({data}: ChartProps) {
             opacity: 0.5,
           },
         },
+        boundaryGap: false,
       }}
       series={series}
       renderer="svg"
