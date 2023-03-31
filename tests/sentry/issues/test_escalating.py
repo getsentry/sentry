@@ -1,42 +1,36 @@
-# import unittest
-# from typing import Dict, List
-from datetime import datetime
+from typing import Tuple
 
+import pytest
+
+from sentry.eventstore.models import Event
 from sentry.issues.escalating import query_groups_past_counts
-from sentry.utils.snuba import to_start_of_hour
 from sentry.models import Group
-
-# from sentry.issues.escalating import InvalidProjectsToGroupsMap, query_groups_past_counts
-# from sentry.utils.snuba import SnubaError
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
+from sentry.utils.snuba import SnubaError, to_start_of_hour
 
 
-class HistoricGroupCounts(TestCase, SnubaTestCase):
-    def setUp(self):
+class HistoricGroupCounts(TestCase):  # type: ignore
+    def setUp(self) -> None:
         super().setUp()
-        self.timestamp = before_now(minutes=1)
-        data = load_data("python", timestamp=self.timestamp)
-        self.event = self.store_event(data, project_id=self.project.id)
+
+    def _load_event(self) -> Tuple[Event, str]:
+        timestamp = before_now(minutes=1)
+        data = load_data("python", timestamp=timestamp)
+        event = self.store_event(data, project_id=self.project.id)
+        return event, timestamp
 
     def test_query(self) -> None:
+        event, timestamp = self._load_event()
         assert query_groups_past_counts(Group.objects.all()) == [
             {
-                "group_id": self.event.group_id,
-                "hourBucket": to_start_of_hour(self.timestamp),
-                "project_id": self.event.project_id,
+                "group_id": event.group_id,
+                "hourBucket": to_start_of_hour(timestamp),
+                "project_id": event.project_id,
             }
         ]
 
-
-# class EscalatingUnitTest(unittest.TestCase):
-#     @pytest.mark.parametrize("test_input", [{1: []}, {}])
-#     def test_query_invalid_test_input(self, test_input: Dict[int, List[int]]) -> None:
-#         with pytest.raises(InvalidProjectsToGroupsMap):
-#             query_groups_past_counts(test_input)
-#
-#     @pytest.mark.parametrize("test_input", [{"1": ["32"]}])
-#     def test_query_fail_snuba_conditions(self, test_input: Dict[int, List[int]]) -> None:
-#         with pytest.raises(SnubaError):
-#             query_groups_past_counts(test_input)
+    def test_query_no_groups(self) -> None:
+        with pytest.raises(SnubaError):
+            assert query_groups_past_counts([]) == []

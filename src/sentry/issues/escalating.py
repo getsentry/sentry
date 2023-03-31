@@ -1,7 +1,4 @@
-# import datetime
 from datetime import datetime, timedelta
-
-# import itertools
 from typing import List, Tuple
 
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Query, Request
@@ -9,12 +6,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Qu
 from sentry.models import Group
 from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
-
-# from sentry.testutils.helpers.datetime import before_now
-
-
-class InvalidProjectsToGroupsMap(Exception):
-    pass
 
 
 def extract_project_and_group_ids(groups: List[Group]) -> Tuple[List[int], List[int]]:
@@ -30,8 +21,6 @@ def extract_project_and_group_ids(groups: List[Group]) -> Tuple[List[int], List[
 
 def query_groups_past_counts(groups: List[Group]) -> JSONData:
     project_ids, group_ids = extract_project_and_group_ids(groups)
-    if not (project_ids and group_ids):
-        raise InvalidProjectsToGroupsMap("We expect non-empty lists.")
 
     query = Query(
         match=Entity("events"),
