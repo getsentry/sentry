@@ -90,6 +90,8 @@ def parse_message_value(value: bytes, jsoncodec: JsonCodec) -> SubscriptionUpdat
     return {
         "entity": payload["entity"],
         "subscription_id": payload["subscription_id"],
+        "request": payload["request"],
+        "result": payload["result"],
         "values": payload["result"],
         "timestamp": parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc),
     }
