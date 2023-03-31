@@ -116,6 +116,7 @@ class ReleaseMetaTest(APITestCase):
 
         data = json.loads(response.content)
         assert data["releaseFileCount"] == 2
+        assert data["bundleId"] is None
 
     def test_artifact_count_with_weak_existing_association(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -150,3 +151,4 @@ class ReleaseMetaTest(APITestCase):
 
         data = json.loads(response.content)
         assert data["releaseFileCount"] == 10
+        assert data["bundleId"] == str(bundle.bundle_id)

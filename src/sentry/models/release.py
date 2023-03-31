@@ -1203,7 +1203,7 @@ class Release(Model):
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
 
-    def count_weakly_associated_artifacts(self):
+    def last_weakly_associated_artifact_bundle(self):
         """Counts the number of artifacts in the most recent "ArtifactBundle" that is weakly associated
         with this release.
         """
@@ -1219,7 +1219,7 @@ class Release(Model):
         if len(bundles) == 0:
             return None
 
-        return bundles[0].artifact_count
+        return bundles[0]
 
     def clear_commits(self):
         """
