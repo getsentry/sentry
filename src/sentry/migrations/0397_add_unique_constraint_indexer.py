@@ -24,19 +24,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    """
-                    ALTER TABLE sentry_perfstringindexer ADD CONSTRAINT perf_unique_org_string_usecase UNIQUE (string, organization_id, use_case_id);
-                    ALTER TABLE sentry_perfstringindexer DROP CONSTRAINT perf_unique_org_string;
-                    """,
-                    reverse_sql="""
-                    ALTER TABLE sentry_perfstringindexer DROP CONSTRAINT perf_unique_org_string_usecase;
-                    ALTER TABLE sentry_perfstringindexer ADD CONSTRAINT perf_unique_org_string UNIQUE (string, organization_id);
-                    """,
-                    hints={"tables": ["sentry_perfstringindexer"]},
-                ),
-            ],
+            database_operations=[],
             state_operations=[
                 migrations.AddConstraint(
                     model_name="perfstringindexer",
