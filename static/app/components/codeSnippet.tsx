@@ -40,7 +40,7 @@ export function CodeSnippet({
       return;
     }
 
-    loadPrismLanguage(language, () => Prism.highlightElement(element));
+    loadPrismLanguage(language, {onLoad: () => Prism.highlightElement(element)});
   }, [children, language]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');

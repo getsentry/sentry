@@ -61,11 +61,11 @@ marked.setOptions({
       return Prism.highlight(code, Prism.languages[lang], lang);
     }
 
-    loadPrismLanguage(
-      lang,
-      () => callback?.(null, Prism.highlight(code, Prism.languages[lang], lang)),
-      error => callback?.(error, code)
-    );
+    loadPrismLanguage(lang, {
+      onLoad: () => callback?.(null, Prism.highlight(code, Prism.languages[lang], lang)),
+      onError: error => callback?.(error, code),
+      suppressExistenceWarning: true,
+    });
 
     return code;
   },
