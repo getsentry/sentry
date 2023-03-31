@@ -31,6 +31,7 @@ from sentry.models import (
     ProjectOwnership,
     Repository,
     Rule,
+    RuleMuted,
     User,
     UserEmail,
     UserOption,
@@ -297,6 +298,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event.for_group(event.groups[0])
 
         rule = Rule.objects.create(project=self.project, label="my rule")
+        RuleMuted.objects.create(user=self.user, rule=rule, muted=True)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)

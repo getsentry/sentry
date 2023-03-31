@@ -18,6 +18,8 @@ from sentry.models import (
     ProjectOwnership,
     Team,
     User,
+    Rule,
+    RuleMuted,
 )
 from sentry.notifications.helpers import (
     get_settings_by_provider,
@@ -383,10 +385,27 @@ def get_send_to(
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
+    rules: Iterable[Rule] | None = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     recipients = determine_eligible_recipients(
         project, target_type, target_identifier, event, fallthrough_choice
     )
+    # subtract muted rule users?
+    # I dont think this is where we should actually do it because we're not sending it per rule
+    # like if there are multiple rules and we remove the participant for all of them, that doesn't work
+    # mostly just wanted to think through a potential implementation, not sure where this should happen
+    # notifications are really confusing to wade through
+
+    # good test that hits this path with a rule is test_simple_notification_perf in test_adapter.py
+    muted_participants = []
+    if rules:
+        for rule in rules:
+            for recipient in recipients:
+                if recipient.actor_type == ActorType.USER:
+                    user = User.objects.get(actor_id=recipient.actor_id)
+                    muted = RuleMuted.objects.get(user=user, rule_id=rule.id, muted=True)
+                    muted_participants.append(recipient)
+
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
