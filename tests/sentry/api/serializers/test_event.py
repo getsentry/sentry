@@ -243,7 +243,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
             event = self.store_event(
                 data={
                     "breadcrumbs": [
-                        {"category": "generic", "message": "should not  format this"},
+                        {"category": "generic", "message": "should not format this"},
                         {
                             "category": "query",
                             "message": "select * from table where something = $1",
@@ -256,10 +256,10 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
 
             assert result["entries"][0]["type"] == "breadcrumbs"
             # First breadcrumb should not have a message_formatted property
-            assert not hasattr(result["entries"][0]["data"]["values"][0], "message_formatted")
+            assert result["entries"][0]["data"]["values"][0]["message"] == "should not format this"
             # Second breadcrumb should have whitespace added in message_formatted
             assert (
-                result["entries"][0]["data"]["values"][1]["message_formatted"]
+                result["entries"][0]["data"]["values"][1]["message"]
                 == "select *\n  from table\n where something = $1"
             )
 

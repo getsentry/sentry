@@ -90,7 +90,8 @@ def format_breadcrumb_messages(breadcrumb_data, event: Event | GroupEvent, user:
 
     for entry in breadcrumb_data["values"]:
         if entry["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
-            entry["message_formatted"] = sqlparse.format(entry["message"], reindent_aligned=True)
+            entry["message_raw"] = entry["message"]
+            entry["message"] = sqlparse.format(entry["message"], reindent_aligned=True)
 
     return breadcrumb_data
 

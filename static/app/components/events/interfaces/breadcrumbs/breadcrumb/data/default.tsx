@@ -20,7 +20,7 @@ type Props = {
 };
 
 export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
-  const {message, message_formatted, data} = breadcrumb;
+  const {message, data} = breadcrumb;
   return (
     <Summary kvData={data} meta={meta}>
       {meta?.message?.[''] ? (
@@ -32,7 +32,7 @@ export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
             event={event}
             orgSlug={orgSlug}
             breadcrumb={breadcrumb}
-            message={message_formatted ?? message}
+            message={message}
           />
         )
       )}
