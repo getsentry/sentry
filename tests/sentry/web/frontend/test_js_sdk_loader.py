@@ -124,7 +124,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.tracing.es5.min.js",
-                {"dsn": dsn, "tracesSampleRate": 0.1},
+                {"dsn": dsn, "tracesSampleRate": 1},
             ),
             (
                 {
@@ -154,7 +154,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/7.37.0/bundle.tracing.replay.min.js",
                 {
                     "dsn": dsn,
-                    "tracesSampleRate": 0.1,
+                    "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
                 },
@@ -182,7 +182,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.tracing.es5.debug.min.js",
-                {"dsn": dsn, "tracesSampleRate": 0.1, "debug": True},
+                {"dsn": dsn, "tracesSampleRate": 1, "debug": True},
             ),
             (
                 {
@@ -195,7 +195,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                 b"/7.37.0/bundle.tracing.replay.debug.min.js",
                 {
                     "dsn": dsn,
-                    "tracesSampleRate": 0.1,
+                    "tracesSampleRate": 1,
                     "replaysSessionSampleRate": 0.1,
                     "replaysOnErrorSampleRate": 1,
                     "debug": True,
