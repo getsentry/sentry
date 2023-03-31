@@ -4083,6 +4083,16 @@ browserslist@^4.0.0, browserslist@^4.14.5, browserslist@^4.16.6, browserslist@^4
     node-releases "^2.0.6"
     update-browserslist-db "^1.0.9"
 
+browserslist@^4.18.1:
+  version "4.21.5"
+  resolved "https://registry.yarnpkg.com/browserslist/-/browserslist-4.21.5.tgz#75c5dae60063ee641f977e00edd3cfb2fb7af6a7"
+  integrity sha512-tUkiguQGW7S3IhB7N+c2MV/HZPSCPAAiYBZXLsBhFB/PCy6ZKKsZrmBayHV9fdGV/ARIfJ14NkxKzRDjvp7L6w==
+  dependencies:
+    caniuse-lite "^1.0.30001449"
+    electron-to-chromium "^1.4.284"
+    node-releases "^2.0.8"
+    update-browserslist-db "^1.0.10"
+
 bser@2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/bser/-/bser-2.1.1.tgz#e6787da20ece9d07998533cfd9de6f5c38f4bc05"
@@ -4209,6 +4219,11 @@ caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001400:
   version "1.0.30001422"
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001422.tgz#f2d7c6202c49a8359e6e35add894d88ef93edba1"
   integrity sha512-hSesn02u1QacQHhaxl/kNMZwqVG35Sz/8DgvmgedxSH8z9UUpcDYSPYgsj3x5dQNRcNp6BwpSfQfVzYUTm+fog==
+
+caniuse-lite@^1.0.30001283, caniuse-lite@^1.0.30001449:
+  version "1.0.30001473"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001473.tgz#3859898b3cab65fc8905bb923df36ad35058153c"
+  integrity sha512-ewDad7+D2vlyy+E4UJuVfiBsU69IL+8oVmTuZnH5Q6CIUbxNfI50uVpRHbUPDD6SUaN2o0Lh4DhTrvLG/Tn1yg==
 
 cbor-web@^8.1.0:
   version "8.1.0"
@@ -5162,6 +5177,11 @@ electron-to-chromium@^1.4.251:
   resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.284.tgz#61046d1e4cab3a25238f6bf7413795270f125592"
   integrity sha512-M8WEXFuKXMYMVr45fo8mq0wUrrJHheiKZf6BArTKk9ZBYCKJEOU5H8cdWgDT+qCVZf7Na4lVUaZsA+h6uA9+PA==
 
+electron-to-chromium@^1.4.284:
+  version "1.4.348"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.348.tgz#f49379dc212d79f39112dd026f53e371279e433d"
+  integrity sha512-gM7TdwuG3amns/1rlgxMbeeyNoBFPa+4Uu0c7FeROWh4qWmvSOnvcslKmWy51ggLKZ2n/F/4i2HJ+PVNxH9uCQ==
+
 elliptic@^6.0.0:
   version "6.5.4"
   resolved "https://registry.yarnpkg.com/elliptic/-/elliptic-6.5.4.tgz#da37cebd31e79a1367e941b592ed1fbebd58abbb"
@@ -5383,41 +5403,42 @@ eslint-config-prettier@^8.6.0:
   resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-8.6.0.tgz#dec1d29ab728f4fa63061774e1672ac4e363d207"
   integrity sha512-bAF0eLpLVqP5oEVUFKpMA+NnRFICwn9X8B5jrR9FcqnYBuPbqWEjTEspPWMj5ye6czoSLDweCzSo3Ko7gGrZaA==
 
-eslint-config-sentry-app@1.110.0:
-  version "1.110.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.110.0.tgz#6991028dc0ad0c86d31ec454ab8df675d4c31d17"
-  integrity sha512-UGE3JqoAof9yjOgQ+a/z8NaHinwCvhaNby3RsoJVM7bMBZOb0itY244RqNgaSA6icHijzxmEd/EvUA7fO6yVMA==
+eslint-config-sentry-app@1.111.0:
+  version "1.111.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.111.0.tgz#7fc99660cb63f7e673e43398b096fb24f4e834c6"
+  integrity sha512-SCijfKS5vhelowqmX0/6Xox0/PEDXDlcgEuwD3CsCiqbxBWzCrs1bYocRfGa2wTHQ77Xq/VInA/c5DX/dUlcXQ==
   dependencies:
     "@emotion/eslint-plugin" "^11.10.0"
     "@typescript-eslint/eslint-plugin" "^5.53.0"
     "@typescript-eslint/parser" "^5.53.0"
     eslint-config-prettier "^8.6.0"
-    eslint-config-sentry "^1.110.0"
-    eslint-config-sentry-react "^1.110.0"
+    eslint-config-sentry "^1.111.0"
+    eslint-config-sentry-react "^1.111.0"
     eslint-import-resolver-typescript "^2.7.1"
     eslint-import-resolver-webpack "^0.13.2"
     eslint-plugin-import "^2.27.5"
     eslint-plugin-jest "^27.2.1"
+    eslint-plugin-no-lookahead-lookbehind-regexp "0.1.0"
     eslint-plugin-prettier "^4.2.1"
     eslint-plugin-react "^7.32.2"
-    eslint-plugin-sentry "^1.110.0"
+    eslint-plugin-sentry "^1.111.0"
     eslint-plugin-simple-import-sort "^10.0.0"
 
-eslint-config-sentry-react@^1.110.0:
-  version "1.110.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.110.0.tgz#cb40a5462ae3b7d2eb2f6e2adfdd51b0c8206128"
-  integrity sha512-cecno2bZBTq9GW5bzZ3FfdA1CoTm1WZ44nZSfzU2hajFeR3duNEZI5Q1p4NGIRgi0xIl9IT8pJTpcShX8n7Svw==
+eslint-config-sentry-react@^1.111.0:
+  version "1.111.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.111.0.tgz#1723edd7b47d76f5d7ff651e3b6d413bfee799b8"
+  integrity sha512-hwbOS2tKVDj3TyftKnkq7juKKe/O44Qi/rnsmuyR6BJyz/zdW7VFqpmpxflGL4XI6EGGLxVIfCCgdzUa+kbHcw==
   dependencies:
-    eslint-config-sentry "^1.110.0"
+    eslint-config-sentry "^1.111.0"
     eslint-plugin-jest-dom "^4.0.3"
     eslint-plugin-react-hooks "^4.6.0"
     eslint-plugin-testing-library "^5.10.2"
     eslint-plugin-typescript-sort-keys "^2.1.0"
 
-eslint-config-sentry@^1.110.0:
-  version "1.110.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.110.0.tgz#0ea9690bd076e6c0dd41ff35446ad558c90a973a"
-  integrity sha512-cz8YVn/5fdJ/RH0Gim61RtvCiqphI9llfRPwLE14rbBf4TuppOfnD0i2B+1QbCX9zbvbhdoitbJc5Vp3mYN4zg==
+eslint-config-sentry@^1.111.0:
+  version "1.111.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.111.0.tgz#3d8331a294972d766652decef298f3c94fabfa93"
+  integrity sha512-qE9DVJfcb6y09a6U5MngSKIFJl3++WjhHTQQN6jYDMfspPALDUwf8OyFd/JB6CxJtA+sgZg3AGWmARrS0HkXzg==
 
 eslint-import-resolver-node@^0.3.7:
   version "0.3.7"
@@ -5500,6 +5521,14 @@ eslint-plugin-jest@^27.2.1:
   dependencies:
     "@typescript-eslint/utils" "^5.10.0"
 
+eslint-plugin-no-lookahead-lookbehind-regexp@0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-no-lookahead-lookbehind-regexp/-/eslint-plugin-no-lookahead-lookbehind-regexp-0.1.0.tgz#d1d920e152c57e9df5fd5623d5d64be9bfbc3622"
+  integrity sha512-1wWLRhw72doON551LRu3hfPuSzQ5FWr+s3zqsJRO3opvQbiQfJwst07SvGSukI1HhZ6+4o235Ry6V5AXJv8eNg==
+  dependencies:
+    browserslist "^4.18.1"
+    caniuse-lite "^1.0.30001283"
+
 eslint-plugin-prettier@^4.2.1:
   version "4.2.1"
   resolved "https://registry.yarnpkg.com/eslint-plugin-prettier/-/eslint-plugin-prettier-4.2.1.tgz#651cbb88b1dab98bfd42f017a12fa6b2d993f94b"
@@ -5533,10 +5562,10 @@ eslint-plugin-react@^7.32.2:
     semver "^6.3.0"
     string.prototype.matchall "^4.0.8"
 
-eslint-plugin-sentry@^1.110.0:
-  version "1.110.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.110.0.tgz#2aa3c2e7215ed661ac01e0c9c02223930b6d8f63"
-  integrity sha512-64ncisdIVMozN7dmrM7VBd9Ce4t0P0Ahfy4Qz8YSOYGkKtA9aHw7HFHY4mAEO/HuRtaKrdNjzt85xeYMwbOjvg==
+eslint-plugin-sentry@^1.111.0:
+  version "1.111.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.111.0.tgz#b56d521bfbef8fde1b92f4ab7331622a58f0ea67"
+  integrity sha512-y9qmI+Ys/176GfyfhoNJN7KXyX4ybJAy8/MQ1lQvyl6z1A1ifH+Ck4sUeRneGBb2VuH6H1qFRyRHae+/pDl01Q==
   dependencies:
     requireindex "~1.2.0"
 
@@ -8290,6 +8319,11 @@ node-releases@^2.0.6:
   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.6.tgz#8a7088c63a55e493845683ebf3c828d8c51c5503"
   integrity sha512-PiVXnNuFm5+iYkLBNeq5211hvO38y63T0i2KKh2KnUs3RpzJ+JtODFjkD8yjLwnDkTYF1eKXheUwdssR+NRZdg==
 
+node-releases@^2.0.8:
+  version "2.0.10"
+  resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.10.tgz#c311ebae3b6a148c89b1813fd7c4d3c024ef537f"
+  integrity sha512-5GFldHPXVG/YZmFzJvKK2zDSzPKhEp0+ZR5SVaoSag9fsL5YgHbUHDfnG5494ISANDcK4KwPXAx2xqVEydmd7w==
+
 nopt@^5.0.0:
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/nopt/-/nopt-5.0.0.tgz#530942bb58a512fccafe53fe210f13a25355dc88"
@@ -10792,7 +10826,7 @@ unpipe@1.0.0, unpipe@~1.0.0:
   resolved "https://registry.yarnpkg.com/unpipe/-/unpipe-1.0.0.tgz#b2bf4ee8514aae6165b4817829d21b2ef49904ec"
   integrity sha1-sr9O6FFKrmFltIF4KdIbLvSZBOw=
 
-update-browserslist-db@^1.0.9:
+update-browserslist-db@^1.0.10, update-browserslist-db@^1.0.9:
   version "1.0.10"
   resolved "https://registry.yarnpkg.com/update-browserslist-db/-/update-browserslist-db-1.0.10.tgz#0f54b876545726f17d00cd9a2561e6dade943ff3"
   integrity sha512-OztqDenkfFkbSG+tRxBeAnCVPckDBcvibKd35yDONx6OU8N7sqgwc7rCbkJ/WcYtVRZ4ba68d6byhC21GFh7sQ==
