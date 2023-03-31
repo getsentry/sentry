@@ -18,7 +18,7 @@ import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function getStacktrace(event: Event): StacktraceType | null {
@@ -125,7 +125,7 @@ function StackTracePreviewBody({
 }: StackTracePreviewBodyProps) {
   const organization = useOrganization();
 
-  const {data, isLoading, isError} = useQuery<Event>(
+  const {data, isLoading, isError} = useApiQuery<Event>(
     [
       eventId && projectSlug
         ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
