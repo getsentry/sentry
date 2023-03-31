@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 from sentry.issues.escalating_issues_alg import issue_spike
 
@@ -494,7 +495,7 @@ SEVEN_DAY_ERROR_EVENTS = [
 ]
 
 
-def test_spike_case():
+def test_spike_case() -> None:
     start_time = datetime.strptime("2022-07-27T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%f%z")
     data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": SEVEN_DAY_ERROR_EVENTS}
 
@@ -504,7 +505,7 @@ def test_spike_case():
     assert ceilings == [6987] * 14, "Ceilings are incorrect"
 
 
-def test_bursty_case():
+def test_bursty_case() -> None:
     error_events = [
         77,
         162,
@@ -589,8 +590,8 @@ def test_bursty_case():
     assert ceilings == [16580] * 14, "Ceilings are incorrect"
 
 
-def test_empty_input():
-    error_events = []
+def test_empty_input() -> None:
+    error_events: List[int] = []
 
     data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
 
@@ -600,7 +601,7 @@ def test_empty_input():
     assert ceilings == [], "Empty Input"
 
 
-def test_less_than_week_data():
+def test_less_than_week_data() -> None:
     error_events = [
         9,
         1,
@@ -661,7 +662,7 @@ def test_less_than_week_data():
     assert ceilings == [82900] * 14, "Ceilings are incorrect"
 
 
-def test_low_freq_events():
+def test_low_freq_events() -> None:
     error_events = [6] * 168
 
     data = {"intervals": SIX_DAY_INPUT_INTERVALS, "data": error_events}
@@ -672,7 +673,7 @@ def test_low_freq_events():
     assert ceilings == [200] * 14, "Ceilings are incorrect"
 
 
-def test_output():
+def test_output() -> None:
     data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": SEVEN_DAY_ERROR_EVENTS}
 
     ceilings_list = issue_spike(data, START_TIME)
