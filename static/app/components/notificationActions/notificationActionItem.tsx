@@ -28,7 +28,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface NotificationActionItemProps {
+type NotificationActionItemProps = {
   /**
    * The notification action being represented
    */
@@ -49,7 +49,7 @@ interface NotificationActionItemProps {
   /**
    * Update state in the parent component upon updating this notification action
    */
-  onUpdate: (actionId: number, updatedAction: NotificationAction) => void;
+  onUpdate: (actionId: number, editedAction: NotificationAction) => void;
   /**
    * Map of pagerduty integration IDs to available actions for those IDs
    */
@@ -64,9 +64,9 @@ interface NotificationActionItemProps {
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
-}
+};
 
-function NotificationActionItem({
+const NotificationActionItem = ({
   action,
   index,
   availableActions,
@@ -76,51 +76,58 @@ function NotificationActionItem({
   recipientRoles,
   onDelete,
   onUpdate,
-}: NotificationActionItemProps) {
+}: NotificationActionItemProps) => {
   const [isEditing, setIsEditing] = useState(defaultEdit);
-  const [updatedAction, setUpdatedAction] = useState(action);
+  const [editedAction, setEditedAction] = useState(action);
   const serviceType = action.serviceType;
   const api = useApi();
   const organization = useOrganization();
 
-  function renderIcon() {
-    // Currently email and Sentry notification use the same icon
-    if (
-      serviceType === NotificationActionService.EMAIL ||
-      serviceType === NotificationActionService.SENTRY_NOTIFICATION
-    ) {
-      return <IconMail size="sm" />;
+  const renderIcon = () => {
+    switch (serviceType) {
+      // Currently email and Sentry notification use the same icon
+      case NotificationActionService.EMAIL:
+      case NotificationActionService.SENTRY_NOTIFICATION:
+        return <IconMail size="sm" />;
+      default:
+        return <PluginIcon pluginId={serviceType} size={16} />;
     }
-    return <PluginIcon pluginId={serviceType} size={16} />;
-  }
+  };
 
-  function renderDescription() {
-    // TODO(enterprise): descriptions for email, msteams, sentry_app
-    if (serviceType === NotificationActionService.SENTRY_NOTIFICATION) {
-      const roleElements = recipientRoles?.map(role => (
-        <NotificationRecipient key={role}>{role}</NotificationRecipient>
-      ));
-      return (
-        <Fragment>
-          <div>{t('Send an email notification to the following roles')}</div>
-          {roleElements}
-        </Fragment>
-      );
+  const renderDescription = () => {
+    switch (serviceType) {
+      case NotificationActionService.SENTRY_NOTIFICATION:
+        return (
+          <Fragment>
+            <div>{t('Send an email notification to the following roles')}</div>
+            {recipientRoles?.map(role => (
+              <NotificationRecipient key={role}>{role}</NotificationRecipient>
+            ))}
+          </Fragment>
+        );
+      case NotificationActionService.SLACK:
+        return (
+          <Fragment>
+            <div>{t('Send a notification to the')}</div>
+            <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
+            <div>{t('channel')}</div>
+          </Fragment>
+        );
+      case NotificationActionService.PAGERDUTY:
+        return (
+          <Fragment>
+            <div>{t('Send a notification to the')}</div>
+            <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
+            <div>{t('service')}</div>
+          </Fragment>
+        );
+      default:
+        // TODO(enterprise): descriptions for email, msteams, sentry_app
+        return null;
     }
-    return (
-      <Fragment>
-        <div>{t('Send a notification to the')}</div>
-        <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
-        <div>
-          {action.serviceType === NotificationActionService.SLACK
-            ? t('channel')
-            : t('service')}
-        </div>
-      </Fragment>
-    );
-  }
+  };
 
-  async function handleDelete() {
+  const handleDelete = async () => {
     const endpoint = `/organizations/${organization.slug}/notifications/actions/${action.id}/`;
     try {
       await api.requestPromise(endpoint, {
@@ -131,23 +138,23 @@ function NotificationActionItem({
     } catch (err) {
       addErrorMessage(t('Unable to delete notification action'));
     }
-  }
+  };
 
-  function handleCancel() {
+  const handleCancel = () => {
     if (action.id) {
       setIsEditing(false);
       return;
     }
     // Delete the unsaved notification action
     onDelete(index);
-  }
+  };
 
-  async function handleSave() {
+  const handleSave = async () => {
     const formProps = getFormProps();
     addLoadingMessage();
     // TODO(enterprise): use "requires" to get data to send
     // This is currently optimized for spike protection
-    const data = cloneDeep(updatedAction);
+    const data = cloneDeep(editedAction);
 
     // Remove keys from the data if they are falsy
     Object.keys(data).forEach(key => {
@@ -163,21 +170,19 @@ function NotificationActionItem({
       });
       addSuccessMessage(formProps.successMessage);
       onUpdate(index, resp);
-      setUpdatedAction(resp);
+      setEditedAction(resp);
       setIsEditing(false);
     } catch (err) {
       addErrorMessage(formProps.errorMessage);
     }
-  }
+  };
 
-  function handleChange(name: string, value: any) {
-    const modifiedAction = cloneDeep(updatedAction);
-    modifiedAction[name] = value;
-    setUpdatedAction(modifiedAction);
-  }
+  const handleChange = (name: string, value: any) => {
+    setEditedAction({...editedAction, [name]: value});
+  };
 
   // Edit button is located outside of the form
-  function renderEditButton() {
+  const renderEditButton = () => {
     const menuItems: MenuItemProps[] = [
       {
         key: 'notificationaction-delete',
@@ -210,20 +215,15 @@ function NotificationActionItem({
             aria-label={t('Actions')}
             size="xs"
             icon={<IconEllipsis direction="down" size="sm" />}
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-
-              triggerProps.onClick?.(e);
-            }}
+            data-test-id="edit-dropdown"
           />
         )}
       />
     );
-  }
+  };
 
-  function getFormProps() {
-    if (updatedAction.id) {
+  const getFormProps = () => {
+    if (editedAction.id) {
       return {
         apiMethod: 'PUT' as const,
         apiEndpoint: `/organizations/${organization.slug}/notifications/actions/${action.id}/`,
@@ -237,9 +237,9 @@ function NotificationActionItem({
       successMessage: t('Successfully added notification action'),
       errorMessage: t('Unable to add notification action'),
     };
-  }
+  };
 
-  function renderNotificationActionForm() {
+  const renderNotificationActionForm = () => {
     if (serviceType === NotificationActionService.SENTRY_NOTIFICATION) {
       // No form for Sentry notifications, just Cancel + Save buttons
       return (
@@ -259,7 +259,7 @@ function NotificationActionItem({
     if (serviceType === NotificationActionService.SLACK) {
       return (
         <SlackForm
-          action={updatedAction}
+          action={editedAction}
           onChange={handleChange}
           onSave={handleSave}
           onCancel={handleCancel}
@@ -270,7 +270,7 @@ function NotificationActionItem({
     if (serviceType === NotificationActionService.PAGERDUTY) {
       return (
         <PagerdutyForm
-          action={updatedAction}
+          action={editedAction}
           onChange={handleChange}
           onSave={handleSave}
           onCancel={handleCancel}
@@ -280,18 +280,18 @@ function NotificationActionItem({
     }
     // TODO(enterprise): forms for email, msteams, sentry_app
     return null;
-  }
+  };
 
   return (
-    <StyledCard isEditing={isEditing}>
+    <StyledCard isEditing={isEditing} data-test-id="notification-action">
       {isEditing ? (
-        <NotificationActionContainer>
+        <NotificationActionContainer data-test-id={`${serviceType}-form`}>
           <IconContainer>{renderIcon()}</IconContainer>
           {renderNotificationActionForm()}
         </NotificationActionContainer>
       ) : (
         <Fragment>
-          <NotificationActionContainer>
+          <NotificationActionContainer data-test-id={`${serviceType}-action`}>
             <IconContainer>{renderIcon()}</IconContainer>
             <NotificationActionCell>{renderDescription()}</NotificationActionCell>
           </NotificationActionContainer>
@@ -300,7 +300,7 @@ function NotificationActionItem({
       )}
     </StyledCard>
   );
-}
+};
 
 const StyledCard = styled(Card)<{isEditing: boolean}>`
   padding: ${space(1)} ${space(1.5)};
@@ -337,7 +337,7 @@ export const NotificationActionFormContainer = styled('div')`
 `;
 
 const NotificationRecipient = styled(Badge)`
-  border-radius: 5px;
+  border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
 `;
 

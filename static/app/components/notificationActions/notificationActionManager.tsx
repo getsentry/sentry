@@ -1,14 +1,11 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
-import cloneDeep from 'lodash/cloneDeep';
 
-import {Button} from 'sentry/components/button';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import NotificationActionItem from 'sentry/components/notificationActions/notificationActionItem';
-import {IconAdd, IconChevron} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {
   AvailableNotificationAction,
@@ -16,7 +13,7 @@ import {
   NotificationActionService,
 } from 'sentry/types/notificationActions';
 
-interface NotificationActionManagerProps {
+type NotificationActionManagerProps = {
   /**
    * The list of existing notification actions
    */
@@ -38,17 +35,40 @@ interface NotificationActionManagerProps {
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
-}
+};
 
-function NotificationActionManager({
+const NotificationActionManager = ({
   actions,
   availableActions,
   recipientRoles,
   project,
   updateAlertCount,
-}: NotificationActionManagerProps) {
+}: NotificationActionManagerProps) => {
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
+
+  const addNotificationAction = (
+    actionInstance: AvailableNotificationAction['action']
+  ) => {
+    const updatedActions = [...notificationActions, actionInstance];
+    setNotificationActions(updatedActions);
+    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
+  };
+
+  const removeNotificationAction = (index: number) => {
+    // Removes notif action from state using the index
+    const updatedActions = [...notificationActions];
+    updatedActions.splice(index, 1);
+    setNotificationActions(updatedActions);
+    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
+  };
+
+  const updateNotificationAction = (index: number, updatedAction: NotificationAction) => {
+    // Updates notif action from state using the index
+    const updatedActions = [...notificationActions];
+    updatedActions.splice(index, 1, updatedAction);
+    setNotificationActions(updatedActions);
+  };
 
   // Lists the available actions for each service
   const availableServices: Record<
@@ -128,92 +148,56 @@ function NotificationActionManager({
     return serviceActions;
   }
 
-  function addNotificationAction(actionInstance: AvailableNotificationAction['action']) {
-    const updatedActions = cloneDeep(notificationActions);
-    updatedActions.push(actionInstance);
-    setNotificationActions(updatedActions);
-    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
-  }
-
-  function removeNotificationAction(index: number) {
-    // Removes notif action from state using the index
-    const updatedActions = cloneDeep(notificationActions);
-    updatedActions.splice(index, 1);
-    setNotificationActions(updatedActions);
-    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
-  }
-
-  function updateNotificationAction(index: number, updatedAction: NotificationAction) {
-    // Updates notif action from state using the index
-    const updatedActions = cloneDeep(notificationActions);
-    updatedActions.splice(index, 1, updatedAction);
-    setNotificationActions(updatedActions);
-  }
-
-  // The dropdown items for "Add Alert"
-  const getMenuItems = (): MenuItemProps[] => {
+  const getMenuItems = () => {
     const menuItems: MenuItemProps[] = [];
-    Object.entries(availableServices).forEach(entry => {
-      const [serviceType, validActions] = entry;
-      if (validActions.length > 0) {
-        // Cannot have more than one Sentry notification
-        if (
-          serviceType === NotificationActionService.SENTRY_NOTIFICATION &&
-          actionsMap[serviceType].length === 1
-        ) {
-          return;
-        }
-
-        menuItems.push({
-          key: serviceType,
-          label: t(
-            'Send a %s notification',
-            serviceType !== NotificationActionService.SENTRY_NOTIFICATION
-              ? capitalize(serviceType)
-              : 'Sentry'
-          ),
-          onAction: () => addNotificationAction(validActions[0].action),
-        });
+    Object.entries(availableServices).forEach(([serviceType, validActions]) => {
+      if (validActions.length === 0) {
+        return;
       }
+      // Cannot have more than one Sentry notification
+      if (
+        serviceType === NotificationActionService.SENTRY_NOTIFICATION &&
+        actionsMap[serviceType].length === 1
+      ) {
+        return;
+      }
+
+      menuItems.push({
+        key: serviceType,
+        label: t(
+          'Send a %s notification',
+          serviceType !== NotificationActionService.SENTRY_NOTIFICATION
+            ? capitalize(serviceType)
+            : 'Sentry'
+        ),
+        onAction: () => addNotificationAction(validActions[0].action),
+      });
     });
     return menuItems;
   };
 
-  function renderAddAlertButton() {
-    return (
-      <DropdownMenu
-        items={getMenuItems()}
-        trigger={triggerProps => (
-          <Button
-            {...triggerProps}
-            aria-label={t('Add Alert')}
-            size="xs"
-            icon={<IconAdd isCircled color="gray300" />}
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-
-              triggerProps.onClick?.(e);
-            }}
-          >
-            {t('Add Action')}
-            <StyledIconChevron direction="down" />
-          </Button>
-        )}
-      />
-    );
-  }
+  const addAlertButton = (
+    <DropdownMenu
+      items={getMenuItems()}
+      trigger={triggerProps => (
+        <DropdownButton
+          {...triggerProps}
+          aria-label={t('Add Action')}
+          size="xs"
+          icon={<IconAdd isCircled color="gray300" />}
+        >
+          {t('Add Action')}
+        </DropdownButton>
+      )}
+    />
+  );
 
   return (
     <Fragment>
       {renderNotificationActions()}
-      {renderAddAlertButton()}
+      {addAlertButton}
     </Fragment>
   );
-}
-
-const StyledIconChevron = styled(IconChevron)`
-  margin-left: ${space(1)};
-`;
+};
 
 export default NotificationActionManager;
