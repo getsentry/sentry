@@ -379,34 +379,6 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
-    def test_error_main_thread(self):
-        event = self.get_event()
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "error.main_thread", "value": "True"}
-        )
-        self.assertPasses(rule, event)
-
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "error.main_thread", "value": "False"}
-        )
-        self.assertDoesNotPass(rule, event)
-
-    def test_error_main_thread_no_threads(self):
-        event = self.get_event(
-            threads={
-                "values": [],
-            }
-        )
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "error.main_thread", "value": "True"}
-        )
-        self.assertDoesNotPass(rule, event)
-
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "error.main_thread", "value": "False"}
-        )
-        self.assertDoesNotPass(rule, event)
-
     def test_exception_value(self):
         event = self.get_event()
         rule = self.get_rule(

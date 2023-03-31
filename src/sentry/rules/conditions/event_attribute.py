@@ -119,23 +119,19 @@ class EventAttributeCondition(EventCondition):
             return [getattr(e, path[1]) for e in event.interfaces["exception"].values]
 
         elif path[0] == "error":
-            if path[1] not in ("handled", "unhandled", "main_thread"):
+            # TODO: add support for error.main_thread
+
+            if path[1] not in ("handled", "unhandled"):
                 return []
 
-            if path[1] in ("handled", "unhandled"):
-                # Flip "handled" to "unhandled"
-                negate = path[1] == "unhandled"
+            # Flip "handled" to "unhandled"
+            negate = path[1] == "unhandled"
 
-                return [
-                    e.mechanism.handled != negate
-                    for e in event.interfaces["exception"].values
-                    if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
-                ]
-            elif path[1] in ("main_thread"):
-                exception_main_thread = event.data["exception_main_thread"]
-                if exception_main_thread is None:
-                    return []
-                return [exception_main_thread]
+            return [
+                e.mechanism.handled != negate
+                for e in event.interfaces["exception"].values
+                if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
+            ]
 
         elif path[0] == "user":
             if path[1] in ("id", "ip_address", "email", "username"):
