@@ -14,14 +14,7 @@ export const DEFAULT_STATS_PERIOD = '7d';
 export const DEFAULT_PROJECT_THRESHOLD_METRIC = 'duration';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
 
-export const COLUMN_TITLES = [
-  'endpoint',
-  'operation',
-  'tpm',
-  'p50(duration)',
-  'p95(duration)',
-  'users',
-];
+export const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
@@ -427,7 +420,6 @@ function generateGenericPerformanceEventView(
     'tpm()',
     'p50()',
     'p95()',
-    'count_unique(user)',
     'project',
   ];
 

@@ -283,6 +283,7 @@ const CarouselAndButtonsWrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
   margin-bottom: ${space(0.5)};
+  max-width: 900px;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

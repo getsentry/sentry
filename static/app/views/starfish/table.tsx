@@ -167,10 +167,12 @@ class _Table extends Component<Props, State> {
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
+      let prefix = '';
       if (dataRow['http.method']) {
         summaryView.additionalConditions.setFilterValues('http.method', [
           dataRow['http.method'] as string,
         ]);
+        prefix = `${dataRow['http.method']} `;
       }
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
       const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
@@ -198,7 +200,8 @@ class _Table extends Component<Props, State> {
             onClick={this.handleSummaryClick}
             style={{display: `block`, width: `100%`}}
           >
-            {rendered}
+            {prefix}
+            {dataRow.transaction}
           </Link>
         </CellAction>
       );
@@ -314,9 +317,6 @@ class _Table extends Component<Props, State> {
         onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
-    if (field.field === 'project') {
-      return null;
-    }
     if (field.field.startsWith('user_misery')) {
       return (
         <GuideAnchor target="project_transaction_threshold" position="top">
@@ -399,7 +399,9 @@ class _Table extends Component<Props, State> {
         (col: TableColumn<React.ReactText>) =>
           col.name !== 'team_key_transaction' &&
           !col.name.startsWith('count_miserable') &&
-          col.name !== 'project_threshold_config'
+          col.name !== 'project_threshold_config' &&
+          col.name !== 'project' &&
+          col.name !== 'http.method'
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
