@@ -16,7 +16,7 @@ import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -127,7 +127,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
 
-  const {data: artifactsData, isLoading: artifactsLoading} = useQuery<
+  const {data: artifactsData, isLoading: artifactsLoading} = useApiQuery<
     [Artifact[], any, any]
   >(
     [
@@ -150,7 +150,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   );
 
   const {data: debugIdBundlesArtifactsData, isLoading: debugIdBundlesArtifactsLoading} =
-    useQuery<[DebugIdBundleArtifact, any, any]>(
+    useApiQuery<[DebugIdBundleArtifact, any, any]>(
       [
         debugIdBundlesArtifactsEndpoint,
         {
