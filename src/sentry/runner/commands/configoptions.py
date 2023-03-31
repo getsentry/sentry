@@ -54,18 +54,23 @@ def patch(filename: str, dryrun: bool):
         keysToFetch = data.get("fetch", {})
         keysToFetch = (line for line in keysToFetch.split("\n") if line)
 
-        keysToUpdate = data.get("update", {})
-        keysToUpdate = (line.split(": ") for line in keysToUpdate.split("\n") if line)
-
-        keysToDelete = data.get("delete", {})
-        keysToDelete = keysToFetch = (line for line in keysToDelete.split("\n") if line)
-
         for key in keysToFetch:
             click.echo(get(key, dryrun))
 
-        for key, val in keysToUpdate.items():
-            click.echo(set(key, dryrun))
+        keysToUpdate = data.get("update", {})
 
+        for line in keysToUpdate.split("\n"):
+            if line:
+                line_tuple = line.split(": ")
+                key = line_tuple[0]
+                val = ""
+                if len(line_tuple) > 1:
+                    val = line_tuple[1]
+                click.echo(set(key, val, dryrun))
+
+        keysToDelete = data.get("delete", {})
+
+        keysToDelete = keysToFetch = (line for line in keysToDelete.split("\n") if line)
         for key in keysToDelete:
             click.echo(delete(key, dryrun))
 
