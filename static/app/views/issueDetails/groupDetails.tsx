@@ -15,7 +15,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
-import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
@@ -153,8 +152,6 @@ class GroupDetails extends Component<Props, State> {
     const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
       location.query;
 
-    const activeUser = ConfigStore.get('user');
-
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
     this.props.setRouteAnalyticsParams({
       ...getAnalyticsDataForGroup(group),
@@ -173,8 +170,6 @@ class GroupDetails extends Component<Props, State> {
         event
       ),
       ref_fallback,
-      num_participants: group?.participants.length ?? 0,
-      num_viewers: group?.seenBy.filter(user => user.id !== activeUser.id).length ?? 0,
       // Will be updated by StacktraceLink if there is a stacktrace link
       stacktrace_link_viewed: false,
     });
