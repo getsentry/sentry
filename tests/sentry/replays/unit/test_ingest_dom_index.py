@@ -60,6 +60,28 @@ def test_get_user_actions():
     assert len(user_actions[0]["event_hash"]) == 36
 
 
+def test_get_user_actions_missing_node():
+    """Test "get_user_actions" function."""
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674298825,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1674298825.403,
+                    "type": "default",
+                    "category": "ui.click",
+                    "message": "div#hello.hello.world",
+                },
+            },
+        }
+    ]
+
+    user_actions = get_user_actions(uuid.uuid4().hex, events)
+    assert len(user_actions) == 0
+
+
 def test_parse_replay_actions():
     events = [
         {

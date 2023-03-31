@@ -32,11 +32,16 @@ type Props = {
   previousData?: Series[];
 };
 
+function computeMax(data: Series[]) {
+  const valuesDict = data.map(value => value.data.map(point => point.value));
+
+  return max(valuesDict.map(max)) as number;
+}
+
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
 function computeAxisMax(data: Series[]) {
   // assumes min is 0
-  const valuesDict = data.map(value => value.data.map(point => point.value));
-  const maxValue = max(valuesDict.map(max)) as number;
+  const maxValue = computeMax(data);
 
   if (maxValue <= 1) {
     return 1;
@@ -88,8 +93,15 @@ function Chart({
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'
   );
+  const percentOnly = data.every(
+    value => aggregateOutputType(value.seriesName) === 'percentage'
+  );
 
-  const dataMax = durationOnly ? computeAxisMax(data) : undefined;
+  const dataMax = durationOnly
+    ? computeAxisMax(data)
+    : percentOnly
+    ? computeMax(data)
+    : undefined;
 
   const xAxes = disableMultiAxis
     ? undefined
@@ -111,6 +123,7 @@ function Chart({
         {
           minInterval: durationUnit,
           splitNumber: definedAxisTicks,
+          max: dataMax,
           axisLabel: {
             color: theme.chartLabel,
             formatter(value: number) {
