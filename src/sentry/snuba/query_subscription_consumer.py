@@ -2,7 +2,6 @@ import logging
 from random import random
 from typing import Callable, Dict, Mapping, cast
 
-import jsonschema
 import pytz
 import sentry_sdk
 from arroyo import Topic, configure_metrics
@@ -29,10 +28,9 @@ from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
 
 from sentry import options
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
-from sentry.utils import json, kafka_config, metrics
+from sentry.utils import kafka_config, metrics
 from sentry.utils.arroyo import MetricsWrapper
 
 logger = logging.getLogger(__name__)
@@ -77,42 +75,19 @@ def parse_message_value(value: bytes, jsoncodec: JsonCodec) -> PayloadV3:
     :param value: A json formatted string
     :return: A dict with the parsed message
     """
-    old_version = False
-
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
         try:
             wrapper = cast(SubscriptionResult, jsoncodec.decode(value, validate=True))
         except ValidationError:
-            old_version = True
-            metrics.incr("snuba_query_subscriber.message_wrapper.old_validation")
-            try:
-                wrapper = json.loads(value)
-                jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
-            except jsonschema.ValidationError:
-                metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
-                raise InvalidSchemaError("Message wrapper does not match schema")
+            metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
+            raise InvalidSchemaError("Message wrapper does not match schema")
 
     payload: PayloadV3 = wrapper["payload"]
-
-    if old_version:
-        schema_version: int = wrapper["version"]
-        if schema_version not in SUBSCRIPTION_PAYLOAD_VERSIONS:
-            metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
-            raise InvalidMessageError("Version specified in wrapper has no schema")
-
-        with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_payload"):
-            try:
-                jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
-            except jsonschema.ValidationError:
-                metrics.incr("snuba_query_subscriber.message_payload_invalid")
-                raise InvalidSchemaError("Message payload does not match schema")
-
     # XXX: Since we just return the raw dict here, when the payload changes it'll
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working
     # here.
     payload.setdefault("values", payload.get("result"))  # type: ignore
-
     payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)  # type: ignore
     return payload
 
