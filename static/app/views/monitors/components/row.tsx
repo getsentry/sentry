@@ -16,8 +16,9 @@ import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {crontabAsText} from 'sentry/views/monitors/utils';
 
-import {MonitorBadge} from './components/monitorBadge';
-import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from './types';
+import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from '../types';
+
+import {MonitorBadge} from './monitorBadge';
 
 interface MonitorRowProps {
   monitor: Monitor;

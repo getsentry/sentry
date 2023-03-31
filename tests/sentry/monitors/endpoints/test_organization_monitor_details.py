@@ -26,9 +26,9 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)
 
-        self.get_success_response(self.organization.slug, monitor.guid, environment="production")
+        self.get_success_response(self.organization.slug, monitor.slug, environment="production")
         self.get_error_response(
-            self.organization.slug, monitor.guid, environment="jungle", status_code=404
+            self.organization.slug, monitor.slug, environment="jungle", status_code=404
         )
 
 

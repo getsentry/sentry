@@ -44,7 +44,7 @@ const SearchContainer = styled('div')`
 const StyledPageFilterBar = styled(PageFilterBar)`
   flex: 0 1 0;
   width: 100%;
-  max-width: 35rem;
+  max-width: 45rem;
 
   > div > button {
     width: 100%;

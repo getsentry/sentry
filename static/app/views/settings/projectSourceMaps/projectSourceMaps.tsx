@@ -24,7 +24,7 @@ import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -126,7 +126,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     data: archivesData,
     isLoading: archivesLoading,
     refetch: archivesRefetch,
-  } = useQuery<[SourceMapsArchive[], any, any]>(
+  } = useApiQuery<[SourceMapsArchive[], any, any]>(
     [
       sourceMapsEndpoint,
       {
@@ -150,7 +150,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     data: debugIdBundlesData,
     isLoading: debugIdBundlesLoading,
     refetch: debugIdBundlesRefetch,
-  } = useQuery<[DebugIdBundle[], any, any]>(
+  } = useApiQuery<[DebugIdBundle[], any, any]>(
     [
       debugIdBundlesEndpoint,
       {
