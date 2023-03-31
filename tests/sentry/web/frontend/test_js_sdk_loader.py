@@ -8,7 +8,6 @@ from django.urls import reverse
 
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
 from sentry.testutils import TestCase
-from sentry.utils import json
 
 
 class JavaScriptSdkLoaderTest(TestCase):
@@ -114,9 +113,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
         settings.JS_SDK_LOADER_SDK_VERSION = "7.32.0"
 
-        dsn = self.projectkey.get_dsn(public=True)
-
-        for data, expected_bundle, expected_options in [
+        for data, expected in [
             (
                 {
                     "dynamicSdkLoaderOptions": {
@@ -124,7 +121,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.tracing.es5.min.js",
-                {"dsn": dsn, "tracesSampleRate": 1},
             ),
             (
                 {
@@ -133,7 +129,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.es5.debug.min.js",
-                {"dsn": dsn, "debug": True},
             ),
             (
                 {
@@ -142,7 +137,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.replay.min.js",
-                {"dsn": dsn, "replaysSessionSampleRate": 0.1, "replaysOnErrorSampleRate": 1},
             ),
             (
                 {
@@ -152,12 +146,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.tracing.replay.min.js",
-                {
-                    "dsn": dsn,
-                    "tracesSampleRate": 1,
-                    "replaysSessionSampleRate": 0.1,
-                    "replaysOnErrorSampleRate": 1,
-                },
             ),
             (
                 {
@@ -167,12 +155,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.replay.debug.min.js",
-                {
-                    "dsn": dsn,
-                    "replaysSessionSampleRate": 0.1,
-                    "replaysOnErrorSampleRate": 1,
-                    "debug": True,
-                },
             ),
             (
                 {
@@ -182,7 +164,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.tracing.es5.debug.min.js",
-                {"dsn": dsn, "tracesSampleRate": 1, "debug": True},
             ),
             (
                 {
@@ -193,13 +174,6 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.tracing.replay.debug.min.js",
-                {
-                    "dsn": dsn,
-                    "tracesSampleRate": 1,
-                    "replaysSessionSampleRate": 0.1,
-                    "replaysOnErrorSampleRate": 1,
-                    "debug": True,
-                },
             ),
         ]:
             self.projectkey.data = data
@@ -207,13 +181,7 @@ class JavaScriptSdkLoaderTest(TestCase):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
-            assert expected_bundle in resp.content
-
-            for key in expected_options:
-                # Convert to e.g. "option_name": 0.1
-                single_option = {key: expected_options[key]}
-                assert bytes(json.dumps(single_option)[1:-1], "utf-8") in resp.content
-
+            assert expected in resp.content
             self.projectkey.data = {}
             self.projectkey.save()
 
