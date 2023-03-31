@@ -98,6 +98,7 @@ def strict(filename, dryrun):
         for key in db_keys:
             if key not in kv_generator:
                 click.echo(delete(key, dryrun))
+                click.echo(f"Successfully deleted: {key} (dry run:{dryrun})")
 
         kv_generator = create_key_value_generator(data, "\n", ": ")
         for line in kv_generator:
@@ -105,7 +106,11 @@ def strict(filename, dryrun):
             val = ""
             if len(line) > 1:
                 val = line[1]
-            click.echo(set(key, val, dryrun))
+            success = set(key, val, dryrun)
+            if success:
+                click.echo(f"Successfully updated: {key} = {val} (dry run:{dryrun})")
+            else:
+                click.echo(f"Failed to update: {key} = {val} (dry run:{dryrun})")
 
 
 def get(key, dryrun=False):
@@ -114,26 +119,43 @@ def get(key, dryrun=False):
 
     try:
         opt = options.lookup_key(key)
-        return f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}"
+        click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
+        return opt
     except UnknownOption:
-        return "unknown option: %s" % key
+        click.echo("unknown option: %s" % key)
+        return None
 
 
 def set(key, val, dryrun=False):
     from sentry import options
     from sentry.options.manager import UnknownOption
 
+    success = False
     try:
         opt = options.lookup_key(key)
-        if not dryrun:
-            options.set(key, val)
-        return f"Updated key: {opt.name} ({opt.type}) = {options.get(opt.name)}"
 
     except UnknownOption:
+        click.echo(f"Unknown Option: {key}")
         if not dryrun:
-            options.register(key)
-            options.set(key, val)
-        return f"Registered a new key: {key} = {val}"
+            try:
+                options.register(key)
+                options.set(key, val)
+                click.echo(f"Registered a new key: {key} = {val}")
+            except Exception:
+                click.echo(f"Failed to register option: {key} = {val}")
+
+    else:
+        if not dryrun:
+            try:
+                options.set(key, val)
+                success = True
+                click.echo(f"Updated key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
+            except Exception:
+                click.echo(
+                    f"Failed to update key: {opt.name} ({opt.type}) = {options.get(opt.name)}"
+                )
+
+    return success
 
 
 def delete(key, dryrun=False):
@@ -147,3 +169,7 @@ def delete(key, dryrun=False):
         return f"Deleted key: {key}"
     except UnknownOption:
         return "unknown option: %s" % key
+
+
+def test():
+    pass
