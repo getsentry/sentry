@@ -379,9 +379,9 @@ def to_naive_timestamp(value):
     return (value - epoch_naive).total_seconds()
 
 
-def to_start_of_hour(dt):
+def to_start_of_hour(dt: datetime) -> datetime:
     """This is a function that mimics toStartOfHour from Clickhouse"""
-    return dt.replace(minute=0, second=0, microsecond=0).isoformat() + "+00:00"
+    return dt.replace(minute=0, second=0, microsecond=0).isoformat()
 
 
 def get_snuba_column_name(name, dataset=Dataset.Events):

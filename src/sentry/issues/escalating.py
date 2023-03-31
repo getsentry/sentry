@@ -16,7 +16,8 @@ def extract_project_and_group_ids(groups: List[Group]) -> Tuple[List[int], List[
         project_ids.append(group.project_id)
         group_ids.append(group.id)
 
-    return project_ids, group_ids
+    # This also removes duplicated project ids
+    return list(set(project_ids)), group_ids
 
 
 def query_groups_past_counts(groups: List[Group]) -> JSONData:
@@ -36,7 +37,7 @@ def query_groups_past_counts(groups: List[Group]) -> JSONData:
             Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
             Condition(Column("timestamp"), Op.LT, datetime.today()),
         ],
-        limit=Limit(1),  # Limit(10000)
+        limit=Limit(2),  # Limit(10000)
         offset=Offset(0),
         # TODO: ORDER BY project_id DESC, group_id DESC, hourBucket DESC
         # orderby=[OrderBy(Column("project_id"), Direction.DESC)]
