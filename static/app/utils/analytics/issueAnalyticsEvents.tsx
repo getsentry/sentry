@@ -1,4 +1,5 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import {IntegrationType} from 'sentry/types';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -17,7 +18,7 @@ interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsP
 
 interface ExternalIssueParams extends CommonGroupAnalyticsData {
   external_issue_provider: string;
-  external_issue_type: 'plugin' | 'integration';
+  external_issue_type: IntegrationType;
 }
 
 export type IssueEventParameters = {

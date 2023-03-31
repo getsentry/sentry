@@ -71,7 +71,7 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
       organization,
       ...getAnalyticsDataForGroup(group),
       external_issue_provider: integration.provider.key,
-      external_issue_type: 'integration',
+      external_issue_type: 'first_party',
     });
 
     openModal(

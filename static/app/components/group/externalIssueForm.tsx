@@ -77,7 +77,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
       organization: this.props.organization,
       ...getAnalyticsDataForGroup(this.props.group),
       external_issue_provider: this.props.integration.provider.key,
-      external_issue_type: 'integration',
+      external_issue_type: 'first_party',
     });
 
     onChange(() => addSuccessMessage(MESSAGES_BY_ACTION[action]));
