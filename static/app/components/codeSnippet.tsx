@@ -5,7 +5,7 @@ import Prism from 'prismjs';
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 
 interface CodeSnippetProps {
