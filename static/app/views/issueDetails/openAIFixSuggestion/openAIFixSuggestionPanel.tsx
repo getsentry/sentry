@@ -3,21 +3,22 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import LoadingError from 'sentry/components/loadingError';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
-import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
+import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import marked from 'sentry/utils/marked';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {AiLoaderMessage} from 'sentry/views/issueDetails/openAIFixSuggestion/aiLoaderMessage';
-import {useCustomerPolicies} from 'sentry/views/issueDetails/openAIFixSuggestion/useCustomerPolicies';
 import {useOpenAISuggestionLocalStorage} from 'sentry/views/issueDetails/openAIFixSuggestion/useOpenAISuggestionLocalStorage';
 import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
@@ -42,9 +43,8 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
   const user = ConfigStore.get('user');
   const organization = useOrganization();
   const router = useRouter();
-  const showSuggestedFix = !!router.location.query.showSuggestedFix;
-  const {hasSignedDPA} = useCustomerPolicies();
-  const [agreedForwardDataToOpenAI] = useOpenAISuggestionLocalStorage();
+  const showSuggestedFix = router.location.query.showSuggestedFix === 'true';
+  const [individualConsent, setIndividualConsent] = useOpenAISuggestionLocalStorage();
   const [expandedSuggestedFix, setExpandedSuggestedFix] = useState(showSuggestedFix);
 
   useEffect(() => {
@@ -77,13 +77,78 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
     isLoading: dataIsLoading,
     isError: dataIsError,
     refetch: dataRefetch,
-  } = useQuery<{suggestion: string}>(
-    [`/projects/${organization.slug}/${projectSlug}/events/${eventID}/ai-fix-suggest/`],
+    error,
+  } = useApiQuery<{suggestion: string}>(
+    [
+      `/projects/${organization.slug}/${projectSlug}/events/${eventID}/ai-fix-suggest/`,
+      {query: {consent: individualConsent ? 'yes' : undefined}},
+    ],
     {
       staleTime: Infinity,
-      enabled: (hasSignedDPA || agreedForwardDataToOpenAI) && showSuggestedFix,
+      retry: false,
+      enabled: showSuggestedFix,
     }
   );
+
+  let PolicyErrorState;
+  if (error?.responseJSON?.restriction === 'subprocessor') {
+    PolicyErrorState = (
+      <EmptyMessage
+        icon={<IconFile size="xl" />}
+        title={t('OpenAI Subprocessor Acknowledgment')}
+        description={t(
+          'In order to use this feature, your organization needs to accept the OpenAI Subprocessor Acknowledgment.'
+        )}
+        action={
+          <ButtonBar gap={2}>
+            <Button
+              to={{
+                pathname: router.location.pathname,
+                query: {...router.location.query, showSuggestedFix: undefined},
+              }}
+            >
+              {t('Dismiss')}
+            </Button>
+            <Button priority="primary" to={`/settings/${organization.slug}/legal/`}>
+              {t('Accept in Settings')}
+            </Button>
+          </ButtonBar>
+        }
+      />
+    );
+  }
+  if (error?.responseJSON?.restriction === 'individual_consent') {
+    PolicyErrorState = (
+      <EmptyMessage
+        icon={<IconFlag size="xl" />}
+        title={t('We need your consent')}
+        description={t(
+          'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
+        )}
+        action={
+          <ButtonBar gap={2}>
+            <Button
+              to={{
+                pathname: router.location.pathname,
+                query: {...router.location.query, showSuggestedFix: undefined},
+              }}
+            >
+              {t('Dismiss')}
+            </Button>
+            <Button
+              priority="primary"
+              onClick={() => {
+                setIndividualConsent(true);
+                dataRefetch();
+              }}
+            >
+              {t('Confirm')}
+            </Button>
+          </ButtonBar>
+        }
+      />
+    );
+  }
 
   if (!organization.features.includes('open-ai-suggestion')) {
     return null;
@@ -113,14 +178,18 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
       </FixSuggestionPanelHeader>
       {expandedSuggestedFix && (
         <Fragment>
-          <PanelBody withPadding>
+          <StyledPanelBody withPadding whiteBg={dataIsLoading}>
             {dataIsLoading ? (
               <AiLoaderWrapper>
                 <div className="ai-loader" />
                 <AiLoaderMessage />
               </AiLoaderWrapper>
             ) : dataIsError ? (
-              <LoadingErrorWithoutMarginBottom onRetry={dataRefetch} />
+              PolicyErrorState ? (
+                PolicyErrorState
+              ) : (
+                <LoadingErrorWithoutMarginBottom onRetry={dataRefetch} />
+              )
             ) : (
               <div
                 dangerouslySetInnerHTML={{
@@ -131,7 +200,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
                 }}
               />
             )}
-          </PanelBody>
+          </StyledPanelBody>
           {!dataIsLoading && !dataIsError && (
             <PanelFooter>
               <Feedback>
@@ -185,6 +254,11 @@ const FixSuggestionPanel = styled(Panel)`
   overflow: hidden;
 `;
 
+const StyledPanelBody = styled(PanelBody)<{whiteBg: boolean}>`
+  background: ${p => (p.whiteBg ? 'white' : undefined)};
+  min-height: 268px;
+`;
+
 const FixSuggestionPanelHeader = styled(PanelHeader)<{isExpanded: boolean}>`
   border-bottom: ${p => (p.isExpanded ? 'inherit' : 'none')};
 `;
@@ -213,5 +287,5 @@ const FeatureBadgeNotUppercase = styled(FeatureBadge)`
 
 const AiLoaderWrapper = styled('div')`
   text-align: center;
-  padding-bottom: ${space(4)};
+  padding-bottom: ${space(1.5)};
 `;
