@@ -28,10 +28,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {
-  generateProfileFlamechartRoute,
-  generateProfileFlamechartRouteWithHighlightFrame,
-} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -332,20 +329,12 @@ function ProfileIdsSubMenu(props: {
         return {};
       }
 
-      if (props.framePackage) {
-        return generateProfileFlamechartRouteWithHighlightFrame({
-          orgSlug: props.organizationSlug,
-          projectSlug: props.projectSlug,
-          profileId,
-          frameName: props.frameName,
-          framePackage: props.framePackage,
-        });
-      }
-
-      return generateProfileFlamechartRoute({
+      return generateProfileFlamechartRouteWithHighlightFrame({
         orgSlug: props.organizationSlug,
         projectSlug: props.projectSlug,
         profileId,
+        frameName: props.frameName,
+        framePackage: props.framePackage,
       });
     },
     [props.frameName, props.framePackage, props.organizationSlug, props.projectSlug]

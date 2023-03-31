@@ -111,7 +111,7 @@ export function generateProfileFlamechartRouteWithHighlightFrame({
   query,
 }: {
   frameName: string;
-  framePackage: string;
+  framePackage: string | undefined;
   orgSlug: Organization['slug'];
   profileId: Trace['id'];
   projectSlug: Project['slug'];
