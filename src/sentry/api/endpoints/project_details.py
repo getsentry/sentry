@@ -419,8 +419,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_project_write = request.access and request.access.has_scope("project:write")
 
-        changed_proj_settings = {}
-
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
         else:
@@ -454,6 +452,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
 
         changed = False
+        changed_proj_settings = {}
 
         old_slug = None
         if result.get("slug"):
