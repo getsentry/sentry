@@ -7,7 +7,7 @@ def union_find(arrs: List[Column], values: List[Union[str, List[str]]]) -> Funct
     """Return a row if a union can be formed out of the sets.
 
     Accepts as input:
-        ([[a, b, c], [d, e, c]], [a, c])
+        (arrs=[[a, b, c], [d, e, c]], values=[a, c])
 
     Values and arrays are zipped:
         [(a, [a, b, c]), (c, [c, c, d])]
