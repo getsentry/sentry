@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -26,24 +26,40 @@ export const OrgRoleInfo = ({
     return role;
   }, [orgRole, orgRoleList]);
 
-  const effectiveOrgRoleId = useMemo(() => {
-    const memberOrgRoles = orgRolesFromTeams.map(r => r.role.id);
-    if (orgRoleFromMember) {
-      memberOrgRoles.concat(orgRoleFromMember.id);
-    }
-    return getEffectiveOrgRole(memberOrgRoles, orgRoleList);
-  }, [orgRoleFromMember, orgRolesFromTeams, orgRoleList]);
-
   const effectiveOrgRole = useMemo(() => {
-    return orgRoleList.find(r => r.id === effectiveOrgRoleId);
-  }, [orgRoleList, effectiveOrgRoleId]);
+    const memberOrgRoles = orgRolesFromTeams.map(r => r.role.id).concat([orgRole]);
+    return getEffectiveOrgRole(memberOrgRoles, orgRoleList);
+  }, [orgRole, orgRolesFromTeams, orgRoleList]);
 
-  if (!orgRoleFromMember || !effectiveOrgRole) {
-    addErrorMessage(t('Missing member org role'));
-    return <Fragment>{t('None')}</Fragment>;
+  if (!orgRoleFromMember) {
+    Sentry.withScope(scope => {
+      scope.setExtra('context', {
+        memberId: member.id,
+        orgRole: member.orgRole,
+      });
+      Sentry.captureException(new Error('OrgMember has an invalid orgRole.'));
+    });
+
+    // This code path should not happen, so this weird UI is fine.
+    return <Fragment>{t('Error Role')}</Fragment>;
   }
 
   if (!orgRolesFromTeams || orgRolesFromTeams.length === 0) {
+    return <Fragment>{orgRoleFromMember.name}</Fragment>;
+  }
+
+  if (!effectiveOrgRole) {
+    Sentry.withScope(scope => {
+      scope.setExtra('context', {
+        memberId: member.id,
+        orgRoleFromMember,
+        orgRolesFromTeams,
+        orgRoleList,
+        effectiveOrgRole,
+      });
+      Sentry.captureException(new Error('OrgMember has no effectiveOrgRole.'));
+    });
+
     return <Fragment>{orgRoleFromMember.name}</Fragment>;
   }
 
@@ -63,7 +79,7 @@ export const OrgRoleInfo = ({
 
         <br />
 
-        <div>{t('Teams:')}</div>
+        <div>{t('Teams')}:</div>
         {orgRolesFromTeams
           .sort((a, b) => a.teamSlug.localeCompare(b.teamSlug))
           .map(r => (
