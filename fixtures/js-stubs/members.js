@@ -18,6 +18,7 @@ export function Members(params = []) {
         'idp:role-restricted': false,
       },
       user: null,
+      orgRolesFromTeams: [],
     },
     {
       id: '3',
@@ -40,6 +41,7 @@ export function Members(params = []) {
         email: 'sentry3@test.com',
         username: 'Sentry 3 Username',
       },
+      orgRolesFromTeams: [],
     },
     {
       id: '4',
@@ -62,6 +64,7 @@ export function Members(params = []) {
         email: 'sentry4@test.com',
         username: 'Sentry 4 Username',
       },
+      orgRolesFromTeams: [],
     },
     ...params,
   ];

@@ -18,6 +18,7 @@ export function Member(params = {}) {
     },
     user: User(),
     inviteStatus: 'approved',
+    orgRolesFromTeams: [],
     ...params,
   };
 }

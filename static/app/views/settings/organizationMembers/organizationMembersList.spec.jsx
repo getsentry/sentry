@@ -401,8 +401,7 @@ describe('OrganizationMembersList', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
 
     const owners = screen.queryAllByText('Owner');
-    expect(owners).toHaveLength(2);
-    expect(screen.queryByText('Owner, Member')).toBeInTheDocument();
+    expect(owners).toHaveLength(3);
   });
 
   describe('OrganizationInviteRequests', function () {
