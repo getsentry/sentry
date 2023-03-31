@@ -52,27 +52,28 @@ def patch(filename: str, dryrun: bool):
         data = configmap_data.get("data", {}).get("options-patch.yaml", "")
 
         keysToFetch = data.get("fetch", {})
-        keysToFetch = (line for line in keysToFetch.split("\n") if line)
-
+        keysToFetch = create_key_value_generator(keysToFetch, "\n", ": ")
         for key in keysToFetch:
-            click.echo(get(key, dryrun))
+            get(key, dryrun)
 
         keysToUpdate = data.get("update", {})
-
-        for line in keysToUpdate.split("\n"):
-            if line:
-                line_tuple = line.split(": ")
-                key = line_tuple[0]
-                val = ""
-                if len(line_tuple) > 1:
-                    val = line_tuple[1]
-                click.echo(set(key, val, dryrun))
+        keysToUpdate = create_key_value_generator(keysToUpdate, "\n", ": ")
+        for line in keysToUpdate:
+            key = line[0]
+            val = ""
+            if len(line) > 1:
+                val = line[1]
+            success = set(key, val, dryrun)
+            if success:
+                click.echo(f"Successfully updated: {key} = {val} (dry run:{dryrun})")
+            else:
+                click.echo(f"Failed to update: {key} = {val} (dry run:{dryrun})")
 
         keysToDelete = data.get("delete", {})
-
-        keysToDelete = keysToFetch = (line for line in keysToDelete.split("\n") if line)
+        keysToDelete = create_key_value_generator(keysToDelete, "\n", ": ")
         for key in keysToDelete:
             click.echo(delete(key, dryrun))
+            click.echo(f"Successfully deleted: {key} (dry run:{dryrun})")
 
 
 @configoptions.command()
