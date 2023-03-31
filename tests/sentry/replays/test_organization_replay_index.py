@@ -921,6 +921,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.testid:1",
                 "replay_click.textContent:Hello",
                 "replay_click.title:MyTitle",
+                "replay_click.selector:div#myid",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -938,6 +939,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.testid:2",
                 "replay_click.textContent:World",
                 "replay_click.title:NotMyTitle",
+                "!replay_click.selector:div#myid",
+                "replay_click.selector:div#notmyid",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")

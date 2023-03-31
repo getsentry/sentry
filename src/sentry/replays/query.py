@@ -26,6 +26,7 @@ from sentry.replays.lib.query import (
     ListField,
     Number,
     QueryConfig,
+    Selector,
     String,
     Tag,
     UUIDField,
@@ -436,6 +437,7 @@ class ReplayQueryConfig(QueryConfig):
     click_testid = ListField(field_alias="replay_click.testid", is_sortable=False)
     click_text = ListField(field_alias="replay_click.textContent", is_sortable=False)
     click_title = ListField(field_alias="replay_click.title", is_sortable=False)
+    click_selector = Selector(field_alias="replay_click.selector", is_sortable=False)
 
     # Tag
     tags = Tag(field_alias="*")
@@ -596,6 +598,17 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "replay_click.testid": ["click.testid"],
     "replay_click.textContent": ["click.text"],
     "replay_click.title": ["click.title"],
+    "replay_click.selector": [
+        "click.alt",
+        "click.aria_label",
+        "click.class",
+        "click.id",
+        "click.role",
+        "click.tag",
+        "click.testid",
+        "click.text",
+        "click.title",
+    ],
 }
 
 
