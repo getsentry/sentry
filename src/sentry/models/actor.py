@@ -80,7 +80,12 @@ class Actor(Model):
         settings.AUTH_USER_MODEL, db_index=True, unique=True, null=True, on_delete="CASCADE"
     )
     team = FlexibleForeignKey(
-        "sentry.Team", related_name="actor_from_team", db_index=True, unique=True, null=True
+        "sentry.Team",
+        related_name="actor_from_team",
+        db_index=True,
+        unique=True,
+        null=True,
+        on_delete=models.CASCADE,
     )
 
     class Meta:
@@ -110,7 +115,7 @@ def get_actor_id_for_user(user: Union["User", RpcUser]):
     actor = Actor.objects.filter(type=1, user_id=user.id).first()
     if actor is None:
         actor = Actor.objects.create(
-            type=1,
+            type=ACTOR_TYPES["user"],
             user_id=user.id,
         )
         # TODO(hybrid-cloud): remove this after actor migration is complete
@@ -175,8 +180,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def resolve_to_actor(self) -> Actor:
         obj = self.resolve()
         if obj.actor_id is None and isinstance(obj, RpcUser):  # This can happen for users now.
-            get_actor_id_for_user(obj)
-        return Actor.objects.get(id=self.resolve().actor_id)
+            return Actor.objects.get(id=get_actor_id_for_user(obj))
+        return Actor.objects.get(id=obj.actor_id)
 
     @classmethod
     def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "RpcUser"]]:
@@ -220,6 +225,3 @@ def handle_team_post_save(instance, **kwargs):
 post_save.connect(
     handle_team_post_save, sender="sentry.Team", dispatch_uid="handle_team_post_save", weak=False
 )
-# post_save.connect(
-#     handle_actor_post_save, sender="sentry.User", dispatch_uid="handle_actor_post_save", weak=False
-# )

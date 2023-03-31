@@ -366,7 +366,11 @@ class AlertRule(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
-    owner = FlexibleForeignKey("sentry.Actor", null=True)
+    owner = FlexibleForeignKey(
+        "sentry.Actor",
+        null=True,
+        on_delete=models.SET_NULL,
+    )
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )

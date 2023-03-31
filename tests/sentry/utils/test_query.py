@@ -1,5 +1,6 @@
 from sentry.db.models.query import in_iexact
 from sentry.models import Organization, Team, User
+from sentry.models.actor import Actor
 from sentry.testutils import TestCase
 from sentry.utils.query import RangeQuerySetWrapper, bulk_delete_objects
 
@@ -54,6 +55,7 @@ class BulkDeleteObjectsTest(TestCase):
         result = bulk_delete_objects(Team, id__in=[r.id for r in records])
         assert result, "Could be more work to do"
         assert len(Team.objects.all()) == 0
+        assert len(Actor.objects.filter(id__in=[r.actor_id for r in records])) == 0
 
     def test_limiting(self):
         total = 10
