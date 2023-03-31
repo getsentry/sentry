@@ -884,7 +884,7 @@ const WindowSelection = styled('div')`
   opacity: 0.1;
 `;
 
-export const SecondaryHeader = styled('div')<{hasProfileMeasurementsChart: boolean}>`
+export const SecondaryHeader = styled('div')<{hasProfileMeasurementsChart?: boolean}>`
   position: absolute;
   top: ${p =>
     MINIMAP_HEIGHT +
