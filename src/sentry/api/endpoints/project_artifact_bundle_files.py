@@ -59,23 +59,20 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
 
         try:
-            artifact_bundle = ArtifactBundle.objects.get(
-                organization_id=project.organization.id, bundle_id=bundle_id
-            )
-        except ArtifactBundle.DoesNotExist:
+            project_artifact_bundle = ProjectArtifactBundle.objects.filter(
+                organization_id=project.organization.id,
+                project_id=project.id,
+                artifact_bundle__bundle_id=bundle_id,
+            ).select_related("artifact_bundle__file")[0]
+        except IndexError:
             return Response(
-                {"error": f"The artifact bundle with {bundle_id} does not exist"}, status=404
-            )
-
-        try:
-            ProjectArtifactBundle.objects.get(
-                project_id=project.id, artifact_bundle=artifact_bundle
-            )
-        except ProjectArtifactBundle.DoesNotExist:
-            return Response(
-                {"error": f"The artifact bundle with {bundle_id} is not bound to this project"},
+                {
+                    "error": f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"
+                },
                 status=400,
             )
+
+        artifact_bundle = project_artifact_bundle.artifact_bundle
 
         try:
             # We open the archive to fetch the number of files.
@@ -97,23 +94,33 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 "id": base64.urlsafe_b64encode(bytes(file_path.encode("utf-8"))).decode("utf-8"),
                 # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
                 "fileType": file_type.value if file_type is not None else INVALID_SOURCE_FILE_TYPE,
-                "filePath": file_path,
+                "filePath": archive.get_file_url_by_file_path(file_path),
                 "fileSize": file_info.file_size if file_info is not None else None,
                 "debugId": debug_id,
             }
 
         def serialize_results(r):
-            serialized_results = serialize(
-                [expose_artifact_bundle_file(file_path, info) for file_path, info in r],
-                request.user,
+            artifact_bundle_files = [
+                expose_artifact_bundle_file(file_path, info) for file_path, info in r
+            ]
+            release, dist = ArtifactBundle.get_release_dist_pair(
+                project.organization.id, artifact_bundle
             )
 
-            return serialized_results
+            return serialize(
+                {
+                    "bundleId": str(artifact_bundle.bundle_id),
+                    "release": release,
+                    "dist": dist if dist != "" else None,
+                    "files": artifact_bundle_files,
+                },
+                request.user,
+            )
 
         try:
             return self.paginate(
                 request=request,
-                sources=[ArtifactBundleSource(archive.get_files_by_file_path_or_debug_id(query))],
+                sources=[ArtifactBundleSource(archive.get_files_by_url_or_debug_id(query))],
                 paginator_cls=ChainPaginator,
                 max_offset=MAX_ARTIFACT_BUNDLE_FILES_OFFSET,
                 on_results=serialize_results,

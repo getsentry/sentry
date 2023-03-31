@@ -400,7 +400,7 @@ describe('TeamMembers', function () {
       body: members,
     });
     Client.addMockResponse({
-      url: `/teams/${organization.slug}/${team.slug}/`,
+      url: `/teams/${organization.slug}/${team2.slug}/`,
       method: 'GET',
       body: team2,
     });
@@ -416,6 +416,47 @@ describe('TeamMembers', function () {
     waitFor(() => {
       expect(screen.findByRole('button', {name: 'Add Member'})).toBeDisabled();
       expect(screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
+    });
+  });
+
+  it('cannot add or remove members or leave if team has org role and no access', function () {
+    const team2 = TestStubs.Team({orgRole: 'manager'});
+
+    const me = TestStubs.Member({
+      id: '123',
+      email: 'foo@example.com',
+      role: 'member',
+    });
+
+    Client.clearMockResponses();
+    Client.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [...members, me],
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team2.slug}/members/`,
+      method: 'GET',
+      body: members,
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team2.slug}/`,
+      method: 'GET',
+      body: team2,
+    });
+
+    render(
+      <TeamMembers
+        params={{orgId: organization.slug, teamId: team2.slug}}
+        organization={organization}
+        team={team2}
+      />
+    );
+
+    waitFor(() => {
+      expect(screen.findByRole('button', {name: 'Add Member'})).toBeDisabled();
+      expect(screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
+      expect(screen.findByRole('button', {name: 'Leave'})).toBeDisabled();
     });
   });
 });

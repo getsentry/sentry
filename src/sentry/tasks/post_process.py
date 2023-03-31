@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -466,7 +466,9 @@ def post_process_group(
                 return
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
-            event = eventstore.get_event_by_id(project_id, occurrence.event_id, group_id=group_id)
+            event = eventstore.get_event_by_id(
+                project_id, occurrence.event_id, group_id=group_id, skip_transaction_groupevent=True
+            )
 
         set_current_event_project(event.project_id)
 
@@ -544,12 +546,10 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
-    if group_event.group.issue_type.type_id in get_group_types_by_category(
-        GroupCategory.PROFILE.value
-    ) and not features.has(
-        "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
-    ):
+
+    if not group_event.group.issue_type.allow_post_process_group(group_event.group.organization):
         return
+
     if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE

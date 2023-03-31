@@ -146,11 +146,13 @@ class OrganizationMemberTest(TestCase):
         with exempt_from_silo_limits():
             AuthProvider.objects.create(
                 provider="saml2",
-                organization=organization,
+                organization_id=organization.id,
                 flags=AuthProvider.flags["scim_enabled"],
             )
             AuthProvider.objects.create(
-                provider="saml2", organization=org3, flags=AuthProvider.flags["allow_unlinked"]
+                provider="saml2",
+                organization_id=org3.id,
+                flags=AuthProvider.flags["allow_unlinked"],
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = OrganizationMember.objects.create(
@@ -189,7 +191,6 @@ class OrganizationMemberTest(TestCase):
             organization=self.organization,
             role="member",
             user=user,
-            email="test@example.com",
             token="abc-def",
             token_expires_at="2018-01-01 10:00:00",
         )

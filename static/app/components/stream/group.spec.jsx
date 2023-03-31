@@ -94,7 +94,8 @@ describe('StreamGroup', function () {
       {context: routerContext, organization}
     );
 
-    await userEvent.click(screen.getByText('RequestError'));
+    // skipHover - Prevent stacktrace preview from being rendered
+    await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(2);
   });
 });

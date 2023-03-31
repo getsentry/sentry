@@ -143,14 +143,23 @@ function Onboarding(props: Props) {
     props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
   };
 
-  const goNextStep = (step: StepDescriptor) => {
-    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-    const nextStep = onboardingSteps[currentStepIndex + 1];
-    if (step.cornerVariant !== nextStep.cornerVariant) {
-      cornerVariantControl.start('none');
-    }
-    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
-  };
+  const goNextStep = useCallback(
+    (step: StepDescriptor, platforms?: PlatformKey[]) => {
+      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+      const nextStep = onboardingSteps[currentStepIndex + 1];
+
+      if (nextStep.id === 'setup-docs' && !platforms) {
+        return;
+      }
+
+      if (step.cornerVariant !== nextStep.cornerVariant) {
+        cornerVariantControl.start('none');
+      }
+
+      props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+    },
+    [organization.slug, onboardingSteps, cornerVariantControl, props.router]
+  );
 
   const deleteProject = useCallback(
     async (projectSlug: string) => {
@@ -321,13 +330,18 @@ function Onboarding(props: Props) {
                 active
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
-                onComplete={() => stepObj && goNextStep(stepObj)}
+                onComplete={platforms => {
+                  if (stepObj) {
+                    goNextStep(stepObj, platforms);
+                  }
+                }}
                 orgId={organization.slug}
                 search={props.location.search}
                 route={props.route}
                 router={props.router}
                 location={props.location}
                 jumpToSetupProject={jumpToSetupProject}
+                selectedProjectSlug={selectedProjectSlug}
                 {...{
                   genSkipOnboardingLink,
                 }}

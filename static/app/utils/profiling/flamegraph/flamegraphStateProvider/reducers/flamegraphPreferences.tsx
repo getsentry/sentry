@@ -1,9 +1,10 @@
 import {Flamegraph} from '../../../flamegraph';
 
 export type FlamegraphColorCodings = [
-  'by symbol name',
+  'by system vs application frame',
   'by system frame',
   'by application frame',
+  'by symbol name',
   'by library',
   'by recursion',
   'by frequency'

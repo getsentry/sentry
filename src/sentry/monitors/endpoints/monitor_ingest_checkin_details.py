@@ -17,7 +17,8 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.monitors.models import CheckInStatus, MonitorEnvironment
+from sentry.models import Project
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.validators import MonitorCheckInValidator
 
@@ -48,7 +49,13 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             404: RESPONSE_NOTFOUND,
         },
     )
-    def put(self, request: Request, project, monitor, checkin) -> Response:
+    def put(
+        self,
+        request: Request,
+        project: Project,
+        monitor: Monitor,
+        checkin: MonitorCheckIn,
+    ) -> Response:
         """
         Updates a check-in.
 

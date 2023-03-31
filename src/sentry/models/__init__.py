@@ -42,6 +42,7 @@ from .groupbookmark import *  # NOQA
 from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
+from .groupforecast import *  # NOQA
 from .grouphash import *  # NOQA
 from .grouphistory import *  # NOQA
 from .groupinbox import *  # NOQA

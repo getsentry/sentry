@@ -19,21 +19,19 @@ import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
-import Tag from 'sentry/components/tag';
-import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import Version from 'sentry/components/version';
 import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum SORT_BY {
   ASC = 'date_added',
@@ -58,11 +56,7 @@ function SourceMapsTableRow({
   return (
     <Fragment>
       <IDColumn>
-        <TextOverflow>
-          <Link to={link}>
-            <Version version={name} anchor={false} tooltipRawVersion truncate={false} />
-          </Link>
-        </TextOverflow>
+        <Link to={link}>{name}</Link>
         {idColumnDetails}
       </IDColumn>
       <ArtifactsTotalColumn>
@@ -132,7 +126,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     data: archivesData,
     isLoading: archivesLoading,
     refetch: archivesRefetch,
-  } = useQuery<[SourceMapsArchive[], any, any]>(
+  } = useApiQuery<[SourceMapsArchive[], any, any]>(
     [
       sourceMapsEndpoint,
       {
@@ -156,7 +150,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     data: debugIdBundlesData,
     isLoading: debugIdBundlesLoading,
     refetch: debugIdBundlesRefetch,
-  } = useQuery<[DebugIdBundle[], any, any]>(
+  } = useApiQuery<[DebugIdBundle[], any, any]>(
     [
       debugIdBundlesEndpoint,
       {
@@ -201,10 +195,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     async (name: string) => {
       addLoadingMessage(t('Removing artifacts\u2026'));
       try {
-        await api.requestPromise(sourceMapsEndpoint, {
-          method: 'DELETE',
-          query: {name},
-        });
+        await api.requestPromise(
+          tabDebugIdBundlesActive ? debugIdBundlesEndpoint : sourceMapsEndpoint,
+          {
+            method: 'DELETE',
+            query: tabDebugIdBundlesActive ? {bundleId: name} : {name},
+          }
+        );
         tabDebugIdBundlesActive ? debugIdBundlesRefetch() : archivesRefetch();
         addSuccessMessage(t('Artifacts removed.'));
       } catch {
@@ -217,6 +214,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       tabDebugIdBundlesActive,
       debugIdBundlesRefetch,
       archivesRefetch,
+      debugIdBundlesEndpoint,
     ]
   );
 
@@ -305,35 +303,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   project.slug
                 }/source-maps/debug-id-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
-                  <Tags>
-                    {data.dist && (
-                      <Tag
-                        tooltipText={tct('Associated with release "[distribution]"', {
-                          distribution: data.dist,
-                        })}
-                        type="info"
-                      >
-                        {data.dist}
-                      </Tag>
-                    )}
-                    {data.release && (
-                      <Tag
-                        tooltipText={tct('Associated with release "[releaseName]"', {
-                          releaseName: data.release,
-                        })}
-                        type="info"
-                      >
-                        {data.release}
-                      </Tag>
-                    )}
-                    {!data.dist && !data.release && (
-                      <Tag
-                        tooltipText={t('Not associated with a release or distribution')}
-                      >
-                        {t('none')}
-                      </Tag>
-                    )}
-                  </Tags>
+                  <DebugIdBundlesTags dist={data.dist} release={data.release} />
                 }
               />
             ))
@@ -400,16 +370,11 @@ const IDColumn = styled(Column)`
   justify-content: center;
   align-items: flex-start;
   gap: ${space(0.5)};
+  word-break: break-word;
 `;
 
 const ActionsColumn = styled(Column)`
   justify-content: flex-end;
-`;
-
-const Tags = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`

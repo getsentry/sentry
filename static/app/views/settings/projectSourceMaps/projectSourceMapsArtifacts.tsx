@@ -10,20 +10,19 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
-import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import Version from 'sentry/components/version';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum DebugIdBundleArtifactType {
   INVALID = 0,
@@ -117,7 +116,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const artifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
   }/releases/${encodeURIComponent(params.bundleId)}/files/`;
-  const debugIdBundlesEndpoint = `/projects/${organization.slug}/${
+  const debugIdBundlesArtifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
   }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/`;
 
@@ -128,7 +127,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
 
-  const {data: artifactsData, isLoading: artifactsLoading} = useQuery<
+  const {data: artifactsData, isLoading: artifactsLoading} = useApiQuery<
     [Artifact[], any, any]
   >(
     [
@@ -139,7 +138,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     ],
     () => {
       return api.requestPromise(artifactsEndpoint, {
-        query: {query, cursor},
+        query: cursor ? {query, cursor} : {query},
         includeAllArgs: true,
       });
     },
@@ -150,27 +149,26 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     }
   );
 
-  const {data: debugIdBundlesData, isLoading: debugIdBundlesLoading} = useQuery<
-    [DebugIdBundleArtifact[], any, any]
-  >(
-    [
-      debugIdBundlesEndpoint,
-      {
-        query: {query, cursor},
+  const {data: debugIdBundlesArtifactsData, isLoading: debugIdBundlesArtifactsLoading} =
+    useApiQuery<[DebugIdBundleArtifact, any, any]>(
+      [
+        debugIdBundlesArtifactsEndpoint,
+        {
+          query: {query, cursor},
+        },
+      ],
+      () => {
+        return api.requestPromise(debugIdBundlesArtifactsEndpoint, {
+          query: cursor ? {query, cursor} : {query},
+          includeAllArgs: true,
+        });
       },
-    ],
-    () => {
-      return api.requestPromise(debugIdBundlesEndpoint, {
-        query: {query, cursor},
-        includeAllArgs: true,
-      });
-    },
-    {
-      staleTime: 0,
-      keepPreviousData: true,
-      enabled: tabDebugIdBundlesActive,
-    }
-  );
+      {
+        staleTime: 0,
+        keepPreviousData: true,
+        enabled: tabDebugIdBundlesActive,
+      }
+    );
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -185,22 +183,18 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={
-          <Title>
-            {tabDebugIdBundlesActive
-              ? t('Debug Id Bundle Artifact')
-              : t('Release Artifact')}
-            {' ('}
-            <TextOverflow>
-              <Version
-                version={params.bundleId}
-                tooltipRawVersion
-                anchor={false}
-                truncate
+        title={tabDebugIdBundlesActive ? t('Debug ID Bundle') : t('Release Bundle')}
+        subtitle={
+          <VersionAndDetails>
+            {params.bundleId}
+            {tabDebugIdBundlesActive && (
+              <DebugIdBundlesTags
+                dist={debugIdBundlesArtifactsData?.[0]?.dist}
+                release={debugIdBundlesArtifactsData?.[0]?.release}
+                loading={debugIdBundlesArtifactsLoading}
               />
-            </TextOverflow>
-            {')'}
-          </Title>
+            )}
+          </VersionAndDetails>
         }
       />
       <SearchBarWithMarginBottom
@@ -225,14 +219,16 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         }
         isEmpty={
           (tabDebugIdBundlesActive
-            ? debugIdBundlesData?.[0] ?? []
+            ? debugIdBundlesArtifactsData?.[0].files ?? []
             : artifactsData?.[0] ?? []
           ).length === 0
         }
-        isLoading={tabDebugIdBundlesActive ? debugIdBundlesLoading : artifactsLoading}
+        isLoading={
+          tabDebugIdBundlesActive ? debugIdBundlesArtifactsLoading : artifactsLoading
+        }
       >
         {tabDebugIdBundlesActive
-          ? debugIdBundlesData?.[0].map(data => {
+          ? (debugIdBundlesArtifactsData?.[0].files ?? []).map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
               }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${
@@ -292,7 +288,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
       <Pagination
         pageLinks={
           tabDebugIdBundlesActive
-            ? debugIdBundlesData?.[2]?.getResponseHeader('Link') ?? ''
+            ? debugIdBundlesArtifactsData?.[2]?.getResponseHeader('Link') ?? ''
             : artifactsData?.[2]?.getResponseHeader('Link') ?? ''
         }
       />
@@ -366,7 +362,9 @@ const DebugIdAndFileTypeWrapper = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const Title = styled('div')`
+const VersionAndDetails = styled('div')`
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: ${space(1)};
+  word-break: break-word;
 `;

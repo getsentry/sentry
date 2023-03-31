@@ -33,7 +33,7 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
 @pending_silo_endpoint
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
     def get(self, request: Request, organization) -> Response:
-        queryset = SentryAppInstallation.objects.filter(organization=organization)
+        queryset = SentryAppInstallation.objects.filter(organization_id=organization.id)
 
         return self.paginate(
             request=request,

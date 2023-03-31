@@ -14,9 +14,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCopy,
-  IconDownload,
   IconEllipsis,
   IconNext,
+  IconOpen,
   IconPrevious,
   IconWarning,
 } from 'sentry/icons';
@@ -120,7 +120,7 @@ export const GroupEventCarousel = ({
         <EventLabelContainer>
           <div>
             <EventIdLabel>Event ID:</EventIdLabel>{' '}
-            <Tooltip title={event.id}>
+            <Tooltip overlayStyle={{maxWidth: 'max-content'}} title={event.id}>
               <Clipboard value={event.id}>
                 <EventId>
                   {getShortEventId(event.id)}
@@ -175,7 +175,7 @@ export const GroupEventCarousel = ({
       {xlargeViewport && (
         <Button
           size={BUTTON_SIZE}
-          icon={<IconDownload size={BUTTON_ICON_SIZE} />}
+          icon={<IconOpen size={BUTTON_ICON_SIZE} />}
           aria-label="Newest"
           onClick={downloadJson}
         >
