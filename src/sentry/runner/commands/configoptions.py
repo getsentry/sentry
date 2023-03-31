@@ -8,6 +8,8 @@ tracked = [
     re.compile("key+"),
 ]
 
+verbose = False
+
 
 def create_key_value_generator(data: str, newline_separator: str, kv_separator: str):
     return (line.split(kv_separator) for line in data.split(newline_separator) if line)
@@ -34,7 +36,8 @@ def list():
 
     for opt in options.all():
         # click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
-        click.echo(f"{opt.name}: {options.get(opt.name)}")
+        if can_change(opt.name):
+            click.echo(f"{opt.name}: {options.get(opt.name)}")
 
 
 @configoptions.command()
@@ -145,19 +148,20 @@ def set(key: str, val: str, dryrun=False) -> bool:
     from sentry import options
     from sentry.options.manager import UnknownOption
 
-    if not can_change(key):
-        return False
-
     success = False
+    if not can_change(key):
+        return success
+
     try:
         opt = options.lookup_key(key)
 
     except UnknownOption:
-        click.echo(f"Unknown Option: {key}")
+        click.echo(f"Unknown Option in set: {key}")
         if not dryrun:
             try:
                 options.register(key)
                 options.set(key, val)
+                success = True
                 click.echo(f"Registered a new key: {key} = {val}")
             except Exception:
                 click.echo(f"Failed to register option: {key} = {val}")
@@ -180,10 +184,10 @@ def delete(key: str, dryrun=False) -> bool:
     from sentry import options
     from sentry.options.manager import UnknownOption
 
-    if not can_change(key):
-        return
-
     success = False
+    if not can_change(key):
+        return success
+
     try:
         options.lookup_key(key)
         if not dryrun:
@@ -191,7 +195,7 @@ def delete(key: str, dryrun=False) -> bool:
         click.echo(f"Deleted key: {key}")
         success = True
     except UnknownOption:
-        click.echo(f"Unknown Option:: {key}")
+        click.echo(f"Unknown Option, can't delete: {key}")
     return success
 
 
@@ -201,12 +205,14 @@ def can_change(key: str) -> bool:
     for i in tracked:
         is_match = i.match(key)
         if is_match:
-            click.echo(f"Key({key}) matches a tracked Regex({i})")
+            click.echo(f"Key({key}) matches {is_match} a tracked Regex({i})")
             changable = True
-            break
+            return changable
 
     if changable:
-        click.echo(f"Key({key}) is mutable!")
+        # click.echo(f"Key({key}) is mutable!")
+        pass
     else:
-        click.echo(f"Key({key}) is not mutable!")
+        # click.echo(f"Key({key}) is not mutable!")
+        pass
     return changable
