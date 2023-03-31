@@ -475,6 +475,7 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   display: flex;
   align-items: center;
   margin-right: ${getIconMargin};
+  flex-shrink: 0;
 `;
 
 /**
