@@ -149,6 +149,11 @@ class Selector(Field):
         # selector queries apply them separately.
         queries: List[QueryType] = parse_selector(value)
 
+        # A valid selector will always return at least one query condition. If this did not occur
+        # then the selector was not well-formed. We return an empty resultset.
+        if len(queries) == 0:
+            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
         # Conditions are pre-made and intended for application in the HAVING clause.
         conditions: List[Condition] = []
 

@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from cssselect import Selector
+from cssselect import Selector, SelectorSyntaxError
 from cssselect import parse as cssselect_parse
 from cssselect.parser import Attrib, Class, Element, Hash
 
@@ -20,8 +20,11 @@ class QueryType:
 
 
 def parse_selector(css_selector: str) -> List[QueryType]:
-    # TODO: This can fail.
-    selectors: List[Selector] = cssselect_parse(css_selector)
+    try:
+        selectors: List[Selector] = cssselect_parse(css_selector)
+    except SelectorSyntaxError:
+        # Invalid selector syntax. No query data can be extracted.
+        return []
 
     queries: List[QueryType] = []
     for selector in selectors:

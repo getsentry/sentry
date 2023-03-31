@@ -944,6 +944,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.selector:div#notmyid",
                 # Assert all classes must match.
                 "replay_click.selector:div#myid.class1.class2.class3",
+                # Invalid selectors return no rows.
+                "replay_click.selector:$#%^#%",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
