@@ -12,6 +12,7 @@ from sentry.api.event_search import (
 from sentry.api.issue_search import (
     convert_actor_or_none_value,
     convert_category_value,
+    convert_device_class_value,
     convert_first_release_value,
     convert_query_values,
     convert_release_value,
@@ -312,3 +313,18 @@ class ConvertTypeValueTest(TestCase):
         ) == [1, 1006]
         with pytest.raises(InvalidSearchQuery):
             convert_type_value(["hellboy"], [self.project], self.user, None)
+
+
+@region_silo_test(stable=True)
+class DeviceClassValueTest(TestCase):
+    def test(self):
+        assert convert_device_class_value(["high"], [self.project], self.user, None) == ["3"]
+        assert convert_device_class_value(["medium"], [self.project], self.user, None) == ["2"]
+        assert convert_device_class_value(["low"], [self.project], self.user, None) == ["1"]
+        assert convert_device_class_value(["medium", "high"], [self.project], self.user, None) == [
+            "2",
+            "3",
+        ]
+        assert convert_device_class_value(
+            ["low", "medium", "high"], [self.project], self.user, None
+        ) == ["1", "2", "3"]

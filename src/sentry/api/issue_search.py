@@ -21,6 +21,7 @@ from sentry.models.group import STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (
+    DEVICE_CLASS,
     parse_actor_or_none_value,
     parse_release,
     parse_status_value,
@@ -172,6 +173,22 @@ def convert_type_value(
     return results
 
 
+def convert_device_class_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[int]:
+    """Convert high, medium, and low to the underlying device class values"""
+    results = set()
+    for device_class in value:
+        device_class_values = DEVICE_CLASS.get(device_class)
+        if not device_class_values:
+            raise InvalidSearchQuery(f"Invalid type value of '{type}'")
+        results.update(device_class_values)
+    return list(results)
+
+
 value_converters: Mapping[str, ValueConverter] = {
     "assigned_or_suggested": convert_actor_or_none_value,
     "assigned_to": convert_actor_or_none_value,
@@ -183,6 +200,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "regressed_in_release": convert_first_release_value,
     "issue.category": convert_category_value,
     "issue.type": convert_type_value,
+    "device.class": convert_device_class_value,
 }
 
 
