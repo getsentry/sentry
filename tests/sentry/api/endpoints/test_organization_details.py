@@ -31,7 +31,6 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -240,7 +239,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["hasAuthProvider"] is False
 
         with exempt_from_silo_limits():
-            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True
@@ -300,7 +299,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
         AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
@@ -386,7 +384,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
 
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
@@ -886,7 +883,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider="github", organization=self.organization
+            provider="github", organization_id=self.organization.id
         )
         # bypass SSO login
         self.auth_provider.flags.allow_unlinked = True
@@ -896,7 +893,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider="saml2", organization=self.organization
+            provider="saml2", organization_id=self.organization.id
         )
         # bypass SSO login
         self.auth_provider.flags.allow_unlinked = True
