@@ -96,7 +96,9 @@ export class Flamegraph {
       inverted = false,
       sort = 'call order',
       configSpace,
+      collapseStrategy,
     }: {
+      collapseStrategy?: (root: FlamegraphFrame) => FlamegraphFrame;
       configSpace?: Rect;
       inverted?: boolean;
       sort?: 'left heavy' | 'alphabetical' | 'call order';
@@ -133,6 +135,15 @@ export class Flamegraph {
 
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
+
+    if (collapseStrategy) {
+      const {root, frames, depth} = buildCollapsedFlamegraph(
+        collapse(this.root, collapseStrategy)
+      );
+      this.root = root;
+      this.depth = depth;
+      this.frames = frames;
+    }
 
     if (this.profile.duration > 0) {
       this.configSpace = new Rect(
@@ -351,4 +362,46 @@ export class Flamegraph {
 
     return matches;
   }
+}
+
+function collapse(
+  frame: FlamegraphFrame,
+  strategy: (frame: FlamegraphFrame) => FlamegraphFrame
+) {
+  frame.children = frame.children.map(f => collapse(f, strategy));
+
+  if (frame.frame.isRoot) {
+    return frame;
+  }
+
+  return strategy(frame);
+}
+
+function buildCollapsedFlamegraph(root: FlamegraphFrame) {
+  const frames: FlamegraphFrame[] = [];
+  const stack = [root];
+  let maxDepth = 0;
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node) {
+      break;
+    }
+    maxDepth = Math.max(maxDepth, node.depth);
+
+    if (!node.frame.isRoot) {
+      frames.push(node);
+    }
+
+    for (const child of node.children) {
+      child.depth = node.frame.isRoot ? 0 : node.depth + 1;
+
+      stack.push(child);
+    }
+  }
+
+  return {
+    frames,
+    root,
+    depth: maxDepth,
+  };
 }
