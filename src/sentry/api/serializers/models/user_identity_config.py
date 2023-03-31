@@ -7,6 +7,7 @@ from typing import Any, List, MutableMapping, Optional, Union
 
 import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models import ControlSiloOrganizationSerializer
 from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
@@ -118,7 +119,10 @@ class UserIdentityConfigSerializer(Serializer):
         organizations = {
             o.id: o
             for o in organization_service.get_organizations(
-                organization_ids=[i.organization_id for i in item_list]
+                organization_ids=[i.organization_id for i in item_list],
+                scope=None,
+                user_id=None,
+                only_visible=False,
             )
         }
         for item in item_list:
@@ -136,6 +140,7 @@ class UserIdentityConfigSerializer(Serializer):
             "isLogin": obj.is_login,
             "organization": serialize(
                 attrs["organization"],
+                serializer=ControlSiloOrganizationSerializer(),
             ),
             "dateAdded": serialize(obj.date_added),
             "dateVerified": serialize(obj.date_verified),

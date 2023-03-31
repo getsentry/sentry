@@ -27,6 +27,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager import BaseManager
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
@@ -222,6 +223,11 @@ class OrganizationMember(Model):
 
     __repr__ = sane_repr("organization_id", "user_id", "role")
 
+    def delete(self, *args, **kwds):
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            self.outbox_for_update().save()
+            super().delete(*args, **kwds)
+
     @transaction.atomic
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
@@ -246,13 +252,13 @@ class OrganizationMember(Model):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    @staticmethod
-    def outbox_for_update(org_id: int, org_member_id: int) -> RegionOutbox:
+    def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=org_id,
+            shard_identifier=self.organization_id,
             category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
-            object_identifier=org_member_id,
+            object_identifier=self.id,
+            payload=dict(user_id=self.user_id),
         )
 
     def refresh_expires_at(self):

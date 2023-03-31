@@ -256,10 +256,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # this is different than Vercel, for example, which can have multiple installations
         # for the same team in Vercel with different auth tokens
 
-        for org in integration.organizations.all():
+        for org_id in integration.organizationintegration_set.values_list(
+            "organization_id", flat=True
+        ):
             create_audit_entry(
                 request=request,
-                organization=org,
+                organization_id=org_id,
                 target_object=integration.id,
                 event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                 actor_label="Teams User",

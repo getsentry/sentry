@@ -18,6 +18,17 @@ from sentry.types.integrations import ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
+    def uninstall_slack_settings(self, organization_id: int, project_ids: List[int]):
+        provider = ExternalProviders.SLACK
+        users = User.objects.get_users_with_only_one_integration_for_provider(
+            provider, organization_id
+        )
+
+        NotificationSetting.objects.remove_parent_settings_for_organization(
+            organization_id, project_ids, provider
+        )
+        NotificationSetting.objects.disable_settings_for_users(provider, users)
+
     def update_settings(
         self,
         *,

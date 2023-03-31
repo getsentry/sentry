@@ -65,6 +65,7 @@ from sentry.models import (
 )
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.http import is_using_customer_domain
 
@@ -191,6 +192,25 @@ class OrganizationSerializerResponse(TypedDict):
     features: Any  # TODO
     links: _Links
     hasAuthProvider: bool
+
+
+class ControlSiloOrganizationSerializerResponse(TypedDict):
+    # The control silo will not, cannot, should not contain most organization data.
+    # Therefore, we need a specialized, limited via of that data.
+    id: str
+    slug: str
+    name: str
+
+
+class ControlSiloOrganizationSerializer(Serializer):
+    def serialize(
+        self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
+    ) -> ControlSiloOrganizationSerializer:
+        return dict(
+            id=str(obj.id),
+            slug=obj.slug,
+            name=obj.name,
+        )
 
 
 @register(Organization)

@@ -100,5 +100,16 @@ class IdentityService(RpcService):
         """
         pass
 
+    @rpc_method
+    @abstractmethod
+    def delete_identities(self, user_id: int, organization_id: int) -> None:
+        """
+        Deletes the set of identities associated with a user and organization context.
+        :param user_id:
+        :param organization_id:
+        :return:
+        """
+        pass
+
 
 identity_service: IdentityService = cast(IdentityService, IdentityService.create_delegation())
