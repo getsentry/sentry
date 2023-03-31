@@ -521,9 +521,14 @@ export function computeConfigViewWithStrategy(
 }
 
 export function computeMinZoomConfigViewForFrames(view: Rect, frames: Rect[]): Rect {
+  if (!frames.length) {
+    return view;
+  }
+
   if (frames.length === 1) {
     return new Rect(frames[0].x, frames[0].y, frames[0].width, view.height);
   }
+
   const frame = frames.reduce(
     (min, f) => {
       return {
