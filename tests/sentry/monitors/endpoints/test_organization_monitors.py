@@ -21,6 +21,14 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             monitor_resp["slug"] for monitor_resp in response.data
         ]
 
+    def check_valid_environments_response(self, response, monitor, expected_environments):
+        assert {
+            monitor_environment.environment.name for monitor_environment in expected_environments
+        } == {
+            monitor_environment_resp["name"]
+            for monitor_environment_resp in monitor.get("environments", [])
+        }
+
     def test_simple(self):
         monitor = self._create_monitor()
         response = self.get_success_response(self.organization.slug)
@@ -57,6 +65,15 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_disabled,
             ],
         )
+
+    def test_all_monitor_environments(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor, name="test")
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor])
+        for monitor in response.data:
+            self.check_valid_environments_response(response, monitor, [monitor_environment])
 
     def test_monitor_environment(self):
         monitor = self._create_monitor()
