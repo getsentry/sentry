@@ -1,8 +1,8 @@
 import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {ProfilingMeasurements} from 'sentry/components/events/interfaces/spans/profilingMeasurements';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
-import {ProfilingMeasurements} from 'sentry/components/events/profilingMeasurements';
 import {
   DividerSpacer,
   ScrollbarContainer,
@@ -519,9 +519,8 @@ class TraceViewHeader extends Component<PropType, State> {
                           </RightSidePane>
                         )}
                       </CursorGuideHandler.Consumer>
-
                       {hasProfileMeasurementsChart && (
-                        <ProfilingMeasurements profiles={profiles} />
+                        <ProfilingMeasurements profileData={profiles.data} />
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
                     </Fragment>
