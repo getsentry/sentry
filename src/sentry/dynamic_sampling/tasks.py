@@ -5,7 +5,7 @@ from typing import Sequence, Tuple
 from sentry import features, options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
-from sentry.dynamic_sampling.models.utils import DSElement
+from sentry.dynamic_sampling.models.utils import DSElement, actual_sample_rate
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
     ProjectTransactions,
@@ -14,7 +14,10 @@ from sentry.dynamic_sampling.prioritise_transactions import (
     get_orgs_with_project_counts,
     transactions_zip,
 )
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
+    _generate_cache_key,
+    _generate_cache_key_actual_rate,
+)
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
@@ -107,8 +110,6 @@ def adjust_sample_rates(
             DSElement(
                 id=project.id,
                 count=counts.count,
-                count_keep=counts.count_keep,
-                count_drop=counts.count_drop,
             )
         )
 
@@ -130,6 +131,13 @@ def adjust_sample_rates(
                 ds_project.new_sample_rate,  # redis stores is as string
             )
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+
+            _, count_keep, count_drop = project_ids_with_counts[ds_project.id]
+            if (rate := actual_sample_rate(count_keep, count_drop)) != 0:
+                actual_rate_cache_key = _generate_cache_key_actual_rate(org_id)
+                pipeline.hset(actual_rate_cache_key, ds_project.id, rate)
+                pipeline.pexpire(actual_rate_cache_key, CACHE_KEY_TTL)
+
             schedule_invalidate_project_config(
                 project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
             )

@@ -10,6 +10,10 @@ def _generate_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:prioritise_projects"
 
 
+def _generate_cache_key_actual_rate(org_id: int) -> str:
+    return f"ds::o:{org_id}:prioritise_projects:actual_rate"
+
+
 def get_prioritise_by_project_sample_rate(project: "Project", default_sample_rate: float) -> float:
     """
     This function returns cached sample rate from prioritise by project
