@@ -9,6 +9,7 @@ from sentry.db.models import (
     sane_repr,
 )
 
+
 @region_silo_only_model
 class RuleMuted(Model):
     __include_in_export__ = True
