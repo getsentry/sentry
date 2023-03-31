@@ -56,6 +56,8 @@ export enum PerformanceWidgetSetting {
   MOST_SLOW_FRAMES = 'most_slow_frames',
   MOST_FROZEN_FRAMES = 'most_frozen_frames',
   SPAN_OPERATIONS = 'span_operations',
+  TIME_TO_INITIAL_DISPLAY = 'time_to_initial_display',
+  TIME_TO_FULL_DISPLAY = 'time_to_full_display',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -282,6 +284,22 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },
+  [PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY]: {
+    title: t('Time to Initial Display'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.TIME_TO_INITIAL_DISPLAY),
+    fields: ['p75(measurements.time_to_initial_display)'],
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[4],
+    allowsOpenInDiscover: true,
+  },
+  [PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY]: {
+    title: t('Time to Full Display'),
+    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.TIME_TO_FULL_DISPLAY),
+    fields: ['p75(measurements.time_to_full_display)'],
+    dataType: GenericPerformanceWidgetDataType.area,
+    chartColor: WIDGET_PALETTE[4],
+    allowsOpenInDiscover: true,
+  },
   [PerformanceWidgetSetting.MOST_SLOW_FRAMES]: {
     title: t('Most Slow Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
@@ -315,9 +333,9 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.trends,
   },
   [PerformanceWidgetSetting.SPAN_OPERATIONS]: {
-    title: t('Span Operations'),
+    title: t('Span Operations Breakdown'),
     titleTooltip: '',
     fields: SPAN_OP_BREAKDOWN_FIELDS.map(spanOp => `p75(${spanOp})`),
-    dataType: GenericPerformanceWidgetDataType.stacked_bars,
+    dataType: GenericPerformanceWidgetDataType.stacked_area,
   },
 });

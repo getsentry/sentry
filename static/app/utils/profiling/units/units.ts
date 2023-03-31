@@ -44,7 +44,9 @@ export function makeFormatTo(
       return v;
     };
   }
-  return (v: number) => formatTo(v, from, to);
+  return function format(v: number) {
+    return formatTo(v, from, to);
+  };
 }
 export function formatTo(
   v: number,

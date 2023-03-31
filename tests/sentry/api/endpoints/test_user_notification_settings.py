@@ -2,6 +2,7 @@ from rest_framework import status
 
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -224,7 +225,7 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                user=self.user,
+                actor=RpcActor.from_orm_user(self.user),
             )
             == NotificationSettingOptionValues.DEFAULT
         )
@@ -239,7 +240,7 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                user=self.user,
+                actor=RpcActor.from_orm_user(self.user),
             )
             == NotificationSettingOptionValues.ALWAYS
         )
@@ -259,11 +260,4 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
             "me",
             deploy={"user": {user2.id: {"email": "always", "slack": "always"}}},
             status_code=status.HTTP_400_BAD_REQUEST,
-        )
-
-    def test_active_release(self):
-        self.get_success_response(
-            "me",
-            activeRelease={"user": {"me": {"email": "always", "slack": "always"}}},
-            status_code=status.HTTP_204_NO_CONTENT,
         )

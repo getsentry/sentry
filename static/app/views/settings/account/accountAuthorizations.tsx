@@ -9,7 +9,7 @@ import Link from 'sentry/components/links/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ApiApplication} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

@@ -4,12 +4,9 @@ import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStat
 import {
   computeHighlightedBounds,
   ELLIPSIS,
-  findRangeBinarySearch,
   getContext,
   lowerBound,
-  Rect,
   resizeCanvasToDisplaySize,
-  trimTextCenter,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
@@ -17,6 +14,7 @@ import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 class FlamegraphTextRenderer extends TextRenderer {
   flamegraph: Flamegraph;
@@ -35,7 +33,7 @@ class FlamegraphTextRenderer extends TextRenderer {
   draw(
     configView: Rect,
     configViewToPhysicalSpace: mat3,
-    flamegraphSearchResults: FlamegraphSearch['results']['frames']
+    flamegraphSearchResults?: FlamegraphSearch['results']['frames']
   ): void {
     // Make sure we set font size before we measure text for the first draw
     const FONT_SIZE = this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio;
@@ -57,7 +55,8 @@ class FlamegraphTextRenderer extends TextRenderer {
 
     const TOP_BOUNDARY = configView.top - 1;
     const BOTTOM_BOUNDARY = configView.bottom + 1;
-    const HAS_SEARCH_RESULTS = flamegraphSearchResults.size > 0;
+    const HAS_SEARCH_RESULTS =
+      flamegraphSearchResults && flamegraphSearchResults.size > 0;
     const TEXT_Y_POSITION = FONT_SIZE / 2 - BASELINE_OFFSET;
 
     // We start by iterating over root frames, so we draw the call stacks top-down.
@@ -146,19 +145,24 @@ class FlamegraphTextRenderer extends TextRenderer {
         if (frameResults) {
           this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;
 
-          const highlightedBounds = computeHighlightedBounds(frameResults.match, trim);
+          for (let i = 0; i < frameResults.match.length; i++) {
+            const highlightedBounds = computeHighlightedBounds(
+              frameResults.match[i],
+              trim
+            );
 
-          const frontMatter = trim.text.slice(0, highlightedBounds[0]);
-          const highlightWidth = this.measureAndCacheText(
-            trim.text.substring(highlightedBounds[0], highlightedBounds[1])
-          ).width;
+            const frontMatter = trim.text.slice(0, highlightedBounds[0]);
+            const highlightWidth = this.measureAndCacheText(
+              trim.text.substring(highlightedBounds[0], highlightedBounds[1])
+            ).width;
 
-          this.context.fillRect(
-            x + this.measureAndCacheText(frontMatter).width,
-            y + TEXT_Y_POSITION,
-            highlightWidth,
-            FONT_SIZE
-          );
+            this.context.fillRect(
+              x + this.measureAndCacheText(frontMatter).width,
+              y + TEXT_Y_POSITION,
+              highlightWidth,
+              FONT_SIZE
+            );
+          }
         }
       }
       this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;

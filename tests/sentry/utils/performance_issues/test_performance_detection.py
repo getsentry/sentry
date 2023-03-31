@@ -5,19 +5,26 @@ import pytest
 
 from sentry import projectoptions
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
-from sentry.utils.performance_issues.base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType
+from sentry.utils.performance_issues.base import (
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
+    total_span_time,
+)
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     NPlusOneDBSpanDetector,
     PerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
-    total_span_time,
 )
 
 BASE_DETECTOR_OPTIONS = {
@@ -37,7 +44,7 @@ def assert_n_plus_one_db_problem(perf_problems):
             fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
             op="db",
             desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+            type=PerformanceNPlusOneGroupType,
             parent_span_ids=["8dd7a5869a4f4583"],
             cause_span_ids=["9179e43ae844b174"],
             offender_span_ids=[
@@ -52,6 +59,8 @@ def assert_n_plus_one_db_problem(perf_problems):
                 "88a5ccaf25b9bd8f",
                 "bb32cf50fc56b296",
             ],
+            evidence_data={},
+            evidence_display=[],
         )
         for problem in perf_problems
     )
@@ -114,7 +123,7 @@ class PerformanceDetectionTest(TestCase):
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-25f4aa547724c350ef3abdaef2cf78e62399f96e",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                type=PerformanceNPlusOneGroupType,
                 parent_span_ids=["86d3f8a7e85d7324"],
                 cause_span_ids=["bc1f71fd71c8f594"],
                 offender_span_ids=[
@@ -129,6 +138,8 @@ class PerformanceDetectionTest(TestCase):
                     "9c3a569621230f03",
                     "8788fb3fc43ad948",
                 ],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -167,6 +178,43 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
+
+    @override_options({"performance.issues.consecutive_http.flag_disabled": True})
+    def test_boolean_system_option_disables_detector_issue_creation(self):
+        event = get_event("consecutive-http/consecutive-http-basic")
+        sdk_span_mock = Mock()
+
+        with self.feature("organizations:performance-consecutive-http-detector"):
+            perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
+            assert perf_problems == []
+
+    @override_options({"performance.issues.consecutive_http.flag_disabled": False})
+    def test_boolean_system_option_enables_detector_issue_creation(self):
+        event = get_event("consecutive-http/consecutive-http-basic")
+        sdk_span_mock = Mock()
+
+        with self.feature("organizations:performance-consecutive-http-detector"):
+            perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
+            assert perf_problems == [
+                PerformanceProblem(
+                    fingerprint="1-1009-c5e048717e2f5ca1a251cbbfbcfd82aee7e89cd9",
+                    op="http",
+                    desc="GET https://my-api.io/api/users?page=1",
+                    type=PerformanceConsecutiveHTTPQueriesGroupType,
+                    parent_span_ids=None,
+                    cause_span_ids=[],
+                    offender_span_ids=[
+                        "96e0ae187b5481a1",
+                        "8d22b49a27b18270",
+                        "b2bc2ebb42248c74",
+                        "9336922774fd35bc",
+                        "a307ceb77c702cea",
+                        "ac1e90ff646617e7",
+                    ],
+                    evidence_data={},
+                    evidence_display=[],
+                )
+            ]
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_system_option_used_when_project_option_is_default(self):
@@ -305,11 +353,13 @@ class PerformanceDetectionTest(TestCase):
                     "integration_mongo": False,
                     "integration_postgres": False,
                     "consecutive_db": False,
+                    "consecutive_http": False,
                     "slow_db_query": False,
                     "render_blocking_assets": False,
                     "n_plus_one_db": False,
                     "n_plus_one_db_ext": False,
                     "file_io_main_thread": False,
+                    "db_main_thread": False,
                     "n_plus_one_api_calls": False,
                     "m_n_plus_one_db": False,
                     "uncompressed_assets": True,
@@ -338,10 +388,12 @@ class EventPerformanceProblemTest(TestCase):
             "test",
             "db",
             "something bad happened",
-            GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+            PerformanceNPlusOneGroupType,
             ["1"],
             ["2", "3", "4"],
             ["4", "5", "6"],
+            {},
+            [],
         )
 
         EventPerformanceProblem(event, problem).save()
@@ -354,19 +406,23 @@ class EventPerformanceProblemTest(TestCase):
                 "test",
                 "db",
                 "something bad happened",
-                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                PerformanceNPlusOneGroupType,
                 ["1"],
                 ["2", "3", "4"],
                 ["4", "5", "6"],
+                {},
+                [],
             ),
             PerformanceProblem(
                 "test_2",
                 "db",
                 "something horrible happened",
-                GroupType.PERFORMANCE_SLOW_DB_QUERY,
+                PerformanceSlowDBQueryGroupType,
                 ["234"],
                 ["67", "87686", "786"],
                 ["4", "5", "6"],
+                {},
+                [],
             ),
         ]
         event_2 = Event(self.project.id, "something else")
@@ -375,19 +431,23 @@ class EventPerformanceProblemTest(TestCase):
                 "event_2_test",
                 "db",
                 "something happened",
-                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                PerformanceNPlusOneGroupType,
                 ["1"],
                 ["a", "b", "c"],
                 ["d", "e", "f"],
+                {},
+                [],
             ),
             PerformanceProblem(
                 "event_2_test_2",
                 "db",
                 "hello",
-                GroupType.PERFORMANCE_SLOW_DB_QUERY,
+                PerformanceSlowDBQueryGroupType,
                 ["234"],
                 ["fdgh", "gdhgf", "gdgh"],
                 ["gdf", "yu", "kjl"],
+                {},
+                [],
             ),
         ]
         all_event_problems = [
@@ -402,10 +462,12 @@ class EventPerformanceProblemTest(TestCase):
             "fake_fingerprint",
             "db",
             "hello",
-            GroupType.PERFORMANCE_SLOW_DB_QUERY,
+            PerformanceSlowDBQueryGroupType,
             ["234"],
             ["fdgh", "gdhgf", "gdgh"],
             ["gdf", "yu", "kjl"],
+            {},
+            [],
         )
         result = EventPerformanceProblem.fetch_multi(
             [

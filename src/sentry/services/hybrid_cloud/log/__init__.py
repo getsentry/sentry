@@ -1,26 +1,33 @@
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
+
 import abc
 import datetime
-from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation
+from sentry.services.hybrid_cloud import (
+    DEFAULT_DATE,
+    InterfaceWithLifecycle,
+    RpcModel,
+    silo_mode_delegation,
+)
 from sentry.silo import SiloMode
 
 
-@dataclass
-class UserIpEvent:
+class UserIpEvent(RpcModel):
     user_id: int = -1
     ip_address: str = "127.0.0.1"
-    last_seen: datetime.datetime = datetime.datetime(2000, 1, 1)
+    last_seen: datetime.datetime = DEFAULT_DATE
     country_code: Optional[str] = None
     region_code: Optional[str] = None
 
 
-@dataclass
-class AuditLogEvent:
+class AuditLogEvent(RpcModel):
     organization_id: int = -1
     # 'datetime' is apparently reserved attribute name for dataclasses.
-    time_of_creation: datetime.datetime = datetime.datetime(2000, 1, 1)
+    date_added: datetime.datetime = DEFAULT_DATE
     event_id: int = -1
     actor_label: str = ""
     actor_user_id: Optional[int] = None

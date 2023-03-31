@@ -16,7 +16,7 @@ class ActivitySerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
         user_ids = [i.user_id for i in item_list if i.user_id]
-        user_list = user_service.serialize_users(user_ids=user_ids, as_user=user)
+        user_list = user_service.serialize_many(filter={"user_ids": user_ids}, as_user=user)
         users = {u["id"]: u for u in user_list}
 
         commit_ids = {
@@ -77,7 +77,7 @@ class ActivitySerializer(Serializer):
 
         return {
             item: {
-                "user": users[str(item.user_id)] if item.user_id else None,
+                "user": users.get(str(item.user_id)) if item.user_id else None,
                 "source": groups.get(item.data["source_id"])
                 if item.type == ActivityType.UNMERGE_DESTINATION.value
                 else None,

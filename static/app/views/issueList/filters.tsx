@@ -4,32 +4,26 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-
-import IssueListSearchBar from './searchBar';
+import {space} from 'sentry/styles/space';
+import IssueCategoryFilter from 'sentry/views/issueList/issueCategoryFilter';
+import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 
 interface Props {
   onSearch: (query: string) => void;
-  organization: Organization;
   query: string;
 }
 
-function IssueListFilters({organization, query, onSearch}: Props) {
+function IssueListFilters({query, onSearch}: Props) {
   return (
     <SearchContainer>
       <StyledPageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter />
+        <IssueCategoryFilter query={query} onSearch={onSearch} />
       </StyledPageFilterBar>
-      <StyledIssueListSearchBar
-        searchSource="main_search"
-        organization={organization}
-        query={query || ''}
-        onSearch={onSearch}
-        excludedTags={['environment']}
-      />
+
+      <IssueSearchWithSavedSearches {...{query, onSearch}} />
     </SearchContainer>
   );
 }
@@ -50,19 +44,10 @@ const SearchContainer = styled('div')`
 const StyledPageFilterBar = styled(PageFilterBar)`
   flex: 0 1 0;
   width: 100%;
-  max-width: 30rem;
-`;
+  max-width: 45rem;
 
-const StyledIssueListSearchBar = styled(IssueListSearchBar)`
-  flex: 1;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-width: 20rem;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    min-width: 30rem;
+  > div > button {
+    width: 100%;
   }
 `;
 

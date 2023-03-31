@@ -257,7 +257,7 @@ def default_activity(default_group, default_project, default_user):
         group=default_group,
         project=default_project,
         type=ActivityType.NOTE.value,
-        user=default_user,
+        user_id=default_user.id,
         data={},
     )
 
@@ -417,11 +417,12 @@ def reset_snuba(call_snuba):
         "/tests/sessions/drop",
         "/tests/metrics/drop",
         "/tests/generic_metrics/drop",
+        "/tests/search_issues/drop",
     ]
 
     assert all(
         response.status_code == 200
-        for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
+        for response in ThreadPoolExecutor(len(init_endpoints)).map(call_snuba, init_endpoints)
     )
 
 
@@ -448,3 +449,15 @@ def set_sentry_option():
 def django_cache():
     yield cache
     cache.clear()
+
+
+# NOTE:
+# If you are using a local instance of Symbolicator, you may need to either change `system.url-prefix`
+# to `system.internal-url-prefix` or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`.
+@pytest.fixture(ids=["without_symbolicator", "with_symbolicator"], params=[0, 1])
+def process_with_symbolicator(request, set_sentry_option, live_server):
+    with set_sentry_option("system.url-prefix", live_server.url), set_sentry_option(
+        "symbolicator.sourcemaps-processing-sample-rate", request.param
+    ):
+        # Run test case
+        yield request.param

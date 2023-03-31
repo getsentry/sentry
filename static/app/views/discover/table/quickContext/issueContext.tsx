@@ -13,10 +13,10 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {NoContext} from './quickContextWrapper';
 import {
@@ -43,7 +43,7 @@ function IssueContext(props: BaseContextProps) {
     isLoading: issueLoading,
     isError: issueError,
     data: issue,
-  } = useQuery<Group>(
+  } = useApiQuery<Group>(
     [
       `/issues/${dataRow['issue.id']}/`,
       {
@@ -64,7 +64,7 @@ function IssueContext(props: BaseContextProps) {
     isLoading: eventLoading,
     isError: eventError,
     data: event,
-  } = useQuery<Event>([`/issues/${dataRow['issue.id']}/events/oldest/`], {
+  } = useApiQuery<Event>([`/issues/${dataRow['issue.id']}/events/oldest/`], {
     staleTime: tenSecondInMs,
   });
 

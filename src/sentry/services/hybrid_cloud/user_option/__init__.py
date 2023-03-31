@@ -1,49 +1,84 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List, Optional, TypedDict, cast
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
-@dataclass
-class ApiUserOption:
+class RpcUserOption(RpcModel):
     id: int = -1
     user_id: int = -1
     value: Any = None
     key: str = ""
-    project_id: int | None = None
-    organization_id: int | None = None
+    project_id: Optional[int] = None
+    organization_id: Optional[int] = None
 
 
-@dataclass
-class ApiUserOptionSet:
-    options: List[ApiUserOption] = field(default_factory=list)
+def get_option_from_list(
+    options: List[RpcUserOption],
+    *,
+    key: Optional[str] = None,
+    user_id: Optional[int] = None,
+    default: Any = None,
+) -> Any:
+    for option in options:
+        if key is not None and option.key != key:
+            continue
+        if user_id is not None and option.user_id != user_id:
+            continue
+        return option.value
+    return default
 
-    def get_one(
+
+class UserOptionFilterArgs(TypedDict, total=False):
+    user_ids: Iterable[int]
+    keys: List[str]
+    key: str
+    project_id: Optional[int]
+    organization_id: Optional[int]
+
+
+class UserOptionService(RpcService):
+    key = "user_option"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.user_option.impl import DatabaseBackedUserOptionService
+
+        return DatabaseBackedUserOptionService()
+
+    @rpc_method
+    @abstractmethod
+    def serialize_many(
         self,
         *,
-        key: str | None = None,
-        user_id: int | None = None,
-        default: Any = None,
-    ) -> Any:
+        filter: UserOptionFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        pass
 
-        for option in self.options:
-            if key is not None and option.key != key:
-                continue
-            if user_id is not None and option.user_id != user_id:
-                continue
-            return option.value
-        return default
+    @rpc_method
+    @abstractmethod
+    def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
+        pass
 
-
-class UserOptionService(InterfaceWithLifecycle):
+    @rpc_method
     @abstractmethod
     def delete_options(self, *, option_ids: List[int]) -> None:
         pass
 
+    @rpc_method
     @abstractmethod
     def set_option(
         self,
@@ -51,34 +86,12 @@ class UserOptionService(InterfaceWithLifecycle):
         user_id: int,
         value: Any,
         key: str,
-        project_id: int | None = None,
-        organization_id: int | None = None,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
     ) -> None:
         pass
 
-    @abstractmethod
-    def query_options(
-        self,
-        *,
-        user_ids: Iterable[int],
-        keys: List[str] | None = None,
-        key: str | None = None,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-    ) -> ApiUserOptionSet:
-        pass
 
-
-def impl_with_db() -> UserOptionService:
-    from sentry.services.hybrid_cloud.user_option.impl import DatabaseBackedUserOptionService
-
-    return DatabaseBackedUserOptionService()
-
-
-user_option_service: UserOptionService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+user_option_service: UserOptionService = cast(
+    UserOptionService, UserOptionService.create_delegation()
 )

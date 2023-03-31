@@ -1,6 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/button';
@@ -47,13 +46,15 @@ export function CodeSnippet({
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = () => {
-    const copied = copy(children);
+    navigator.clipboard
+      .writeText(children)
+      .then(() => {
+        setTooltipState('copied');
+      })
+      .catch(() => {
+        setTooltipState('error');
+      });
     onCopy?.(children);
-    if (copied) {
-      setTooltipState('copied');
-    } else {
-      setTooltipState('error');
-    }
   };
 
   const tooltipTitle =

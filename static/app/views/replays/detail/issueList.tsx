@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -10,7 +10,7 @@ import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {DEFAULT_STREAM_GROUP_STATS_PERIOD} from 'sentry/components/stream/group';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 import theme from 'sentry/utils/theme';
@@ -79,10 +79,14 @@ function IssueList({projectId, replayId}: Props) {
     fetchIssueData();
   }, [fetchIssueData]);
 
+  const projectIds = useMemo(
+    () => (project?.id ? [Number(project.id)] : []),
+    [project?.id]
+  );
   const counts = useReplaysCount({
     groupIds: state.issues.map(issue => issue.id),
     organization,
-    projectIds: project ? [Number(project.id)] : [],
+    projectIds,
   });
 
   return (

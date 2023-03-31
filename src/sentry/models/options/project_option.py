@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from django.db import models, transaction
+from django.db import models
 
 from sentry import projectoptions
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
@@ -52,6 +52,8 @@ OPTION_KEYS = frozenset(
         "sentry:breakdowns",
         "sentry:span_attributes",
         "sentry:performance_issue_creation_rate",
+        "sentry:performance_issue_send_to_issues_platform",
+        "sentry:performance_issue_create_issue_through_plaform",
         "sentry:transaction_name_cluster_rules",
         "quotas:spike-protection-disabled",
         "feedback:branding",
@@ -59,6 +61,7 @@ OPTION_KEYS = frozenset(
         "digests:mail:maximum_delay",
         "mail:subject_prefix",
         "mail:subject_template",
+        "filters:react-hydration-errors",
     ]
 )
 
@@ -121,17 +124,7 @@ class ProjectOptionManager(OptionManager["Project"]):
 
     def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Value]:
         if update_reason != "projectoption.get_all_values":
-            # this hook may be called from model hooks during an
-            # open transaction. In that case, wait until the current transaction has
-            # been committed or rolled back to ensure we don't read stale data in the
-            # task.
-            #
-            # If there is no transaction open, on_commit should run immediately.
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(
-                    project_id=project_id, trigger=update_reason
-                )
-            )
+            schedule_invalidate_project_config(project_id=project_id, trigger=update_reason)
         cache_key = self._make_key(project_id)
         result = {i.key: i.value for i in self.filter(project=project_id)}
         cache.set(cache_key, result)

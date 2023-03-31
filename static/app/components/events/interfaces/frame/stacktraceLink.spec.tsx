@@ -1,5 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {CodecovStatusCode, Frame} from 'sentry/types';
 import * as analytics from 'sentry/utils/integrationUtil';
@@ -33,6 +34,7 @@ describe('StacktraceLink', function () {
       body: {},
     });
     ProjectsStore.loadInitialData([project]);
+    HookStore.init?.();
   });
 
   it('renders ask to setup integration', async function () {
@@ -71,7 +73,6 @@ describe('StacktraceLink', function () {
         },
       })
     );
-    expect(analyticsSpy).toHaveBeenCalledTimes(1);
   });
 
   it('can dismiss stacktrace link CTA', async function () {
@@ -93,7 +94,7 @@ describe('StacktraceLink', function () {
       )
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -202,7 +203,6 @@ describe('StacktraceLink', function () {
   it('renders the codecov link', async function () {
     const organization = {
       ...org,
-      features: ['codecov-stacktrace-integration'],
       codecovAccess: true,
     };
     MockApiClient.addMockResponse({
@@ -228,7 +228,7 @@ describe('StacktraceLink', function () {
       'https://app.codecov.io/gh/path/to/file.py#L233'
     );
 
-    userEvent.click(await screen.findByText('Open in Codecov'));
+    await userEvent.click(await screen.findByText('Open in Codecov'));
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_codecov_link_clicked',
       expect.anything()
@@ -238,7 +238,6 @@ describe('StacktraceLink', function () {
   it('renders the missing coverage warning', async function () {
     const organization = {
       ...org,
-      features: ['codecov-stacktrace-integration'],
       codecovAccess: true,
     };
     MockApiClient.addMockResponse({
@@ -255,5 +254,29 @@ describe('StacktraceLink', function () {
       organization,
     });
     expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
+  });
+
+  it('renders the codecov prompt', async function () {
+    HookStore.add('component:codecov-integration-stacktrace-link', () => () => (
+      <div data-test-id="codecov-link" />
+    ));
+    const organization = {
+      ...org,
+      features: ['codecov-integration'],
+      codecovAccess: false,
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://github.com/username/path/to/file.py',
+        integrations: [integration],
+      },
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+      organization,
+    });
+    expect(await screen.findByTestId('codecov-link')).toBeInTheDocument();
   });
 });

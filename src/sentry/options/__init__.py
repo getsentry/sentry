@@ -6,11 +6,16 @@ from sentry.silo import SiloMode
 
 from .manager import (  # NOQA
     DEFAULT_FLAGS,
+    FLAG_ADMIN_MODIFIABLE,
     FLAG_ALLOW_EMPTY,
+    FLAG_BOOL,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
+    FLAG_MODIFIABLE_BOOL,
+    FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
+    FLAG_RATE,
     FLAG_REQUIRED,
     FLAG_STOREONLY,
     OptionsManager,

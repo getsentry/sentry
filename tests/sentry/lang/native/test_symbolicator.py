@@ -2,8 +2,11 @@ import copy
 
 import pytest
 
-from sentry.lang.native import symbolicator
-from sentry.lang.native.symbolicator import get_sources_for_project, redact_internal_sources
+from sentry.lang.native.sources import (
+    get_sources_for_project,
+    redact_internal_sources,
+    reverse_aliases_map,
+)
 from sentry.testutils.helpers import Feature
 
 CUSTOM_SOURCE_CONFIG = """
@@ -261,6 +264,6 @@ class TestAliasReversion:
         }
 
     def test_reverse_aliases(self, builtin_sources):
-        reverse_aliases = symbolicator.reverse_aliases_map(builtin_sources)
+        reverse_aliases = reverse_aliases_map(builtin_sources)
         expected = {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
         assert reverse_aliases == expected

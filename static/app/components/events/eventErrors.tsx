@@ -11,19 +11,21 @@ import getThreadException from 'sentry/components/events/interfaces/threads/thre
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
-import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Artifact, Project} from 'sentry/types';
+import {tct, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
 import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 import {DataSection} from './styles';
+
+const ERRORS_TO_HIDE = [JavascriptProcessingErrors.JS_MISSING_SOURCE];
 
 const MAX_ERRORS = 100;
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -42,14 +44,6 @@ function isDataMinified(str: string | null) {
 
   return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
 }
-
-const getURLPathname = (url: string) => {
-  try {
-    return new URL(url).pathname;
-  } catch {
-    return undefined;
-  }
-};
 
 const hasThreadOrExceptionMinifiedFrameData = (
   definedEvent: Event,
@@ -107,7 +101,7 @@ const useFetchProguardMappingFiles = ({
     data: proguardMappingFiles,
     isSuccess,
     isLoading,
-  } = useQuery<DebugFile[]>(
+  } = useApiQuery<DebugFile[]>(
     [
       `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       {
@@ -159,7 +153,18 @@ const useFetchProguardMappingFiles = ({
             'Some frames appear to be minified. Did you configure the [plugin]?',
             {
               plugin: (
-                <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/#gradle">
+                <ExternalLink
+                  href="https://docs.sentry.io/platforms/android/proguard/#gradle"
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'issue_error_banner.proguard_misconfigured.clicked',
+                      {
+                        organization,
+                        group: event?.groupID,
+                      }
+                    );
+                  }}
+                >
                   Sentry Gradle Plugin
                 </ExternalLink>
               ),
@@ -176,28 +181,6 @@ const useFetchProguardMappingFiles = ({
     proguardErrorsLoading: shouldFetch && isLoading,
     proguardErrors: getProguardErrorsFromMappingFiles(),
   };
-};
-
-const useFetchReleaseArtifacts = ({event, project}: {event: Event; project: Project}) => {
-  const organization = useOrganization();
-  const releaseVersion = event.release?.version;
-  const pathNames = (event.errors ?? [])
-    .filter(
-      error =>
-        error.type === 'js_no_source' && error.data.url && getURLPathname(error.data.url)
-    )
-    .map(sourceCodeError => getURLPathname(sourceCodeError.data.url));
-  const {data: releaseArtifacts} = useQuery<Artifact[]>(
-    [
-      `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
-        releaseVersion ?? ''
-      )}/files/`,
-      {query: {query: pathNames}},
-    ],
-    {staleTime: Infinity, enabled: pathNames.length > 0 && defined(releaseVersion)}
-  );
-
-  return releaseArtifacts;
 };
 
 const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Project}) => {
@@ -226,21 +209,49 @@ const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Proje
 };
 
 export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
+  const organization = useOrganization();
   useRecordAnalyticsEvent({event, project});
-  const releaseArtifacts = useFetchReleaseArtifacts({event, project});
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
     event,
     project,
     isShare,
   });
 
-  const {dist: eventDistribution, errors: eventErrors = [], _meta} = event;
+  useEffect(() => {
+    if (proguardErrors?.length) {
+      if (proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin') {
+        trackAdvancedAnalyticsEvent(
+          'issue_error_banner.proguard_misconfigured.displayed',
+          {
+            organization,
+            group: event?.groupID,
+            platform: project.platform,
+          }
+        );
+      } else if (proguardErrors[0]?.type === 'proguard_missing_mapping') {
+        trackAdvancedAnalyticsEvent(
+          'issue_error_banner.proguard_missing_mapping.displayed',
+          {
+            organization,
+            group: event?.groupID,
+            platform: project.platform,
+          }
+        );
+      }
+    }
+    // Just for analytics, only track this once per visit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const {errors: eventErrors = [], _meta} = event;
 
   // XXX: uniqWith returns unique errors and is not performant with large datasets
   const otherErrors: Array<EventErrorData> =
     eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
-  const errors = [...otherErrors, ...proguardErrors];
+  const errors = [...otherErrors, ...proguardErrors].filter(
+    error => !ERRORS_TO_HIDE.includes(error.type as JavascriptProcessingErrors)
+  );
 
   if (proguardErrorsLoading) {
     // XXX: This is necessary for acceptance tests to wait until removal since there is
@@ -263,37 +274,6 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
             {errors.map((error, errorIdx) => {
               const data = error.data ?? {};
               const meta = _meta?.errors?.[errorIdx];
-
-              if (
-                error.type === JavascriptProcessingErrors.JS_MISSING_SOURCE &&
-                data.url &&
-                !!releaseArtifacts?.length
-              ) {
-                const releaseArtifact = releaseArtifacts.find(releaseArt => {
-                  const pathname = data.url ? getURLPathname(data.url) : undefined;
-
-                  if (pathname) {
-                    return releaseArt.name.includes(pathname);
-                  }
-                  return false;
-                });
-
-                const releaseArtifactDistribution = releaseArtifact?.dist ?? null;
-
-                // Neither event nor file have dist -> matching
-                // Event has dist, file doesn’t -> not matching
-                // File has dist, event doesn’t -> not matching
-                // Both have dist, same value -> matching
-                // Both have dist, different values -> not matching
-                if (releaseArtifactDistribution !== eventDistribution) {
-                  error.message = t(
-                    'Source code was not found because the distribution did not match'
-                  );
-                  data['expected-distribution'] = eventDistribution;
-                  data['current-distribution'] = releaseArtifactDistribution;
-                }
-              }
-
               return <ErrorItem key={errorIdx} error={{...error, data}} meta={meta} />;
             })}
           </ErrorList>

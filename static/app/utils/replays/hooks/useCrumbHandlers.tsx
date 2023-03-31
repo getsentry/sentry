@@ -22,7 +22,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
         setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
       }
 
-      if (item.data && 'nodeId' in item.data) {
+      if (item.data && typeof item.data === 'object' && 'nodeId' in item.data) {
         // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
         // crumb to a tooltip
         clearAllHighlights();
@@ -36,7 +36,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
     (item: Crumb | NetworkSpan) => {
       setCurrentHoverTime(undefined);
 
-      if (item.data && 'nodeId' in item.data) {
+      if (item.data && typeof item.data === 'object' && 'nodeId' in item.data) {
         removeHighlight({nodeId: item.data.nodeId});
       }
     },
@@ -47,6 +47,16 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
     (crumb: Crumb | NetworkSpan) => {
       if (crumb.timestamp !== undefined) {
         setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs));
+      }
+
+      if (
+        crumb.data &&
+        typeof crumb.data === 'object' &&
+        'action' in crumb.data &&
+        crumb.data.action === 'largest-contentful-paint'
+      ) {
+        setActiveTab('dom');
+        return;
       }
 
       if ('type' in crumb) {

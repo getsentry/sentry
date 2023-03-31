@@ -106,4 +106,5 @@ class SetupWizardView(BaseView):
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
         default_cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
 
+        context["organizations"] = serialize(list(orgs))
         return render_to_response("sentry/setup-wizard.html", context, request)

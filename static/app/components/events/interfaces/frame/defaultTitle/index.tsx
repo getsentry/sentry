@@ -8,7 +8,7 @@ import Truncate from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Frame, Meta, PlatformType} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 
@@ -96,10 +96,7 @@ const DefaultTitle = ({
     // prioritize module name for Java as filename is often only basename
     const shouldPrioritizeModuleName = framePlatform === 'java';
 
-    // we do not want to show path in title on csharp platform
-    const pathNameOrModule = isDotnet(framePlatform)
-      ? getModule()
-      : getPathNameOrModule(shouldPrioritizeModuleName);
+    const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
       defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
 

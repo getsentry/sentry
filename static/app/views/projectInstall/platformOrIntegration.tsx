@@ -1,11 +1,12 @@
 import * as qs from 'query-string';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 
-import Platform from './platform';
+import {ProjectInstallPlatform} from './platform';
 import PlatformIntegrationSetup from './platformIntegrationSetup';
 
-type Props = React.ComponentProps<typeof Platform> &
+type Props = React.ComponentProps<typeof ProjectInstallPlatform> &
   Omit<React.ComponentProps<typeof PlatformIntegrationSetup>, 'integrationSlug'>;
 
 const PlatformOrIntegration = (props: Props) => {
@@ -13,10 +14,15 @@ const PlatformOrIntegration = (props: Props) => {
   const {platform} = props.params;
   const integrationSlug = platform && platformToIntegrationMap[platform];
   // check for manual override query param
+  // TODO(priscila): check this case
   if (integrationSlug && parsed.manual !== '1') {
     return <PlatformIntegrationSetup integrationSlug={integrationSlug} {...props} />;
   }
-  return <Platform {...props} />;
+  return (
+    <OnboardingContextProvider>
+      <ProjectInstallPlatform {...props} />
+    </OnboardingContextProvider>
+  );
 };
 
 export default PlatformOrIntegration;

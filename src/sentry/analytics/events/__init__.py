@@ -1,4 +1,3 @@
-from .active_release_notification_sent import *  # noqa: F401,F403
 from .advanced_search_feature_gated import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403
 from .alert_edited import *  # noqa: F401,F403
@@ -29,7 +28,6 @@ from .issue_assigned import *  # noqa: F401,F403
 from .issue_deleted import *  # noqa: F401,F403
 from .issue_ignored import *  # noqa: F401,F403
 from .issue_mark_reviewed import *  # noqa: F401,F403
-from .issue_owners_time_durations import *  # noqa: F401,F403
 from .issue_resolved import *  # noqa: F401,F403
 from .issue_tracker_used import *  # noqa: F401,F403
 from .issue_unignored import *  # noqa: F401,F403

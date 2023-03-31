@@ -20,6 +20,7 @@ type CreateSampleEventButtonProps = {
   api: Client;
   organization: Organization;
   source: string;
+  onCreateSampleGroup?: () => void;
   project?: Project;
 } & ButtonProps;
 
@@ -72,6 +73,12 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     });
   }
 
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  private _isMounted = true;
+
   recordAnalytics({eventCreated, retries, duration}) {
     const {organization, project, source} = this.props;
 
@@ -94,17 +101,21 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
-    const {api, organization, project} = this.props;
+    const {api, organization, project, onCreateSampleGroup} = this.props;
     let eventData;
 
     if (!project) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
-      platform: project.platform,
-      organization,
-    });
+    if (onCreateSampleGroup) {
+      onCreateSampleGroup();
+    } else {
+      trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
+        platform: project.platform,
+        organization,
+      });
+    }
 
     addLoadingMessage(t('Processing sample event...'), {
       duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
@@ -129,6 +140,13 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     // before redirecting.
     const t0 = performance.now();
     const {eventCreated, retries} = await latestEventAvailable(api, eventData.groupID);
+
+    // Navigated away before event was created - skip analytics and error messages
+    // latestEventAvailable will succeed even if the request was cancelled
+    if (!this._isMounted) {
+      return;
+    }
+
     const t1 = performance.now();
 
     clearIndicators();
@@ -168,6 +186,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       source: _source,
       ...props
     } = this.props;
+
     const {creating} = this.state;
 
     return (

@@ -12,11 +12,13 @@ from sentry.models import (
     OrganizationStatus,
     ScheduledDeletion,
 )
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class CrossDomainXmlTest(TestCase):
     @cached_property
     def path(self):
@@ -183,7 +185,9 @@ class ClientConfigViewTest(TestCase):
         user = self.create_user("foo@example.com", is_superuser=True)
         self.login_as(user, superuser=True)
 
-        resp = self.client.get(self.path)
+        with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
+            resp = self.client.get(self.path)
+
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
@@ -193,6 +197,12 @@ class ClientConfigViewTest(TestCase):
         assert data["user"]["email"] == user.email
         assert data["user"]["isSuperuser"] is True
         assert data["lastOrganization"] is None
+        assert data["links"] == {
+            "organizationUrl": None,
+            "regionUrl": None,
+            "sentryUrl": "http://testserver",
+            "superuserUrl": f"http://{self.organization.slug}.testserver",
+        }
         assert "activeorg" not in self.client.session
 
         # Induce last active organization

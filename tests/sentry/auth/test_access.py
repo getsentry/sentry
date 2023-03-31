@@ -28,27 +28,27 @@ def silo_from_user(
     scopes=None,
     is_superuser=False,
 ) -> Access:
-    api_user_org_context = None
+    rpc_user_org_context = None
     if organization:
-        api_user_org_context = organization_service.get_organization_by_id(
+        rpc_user_org_context = organization_service.get_organization_by_id(
             id=organization.id, user_id=user.id
         )
-    return access.from_user_and_api_user_org_context(
+    return access.from_user_and_rpc_user_org_context(
         user=user,
-        api_user_org_context=api_user_org_context,
+        rpc_user_org_context=rpc_user_org_context,
         is_superuser=is_superuser,
         scopes=scopes,
     )
 
 
 def silo_from_request(request, organization: Organization = None, scopes=None) -> Access:
-    api_user_org_context = None
+    rpc_user_org_context = None
     if organization:
-        api_user_org_context = organization_service.get_organization_by_id(
+        rpc_user_org_context = organization_service.get_organization_by_id(
             id=organization.id, user_id=request.user.id
         )
     return access.from_request_org_and_scopes(
-        request=request, api_user_org_context=api_user_org_context, scopes=scopes
+        request=request, rpc_user_org_context=rpc_user_org_context, scopes=scopes
     )
 
 
@@ -65,11 +65,11 @@ class AccessFactoryTestCase(TestCase):
 
     @exempt_from_silo_limits()
     def create_api_key(self, organization: Organization, **kwds):
-        return ApiKey.objects.create(organization=organization, **kwds)
+        return ApiKey.objects.create(organization_id=organization.id, **kwds)
 
     @exempt_from_silo_limits()
     def create_auth_provider(self, organization: Organization, **kwds):
-        return AuthProvider.objects.create(organization=organization, **kwds)
+        return AuthProvider.objects.create(organization_id=organization.id, **kwds)
 
     @exempt_from_silo_limits()
     def create_auth_identity(self, auth_provider: AuthProvider, user: User, **kwds):
@@ -312,6 +312,20 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.sso_is_valid
             assert result.requires_sso
 
+    def test_unlinked_sso_with_owner_from_team(self):
+        organization = self.create_organization()
+        ap = self.create_auth_provider(organization=organization, provider="dummy")
+        user = self.create_user()
+        owner_team = self.create_team(organization=organization)
+        self.create_member(organization=organization, user=user, teams=[owner_team])
+        self.create_auth_identity(auth_provider=ap, user=user)
+        request = self.make_request(user=user)
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+
+        for result in results:
+            assert not result.sso_is_valid
+            assert result.requires_sso
+
     def test_unlinked_sso_with_no_owners(self):
         user = self.create_user()
         organization = self.create_organization(owner=user)
@@ -374,7 +388,7 @@ class FromRequestTest(AccessFactoryTestCase):
         UserPermission.objects.create(user=self.superuser, permission="test.permission")
 
         self.org = self.create_organization()
-        AuthProvider.objects.create(organization=self.org)
+        AuthProvider.objects.create(organization_id=self.org.id)
 
         self.team1 = self.create_team(organization=self.org)
         self.project1 = self.create_project(organization=self.org, teams=[self.team1])

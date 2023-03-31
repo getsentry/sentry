@@ -5,7 +5,7 @@ import logging
 from typing import Any, Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import CommitPolicy
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
@@ -177,8 +177,6 @@ def get_parallel_metrics_consumer(
     max_msg_batch_time: float,
     max_parallel_batch_size: int,
     max_parallel_batch_time: float,
-    max_batch_size: int,
-    max_batch_time: float,
     processes: int,
     input_block_size: int,
     output_block_size: int,
@@ -214,8 +212,5 @@ def get_parallel_metrics_consumer(
         ),
         Topic(indexer_profile.input_topic),
         processing_factory,
-        CommitPolicy(
-            min_commit_frequency_sec=max_batch_time / 1000,
-            min_commit_messages=max_batch_size,
-        ),
+        ONCE_PER_SECOND,
     )

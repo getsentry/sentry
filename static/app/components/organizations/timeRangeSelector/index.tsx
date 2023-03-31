@@ -17,7 +17,7 @@ import DateSummary from 'sentry/components/organizations/timeRangeSelector/dateS
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DateString, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {analytics} from 'sentry/utils/analytics';

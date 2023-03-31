@@ -39,6 +39,7 @@ describe('GroupActions', function () {
   beforeEach(function () {
     ConfigStore.init();
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
+    MockApiClient.clearMockResponses();
   });
 
   describe('render()', function () {
@@ -65,7 +66,7 @@ describe('GroupActions', function () {
       });
     });
 
-    it('can subscribe', function () {
+    it('can subscribe', async function () {
       render(
         <GroupActions
           group={group}
@@ -74,7 +75,7 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
-      userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
@@ -106,10 +107,10 @@ describe('GroupActions', function () {
         />
       );
 
-      userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByLabelText('More Actions'));
 
       const bookmark = await screen.findByTestId('bookmark');
-      userEvent.click(bookmark);
+      await userEvent.click(bookmark);
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
@@ -136,7 +137,7 @@ describe('GroupActions', function () {
         />
       );
 
-      userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByLabelText('More Actions'));
 
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
@@ -159,135 +160,130 @@ describe('GroupActions', function () {
 
       const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
 
-      userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByLabelText('More Actions'));
 
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
-      userEvent.click(reprocessActionButton);
+      await userEvent.click(reprocessActionButton);
       await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
     });
   });
 
-  describe('issue-actions-v2', () => {
+  it('opens share modal from more actions dropdown', async () => {
     const org = {
       ...organization,
-      features: ['issue-actions-v2', 'shared-issues'],
-      access: [...organization.access, 'event:admin'],
+      features: ['shared-issues'],
     };
 
-    beforeEach(() => {
-      MockApiClient.clearMockResponses();
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/issues/`,
+      method: 'PUT',
+      body: {},
     });
-
-    it('opens share modal from more actions dropdown', async () => {
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/issues/`,
-        method: 'PUT',
-        body: {},
-      });
-      render(
-        <Fragment>
-          <GlobalModal />
-          <GroupActions
-            group={group}
-            project={project}
-            organization={org}
-            disabled={false}
-          />
-        </Fragment>,
-        {organization: org}
-      );
-
-      userEvent.click(screen.getByLabelText('More Actions'));
-      userEvent.click(await screen.findByText('Share'));
-
-      const modal = screen.getByRole('dialog');
-      expect(within(modal).getByText('Share Issue')).toBeInTheDocument();
-      expect(updateMock).toHaveBeenCalled();
-    });
-
-    it('opens delete confirm modal from more actions dropdown', async () => {
-      MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/issues/`,
-        method: 'PUT',
-        body: {},
-      });
-      const deleteMock = MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/issues/`,
-        method: 'DELETE',
-        body: {},
-      });
-      render(
-        <Fragment>
-          <GlobalModal />
-          <GroupActions
-            group={group}
-            project={project}
-            organization={org}
-            disabled={false}
-          />
-        </Fragment>,
-        {organization: org}
-      );
-
-      userEvent.click(screen.getByLabelText('More Actions'));
-      userEvent.click(await screen.findByTestId('delete-issue'));
-
-      const modal = screen.getByRole('dialog');
-      expect(
-        within(modal).getByText(/Deleting this issue is permanent/)
-      ).toBeInTheDocument();
-
-      userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
-
-      expect(deleteMock).toHaveBeenCalled();
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: `/organizations/${org.slug}/issues/`,
-        query: {project: project.id},
-      });
-    });
-
-    it('resolves and unresolves issue', () => {
-      const issuesApi = MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/project/issues/`,
-        method: 'PUT',
-        body: {...group, status: 'resolved'},
-      });
-
-      const {rerender} = render(
+    render(
+      <Fragment>
+        <GlobalModal />
         <GroupActions
           group={group}
           project={project}
           organization={org}
           disabled={false}
-        />,
-        {organization: org}
-      );
+        />
+      </Fragment>,
+      {organization: org}
+    );
 
-      userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+    await userEvent.click(screen.getByLabelText('More Actions'));
+    await userEvent.click(await screen.findByText('Share'));
 
-      expect(issuesApi).toHaveBeenCalledWith(
-        `/projects/${org.slug}/project/issues/`,
-        expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
-      );
+    const modal = screen.getByRole('dialog');
+    expect(within(modal).getByText('Share Issue')).toBeInTheDocument();
+    expect(updateMock).toHaveBeenCalled();
+  });
 
-      rerender(
+  it('opens delete confirm modal from more actions dropdown', async () => {
+    const org = {
+      ...organization,
+      access: [...organization.access, 'event:admin'],
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/issues/`,
+      method: 'PUT',
+      body: {},
+    });
+    const deleteMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/issues/`,
+      method: 'DELETE',
+      body: {},
+    });
+    render(
+      <Fragment>
+        <GlobalModal />
         <GroupActions
-          group={{...group, status: 'resolved'}}
+          group={group}
           project={project}
           organization={org}
           disabled={false}
         />
-      );
+      </Fragment>,
+      {organization: org}
+    );
 
-      const resolvedButton = screen.getByRole('button', {name: 'Resolved'});
-      expect(resolvedButton).toBeInTheDocument();
-      userEvent.click(resolvedButton);
+    await userEvent.click(screen.getByLabelText('More Actions'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
-      expect(issuesApi).toHaveBeenCalledWith(
-        `/projects/${org.slug}/project/issues/`,
-        expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
-      );
+    const modal = screen.getByRole('dialog');
+    expect(
+      within(modal).getByText(/Deleting this issue is permanent/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
+
+    expect(deleteMock).toHaveBeenCalled();
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: `/organizations/${organization.slug}/issues/`,
+      query: {project: project.id},
     });
+  });
+
+  it('resolves and unresolves issue', async () => {
+    const issuesApi = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
+    });
+
+    const {rerender} = render(
+      <GroupActions
+        group={group}
+        project={project}
+        organization={organization}
+        disabled={false}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(issuesApi).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/project/issues/`,
+      expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
+    );
+
+    rerender(
+      <GroupActions
+        group={{...group, status: 'resolved'}}
+        project={project}
+        organization={organization}
+        disabled={false}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
+
+    expect(issuesApi).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/project/issues/`,
+      expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
+    );
   });
 });

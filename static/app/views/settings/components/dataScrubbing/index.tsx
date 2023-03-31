@@ -9,7 +9,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';

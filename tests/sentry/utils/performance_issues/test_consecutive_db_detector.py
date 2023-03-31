@@ -3,6 +3,7 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -12,9 +13,8 @@ from sentry.testutils.performance_issues.event_generators import (
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.detectors import ConsecutiveDBSpanDetector
 from sentry.utils.performance_issues.performance_detection import (
-    ConsecutiveDBSpanDetector,
-    GroupType,
     PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
@@ -72,10 +72,12 @@ class ConsecutiveDbDetectorTest(TestCase):
                 fingerprint="1-1007-e6a9fc04320a924f46c7c737432bb0389d9dd095",
                 op="db",
                 desc="SELECT `order`.`id` FROM `books_author`",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+                type=PerformanceConsecutiveDBQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -159,22 +161,12 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == []
 
-    def test_detects_consecutive_db_in_query_waterfall_event(self):
+    def test_does_not_detect_consecutive_db_in_query_waterfall_event(self):
         event = get_event("query-waterfall-in-django-random-view")
 
         problems = self.find_problems(event)
 
-        assert problems == [
-            PerformanceProblem(
-                fingerprint="1-1007-12c8e51ada0049de34d58cd14d13f073b8638259",
-                op="db",
-                desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` ASC LIMIT 1",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-                parent_span_ids=None,
-                cause_span_ids=["abca1c35669c11f2", "a6e7c330f656df7f", "857ee9ba7db8cd31"],
-                offender_span_ids=["857ee9ba7db8cd31"],
-            )
-        ]
+        assert problems == []
 
     def test_does_not_detect_consecutive_db_with_low_time_saving(self):
         event = self.create_issue_event(10)
@@ -189,10 +181,12 @@ class ConsecutiveDbDetectorTest(TestCase):
                 fingerprint="1-1007-3bc15c8aae3e4124dd409035f32ea2fd6835efc9",
                 op="db",
                 desc="SELECT COUNT(*) FROM `products`",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+                type=PerformanceConsecutiveDBQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 

@@ -31,6 +31,10 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
+    # TODO: at a later point when we return artifact bundles here
+    # users will by default upload artifact bundles as this is what
+    # sentry-cli looks for.
+    # "artifact_bundles",  # Artifact bundles containing source maps.
 )
 
 

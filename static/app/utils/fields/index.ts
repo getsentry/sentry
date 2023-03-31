@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -23,6 +24,7 @@ export enum FieldKey {
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
   DEVICE_CHARGING = 'device.charging',
+  DEVICE_CLASS = 'device.class',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
   DEVICE_MODEL_ID = 'device.model_id',
@@ -102,12 +104,14 @@ export enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
+  UNREAL_CRASH_TYPE = 'unreal.crash_type',
   USER = 'user',
   USER_DISPLAY = 'user.display',
   USER_EMAIL = 'user.email',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  APP_IN_FOREGROUND = 'app.in_foreground',
 }
 
 export enum FieldValueType {
@@ -144,6 +148,8 @@ export enum MobileVital {
   StallTotalTime = 'measurements.stall_total_time',
   StallLongestTime = 'measurements.stall_longest_time',
   StallPercentage = 'measurements.stall_percentage',
+  TimeToFullDisplay = 'measurements.time_to_full_display',
+  TimeToInitialDisplay = 'measurements.time_to_initial_display',
 }
 
 export enum SpanOpBreakdown {
@@ -412,6 +418,18 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
+  [MobileVital.TimeToFullDisplay]: {
+    desc: t(
+      'The time between application launch and complete display of all resources and views'
+    ),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.TimeToInitialDisplay]: {
+    desc: t('The time it takes for an application to produce its first frame'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
 };
 
 export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
@@ -496,6 +514,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Charging at the time of the event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.DEVICE_CLASS]: {
+    desc: t('The estimated performance level of the device, graded low, medium, or high'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_FAMILY]: {
     desc: t('Model name across generations'),
@@ -656,7 +679,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
   },
   [FieldKey.ISSUE]: {
-    desc: t('The issue identification code'),
+    desc: t('The issue identification short code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -896,6 +919,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.UNREAL_CRASH_TYPE]: {
+    desc: t('Crash type of an Unreal event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.USER]: {
     desc: t('User identification value'),
     kind: FieldKind.FIELD,
@@ -925,6 +953,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Username of the user'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FieldKey.APP_IN_FOREGROUND]: {
+    desc: t('Indicates if the app is in the foreground or background'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -961,6 +994,7 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
+  FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
@@ -987,10 +1021,12 @@ export const ISSUE_FIELDS = [
   FieldKey.TITLE,
   FieldKey.TRACE,
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.APP_IN_FOREGROUND,
 ];
 
 /**
@@ -1018,6 +1054,7 @@ export const DISCOVER_FIELDS = [
   // tags.key and tags.value are omitted on purpose as well.
 
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER,
   FieldKey.USER_ID,
   FieldKey.USER_EMAIL,
@@ -1046,6 +1083,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.DEVICE_SIMULATOR,
   FieldKey.DEVICE_ONLINE,
   FieldKey.DEVICE_CHARGING,
+  FieldKey.DEVICE_CLASS,
   FieldKey.GEO_COUNTRY_CODE,
   FieldKey.GEO_REGION,
   FieldKey.GEO_CITY,
@@ -1066,6 +1104,9 @@ export const DISCOVER_FIELDS = [
   FieldKey.STACK_LINENO,
   FieldKey.STACK_STACK_LEVEL,
   // contexts.key and contexts.value omitted on purpose.
+
+  // App context fields
+  FieldKey.APP_IN_FOREGROUND,
 
   // Transaction event fields.
   FieldKey.TRANSACTION_DURATION,
@@ -1108,6 +1149,18 @@ enum ReplayFieldKey {
   URLS = 'urls',
 }
 
+enum ReplayClickFieldKey {
+  CLICK_ALT = 'replay_click.alt',
+  CLICK_CLASS = 'replay_click.class',
+  CLICK_ID = 'replay_click.id',
+  CLICK_LABEL = 'replay_click.label',
+  CLICK_ROLE = 'replay_click.role',
+  CLICK_TAG = 'replay_click.tag',
+  CLICK_TESTID = 'replay_click.testid',
+  CLICK_TEXT_CONTENT = 'replay_click.textContent',
+  CLICK_TITLE = 'replay_click.title',
+}
+
 /**
  * Some fields inside the ReplayRecord type are intentionally omitted:
  * `environment` -> Not backend support, omitted because we have a dropdown for it
@@ -1128,6 +1181,7 @@ export const REPLAY_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
+
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
@@ -1147,19 +1201,17 @@ export const REPLAY_FIELDS = [
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
-    desc: t(
-      'Amount of activity in the replay from 0 to 10. Determined by number of errors, duration and UI events.'
-    ),
+    desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the brower'),
+    desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the Browser'),
+    desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1205,14 +1257,78 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
 };
 
+export const REPLAY_CLICK_FIELDS = [
+  ReplayClickFieldKey.CLICK_ALT,
+  ReplayClickFieldKey.CLICK_CLASS,
+  ReplayClickFieldKey.CLICK_ID,
+  ReplayClickFieldKey.CLICK_LABEL,
+  ReplayClickFieldKey.CLICK_ROLE,
+  ReplayClickFieldKey.CLICK_TAG,
+  ReplayClickFieldKey.CLICK_TEXT_CONTENT,
+  ReplayClickFieldKey.CLICK_TITLE,
+  ReplayClickFieldKey.CLICK_TESTID,
+];
+
+// This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
+const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinition> = {
+  [ReplayClickFieldKey.CLICK_ALT]: {
+    desc: t('`alt` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_CLASS]: {
+    desc: t('`class` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_ID]: {
+    desc: t('`id` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_LABEL]: {
+    desc: t('`aria-label` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_ROLE]: {
+    desc: t('`role` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TAG]: {
+    desc: t('`tag` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TESTID]: {
+    desc: t('`data-testid` or `data-test-id` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TEXT_CONTENT]: {
+    desc: t('textContent of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TITLE]: {
+    desc: t('`title` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' = 'event'
+  type: 'event' | 'replay' | 'replay_click' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
       if (key in REPLAY_FIELD_DEFINITIONS) {
         return REPLAY_FIELD_DEFINITIONS[key];
+      }
+      if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
+        return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key];
@@ -1223,3 +1339,22 @@ export const getFieldDefinition = (
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };
+
+export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
+  return Object.fromEntries(
+    fieldKeys.map(fieldKey => [
+      fieldKey,
+      {
+        key: fieldKey,
+        name: fieldKey,
+        kind: getFieldDefinition(fieldKey)?.kind,
+      },
+    ])
+  );
+}
+
+export function isDeviceClass(key): boolean {
+  return key === FieldKey.DEVICE_CLASS;
+}
+
+export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];

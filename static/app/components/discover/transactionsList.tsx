@@ -5,11 +5,11 @@ import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -112,6 +112,7 @@ type Props = {
    * The callback for when Open in Discover is clicked.
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  referrer?: string;
   showTransactions?: TransactionFilterOptions;
   /**
    * A list of preferred table headers to use over the field names.
@@ -228,6 +229,7 @@ class _TransactionsList extends Component<Props> {
       titles,
       generateLink,
       forceLoading,
+      referrer,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -256,6 +258,7 @@ class _TransactionsList extends Component<Props> {
             generateLink={generateLink}
             handleCellAction={handleCellAction}
             useAggregateAlias={false}
+            referrer={referrer}
           />
         </GuideAnchor>
       </Fragment>

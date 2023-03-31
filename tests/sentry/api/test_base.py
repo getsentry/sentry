@@ -1,4 +1,5 @@
 import base64
+from unittest import mock
 
 from django.http import HttpRequest, QueryDict, StreamingHttpResponse
 from django.test import override_settings
@@ -65,7 +66,7 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 class EndpointTest(APITestCase):
     def test_basic_cors(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization=org, allowed_origins="*")
+        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
@@ -126,6 +127,17 @@ class EndpointTest(APITestCase):
         )
         assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
+
+    @mock.patch("sentry.api.base.Endpoint.convert_args")
+    def test_method_not_allowed(self, mock_convert_args):
+        request = self.make_request(method="POST")
+        response = _dummy_endpoint(request)
+        response.render()
+
+        assert response.status_code == 405, response.content
+
+        # did not try to convert args
+        assert not mock_convert_args.info.called
 
 
 class CursorGenerationTest(APITestCase):

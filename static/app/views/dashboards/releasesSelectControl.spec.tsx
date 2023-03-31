@@ -44,31 +44,31 @@ function renderReleasesSelect({
 }
 
 describe('Dashboards > ReleasesSelectControl', function () {
-  it('updates menu title with selection', function () {
+  it('updates menu title with selection', async function () {
     renderReleasesSelect({});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('All Releases'));
+    await userEvent.click(screen.getByText('All Releases'));
     expect(screen.getByText('Latest Release(s)')).toBeInTheDocument();
-    userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+    await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
 
-    userEvent.click(document.body);
+    await userEvent.click(document.body);
 
     expect(screen.getByText('sentry-android-shop@1.2.0')).toBeInTheDocument();
     expect(screen.queryByText('+1')).not.toBeInTheDocument();
   });
 
-  it('updates menu title with multiple selections', function () {
+  it('updates menu title with multiple selections', async function () {
     renderReleasesSelect({});
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('All Releases'));
-    userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
-    userEvent.click(screen.getByText('sentry-android-shop@1.4.0'));
+    await userEvent.click(screen.getByText('All Releases'));
+    await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+    await userEvent.click(screen.getByText('sentry-android-shop@1.4.0'));
 
-    userEvent.click(document.body);
+    await userEvent.click(document.body);
 
     expect(screen.getByText('sentry-android-shop@1.2.0')).toBeInTheDocument();
     expect(screen.getByText('+1')).toBeInTheDocument();
@@ -80,8 +80,8 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('All Releases'));
-    userEvent.type(screen.getByText('Search\u2026'), 'se');
+    await userEvent.click(screen.getByText('All Releases'));
+    await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 'se');
 
     await waitFor(() => expect(mockOnSearch).toHaveBeenCalledWith('se'));
   });
@@ -92,33 +92,33 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('All Releases'));
-    userEvent.type(screen.getByText('Search\u2026'), 'se');
+    await userEvent.click(screen.getByText('All Releases'));
+    await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 'se');
 
     await waitFor(() => expect(mockOnSearch).toHaveBeenCalledWith('se'));
 
-    userEvent.click(document.body);
+    await userEvent.click(document.body);
     await waitFor(() => expect(mockOnSearch).toHaveBeenCalledWith(''));
   });
 
-  it('triggers handleChangeFilter with the release versions', function () {
+  it('triggers handleChangeFilter with the release versions', async function () {
     const mockHandleChangeFilter = jest.fn();
     renderReleasesSelect({handleChangeFilter: mockHandleChangeFilter});
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('All Releases'));
-    userEvent.click(screen.getByText('Latest Release(s)'));
-    userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
-    userEvent.click(screen.getByText('sentry-android-shop@1.4.0'));
+    await userEvent.click(screen.getByText('All Releases'));
+    await userEvent.click(screen.getByText('Latest Release(s)'));
+    await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+    await userEvent.click(screen.getByText('sentry-android-shop@1.4.0'));
 
-    userEvent.click(document.body);
+    await userEvent.click(document.body);
 
     expect(mockHandleChangeFilter).toHaveBeenCalledWith({
       release: ['latest', 'sentry-android-shop@1.2.0', 'sentry-android-shop@1.4.0'],
     });
   });
 
-  it('includes Latest Release(s) even if no matching releases', function () {
+  it('includes Latest Release(s) even if no matching releases', async function () {
     render(
       <ReleasesContext.Provider
         value={{
@@ -133,8 +133,8 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('All Releases'));
-    userEvent.type(screen.getByText('Search\u2026'), 'latest');
+    await userEvent.click(screen.getByText('All Releases'));
+    await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 'latest');
 
     screen.getByText('Latest Release(s)');
   });

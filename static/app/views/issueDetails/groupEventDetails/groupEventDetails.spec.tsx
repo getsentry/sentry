@@ -4,13 +4,16 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Event, Group} from 'sentry/types';
+import {EntryType, Event, Group, IssueCategory, IssueType} from 'sentry/types';
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
+import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 import GroupEventDetails, {
   GroupEventDetailsProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
 const makeDefaultMockData = (
   organization?: Organization,
@@ -32,7 +35,18 @@ const makeDefaultMockData = (
       dateCreated: '2019-03-20T00:00:00.000Z',
       errors: [],
       entries: [],
-      tags: [{key: 'environment', value: 'dev'}],
+      tags: [
+        {key: 'environment', value: 'dev'},
+        {key: 'mechanism', value: 'ANR'},
+      ],
+      contexts: {
+        trace: {
+          trace_id: TRACE_ID,
+          span_id: 'b0e6f15b45c36b12',
+          op: 'ui.action.click',
+          type: 'trace',
+        },
+      },
     }),
   };
 };
@@ -67,11 +81,57 @@ const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
   return <GroupEventDetails {...mergedProps} />;
 };
 
+const mockedTrace = (project: Project) => {
+  return {
+    event_id: '8806ea4691c24fc7b1c77ecd78df574f',
+    span_id: 'b0e6f15b45c36b12',
+    transaction: 'MainActivity.add_attachment',
+    'transaction.duration': 1000,
+    'transaction.op': 'navigation',
+    project_id: parseInt(project.id, 10),
+    project_slug: project.slug,
+    parent_span_id: null,
+    parent_event_id: null,
+    generation: 0,
+    errors: [
+      {
+        event_id: 'c6971a73454646338bc3ec80c70f8891',
+        issue_id: 104,
+        span: 'b0e6f15b45c36b12',
+        project_id: parseInt(project.id, 10),
+        project_slug: project.slug,
+        title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
+        level: 'error',
+        issue: '',
+      },
+    ],
+    performance_issues: [
+      {
+        event_id: '8806ea4691c24fc7b1c77ecd78df574f',
+        issue_id: 110,
+        issue_short_id: 'SENTRY-ANDROID-1R',
+        span: ['b0e6f15b45c36b12'],
+        suspect_spans: ['89930aab9a0314d4'],
+        project_id: parseInt(project.id, 10),
+        project_slug: project.slug,
+        title: 'File IO on Main Thread',
+        level: 'info',
+        culprit: 'MainActivity.add_attachment',
+        type: 1008,
+      },
+    ],
+    timestamp: 1678290375.150561,
+    start_timestamp: 1678290374.150561,
+    children: [],
+  } as QuickTraceEvent;
+};
+
 const mockGroupApis = (
   organization: Organization,
   project: Project,
   group: Group,
-  event: Event
+  event: Event,
+  trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
     url: `/issues/${group.id}/`,
@@ -101,6 +161,16 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/issues/${group.id}/tags/`,
     body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
+    body: trace ? [trace] : [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
+    body: trace ? [trace] : [],
   });
 
   MockApiClient.addMockResponse({
@@ -170,6 +240,11 @@ const mockGroupApis = (
     url: '/organizations/org-slug/users/',
     body: [],
   });
+
+  MockApiClient.addMockResponse({
+    url: `/customers/org-slug/policies/`,
+    body: {},
+  });
 };
 
 describe('groupEventDetails', () => {
@@ -214,51 +289,6 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 
-  it('next/prev links', async function () {
-    const props = makeDefaultMockData();
-
-    mockGroupApis(
-      props.organization,
-      props.project,
-      props.group,
-      TestStubs.Event({
-        size: 1,
-        dateCreated: '2019-03-20T00:00:00.000Z',
-        errors: [],
-        entries: [],
-        tags: [{key: 'environment', value: 'dev'}],
-        previousEventID: 'prev-event-id',
-        nextEventID: 'next-event-id',
-      })
-    );
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${props.organization.slug}/${props.project.slug}/events/1/`,
-      body: event,
-    });
-
-    const routerContext = TestStubs.routerContext();
-
-    await act(async () => {
-      render(
-        <TestComponent
-          {...props}
-          location={{query: {environment: 'dev'}} as Location<any>}
-        />,
-        {
-          context: routerContext,
-          organization: props.organization,
-        }
-      );
-      await tick();
-    });
-
-    expect(screen.getByLabelText(/Oldest/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Older/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Newer/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Newest/)).toBeInTheDocument();
-  });
-
   it('displays error on event error', async function () {
     const props = makeDefaultMockData();
 
@@ -283,6 +313,103 @@ describe('groupEventDetails', () => {
 
     expect(
       await screen.findByText(/events for this issue could not be found/)
+    ).toBeInTheDocument();
+  });
+
+  it('renders the Span Evidence and Resources section for Performance Issues', async function () {
+    const props = makeDefaultMockData();
+    const group: Group = TestStubs.Group({
+      issueCategory: IssueCategory.PERFORMANCE,
+      issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    });
+    const transaction = TestStubs.Event({
+      entries: [{type: EntryType.SPANS, data: []}],
+    });
+
+    mockGroupApis(
+      props.organization,
+      props.project,
+      props.group,
+      TestStubs.Event({
+        size: 1,
+        dateCreated: '2019-03-20T00:00:00.000Z',
+        errors: [],
+        entries: [],
+        tags: [{key: 'environment', value: 'dev'}],
+        previousEventID: 'prev-event-id',
+        nextEventID: 'next-event-id',
+      })
+    );
+
+    const routerContext = TestStubs.routerContext();
+    await act(async () => {
+      render(<TestComponent group={group} event={transaction} />, {
+        organization: props.organization,
+        context: routerContext,
+      });
+      await tick();
+    });
+
+    expect(
+      screen.getByRole('heading', {
+        name: /span evidence/i,
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: /resources/i,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('renders the Function Evidence and Resources section for Profile Issues', async function () {
+    const props = makeDefaultMockData();
+    const group: Group = TestStubs.Group({
+      issueCategory: IssueCategory.PROFILE,
+      issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+    });
+    const transaction = TestStubs.Event({
+      entries: [],
+      occurrence: {
+        evidenceDisplay: [],
+        evidenceData: {},
+        type: 2000,
+      },
+    });
+
+    mockGroupApis(
+      props.organization,
+      props.project,
+      props.group,
+      TestStubs.Event({
+        size: 1,
+        dateCreated: '2019-03-20T00:00:00.000Z',
+        errors: [],
+        entries: [],
+        tags: [{key: 'environment', value: 'dev'}],
+        previousEventID: 'prev-event-id',
+        nextEventID: 'next-event-id',
+      })
+    );
+
+    const routerContext = TestStubs.routerContext();
+    await act(async () => {
+      render(<TestComponent group={group} event={transaction} />, {
+        organization: props.organization,
+        context: routerContext,
+      });
+      await tick();
+    });
+
+    expect(
+      screen.getByRole('heading', {
+        name: /function evidence/i,
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: /resources/i,
+      })
     ).toBeInTheDocument();
   });
 });
@@ -449,5 +576,68 @@ describe('Platform Integrations', () => {
     });
 
     expect(componentsRequest).toHaveBeenCalled();
+  });
+
+  describe('ANR Root Cause', () => {
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+    it('shows anr root cause', async () => {
+      const {organization} = initializeOrg();
+      const props = makeDefaultMockData({
+        ...organization,
+        features: ['anr-improvements'],
+      });
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        mockedTrace(props.project)
+      );
+      const routerContext = TestStubs.routerContext();
+      await act(async () => {
+        render(<TestComponent group={props.group} event={props.event} />, {
+          organization: props.organization,
+          context: routerContext,
+        });
+        await tick();
+      });
+
+      expect(
+        screen.getByRole('heading', {
+          name: /suspect root issues/i,
+        })
+      ).toBeInTheDocument();
+      expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
+    });
+
+    it('does not render root issues section if related perf issues do not exist', async () => {
+      const {organization} = initializeOrg();
+      const props = makeDefaultMockData({
+        ...organization,
+        features: ['anr-improvements'],
+      });
+      const trace = mockedTrace(props.project);
+      mockGroupApis(props.organization, props.project, props.group, props.event, {
+        ...trace,
+        performance_issues: [],
+      });
+      const routerContext = TestStubs.routerContext();
+      await act(async () => {
+        render(<TestComponent group={props.group} event={props.event} />, {
+          organization: props.organization,
+          context: routerContext,
+        });
+        await tick();
+      });
+
+      expect(
+        screen.queryByRole('heading', {
+          name: /suspect root issues/i,
+        })
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('File IO on Main Thread')).not.toBeInTheDocument();
+    });
   });
 });

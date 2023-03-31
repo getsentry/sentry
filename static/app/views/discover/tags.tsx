@@ -13,7 +13,7 @@ import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFac
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -76,11 +76,15 @@ class Tags extends Component<Props, State> {
     }
 
     try {
-      const tags = await fetchTagFacets(
+      let tags = await fetchTagFacets(
         api,
         organization.slug,
         eventView.getFacetsAPIPayload(location)
       );
+
+      if (!organization.features.includes('device-classification')) {
+        tags = tags.filter(tag => tag.key !== 'device.class');
+      }
       this.setState({loading: false, tags});
     } catch (err) {
       Sentry.captureException(err);

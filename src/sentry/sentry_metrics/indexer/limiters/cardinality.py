@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Mapping, MutableMapping, Optional, Sequence, TypedDict
+from typing import Dict, Mapping, MutableMapping, Optional, Sequence, TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -66,7 +66,7 @@ class InboundMessage(TypedDict):
     # Note: This is only the subset of fields we access in this file.
     org_id: int
     name: str
-    tags: Mapping[str, str]
+    tags: Dict[str, str]
 
 
 class TimeseriesCardinalityLimiter:
@@ -79,9 +79,15 @@ class TimeseriesCardinalityLimiter:
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
         hash_to_offset = {}
+
+        if use_case_id == UseCaseKey.PERFORMANCE:
+            rollout_option = "sentry-metrics.cardinality-limiter.orgs-rollout-rate"
+        elif use_case_id == UseCaseKey.RELEASE_HEALTH:
+            rollout_option = "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate"
+
         for key, message in messages.items():
             org_id = message["org_id"]
-            if not sample_modulo("sentry-metrics.cardinality-limiter.orgs-rollout-rate", org_id):
+            if not sample_modulo(rollout_option, org_id):
                 continue
 
             message_hash = int(

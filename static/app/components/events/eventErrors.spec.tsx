@@ -23,7 +23,7 @@ describe('EventErrors', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders with errors in event', () => {
+  it('renders with errors in event', async () => {
     const eventWithErrors = TestStubs.Event({
       errors: [
         {
@@ -45,7 +45,9 @@ describe('EventErrors', () => {
 
     render(<EventErrors {...defaultProps} event={eventWithErrors} />);
 
-    userEvent.click(screen.getByText(/there were 2 problems processing this event/i));
+    await userEvent.click(
+      screen.getByText(/there were 2 problems processing this event/i)
+    );
     const errorItems = screen.getAllByTestId('event-error-item');
     expect(errorItems).toHaveLength(2);
     expect(within(errorItems[0]).getByText('logentry')).toBeInTheDocument();
@@ -54,36 +56,17 @@ describe('EventErrors', () => {
     ).toBeInTheDocument();
   });
 
-  describe('release artifacts', () => {
-    it('displays extra error info when event dist does not match file dist', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/releases/release-version/files/',
-        body: [{name: 'dist-1'}],
-      });
-
-      const eventWithDifferentDist = TestStubs.Event({
-        release: {
-          version: 'release-version',
+  it('hides source map not found error', () => {
+    const eventWithDifferentDist = TestStubs.Event({
+      errors: [
+        {
+          type: JavascriptProcessingErrors.JS_MISSING_SOURCE,
         },
-        errors: [
-          {
-            type: JavascriptProcessingErrors.JS_MISSING_SOURCE,
-            data: {
-              url: 'https://place.com/dist-2',
-            },
-          },
-        ],
-      });
-
-      render(<EventErrors {...defaultProps} event={eventWithDifferentDist} />);
-
-      userEvent.click(screen.getByText(/there was 1 problem processing this event/i));
-
-      expect(mock).toHaveBeenCalled();
-      await screen.findByText(
-        /Source code was not found because the distribution did not match/i
-      );
+      ],
     });
+
+    render(<EventErrors {...defaultProps} event={eventWithDifferentDist} />);
+    expect(screen.queryByText(/problem processing this event/i)).not.toBeInTheDocument();
   });
 
   describe('proguard errors', () => {
@@ -111,7 +94,7 @@ describe('EventErrors', () => {
 
       render(<EventErrors {...defaultProps} event={eventWithDebugMeta} />);
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByText(/there was 1 problem processing this event/i)
       );
       const errorItem = screen.getByTestId('event-error-item');
@@ -143,7 +126,7 @@ describe('EventErrors', () => {
 
       render(<EventErrors {...defaultProps} event={eventWithDebugMeta} />);
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByText(/there was 1 problem processing this event/i)
       );
       const errorItem = screen.getByTestId('event-error-item');
@@ -194,7 +177,7 @@ describe('EventErrors', () => {
 
         render(<EventErrors {...defaultProps} event={newEvent} />);
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByText(/there was 1 problem processing this event/i)
         );
         const errorItem = screen.getByTestId('event-error-item');
@@ -271,7 +254,7 @@ describe('EventErrors', () => {
 
         render(<EventErrors {...defaultProps} event={newEvent} />);
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByText(/there was 1 problem processing this event/i)
         );
         const errorItem = screen.getByTestId('event-error-item');

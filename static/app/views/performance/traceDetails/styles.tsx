@@ -6,7 +6,7 @@ import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header'
 import {Panel} from 'sentry/components/panels';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';

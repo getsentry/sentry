@@ -1,17 +1,13 @@
 from .rules.base import generate_rules
-from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsRulesGenerator
-from .rules.biases.boost_key_transactions_bias import BoostKeyTransactionsRulesGenerator
-from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesRulesGenerator
-from .rules.biases.ignore_health_checks_bias import (
-    HEALTH_CHECK_GLOBS,
-    IgnoreHealthChecksRulesGenerator,
-)
+from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsBias
+from .rules.biases.boost_key_transactions_bias import BoostKeyTransactionsBias
+from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
+from .rules.biases.ignore_health_checks_bias import HEALTH_CHECK_GLOBS, IgnoreHealthChecksBias
 from .rules.helpers.latest_releases import (
     ExtendedBoostedRelease,
     LatestReleaseBias,
     LatestReleaseParams,
     ProjectBoostedReleases,
-    get_redis_client_for_ds,
 )
 from .rules.helpers.time_to_adoptions import LATEST_RELEASE_TTAS, Platform
 from .rules.logging import should_log_rules_change
@@ -21,6 +17,7 @@ from .rules.utils import (
     RESERVED_IDS,
     RuleType,
     get_enabled_user_biases,
+    get_redis_client_for_ds,
     get_rule_hash,
     get_supported_biases_ids,
     get_user_biases,
@@ -40,10 +37,10 @@ __all__ = [
     "Platform",
     "LatestReleaseBias",
     "LatestReleaseParams",
-    "IgnoreHealthChecksRulesGenerator",
-    "BoostKeyTransactionsRulesGenerator",
-    "BoostEnvironmentsRulesGenerator",
-    "BoostLatestReleasesRulesGenerator",
+    "IgnoreHealthChecksBias",
+    "BoostKeyTransactionsBias",
+    "BoostEnvironmentsBias",
+    "BoostLatestReleasesBias",
     "LATEST_RELEASE_TTAS",
     "ENVIRONMENT_GLOBS",
     "BOOSTED_KEY_TRANSACTION_LIMIT",

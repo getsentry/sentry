@@ -1,8 +1,10 @@
+from typing import Optional, TypedDict
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
+from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
@@ -10,8 +12,14 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
+class IntegrationRepository(TypedDict):
+    name: str
+    identifier: str
+    defaultBranch: Optional[str]
+
+
 @region_silo_endpoint
-class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
+class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         """
         Get the list of repositories available in an integration
@@ -23,7 +31,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
 
         :qparam string search: Name fragment to search repositories by.
         """
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         if integration.status == ObjectStatus.DISABLED:
             context = {"repos": []}
@@ -39,7 +47,15 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
-            context = {"repos": repositories, "searchable": install.repo_search}
+            serializedRepositories = [
+                IntegrationRepository(
+                    name=repo["name"],
+                    identifier=repo["identifier"],
+                    defaultBranch=repo.get("default_branch"),
+                )
+                for repo in repositories
+            ]
+            context = {"repos": serializedRepositories, "searchable": install.repo_search}
             return self.respond(context)
 
         return self.respond({"detail": "Repositories not supported"}, status=400)

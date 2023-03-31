@@ -6,9 +6,9 @@ import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/group
 import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SpanEvidencePreviewProps = {
@@ -53,7 +53,7 @@ const SpanEvidencePreviewBody = ({
   onRequestEnd,
   onUnmount,
 }: SpanEvidencePreviewBodyProps) => {
-  const {data, isLoading, isError} = useQuery<EventTransaction>(
+  const {data, isLoading, isError} = useApiQuery<EventTransaction>(
     [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
     {staleTime: 60000}
   );

@@ -16,7 +16,6 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {
-  EventData,
   EventsMetaType,
   isFieldSortable,
 } from 'sentry/utils/discover/eventView';
@@ -37,7 +36,7 @@ import {
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 
-import {getSelectedProjectPlatforms} from '../utils';
+import {getProjectID, getSelectedProjectPlatforms} from '../utils';
 
 import {
   getVitalDetailTableMehStatusFunction,
@@ -61,25 +60,6 @@ const getTableColumnTitle = (index: number, vitalName: WebVital) => {
   ];
   return titles[index];
 };
-
-export function getProjectID(
-  eventData: EventData,
-  projects: Project[]
-): string | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
-
-  const project = projects.find(currentProject => currentProject.slug === projectSlug);
-
-  if (!project) {
-    return undefined;
-  }
-
-  return project.id;
-}
 
 type Props = {
   eventView: EventView;

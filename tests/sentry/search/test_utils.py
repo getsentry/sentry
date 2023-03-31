@@ -7,6 +7,7 @@ from freezegun import freeze_time
 from sentry.models import EventUser, GroupStatus, Release, Team, User
 from sentry.search.base import ANY
 from sentry.search.utils import (
+    DEVICE_CLASS,
     InvalidQuery,
     convert_user_tag_to_query,
     get_latest_release,
@@ -16,7 +17,7 @@ from sentry.search.utils import (
     tokenize_query,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
 def test_get_numeric_field_value():
@@ -130,6 +131,7 @@ def test_get_numeric_field_value_invalid():
         get_numeric_field_value("foo", ">=1k")
 
 
+@region_silo_test(stable=True)
 class ParseQueryTest(TestCase):
     def parse_query(self, query):
         return parse_query([self.project], query, self.user, None)
@@ -622,6 +624,7 @@ class ParseQueryTest(TestCase):
         assert result["assigned_or_suggested"].id == 0
 
 
+@region_silo_test(stable=True)
 class GetLatestReleaseTest(TestCase):
     def test(self):
         with pytest.raises(Release.DoesNotExist):
@@ -720,3 +723,14 @@ class ConvertUserTagTest(TestCase):
 
     def test_non_user_tag(self):
         assert convert_user_tag_to_query("user", 'fake:123"456') is None
+
+
+def test_valid_device_class_mapping():
+    assert set(DEVICE_CLASS.keys()) == {"low", "medium", "high"}, "Only 3 possible classes"
+
+    # should all be integers
+    device_classes = {key: {int(value) for value in values} for key, values in DEVICE_CLASS.items()}
+
+    assert all(
+        0 not in values for values in device_classes.values()
+    ), "`0` is not a valid classes as it represents unclassified"

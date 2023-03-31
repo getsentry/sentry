@@ -24,7 +24,9 @@ logger = logging.getLogger("sentry.plugins.heroku")
 class HerokuReleaseHook(ReleaseHook):
     def get_auth(self):
         try:
-            return ApiKey(organization=self.project.organization, scope_list=["project:write"])
+            return ApiKey(
+                organization_id=self.project.organization_id, scope_list=["project:write"]
+            )
         except ApiKey.DoesNotExist:
             return None
 
@@ -43,13 +45,17 @@ class HerokuReleaseHook(ReleaseHook):
 
         return hmac.compare_digest(heroku_hmac, computed_hmac)
 
-    def handle_legacy(self, request: Request) -> Response:
-        """Code path to handle deploy hooks. Delete after Feb 17th 2023 - https://blog.heroku.com/deployhooks-sunset"""
-        email = None
-        if "user" in request.POST:
-            email = request.POST["user"]
-        elif "actor" in request.POST:
-            email = request.POST["actor"].get("email")
+    def handle(self, request: Request) -> Response:
+        heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
+
+        if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
+            logger.info("heroku.webhook.invalid-signature", extra={"project_id": self.project.id})
+            return HttpResponse(status=401)
+
+        body = json.loads(request.body)
+        data = body.get("data")
+        email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
+
         try:
             user = User.objects.get(
                 email__iexact=email, sentry_orgmember_set__organization__project=self.project
@@ -64,52 +70,25 @@ class HerokuReleaseHook(ReleaseHook):
                     "email": email,
                 },
             )
-        self.finish_release(
-            version=request.POST.get("head_long"), url=request.POST.get("url"), owner=user
-        )
+        slug = data.get("slug")
+        if not slug:
+            logger.info("heroku.payload.missing-commit", extra={"project_id": self.project.id})
+            return HttpResponse(status=401)
 
-    def handle(self, request: Request) -> Response:
-        heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
-
-        if heroku_hmac:
-            if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
-                logger.error(
-                    "heroku.webhook.invalid-signature", extra={"project_id": self.project.id}
-                )
-                return HttpResponse(status=401)
-
-            body = json.loads(request.body)
-            data = body.get("data")
-            email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
-
-            try:
-                user = User.objects.get(
-                    email__iexact=email, sentry_orgmember_set__organization__project=self.project
-                )
-            except (User.DoesNotExist, User.MultipleObjectsReturned):
-                user = None
-                logger.info(
-                    "owner.missing",
-                    extra={
-                        "organization_id": self.project.organization_id,
-                        "project_id": self.project.id,
-                        "email": email,
-                    },
-                )
-            commit = data.get("slug", {}).get("commit")
-            app_name = data.get("app", {}).get("name")
+        commit = slug.get("commit")
+        app_name = data.get("app", {}).get("name")
+        if body.get("action") == "update":
             if app_name:
                 self.finish_release(
-                    version=commit, url=f"http://{app_name}.herokuapp.com", owner=user
+                    version=commit,
+                    url=f"http://{app_name}.herokuapp.com",
+                    owner_id=user.id if user else None,
                 )
             else:
-                self.finish_release(version=commit, owner=user)
-
-        else:
-            self.handle_legacy(request)  # TODO delete this else after Feb 17th 2023
+                self.finish_release(version=commit, owner_id=user.id if user else None)
 
     def set_refs(self, release, **values):
-        if not values.get("owner", None):
+        if not values.get("owner_id", None):
             return
         # check if user exists, and then try to get refs based on version
         repo_project_option = ProjectOption.objects.get_value(
@@ -138,7 +117,7 @@ class HerokuReleaseHook(ReleaseHook):
             else:
                 release.set_refs(
                     refs=[{"commit": release.version, "repository": repository.name}],
-                    user=values["owner"],
+                    user_id=values["owner_id"],
                     fetch=True,
                 )
         # create deploy associated with release via ReleaseDeploysEndpoint

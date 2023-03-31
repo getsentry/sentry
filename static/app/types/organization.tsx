@@ -1,4 +1,5 @@
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -81,6 +82,7 @@ export type Team = {
   isPending: boolean;
   memberCount: number;
   name: string;
+  orgRole: string | null;
   slug: string;
   teamRole: string | null;
 };
@@ -125,6 +127,7 @@ export interface Member {
   name: string;
   orgRole: OrgRole['id'];
   orgRoleList: OrgRole[]; // TODO: Move to global store
+  orgRolesFromTeams: {role: OrgRole; teamSlug: string}[];
   pending: boolean | undefined;
   projects: string[];
 
@@ -193,6 +196,7 @@ export interface NewQuery {
   projects: Readonly<number[]>;
   version: SavedQueryVersions;
   createdBy?: User;
+  dataset?: DiscoverDatasets;
   display?: string;
   end?: string;
   environment?: Readonly<string[]>;

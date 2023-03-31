@@ -2,7 +2,13 @@ import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
 import {
@@ -19,6 +25,7 @@ const defaultOrgFeatures = [
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
+  'dashboards-rh-widget',
 ];
 
 // Mocking worldMapChart to avoid act warnings
@@ -290,13 +297,17 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      expect(screen.getByLabelText(/releases/i)).not.toBeChecked();
-      userEvent.click(screen.getByLabelText(/releases/i));
-      await waitFor(() => expect(screen.getByLabelText(/releases/i)).toBeChecked());
+      expect(screen.getByRole('radio', {name: /Releases/i})).not.toBeChecked();
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
+      await waitFor(() =>
+        expect(screen.getByRole('radio', {name: /Releases/i})).toBeChecked()
+      );
 
-      userEvent.click(screen.getByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
-      await waitFor(() => expect(screen.getByLabelText(/releases/i)).toBeChecked());
+      await userEvent.click(screen.getByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
+      await waitFor(() =>
+        expect(screen.getByRole('radio', {name: /Releases/i})).toBeChecked()
+      );
     });
 
     it('displays releases tags', async function () {
@@ -306,19 +317,19 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       expect(screen.getByText('session')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('crash_free_rate(…)'));
+      await userEvent.click(screen.getByText('crash_free_rate(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       expect(screen.getByText('release')).toBeInTheDocument();
       expect(screen.getByText('environment')).toBeInTheDocument();
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('count_unique(…)'));
+      await userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('user')).toBeInTheDocument();
     });
 
@@ -329,12 +340,12 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'count_unique(…)');
 
-      userEvent.click(screen.getByText('user'));
+      await userEvent.click(screen.getByText('user'));
       expect(screen.queryByText('release')).not.toBeInTheDocument();
       expect(screen.queryByText('environment')).not.toBeInTheDocument();
       expect(screen.queryByText('session.status')).not.toBeInTheDocument();
@@ -347,12 +358,12 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
       expect(screen.getByText('High to low')).toBeEnabled();
       expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText('Add a Column'));
+      await userEvent.click(screen.getByLabelText('Add a Column'));
       await selectEvent.select(screen.getByText('(Required)'), 'session.status');
 
       expect(screen.getByRole('textbox', {name: 'Sort direction'})).toBeDisabled();
@@ -367,15 +378,21 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}), {
+        delay: null,
+      });
 
-      expect(screen.getByText('High to low')).toBeEnabled();
-      expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('sort-by-step')).getByText('High to low')
+      ).toBeEnabled();
+      expect(
+        within(screen.getByTestId('sort-by-step')).getByText('crash_free_rate(session)')
+      ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText('Add a Column'));
+      await userEvent.click(screen.getByLabelText('Add a Column'), {delay: null});
       await selectEvent.select(screen.getByText('(Required)'), 'release');
 
-      userEvent.click(screen.getByLabelText('Add a Column'));
+      await userEvent.click(screen.getByLabelText('Add a Column'), {delay: null});
       await selectEvent.select(screen.getByText('(Required)'), 'environment');
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
@@ -384,7 +401,9 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
-      userEvent.click(screen.getAllByText('crash_free_rate(session)')[1]);
+      await userEvent.click(screen.getAllByText('crash_free_rate(session)')[1], {
+        delay: null,
+      });
 
       // release exists in sort by selector
       expect(screen.getAllByText('release')).toHaveLength(3);
@@ -400,10 +419,12 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}), {
+        delay: null,
+      });
 
-      userEvent.click(screen.getByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'), {delay: null});
+      await userEvent.click(screen.getByText('Line Chart'), {delay: null});
 
       await waitFor(() =>
         expect(metricsDataMock).toHaveBeenLastCalledWith(
@@ -430,10 +451,12 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}), {
+        delay: null,
+      });
 
-      userEvent.click(screen.getByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'), {delay: null});
+      await userEvent.click(screen.getByText('Line Chart'), {delay: null});
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
 
@@ -466,10 +489,12 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/releases/i));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}), {
+        delay: null,
+      });
 
-      userEvent.click(screen.getByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'), {delay: null});
+      await userEvent.click(screen.getByText('Line Chart'), {delay: null});
 
       await selectEvent.select(await screen.findByText('Select group'), 'session.status');
 
@@ -500,18 +525,18 @@ describe('WidgetBuilder', function () {
       ).toBeInTheDocument();
 
       // change dataset to releases
-      userEvent.click(screen.getByLabelText(/releases/i));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
 
-      userEvent.click(screen.getByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
 
       expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       expect(screen.getByText(`session`)).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('crash_free_rate(…)'));
+      await userEvent.click(screen.getByText('crash_free_rate(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('count_unique(…)'));
+      await userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('user')).toBeInTheDocument();
     });
 
@@ -519,10 +544,12 @@ describe('WidgetBuilder', function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       renderTestComponent();
 
-      userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
+      await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
+        delay: null,
+      });
 
       expect(metricsDataMock).toHaveBeenCalled();
-      expect(screen.getByLabelText(/Releases/i)).toBeChecked();
+      expect(screen.getByRole('radio', {name: /Releases/i})).toBeChecked();
     });
 
     it('does not display "add an equation" button', async function () {
@@ -554,8 +581,8 @@ describe('WidgetBuilder', function () {
       });
 
       // Select line chart display
-      userEvent.click(await screen.findByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(await screen.findByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
 
       await waitFor(() =>
         expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument()
@@ -569,10 +596,12 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Table'));
-      userEvent.click(screen.getByText('World Map'));
+      await userEvent.click(await screen.findByText('Table'));
+      await userEvent.click(screen.getByText('World Map'));
 
-      await waitFor(() => expect(screen.getByLabelText(/Releases/)).toBeDisabled());
+      await waitFor(() =>
+        expect(screen.getByRole('radio', {name: /Releases/i})).toBeDisabled()
+      );
 
       expect(
         screen.getByRole('radio', {
@@ -589,7 +618,7 @@ describe('WidgetBuilder', function () {
     it('renders with a release search bar', async function () {
       renderTestComponent();
 
-      userEvent.type(
+      await userEvent.type(
         await screen.findByPlaceholderText('Search for events, users, tags, and more'),
         'session.status:'
       );
@@ -598,8 +627,8 @@ describe('WidgetBuilder', function () {
         expect(screen.getByText("The field isn't supported here.")).toBeInTheDocument();
       });
 
-      userEvent.click(screen.getByText('Releases (Sessions, Crash rates)'));
-      userEvent.click(
+      await userEvent.click(screen.getByText('Releases (Sessions, Crash rates)'));
+      await userEvent.click(
         screen.getByPlaceholderText(
           'Search for release version, session status, and more'
         )
@@ -613,7 +642,9 @@ describe('WidgetBuilder', function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       renderTestComponent();
 
-      userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
+      await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
+        delay: null,
+      });
 
       await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'environment');
 
@@ -629,8 +660,10 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({onSave: handleSave});
 
-      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
-      userEvent.click(screen.getByLabelText('Add Widget'));
+      await userEvent.click(
+        await screen.findByText('Issues (States, Assignment, Time, etc.)')
+      );
+      await userEvent.click(screen.getByLabelText('Add Widget'));
 
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
@@ -664,8 +697,8 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(await screen.findByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
       expect(
         screen.getByRole('radio', {
           name: 'Errors and Transactions',
@@ -681,21 +714,49 @@ describe('WidgetBuilder', function () {
     it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
-      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
-      expect(screen.getByText('issue')).toBeInTheDocument();
-      expect(screen.getByText('assignee')).toBeInTheDocument();
-      expect(screen.getByText('title')).toBeInTheDocument();
-      expect(screen.getAllByLabelText('Remove column')).toHaveLength(2);
-      expect(screen.getAllByLabelText('Drag to reorder')).toHaveLength(3);
+      await userEvent.click(
+        await screen.findByText('Issues (States, Assignment, Time, etc.)')
+      );
+      expect(
+        within(screen.getByTestId('choose-column-step')).getByText('issue')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).getByText('assignee')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).getByText('title')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).getAllByLabelText(
+          'Remove column'
+        )
+      ).toHaveLength(2);
+      expect(
+        within(screen.getByTestId('choose-column-step')).getAllByLabelText(
+          'Drag to reorder'
+        )
+      ).toHaveLength(3);
 
-      userEvent.click(screen.getAllByLabelText('Remove column')[1]);
-      userEvent.click(screen.getAllByLabelText('Remove column')[0]);
+      await userEvent.click(screen.getAllByLabelText('Remove column')[1]);
+      await userEvent.click(screen.getAllByLabelText('Remove column')[0]);
 
-      expect(screen.getByText('issue')).toBeInTheDocument();
-      expect(screen.queryByText('assignee')).not.toBeInTheDocument();
-      expect(screen.queryByText('title')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).getByText('issue')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).queryByText('assignee')
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).queryByText('title')
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).queryByLabelText('Remove column')
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).queryByLabelText(
+          'Drag to reorder'
+        )
+      ).not.toBeInTheDocument();
     });
 
     it('issue query does not work on default search bar', async function () {
@@ -704,9 +765,7 @@ describe('WidgetBuilder', function () {
       const input = (await screen.findByPlaceholderText(
         'Search for events, users, tags, and more'
       )) as HTMLTextAreaElement;
-      userEvent.paste(input, 'bookmarks', {
-        clipboardData: {getData: () => ''},
-      } as unknown as React.ClipboardEvent<HTMLTextAreaElement>);
+      await userEvent.type(input, 'bookmarks');
       input.setSelectionRange(9, 9);
 
       expect(await screen.findByText('No items found')).toBeInTheDocument();
@@ -715,14 +774,14 @@ describe('WidgetBuilder', function () {
     it('renders with an issues search bar when selected in dataset selection', async function () {
       renderTestComponent();
 
-      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      await userEvent.click(
+        await screen.findByText('Issues (States, Assignment, Time, etc.)')
+      );
 
       const input = (await screen.findByPlaceholderText(
         'Search for issues, status, assigned, and more'
       )) as HTMLTextAreaElement;
-      userEvent.paste(input, 'is:', {
-        clipboardData: {getData: () => ''},
-      } as unknown as React.ClipboardEvent<HTMLTextAreaElement>);
+      await userEvent.type(input, 'is:');
       input.setSelectionRange(3, 3);
 
       expect(await screen.findByText('resolved')).toBeInTheDocument();
@@ -737,11 +796,11 @@ describe('WidgetBuilder', function () {
 
       await screen.findByText('Table');
 
-      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
+      await userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
-      userEvent.paste(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
+      await userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
 
-      userEvent.click(screen.getByText('Add Widget'));
+      await userEvent.click(screen.getByText('Add Widget'));
 
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
@@ -795,7 +854,7 @@ describe('WidgetBuilder', function () {
           'measurements.custom.measurement',
         ]);
 
-        userEvent.click(screen.getByText('Add Widget'));
+        await userEvent.click(screen.getByText('Add Widget'));
 
         await waitFor(() => {
           expect(router.push).toHaveBeenCalledWith(
@@ -991,13 +1050,13 @@ describe('WidgetBuilder', function () {
         expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
 
         await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
-        userEvent.click(screen.getByText('transaction.duration'));
+        await userEvent.click(screen.getByText('transaction.duration'));
         screen.getByText('measurements.custom.measurement');
         expect(
           screen.queryByText('measurements.another.custom.measurement')
         ).not.toBeInTheDocument();
         await selectEvent.select(screen.getAllByText('p99(…)')[0], ['p95(…)']);
-        userEvent.click(screen.getByText('transaction.duration'));
+        await userEvent.click(screen.getByText('transaction.duration'));
         screen.getByText('measurements.another.custom.measurement');
         expect(
           screen.queryByText('measurements.custom.measurement')
@@ -1217,7 +1276,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
         await screen.findByText('transaction');
-        userEvent.click(screen.getAllByText('count()')[1]);
+        await userEvent.click(screen.getAllByText('count()')[1]);
         expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
       });
 
@@ -1259,12 +1318,16 @@ describe('WidgetBuilder', function () {
           await screen.findByText('p99(measurements.custom.measurement)')
         ).toBeInTheDocument();
         // Delete p99(measurements.custom.measurement) column
-        userEvent.click(screen.getAllByLabelText('Remove column')[0]);
+        await userEvent.click(screen.getAllByLabelText('Remove column')[0]);
         expect(
           screen.queryByText('p99(measurements.custom.measurement)')
         ).not.toBeInTheDocument();
-        expect(screen.getAllByText('transaction').length).toEqual(1);
-        expect(screen.getAllByText('count()').length).toEqual(2);
+        expect(
+          within(screen.getByTestId('sort-by-step')).queryByText('transaction')
+        ).not.toBeInTheDocument();
+        expect(
+          within(screen.getByTestId('sort-by-step')).getByText('count()')
+        ).toBeInTheDocument();
       });
     });
   });

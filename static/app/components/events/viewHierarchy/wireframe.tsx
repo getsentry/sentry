@@ -1,123 +1,66 @@
-import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {Button} from 'sentry/components/button';
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
-import {defined} from 'sentry/utils';
-import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
-
-function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]): Rect {
-  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-
-  useLayoutEffect(() => {
-    if (!canvases.length) {
-      return undefined;
-    }
-
-    if (canvases.some(c => c === null)) {
-      return undefined;
-    }
-
-    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
-      const contentRect =
-        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
-
-      setCanvasBounds(
-        new Rect(
-          contentRect.x,
-          contentRect.y,
-          contentRect.width * window.devicePixelRatio,
-          contentRect.height * window.devicePixelRatio
-        )
-      );
-    });
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [canvases]);
-
-  return bounds;
-}
+import {
+  calculateScale,
+  getDeepestNodeAtPoint,
+  getHierarchyDimensions,
+  useResizeCanvasObserver,
+} from 'sentry/components/events/viewHierarchy/utils';
+import {IconAdd, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const MIN_BORDER_SIZE = 20;
+const MOUSE_DRAG_THRESHOLD = 3;
 
-interface ViewNode {
+export interface ViewNode {
   node: ViewHierarchyWindow;
   rect: Rect;
 }
 
-export function getHierarchyDimensions(hierarchies: ViewHierarchyWindow[]): {
-  maxHeight: number;
-  maxWidth: number;
-  nodes: ViewNode[];
-} {
-  const nodes: ViewNode[] = [];
-  const queue: [Rect | null, ViewHierarchyWindow][] = [];
-  for (let i = hierarchies.length - 1; i >= 0; i--) {
-    queue.push([null, hierarchies[i]]);
-  }
-
-  let maxWidth = Number.MIN_SAFE_INTEGER;
-  let maxHeight = Number.MIN_SAFE_INTEGER;
-
-  while (queue.length) {
-    const [parent, child] = queue.pop()!;
-
-    const node = {
-      node: child,
-      rect: new Rect(
-        (parent?.x ?? 0) + (child.x ?? 0),
-        (parent?.y ?? 0) + (child.y ?? 0),
-        child.width ?? 0,
-        child.height ?? 0
-      ),
-    };
-    nodes.push(node);
-
-    if (defined(child.children) && child.children.length) {
-      // Push the children into the queue in reverse order because the
-      // output nodes should have early children before later children
-      // i.e. we need to pop() off early children before ones that come after
-      for (let i = child.children.length - 1; i >= 0; i--) {
-        queue.push([node.rect, child.children[i]]);
-      }
-    }
-
-    maxWidth = Math.max(maxWidth, node.rect.x + (node.rect.width ?? 0));
-    maxHeight = Math.max(maxHeight, node.rect.y + (node.rect.height ?? 0));
-  }
-
-  return {nodes, maxWidth, maxHeight};
-}
-
-export function calculateScale(
-  bounds: {height: number; width: number},
-  maxCoordinateDimensions: {height: number; width: number},
-  border: {x: number; y: number}
-) {
-  return Math.min(
-    (bounds.width - border.x) / maxCoordinateDimensions.width,
-    (bounds.height - border.y) / maxCoordinateDimensions.height
-  );
-}
-
 type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
+  onNodeSelect: (node?: ViewHierarchyWindow) => void;
+  project: Project;
+  selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy}: WireframeProps) {
+function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
+  const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
+  const [zoomIn, setZoomIn] = useState<HTMLButtonElement | null>(null);
+  const [zoomOut, setZoomOut] = useState<HTMLButtonElement | null>(null);
 
   const canvases = useMemo(() => {
-    return canvasRef ? [canvasRef] : [];
-  }, [canvasRef]);
+    return canvasRef && overlayRef ? [canvasRef, overlayRef] : [];
+  }, [canvasRef, overlayRef]);
 
   const canvasSize = useResizeCanvasObserver(canvases);
 
-  const hierarchyData = useMemo(() => getHierarchyDimensions(hierarchy), [hierarchy]);
+  const hierarchyData = useMemo(
+    () =>
+      getHierarchyDimensions(
+        hierarchy,
+        ['flutter', 'dart-flutter'].includes(project?.platform ?? '')
+      ),
+    [hierarchy, project.platform]
+  );
+  const nodeLookupMap = useMemo(() => {
+    const map = new Map<ViewHierarchyWindow, ViewNode>();
+    hierarchyData.nodes.forEach(node => {
+      map.set(node.node, node);
+    });
+    return map;
+  }, [hierarchyData.nodes]);
 
   const scale = useMemo(() => {
     return calculateScale(
@@ -153,15 +96,8 @@ function Wireframe({hierarchy}: WireframeProps) {
     scale,
   ]);
 
-  const draw = useCallback(
-    (modelToView: mat3) => {
-      const context = canvasRef?.getContext('2d');
-      if (!context) {
-        return;
-      }
-
-      // Context is stateful, so reset the transforms at the beginning of each
-      // draw to properly clear the canvas from 0, 0
+  const setupCanvasContext = useCallback(
+    (context: CanvasRenderingContext2D, modelToView: mat3) => {
       context.resetTransform();
       context.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
@@ -173,95 +109,275 @@ function Wireframe({hierarchy}: WireframeProps) {
         modelToView[6],
         modelToView[7]
       );
+    },
+    [canvasSize.height, canvasSize.width]
+  );
 
-      context.fillStyle = theme.gray100;
-      context.strokeStyle = theme.gray300;
+  const drawOverlay = useCallback(
+    (modelToView: mat3, selectedRect: Rect | null, hoverRect: Rect | null) => {
+      const overlay = overlayRef?.getContext('2d');
+      if (overlay) {
+        setupCanvasContext(overlay, modelToView);
+        overlay.fillStyle = theme.blue200;
 
-      for (let i = 0; i < hierarchyData.nodes.length; i++) {
-        context.strokeRect(
-          hierarchyData.nodes[i].rect.x,
-          hierarchyData.nodes[i].rect.y,
-          hierarchyData.nodes[i].rect.width,
-          hierarchyData.nodes[i].rect.height
-        );
-        context.fillRect(
-          hierarchyData.nodes[i].rect.x,
-          hierarchyData.nodes[i].rect.y,
-          hierarchyData.nodes[i].rect.width,
-          hierarchyData.nodes[i].rect.height
-        );
+        if (selectedRect) {
+          overlay.fillRect(
+            selectedRect.x,
+            selectedRect.y,
+            selectedRect.width,
+            selectedRect.height
+          );
+        }
+
+        if (hoverRect) {
+          overlay.fillStyle = theme.blue100;
+          overlay.fillRect(hoverRect.x, hoverRect.y, hoverRect.width, hoverRect.height);
+        }
       }
     },
-    [
-      canvasRef,
-      canvasSize.width,
-      canvasSize.height,
-      theme.gray100,
-      theme.gray300,
-      hierarchyData.nodes,
-    ]
+    [overlayRef, setupCanvasContext, theme.blue100, theme.blue200]
+  );
+
+  const drawViewHierarchy = useCallback(
+    (modelToView: mat3) => {
+      const canvas = canvasRef?.getContext('2d');
+      if (canvas) {
+        setupCanvasContext(canvas, modelToView);
+        canvas.fillStyle = theme.gray100;
+        canvas.strokeStyle = theme.gray300;
+
+        for (let i = 0; i < hierarchyData.nodes.length; i++) {
+          canvas.strokeRect(
+            hierarchyData.nodes[i].rect.x,
+            hierarchyData.nodes[i].rect.y,
+            hierarchyData.nodes[i].rect.width,
+            hierarchyData.nodes[i].rect.height
+          );
+          canvas.fillRect(
+            hierarchyData.nodes[i].rect.x,
+            hierarchyData.nodes[i].rect.y,
+            hierarchyData.nodes[i].rect.width,
+            hierarchyData.nodes[i].rect.height
+          );
+        }
+      }
+    },
+    [canvasRef, setupCanvasContext, theme.gray100, theme.gray300, hierarchyData.nodes]
   );
 
   useEffect(() => {
-    if (!canvasRef) {
+    if (!canvasRef || !overlayRef || !zoomIn || !zoomOut) {
       return undefined;
     }
 
     let start: vec2 | null;
-    const currTransformationMatrix = mat3.create();
+    let isDragging = false;
+    const selectedRect: Rect | null =
+      (selectedNode && nodeLookupMap.get(selectedNode)?.rect) ?? null;
+    let hoveredRect: Rect | null = null;
+    const currTransformationMatrix = mat3.clone(transformationMatrix);
+    const lastMousePosition = vec2.create();
 
     const handleMouseDown = (e: MouseEvent) => {
       start = vec2.fromValues(e.offsetX, e.offsetY);
-      canvasRef.style.cursor = 'grabbing';
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (start) {
         const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
+        const delta = vec2.sub(vec2.create(), currPosition, start);
+
+        // If the mouse hasn't moved significantly, then don't consider
+        // this a drag. This prevents missed selections when the user
+        // moves their mouse slightly when clicking
+        const distance = vec2.len(delta);
+        if (!isDragging && distance < MOUSE_DRAG_THRESHOLD) {
+          return;
+        }
+
+        overlayRef.style.cursor = 'grabbing';
+        isDragging = true;
+        hoveredRect = null;
 
         // Delta needs to be scaled by the devicePixelRatio and how
         // much we've zoomed the image by to get an accurate translation
-        const delta = vec2.sub(vec2.create(), currPosition, start);
-        vec2.scale(delta, delta, window.devicePixelRatio / scale);
+        vec2.scale(delta, delta, window.devicePixelRatio / transformationMatrix[0]);
 
         // Translate from the original matrix as a starting point
         mat3.translate(currTransformationMatrix, transformationMatrix, delta);
-        draw(currTransformationMatrix);
+        drawViewHierarchy(currTransformationMatrix);
+        drawOverlay(currTransformationMatrix, selectedRect, hoveredRect);
+      } else {
+        hoveredRect =
+          getDeepestNodeAtPoint(
+            hierarchyData.nodes,
+            vec2.fromValues(e.offsetX, e.offsetY),
+            currTransformationMatrix,
+            window.devicePixelRatio
+          )?.rect ?? null;
+        drawOverlay(transformationMatrix, selectedRect, hoveredRect);
       }
+      vec2.copy(lastMousePosition, vec2.fromValues(e.offsetX, e.offsetY));
+      vec2.scale(lastMousePosition, lastMousePosition, window.devicePixelRatio);
     };
 
     const handleMouseUp = () => {
-      // The panning has ended, store its transformations into the original matrix
+      if (isDragging) {
+        // The panning has ended, store its transformations into the original matrix
+        mat3.copy(transformationMatrix, currTransformationMatrix);
+      }
       start = null;
-      mat3.copy(transformationMatrix, currTransformationMatrix);
-      canvasRef.style.cursor = 'grab';
+      overlayRef.style.cursor = 'pointer';
+    };
+
+    const handleMouseClick = (e: MouseEvent) => {
+      if (!isDragging) {
+        const clickedNode = getDeepestNodeAtPoint(
+          hierarchyData.nodes,
+          vec2.fromValues(e.offsetX, e.offsetY),
+          transformationMatrix,
+          window.devicePixelRatio
+        );
+
+        if (!clickedNode) {
+          return;
+        }
+
+        drawOverlay(transformationMatrix, clickedNode?.rect ?? null, null);
+        onNodeSelect(clickedNode?.node);
+      }
+      isDragging = false;
+    };
+
+    const handleZoom =
+      (direction: 'in' | 'out', scalingFactor: number = 1.1, zoomOrigin?: vec2) =>
+      () => {
+        const newScale = direction === 'in' ? scalingFactor : 1 / scalingFactor;
+
+        // Generate a scaling matrix that also accounts for the zoom origin
+        // so when the scale is applied, the zoom origin stays in the same place
+        // i.e. cursor position or center of the canvas
+        const center = vec2.fromValues(canvasSize.width / 2, canvasSize.height / 2);
+        const origin = zoomOrigin ?? center;
+        const scaleMatrix = getCenterScaleMatrixFromConfigPosition(
+          vec2.fromValues(newScale, newScale),
+          origin
+        );
+        mat3.multiply(currTransformationMatrix, scaleMatrix, currTransformationMatrix);
+
+        drawViewHierarchy(currTransformationMatrix);
+        drawOverlay(currTransformationMatrix, selectedRect, hoveredRect);
+        mat3.copy(transformationMatrix, currTransformationMatrix);
+      };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        handleZoom(e.deltaY > 0 ? 'out' : 'in', 1.05, lastMousePosition)();
+      }
     };
 
     const options: AddEventListenerOptions & EventListenerOptions = {passive: true};
+    const onwheelOptions: AddEventListenerOptions & EventListenerOptions = {
+      passive: false,
+    };
 
-    canvasRef.addEventListener('mousedown', handleMouseDown, options);
-    canvasRef.addEventListener('mousemove', handleMouseMove, options);
-    canvasRef.addEventListener('mouseup', handleMouseUp, options);
+    overlayRef.addEventListener('mousedown', handleMouseDown, options);
+    overlayRef.addEventListener('mousemove', handleMouseMove, options);
+    overlayRef.addEventListener('mouseup', handleMouseUp, options);
+    overlayRef.addEventListener('click', handleMouseClick, options);
 
-    draw(transformationMatrix);
+    zoomIn.addEventListener('click', handleZoom('in'), options);
+    zoomOut.addEventListener('click', handleZoom('out'), options);
+    overlayRef.addEventListener('wheel', handleWheel, onwheelOptions);
+
+    drawViewHierarchy(transformationMatrix);
+    drawOverlay(transformationMatrix, selectedRect, hoveredRect);
 
     return () => {
-      canvasRef.removeEventListener('mousedown', handleMouseDown, options);
-      canvasRef.removeEventListener('mousemove', handleMouseMove, options);
-      canvasRef.removeEventListener('mouseup', handleMouseUp, options);
+      overlayRef.removeEventListener('mousedown', handleMouseDown, options);
+      overlayRef.removeEventListener('mousemove', handleMouseMove, options);
+      overlayRef.removeEventListener('mouseup', handleMouseUp, options);
+      overlayRef.removeEventListener('click', handleMouseClick, options);
+
+      zoomIn.removeEventListener('click', handleZoom('in'), options);
+      zoomOut.removeEventListener('click', handleZoom('out'), options);
+      overlayRef.removeEventListener('wheel', handleWheel, onwheelOptions);
     };
-  }, [transformationMatrix, canvasRef, draw, scale]);
+  }, [
+    transformationMatrix,
+    canvasRef,
+    scale,
+    overlayRef,
+    hierarchyData.nodes,
+    onNodeSelect,
+    drawViewHierarchy,
+    drawOverlay,
+    selectedNode,
+    nodeLookupMap,
+    zoomIn,
+    zoomOut,
+    canvasSize.width,
+    canvasSize.height,
+  ]);
 
   return (
-    <StyledCanvas data-test-id="view-hierarchy-wireframe" ref={r => setCanvasRef(r)} />
+    <Stack>
+      <InteractionContainer>
+        <Controls>
+          <Button size="xs" ref={setZoomIn} aria-label={t('Zoom In on wireframe')}>
+            <IconAdd size="xs" />
+          </Button>
+          <Button size="xs" ref={setZoomOut} aria-label={t('Zoom Out on wireframe')}>
+            <IconSubtract size="xs" />
+          </Button>
+        </Controls>
+        <InteractionOverlayCanvas
+          data-test-id="view-hierarchy-wireframe-overlay"
+          ref={r => setOverlayRef(r)}
+        />
+      </InteractionContainer>
+      <WireframeCanvas
+        data-test-id="view-hierarchy-wireframe"
+        ref={r => setCanvasRef(r)}
+      />
+    </Stack>
   );
 }
 
 export {Wireframe};
 
-const StyledCanvas = styled('canvas')`
+const Stack = styled('div')`
+  position: relative;
+  height: 100%;
+  width: 100%;
+`;
+
+const InteractionContainer = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  cursor: pointer;
+`;
+
+const Controls = styled('div')`
+  position: absolute;
+  top: ${space(2)};
+  right: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const InteractionOverlayCanvas = styled('canvas')`
+  width: 100%;
+  height: 100%;
+`;
+
+const WireframeCanvas = styled('canvas')`
   background-color: ${p => p.theme.surface100};
-  cursor: grab;
   width: 100%;
   height: 100%;
 `;

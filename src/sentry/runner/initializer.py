@@ -240,9 +240,7 @@ def configure_structlog() -> None:
     from sentry import options
     from sentry.logging import LoggingFormat
 
-    WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
     kwargs: dict[str, Any] = {
-        "context_class": WrappedDictClass,
         "wrapper_class": structlog.stdlib.BoundLogger,
         "cache_logger_on_first_use": True,
         "processors": [
@@ -371,6 +369,10 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     import django
 
     django.setup()
+
+    if getattr(settings, "SENTRY_REGION_CONFIG", None) is not None:
+        for region in settings.SENTRY_REGION_CONFIG:
+            region.validate()
 
     monkeypatch_django_migrations()
 

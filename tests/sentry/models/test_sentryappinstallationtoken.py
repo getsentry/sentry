@@ -6,10 +6,10 @@ from sentry.models import (
     SentryAppInstallationToken,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test(stable=True)
+@control_silo_test(stable=True)
 class SentryAppInstallationTokenTest(TestCase):
     def setUp(self):
         self.application = ApiApplication.objects.create(owner=self.user)
@@ -27,11 +27,11 @@ class SentryAppInstallationTokenTest(TestCase):
 
         self.install = SentryAppInstallation.objects.create(
             sentry_app=sentry_app,
-            organization=self.organization,
+            organization_id=self.organization.id,
         )
 
         SentryAppInstallationForProvider.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             provider=self.provider,
             sentry_app_installation=self.install,
         )

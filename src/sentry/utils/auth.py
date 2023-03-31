@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, Collection, Container, Dict, Mapping, Sequence, cast
-from urllib.parse import urlencode
+from typing import Any, Collection, Dict, Iterable, Mapping, Sequence, cast
+from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -14,8 +14,9 @@ from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 
-from sentry.models import Authenticator, Organization, User
-from sentry.services.hybrid_cloud.organization import ApiOrganization
+from sentry import options
+from sentry.models import Organization, User
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -139,7 +140,7 @@ def initiate_login(request: HttpRequest, next_url: str | None = None) -> None:
         request.session["_next"] = next_url
 
 
-def get_org_redirect_url(request: HttpRequest, active_organization: ApiOrganization | None) -> str:
+def get_org_redirect_url(request: HttpRequest, active_organization: RpcOrganization | None) -> str:
     from sentry import features
 
     # TODO(dcramer): deal with case when the user cannot create orgs
@@ -186,11 +187,20 @@ def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     return login_redirect
 
 
-def is_valid_redirect(url: str, allowed_hosts: Container[str] | None = None) -> bool:
+def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> bool:
     if not url:
         return False
     if url.startswith(get_login_url()):
         return False
+    parsed_url = urlparse(url)
+    url_host = parsed_url.netloc
+    base_hostname = options.get("system.base-hostname")
+    if url_host.endswith(f".{base_hostname}"):
+        if allowed_hosts is None:
+            allowed_hosts = {url_host}
+        else:
+            allowed_hosts = set(allowed_hosts)
+            allowed_hosts.add(url_host)
     return cast(bool, is_safe_url(url, allowed_hosts=allowed_hosts))
 
 
@@ -241,7 +251,9 @@ def find_users(
     Return a list of users that match a username
     and falling back to email
     """
-    return user_service.get_by_username(username, with_valid_password, is_active)
+    return user_service.get_by_username(
+        username=username, with_valid_password=with_valid_password, is_active=is_active
+    )
 
 
 def login(
@@ -267,11 +279,10 @@ def login(
 
     Returns boolean indicating if the user was logged in.
     """
-    has_2fa = Authenticator.objects.user_has_2fa(user)
     if passed_2fa is None:
         passed_2fa = request.session.get(MFA_SESSION_KEY, "") == str(user.id)
 
-    if has_2fa and not passed_2fa:
+    if user.has_2fa() and not passed_2fa:
         request.session["_pending_2fa"] = [user.id, time(), organization_id]
         if after_2fa is not None:
             request.session["_after_2fa"] = after_2fa

@@ -7,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
@@ -17,6 +16,7 @@ from . import backend as ratelimiter
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
+    from sentry.models.apitoken import ApiToken
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
@@ -48,6 +48,8 @@ def get_rate_limit_key(
     rate_limit_config: RateLimitConfig | None = None,
 ) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
+    from sentry.models.apitoken import ApiToken, is_api_token_auth
+
     if not hasattr(view_func, "view_class") or request.path_info.startswith(
         settings.ANONYMOUS_STATIC_PREFIXES
     ):
@@ -123,16 +125,16 @@ def get_organization_id_from_token(token_id: str) -> int | None:
 
 
 def get_rate_limit_config(
-    endpoint: Type[object],
+    view_cls: Type[object],
     view_args: Any = None,
     view_kwargs: Any = None,
 ) -> RateLimitConfig | None:
-    """Read the rate limit config from the view function to be used for the rate limit check.
+    """Read the rate limit config from the view to be used for the rate limit check.
 
-    If there is no rate limit defined on the endpoint, use the rate limit defined for the group
+    If there is no rate limit defined on the view_cls, use the rate limit defined for the group
     or the default across the board
     """
-    rate_limit_config = getattr(endpoint, "rate_limits", DEFAULT_RATE_LIMIT_CONFIG)
+    rate_limit_config = getattr(view_cls, "rate_limits", DEFAULT_RATE_LIMIT_CONFIG)
     if callable(rate_limit_config):
         rate_limit_config = rate_limit_config(*view_args, **view_kwargs)
     return RateLimitConfig.from_rate_limit_override_dict(rate_limit_config)

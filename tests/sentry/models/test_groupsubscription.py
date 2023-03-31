@@ -1,14 +1,17 @@
-import functools
+from __future__ import annotations
 
-from sentry.models import GroupSubscription, NotificationSetting
+from typing import Mapping
+
+from sentry.models import Group, GroupSubscription, NotificationSetting, User
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -20,7 +23,7 @@ class SubscribeTest(TestCase):
 
         GroupSubscription.objects.subscribe(group=group, user=user)
 
-        assert GroupSubscription.objects.filter(group=group, user=user).exists()
+        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
         GroupSubscription.objects.subscribe(group=group, user=user)
@@ -64,7 +67,7 @@ class SubscribeTest(TestCase):
 
         GroupSubscription.objects.subscribe_actor(group=group, actor=user)
 
-        assert GroupSubscription.objects.filter(group=group, user=user).exists()
+        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
         GroupSubscription.objects.subscribe_actor(group=group, actor=user)
@@ -72,21 +75,19 @@ class SubscribeTest(TestCase):
     def test_actor_team(self):
         org = self.create_organization()
         group = self.create_group()
-        user = self.create_user()
+        user = self.create_user(email="bar@example.com")
         team = self.create_team(organization=org)
-        self.create_member(
-            user=user, email="bar@example.com", organization=org, role="owner", teams=[team]
-        )
+        self.create_member(user=user, organization=org, role="owner", teams=[team])
 
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
-        assert GroupSubscription.objects.filter(group=group, user=user).exists()
+        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -98,56 +99,80 @@ class GetParticipantsTest(TestCase):
         self.update_user_settings_always()
         self.user = user_service.get_user(self.user.id)  # Redo the serialization for diffs
 
+    @exempt_from_silo_limits()
     def update_user_settings_always(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
 
+    @exempt_from_silo_limits()
     def update_user_setting_subscribe_only(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
 
+    @exempt_from_silo_limits()
     def update_user_setting_never(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
 
+    @exempt_from_silo_limits()
     def update_project_setting_always(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.group.project,
         )
 
+    @exempt_from_silo_limits()
     def update_project_setting_subscribe_only(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.group.project,
         )
 
+    @exempt_from_silo_limits()
     def update_project_setting_never(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.project,
         )
+
+    def _assert_subscribers_are(
+        self,
+        group: Group | None = None,
+        *,
+        email: Mapping[User, int] | None = None,
+        slack: Mapping[User, int] | None = None,
+    ):
+        all_participants = GroupSubscription.objects.get_participants(group or self.group)
+
+        all_expected = {ExternalProviders.EMAIL: email, ExternalProviders.SLACK: slack}
+        for provider in ExternalProviders:
+            actual = dict(all_participants.get_participants_by_provider(provider))
+            expected = {
+                RpcActor.from_orm_user(user): reason
+                for (user, reason) in (all_expected.get(provider) or {}).items()
+            }
+            assert actual == expected
 
     def test_simple(self):
         # Include an extra team here to prove the subquery works
@@ -158,27 +183,21 @@ class GetParticipantsTest(TestCase):
         self.create_member(user=user2, organization=self.org)
 
         # implicit membership
-        users = GroupSubscription.objects.get_participants(group=group)
-
-        assert users == {ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit}}
+        self._assert_subscribers_are(group, email={self.user: GroupSubscriptionReason.implicit})
 
         # unsubscribed
         GroupSubscription.objects.create(
             user_id=self.user.id, group=group, project=project, is_active=False
         )
 
-        users = GroupSubscription.objects.get_participants(group=group)
-
-        assert users == {}
+        self._assert_subscribers_are(group)
 
         # not participating by default
         GroupSubscription.objects.filter(user_id=self.user.id, group=group).delete()
 
         self.update_user_setting_subscribe_only()
 
-        users = GroupSubscription.objects.get_participants(group=group)
-
-        assert users == {}
+        self._assert_subscribers_are(group)
 
         # explicitly participating
         GroupSubscription.objects.create(
@@ -189,38 +208,38 @@ class GetParticipantsTest(TestCase):
             reason=GroupSubscriptionReason.comment,
         )
 
-        users = GroupSubscription.objects.get_participants(group=group)
-
-        assert users == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        self._assert_subscribers_are(
+            group,
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
 
     def test_no_conversations(self):
-        get_participants = functools.partial(GroupSubscription.objects.get_participants, self.group)
         # Implicit subscription, ensure the project setting overrides the
         # default global option.
 
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit}
-        }
+        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
         self.update_project_setting_never()
-        assert get_participants() == {}
+        self._assert_subscribers_are()
 
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         # Implicit subscription, ensure the project setting overrides the
         # explicit global option.
 
         self.update_user_settings_always()
 
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit}
-        }
+        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
         self.update_project_setting_never()
-        assert get_participants() == {}
+        self._assert_subscribers_are()
 
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         # Explicit subscription, overridden by the global option.
 
@@ -232,79 +251,81 @@ class GetParticipantsTest(TestCase):
             reason=GroupSubscriptionReason.comment,
         )
 
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
         self.update_user_setting_never()
-        assert get_participants() == {
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment}
-        }
+        self._assert_subscribers_are(slack={self.user: GroupSubscriptionReason.comment})
 
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         # Explicit subscription, overridden by the project option.
 
         self.update_user_setting_subscribe_only()
 
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
         self.update_project_setting_never()
-        assert get_participants() == {
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment}
-        }
+        self._assert_subscribers_are(slack={self.user: GroupSubscriptionReason.comment})
 
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         # Explicit subscription, overridden by the project option which also
         # overrides the default option.
 
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
         self.update_project_setting_never()
-        assert get_participants() == {
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment}
-        }
+        self._assert_subscribers_are(slack={self.user: GroupSubscriptionReason.comment})
 
     def test_participating_only(self):
-        get_participants = functools.partial(GroupSubscription.objects.get_participants, self.group)
-
         # Implicit subscription, ensure the project setting overrides the default global option.
 
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit},
-        }
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user=self.user,
-            project=self.project,
-        )
-        assert get_participants() == {}
+        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
 
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                actor=RpcActor.from_orm_user(self.user),
+                project=self.project,
+            )
+        self._assert_subscribers_are()
+
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         # Implicit subscription, ensure the project setting overrides the
         # explicit global option.
         self.update_user_settings_always()
 
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit}
-        }
+        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
         self.update_project_setting_never()
-        assert get_participants() == {}
+        self._assert_subscribers_are()
 
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         # Ensure the global default is applied.
         self.update_user_setting_subscribe_only()
 
-        assert get_participants() == {}
+        self._assert_subscribers_are()
         subscription = GroupSubscription.objects.create(
             user_id=self.user.id,
             group=self.group,
@@ -312,18 +333,21 @@ class GetParticipantsTest(TestCase):
             is_active=True,
             reason=GroupSubscriptionReason.comment,
         )
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
 
         subscription.delete()
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         # Ensure the project setting overrides the global default.
         self.update_project_setting_subscribe_only()
 
-        assert get_participants() == {}
+        self._assert_subscribers_are()
         subscription = GroupSubscription.objects.create(
             user_id=self.user.id,
             group=self.group,
@@ -331,20 +355,23 @@ class GetParticipantsTest(TestCase):
             is_active=True,
             reason=GroupSubscriptionReason.comment,
         )
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
 
         subscription.delete()
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         # Ensure the project setting overrides the global setting.
 
         self.update_user_settings_always()
         self.update_project_setting_subscribe_only()
 
-        assert get_participants() == {}
+        self._assert_subscribers_are()
         subscription = GroupSubscription.objects.create(
             user_id=self.user.id,
             group=self.group,
@@ -352,20 +379,21 @@ class GetParticipantsTest(TestCase):
             is_active=True,
             reason=GroupSubscriptionReason.comment,
         )
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
 
         subscription.delete()
-        NotificationSetting.objects.remove_for_user(self.user, NotificationSettingTypes.WORKFLOW)
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.remove_for_user(
+                self.user, NotificationSettingTypes.WORKFLOW
+            )
 
         self.update_user_setting_subscribe_only()
         self.update_project_setting_always()
 
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.implicit}
-        }
+        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
         subscription = GroupSubscription.objects.create(
             user_id=self.user.id,
             group=self.group,
@@ -373,10 +401,10 @@ class GetParticipantsTest(TestCase):
             is_active=True,
             reason=GroupSubscriptionReason.comment,
         )
-        assert get_participants() == {
-            ExternalProviders.EMAIL: {self.user: GroupSubscriptionReason.comment},
-            ExternalProviders.SLACK: {self.user: GroupSubscriptionReason.comment},
-        }
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
 
     def test_does_not_include_nonmember(self):
         org = self.create_organization()
@@ -386,12 +414,10 @@ class GetParticipantsTest(TestCase):
         user = self.create_user("foo@example.com")
 
         # implicit participation, included by default
-        users = GroupSubscription.objects.get_participants(group=group)
-
-        assert users == {}
+        self._assert_subscribers_are(group)
 
         GroupSubscription.objects.create(
-            user=user,
+            user_id=user.id,
             group=group,
             project=project,
             is_active=True,
@@ -399,48 +425,40 @@ class GetParticipantsTest(TestCase):
         )
 
         # explicit participation, included by default
-        users = GroupSubscription.objects.get_participants(group=group)
+        self._assert_subscribers_are(group)
 
-        assert users == {}
-
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user=user,
-            project=project,
-        )
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                actor=RpcActor.from_orm_user(user),
+                project=project,
+            )
 
         # explicit participation, participating only
-        users = GroupSubscription.objects.get_participants(group=group)
+        self._assert_subscribers_are(group)
 
-        assert users == {}
-
-        GroupSubscription.objects.filter(user=user, group=group).delete()
+        GroupSubscription.objects.filter(user_id=user.id, group=group).delete()
 
         # implicit participation, participating only
-        users = GroupSubscription.objects.get_participants(group=group)
+        self._assert_subscribers_are(group)
 
-        assert users == {}
-
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user=user,
-            project=project,
-        )
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.ALWAYS,
+                actor=RpcActor.from_orm_user(user),
+                project=project,
+            )
 
         # explicit participation, explicit participating only
-        users = GroupSubscription.objects.get_participants(group=group)
+        self._assert_subscribers_are(group)
 
-        assert users == {}
-
-        GroupSubscription.objects.filter(user=user, group=group).update(
+        GroupSubscription.objects.filter(user_id=user.id, group=group).update(
             reason=GroupSubscriptionReason.implicit
         )
 
         # implicit participation, explicit participating only
-        users = GroupSubscription.objects.get_participants(group=group)
-
-        assert users == {}
+        self._assert_subscribers_are(group)

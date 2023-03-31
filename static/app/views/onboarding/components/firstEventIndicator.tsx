@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter, {EventWaiterProps} from 'sentry/utils/eventWaiter';

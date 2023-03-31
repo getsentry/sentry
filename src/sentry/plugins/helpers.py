@@ -6,7 +6,9 @@ __all__ = ("set_option", "get_option", "unset_option")
 
 def reset_options(prefix, project=None, user=None):
     if user:
-        UserOption.objects.filter(key__startswith=f"{prefix}:", project=project, user=user).delete()
+        UserOption.objects.filter(
+            key__startswith=f"{prefix}:", project_id=project.id if project else None, user=user
+        ).delete()
         UserOption.objects.clear_cache()
     elif project:
         ProjectOption.objects.filter(key__startswith=f"{prefix}:", project=project).delete()

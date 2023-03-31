@@ -146,11 +146,13 @@ class OrganizationMemberTest(TestCase):
         with exempt_from_silo_limits():
             AuthProvider.objects.create(
                 provider="saml2",
-                organization=organization,
+                organization_id=organization.id,
                 flags=AuthProvider.flags["scim_enabled"],
             )
             AuthProvider.objects.create(
-                provider="saml2", organization=org3, flags=AuthProvider.flags["allow_unlinked"]
+                provider="saml2",
+                organization_id=org3.id,
+                flags=AuthProvider.flags["allow_unlinked"],
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = OrganizationMember.objects.create(
@@ -189,7 +191,6 @@ class OrganizationMemberTest(TestCase):
             organization=self.organization,
             role="member",
             user=user,
-            email="test@example.com",
             token="abc-def",
             token_expires_at="2018-01-01 10:00:00",
         )
@@ -403,3 +404,19 @@ class OrganizationMemberTest(TestCase):
             roles.get("admin"),
             roles.get("manager"),
         ]
+
+    def test_org_roles_by_source(self):
+        manager_team = self.create_team(organization=self.organization, org_role="manager")
+        owner_team = self.create_team(organization=self.organization, org_role="owner")
+        owner_team2 = self.create_team(organization=self.organization, org_role="owner")
+        member = self.create_member(
+            organization=self.organization,
+            teams=[manager_team, owner_team, owner_team2],
+            user=self.create_user(),
+            role="member",
+        )
+
+        roles = member.get_org_roles_from_teams_by_source()
+        assert roles[0][1].id == "owner"
+        assert roles[-1][0] == manager_team.slug
+        assert roles[-1][1].id == "manager"

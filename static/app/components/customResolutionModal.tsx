@@ -7,7 +7,7 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import configStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Release} from 'sentry/types';
 
 interface CustomResolutionModalProps extends ModalRenderProps {
@@ -20,8 +20,8 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
   const [version, setVersion] = useState('');
   const currentUser = configStore.get('user');
 
-  const onChange = (value: any) => {
-    setVersion(value.item);
+  const onChange = (selection: string | number | boolean) => {
+    setVersion(selection as string);
   };
 
   const onAsyncFieldResults = (results: Release[]) => {
@@ -30,8 +30,9 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         author => author.email && author.email === currentUser?.email
       );
       return {
-        item: release.version,
+        value: release.version,
         label: <Version version={release.version} anchor={false} />,
+        plainTextLabel: release.versionInfo.description ?? release.version,
         details: (
           <span>
             {t('Created')} <TimeSince date={release.dateCreated} />
@@ -77,7 +78,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">
-          {t('Save Changes')}
+          {t('Resolve')}
         </Button>
       </Footer>
     </form>

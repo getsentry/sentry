@@ -13,11 +13,11 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-  Rect,
 } from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -48,7 +48,7 @@ export function FlamegraphUIFrames({
   uiFramesCanvas,
   setUIFramesCanvasRef,
 }: FlamegraphUIFramesProps) {
-  const profileGroup = useProfileGroup();
+  const profiles = useProfiles();
   const flamegraphTheme = useFlamegraphTheme();
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -276,9 +276,9 @@ export function FlamegraphUIFrames({
         />
       ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
-      {profileGroup.type === 'loading' || profileGroup.type === 'initial' ? (
+      {profiles.type === 'loading' || profiles.type === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profileGroup.type === 'resolved' && uiFrames.frames.length <= 1 ? (
+      ) : profiles.type === 'resolved' && !uiFrames.frames.length ? (
         <CollapsibleTimelineMessage>
           {t('Profile has no dropped or slow frames')}
         </CollapsibleTimelineMessage>

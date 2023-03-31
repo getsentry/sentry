@@ -4,12 +4,12 @@ import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
@@ -160,11 +160,11 @@ function NoteInput({
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <Tabs>
         <StyledTabList>
-          <Item key="edit">{existingItem ? t('Edit') : t('Write')}</Item>
-          <Item key="preview">{t('Preview')}</Item>
+          <TabList.Item key="edit">{existingItem ? t('Edit') : t('Write')}</TabList.Item>
+          <TabList.Item key="preview">{t('Preview')}</TabList.Item>
         </StyledTabList>
         <NoteInputPanel>
-          <Item key="edit">
+          <TabPanels.Item key="edit">
             <MentionsInput
               aria-errormessage={errorMessage ? errorId : undefined}
               style={mentionStyle({theme, minHeight})}
@@ -191,13 +191,13 @@ function NoteInput({
                 appendSpaceOnAdd
               />
             </MentionsInput>
-          </Item>
-          <Item key="preview">
+          </TabPanels.Item>
+          <TabPanels.Item key="preview">
             <NotePreview
               minHeight={minHeight}
               dangerouslySetInnerHTML={{__html: marked(cleanMarkdown)}}
             />
-          </Item>
+          </TabPanels.Item>
         </NoteInputPanel>
       </Tabs>
       <Footer>

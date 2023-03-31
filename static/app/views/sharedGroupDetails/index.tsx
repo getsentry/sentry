@@ -12,7 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 

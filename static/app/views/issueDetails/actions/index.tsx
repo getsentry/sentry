@@ -18,9 +18,10 @@ import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore'
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import FeatureBadge from 'sentry/components/featureBadge';
+import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCheckmark,
   IconEllipsis,
@@ -30,7 +31,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Group,
   GroupStatusResolution,
@@ -44,15 +45,16 @@ import {analytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import ShareIssue from 'sentry/views/issueDetails/actions/shareIssue';
-import ReviewAction from 'sentry/views/issueList/actions/reviewAction';
+import {OpenAIFixSuggestionButton} from 'sentry/views/issueDetails/openAIFixSuggestion/openAIFixSuggestionButton';
+import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
@@ -82,6 +84,8 @@ class Actions extends Component<Props> {
     const {group, project, organization} = this.props;
     const {title, type, shortId} = group;
 
+    const config = getConfigForIssueType(group);
+
     const discoverQuery = {
       id: undefined,
       name: title || type,
@@ -91,6 +95,7 @@ class Actions extends Component<Props> {
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
+      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : undefined,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -106,6 +111,7 @@ class Actions extends Component<Props> {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
+      | 'open_ai_suggested_fix'
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
@@ -356,268 +362,221 @@ class Actions extends Component<Props> {
       group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
     const isIgnored = status === 'ignored';
 
-    const deleteCap = getIssueCapability(group.issueCategory, 'delete');
-    const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
-    const shareCap = getIssueCapability(group.issueCategory, 'share');
+    const {
+      delete: deleteCap,
+      deleteAndDiscard: deleteDiscardCap,
+      share: shareCap,
+    } = getConfigForIssueType(group).actions;
 
     const hasDeleteAccess = organization.access.includes('event:admin');
-    const sharedMenuItems: MenuItemProps[] = [
-      {
-        key: bookmarkKey,
-        label: bookmarkTitle,
-        onAction: this.onToggleBookmark,
-      },
-      {
-        key: 'reprocess',
-        label: t('Reprocess events'),
-        hidden: !displayReprocessEventAction(organization.features, event),
-        onAction: this.onReprocessEvent,
-      },
-      {
-        key: 'delete-issue',
-        priority: 'danger',
-        label: t('Delete'),
-        hidden: !hasDeleteAccess,
-        disabled: !deleteCap.enabled,
-        details: deleteCap.disabledReason,
-        onAction: this.openDeleteModal,
-      },
-      {
-        key: 'delete-and-discard',
-        priority: 'danger',
-        label: t('Delete and discard future events'),
-        hidden: !hasDeleteAccess,
-        disabled: !deleteDiscardCap.enabled,
-        details: deleteDiscardCap.disabledReason,
-        onAction: this.openDiscardModal,
-      },
-    ];
 
-    if (orgFeatures.has('issue-actions-v2')) {
-      const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
-      return (
-        <ActionWrapper>
-          <DropdownMenu
-            triggerProps={{
-              'aria-label': t('More Actions'),
-              icon: <IconEllipsis size="xs" />,
-              showChevron: false,
-              size: 'sm',
-            }}
-            items={[
-              ...(isIgnored
-                ? []
-                : [
-                    {
-                      key: 'ignore',
-                      className: 'hidden-sm hidden-md hidden-lg',
-                      label: t('Ignore'),
-                      isSubmenu: true,
-                      disabled,
-                      children: [
-                        {
-                          key: 'ignore-now',
-                          label: t('Ignore Issue'),
-                          onAction: () => onIgnore(),
-                        },
-                        ...dropdownItems,
-                      ],
-                    },
-                  ]),
-              {
-                key: 'open-in-discover',
-                className: 'hidden-sm hidden-md hidden-lg',
-                label: t('Open in Discover'),
-                to: disabled ? '' : this.getDiscoverUrl(),
-                onAction: () => this.trackIssueAction('open_in_discover'),
-              },
-              {
-                key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
-                className: 'hidden-sm hidden-md hidden-lg',
-                label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
-                disabled: disabled || group.subscriptionDetails?.disabled,
-                onAction: this.onToggleSubscribe,
-              },
-              {
-                key: 'mark-review',
-                label: t('Mark reviewed'),
-                disabled: !group.inbox || disabled,
-                details:
-                  !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-                onAction: () => this.onUpdate({inbox: false}),
-              },
-              {
-                key: 'share',
-                label: t('Share'),
-                disabled: disabled || !shareCap.enabled,
-                hidden: !orgFeatures.has('shared-issues'),
-                onAction: this.openShareModal,
-              },
-              ...sharedMenuItems,
-            ]}
-          />
-          <SubscribeAction
-            className="hidden-xs"
-            disabled={disabled}
-            disablePriority
-            group={group}
-            onClick={this.handleClick(disabled, this.onToggleSubscribe)}
-            icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-            size="sm"
-          />
-          <div className="hidden-xs">
-            <EnvironmentPageFilter alignDropdown="right" size="sm" />
-          </div>
-          <Feature
-            hookName="feature-disabled:open-in-discover"
-            features={['discover-basic']}
-            organization={organization}
-          >
-            <ActionButton
-              className="hidden-xs"
-              disabled={disabled}
-              to={disabled ? '' : this.getDiscoverUrl()}
-              onClick={() => this.trackIssueAction('open_in_discover')}
-              size="sm"
-            >
-              <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
-            </ActionButton>
-          </Feature>
-          {isResolved || isIgnored ? (
-            <ActionButton
-              priority="primary"
-              title={
-                isAutoResolved
-                  ? t(
-                      'This event is resolved due to the Auto Resolve configuration for this project'
-                    )
-                  : t('Change status to unresolved')
-              }
-              size="sm"
-              icon={isResolved ? <IconCheckmark /> : <IconMute />}
-              disabled={disabled || isAutoResolved}
-              onClick={() =>
-                this.onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
-              }
-            >
-              {isIgnored ? t('Ignored') : t('Resolved')}
-            </ActionButton>
-          ) : (
-            <Fragment>
-              <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
-                <IgnoreActions
-                  className="hidden-xs"
-                  isIgnored={isIgnored}
-                  onUpdate={this.onUpdate}
-                  disabled={disabled}
-                  size="sm"
-                  hideIcon
-                  disableTooltip
-                />
-              </GuideAnchor>
-              <GuideAnchor target="resolve" position="bottom" offset={20}>
-                <ResolveActions
-                  disableTooltip
-                  disabled={disabled}
-                  disableDropdown={disabled}
-                  hasRelease={hasRelease}
-                  latestRelease={project.latestRelease}
-                  onUpdate={this.onUpdate}
-                  orgSlug={organization.slug}
-                  projectSlug={project.slug}
-                  isResolved={isResolved}
-                  isAutoResolved={isAutoResolved}
-                  size="sm"
-                  hideIcon
-                  priority="primary"
-                />
-              </GuideAnchor>
-            </Fragment>
-          )}
-        </ActionWrapper>
-      );
-    }
-
+    const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
     return (
-      <Wrapper>
-        <GuideAnchor target="resolve" position="bottom" offset={20}>
-          <ResolveActions
-            disabled={disabled}
-            disableDropdown={disabled}
-            hasRelease={hasRelease}
-            latestRelease={project.latestRelease}
-            onUpdate={this.onUpdate}
-            orgSlug={organization.slug}
-            projectSlug={project.slug}
-            isResolved={isResolved}
-            isAutoResolved={
-              group.status === 'resolved' ? group.statusDetails.autoResolved : undefined
-            }
-          />
-        </GuideAnchor>
-        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
-          <IgnoreActions
-            isIgnored={isIgnored}
-            onUpdate={this.onUpdate}
-            disabled={disabled}
-          />
-        </GuideAnchor>
-        <ReviewAction
-          onUpdate={this.onUpdate}
-          disabled={!group.inbox || disabled}
-          tooltip={t('Issue has been reviewed')}
-          tooltipProps={{disabled: !!group.inbox || disabled, delay: 300}}
+      <ActionWrapper>
+        <DropdownMenu
+          triggerProps={{
+            'aria-label': t('More Actions'),
+            icon: <IconEllipsis size="xs" />,
+            showChevron: false,
+            size: 'sm',
+          }}
+          items={[
+            ...(isIgnored
+              ? []
+              : [
+                  {
+                    key: 'ignore',
+                    className: 'hidden-sm hidden-md hidden-lg',
+                    label: t('Ignore'),
+                    isSubmenu: true,
+                    disabled,
+                    children: [
+                      {
+                        key: 'ignore-now',
+                        label: t('Ignore Issue'),
+                        onAction: () => onIgnore(),
+                      },
+                      ...dropdownItems,
+                    ],
+                  },
+                ]),
+            {
+              key: 'open-in-discover',
+              className: 'hidden-sm hidden-md hidden-lg',
+              label: t('Open in Discover'),
+              to: disabled ? '' : this.getDiscoverUrl(),
+              onAction: () => this.trackIssueAction('open_in_discover'),
+            },
+            {
+              key: 'suggested-fix',
+              className: 'hidden-sm hidden-md hidden-lg',
+              label: (
+                <Tooltip
+                  title={experimentalFeatureTooltipDesc}
+                  containerDisplayMode="inline-flex"
+                >
+                  {t('Suggested Fix')}
+                  <FeatureBadge type="experimental" noTooltip />
+                </Tooltip>
+              ),
+              onAction: () => {
+                this.trackIssueAction('open_ai_suggested_fix');
+                browserHistory.push({
+                  pathname: browserHistory.getCurrentLocation().pathname,
+                  query: {
+                    ...browserHistory.getCurrentLocation().query,
+                    showSuggestedFix: true,
+                  },
+                });
+              },
+              hidden: !orgFeatures.has('open-ai-suggestion'),
+            },
+            {
+              key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
+              className: 'hidden-sm hidden-md hidden-lg',
+              label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
+              disabled: disabled || group.subscriptionDetails?.disabled,
+              onAction: this.onToggleSubscribe,
+            },
+            {
+              key: 'mark-review',
+              label: t('Mark reviewed'),
+              disabled: !group.inbox || disabled,
+              details:
+                !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
+              onAction: () => this.onUpdate({inbox: false}),
+            },
+            {
+              key: 'share',
+              label: t('Share'),
+              disabled: disabled || !shareCap.enabled,
+              hidden: !orgFeatures.has('shared-issues'),
+              onAction: this.openShareModal,
+            },
+            {
+              key: bookmarkKey,
+              label: bookmarkTitle,
+              onAction: this.onToggleBookmark,
+            },
+            {
+              key: 'reprocess',
+              label: t('Reprocess events'),
+              hidden: !displayReprocessEventAction(organization.features, event),
+              onAction: this.onReprocessEvent,
+            },
+            {
+              key: 'delete-issue',
+              priority: 'danger',
+              label: t('Delete'),
+              hidden: !hasDeleteAccess,
+              disabled: !deleteCap.enabled,
+              details: deleteCap.disabledReason,
+              onAction: this.openDeleteModal,
+            },
+            {
+              key: 'delete-and-discard',
+              priority: 'danger',
+              label: t('Delete and discard future events'),
+              hidden: !hasDeleteAccess,
+              disabled: !deleteDiscardCap.enabled,
+              details: deleteDiscardCap.disabledReason,
+              onAction: this.openDiscardModal,
+            },
+          ]}
         />
+        <SubscribeAction
+          className="hidden-xs"
+          disabled={disabled}
+          disablePriority
+          group={group}
+          onClick={this.handleClick(disabled, this.onToggleSubscribe)}
+          icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+          size="sm"
+        />
+        <div className="hidden-xs">
+          <EnvironmentPageFilter alignDropdown="right" size="sm" />
+        </div>
         <Feature
           hookName="feature-disabled:open-in-discover"
           features={['discover-basic']}
           organization={organization}
         >
           <ActionButton
+            className="hidden-xs"
             disabled={disabled}
             to={disabled ? '' : this.getDiscoverUrl()}
             onClick={() => this.trackIssueAction('open_in_discover')}
+            size="sm"
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         </Feature>
-        {orgFeatures.has('shared-issues') && (
-          <ShareIssue
-            organization={organization}
-            group={group}
-            disabled={disabled || !shareCap.enabled}
-            disabledReason={shareCap.disabledReason}
-            onToggle={this.onToggleShare}
-          />
+        <Feature features={['open-ai-suggestion']} organization={organization}>
+          <GuideAnchor target="suggested-fix" position="bottom" offset={20}>
+            <OpenAIFixSuggestionButton
+              className="hidden-xs"
+              size="sm"
+              disabled={disabled}
+              groupId={group.id}
+              onClick={() => this.trackIssueAction('open_ai_suggested_fix')}
+            />
+          </GuideAnchor>
+        </Feature>
+        {isResolved || isIgnored ? (
+          <ActionButton
+            priority="primary"
+            title={
+              isAutoResolved
+                ? t(
+                    'This event is resolved due to the Auto Resolve configuration for this project'
+                  )
+                : t('Change status to unresolved')
+            }
+            size="sm"
+            icon={isResolved ? <IconCheckmark /> : <IconMute />}
+            disabled={disabled || isAutoResolved}
+            onClick={() =>
+              this.onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            }
+          >
+            {isIgnored ? t('Ignored') : t('Resolved')}
+          </ActionButton>
+        ) : (
+          <Fragment>
+            <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
+              <IgnoreActions
+                className="hidden-xs"
+                isIgnored={isIgnored}
+                onUpdate={this.onUpdate}
+                disabled={disabled}
+                size="sm"
+                hideIcon
+                disableTooltip
+              />
+            </GuideAnchor>
+            <GuideAnchor target="resolve" position="bottom" offset={20}>
+              <ResolveActions
+                disableTooltip
+                disabled={disabled}
+                disableDropdown={disabled}
+                hasRelease={hasRelease}
+                latestRelease={project.latestRelease}
+                onUpdate={this.onUpdate}
+                orgSlug={organization.slug}
+                projectSlug={project.slug}
+                isResolved={isResolved}
+                isAutoResolved={isAutoResolved}
+                size="sm"
+                hideIcon
+                priority="primary"
+              />
+            </GuideAnchor>
+          </Fragment>
         )}
-        <SubscribeAction
-          disabled={disabled}
-          group={group}
-          onClick={this.handleClick(disabled, this.onToggleSubscribe)}
-        />
-        <DropdownMenu
-          triggerProps={{
-            'aria-label': t('More Actions'),
-            icon: <IconEllipsis size="xs" />,
-            showChevron: false,
-            size: 'xs',
-          }}
-          items={sharedMenuItems}
-        />
-      </Wrapper>
+      </ActionWrapper>
     );
   }
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: center;
-  grid-auto-flow: column;
-  gap: ${space(0.5)};
-  white-space: nowrap;
-`;
 
 const ActionWrapper = styled('div')`
   display: flex;

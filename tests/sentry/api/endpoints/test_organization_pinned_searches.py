@@ -30,7 +30,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
-            owner=self.member,
+            owner_id=self.member.id,
             type=search_type,
             query=query,
             sort=sort,
@@ -42,7 +42,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
-            owner=self.member,
+            owner_id=self.member.id,
             type=search_type,
             query=query,
             sort=sort,
@@ -53,14 +53,14 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
-            owner=self.member,
+            owner_id=self.member.id,
             type=search_type,
             query=query,
         ).exists()
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
-            owner=self.member,
+            owner_id=self.member.id,
             type=SearchType.EVENT.value,
             query=query,
             visibility=Visibility.OWNER_PINNED,
@@ -71,7 +71,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
-            owner=self.member,
+            owner_id=self.member.id,
             type=search_type,
             query=query,
             visibility=Visibility.OWNER_PINNED,
@@ -79,7 +79,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
-            owner=self.user,
+            owner_id=self.user.id,
             type=search_type,
             query=query,
             visibility=Visibility.OWNER_PINNED,
@@ -88,7 +88,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
     def test_pin_sort_mismatch(self):
         saved_search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.member,
+            owner_id=self.member.id,
             type=SearchType.ISSUE.value,
             sort=SortOptions.FREQ,
             query="wat",
@@ -116,7 +116,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert SavedSearch.objects.filter(
             organization=self.organization,
             name=PINNED_SEARCH_NAME,
-            owner=self.member,
+            owner_id=self.member.id,
             type=search_type,
             query=query,
             sort=sort,
@@ -141,14 +141,14 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
     def test(self):
         saved_search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.member,
+            owner_id=self.member.id,
             type=SearchType.ISSUE.value,
             query="wat",
             visibility=Visibility.OWNER_PINNED,
         )
         other_saved_search = SavedSearch.objects.create(
             organization=self.organization,
-            owner=self.user,
+            owner_id=self.user.id,
             type=SearchType.ISSUE.value,
             query="wat",
             visibility=Visibility.OWNER_PINNED,

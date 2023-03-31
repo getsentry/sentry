@@ -48,8 +48,10 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: t('Issue Owners'),
-          description: t('Manage issue ownership rules for a project'),
+          title: organization?.features?.includes('streamline-targeting-context')
+            ? t('Ownership Rules')
+            : t('Issue Owners'),
+          description: t('Manage ownership rules for a project'),
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -66,18 +68,6 @@ export default function getConfiguration({
           description: t(
             "Configure a project's inbound filters (e.g. browsers, messages)"
           ),
-        },
-        {
-          path: `${pathPrefix}/dynamic-sampling/`,
-          title: t('Dynamic Sampling'),
-          show: () => {
-            const orgFeatures = organization?.features ?? [];
-            return orgFeatures.includes('dynamic-sampling');
-          },
-          description: t(
-            "Per-Project basis solution to configure sampling rules within Sentry's UI"
-          ),
-          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,

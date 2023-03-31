@@ -23,7 +23,7 @@ import MissingProjectMembership from 'sentry/components/projects/missingProjectM
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';

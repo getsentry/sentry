@@ -5,14 +5,14 @@ import moment from 'moment';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import Grid from 'sentry/components/charts/components/grid';
-import Tooltip from 'sentry/components/charts/components/tooltip';
+import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Placeholder from 'sentry/components/placeholder';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
@@ -44,9 +44,9 @@ function MemoryChart({
 
   if (!memorySpans) {
     return (
-      <MemoryLoadingWrapper>
+      <MemoryChartWrapper>
         <Placeholder height="100%" />
-      </MemoryLoadingWrapper>
+      </MemoryChartWrapper>
     );
   }
 
@@ -68,7 +68,7 @@ function MemoryChart({
       left: space(1),
       right: space(1),
     }),
-    tooltip: Tooltip({
+    tooltip: ChartTooltip({
       appendToBody: true,
       trigger: 'axis',
       renderMode: 'html',
@@ -227,10 +227,6 @@ const MemoryChartWrapper = styled(FluidHeight)`
   margin-bottom: ${space(3)};
   border-radius: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
-`;
-
-const MemoryLoadingWrapper = styled(MemoryChartWrapper)`
-  height: 100%;
 `;
 
 const MemoizedMemoryChart = memo(

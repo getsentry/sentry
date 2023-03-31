@@ -3,19 +3,21 @@ import {useCallback} from 'react';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {PlatformKey} from 'sentry/data/platformCategories';
+import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 
 type Props = {
   event: Event;
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   replayId: undefined | string;
 };
 
-export default function EventReplay({replayId, orgSlug, projectSlug, event}: Props) {
-  const hasSentOneReplay = useHaveSelectedProjectsSentAnyReplayEvents();
+export default function EventReplay({replayId, organization, projectSlug, event}: Props) {
+  const hasReplaysFeature = organization.features.includes('session-replay');
+  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
   const replayPreview = useCallback(() => import('./replayPreview'), []);
@@ -26,7 +28,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug, event}: Pro
     platform: event.platform as PlatformKey,
   });
 
-  if (!supportsReplay) {
+  if (!hasReplaysFeature || fetching || !supportsReplay) {
     return null;
   }
 
@@ -47,7 +49,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug, event}: Pro
       <LazyLoad
         component={replayPreview}
         replaySlug={`${projectSlug}:${replayId}`}
-        orgSlug={orgSlug}
+        orgSlug={organization.slug}
         event={event}
       />
     </ErrorBoundary>

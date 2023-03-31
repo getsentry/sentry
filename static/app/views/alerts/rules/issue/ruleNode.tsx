@@ -12,7 +12,7 @@ import NumberInput from 'sentry/components/numberInput';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
 import {
   AssigneeTargetType,
@@ -25,10 +25,14 @@ import {
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
+import {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 const NOTIFY_EMAIL_ACTION = 'sentry.mail.actions.NotifyEmailAction';
+
+export function hasStreamlineTargeting(organization: Organization): boolean {
+  return organization.features.includes('streamline-targeting-context');
+}
 
 interface FieldProps {
   data: Props['data'];
@@ -114,6 +118,10 @@ function MailActionFields({
   onMemberTeamChange,
 }: FieldProps) {
   const isInitialized = data.targetType !== undefined && `${data.targetType}`.length > 0;
+  let issueOwnersLabel = t('Issue Owners');
+  if (hasStreamlineTargeting(organization)) {
+    issueOwnersLabel = t('Suggested Assignees');
+  }
   return (
     <MemberTeamFields
       disabled={disabled}
@@ -123,7 +131,7 @@ function MailActionFields({
       ruleData={data as IssueAlertRuleAction}
       onChange={onMemberTeamChange}
       options={[
-        {value: MailActionTargetType.IssueOwners, label: t('Issue Owners')},
+        {value: MailActionTargetType.IssueOwners, label: issueOwnersLabel},
         {value: MailActionTargetType.Team, label: t('Team')},
         {value: MailActionTargetType.Member, label: t('Member')},
       ]}

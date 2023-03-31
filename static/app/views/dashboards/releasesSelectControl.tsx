@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import Badge from 'sentry/components/badge';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
 import {DashboardFilterKeys, DashboardFilters} from './types';
@@ -53,15 +53,15 @@ function ReleasesSelectControl({
   const activeReleasesSet = new Set(activeReleases);
 
   return (
-    <CompactSelect
+    <StyledCompactSelect
       multiple
-      isClearable
-      isSearchable
-      isDisabled={isDisabled}
-      isLoading={loading}
+      clearable
+      searchable
+      disabled={isDisabled}
+      loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
-      onInputChange={debounce(val => {
+      onSearch={debounce(val => {
         onSearch(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       options={[
@@ -85,7 +85,7 @@ function ReleasesSelectControl({
           ],
         },
       ]}
-      onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
+      onChange={opts => setActiveReleases(opts.map(opt => opt.value as string))}
       onClose={() => {
         resetSearch();
         handleChangeFilter?.({
@@ -110,6 +110,12 @@ export default ReleasesSelectControl;
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
+`;
+
+const StyledCompactSelect = styled(CompactSelect)`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    max-width: 300px;
+  }
 `;
 
 const ButtonLabelWrapper = styled('span')`

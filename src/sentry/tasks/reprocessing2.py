@@ -6,9 +6,11 @@ from django.db import transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
+from sentry.models import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import celery_run_batch_query
 
@@ -63,6 +65,9 @@ def reprocess_group(
         batch_size=settings.SENTRY_REPROCESSING_PAGE_SIZE,
         state=query_state,
         referrer="reprocessing2.reprocess_group",
+        tenant_ids={
+            "organization_id": Project.objects.get_from_cache(id=project_id).organization_id
+        },
     )
 
     if not events:
@@ -155,6 +160,9 @@ def handle_remaining_events(
 
     See doc comment in sentry.reprocessing2.
     """
+    sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_tag("old_group_id", old_group_id)
+    sentry_sdk.set_tag("new_group_id", new_group_id)
 
     from sentry.models.group import Group
     from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_batched_events_from_redis
@@ -223,7 +231,9 @@ def finish_reprocessing(project_id, group_id):
         # While we migrated all associated models at the beginning of
         # reprocessing, there is still the "reprocessing" activity that we need
         # to transfer manually.
-        activity = Activity.objects.get(group_id=group_id)
+        # Any activities created during reprocessing (e.g. user clicks "assign" in an old browser tab)
+        # are ignored.
+        activity = Activity.objects.get(group_id=group_id, type=ActivityType.REPROCESS.value)
         new_group_id = activity.group_id = activity.data["newGroupId"]
         activity.save()
 

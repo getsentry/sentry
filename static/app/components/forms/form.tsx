@@ -8,7 +8,7 @@ import FormModel, {FormOptions} from 'sentry/components/forms/model';
 import {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderProps = {

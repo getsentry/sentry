@@ -4,13 +4,17 @@ from typing import Any, Generator, Mapping, Sequence
 
 from rest_framework import serializers
 
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
+from sentry.models import Project
 from sentry.rules import EventState
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
+from sentry.services.hybrid_cloud.app import (
+    RpcSentryApp,
+    RpcSentryAppComponent,
+    RpcSentryAppEventData,
+    app_service,
+)
 from sentry.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
@@ -40,7 +44,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
     # Required field for EventAction, value is ignored
     label = ""
 
-    def _get_sentry_app(self, event: GroupEvent) -> SentryApp | None:
+    def _get_sentry_app(self, event: GroupEvent) -> RpcSentryApp | None:
         extra = {"event_id": event.event_id}
 
         sentry_app_installation_uuid = self.get_option("sentryAppInstallationUuid")
@@ -48,11 +52,11 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             self.logger.info("rules.fail.is_configured", extra=extra)
             return None
 
-        try:
-            return SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
-        except SentryApp.DoesNotExist:
-            self.logger.info("rules.fail.no_app", extra=extra)
+        result = app_service.get_many(filter=dict(uuids=[sentry_app_installation_uuid]))
+        if result:
+            return result[0].sentry_app
 
+        self.logger.info("rules.fail.no_app", extra=extra)
         return None
 
     def _get_setting_value(self, field_name: str) -> str | None:
@@ -68,47 +72,36 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             raise ValidationError("Missing attribute 'sentryAppInstallationUuid'")
         return sentry_app_installation_uuid
 
-    def _get_alert_rule_component(self, sentry_app_id: int, sentry_app_name: str) -> Any:
-        try:
-            alert_rule_component = SentryAppComponent.objects.get(
-                sentry_app_id=sentry_app_id, type="alert-rule-action"
-            )
-        except SentryAppComponent.DoesNotExist:
-            raise ValidationError(
-                f"Alert Rule Actions are not enabled for the {sentry_app_name} integration."
-            )
-        return alert_rule_component
+    def _get_alert_rule_component(
+        self, sentry_app_id: int, sentry_app_name: str
+    ) -> RpcSentryAppComponent:
+        components = app_service.find_app_components(app_id=sentry_app_id)
+
+        for component in components:
+            if component.type == "alert-rule-action":
+                return component
+
+        raise ValidationError(
+            f"Alert Rule Actions are not enabled for the {sentry_app_name} integration."
+        )
 
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
-        action_list = []
-        for install in SentryAppInstallation.objects.get_installed_for_organization(
-            project.organization_id
-        ):
-            component = install.prepare_sentry_app_components("alert-rule-action", project)
-            if component:
-                kwargs = {
-                    "install": install,
-                    "event_action": self,
-                }
-                action_details = serialize(
-                    component, None, SentryAppAlertRuleActionSerializer(), **kwargs
-                )
-                action_list.append(action_details)
-
-        return action_list
+        return app_service.get_custom_alert_rule_actions(
+            event_data=RpcSentryAppEventData.from_event(self),
+            organization_id=project.organization_id,
+            project_slug=project.slug,
+        )
 
     def self_validate(self) -> None:
         sentry_app_installation_uuid = self._get_sentry_app_installation_uuid()
 
-        try:
-            sentry_app = SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
-        except SentryApp.DoesNotExist:
+        installations = app_service.get_many(filter=dict(uuids=[sentry_app_installation_uuid]))
+        if not installations:
             raise ValidationError("Could not identify integration from the installation uuid.")
+        sentry_app = installations[0].sentry_app
 
         # Ensure the uuid does not match a deleted installation
-        try:
-            SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid, date_deleted=None)
-        except SentryAppInstallation.DoesNotExist:
+        if installations[0].date_deleted is not None:
             raise ValidationError(
                 f"The installation provided is out of date, please reinstall the {sentry_app.name} integration."
             )
@@ -121,7 +114,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
 
         # Ensure required fields are provided and valid
         valid_fields = set()
-        schema = alert_rule_component.schema.get("settings", {})
+        schema = alert_rule_component.app_schema.get("settings", {})
         for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
             field_value = self._get_setting_value(field_name)
@@ -158,11 +151,11 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
     def render_label(self) -> str:
         sentry_app_installation_uuid = self._get_sentry_app_installation_uuid()
 
-        try:
-            sentry_app = SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
-        except SentryApp.DoesNotExist:
+        installations = app_service.get_many(filter=dict(uuids=[sentry_app_installation_uuid]))
+        if not installations:
             raise ValidationError("Could not identify integration from the installation uuid.")
 
+        sentry_app = installations[0].sentry_app
         alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
 
-        return str(alert_rule_component.schema.get("title"))
+        return str(alert_rule_component.app_schema.get("title"))

@@ -11,7 +11,11 @@ import {
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
-const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
+const mockReplay = ReplayReader.factory({
+  replayRecord: TestStubs.ReplayRecord({}),
+  errors: [],
+  attachments: TestStubs.ReplaySegmentInit({}),
+});
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 
@@ -50,9 +54,11 @@ describe('Breadcrumbs', () => {
     >;
 
   beforeEach(() => {
-    MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
-    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+    MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       hasSentOneReplay: false,
+      fetching: false,
+    });
+    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
     props = {
@@ -113,15 +119,15 @@ describe('Breadcrumbs', () => {
     it('should filter crumbs based on crumb message', async function () {
       render(<Breadcrumbs {...props} />);
 
-      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
+      await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
 
       expect(
         await screen.findByText('Sorry, no breadcrumbs match your search query')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText('Clear'));
+      await userEvent.click(screen.getByLabelText('Clear'));
 
-      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'up');
+      await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'up');
 
       expect(
         screen.queryByText('Sorry, no breadcrumbs match your search query')
@@ -130,20 +136,20 @@ describe('Breadcrumbs', () => {
       expect(screen.getAllByText(textWithMarkupMatcher('sup'))).toHaveLength(3);
     });
 
-    it('should filter crumbs based on crumb level', function () {
+    it('should filter crumbs based on crumb level', async function () {
       render(<Breadcrumbs {...props} />);
 
-      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
+      await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
       expect(screen.getAllByText(textWithMarkupMatcher('Warning'))).toHaveLength(5);
     });
 
-    it('should filter crumbs based on crumb category', function () {
+    it('should filter crumbs based on crumb category', async function () {
       render(<Breadcrumbs {...props} />);
 
-      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
+      await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
 
       expect(screen.getAllByText(textWithMarkupMatcher('error'))).toHaveLength(2);
     });
@@ -161,14 +167,14 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should display the correct number of crumbs with a filter', function () {
+    it('should display the correct number of crumbs with a filter', async function () {
       props.data.values = props.data.values.slice(0, 4);
 
       render(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
-      userEvent.type(searchInput, 'sup');
+      await userEvent.type(searchInput, 'sup');
 
       expect(screen.queryByTestId('crumb')).not.toBeInTheDocument();
 
@@ -201,9 +207,11 @@ describe('Breadcrumbs', () => {
 
   describe('replay', () => {
     it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
         hasSentOneReplay: false,
+        fetching: false,
+      });
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
         activateSidebar: jest.fn(),
       });
       const {container} = render(
@@ -215,7 +223,7 @@ describe('Breadcrumbs', () => {
             platform: 'javascript',
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );
@@ -225,9 +233,11 @@ describe('Breadcrumbs', () => {
     });
 
     it('should not render the replay inline onboarding component when the project is not JS', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
         hasSentOneReplay: false,
+        fetching: false,
+      });
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
         activateSidebar: jest.fn(),
       });
       const {container} = render(
@@ -238,7 +248,7 @@ describe('Breadcrumbs', () => {
             tags: [],
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );
@@ -251,9 +261,11 @@ describe('Breadcrumbs', () => {
     });
 
     it('should render a replay when there is a replayId', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(true);
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
         hasSentOneReplay: true,
+        fetching: false,
+      });
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
         activateSidebar: jest.fn(),
       });
       const {container} = render(
@@ -265,7 +277,7 @@ describe('Breadcrumbs', () => {
             platform: 'javascript',
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );

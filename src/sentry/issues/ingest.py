@@ -13,16 +13,21 @@ from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.event_manager import (
     GroupInfo,
+    _get_or_create_group_environment,
+    _get_or_create_group_release,
+    _increment_release_associated_counts,
     _process_existing_aggregate,
     _save_grouphash_and_group,
     get_event_type,
 )
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
+
+from .utils import can_create_group
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -36,20 +41,37 @@ logger = logging.getLogger(__name__)
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
-    process_occurrence_data(occurrence_data)
+    # Do not hash fingerprints for performance issues because they're already
+    # hashed in save_aggregate_performance
+    # This check should be removed once perf issues are created through the platform
+    if can_create_group(occurrence_data, event.project):
+        process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
         raise ValueError("IssueOccurrence must have the same event_id as the passed Event")
     # Note: For now we trust the project id passed along with the event. Later on we should make
     # sure that this is somehow validated.
-    occurrence.save(event.project_id)
+    occurrence.save()
 
-    # TODO: Pass release here
-    group_info = save_issue_from_occurrence(occurrence, event, None)
+    try:
+        release = Release.get(event.project, event.release)
+    except Release.DoesNotExist:
+        # The release should always exist here since event has been ingested at this point, but just
+        # in case it has been deleted
+        release = None
+    group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
-        # TODO: Create group related releases here
+
+        if not can_create_group(occurrence_data, event.project):
+            return occurrence, group_info
+        environment = event.get_environment()
+        _get_or_create_group_environment(environment, release, [group_info])
+        _increment_release_associated_counts(
+            group_info.group.project, environment, release, [group_info]
+        )
+        _get_or_create_group_release(environment, release, event, [group_info])
 
     return occurrence, group_info
 
@@ -82,15 +104,12 @@ def _create_issue_kwargs(
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
         # define it in `search_message` there.
         "message": event.search_message,
-        # TODO: Not sure what to put here
-        # "logger": job["logger_name"],
-        # TODO: Level override from occurrence?
-        "level": LOG_LEVELS_MAP.get(event.data["level"]),
-        "culprit": occurrence.subtitle,
+        "level": LOG_LEVELS_MAP.get(occurrence.level),
+        "culprit": occurrence.culprit,
         "last_seen": event.datetime,
         "first_seen": event.datetime,
         "active_at": event.datetime,
-        "type": cast(int, occurrence.type.value),
+        "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
     }
@@ -116,13 +135,13 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata = dict(event_type.get_metadata(event.data))
     event_metadata = dict(event_metadata)
     event_metadata["title"] = occurrence.issue_title
+    event_metadata["value"] = occurrence.subtitle
 
     return {
         "type": event_type.key,
-        # Not totally sure if this makes sense?
-        "culprit": occurrence.subtitle,
-        "metadata": event_metadata,
         "title": occurrence.issue_title,
+        "culprit": occurrence.culprit,
+        "metadata": event_metadata,
         "location": event.location,
         "last_received": event.datetime,
     }
@@ -144,22 +163,35 @@ def save_issue_from_occurrence(
         .select_related("group")
         .first()
     )
+
+    # This forces an early return to skip extra processing steps
+    # for performance issues because they are already created/updated in save_transaction
+    return_group_info_early = not can_create_group(occurrence, project)
+
     if not existing_grouphash:
+        if return_group_info_early:
+            return None
+
+        cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
+        client = redis.redis_clusters.get(cluster_key)
+        if not should_create_group(occurrence.type, client, new_grouphash, project):
+            metrics.incr("issues.issue.dropped.noise_reduction")
+            return None
+
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):
             granted_quota = issue_rate_limiter.check_and_use_quotas(
                 [RequestedQuota(f"issue-platform-issues:{project.id}", 1, [ISSUE_QUOTA])]
             )[0]
 
         if not granted_quota.granted:
-            # Log how many issues we dropped due to rate limiting
-            metrics.incr("issues.issue.dropped")
+            metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
         with sentry_sdk.start_span(
             op="issues.save_issue_from_occurrence.transaction"
         ) as span, metrics.timer(
             "issues.save_issue_from_occurrence.transaction",
-            tags={"platform": event.platform or "unknown", "type": occurrence.type.value},
+            tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             sample_rate=1.0,
         ) as metric_tags, transaction.atomic():
             group, is_new = _save_grouphash_and_group(
@@ -171,12 +203,12 @@ def save_issue_from_occurrence(
             metrics.incr(
                 "group.created",
                 skip_internal=True,
-                tags={"platform": event.platform or "unknown", "type": occurrence.type.value},
+                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             )
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
     else:
         group = existing_grouphash.group
-        if group.issue_category != GROUP_TYPE_TO_CATEGORY[occurrence.type]:
+        if group.issue_category.value != occurrence.type.category:
             logger.error(
                 "save_issue_from_occurrence.category_mismatch",
                 extra={
@@ -188,9 +220,12 @@ def save_issue_from_occurrence(
             return None
 
         is_new = False
-        # Note: This updates the message of the issue based on the event. Not sure what we want to
-        # store there yet, so we may need to revisit that.
-        is_regression = _process_existing_aggregate(group, event, issue_kwargs, release)
+        is_regression = False
+
+        if not return_group_info_early:
+            # Note: This updates the message of the issue based on the event. Not sure what we want to
+            # store there yet, so we may need to revisit that.
+            is_regression = _process_existing_aggregate(group, event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
 
     return group_info
@@ -202,6 +237,8 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
+    skip_consume = not can_create_group(occurrence, event.project)
+
     eventstream.insert(
         event=group_event,
         is_new=group_info.is_new,
@@ -209,7 +246,7 @@ def send_issue_occurrence_to_eventstream(
         is_new_group_environment=group_info.is_new_group_environment,
         primary_hash=occurrence.fingerprint[0],
         received_timestamp=group_event.data.get("received") or group_event.datetime,
-        skip_consume=False,
+        skip_consume=skip_consume,
         group_states=[
             {
                 "id": group_info.group.id,

@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -12,7 +13,6 @@ from sentry.testutils.performance_issues.event_generators import (
     get_event,
 )
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.detectors import NPlusOneAPICallsDetector
 from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
     without_query_params,
@@ -69,7 +69,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
             PerformanceProblem(
                 fingerprint="1-1010-d750ce46bb1b13dd5780aac48098d5e20eea682c",
                 op="http.client",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+                type=PerformanceNPlusOneAPICallsGroupType,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
                 parent_span_ids=["a0c39078d1570b00"],
                 cause_span_ids=[],
@@ -100,6 +100,8 @@ class NPlusOneAPICallsDetectorTest(TestCase):
                     "a34089b08b6d0646",
                     "950801c0d7576650",
                 ],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
         assert problems[0].title == "N+1 API Call"
@@ -343,7 +345,7 @@ def test_allows_eligible_spans(span):
         {
             "span_id": "a",
             "op": "http.client",
-            "description": "GET http://service.io/resource",
+            "description": "GET /resource.js",
             "hash": "a",
             "data": {"url": "/resource.js"},
         },
@@ -352,6 +354,16 @@ def test_allows_eligible_spans(span):
             "op": "http.client",
             "description": "GET http://service.io/resource?graphql=somequery",
             "hash": "a",
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource",  # New JS SDK removes query string from description
+            "hash": "a",
+            "data": {
+                "http.query": "graphql=somequery",
+                "url": "http://service.io/resource",
+            },
         },
         {
             "span_id": "a",

@@ -6,7 +6,7 @@ import keyBy from 'lodash/keyBy';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Environment, Event, Organization, Project, TagWithTopValues} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
@@ -16,7 +16,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
 
-export const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
+export const MOBILE_TAGS = [
+  'device',
+  'device.class',
+  'os',
+  'release',
+  'environment',
+  'transaction',
+];
 
 export const FRONTEND_TAGS = ['browser', 'transaction', 'release', 'url', 'environment'];
 
@@ -121,6 +128,10 @@ export default function TagFacets({
   }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
+  if (!organization.features.includes('device-classification')) {
+    delete tagsData['device.class'];
+  }
+
   const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
   const remainingTagKeys = Object.keys(tagsData)
     .filter(tagKey => !tagKeys.includes(tagKey))
@@ -138,33 +149,34 @@ export default function TagFacets({
       ) : (
         <Fragment>
           <SidebarSection.Title>{title || t('All Tags')}</SidebarSection.Title>
-          <Content>
-            <span data-test-id="top-distribution-wrapper">
+          {Object.keys(tagsData).length === 0 ? (
+            <NoTagsFoundContainer data-test-id="no-tags">
+              {environments.length
+                ? t('No tags found in the selected environments')
+                : t('No tags found')}
+            </NoTagsFoundContainer>
+          ) : (
+            <Content>
+              <span data-test-id="top-distribution-wrapper">
+                <TagFacetsDistributionMeterWrapper
+                  groupId={groupId}
+                  organization={organization}
+                  project={project}
+                  tagKeys={topTagKeys}
+                  tagsData={tagsData}
+                  expandFirstTag
+                />
+              </span>
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
                 organization={organization}
                 project={project}
-                tagKeys={topTagKeys}
+                tagKeys={remainingTagKeys}
                 tagsData={tagsData}
-                expandFirstTag
               />
-            </span>
-            <TagFacetsDistributionMeterWrapper
-              groupId={groupId}
-              organization={organization}
-              project={project}
-              tagKeys={remainingTagKeys}
-              tagsData={tagsData}
-            />
-          </Content>
+            </Content>
+          )}
         </Fragment>
-      )}
-      {Object.keys(tagsData).length === 0 && (
-        <p data-test-id="no-tags">
-          {environments.length
-            ? t('No tags found in the selected environments')
-            : t('No tags found')}
-        </p>
       )}
     </SidebarSection.Wrap>
   );
@@ -242,6 +254,10 @@ const TagPlaceholders = styled('div')`
 
 const Content = styled('div')`
   margin-top: ${space(2)};
+`;
+
+const NoTagsFoundContainer = styled('p')`
+  margin-top: ${space(0.5)};
 `;
 
 export const TagFacetsList = styled('ol')`

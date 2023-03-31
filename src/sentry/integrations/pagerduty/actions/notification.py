@@ -6,7 +6,7 @@ from typing import Sequence
 from sentry.constants import ObjectStatus
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import PagerDutyClient
-from sentry.models import Integration, PagerDutyService
+from sentry.models import PagerDutyService
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -35,9 +35,8 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         return PagerDutyService.objects.get(id=self.get_option("service"))
 
     def after(self, event, state):
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
+        integration = self.get_integration()
+        if not integration:
             logger.exception("Integration removed, however, the rule still refers to it.")
             # integration removed but rule still exists
             return

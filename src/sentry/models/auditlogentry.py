@@ -12,6 +12,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.log import AuditLogEvent
 
 MAX_ACTOR_LABEL_LENGTH = 64
@@ -35,7 +36,7 @@ def format_scim_token_actor_name(actor):
 class AuditLogEntry(Model):
     __include_in_export__ = False
 
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     actor_label = models.CharField(max_length=MAX_ACTOR_LABEL_LENGTH, null=True, blank=True)
     # if the entry was created via a user
     actor = FlexibleForeignKey(
@@ -61,8 +62,8 @@ class AuditLogEntry(Model):
         app_label = "sentry"
         db_table = "sentry_auditlogentry"
         indexes = [
-            models.Index(fields=["organization", "datetime"]),
-            models.Index(fields=["organization", "event", "datetime"]),
+            models.Index(fields=["organization_id", "datetime"]),
+            models.Index(fields=["organization_id", "event", "datetime"]),
         ]
 
     __repr__ = sane_repr("organization_id", "type")
@@ -91,9 +92,9 @@ class AuditLogEntry(Model):
         return AuditLogEvent(
             actor_label=self.actor_label,
             organization_id=int(
-                self.organization.id
+                self.organization_id
             ),  # prefer raising NoneType here over actually passing through
-            time_of_creation=self.datetime or timezone.now(),
+            date_added=self.datetime or timezone.now(),
             actor_user_id=self.actor and self.actor.id,
             target_object_id=self.target_object,
             ip_address=self.ip_address and str(self.ip_address),
@@ -111,7 +112,7 @@ class AuditLogEntry(Model):
         """
         return AuditLogEntry(
             organization_id=event.organization_id,
-            datetime=event.time_of_creation,
+            datetime=event.date_added,
             actor_id=event.actor_user_id,
             target_object=event.target_object_id,
             ip_address=event.ip_address,

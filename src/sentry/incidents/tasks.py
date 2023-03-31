@@ -16,6 +16,7 @@ from sentry.incidents.models import (
     IncidentStatusMethod,
 )
 from sentry.models import Project
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
@@ -36,10 +37,12 @@ def send_subscriber_notifications(activity_id):
 
     try:
         activity = IncidentActivity.objects.select_related(
-            "incident", "user", "incident__organization"
+            "incident", "incident__organization"
         ).get(id=activity_id)
     except IncidentActivity.DoesNotExist:
         return
+
+    activity_user = user_service.get_user(user_id=activity.user_id)
 
     # Only send notifications for specific activity types.
     if activity.type not in (
@@ -51,28 +54,34 @@ def send_subscriber_notifications(activity_id):
     # Check that the user still has access to at least one of the projects
     # related to the incident. If not then unsubscribe them.
     projects = list(activity.incident.projects.all())
-    for subscriber in get_incident_subscribers(activity.incident).select_related("user"):
-        user = subscriber.user
-        access = from_user(user, activity.incident.organization)
+    for subscriber in get_incident_subscribers(activity.incident):
+        subscriber_user = user_service.get_user(user_id=subscriber.user_id)
+        if subscriber_user is None:
+            continue
+
+        access = from_user(subscriber_user, activity.incident.organization)
         if not any(project for project in projects if access.has_project_access(project)):
-            unsubscribe_from_incident(activity.incident, user)
-        elif user != activity.user:
-            msg = generate_incident_activity_email(activity, user)
-            msg.send_async([user.email])
+            unsubscribe_from_incident(activity.incident, subscriber_user.id)
+        elif subscriber_user.id != activity.user_id:
+            msg = generate_incident_activity_email(activity, subscriber_user, activity_user)
+            msg.send_async([subscriber_user.email])
 
 
-def generate_incident_activity_email(activity, user):
+def generate_incident_activity_email(activity, user, activity_user=None):
     incident = activity.incident
     return MessageBuilder(
         subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
         template="sentry/emails/incidents/activity.txt",
         html_template="sentry/emails/incidents/activity.html",
         type="incident.activity",
-        context=build_activity_context(activity, user),
+        context=build_activity_context(activity, user, activity_user),
     )
 
 
-def build_activity_context(activity, user):
+def build_activity_context(activity, user, activity_user=None):
+    if activity_user is None:
+        activity_user = user_service.get_user(user_id=activity.user_id)
+
     if activity.type == IncidentActivityType.COMMENT.value:
         action = "left a comment"
     else:
@@ -85,7 +94,7 @@ def build_activity_context(activity, user):
     action = f"{action} on alert {incident.title} (#{incident.identifier})"
 
     return {
-        "user_name": activity.user.name if activity.user else "Sentry",
+        "user_name": activity_user.name if activity_user else "Sentry",
         "action": action,
         "link": absolute_uri(
             reverse(
@@ -107,7 +116,7 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
     """
     Logs results from a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
-    sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
+    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResults
     :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
@@ -138,7 +147,7 @@ def handle_snuba_query_update(subscription_update, subscription):
     """
     Handles a subscription update for a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
-    sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
+    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResults
     :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor

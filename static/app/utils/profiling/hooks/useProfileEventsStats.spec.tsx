@@ -1,10 +1,10 @@
 import {ReactNode} from 'react';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization} = initializeOrg();
@@ -121,7 +121,7 @@ describe('useProfileEvents', function () {
           end: 10,
           meta: {
             fields: {count: 'integer', p99: 'duration'},
-            units: {count: null, p99: 'nanosecond'},
+            units: {count: null, p99: 'millisecond'},
           },
         },
         'p99()': {
@@ -133,7 +133,7 @@ describe('useProfileEvents', function () {
           end: 10,
           meta: {
             fields: {count: 'integer', p99: 'duration'},
-            units: {count: null, p99: 'nanosecond'},
+            units: {count: null, p99: 'millisecond'},
           },
         },
       },

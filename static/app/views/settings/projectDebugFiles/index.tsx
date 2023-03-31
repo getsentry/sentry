@@ -9,7 +9,7 @@ import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -58,22 +58,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         'debugFiles',
         `/projects/${organization.slug}/${params.projectId}/files/dsyms/`,
         {
-          query: {
-            query,
-            file_formats: [
-              'breakpad',
-              'macho',
-              'elf',
-              'pe',
-              'pdb',
-              'sourcebundle',
-              'wasm',
-              'bcsymbolmap',
-              'uuidmap',
-              'il2cpp',
-              'portablepdb',
-            ],
-          },
+          query: {query},
         },
       ],
     ];

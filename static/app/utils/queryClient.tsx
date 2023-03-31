@@ -35,9 +35,15 @@ interface UseQueryOptions<TQueryFnData, TError = RequestError, TData = TQueryFnD
   staleTime: number;
 }
 
-// We are not overriding any defaults options for stale time, retries, etc.
+// Overrides to the default react-query options.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
-const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {};
+const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+};
 
 function isQueryFn<TQueryFnData, TError, TData>(
   queryFnOrQueryOptions?:
@@ -62,7 +68,7 @@ function isQueryFn<TQueryFnData, TError, TData>(
  *   {staleTime: 0}
  * );
  */
-function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
   queryOptions: UseQueryOptions<TQueryFnData, TError, TData>
 ): reactQuery.UseQueryResult<TData, TError>;
@@ -75,12 +81,12 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
  *   {staleTime: 0}
  * )
  */
-function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
   queryFn: reactQuery.QueryFunction<TQueryFnData, QueryKey>,
   queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
 ): reactQuery.UseQueryResult<TData, TError>;
-function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
   queryFnOrQueryOptions:
     | reactQuery.QueryFunction<TQueryFnData, QueryKey>
@@ -115,5 +121,7 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
 // eslint-disable-next-line import/export
 export * from '@tanstack/react-query';
 
+const useQuery = useApiQuery;
+
 // eslint-disable-next-line import/export
-export {DEFAULT_QUERY_CLIENT_CONFIG, useQuery, UseQueryOptions};
+export {DEFAULT_QUERY_CLIENT_CONFIG, useApiQuery, useQuery, UseQueryOptions};

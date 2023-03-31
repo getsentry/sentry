@@ -1,6 +1,7 @@
 import {Location} from 'history';
 
 import {Button, ButtonProps} from 'sentry/components/button';
+import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -43,7 +44,12 @@ function TransactionToProfileButton({
   });
 
   return (
-    <Button size={size} onClick={handleGoToProfile} to={target}>
+    <Button
+      size={size}
+      onClick={handleGoToProfile}
+      to={target}
+      icon={<IconProfiling size="xs" />}
+    >
       {children}
     </Button>
   );

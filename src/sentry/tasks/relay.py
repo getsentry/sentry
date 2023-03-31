@@ -2,6 +2,7 @@ import logging
 import time
 
 import sentry_sdk
+from django.db import transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
@@ -255,6 +256,12 @@ def schedule_invalidate_project_config(
 
     If an invalidation task is already scheduled, this task will not schedule another one.
 
+    If this function is called from within a database transaction, scheduling
+    the project config is delayed until that ongoing transaction is finished, to
+    ensure the invalidation builds the most up-to-date project config.  If no
+    database transaction is ongoing, the invalidation task is executed
+    immediately.
+
     :param trigger: The reason for the invalidation.  This is used to tag metrics.
     :param organization_id: Invalidates all project keys for all projects in an organization.
     :param project_id: Invalidates all project keys for a project.
@@ -263,6 +270,32 @@ def schedule_invalidate_project_config(
         slight delay to increase the likelihood of deduplicating invalidations but you can
         tweak this, like e.g. the :func:`invalidate_all` task does.
     """
+    with sentry_sdk.start_span(
+        op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+    ):
+        # XXX(iker): updating a lot of organizations or projects in a single
+        # database transaction causes the `on_commit` list to grow considerably
+        # and may cause memory leaks.
+        transaction.on_commit(
+            lambda: _schedule_invalidate_project_config(
+                trigger=trigger,
+                organization_id=organization_id,
+                project_id=project_id,
+                public_key=public_key,
+                countdown=countdown,
+            )
+        )
+
+
+def _schedule_invalidate_project_config(
+    *,
+    trigger,
+    organization_id=None,
+    project_id=None,
+    public_key=None,
+    countdown=5,
+):
+    """For param docs, see :func:`schedule_invalidate_project_config`."""
     from sentry.models import Project, ProjectKey
 
     validate_args(organization_id, project_id, public_key)

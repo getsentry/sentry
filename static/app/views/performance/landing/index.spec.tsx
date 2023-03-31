@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -14,6 +13,7 @@ import {
 
 import TeamStore from 'sentry/stores/teamStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
@@ -23,9 +23,14 @@ import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 const searchHandlerMock = jest.fn();
 
 const WrappedComponent = ({data, withStaticFilters = false}) => {
-  const eventView = generatePerformanceEventView(data.router.location, data.projects, {
-    withStaticFilters,
-  });
+  const eventView = generatePerformanceEventView(
+    data.router.location,
+    data.projects,
+    {
+      withStaticFilters,
+    },
+    data.organization
+  );
 
   const client = new QueryClient();
 
@@ -236,12 +241,12 @@ describe('Performance > Landing > Index', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '15m',
+          interval: '1h',
           partial: '1',
           project: [],
           query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
-          statsPeriod: '48h',
+          statsPeriod: '14d',
           yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
         }),
       })
@@ -252,21 +257,21 @@ describe('Performance > Landing > Index', function () {
     const titles = await screen.findAllByTestId('performance-widget-title');
     expect(titles).toHaveLength(5);
 
-    expect(titles.at(0)).toHaveTextContent('Most Related Issues');
-    expect(titles.at(1)).toHaveTextContent('Most Improved');
+    expect(titles.at(0)).toHaveTextContent('Most Regressed');
+    expect(titles.at(1)).toHaveTextContent('Most Related Issues');
     expect(titles.at(2)).toHaveTextContent('User Misery');
     expect(titles.at(3)).toHaveTextContent('Transactions Per Minute');
     expect(titles.at(4)).toHaveTextContent('Failure Rate');
   });
 
-  it('Can switch between landing displays', function () {
+  it('Can switch between landing displays', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
       1,
@@ -312,8 +317,8 @@ describe('Performance > Landing > Index', function () {
 
       render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-      userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
 

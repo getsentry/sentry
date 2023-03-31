@@ -72,6 +72,8 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/breakdowns.span_ops.ops.resource@millisecond": PREFIX + 123,
     "d:transactions/breakdowns.span_ops.ops.ui@millisecond": PREFIX + 124,
     "c:transactions/count_per_root_project@none": PREFIX + 125,
+    "d:transactions/measurements.time_to_initial_display@millisecond": PREFIX + 126,
+    "d:transactions/measurements.time_to_full_display@millisecond": PREFIX + 127,
 }
 
 # 200 - 299
@@ -119,6 +121,10 @@ SHARED_TAG_STRINGS = {
     "abnormal_mechanism": PREFIX + 236,  # release health
     "anr_foreground": PREFIX + 237,  # release health
     "anr_background": PREFIX + 238,  # release health
+    # Transactions
+    "drop": PREFIX + 239,
+    "decision": PREFIX + 240,
+    "keep": PREFIX + 241,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -174,3 +180,13 @@ class StaticStringIndexer(StringIndexer):
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return self.indexer.reverse_resolve(use_case_id=use_case_id, org_id=org_id, id=id)
+
+    def resolve_shared_org(self, string: str) -> Optional[int]:
+        if string in SHARED_STRINGS:
+            return SHARED_STRINGS[string]
+        return None
+
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+        if id in REVERSE_SHARED_STRINGS:
+            return REVERSE_SHARED_STRINGS[id]
+        return None

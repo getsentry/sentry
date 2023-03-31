@@ -1,7 +1,12 @@
 import logging
+import random
 from typing import Callable, Mapping
 
+import sentry_kafka_schemas
+import sentry_sdk
+from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import Message
+from django.conf import settings
 
 from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
@@ -12,7 +17,7 @@ from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import CloudSpanner
 from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
-from sentry.utils import metrics
+from sentry.utils import metrics, sdk
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +26,8 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.POSTGRES: PostgresIndexer,
     IndexerStorage.MOCK: MockIndexer,
 }
+
+_INGEST_SCHEMA = JsonCodec(sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
 
 
 class MessageProcessor:
@@ -42,7 +49,14 @@ class MessageProcessor:
         # yes I can, watch me.
         self.__init__(config)  # type: ignore
 
-    def process_messages(
+    def process_messages(self, outer_message: Message[MessageBatch]) -> IndexerOutputMessageBatch:
+        with sentry_sdk.start_transaction(
+            name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
+            sampled=random.random() < settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE,
+        ):
+            return self._process_messages_impl(outer_message)
+
+    def _process_messages_impl(
         self,
         outer_message: Message[MessageBatch],
     ) -> IndexerOutputMessageBatch:
@@ -71,21 +85,41 @@ class MessageProcessor:
         )
         is_output_sliced = self._config.is_output_sliced or False
 
-        batch = IndexerBatch(
-            self._config.use_case_id, outer_message, should_index_tag_values, is_output_sliced
+        arroyo_input_codec_should_sample = (
+            self._config.input_schema_validation_option_name
+            and 0.0
+            < options.get(self._config.input_schema_validation_option_name)
+            < random.random()
         )
 
-        with metrics.timer("metrics_consumer.check_cardinality_limits"):
+        batch = IndexerBatch(
+            self._config.use_case_id,
+            outer_message,
+            should_index_tag_values=should_index_tag_values,
+            is_output_sliced=is_output_sliced,
+            arroyo_input_codec=_INGEST_SCHEMA if arroyo_input_codec_should_sample else None,
+        )
+
+        sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))
+
+        with metrics.timer("metrics_consumer.check_cardinality_limits"), sentry_sdk.start_span(
+            op="check_cardinality_limits"
+        ):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
             cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
                 batch.use_case_id, batch.parsed_payloads_by_offset
             )
 
+        sdk.set_measurement(
+            "cardinality_limiter.keys_to_remove.len", len(cardinality_limiter_state.keys_to_remove)
+        )
         batch.filter_messages(cardinality_limiter_state.keys_to_remove)
 
         org_strings = batch.extract_strings()
 
-        with metrics.timer("metrics_consumer.bulk_record"):
+        sdk.set_measurement("org_strings.len", len(org_strings))
+
+        with metrics.timer("metrics_consumer.bulk_record"), sentry_sdk.start_span(op="bulk_record"):
             record_result = self._indexer.bulk_record(
                 use_case_id=self._config.use_case_id, org_strings=org_strings
             )
@@ -95,7 +129,11 @@ class MessageProcessor:
 
         new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
 
-        with metrics.timer("metrics_consumer.apply_cardinality_limits"):
+        sdk.set_measurement("new_messages.len", len(new_messages))
+
+        with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
+            op="apply_cardinality_limits"
+        ):
             # TODO: move to separate thread
             cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
 

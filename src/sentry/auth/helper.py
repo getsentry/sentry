@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, Dict, Mapping, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Any, Collection, Dict, Mapping, Sequence, Tuple, cast
 from uuid import uuid4
 
 import sentry_sdk
@@ -35,10 +35,10 @@ from sentry.locks import locks
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization, User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
-from sentry.services.hybrid_cloud.auth import ApiAuthIdentity, auth_service
+from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, auth_service
 from sentry.services.hybrid_cloud.organization import (
-    ApiOrganization,
-    ApiOrganizationMember,
+    RpcOrganization,
+    RpcOrganizationMember,
     organization_service,
 )
 from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
@@ -56,6 +56,9 @@ from sentry.web.helpers import render_to_response
 
 from ..services.hybrid_cloud.log import AuditLogEvent, log_service
 from . import manager
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise  # fake type added by django-stubs
 
 logger = logging.getLogger("sentry.auth")
 
@@ -98,13 +101,13 @@ class AuthIdentityHandler:
 
     auth_provider: AuthProvider
     provider: Provider
-    organization: ApiOrganization
+    organization: RpcOrganization
     request: HttpRequest
     identity: Mapping[str, Any]
 
     def __post_init__(self) -> None:
         # For debugging. TODO: Remove when tests are stable
-        if not isinstance(self.organization, ApiOrganization):
+        if not isinstance(self.organization, RpcOrganization):
             raise TypeError
 
     @cached_property
@@ -137,8 +140,6 @@ class AuthIdentityHandler:
             "sso.login_attempt",
             tags={
                 "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": user.id,
             },
             sample_rate=1.0,
             skip_internal=False,
@@ -156,15 +157,13 @@ class AuthIdentityHandler:
             "sso.login_success",
             tags={
                 "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": user.id,
             },
             sample_rate=1.0,
             skip_internal=False,
         )
 
     @staticmethod
-    def _set_linked_flag(member: ApiOrganizationMember) -> None:
+    def _set_linked_flag(member: RpcOrganizationMember) -> None:
         if member.flags.sso__invalid or not member.flags.sso__linked:
             member.flags.sso__invalid = False
             member.flags.sso__linked = True
@@ -227,16 +226,19 @@ class AuthIdentityHandler:
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
         return login_redirect_url
 
-    def _handle_new_membership(self, auth_identity: ApiAuthIdentity) -> ApiOrganizationMember:
+    def _handle_new_membership(self, auth_identity: RpcAuthIdentity) -> RpcOrganizationMember:
         user, om = auth_service.handle_new_membership(
-            self.request, self.organization, auth_identity, self.auth_provider
+            request=self.request,
+            organization=self.organization,
+            auth_identity=auth_identity,
+            auth_provider=self.auth_provider,
         )
 
         if om is not None:
             log_service.record_audit_log(
                 event=AuditLogEvent(
                     organization_id=self.organization.id,
-                    time_of_creation=timezone.now(),
+                    date_added=timezone.now(),
                     event_id=audit_log.get_event_id("MEMBER_ADD"),
                     actor_user_id=user.id,
                     actor_label=user.username,
@@ -256,7 +258,7 @@ class AuthIdentityHandler:
             return None
 
     @transaction.atomic  # type: ignore
-    def handle_attach_identity(self, member: ApiOrganizationMember | None = None) -> AuthIdentity:
+    def handle_attach_identity(self, member: RpcOrganizationMember | None = None) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
@@ -319,7 +321,7 @@ class AuthIdentityHandler:
             log_service.record_audit_log(
                 event=AuditLogEvent(
                     organization_id=self.organization.id,
-                    time_of_creation=timezone.now(),
+                    date_added=timezone.now(),
                     event_id=audit_log.get_event_id("SSO_IDENTITY_LINK"),
                     actor_user_id=self.user.id,
                     actor_label=self.user.username,
@@ -359,7 +361,7 @@ class AuthIdentityHandler:
 
         return deletion_result
 
-    def _get_organization_member(self, auth_identity: AuthIdentity) -> ApiOrganizationMember:
+    def _get_organization_member(self, auth_identity: AuthIdentity) -> RpcOrganizationMember:
         """
         Check to see if the user has a member associated, if not, create a new membership
         based on the auth_identity email.
@@ -451,7 +453,7 @@ class AuthIdentityHandler:
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
         if self.request.session.get("confirm_account_verification_key"):
-            verification_key = self.request.session.get("confirm_account_verification_key")
+            verification_key = self.request.session["confirm_account_verification_key"]
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
                 is_account_verified = self.has_verified_account(verification_value)
@@ -735,12 +737,10 @@ class AuthHelper(Pipeline):
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         # This is a temporary step to keep test_helper integrated
         # TODO: Move this conversion further upstream
-        api_organization = DatabaseBackedOrganizationService.serialize_organization(
-            self.organization
-        )
+        rpc_org = DatabaseBackedOrganizationService.serialize_organization(self.organization)
 
         return AuthIdentityHandler(
-            self.provider_model, self.provider, api_organization, self.request, identity
+            self.provider_model, self.provider, rpc_org, self.request, identity
         )
 
     @transaction.atomic  # type: ignore
@@ -828,7 +828,7 @@ class AuthHelper(Pipeline):
         self.disable_2fa_required()
 
         self.provider_model = AuthProvider.objects.create(
-            organization=self.organization, provider=self.provider.key, config=config
+            organization_id=self.organization.id, provider=self.provider.key, config=config
         )
 
         self.auth_handler(identity).handle_attach_identity(om)
@@ -843,7 +843,7 @@ class AuthHelper(Pipeline):
         )
 
         AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             actor=request.user,
             ip_address=request.META["REMOTE_ADDR"],
             target_object=self.provider_model.id,
@@ -862,7 +862,7 @@ class AuthHelper(Pipeline):
         )
         return HttpResponseRedirect(next_uri)
 
-    def error(self, message: str) -> HttpResponseRedirect:
+    def error(self, message: str | _StrPromise) -> HttpResponseRedirect:
         redirect_uri = "/"
 
         if self.state.flow == self.FLOW_LOGIN:
@@ -880,8 +880,6 @@ class AuthHelper(Pipeline):
                 tags={
                     "flow": self.state.flow,
                     "provider": self.provider.key,
-                    "organization_id": self.organization.id,
-                    "user_id": self.request.user.id,
                 },
                 skip_internal=False,
                 sample_rate=1.0,
@@ -892,8 +890,6 @@ class AuthHelper(Pipeline):
                 tags={
                     "flow": self.state.flow,
                     "provider": self.provider.key,
-                    "organization_id": self.organization.id,
-                    "user_id": self.request.user.id,
                 },
                 skip_internal=False,
                 sample_rate=1.0,
@@ -905,8 +901,6 @@ class AuthHelper(Pipeline):
             extra={
                 "flow": self.state.flow,
                 "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": self.request.user.id,
                 "error_message": message,
             },
         )

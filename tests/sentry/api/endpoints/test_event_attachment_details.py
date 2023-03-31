@@ -98,6 +98,14 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
             self.assert_member_cannot_access(self.path)
             close_streaming_response(self.assert_can_access(self.owner, self.path))
 
+    def test_member_on_owner_team_can_access_for_owner_role(self):
+        self.organization.update_option("sentry:attachments_role", "owner")
+        owner_team = self.create_team(organization=self.organization, org_role="owner")
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[owner_team, self.team])
+        with self.feature("organizations:event-attachments"):
+            close_streaming_response(self.assert_can_access(user, self.path))
+
     def test_random_user_cannot_access(self):
         self.organization.update_option("sentry:attachments_role", "owner")
         user = self.create_user()

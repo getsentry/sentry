@@ -1,25 +1,32 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import {
   ProfilingBreadcrumbs,
   ProfilingBreadcrumbsProps,
 } from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import {
-  generateProfileDetailsRouteWithQuery,
-  generateProfileFlamechartRouteWithQuery,
-} from 'sentry/utils/profiling/routes';
+import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+
+function getTransactionName(input: Profiling.ProfileInput): string {
+  if (isSchema(input)) {
+    return input.metadata.transactionName;
+  }
+  if (isSentrySampledProfile(input)) {
+    return input.transaction.name || t('Unknown Transaction');
+  }
+
+  return t('Unknown Transaction');
+}
 
 interface ProfileHeaderProps {
   eventId: string;
@@ -30,9 +37,10 @@ interface ProfileHeaderProps {
 function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const profileGroup = useProfileGroup();
+  const profiles = useProfiles();
 
-  const transactionName = profileGroup.type === 'resolved' ? profileGroup.data.name : '';
+  const transactionName =
+    profiles.type === 'resolved' ? getTransactionName(profiles.data) : '';
   const profileId = eventId ?? '';
   const projectSlug = projectId ?? '';
 
@@ -40,12 +48,12 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transaction.id}`)
     : null;
 
-  function handleGoToTransaction() {
+  const handleGoToTransaction = useCallback(() => {
     trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
       organization,
       source: 'transaction_details',
     });
-  }
+  }, [organization]);
 
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
     return [
@@ -65,7 +73,6 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           profileId,
           projectSlug,
           query: location.query,
-          tab: location.pathname.endsWith('details/') ? 'details' : 'flamechart',
         },
       },
     ];
@@ -85,32 +92,6 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           </Button>
         )}
       </Layout.HeaderActions>
-      <SmallerProfilingHeaderNavTabs underlined>
-        <li className={location.pathname.endsWith('flamechart/') ? 'active' : undefined}>
-          <Link
-            to={generateProfileFlamechartRouteWithQuery({
-              orgSlug: organization.slug,
-              projectSlug,
-              profileId,
-              query: location.query,
-            })}
-          >
-            {t('Flamechart')}
-          </Link>
-        </li>
-        <li className={location.pathname.endsWith('details/') ? 'active' : undefined}>
-          <Link
-            to={generateProfileDetailsRouteWithQuery({
-              orgSlug: organization.slug,
-              projectSlug,
-              profileId,
-              query: location.query,
-            })}
-          >
-            {t('Details')}
-          </Link>
-        </li>
-      </SmallerProfilingHeaderNavTabs>
     </SmallerLayoutHeader>
   );
 }
@@ -125,11 +106,6 @@ const SmallerProfilingBreadcrumbsWrapper = styled('div')`
   }
 `;
 
-const SmallerProfilingHeaderNavTabs = styled(Layout.HeaderNavTabs)`
-  a {
-    padding-top: 0 !important;
-  }
-`;
 const SmallerLayoutHeader = styled(Layout.Header)`
   padding: ${space(1)} ${space(2)} ${space(0)} ${space(2)} !important;
 `;

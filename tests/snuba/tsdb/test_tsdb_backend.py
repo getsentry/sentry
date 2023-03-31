@@ -4,6 +4,11 @@ from unittest.mock import patch
 import pytz
 from snuba_sdk import Limit
 
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
@@ -11,7 +16,6 @@ from sentry.testutils.performance_issues.store_transaction import PerfIssueTrans
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.issues import GroupType
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import aliased_query
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -537,8 +541,8 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
-        group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"
+        group1_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
+        group2_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group2"
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
             event = self.store_transaction(
@@ -563,7 +567,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group3"
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group3"
 
         # not sure what's going on here, but `times=1,2,3,4` work fine
         # fails with anything above 4
@@ -651,7 +655,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group4"
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group4"
         ids = ["a", "b", "c", "d", "e", "f", "1", "2", "3", "4", "5"]
         events = []
         for i, _ in enumerate(ids):
@@ -685,7 +689,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group5"
+        group_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group5"
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]
@@ -768,8 +772,8 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"
-        group2_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group2"
+        group1_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
+        group2_fingerprint = f"{ProfileFileIOGroupType.type_id}-group2"
 
         groups = {}
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
@@ -838,7 +842,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group4"
+        group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group4"
         groups = []
         for i in range(0, 11):
             _, _, group_info = self.store_search_issue(
@@ -872,7 +876,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group5"
+        group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group5"
         ids = [1, 2, 3, 4, 5]
         groups = []
         for r in ids:

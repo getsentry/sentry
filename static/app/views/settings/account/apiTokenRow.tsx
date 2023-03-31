@@ -6,7 +6,7 @@ import {PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -25,7 +25,6 @@ function ApiTokenRow({token, onRemove}: Props) {
           </TextCopyInput>
         </InputWrapper>
         <Button
-          size="sm"
           onClick={() => onRemove(token)}
           icon={<IconSubtract isCircled size="xs" />}
         >

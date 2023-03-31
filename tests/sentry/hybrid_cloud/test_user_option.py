@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
@@ -23,28 +23,54 @@ def test_user_option_service():
     time.sleep(1)
     p1 = Factories.create_project(organization=o1)
 
-    assert user_option_service.query_options(user_ids=[u1.id]).get_one(key="a_key") is None
     assert (
-        user_option_service.query_options(user_ids=[u1.id]).get_one(key="a_key", default=objects[0])
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id]}), key="a_key"
+        )
+        is None
+    )
+    assert (
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id]}),
+            key="a_key",
+            default=objects[0],
+        )
         == objects[0]
     )
 
     user_option_service.set_option(user_id=u1.id, value=objects[1], key="a_key")
-    assert user_option_service.query_options(user_ids=[u1.id]).get_one(key="a_key") == objects[1]
     assert (
-        user_option_service.query_options(user_ids=[u1.id], project_id=p1.id).get_one(key="a_key")
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id]}), key="a_key"
+        )
+        == objects[1]
+    )
+    assert (
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id], "project_id": p1.id}),
+            key="a_key",
+        )
         is None
     )
 
     user_option_service.set_option(user_id=u1.id, value=objects[2], key="a_key", project_id=p1.id)
-    assert user_option_service.query_options(user_ids=[u1.id]).get_one(key="a_key") == objects[1]
     assert (
-        user_option_service.query_options(user_ids=[u1.id], project_id=p1.id).get_one(key="a_key")
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id]}), key="a_key"
+        )
+        == objects[1]
+    )
+    assert (
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id], "project_id": p1.id}),
+            key="a_key",
+        )
         == objects[2]
     )
     assert (
-        user_option_service.query_options(user_ids=[u1.id], organization_id=o1.id).get_one(
-            key="a_key"
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id], "organization_id": o1.id}),
+            key="a_key",
         )
         is None
     )
@@ -52,28 +78,44 @@ def test_user_option_service():
     user_option_service.set_option(
         user_id=u1.id, value=objects[3], key="a_key", organization_id=o1.id
     )
-    assert user_option_service.query_options(user_ids=[u1.id]).get_one(key="a_key") == objects[1]
     assert (
-        user_option_service.query_options(user_ids=[u1.id], project_id=p1.id).get_one(key="a_key")
-        == objects[2]
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id]}), key="a_key"
+        )
+        == objects[1]
     )
     assert (
-        user_option_service.query_options(user_ids=[u1.id], organization_id=o1.id).get_one(
-            key="a_key"
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id], "project_id": p1.id}),
+            key="a_key",
+        )
+        == objects[2]
+    )
+
+    assert (
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id], "organization_id": o1.id}),
+            key="a_key",
         )
         == objects[3]
     )
 
     assert (
-        user_option_service.query_options(
-            user_ids=[u1.id], keys=["a_key"], project_id=p1.id
-        ).get_one(key="a_key")
+        get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [u1.id], "keys": ["a_key"], "project_id": p1.id}
+            ),
+            key="a_key",
+        )
         == objects[2]
     )
     assert (
-        user_option_service.query_options(
-            user_ids=[u1.id], keys=["a_key"], project_id=p1.id
-        ).get_one(key="b_key")
+        get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [u1.id], "keys": ["a_key"], "project_id": p1.id}
+            ),
+            key="b_key",
+        )
         is None
     )
 
@@ -83,24 +125,36 @@ def test_user_option_service():
     user_option_service.set_option(user_id=u2.id, value=objects[5], key="a_key")
 
     assert (
-        user_option_service.query_options(user_ids=[u1.id, u2.id], keys=["a_key"]).get_one(
-            key="a_key", user_id=u2.id
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id, u2.id], "keys": ["a_key"]}),
+            key="a_key",
+            user_id=u2.id,
         )
         == objects[5]
     )
     assert (
-        user_option_service.query_options(user_ids=[u1.id, u2.id], keys=["a_key"]).get_one(
-            key="a_key", user_id=u1.id
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id, u2.id], "keys": ["a_key"]}),
+            key="a_key",
+            user_id=u1.id,
         )
         == objects[1]
     )
 
     user_option_service.delete_options(
-        option_ids=[o.id for o in user_option_service.query_options(user_ids=[u1.id]).options]
+        option_ids=[o.id for o in user_option_service.get_many(filter={"user_ids": [u1.id]})]
     )
 
-    assert user_option_service.query_options(user_ids=[u1.id]).get_one(key="a_key") is None
     assert (
-        user_option_service.query_options(user_ids=[u1.id], project_id=p1.id).get_one(key="a_key")
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id]}), key="a_key"
+        )
+        is None
+    )
+    assert (
+        get_option_from_list(
+            user_option_service.get_many(filter={"user_ids": [u1.id], "project_id": p1.id}),
+            key="a_key",
+        )
         is not None
     )

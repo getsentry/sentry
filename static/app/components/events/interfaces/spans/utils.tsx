@@ -11,10 +11,9 @@ import {Organization} from 'sentry/types';
 import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {WebVital} from 'sentry/utils/fields';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
+import {MobileVital, WebVital} from 'sentry/utils/fields';
+import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
@@ -33,20 +32,6 @@ import {
 
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
-
-export const setSpansOnTransaction = (spanCount: number) => {
-  const transaction = getPerformanceTransaction();
-
-  if (!transaction || spanCount === 0) {
-    return;
-  }
-
-  const spanCountGroups = [10, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1001];
-  const spanGroup = spanCountGroups.find(g => spanCount <= g) || -1;
-
-  transaction.setTag('ui.spanCount', spanCount);
-  transaction.setTag('ui.spanCount.grouped', `<=${spanGroup}`);
-};
 
 export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =
@@ -300,6 +285,22 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
   return span.parent_span_id;
 }
 
+export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
+  const label = span?.description ?? getSpanID(span);
+
+  if (!isGapSpan(span)) {
+    if (span.op === 'http.client') {
+      try {
+        return decodeURIComponent(label);
+      } catch {
+        // Do nothing
+      }
+    }
+  }
+
+  return label;
+}
+
 export function getTraceContext(
   event: Readonly<EventTransaction>
 ): TraceContextType | undefined {
@@ -495,6 +496,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.ember',
     'sentry.javascript.vue',
     'sentry.javascript.angular',
+    'sentry.javascript.angular-ivy',
     'sentry.javascript.nextjs',
     'sentry.javascript.electron',
     'sentry.javascript.remix',
@@ -515,14 +517,14 @@ type Measurements = {
   };
 };
 
-type VerticalMark = {
+export type VerticalMark = {
   failedThreshold: boolean;
   marks: Measurements;
 };
 
 function hasFailedThreshold(marks: Measurements): boolean {
   const names = Object.keys(marks);
-  const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
+  const records = Object.values(VITAL_DETAILS).filter(vital =>
     names.includes(vital.slug)
   );
 
@@ -536,14 +538,15 @@ function hasFailedThreshold(marks: Measurements): boolean {
 }
 
 export function getMeasurements(
-  event: EventTransaction,
+  event: EventTransaction | TraceFullDetailed,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ): Map<number, VerticalMark> {
-  if (!event.measurements || !event.startTimestamp) {
+  const startTimestamp =
+    (event as EventTransaction).startTimestamp ||
+    (event as TraceFullDetailed).start_timestamp;
+  if (!event.measurements || !startTimestamp) {
     return new Map();
   }
-
-  const {startTimestamp} = event;
 
   // Note: CLS and INP should not be included here, since they are not timeline-based measurements.
   const allowedVitals = new Set<string>([
@@ -552,6 +555,8 @@ export function getMeasurements(
     WebVital.FID,
     WebVital.LCP,
     WebVital.TTFB,
+    MobileVital.TimeToFullDisplay,
+    MobileVital.TimeToInitialDisplay,
   ]);
 
   const measurements = Object.keys(event.measurements)
@@ -593,7 +598,7 @@ export function getMeasurements(
       if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
-        const {poorThreshold} = WEB_VITAL_DETAILS[`measurements.${name}`];
+        const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
 
         verticalMark.marks = {
           ...verticalMark.marks,
@@ -613,7 +618,7 @@ export function getMeasurements(
       }
     }
 
-    const {poorThreshold} = WEB_VITAL_DETAILS[`measurements.${name}`];
+    const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
 
     const marks = {
       [name]: {

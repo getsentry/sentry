@@ -6,7 +6,7 @@ import uniqBy from 'lodash/uniqBy';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SelectValue, TagCollection} from 'sentry/types';
 import {
   EQUATION_PREFIX,

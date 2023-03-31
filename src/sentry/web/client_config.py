@@ -86,7 +86,7 @@ def _get_public_dsn():
 
     result = cache.get(cache_key)
     if result is None:
-        key = project_key_service.get_project_key(project_id, ProjectKeyRole.store)
+        key = project_key_service.get_project_key(project_id=project_id, role=ProjectKeyRole.store)
         if key:
             result = key.dsn_public
         else:
@@ -230,9 +230,9 @@ def get_client_config(request=None):
         },
     }
     if user and user.is_authenticated:
-        (serialized_user,) = user_service.serialize_users(
-            user_ids=[user.id],
-            detailed=UserSerializeType.SELF_DETAILED,
+        (serialized_user,) = user_service.serialize_many(
+            filter={"user_ids": [user.id]},
+            serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
                 auth=getattr(request, "auth", None),
                 user=request.user,
@@ -253,6 +253,14 @@ def get_client_config(request=None):
             # This is needed in the case where you access a different org and get denied, but the UI
             # can open the sudo dialog if you are an "inactive" superuser
             context["user"]["isSuperuser"] = request.user.is_superuser
+            if superuser.ORG_ID is not None:
+                org_context = organization_service.get_organization_by_id(
+                    id=superuser.ORG_ID, user_id=None
+                )
+                if org_context and org_context.organization:
+                    context["links"]["superuserUrl"] = generate_organization_url(
+                        org_context.organization.slug
+                    )
     else:
         context.update({"isAuthenticated": False, "user": None})
 

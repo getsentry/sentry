@@ -1,12 +1,12 @@
 import {CSSProperties, Fragment, SyntheticEvent} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';

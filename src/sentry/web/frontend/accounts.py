@@ -13,7 +13,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from sentry.models import Authenticator, LostPasswordHash, NotificationSetting, Project, UserEmail
+from sentry.models import LostPasswordHash, NotificationSetting, Project, UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
@@ -38,7 +38,7 @@ def login_redirect(request):
 
 
 def expired(request, user):
-    hash = lost_password_hash_service.get_or_create(user.id).hash
+    hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
     LostPasswordHash.send_email(user, hash, request)
 
     context = {"email": user.email}
@@ -74,7 +74,7 @@ def recover(request):
     if form.is_valid():
         email = form.cleaned_data["user"]
         if email:
-            password_hash = lost_password_hash_service.get_or_create(email.id)
+            password_hash = lost_password_hash_service.get_or_create(user_id=email.id)
             LostPasswordHash.send_email(email, password_hash.hash, request)
 
             extra["passwordhash_id"] = password_hash.id
@@ -119,7 +119,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
                 # Only log the user in if there is no two-factor on the
                 # account.
-                if not Authenticator.objects.user_has_2fa(user):
+                if not user.has_2fa():
                     login_user(request, user)
 
                 password_hash.delete()

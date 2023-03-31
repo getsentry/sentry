@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 
 const TwoFactorRequired = () =>

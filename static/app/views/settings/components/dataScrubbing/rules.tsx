@@ -6,7 +6,7 @@ import ConfirmDelete from 'sentry/components/confirmDelete';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {Rule} from './types';
 import {getRuleDescription} from './utils';

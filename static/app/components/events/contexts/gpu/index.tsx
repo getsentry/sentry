@@ -17,7 +17,7 @@ export const gpuKnownDataValues = [
   GPUKnownDataType.NAME,
   GPUKnownDataType.VERSION,
   GPUKnownDataType.VENDOR_NAME,
-  GPUKnownDataType.MEMORY,
+  GPUKnownDataType.MEMORY_SIZE,
   GPUKnownDataType.NPOT_SUPPORT,
   GPUKnownDataType.MULTI_THREAD_RENDERING,
   GPUKnownDataType.API_TYPE,

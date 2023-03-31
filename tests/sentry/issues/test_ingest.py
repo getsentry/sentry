@@ -1,8 +1,17 @@
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from datetime import datetime, timedelta
 from hashlib import md5
 from unittest import mock
+from unittest.mock import patch
 
 from sentry.constants import LOG_LEVELS_MAP
+from sentry.issues.grouptype import (
+    GroupCategory,
+    GroupType,
+    GroupTypeRegistry,
+    NoiseConfig,
+    PerformanceNPlusOneGroupType,
+)
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,
@@ -11,12 +20,21 @@ from sentry.issues.ingest import (
     save_issue_occurrence,
     send_issue_occurrence_to_eventstream,
 )
-from sentry.models import Group
+from sentry.models import (
+    Environment,
+    Group,
+    GroupEnvironment,
+    GroupRelease,
+    Release,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+)
 from sentry.ratelimits.sliding_windows import Quota
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
+from sentry.utils.snuba import raw_query
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -25,29 +43,63 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id)
-        saved_occurrence = save_issue_occurrence(occurrence.to_dict(), event)[0]
+        saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
         occurrence = replace(
             occurrence,
             fingerprint=[md5(fp.encode("utf-8")).hexdigest() for fp in occurrence.fingerprint],
         )
         self.assert_occurrences_identical(occurrence, saved_occurrence)
         assert Group.objects.filter(grouphash__hash=saved_occurrence.fingerprint[0]).exists()
-        # TODO: Query this data and make sure it's present once we have a corresponding dataset in
-        # snuba
-        # result = snuba.raw_query(
-        #     dataset=snuba.Dataset.IssuePlatform,
-        #     start=now - timedelta(days=1),
-        #     end=now + timedelta(days=1),
-        #     selected_columns=["event_id", "group_id", "occurrence_id"],
-        #     groupby=None,
-        #     filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
-        # )
-        # assert len(result["data"]) == 1
-        # assert result["data"][0]["group_ids"] == [self.group.id]
+        now = datetime.now()
+        result = raw_query(
+            dataset=Dataset.IssuePlatform,
+            start=now - timedelta(days=1),
+            end=now + timedelta(days=1),
+            selected_columns=["event_id", "group_id", "occurrence_id"],
+            groupby=None,
+            filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+        )
+        assert len(result["data"]) == 1
+        assert result["data"][0]["group_id"] == group_info.group.id
+        assert result["data"][0]["event_id"] == occurrence.event_id
+        assert result["data"][0]["occurrence_id"] == occurrence.id
+
+    def test_new_group_release_env(self) -> None:
+        version = "test"
+        env_name = "some_env"
+        event = self.store_event(
+            data={"release": version, "environment": env_name}, project_id=self.project.id
+        )
+        release = Release.objects.get(organization_id=self.organization.id, version=version)
+        environment = Environment.objects.get(organization_id=self.organization.id, name=env_name)
+        release_project = ReleaseProject.objects.get(project=self.project, release=release)
+        assert release_project.new_groups == 0
+        release_project_env = ReleaseProjectEnvironment.objects.get(
+            project=self.project, release=release, environment=environment
+        )
+        assert release_project_env.new_issues_count == 0
+        occurrence_data = self.build_occurrence_data(event_id=event.event_id)
+        with self.tasks():
+            occurrence, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+        group = group_info.group
+        assert group_info is not None
+        assert group_info.is_new
+        assert group_info.is_new_group_environment
+        assert group_info.group.first_release == release
+        assert GroupEnvironment.objects.filter(group=group, environment=environment)
+        release_project.refresh_from_db()
+        assert release_project.new_groups == 1
+        release_project_env.refresh_from_db()
+        assert release_project_env.new_issues_count == 1
+        assert GroupRelease.objects.filter(group_id=group.id, release_id=release.id).exists()
 
     def test_different_ids(self) -> None:
-        event_data = load_data("generic-event")
-        event = self.store_event(data=event_data, project_id=self.project.id)
+        event_data = load_data("generic-event-profiling").data
+        project_id = event_data["event"].pop("project_id", self.project.id)
+        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
             ValueError, "IssueOccurrence must have the same event_id as the passed Event"
@@ -78,14 +130,15 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
         group = group_info.group
         assert group.title == occurrence.issue_title
         assert group.platform == event.platform
-        assert group.level == LOG_LEVELS_MAP.get(event.data["level"])
+        assert group.level == LOG_LEVELS_MAP.get(occurrence.level)
         assert group.last_seen == event.datetime
         assert group.first_seen == event.datetime
         assert group.active_at == event.datetime
         assert group.issue_type == occurrence.type
         assert group.first_release is None
-        assert group.data["culprit"] == occurrence.subtitle
-        assert group.data["title"] == occurrence.issue_title
+        assert group.title == occurrence.issue_title
+        assert group.data["metadata"]["value"] == occurrence.subtitle
+        assert group.culprit == occurrence.culprit
         assert group.location() == event.location
 
     def test_existing_group(self) -> None:
@@ -105,8 +158,9 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
         assert updated_group_info.group.id == updated_group.id
         assert not updated_group_info.is_new
         assert not updated_group_info.is_regression
-        assert updated_group.culprit == new_occurrence.subtitle
         assert updated_group.title == new_occurrence.issue_title
+        assert updated_group.data["metadata"]["value"] == new_occurrence.subtitle
+        assert updated_group.culprit == new_occurrence.culprit
         assert updated_group.location() == event.location
         assert updated_group.times_seen == 2
 
@@ -118,7 +172,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            fingerprint=occurrence.fingerprint, type=PerformanceNPlusOneGroupType.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
@@ -143,7 +197,29 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
             "sentry.issues.ingest.ISSUE_QUOTA", Quota(3600, 60, 1)
         ):
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
-            metrics.incr.assert_called_once_with("issues.issue.dropped")
+            metrics.incr.assert_called_once_with("issues.issue.dropped.rate_limiting")
+
+    def test_noise_reduction(self) -> None:
+        with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
+
+            @dataclass(frozen=True)
+            class TestGroupType(GroupType):
+                type_id = 1
+                slug = "test"
+                description = "Test"
+                category = GroupCategory.PROFILE.value
+                noise_config = NoiseConfig(ignore_limit=2)
+
+            event = self.store_event(data={}, project_id=self.project.id)
+            occurrence = self.build_occurrence(type=TestGroupType.type_id)
+            with mock.patch("sentry.issues.ingest.metrics") as metrics:
+                assert save_issue_from_occurrence(occurrence, event, None) is None
+                metrics.incr.assert_called_once_with("issues.issue.dropped.noise_reduction")
+
+            new_event = self.store_event(data={}, project_id=self.project.id)
+            new_occurrence = self.build_occurrence(type=TestGroupType.type_id)
+            group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+            assert group_info is not None
 
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
@@ -153,12 +229,12 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
         assert _create_issue_kwargs(occurrence, event, None) == {
             "platform": event.platform,
             "message": event.search_message,
-            "level": LOG_LEVELS_MAP.get(event.data["level"]),
-            "culprit": occurrence.subtitle,
+            "level": LOG_LEVELS_MAP.get(occurrence.level),
+            "culprit": occurrence.culprit,
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,
-            "type": occurrence.type.value,
+            "type": occurrence.type.type_id,
             "first_release": None,
             "data": materialize_metadata(occurrence, event),
         }
@@ -170,9 +246,8 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
         event = self.store_event(data={}, project_id=self.project.id)
         assert materialize_metadata(occurrence, event) == {
             "type": "default",
-            # Not totally sure if this makes sense?
-            "culprit": occurrence.subtitle,
-            "metadata": {"title": occurrence.issue_title},
+            "culprit": occurrence.culprit,
+            "metadata": {"title": occurrence.issue_title, "value": occurrence.subtitle},
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": event.datetime,
@@ -182,8 +257,10 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
 @region_silo_test
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
-        event_data = load_data("generic-event")
-        event = self.store_event(data=event_data, project_id=self.project.id)
+        event_data = load_data("generic-event-profiling").data
+        project_id = event_data["event"].pop("project_id")
+        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None

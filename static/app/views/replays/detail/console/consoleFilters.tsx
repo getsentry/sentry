@@ -1,4 +1,4 @@
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
@@ -28,7 +28,7 @@ function Filters({
         onChange={selected => setLogLevel(selected.map(_ => _.value))}
         size="sm"
         value={logLevel}
-        isDisabled={!logLevels.length}
+        disabled={!logLevels.length}
       />
       <SearchBar
         onChange={setSearchTerm}

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List, Mapping, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Tuple
 
 from sentry_sdk import set_tag, set_user
 
@@ -14,7 +14,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
@@ -29,6 +29,42 @@ if TYPE_CHECKING:
     from sentry.integrations.base import IntegrationInstallation
 
 
+def process_error(error: ApiError, extra: Dict[str, str]) -> None:
+    """Log known issues and report unknown ones"""
+    msg = error.text
+    if error.json:
+        json_data: JSONData = error.json
+        msg = json_data.get("message")
+    extra["error"] = msg
+
+    if msg == "Not Found":
+        logger.warning("The org has uninstalled the Sentry App.", extra=extra)
+        return
+    elif msg == "This installation has been suspended":
+        logger.warning("The org has suspended the Sentry App.", extra=extra)
+        return
+    elif msg == "Server Error":
+        logger.warning("Github failed to respond.", extra=extra)
+        return
+    elif msg.startswith("Although you appear to have the correct authorization credentials"):
+        # Although you appear to have the correct authorization credentials, the
+        # <github_org_here> organization has an IP allow list enabled, and
+        # <ip_address_here> is not permitted to access this resource.
+        logger.warning("The org has suspended the Sentry App. See code comment.", extra=extra)
+        return
+    elif msg.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+        logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+        return
+
+    # Logging the exception and returning is better than re-raising the error
+    # Otherwise, API errors would not group them since the HTTPError in the stack
+    # has unique URLs, thus, separating the errors
+    logger.exception(
+        "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
+        extra=extra,
+    )
+
+
 @instrumented_task(  # type: ignore
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
@@ -39,7 +75,6 @@ if TYPE_CHECKING:
 def derive_code_mappings(
     project_id: int,
     data: NodeData,
-    dry_run=False,
 ) -> None:
     """
     Derive code mappings for a project given data from a recent event.
@@ -55,11 +90,11 @@ def derive_code_mappings(
     extra = {
         "organization.slug": org.slug,
     }
-    feat_key = "organizations:derive-code-mappings"
-    # Check the feature flag again to ensure the feature is still enabled.
-    org_has_flag = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
 
-    if not (dry_run or org_has_flag or data["platform"] not in SUPPORTED_LANGUAGES):
+    if (
+        not features.has("organizations:derive-code-mappings", org)
+        or not data["platform"] in SUPPORTED_LANGUAGES
+    ):
         logger.info("Event should not be processed.", extra=extra)
         return
 
@@ -80,33 +115,23 @@ def derive_code_mappings(
             # This method is specific to the GithubIntegration
             trees = installation.get_trees_for_org()  # type: ignore
     except ApiError as error:
-        msg = error.text
-        if error.json:
-            json_data: JSONData = error.json
-            msg = json_data.get("message")
-        extra["error"] = msg
-
-        if msg == "Not Found":
-            logger.warning("The org has uninstalled the Sentry App.", extra=extra)
-            return
-
-        raise error  # Let's report the issue
+        process_error(error, extra)
+        return
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
         # This will cause the auto-retry logic to try again
         raise error
+    except Exception:
+        logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
+        return
 
     if not trees:
-        logger.error("The tree is empty. Investigate.")
+        logger.warning("The trees are empty.")
         return
 
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    if dry_run:
-        report_project_codemappings(code_mappings, stacktrace_paths, project)
-        return
-
     set_project_codemappings(code_mappings, organization_integration, project)
 
 
@@ -144,7 +169,7 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
 
 def get_installation(
     organization: Organization,
-) -> Tuple[IntegrationInstallation | None, APIOrganizationIntegration | None]:
+) -> Tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
     integration, organization_integration = integration_service.get_organization_context(
         organization_id=organization.id, provider="github"
     )
@@ -201,29 +226,3 @@ def set_project_codemappings(
                     "existing_code_mapping": cm,
                 },
             )
-
-
-def report_project_codemappings(
-    code_mappings: List[CodeMapping],
-    stacktrace_paths: List[str],
-    project: Project,
-) -> None:
-    """
-    Log the code mappings that would be created for a project.
-    """
-    extra = {
-        "org": project.organization.slug,
-        "project": project.slug,
-        "code_mappings": code_mappings,
-        "stacktrace_paths": stacktrace_paths,
-    }
-    if code_mappings:
-        msg = "Code mappings would have been created."
-    else:
-        msg = "NO code mappings would have been created."
-    existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
-    if existing_code_mappings.exists():
-        msg = "Code mappings already exist."
-        extra["existing_code_mappings"] = existing_code_mappings
-
-    logger.info(msg, extra=extra)

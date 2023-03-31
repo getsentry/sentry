@@ -1,9 +1,9 @@
 import copy
 from unittest import mock
-from uuid import uuid4
 
+import pytest
 from django.core import mail
-from django.db import models
+from django.db import ProgrammingError, models, transaction
 
 from sentry import audit_log
 from sentry.api.base import ONE_DAY
@@ -33,9 +33,12 @@ from sentry.models import (
     ReleaseFile,
     Team,
     User,
+    UserOption,
 )
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
@@ -173,7 +176,7 @@ class OrganizationTest(TestCase):
 
         assert OrganizationAvatar.objects.filter(id=from_avatar.id, organization=to_org).exists()
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=to_org
+            integration=integration, organization_id=to_org.id
         ).exists()
 
     def test_get_default_owner(self):
@@ -189,6 +192,13 @@ class OrganizationTest(TestCase):
     def test_default_owner_id_no_owner(self):
         org = self.create_organization()
         assert org.default_owner_id is None
+
+    def test_default_owner_id_only_owner_through_team(self):
+        user = self.create_user("foo@example.com")
+        org = self.create_organization()
+        owner_team = self.create_team(organization=org, org_role="owner")
+        self.create_member(organization=org, user=user, teams=[owner_team])
+        assert org.default_owner_id == user.id
 
     @mock.patch.object(
         Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
@@ -300,15 +310,11 @@ class Require2fa(TestCase):
             return self.create_user("")
         return self.create_user()
 
-    def _create_user_and_member(self, has_2fa=False, has_user_email=True, has_member_email=False):
+    def _create_user_and_member(self, has_2fa=False, has_user_email=True):
         user = self._create_user(has_email=has_user_email)
         if has_2fa:
             TotpInterface().enroll(user)
-        if has_member_email:
-            email = uuid4().hex
-            member = self.create_member(organization=self.org, user=user, email=email)
-        else:
-            member = self.create_member(organization=self.org, user=user)
+        member = self.create_member(organization=self.org, user=user)
         return user, member
 
     def is_organization_member(self, user_id, member_id):
@@ -320,7 +326,8 @@ class Require2fa(TestCase):
 
     def is_pending_organization_member(self, user_id, member_id, was_booted=True):
         member = OrganizationMember.objects.get(id=member_id)
-        assert User.objects.filter(id=user_id).exists()
+        if user_id:
+            assert User.objects.filter(id=user_id).exists()
         assert member.is_pending
         assert member.email
         if was_booted:
@@ -344,7 +351,9 @@ class Require2fa(TestCase):
         assert mail.outbox[0].to == [non_compliant_user.email]
 
         audit_logs = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         )
         assert audit_logs.count() == 1
         assert audit_logs[0].data["email"] == non_compliant_user.email
@@ -364,7 +373,9 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).exists()
 
     def test_handle_2fa_required__non_compliant_members(self):
@@ -381,46 +392,30 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == len(non_compliant)
         assert AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).count() == len(non_compliant)
 
     def test_handle_2fa_required__pending_member__ok(self):
-        user, member = self._create_user_and_member(has_member_email=True)
-        member.user = None
-        member.save()
+        member = self.create_member(organization=self.org, email="bob@zombo.com")
+        assert not member.user
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.org.handle_2fa_required(self.request)
-        self.is_pending_organization_member(user.id, member.id, was_booted=False)
+        self.is_pending_organization_member(user_id=None, member_id=member.id, was_booted=False)
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).exists()
-
-    @mock.patch("sentry.tasks.auth.logger")
-    def test_handle_2fa_required__no_user_email__ok(self, auth_log):
-        user, member = self._create_user_and_member(has_user_email=False, has_member_email=True)
-        assert not user.email
-        assert member.email
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.org.handle_2fa_required(self.request)
-
-        self.is_pending_organization_member(user.id, member.id)
-
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == [member.email]
-
-        assert not auth_log.warning.called
-        auth_log.info.assert_called_with(
-            "2FA noncompliant user removed from org",
-            extra={"organization_id": self.org.id, "user_id": user.id, "member_id": member.id},
-        )
 
     @mock.patch("sentry.tasks.auth.logger")
     def test_handle_2fa_required__no_email__warning(self, auth_log):
         user, member = self._create_user_and_member(has_user_email=False)
+        assert not user.has_2fa()
         assert not user.email
         assert not member.email
 
@@ -439,7 +434,7 @@ class Require2fa(TestCase):
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             api_key = ApiKey.objects.create(
-                organization=self.org,
+                organization_id=self.org.id,
                 scope_list=["org:read", "org:write", "member:read", "member:write"],
             )
             request = copy.deepcopy(self.request)
@@ -452,7 +447,7 @@ class Require2fa(TestCase):
         assert (
             AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("MEMBER_PENDING"),
-                organization=self.org,
+                organization_id=self.org.id,
                 actor=None,
                 actor_key=api_key,
             ).count()
@@ -473,7 +468,7 @@ class Require2fa(TestCase):
         assert (
             AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("MEMBER_PENDING"),
-                organization=self.org,
+                organization_id=self.org.id,
                 actor=self.owner,
                 actor_key=None,
                 ip_address=None,
@@ -488,6 +483,9 @@ class Require2fa(TestCase):
 
     def test_send_delete_confirmation_system_audit(self):
         org = self.create_organization(owner=self.user)
+        user = self.create_user("bar@example.com")
+        owner_team = self.create_team(organization=org, org_role="owner")
+        self.create_member(organization=org, user=user, teams=[owner_team])
         audit_entry = create_system_audit_entry(
             organization=org,
             target_object=org.id,
@@ -496,8 +494,9 @@ class Require2fa(TestCase):
         )
         with self.tasks():
             org.send_delete_confirmation(audit_entry, ONE_DAY)
-        assert len(mail.outbox) == 1
+        assert len(mail.outbox) == 2
         assert "User: Sentry" in mail.outbox[0].body
+        assert "User: Sentry" in mail.outbox[1].body
 
     def test_absolute_url_no_customer_domain(self):
         org = self.create_organization(owner=self.user, slug="acme")
@@ -518,3 +517,32 @@ class Require2fa(TestCase):
 
         url = org.absolute_url("/organizations/acme/issues/", query="?project=123", fragment="#ref")
         assert url == "http://acme.testserver/issues/?project=123#ref"
+
+
+@region_silo_test
+class OrganizationDeletionTest(TestCase):
+    def test_cannot_delete_with_queryset(self):
+        org = self.create_organization()
+        assert Organization.objects.exists()
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            Organization.objects.filter(id=org.id).delete()
+        assert Organization.objects.exists()
+
+    def test_hybrid_cloud_deletion(self):
+        org = self.create_organization()
+        user = self.create_user()
+        UserOption.objects.set_value(user, "cool_key", "Hello!", organization_id=org.id)
+        org_id = org.id
+
+        with outbox_runner():
+            org.delete()
+
+        assert not Organization.objects.filter(id=org_id).exists()
+
+        # cascade is asynchronous, ensure there is still related search,
+        assert UserOption.objects.filter(organization_id=org_id).exists()
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        # Ensure they are all now gone.
+        assert not UserOption.objects.filter(organization_id=org_id).exists()

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -12,13 +12,14 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -149,16 +150,21 @@ function SpansContent(props: Props) {
             >
               {({suspectSpans, isLoading, pageLinks}) => (
                 <Fragment>
-                  <SuspectSpansTable
-                    location={location}
-                    organization={organization}
-                    transactionName={transactionName}
-                    project={projects.find(p => p.id === projectId)}
-                    isLoading={isLoading}
-                    suspectSpans={suspectSpans ?? []}
-                    totals={totals}
-                    sort={sort.field}
-                  />
+                  <VisuallyCompleteWithData
+                    id="TransactionSpans-SuspectSpansTable"
+                    hasData={!!suspectSpans?.length}
+                  >
+                    <SuspectSpansTable
+                      location={location}
+                      organization={organization}
+                      transactionName={transactionName}
+                      project={projects.find(p => p.id === projectId)}
+                      isLoading={isLoading}
+                      suspectSpans={suspectSpans ?? []}
+                      totals={totals}
+                      sort={sort.field}
+                    />
+                  </VisuallyCompleteWithData>
                   <Pagination pageLinks={pageLinks ?? null} />
                 </Fragment>
               )}

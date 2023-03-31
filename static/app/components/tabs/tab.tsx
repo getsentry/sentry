@@ -8,7 +8,7 @@ import {Node, Orientation} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {tabsShouldForwardProp} from './utils';
 

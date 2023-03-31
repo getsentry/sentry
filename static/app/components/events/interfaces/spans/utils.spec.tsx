@@ -1,4 +1,6 @@
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {
+  formatSpanTreeLabel,
   getCumulativeAlertLevelFromErrors,
   getFormattedTimeRangeWithLeadingAndTrailingZero,
 } from 'sentry/components/events/interfaces/spans/utils';
@@ -33,6 +35,46 @@ describe('test utility functions', function () {
     );
     expect(result.start).toEqual('1658925888.601534');
     expect(result.end).toEqual('1658925888.601935');
+  });
+});
+
+describe('formatSpanTreeLabel', () => {
+  it('returns the span id if description is missing', () => {
+    expect(
+      formatSpanTreeLabel({
+        span_id: 'ba4e7d11',
+      } as RawSpanType)
+    ).toBe('ba4e7d11');
+  });
+
+  it('returns the description for database spans', () => {
+    expect(
+      formatSpanTreeLabel({
+        op: 'db',
+        description: 'SELECT * FROM books',
+      } as RawSpanType)
+    ).toBe('SELECT * FROM books');
+  });
+
+  it('decodes the URL for http spans', () => {
+    expect(
+      formatSpanTreeLabel({
+        op: 'http.client',
+        description: 'GET /items?query=hello%20world',
+      } as RawSpanType)
+    ).toBe('GET /items?query=hello world');
+  });
+
+  it('returns the description for gap spans', () => {
+    expect(
+      formatSpanTreeLabel({
+        isOrphan: false,
+        start_timestamp: 0,
+        timestamp: 0,
+        type: 'gap',
+        description: 'Missing instrumentation',
+      })
+    ).toBe('Missing instrumentation');
   });
 });
 

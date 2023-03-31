@@ -1,15 +1,16 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import isEmpty from 'lodash/isEmpty';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
+import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Event, IssueAttachment, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
@@ -20,7 +21,7 @@ type Props = {
   project: Project;
 };
 
-function EventViewHierarchy({project, event}: Props) {
+function EventViewHierarchyContent({event, project}: Props) {
   const organization = useOrganization();
 
   const {data: attachments} = useFetchEventAttachments(
@@ -36,7 +37,7 @@ function EventViewHierarchy({project, event}: Props) {
   const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
 
   // There should be only one view hierarchy
-  const {isLoading, data} = useQuery<string>(
+  const {isLoading, data} = useApiQuery<string>(
     [
       defined(hierarchyMeta)
         ? getAttachmentUrl({
@@ -77,13 +78,29 @@ function EventViewHierarchy({project, event}: Props) {
   return (
     <EventDataSection
       type="view_hierarchy"
-      title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
+      title={
+        <Fragment>
+          {t('View Hierarchy')}
+
+          <FeatureBadge type="new" />
+        </Fragment>
+      }
     >
       <ErrorBoundary mini>
         <ViewHierarchy viewHierarchy={hierarchy} project={project} />
       </ErrorBoundary>
     </EventDataSection>
   );
+}
+
+function EventViewHierarchy(props: Props) {
+  const organization = useOrganization();
+
+  if (!organization.features.includes('event-attachments')) {
+    return null;
+  }
+
+  return <EventViewHierarchyContent {...props} />;
 }
 
 export {EventViewHierarchy};

@@ -7,7 +7,7 @@ import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyS
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 

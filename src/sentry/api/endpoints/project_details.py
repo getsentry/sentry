@@ -27,7 +27,7 @@ from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, ge
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import (
+from sentry.lang.native.sources import (
     InvalidSourcesError,
     parse_backfill_sources,
     parse_sources,
@@ -127,6 +127,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
+    performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -383,7 +384,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
             include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
             if include_rules and is_active_superuser(request):
-                data["dynamicSamplingRules"] = generate_rules(project)
+                data["dynamicSamplingRules"] = {
+                    "rules": [],
+                    "rulesV2": generate_rules(project),
+                }
         else:
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None
@@ -476,11 +480,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("isBookmarked"):
             try:
                 with transaction.atomic():
-                    ProjectBookmark.objects.create(project_id=project.id, user=request.user)
+                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
                 pass
         elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user=request.user).delete()
+            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
 
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
@@ -545,7 +549,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("safeFields") is not None:
             if project.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
-        if "storeCrashReports" in result is not None:
+        if result.get("storeCrashReports") is not None:
             if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
                 if result["storeCrashReports"] is None:
@@ -615,6 +619,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
                     "performanceIssueCreationRate"
                 ]
+        if "performanceIssueSendToPlatform" in result:
+            if project.update_option(
+                "sentry:performance_issue_send_to_issues_platform",
+                result["performanceIssueCreationThroughPlatform"],
+            ):
+                changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
+                    "performanceIssueCreationThroughPlatform"
+                ]
+        if "performanceIssueCreationThroughPlatform" in result:
+            if project.update_option(
+                "sentry:performance_issue_create_issue_through_platform",
+                result["performanceIssueCreationThroughPlatform"],
+            ):
+                changed_proj_settings[
+                    "sentry:performance_issue_create_issue_through_platform"
+                ] = result["performanceIssueCreationThroughPlatform"]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})
@@ -691,6 +711,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "sentry:reprocessing_active",
                     bool(options["sentry:reprocessing_active"]),
+                )
+            if "filters:react-hydration-errors" in options:
+                project.update_option(
+                    "filters:react-hydration-errors",
+                    bool(options["filters:react-hydration-errors"]),
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(

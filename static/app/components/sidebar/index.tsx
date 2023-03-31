@@ -6,7 +6,6 @@ import {Location} from 'history';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -20,6 +19,7 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
+  IconStar,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -32,7 +32,7 @@ import HookStore from 'sentry/stores/hookStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
@@ -48,11 +48,6 @@ import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
-
-const SidebarOverride = HookOrDefault({
-  hookName: 'sidebar:item-override',
-  defaultComponent: ({children}) => <Fragment>{children({})}</Fragment>,
-});
 
 type Props = {
   location?: Location;
@@ -183,18 +178,29 @@ function Sidebar({location, organization}: Props) {
       features={['performance-view']}
       organization={organization}
     >
-      <SidebarOverride id="performance-override">
-        {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
-          <SidebarItem
-            {...sidebarItemProps}
-            icon={<IconLightning size="md" />}
-            label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-            to={`/organizations/${organization.slug}/performance/`}
-            id="performance"
-            {...overideProps}
-          />
-        )}
-      </SidebarOverride>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconLightning size="md" />}
+        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/performance/`}
+        id="performance"
+      />
+    </Feature>
+  );
+
+  const starfish = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:starfish-view"
+      features={['starfish-view']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconStar size="md" />}
+        label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/starfish/`}
+        id="starfish"
+      />
     </Feature>
   );
 
@@ -242,14 +248,19 @@ function Sidebar({location, organization}: Props) {
   );
 
   const replays = hasOrganization && (
-    <Feature features={['session-replay-ui']} organization={organization}>
+    <Feature
+      hookName="feature-disabled:replay-sidebar-item"
+      features={['session-replay-ui']}
+      organization={organization}
+      requireAll={false}
+    >
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconPlay size="md" />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
-        isBeta
+        isNew
       />
     </Feature>
   );
@@ -334,6 +345,7 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {performance}
+                {starfish}
                 {profiling}
                 {replays}
                 {monitors}

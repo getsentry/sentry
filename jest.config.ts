@@ -19,6 +19,8 @@ const {
   GITHUB_RUN_ATTEMPT,
 } = process.env;
 
+const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
+
 const BALANCE_RESULTS_PATH = path.resolve(
   __dirname,
   'tests',
@@ -203,7 +205,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['copy-text-to-clipboard'];
+const ESM_NODE_MODULES = [];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -247,7 +249,11 @@ const config: Config.InitialOptions = {
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
-  transformIgnorePatterns: [`/node_modules/(?!${ESM_NODE_MODULES.join('|')})`],
+  transformIgnorePatterns: [
+    ESM_NODE_MODULES.length
+      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      : '/node_modules/',
+  ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
@@ -272,8 +278,9 @@ const config: Config.InitialOptions = {
       init: {
         // jest project under Sentry organization (dev productivity team)
         dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
-        environment: CI ? 'ci' : 'local',
-        tracesSampleRate: 1,
+        // Use production env to reduce sampling of commits on master
+        environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
+        tracesSampleRate: CI ? 1 : 0.5,
         profilesSampleRate: 0.1,
         transportOptions: {keepAlive: true},
       },

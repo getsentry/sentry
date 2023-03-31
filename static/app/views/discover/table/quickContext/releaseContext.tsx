@@ -9,10 +9,10 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ReleaseWithHealth, User} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {NoContext} from './quickContextWrapper';
 import {
@@ -27,7 +27,7 @@ import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
-  const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
+  const {isLoading, isError, data} = useApiQuery<ReleaseWithHealth>(
     [`/organizations/${organization.slug}/releases/${dataRow.release}/`],
     {
       staleTime: tenSecondInMs,
@@ -44,7 +44,7 @@ function ReleaseContext(props: BaseContextProps) {
   const getCommitAuthorTitle = () => {
     const user = ConfigStore.get('user');
     const commitCount = data?.commitCount || 0;
-    let authorsCount = data?.authors.length || 0;
+    let authorsCount = data?.authors?.length || 0;
 
     const userInAuthors =
       data &&

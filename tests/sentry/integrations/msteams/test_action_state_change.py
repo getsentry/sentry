@@ -43,7 +43,9 @@ class BaseEventTest(APITestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
+        OrganizationIntegration.objects.create(
+            organization_id=self.org.id, integration=self.integration
+        )
 
         self.idp = IdentityProvider.objects.create(
             type="msteams", external_id="f3ll0wsh1p", config={}
@@ -178,7 +180,7 @@ class StatusActionTest(BaseEventTest):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_ignore_issue_with_additional_user_auth(self, verify):
-        auth_idp = AuthProvider.objects.create(organization=self.org, provider="nobody")
+        auth_idp = AuthProvider.objects.create(organization_id=self.org.id, provider="nobody")
         AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         resp = self.post_webhook(action_type=ACTION_TYPE.IGNORE, ignore_input="-1")
@@ -221,7 +223,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_type=ACTION_TYPE.ASSIGN, assign_input="ME")
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
         assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
@@ -241,7 +243,7 @@ class StatusActionTest(BaseEventTest):
         )
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "user_conversation_id" in responses.calls[0].request.url
@@ -255,7 +257,7 @@ class StatusActionTest(BaseEventTest):
         )
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "some_channel_id" in responses.calls[0].request.url
@@ -276,7 +278,7 @@ class StatusActionTest(BaseEventTest):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        OrganizationIntegration.objects.create(organization=org2, integration=integration2)
+        OrganizationIntegration.objects.create(organization_id=org2.id, integration=integration2)
 
         idp2 = IdentityProvider.objects.create(type="msteams", external_id="54rum4n", config={})
         Identity.objects.create(
@@ -290,7 +292,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_type=ACTION_TYPE.ASSIGN, assign_input="ME")
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -315,12 +317,12 @@ class StatusActionTest(BaseEventTest):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_unassign_issue(self, verify):
-        GroupAssignee.objects.create(group=self.group1, project=self.project1, user=self.user)
+        GroupAssignee.objects.create(group=self.group1, project=self.project1, user_id=self.user.id)
         resp = self.post_webhook(action_type=ACTION_TYPE.UNASSIGN, resolve_input="resolved")
         self.group1 = Group.objects.get(id=self.group1.id)
 
         assert resp.status_code == 200, resp.content
-        assert not GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert not GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
         assert b"Assign" in responses.calls[0].request.body
 
     @responses.activate

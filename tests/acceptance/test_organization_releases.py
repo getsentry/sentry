@@ -6,7 +6,7 @@ from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleasesTest(AcceptanceTestCase):
     release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
 

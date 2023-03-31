@@ -280,6 +280,7 @@ export function Entries() {
               name: '',
               current: true,
               crashed: true,
+              state: 'RUNNABLE',
               raw_stacktrace: {
                 frames: [
                   {
@@ -477,41 +478,48 @@ export function Entries() {
               crashed: false,
               id: 1,
               name: '',
+              state: 'BLOCKED',
             },
             {
               current: false,
               crashed: false,
               id: 2,
+              state: 'WAITING',
               name: '',
             },
             {
               current: false,
               crashed: false,
               id: 3,
+              state: 'WAITING',
               name: 'com.apple.uikit.eventfetch-thread',
             },
             {
               current: false,
               crashed: false,
               id: 4,
+              state: 'WAITING',
               name: '',
             },
             {
               current: false,
               crashed: false,
               id: 5,
+              state: 'WAITING',
               name: '',
             },
             {
               current: false,
               crashed: false,
               id: 6,
+              state: 'WAITING',
               name: '',
             },
             {
               current: false,
               crashed: false,
               id: 7,
+              state: 'WAITING',
               name: 'com.apple.NSURLConnectionLoader',
             },
           ],

@@ -406,6 +406,7 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
   [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
+  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
 };
 
 /**
@@ -478,6 +479,11 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     color: colors.white,
   },
   new: {
+    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
+    indicatorColor: colors.green300,
+    color: colors.white,
+  },
+  experimental: {
     background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
     indicatorColor: colors.green300,
     color: colors.white,
@@ -737,6 +743,7 @@ const commonTheme = {
   borderRadiusRight: '0 6px 6px 0',
 
   panelBorderRadius: '6px',
+  modalBorderRadius: '8px',
   linkBorderRadius: '2px',
 
   headerSelectorRowHeight: 44,
@@ -776,8 +783,8 @@ const commonTheme = {
   },
 
   text: {
-    family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
+    family: "'Rubik', 'Avenir Next', sans-serif",
+    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
     pageTitle: {

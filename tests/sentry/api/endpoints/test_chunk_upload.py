@@ -48,6 +48,20 @@ class ChunkUploadTest(APITestCase):
 
         assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
 
+    def test_accept_with_feature_flag_enabled_and_disabled(self):
+        with self.feature({"organizations:artifact-bundles": False}):
+            response = self.client.get(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
+            )
+            assert "artifact_bundles" not in response.data["accept"]
+
+        # This currently should not flip the flag!
+        with self.feature({"organizations:artifact-bundles": True}):
+            response = self.client.get(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
+            )
+            assert "artifact_bundles" not in response.data["accept"]
+
     def test_relative_url_support(self):
         # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls
 

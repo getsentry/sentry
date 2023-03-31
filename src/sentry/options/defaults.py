@@ -1,7 +1,10 @@
+import os
+
 from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
+    FLAG_MODIFIABLE_BOOL,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -14,6 +17,7 @@ from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 # register('cache.backend', flags=FLAG_NOSTORE)
 # register('cache.options', type=Dict, flags=FLAG_NOSTORE)
 
+
 # System
 register("system.admin-email", flags=FLAG_REQUIRED)
 register("system.support-email", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -23,26 +27,48 @@ register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 register("system.rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.event-retention-days", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
-# Absolute URL to the sentry root directory. Should not include a trailing slash.
-register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
-register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-register(
-    "system.organization-base-hostname",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-register(
-    "system.organization-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
-)
-register(
-    "system.region-api-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
-)
-register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK)
 register("system.maximum-file-size", default=2**31, flags=FLAG_PRIORITIZE_DISK)
+
+# URL configuration
+# Absolute URL to the sentry root directory. Should not include a trailing slash.
+register(
+    "system.url-prefix",
+    ttl=60,
+    grace=3600,
+    default=os.environ.get("SENTRY_SYSTEM_URL_PREFIX"),
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
+)
+register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+# Base hostname that account domains are subdomains of.
+register(
+    "system.base-hostname",
+    default=os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# The template for organization subdomain hostnames.
+register(
+    "system.organization-base-hostname",
+    default=os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# Template for organization URL including protocol
+register(
+    "system.organization-url-template",
+    default=os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# Template for region based API URL
+register(
+    "system.region-api-url-template",
+    default=os.environ.get("SENTRY_REGION_API_URL_TEMPLATE"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# The region that this instance is currently running in.
+register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 
 # Redis
 register(
@@ -186,6 +212,32 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Replay Options
+#
+# Replay storage backend configuration (only applicable if the direct-storage driver is used)
+register("replay.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "replay.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+# The sample rate at which to allow direct-storage access.  This is deterministic sampling based
+# on organization-id.
+register(
+    "replay.storage.direct-storage-sample-rate",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+# The sample rate at which to allow dom-click-search.
+register(
+    "replay.ingest.dom-click-search",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -302,6 +354,10 @@ register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, defaul
 register("symbolicator.minidump-refactor-projects-opt-out", type=Sequence, default=[])  # unused
 register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unused
 
+# Enable use of Symbolicator Source Maps processing for specific projects.
+register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[])
+# Enable use of Symbolicator Source Maps processing for fraction of projects.
+register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -373,6 +429,9 @@ register("store.reprocessing-force-disable", default=False)
 
 register("store.race-free-group-creation-force-disable", default=False)
 
+# Option to enable dart deobfuscation on ingest
+register("processing.view-hierarchies-dart-deobfuscation", default=0.0)
+
 
 # ## sentry.killswitches
 #
@@ -386,6 +445,7 @@ register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 register("store.symbolicate-event-lpq-never", type=Sequence, default=[])
 register("store.symbolicate-event-lpq-always", type=Sequence, default=[])
 register("post_process.get-autoassign-owners", type=Sequence, default=[])
+register("api.organization.disable-last-deploys", type=Sequence, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
@@ -418,11 +478,6 @@ register("relay.drop-transaction-metrics", default=[])
 
 # [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
-
-# Sample rate for opting in orgs into the new transaction name handling.
-# old behavior: Treat transactions from old SDKs as high-cardinality.
-# new behavior: Treat transactions from old SDKs as low-cardinality, except for browser JS.
-register("relay.transaction-names-client-based", default=0.0)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True)
@@ -557,6 +612,11 @@ register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", defa
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
+register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
+
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
@@ -576,6 +636,7 @@ register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 register("performance.issues.file_io_main_thread.problem-creation", default=0.0)
+register("performance.issues.db_main_thread.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_api_calls.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_api_calls.la-rollout", default=0.0)
 register("performance.issues.n_plus_one_api_calls.ea-rollout", default=0.0)
@@ -588,6 +649,10 @@ register("performance.issues.render_blocking_assets.problem-creation", default=0
 register("performance.issues.render_blocking_assets.la-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ea-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ga-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.problem-creation", default=0.0)
+register("performance.issues.m_n_plus_one_db.la-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ea-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ga-rollout", default=0.0)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
@@ -598,18 +663,28 @@ register("performance.issues.render_blocking_assets.fcp_maximum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
+# System-wide option for sending occurrences to the issues platform
+register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
+
+# System-wide option for performance issue creation through issues platform
+register(
+    "performance.issues.create_issues_through_platform",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL,
+)
+
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
 register("dynamic-sampling:enabled-biases", default=True)
 # System-wide options that observes latest releases on transactions and caches these values to be used later in
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
-
-# Killswitch for deriving code mappings
-register("post_process.derive-code-mappings", default=True)
-# Allows adjusting the percentage of orgs we test under the dry run mode
-register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
-register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)
-# Allows adjusting the GA percentage
-register("derive-code-mappings.general-availability-rollout", default=0.0)
+register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
+# controls how many orgs will be queried by the prioritise by transaction task
+# 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
+register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
+# the number of large transactions to retrieve from Snuba for transaction re-balancing
+register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions", 30)
+# the number of large transactions to retrieve from Snuba for transaction re-balancing
+register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
 register("hybrid_cloud.outbox_rate", default=0.0)

@@ -16,6 +16,7 @@ type Props = ViewProps & {
   location: Location;
   organization: OrganizationSummary;
   queryExtras?: Record<string, string>;
+  totalCount?: number | null;
 };
 
 function LatencyChart({currentFilter, ...props}: Props) {

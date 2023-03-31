@@ -19,6 +19,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
+from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
@@ -77,7 +78,7 @@ class AuthLoginView(BaseView):
             return None
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             return None
 
@@ -125,7 +126,7 @@ class AuthLoginView(BaseView):
         return self.respond("sentry/login.html", context)
 
     def _handle_login(self, request: Request, user, organization: Optional[Organization]):
-        login(request, user, organization_id=organization.id if organization else None)
+        login(request, user, organization_id=coerce_id_from(organization))
         self.determine_active_organization(request)
 
     def handle_basic_auth(self, request: Request, **kwargs):
@@ -145,9 +146,10 @@ class AuthLoginView(BaseView):
             ]
             # Only redirect if the URL is not register or login paths.
             if request.path_info not in urls:
-                url = urls[0]
                 url_prefix = generate_organization_url(request.subdomain)
-                url = absolute_uri(url, url_prefix=url_prefix)
+                url = absolute_uri(urls[0], url_prefix=url_prefix)
+                if request.GET:
+                    url = f"{url}?{request.GET.urlencode()}"
                 return HttpResponseRedirect(url)
 
         can_register = self.can_register(request)
@@ -252,13 +254,15 @@ class AuthLoginView(BaseView):
 
                         if settings.SENTRY_SINGLE_ORGANIZATION:
                             om = organization_service.check_membership_by_email(
-                                org_context.organization.id, user.email
+                                organization_id=org_context.organization.id, email=user.email
                             )
+
                             if om is None:
+                                om = organization_service.check_membership_by_id(
+                                    organization_id=org_context.organization.id, user_id=user.id
+                                )
+                            if om is None or om.user_id is None:
                                 request.session.pop("_next", None)
-                            else:
-                                if om.user_id is None:
-                                    request.session.pop("_next", None)
 
                 # On login, redirect to onboarding
                 if self.active_organization:

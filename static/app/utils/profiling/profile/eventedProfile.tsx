@@ -1,19 +1,22 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {formatTo} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
 export class EventedProfile extends Profile {
-  appendOrderStack: CallTreeNode[] = [this.appendOrderTree];
+  calltree: CallTreeNode[] = [this.callTree];
   stack: Frame[] = [];
 
   lastValue = 0;
+  samplingIntervalApproximation = 0;
 
   static FromProfile(
     eventedProfile: Profiling.EventedProfile,
-    frameIndex: ReturnType<typeof createFrameIndex>
+    frameIndex: ReturnType<typeof createFrameIndex>,
+    options: {type: 'flamechart' | 'flamegraph'}
   ): EventedProfile {
     const profile = new EventedProfile({
       duration: eventedProfile.endValue - eventedProfile.startValue,
@@ -22,11 +25,17 @@ export class EventedProfile extends Profile {
       name: eventedProfile.name,
       unit: eventedProfile.unit,
       threadId: eventedProfile.threadID,
+      type: options.type,
     });
 
     // If frames are offset, we need to set lastValue to profile start, so that delta between
     // samples is correctly offset by the start value.
     profile.lastValue = Math.max(0, eventedProfile.startValue);
+    profile.samplingIntervalApproximation = formatTo(
+      10,
+      'milliseconds',
+      eventedProfile.unit
+    );
 
     for (const event of eventedProfile.events) {
       const frame = frameIndex[event.frame];
@@ -52,32 +61,60 @@ export class EventedProfile extends Profile {
       }
     }
 
-    return profile.build();
+    const built = profile.build();
+
+    // The way the samples are constructed assumes that the trees are always appended to the
+    // calltree. This is not the case for flamegraphs where nodes are mutated in place.
+    // Because that assumption is invalidated with flamegraphs, we need to filter
+    // out duplicate samples and their weights.
+    if (options.type === 'flamegraph') {
+      const visited = new Set();
+      const samples: CallTreeNode[] = [];
+      const weights: number[] = [];
+
+      for (let i = 0; i < built.samples.length; i++) {
+        const sample = built.samples[i];
+
+        if (visited.has(sample)) {
+          continue;
+        }
+
+        visited.add(sample);
+
+        samples.push(sample);
+        weights.push(sample.totalWeight);
+      }
+
+      built.samples = samples;
+      built.weights = weights;
+    }
+
+    return built;
   }
 
   addWeightToFrames(weight: number): void {
     const weightDelta = weight - this.lastValue;
 
     for (const frame of this.stack) {
-      frame.addToTotalWeight(weightDelta);
+      frame.totalWeight += weightDelta;
     }
 
     const top = lastOfArray(this.stack);
     if (top) {
-      top.addToSelfWeight(weight);
+      top.selfWeight += weight;
     }
   }
 
   addWeightsToNodes(value: number) {
     const delta = value - this.lastValue;
 
-    for (const node of this.appendOrderStack) {
-      node.addToTotalWeight(delta);
+    for (const node of this.calltree) {
+      node.totalWeight += delta;
     }
-    const stackTop = lastOfArray(this.appendOrderStack);
+    const stackTop = lastOfArray(this.calltree);
 
     if (stackTop) {
-      stackTop.addToSelfWeight(delta);
+      stackTop.selfWeight += delta;
     }
   }
 
@@ -85,7 +122,7 @@ export class EventedProfile extends Profile {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
 
-    const lastTop = lastOfArray(this.appendOrderStack);
+    const lastTop = lastOfArray(this.calltree);
 
     if (lastTop) {
       const sampleDelta = at - this.lastValue;
@@ -103,31 +140,46 @@ export class EventedProfile extends Profile {
         this.weights.push(sampleDelta);
       }
 
-      const last = lastOfArray(lastTop.children);
+      // If we are in flamegraph mode, we will look for any children of the current stack top
+      // that may contain the frame we are entering. If we find one, we will use that as the
+      // new stack top (this essentially makes it a graph). This does not apply flamecharts,
+      // where chronological order matters, in that case we can only look at the last child of the
+      // current stack top and use that as the new stack top if the frames match, else we create a new child
       let node: CallTreeNode;
 
-      if (last && !last.isLocked() && last.frame === frame) {
-        node = last;
+      if (this.type === 'flamegraph') {
+        const last = lastTop.children.find(c => c.frame === frame);
+        if (last) {
+          node = last;
+        } else {
+          node = new CallTreeNode(frame, lastTop);
+          lastTop.children.push(node);
+        }
       } else {
-        node = new CallTreeNode(frame, lastTop);
-        lastTop.children.push(node);
+        const last = lastOfArray(lastTop.children);
+        if (last && !last.isLocked() && last.frame === frame) {
+          node = last;
+        } else {
+          node = new CallTreeNode(frame, lastTop);
+          lastTop.children.push(node);
+        }
       }
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack with their respective indexes
       // We check the stack in a top-down order to find the first recursive frame.
-      let start = this.appendOrderStack.length - 1;
+      let start = this.calltree.length - 1;
       while (start >= 0) {
-        if (this.appendOrderStack[start].frame === node.frame) {
+        if (this.calltree[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          this.appendOrderStack[start].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(this.appendOrderStack[start]);
+          this.calltree[start].recursive = node;
+          node.recursive = this.calltree[start];
           break;
         }
         start--;
       }
 
-      this.appendOrderStack.push(node);
+      this.calltree.push(node);
     }
 
     this.stack.push(frame);
@@ -139,7 +191,7 @@ export class EventedProfile extends Profile {
     this.addWeightsToNodes(at);
     this.trackSampleStats(at);
 
-    const leavingStackTop = this.appendOrderStack.pop();
+    const leavingStackTop = this.calltree.pop();
 
     if (leavingStackTop === undefined) {
       throw new Error('Unbalanced stack');
@@ -150,6 +202,10 @@ export class EventedProfile extends Profile {
     // iterate over them again in the future.
     leavingStackTop.lock();
     const sampleDelta = at - this.lastValue;
+
+    leavingStackTop.count += Math.ceil(
+      leavingStackTop.totalWeight / this.samplingIntervalApproximation
+    );
 
     if (sampleDelta > 0) {
       this.samples.push(leavingStackTop);
@@ -163,7 +219,7 @@ export class EventedProfile extends Profile {
   }
 
   build(): EventedProfile {
-    if (this.appendOrderStack.length > 1) {
+    if (this.calltree.length > 1) {
       throw new Error('Unbalanced append order stack');
     }
 

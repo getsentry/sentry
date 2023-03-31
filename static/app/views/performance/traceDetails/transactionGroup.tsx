@@ -5,6 +5,11 @@ import {
   ScrollbarManagerChildrenProps,
   withScrollbarManager,
 } from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import {
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  VerticalMark,
+} from 'sentry/components/events/interfaces/spans/utils';
 import {Organization} from 'sentry/types';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
@@ -13,6 +18,7 @@ import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 type Props = ScrollbarManagerChildrenProps & {
   continuingDepths: TreeDepth[];
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   hasGuideAnchor: boolean;
   index: number;
   isLast: boolean;
@@ -24,6 +30,7 @@ type Props = ScrollbarManagerChildrenProps & {
   traceInfo: TraceInfo;
   transaction: TraceRoot | TraceFullDetailed;
   barColor?: string;
+  measurements?: Map<number, VerticalMark>;
 };
 
 type State = {
@@ -62,6 +69,8 @@ class TransactionGroup extends Component<Props, State> {
       addContentSpanBarRef,
       removeContentSpanBarRef,
       onWheel,
+      measurements,
+      generateBounds,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -70,6 +79,8 @@ class TransactionGroup extends Component<Props, State> {
         <TransactionBar
           location={location}
           organization={organization}
+          measurements={measurements}
+          generateBounds={generateBounds}
           index={index}
           transaction={transaction}
           traceInfo={traceInfo}

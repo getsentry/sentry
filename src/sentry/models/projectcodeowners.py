@@ -7,6 +7,7 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from sentry import analytics, features
 from sentry.db.models import (
     DefaultFieldsModel,
     FlexibleForeignKey,
@@ -14,6 +15,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.models.organization import Organization
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
 
@@ -85,7 +87,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
 
         return merged_code_owners
 
-    def update_schema(self, raw: str | None = None) -> None:
+    def update_schema(self, organization: Organization, raw: str | None = None) -> None:
         """
         Updating the schema goes through the following steps:
         1. parsing the original codeowner file to get the associations
@@ -93,11 +95,24 @@ class ProjectCodeOwners(DefaultFieldsModel):
         3. convert the ownership syntax to the schema
         """
         from sentry.api.validators.project_codeowners import validate_codeowners_associations
+        from sentry.utils.codeowners import HIGHER_MAX_RAW_LENGTH, MAX_RAW_LENGTH
 
         if raw and self.raw != raw:
             self.raw = raw
 
         if not self.raw:
+            return
+
+        has_higher_max_length = features.has(
+            "organizations:scaleable-codeowners-search", organization
+        )
+        max_length = HIGHER_MAX_RAW_LENGTH if has_higher_max_length else MAX_RAW_LENGTH
+        if len(self.raw) > max_length:
+            analytics.record(
+                "codeowners.max_length_exceeded",
+                organization_id=organization.id,
+            )
+            logger.warning({"raw": f"Raw needs to be <= {max_length} characters in length"})
             return
 
         associations, _ = validate_codeowners_associations(self.raw, self.project)
@@ -135,6 +150,7 @@ def process_resource_change(instance, change, **kwargs):
 
     autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
     GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
+    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
 
 # Signals update the cached reads used in post_processing

@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:28.666204Z'
+created: '2023-02-01T08:22:05.318316Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -53,7 +53,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glDeleteTextures_Exec"
           frame (non app frame)
@@ -71,7 +71,7 @@ app:
           frame (non app frame)
             function*
               "gpusSubmitDataBuffers"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gldCreateDevice"
           frame (non app frame)
@@ -80,7 +80,7 @@ app:
           frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -95,23 +95,23 @@ app:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "94d5c188bc82790c397f7f97d5239ee0"
+  hash: "9c336f632f6764c0f082a6a66edbf22d"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "thread.cpp"
             function*
               "boost::thread::start_thread_noexcept"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "thread_start"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "thread.cpp"
             function*
@@ -119,7 +119,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -127,7 +127,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -144,40 +144,40 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glDeleteTextures_Exec"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleUnbindDeleteHashNamesAndObjects"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleUnbindTextureObject"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gldUpdateDispatch"
           frame (ignored due to recursion)
             function*
               "gldUpdateDispatch"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gpusSubmitDataBuffers"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
             function*
               "gldCreateDevice"
-          frame*
+          frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

@@ -1,14 +1,13 @@
-from dataclasses import fields
-from typing import Optional
+from typing import Optional, cast
 
 from django.db import transaction
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization_mapping import (
-    APIOrganizationMapping,
-    ApiOrganizationMappingUpdate,
     OrganizationMappingService,
+    RpcOrganizationMapping,
+    RpcOrganizationMappingUpdate,
 )
 
 
@@ -24,7 +23,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         idempotency_key: Optional[str] = "",
         # There's only a customer_id when updating an org slug
         customer_id: Optional[str] = None,
-    ) -> APIOrganizationMapping:
+    ) -> RpcOrganizationMapping:
 
         if idempotency_key:
             org_mapping, _created = OrganizationMapping.objects.update_or_create(
@@ -51,20 +50,17 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def serialize_organization_mapping(
         self, org_mapping: OrganizationMapping
-    ) -> APIOrganizationMapping:
-        args = {
-            field.name: getattr(org_mapping, field.name)
-            for field in fields(APIOrganizationMapping)
-            if hasattr(org_mapping, field.name)
-        }
-        return APIOrganizationMapping(**args)
+    ) -> RpcOrganizationMapping:
+        return cast(
+            RpcOrganizationMapping, RpcOrganizationMapping.serialize_by_field_name(org_mapping)
+        )
 
-    def update(self, update: ApiOrganizationMappingUpdate) -> None:
+    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         with transaction.atomic():
             (
-                OrganizationMapping.objects.filter(organization_id=update.organization_id)
+                OrganizationMapping.objects.filter(organization_id=organization_id)
                 .select_for_update()
-                .update(**update.as_update())
+                .update(**update)
             )
 
     def verify_mappings(self, organization_id: int, slug: str) -> None:

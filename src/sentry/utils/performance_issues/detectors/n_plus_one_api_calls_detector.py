@@ -9,8 +9,8 @@ from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from sentry import features
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models import Organization, Project
-from sentry.types.issues import GroupType
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
@@ -157,10 +157,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if description.strip()[:3].upper() != "GET":
             return False
 
+        url = get_url_from_span(span)
+
         # GraphQL URLs have complicated queries in them. Until we parse those
         # queries to check for what's duplicated, we can't tell what is being
         # duplicated. Ignore them for now
-        if "graphql" in description:
+        if "graphql" in url:
             return False
 
         # Next.js infixes its data URLs with a build ID. (e.g.,
@@ -168,10 +170,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # explosion, since every deploy would change this ID and create new
         # fingerprints. Since we're not parameterizing URLs yet, we need to
         # exclude them
-        if "_next/data" in description:
+        if "_next/data" in url:
             return False
-
-        url = get_url_from_span(span)
 
         # Next.js error pages cause an N+1 API Call that isn't useful to anyone
         if "__nextjs_original-stack-frame" in url:
@@ -180,6 +180,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not url:
             return False
 
+        # Once most users update their SDKs to use the latest standard, we
+        # won't have to do this, since the URLs will be sent in as `span.data`
+        # in a parsed format
         parsed_url = urlparse(str(url))
 
         if parsed_url.netloc in cls.HOST_DENYLIST:
@@ -188,7 +191,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         _pathname, extension = os.path.splitext(parsed_url.path)
-        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
+        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3", ".jpg", ".jpeg"]:
             return False
 
         return True
@@ -218,6 +221,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=[span["span_id"] for span in self.spans],
+            evidence_data={},
+            evidence_display=[],
         )
 
     def _fingerprint(self) -> Optional[str]:
@@ -236,7 +241,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
 
-        return f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value}-{fingerprint}"
+        return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
         span_a_start: int = span_a.get("start_timestamp", 0) or 0

@@ -1,4 +1,3 @@
-import {UseMutationOptions, useQueryClient} from '@tanstack/react-query';
 import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
@@ -17,7 +16,14 @@ import {LocationQuery} from 'sentry/utils/discover/eventView';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import {QueryKey, useMutation, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {
+  QueryKey,
+  useApiQuery,
+  useMutation,
+  UseMutationOptions,
+  useQueryClient,
+  UseQueryOptions,
+} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -233,7 +239,7 @@ export const useFetchEventAttachments = (
   options: Partial<UseQueryOptions<FetchEventAttachmentResponse>> = {}
 ) => {
   const organization = useOrganization();
-  return useQuery<FetchEventAttachmentResponse>(
+  return useApiQuery<FetchEventAttachmentResponse>(
     [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`],
     {
       staleTime: Infinity,

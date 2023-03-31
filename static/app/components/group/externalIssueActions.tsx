@@ -6,10 +6,10 @@ import {openModal} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, GroupIntegration} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import IntegrationItem from 'sentry/views/organizationIntegrations/integrationItem';
+import IntegrationItem from 'sentry/views/settings/organizationIntegrations/integrationItem';
 
 import ExternalIssueForm from './externalIssueForm';
 

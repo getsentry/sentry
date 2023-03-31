@@ -5,7 +5,6 @@ exclude: >
         \.map$|
         \.map\.js$|
         ^src/sentry/static/sentry/vendor/|
-        ^tests/sentry/lang/javascript/example-project/|
         ^src/.*/locale/|
         ^src/sentry/data/
     )
@@ -61,12 +60,20 @@ repos:
       require_serial: true
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
+    - id: prevent-push
+      name: prevent pushing master
+      stages: [push]
+      entry: bash -c 'test "$PRE_COMMIT_REMOTE_BRANCH" != "refs/heads/master"'
+      always_run: true
+      pass_filenames: false
+      language: system
 
 -   repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.16.0
+    rev: 0.21.0
     hooks:
     - id: check-github-actions
     - id: check-github-workflows
+      args: [--verbose]
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0
@@ -75,6 +82,7 @@ repos:
     - id: check-executables-have-shebangs
     - id: check-merge-conflict
     - id: check-symlinks
+    - id: check-yaml
     - id: end-of-file-fixer
       exclude_types: [svg]
       exclude: ^fixtures/

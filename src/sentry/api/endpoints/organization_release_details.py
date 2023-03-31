@@ -477,7 +477,7 @@ class OrganizationReleaseDetailsEndpoint(
                     )
                 fetch_commits = not commit_list
                 try:
-                    release.set_refs(refs, request.user, fetch=fetch_commits)
+                    release.set_refs(refs, request.user.id, fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
                     return Response({"refs": [str(e)]}, status=400)

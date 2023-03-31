@@ -30,15 +30,15 @@ logger = logging.getLogger(__name__)
 
 def get_before_event_condition(event):
     return [
-        [TIMESTAMP, "<=", event.timestamp],
-        [[TIMESTAMP, "<", event.timestamp], [EVENT_ID, "<", event.event_id]],
+        [TIMESTAMP, "<=", event.datetime],
+        [[TIMESTAMP, "<", event.datetime], [EVENT_ID, "<", event.event_id]],
     ]
 
 
 def get_after_event_condition(event):
     return [
-        [TIMESTAMP, ">=", event.timestamp],
-        [[TIMESTAMP, ">", event.timestamp], [EVENT_ID, ">", event.event_id]],
+        [TIMESTAMP, ">=", event.datetime],
+        [[TIMESTAMP, ">", event.datetime], [EVENT_ID, ">", event.event_id]],
     ]
 
 
@@ -55,6 +55,7 @@ class SnubaEventStorage(EventStorage):
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
         dataset=snuba.Dataset.Events,
+        tenant_ids=None,
     ):
         """
         Get events from Snuba, with node data loaded.
@@ -68,6 +69,7 @@ class SnubaEventStorage(EventStorage):
                 referrer=referrer,
                 should_bind_nodes=True,
                 dataset=dataset,
+                tenant_ids=tenant_ids,
             )
 
     def get_unfetched_events(
@@ -78,6 +80,7 @@ class SnubaEventStorage(EventStorage):
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_unfetched_events",
         dataset=snuba.Dataset.Events,
+        tenant_ids=None,
     ):
         """
         Get events from Snuba, without node data loaded.
@@ -90,6 +93,7 @@ class SnubaEventStorage(EventStorage):
             referrer=referrer,
             should_bind_nodes=False,
             dataset=dataset,
+            tenant_ids=tenant_ids,
         )
 
     def __get_events(
@@ -101,6 +105,7 @@ class SnubaEventStorage(EventStorage):
         referrer=None,
         should_bind_nodes=False,
         dataset=snuba.Dataset.Events,
+        tenant_ids=None,
     ):
         assert filter, "You must provide a filter"
         cols = self.__get_columns(dataset)
@@ -142,6 +147,7 @@ class SnubaEventStorage(EventStorage):
                     offset=DEFAULT_OFFSET,
                     referrer=referrer,
                     dataset=dataset,
+                    tenant_ids=tenant_ids,
                 )
 
                 if "error" not in result:
@@ -169,6 +175,7 @@ class SnubaEventStorage(EventStorage):
             offset=offset,
             referrer=referrer,
             dataset=dataset,
+            tenant_ids=tenant_ids,
         )
 
         if "error" not in result:
@@ -179,10 +186,15 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
-    def get_event_by_id(self, project_id, event_id, group_id=None):
+    def get_event_by_id(
+        self, project_id, event_id, group_id=None, skip_transaction_groupevent=False
+    ):
         """
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
+
+        skip_transaction_groupevent: Temporary hack parameter to skip converting a transaction
+        event into a `GroupEvent`. Used as part of `post_process_group`.
         """
 
         event_id = normalize_event_id(event_id)
@@ -196,9 +208,9 @@ class SnubaEventStorage(EventStorage):
         if len(event.data) == 0:
             return None
 
-        if group_id is not None:
+        if group_id is not None and event.get_event_type() != "generic":
             # Set passed group_id if not a transaction
-            if event.get_event_type() == "transaction":
+            if event.get_event_type() == "transaction" and not skip_transaction_groupevent:
                 logger.warning("eventstore.passed-group-id-for-transaction")
                 return event.for_group(Group.objects.get(id=group_id))
             else:
@@ -220,12 +232,13 @@ class SnubaEventStorage(EventStorage):
             try:
                 result = snuba.raw_query(
                     dataset=dataset,
-                    selected_columns=["group_id"],
+                    selected_columns=self.__get_columns(dataset),
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
                     filter_keys={"project_id": [project_id], "event_id": [event_id]},
                     limit=1,
                     referrer="eventstore.get_event_by_id_nodestore",
+                    tenant_ids={"organization_id": event.project.organization_id},
                     **raw_query_kwargs,
                 )
             except snuba.QueryOutsideRetentionError:
@@ -251,8 +264,18 @@ class SnubaEventStorage(EventStorage):
                 return None
 
             event.group_id = result["data"][0]["group_id"]
+            # Inject the snuba data here to make sure any snuba columns are available
+            event._snuba_data = result["data"][0]
 
         return event
+
+    def _get_dataset_for_event(self, event):
+        if event.get_event_type() == "transaction":
+            return snuba.Dataset.Transactions
+        elif event.get_event_type() == "generic":
+            return snuba.Dataset.IssuePlatform
+        else:
+            return snuba.Dataset.Discover
 
     def get_next_event_id(self, event, filter):
         """
@@ -268,14 +291,13 @@ class SnubaEventStorage(EventStorage):
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
-
-        dataset = (
-            snuba.Dataset.Transactions
-            if event.get_event_type() == "transaction"
-            else snuba.Dataset.Discover
+        dataset = self._get_dataset_for_event(event)
+        return self.__get_event_id_from_filter(
+            filter=filter,
+            orderby=ASC_ORDERING,
+            dataset=dataset,
+            tenant_ids={"organization_id": event.project.organization_id},
         )
-
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING, dataset=dataset)
 
     def get_prev_event_id(self, event, filter):
         """
@@ -293,21 +315,20 @@ class SnubaEventStorage(EventStorage):
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         filter.end = event.datetime + timedelta(seconds=1)
-
-        dataset = (
-            snuba.Dataset.Transactions
-            if event.get_event_type() == "transaction"
-            else snuba.Dataset.Discover
-        )
-
+        dataset = self._get_dataset_for_event(event)
         return self.__get_event_id_from_filter(
-            filter=filter, orderby=DESC_ORDERING, dataset=dataset
+            filter=filter,
+            orderby=DESC_ORDERING,
+            dataset=dataset,
+            tenant_ids={"organization_id": event.project.organization_id},
         )
 
     def __get_columns(self, dataset: Dataset):
         return [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
 
-    def __get_event_id_from_filter(self, filter=None, orderby=None, dataset=snuba.Dataset.Discover):
+    def __get_event_id_from_filter(
+        self, filter=None, orderby=None, dataset=snuba.Dataset.Discover, tenant_ids=None
+    ):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
             # This query uses the discover dataset to enable
@@ -323,6 +344,7 @@ class SnubaEventStorage(EventStorage):
                 referrer="eventstore.get_next_or_prev_event_id",
                 orderby=orderby,
                 dataset=dataset,
+                tenant_ids=tenant_ids,
             )
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging

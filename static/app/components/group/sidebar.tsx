@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
 
 import {Client} from 'sentry/api';
+import type {OnAssignCallback} from 'sentry/components/assigneeSelectorDropdown';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
@@ -20,7 +20,7 @@ import {backend, frontend} from 'sentry/data/platformCategories';
 import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   AvatarUser,
   CurrentRelease,
@@ -70,13 +70,15 @@ class BaseGroupSidebar extends Component<Props, State> {
     this.fetchCurrentRelease();
   }
 
-  trackAssign: React.ComponentProps<typeof AssignedTo>['onAssign'] = () => {
+  trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {group, project, organization, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: 'assign',
+      assigned_type: type,
+      assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
@@ -209,21 +211,19 @@ class BaseGroupSidebar extends Component<Props, State> {
   render() {
     const {event, group, organization, project, environments} = this.props;
     const {allEnvironmentsGroupData, currentRelease} = this.state;
-    const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
     const hasStreamlineTargetingFeature = organization.features.includes(
       'streamline-targeting-context'
     );
 
     return (
       <Container>
-        {!hasIssueActionsV2 && (
-          <PageFiltersContainer>
-            <EnvironmentPageFilter alignDropdown="right" />
-          </PageFiltersContainer>
-        )}
-
         {!hasStreamlineTargetingFeature && (
-          <OwnedBy group={group} project={project} organization={organization} />
+          <OwnedBy
+            group={group}
+            event={event}
+            project={project}
+            organization={organization}
+          />
         )}
         <AssignedTo
           group={group}
@@ -258,7 +258,9 @@ class BaseGroupSidebar extends Component<Props, State> {
           groupId={group.id}
           tagKeys={
             isMobilePlatform(project?.platform)
-              ? MOBILE_TAGS
+              ? !organization.features.includes('device-classification')
+                ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
+                : MOBILE_TAGS
               : frontend.some(val => val === project?.platform)
               ? FRONTEND_TAGS
               : backend.some(val => val === project?.platform)
@@ -284,15 +286,11 @@ class BaseGroupSidebar extends Component<Props, State> {
         />
 
         {this.renderParticipantData()}
-        {hasIssueActionsV2 && this.renderSeenByList()}
+        {this.renderSeenByList()}
       </Container>
     );
   }
 }
-
-const PageFiltersContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};

@@ -4,7 +4,7 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompositeSelect from 'sentry/components/compositeSelect';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -22,8 +22,7 @@ import {
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
+import {space} from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
@@ -114,7 +113,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   const SKIP_OPTION_VALUE = 'skip';
 
   return (
-    <CompositeSelect<SelectValue<string | number>>
+    <CompositeSelect
       trigger={triggerProps => (
         <Button
           {...triggerProps}
@@ -124,34 +123,31 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
           icon={<IconSettings size="sm" />}
         />
       )}
-      sections={[
-        {
-          defaultValue: speed,
-          label: t('Playback Speed'),
-          value: 'playback_speed',
-          onChange: setSpeed,
-          options: speedOptions.map(option => ({
-            label: `${option}x`,
-            value: option,
-          })),
-        },
-        {
-          multiple: true,
-          defaultValue: isSkippingInactive ? [SKIP_OPTION_VALUE] : [],
-          label: '',
-          value: 'fast_forward',
-          onChange: (value: (typeof SKIP_OPTION_VALUE)[]) => {
-            toggleSkipInactive(value.length > 0);
+    >
+      <CompositeSelect.Region
+        label={t('Playback Speed')}
+        value={speed}
+        onChange={opt => setSpeed(opt.value)}
+        options={speedOptions.map(option => ({
+          label: `${option}x`,
+          value: option,
+        }))}
+      />
+      <CompositeSelect.Region
+        aria-label={t('Fast-Forward Inactivity')}
+        multiple
+        value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
+        onChange={opts => {
+          toggleSkipInactive(opts.length > 0);
+        }}
+        options={[
+          {
+            label: t('Fast-forward inactivity'),
+            value: SKIP_OPTION_VALUE,
           },
-          options: [
-            {
-              label: t('Fast-forward inactivity'),
-              value: SKIP_OPTION_VALUE,
-            },
-          ],
-        },
-      ]}
-    />
+        ]}
+      />
+    </CompositeSelect>
   );
 }
 

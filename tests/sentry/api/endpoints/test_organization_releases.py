@@ -1136,7 +1136,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         release = Release.objects.get(
             version=response.data["version"], user_agent="sentry-cli/2.77.4"
         )
-        assert not release.owner
+        assert not release.owner_id
         assert release.organization == org
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
@@ -1338,7 +1338,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.data["version"] == "1.2.3+dev"
 
         release = Release.objects.get(organization_id=org.id, version=response.data["version"])
-        assert not release.owner
+        assert not release.owner_id
 
     def test_features(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1362,7 +1362,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.data["version"]
 
         release = Release.objects.get(organization_id=org.id, version=response.data["version"])
-        assert release.owner == self.user
+        assert release.owner_id == self.user.id
 
     def test_commits(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1627,7 +1627,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         # test right org, wrong permissions level
         with exempt_from_silo_limits():
-            bad_api_key = ApiKey.objects.create(organization=org, scope_list=["project:read"])
+            bad_api_key = ApiKey.objects.create(organization_id=org.id, scope_list=["project:read"])
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
@@ -1638,7 +1638,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         # test wrong org, right permissions level
         with exempt_from_silo_limits():
             wrong_org_api_key = ApiKey.objects.create(
-                organization=org2, scope_list=["project:write"]
+                organization_id=org2.id, scope_list=["project:write"]
             )
         response = self.client.post(
             url,
@@ -1649,7 +1649,9 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         # test right org, right permissions level
         with exempt_from_silo_limits():
-            good_api_key = ApiKey.objects.create(organization=org, scope_list=["project:write"])
+            good_api_key = ApiKey.objects.create(
+                organization_id=org.id, scope_list=["project:write"]
+            )
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
@@ -1918,9 +1920,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         self.org = org
 
     def make_environment(self, name, project):
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name=name
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 

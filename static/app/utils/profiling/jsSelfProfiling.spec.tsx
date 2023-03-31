@@ -11,10 +11,10 @@ describe('jsSelfProfiling', () => {
       const trace: JSSelfProfiling.Trace = {
         frames: [],
         resources: [],
-        samples: [{stackId: undefined, timestamp: 0}],
-        stacks: [],
+        samples: [{stackId: 0, timestamp: 0}],
+        stacks: [{frameId: 0, parentId: undefined}],
       };
-      expect(resolveJSSelfProfilingStack(trace, undefined, {})).toEqual([]);
+      expect(resolveJSSelfProfilingStack(trace, 0, {})).toEqual([]);
     });
 
     it('when stackId is set', () => {

@@ -25,8 +25,6 @@ from sentry.utils import json
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
-    private = True
-
     def get_profiling_params(self, request: Request, project: Project) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
@@ -73,7 +71,7 @@ class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoin
             return Response(status=404)
         kwargs: Dict[str, Any] = {
             "method": "GET",
-            "path": f"/organizations/{project.organization.id}/projects/{project.id}/transactions/{transaction_id}",
+            "path": f"/organizations/{project.organization_id}/projects/{project.id}/transactions/{transaction_id}",
         }
         return proxy_profiling_service(**kwargs)
 
@@ -84,18 +82,30 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
 
+        preferred_format = (
+            "sample"
+            if features.has(
+                "organizations:profiling-sampled-format", project.organization, actor=request.user
+            )
+            else "speedscope"
+        )
+
         response = get_from_profiling_service(
             "GET",
-            f"/organizations/{project.organization.id}/projects/{project.id}/profiles/{profile_id}",
+            f"/organizations/{project.organization_id}/projects/{project.id}/profiles/{profile_id}",
+            params={"format": preferred_format},
         )
 
         if response.status == 200:
             profile = json.loads(response.data)
 
-            # make sure to remove the version from the metadata
-            # we're going to replace it with the release here
-            version = profile.get("metadata", {}).pop("version")
-            profile["metadata"]["release"] = get_release(project, version)
+            if "release" in profile:
+                profile["release"] = get_release(project, profile["release"])
+            else:
+                # make sure to remove the version from the metadata
+                # we're going to replace it with the release here
+                version = profile.get("metadata", {}).pop("version")
+                profile["metadata"]["release"] = get_release(project, version)
 
             return Response(profile)
 
@@ -128,7 +138,20 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
             return Response(status=404)
         kwargs: Dict[str, Any] = {
             "method": "GET",
-            "path": f"/organizations/{project.organization.id}/projects/{project.id}/raw_profiles/{profile_id}",
+            "path": f"/organizations/{project.organization_id}/projects/{project.id}/raw_profiles/{profile_id}",
+        }
+        return proxy_profiling_service(**kwargs)
+
+
+@region_silo_endpoint
+class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
+    def get(self, request: Request, project: Project) -> HttpResponse:
+        if not features.has("organizations:profiling", project.organization, actor=request.user):
+            return Response(status=404)
+        kwargs: Dict[str, Any] = {
+            "method": "GET",
+            "path": f"/organizations/{project.organization_id}/projects/{project.id}/flamegraph",
+            "params": self.get_profiling_params(request, project),
         }
         return proxy_profiling_service(**kwargs)
 
@@ -159,7 +182,7 @@ class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
 
             response = get_from_profiling_service(
                 "GET",
-                f"/organizations/{project.organization.id}/projects/{project.id}/functions",
+                f"/organizations/{project.organization_id}/projects/{project.id}/functions",
                 **kwargs,
             )
 

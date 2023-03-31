@@ -14,7 +14,7 @@ import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCate
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
@@ -58,6 +58,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   get platformList() {
     const {category} = this.state;
+
     const currentCategory = categoryList.find(({id}) => id === category);
 
     const filter = this.state.filter.toLowerCase();
@@ -67,9 +68,23 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       platform.name.toLowerCase().includes(filter) ||
       filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
 
-    const categoryMatch = (platform: PlatformIntegration) =>
-      category === 'all' ||
-      (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+    const categoryMatch = (platform: PlatformIntegration) => {
+      if (category === 'all') {
+        return true;
+      }
+
+      // Symfony was no appering under the server category
+      // because the php-symfony entry in src/sentry/integration-docs/_platforms.json
+      // does not contain the suffix 2.
+      // This is a temporary fix until we can update that file or completly remove the php-symfony2 occurrences
+      if (
+        (platform.id as any) === 'php-symfony' &&
+        (currentCategory?.platforms as undefined | string[])?.includes('php-symfony2')
+      ) {
+        return true;
+      }
+      return (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+    };
 
     const filtered = platforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
@@ -125,26 +140,28 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
           />
         </NavContainer>
         <PlatformList className={listClassName} {...listProps}>
-          {platformList.map(platform => (
-            <PlatformCard
-              data-test-id={`platform-${platform.id}`}
-              key={platform.id}
-              platform={platform}
-              selected={this.props.platform === platform.id}
-              onClear={(e: React.MouseEvent) => {
-                setPlatform(null);
-                e.stopPropagation();
-              }}
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('growth.select_platform', {
-                  platform_id: platform.id,
-                  source: this.props.source,
-                  organization: this.props.organization ?? null,
-                });
-                setPlatform(platform.id as PlatformKey);
-              }}
-            />
-          ))}
+          {platformList.map(platform => {
+            return (
+              <PlatformCard
+                data-test-id={`platform-${platform.id}`}
+                key={platform.id}
+                platform={platform}
+                selected={this.props.platform === platform.id}
+                onClear={(e: React.MouseEvent) => {
+                  setPlatform(null);
+                  e.stopPropagation();
+                }}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent('growth.select_platform', {
+                    platform_id: platform.id,
+                    source: this.props.source,
+                    organization: this.props.organization ?? null,
+                  });
+                  setPlatform(platform.id as PlatformKey);
+                }}
+              />
+            );
+          })}
         </PlatformList>
         {platformList.length === 0 && (
           <EmptyMessage
@@ -234,7 +251,6 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
       withLanguageIcon
       format="lg"
     />
-
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
   </div>
@@ -245,8 +261,8 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   align-items: center;
   padding: 0 0 14px;
   border-radius: 4px;
-  cursor: pointer;
   background: ${p => p.selected && p.theme.alert.info.backgroundLight};
+  cursor: pointer;
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};

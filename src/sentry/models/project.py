@@ -29,7 +29,9 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
@@ -186,7 +188,9 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:project", duration=5, name="project_slug")
+            lock = locks.get(
+                f"slug:project:{self.organization_id}", duration=5, name="project_slug"
+            )
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(
                     self,
@@ -475,13 +479,23 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             return True
         return integration_doc_exists(value)
 
+    @staticmethod
+    def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=organization_identifier,
+            category=OutboxCategory.PROJECT_UPDATE,
+            object_identifier=project_identifier,
+        )
+
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
 
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_project(self)
-
-        return super().delete(**kwargs)
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            Project.outbox_for_update(self.id, self.organization_id).save()
+            return super().delete(**kwargs)
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)

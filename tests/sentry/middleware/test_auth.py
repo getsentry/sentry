@@ -6,7 +6,7 @@ from django.test import RequestFactory
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, UserIP
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
@@ -22,7 +22,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             assert request.user == self.user
         else:
-            assert request.user == user_service.serialize_user(self.user)
+            assert request.user == serialize_rpc_user(self.user)
 
     def setUp(self):
         from django.core.cache import cache
@@ -109,7 +109,9 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
     def test_process_request_valid_apikey(self):
         with exempt_from_silo_limits():
-            apikey = ApiKey.objects.create(organization=self.organization, allowed_origins="*")
+            apikey = ApiKey.objects.create(
+                organization_id=self.organization.id, allowed_origins="*"
+            )
             request = self.make_request(method="GET")
             request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
                 apikey.key.encode("utf-8")

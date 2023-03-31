@@ -28,6 +28,7 @@ from sentry.replays.lib.query import (
     QueryConfig,
     String,
     Tag,
+    UUIDField,
     all_values_for_tag_key,
     generate_valid_conditions,
     get_valid_sort_commands,
@@ -51,6 +52,7 @@ def query_replays_collection(
     limit: Optional[str],
     offset: Optional[str],
     search_filters: List[SearchFilter],
+    tenant_ids: dict[str, Any] | None = None,
 ) -> dict:
     """Query aggregated replay collection."""
     conditions = []
@@ -74,6 +76,7 @@ def query_replays_collection(
         sorting=sort_ordering,
         pagination=paginators,
         search_filters=search_filters,
+        tenant_ids=tenant_ids,
     )
     return response["data"]
 
@@ -83,6 +86,7 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
+    tenant_ids: dict[str, Any],
 ):
     """Query aggregated replay instance."""
     response = query_replays_dataset(
@@ -97,6 +101,7 @@ def query_replay_instance(
         sorting=[],
         pagination=None,
         search_filters=[],
+        tenant_ids=tenant_ids,
     )
     return response["data"]
 
@@ -111,6 +116,7 @@ def query_replays_dataset(
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
+    tenant_ids: dict[str, Any] | None = None,
 ):
     query_options = {}
 
@@ -153,10 +159,11 @@ def query_replays_dataset(
                 *having,
             ],
             orderby=sorting,
-            groupby=[Column("replay_id")],
+            groupby=[Column("project_id"), Column("replay_id")],
             granularity=Granularity(3600),
             **query_options,
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
 
@@ -166,6 +173,7 @@ def query_replays_count(
     start: datetime,
     end: datetime,
     replay_ids: List[str],
+    tenant_ids: dict[str, Any],
 ):
 
     snuba_request = Request(
@@ -176,8 +184,8 @@ def query_replays_count(
             select=[
                 _strip_uuid_dashes("replay_id", Column("replay_id")),
                 Function(
-                    "notEmpty",
-                    parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+                    "any",
+                    parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
                     alias="is_archived",
                 ),
             ],
@@ -197,6 +205,7 @@ def query_replays_count(
             groupby=[Column("replay_id")],
             granularity=Granularity(3600),
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_count", use_cache=True
@@ -209,6 +218,7 @@ def query_replays_dataset_tagkey_values(
     end: datetime,
     environment: str | None,
     tag_key: str,
+    tenant_ids: dict[str, Any] | None,
 ):
     """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
 
@@ -256,6 +266,7 @@ def query_replays_dataset_tagkey_values(
             granularity=Granularity(3600),
             limit=Limit(1000),
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
@@ -308,17 +319,19 @@ def _grouped_unique_values(
     )
 
 
-def _grouped_unique_scalar_value(
-    column_name: str, alias: Optional[str] = None, aliased: bool = True
+def take_any_from_aggregation(
+    column_name: str,
+    alias: Optional[str] = None,
+    aliased: bool = True,
 ) -> Function:
-    """Returns the first value of a unique array.
-
-    E.g.
-        [1, 2, 2, 3, 3, 3, null] => [1, 2, 3] => 1
+    """Returns any value of a non group-by field. in our case, they are always the same,
+    so the value should be consistent.
     """
     return Function(
-        "arrayElement",
-        parameters=[_grouped_unique_values(column_name), 1],
+        "any",
+        parameters=[
+            Column(column_name),
+        ],
         alias=alias or column_name if aliased else None,
     )
 
@@ -377,22 +390,22 @@ class ReplayQueryConfig(QueryConfig):
     activity = Number()
 
     # String filters.
-    replay_id = String(field_alias="id")
+    replay_id = UUIDField(field_alias="id")
     replay_type = String(query_alias="replay_type")
     platform = String()
     releases = ListField()
     release = ListField(query_alias="releases")
     dist = String()
-    error_ids = ListField(query_alias="error_ids", is_uuid=True)
-    error_id = ListField(query_alias="error_ids", is_uuid=True)
-    trace_ids = ListField(query_alias="trace_ids", is_uuid=True)
-    trace_id = ListField(query_alias="trace_ids", is_uuid=True)
-    trace = ListField(query_alias="trace_ids", is_uuid=True)
+    error_ids = ListField(query_alias="errorIds")
+    error_id = ListField(query_alias="errorIds")
+    trace_ids = ListField(query_alias="traceIds")
+    trace_id = ListField(query_alias="traceIds")
+    trace = ListField(query_alias="traceIds")
     urls = ListField(query_alias="urls_sorted")
     url = ListField(query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
-    user_name = String(field_alias="user.name", query_alias="user_name")
+    user_username = String(field_alias="user.username")
     user_ip_address = String(field_alias="user.ip", query_alias="user_ip")
     os_name = String(field_alias="os.name", query_alias="os_name")
     os_version = String(field_alias="os.version", query_alias="os_version")
@@ -405,6 +418,25 @@ class ReplayQueryConfig(QueryConfig):
     sdk_name = String(field_alias="sdk.name", query_alias="sdk_name")
     sdk_version = String(field_alias="sdk.version", query_alias="sdk_version")
 
+    # These are object-type fields.  User's who query by these fields are likely querying by
+    # the "name" value.
+    user = String(field_alias="user", query_alias="user_username")
+    os = String(field_alias="os", query_alias="os_name")
+    browser = String(field_alias="browser", query_alias="browser_name")
+    device = String(field_alias="device", query_alias="device_name")
+    sdk = String(field_alias="sdk", query_alias="sdk_name")
+
+    # Click
+    click_alt = ListField(field_alias="replay_click.alt", is_sortable=False)
+    click_class = ListField(field_alias="replay_click.class", is_sortable=False)
+    click_id = ListField(field_alias="replay_click.id", is_sortable=False)
+    click_aria_label = ListField(field_alias="replay_click.label", is_sortable=False)
+    click_role = ListField(field_alias="replay_click.role", is_sortable=False)
+    click_tag = ListField(field_alias="replay_click.tag", is_sortable=False)
+    click_testid = ListField(field_alias="replay_click.testid", is_sortable=False)
+    click_text = ListField(field_alias="replay_click.textContent", is_sortable=False)
+    click_title = ListField(field_alias="replay_click.title", is_sortable=False)
+
     # Tag
     tags = Tag(field_alias="*")
 
@@ -413,8 +445,8 @@ class ReplayQueryConfig(QueryConfig):
     started_at = String(is_filterable=False)
     finished_at = String(is_filterable=False)
     # Dedicated url parameter should be used.
-    project_id = String(query_alias="projectId", is_filterable=False)
-    project = String(query_alias="projectId", is_filterable=False)
+    project_id = String(query_alias="project_id", is_filterable=False)
+    project = String(query_alias="project_id", is_filterable=False)
 
 
 # Pagination.
@@ -459,20 +491,8 @@ def _activity_score():
     #  score = (count_errors * 25 + pagesVisited * 5 ) / 10;
     #  score = Math.floor(Math.min(10, Math.max(1, score)));
 
-    error_weight = Function(
-        "multiply",
-        parameters=[Column("count_errors"), 25],
-    )
-    pages_visited_weight = Function(
-        "multiply",
-        parameters=[
-            Function(
-                "length",
-                parameters=[Column("urls_sorted")],
-            ),
-            5,
-        ],
-    )
+    error_weight = Function("multiply", parameters=[Column("count_errors"), 25])
+    pages_visited_weight = Function("multiply", parameters=[Column("count_urls"), 5])
 
     combined_weight = Function(
         "plus",
@@ -541,20 +561,20 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "urls": ["urls_sorted", "agg_urls"],
     "url": ["urls_sorted", "agg_urls"],
     "count_errors": ["count_errors"],
-    "count_urls": ["count_urls", "urls_sorted", "agg_urls"],
+    "count_urls": ["count_urls"],
     "count_segments": ["count_segments"],
     "is_archived": ["is_archived"],
-    "activity": ["activity", "count_errors", "urls_sorted", "agg_urls"],
-    "user": ["user_id", "user_email", "user_name", "user_ip"],
+    "activity": ["activity", "count_errors", "count_urls"],
+    "user": ["user_id", "user_email", "user_username", "user_ip"],
     "os": ["os_name", "os_version"],
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
     "sdk": ["sdk_name", "sdk_version"],
-    "tags": ["tags.key", "tags.value"],
+    "tags": ["tk", "tv"],
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
     "user.email": ["user_email"],
-    "user.name": ["user_name"],
+    "user.username": ["user_username"],
     "user.ip": ["user_ip"],
     "os.name": ["os_name"],
     "os.version": ["os_version"],
@@ -566,6 +586,16 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "device.model": ["device_model"],
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
+    # Click actions
+    "replay_click.alt": ["click.alt"],
+    "replay_click.label": ["click.aria_label"],
+    "replay_click.class": ["click.class"],
+    "replay_click.id": ["click.id"],
+    "replay_click.role": ["click.role"],
+    "replay_click.tag": ["click.tag"],
+    "replay_click.testid": ["click.testid"],
+    "replay_click.textContent": ["click.text"],
+    "replay_click.title": ["click.title"],
 }
 
 
@@ -573,19 +603,8 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 # match the column's query alias.
 
 QUERY_ALIAS_COLUMN_MAP = {
-    "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
-    "replay_type": _grouped_unique_scalar_value(column_name="replay_type", alias="replay_type"),
-    "project_id": Function(
-        "toString",
-        parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
-        alias="projectId",
-    ),
-    "platform": _grouped_unique_scalar_value(column_name="platform"),
-    "agg_environment": _grouped_unique_scalar_value(
-        column_name="environment", alias="agg_environment"
-    ),
-    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
-    "dist": _grouped_unique_scalar_value(column_name="dist"),
+    "replay_id": Column("replay_id"),
+    "project_id": Column("project_id"),
     "trace_ids": Function(
         "arrayMap",
         parameters=[
@@ -629,46 +648,63 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "count_segments": Function("count", parameters=[Column("segment_id")], alias="count_segments"),
     "count_errors": Function(
-        "uniqArray",
-        parameters=[Column("error_ids")],
+        "sum",
+        parameters=[Function("length", parameters=[Column("error_ids")])],
         alias="count_errors",
     ),
     "count_urls": Function(
-        "length",
-        parameters=[Column("urls_sorted")],
+        "sum",
+        parameters=[Function("length", parameters=[Column("urls")])],
         alias="count_urls",
     ),
     "is_archived": Function(
-        "notEmpty",
-        parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+        "any",
+        parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
         alias="isArchived",
     ),
     "activity": _activity_score(),
-    "user_id": _grouped_unique_scalar_value(column_name="user_id"),
-    "user_email": _grouped_unique_scalar_value(column_name="user_email"),
-    "user_name": _grouped_unique_scalar_value(column_name="user_name"),
+    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
+    "replay_type": take_any_from_aggregation(column_name="replay_type", alias="replay_type"),
+    "platform": take_any_from_aggregation(column_name="platform"),
+    "agg_environment": take_any_from_aggregation(
+        column_name="environment", alias="agg_environment"
+    ),
+    "dist": take_any_from_aggregation(column_name="dist"),
+    "user_id": take_any_from_aggregation(column_name="user_id"),
+    "user_email": take_any_from_aggregation(column_name="user_email"),
+    "user_username": take_any_from_aggregation(column_name="user_name", alias="user_username"),
     "user_ip": Function(
         "IPv4NumToString",
-        parameters=[
-            _grouped_unique_scalar_value(
-                column_name="ip_address_v4",
-                aliased=False,
-            )
-        ],
+        parameters=[take_any_from_aggregation(column_name="ip_address_v4", aliased=False)],
         alias="user_ip",
     ),
-    "os_name": _grouped_unique_scalar_value(column_name="os_name"),
-    "os_version": _grouped_unique_scalar_value(column_name="os_version"),
-    "browser_name": _grouped_unique_scalar_value(column_name="browser_name"),
-    "browser_version": _grouped_unique_scalar_value(column_name="browser_version"),
-    "device_name": _grouped_unique_scalar_value(column_name="device_name"),
-    "device_brand": _grouped_unique_scalar_value(column_name="device_brand"),
-    "device_family": _grouped_unique_scalar_value(column_name="device_family"),
-    "device_model": _grouped_unique_scalar_value(column_name="device_model"),
-    "sdk_name": _grouped_unique_scalar_value(column_name="sdk_name"),
-    "sdk_version": _grouped_unique_scalar_value(column_name="sdk_version"),
+    "os_name": take_any_from_aggregation(column_name="os_name"),
+    "os_version": take_any_from_aggregation(column_name="os_version"),
+    "browser_name": take_any_from_aggregation(column_name="browser_name"),
+    "browser_version": take_any_from_aggregation(column_name="browser_version"),
+    "device_name": take_any_from_aggregation(column_name="device_name"),
+    "device_brand": take_any_from_aggregation(column_name="device_brand"),
+    "device_family": take_any_from_aggregation(column_name="device_family"),
+    "device_model": take_any_from_aggregation(column_name="device_model"),
+    "sdk_name": take_any_from_aggregation(column_name="sdk_name"),
+    "sdk_version": take_any_from_aggregation(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
+    "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),
+    "click.aria_label": Function(
+        "groupArray", parameters=[Column("click_aria_label")], alias="click_aria_label"
+    ),
+    "click.class": Function(
+        "groupArrayArray", parameters=[Column("click_class")], alias="click_class"
+    ),
+    "click.id": Function("groupArray", parameters=[Column("click_id")], alias="click_id"),
+    "click.role": Function("groupArray", parameters=[Column("click_role")], alias="click_role"),
+    "click.tag": Function("groupArray", parameters=[Column("click_tag")], alias="click_tag"),
+    "click.testid": Function(
+        "groupArray", parameters=[Column("click_testid")], alias="click_testid"
+    ),
+    "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
+    "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
 }
 
 

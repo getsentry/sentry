@@ -4,7 +4,18 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from django.db import DataError, connections, router
 from django.utils import timezone
@@ -755,3 +766,18 @@ def validate_cdc_search_filters(search_filters: Optional[Sequence[SearchFilter]]
         ):
             return False
     return True
+
+
+# Mapping of device class to the store corresponding tag value
+DEVICE_CLASS: Dict[str, Set[str]] = {
+    "low": {"1"},
+    "medium": {"2"},
+    "high": {"3"},
+}
+
+
+def map_device_class_level(device_class: str) -> Optional[str]:
+    for key, value in DEVICE_CLASS.items():
+        if device_class in value:
+            return key
+    return None

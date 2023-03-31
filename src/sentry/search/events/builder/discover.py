@@ -58,6 +58,7 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.types import (
@@ -206,6 +207,12 @@ class QueryBuilder(BaseQueryBuilder):
             "columns": set(),
         }
 
+        # Base Tenant IDs for any Snuba Request built/executed using a QueryBuilder
+        org_id = self.organization_id or (
+            self.params.organization.id if self.params.organization else None
+        )
+        self.tenant_ids = {"organization_id": org_id} if org_id else None
+
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
         self.having: List[WhereType] = []
@@ -337,6 +344,8 @@ class QueryBuilder(BaseQueryBuilder):
                 self.config = MetricsDatasetConfig(self)
         elif self.dataset == Dataset.Profiles:
             self.config = ProfilesDatasetConfig(self)
+        elif self.dataset == Dataset.Functions:
+            self.config = ProfileFunctionsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -624,6 +633,7 @@ class QueryBuilder(BaseQueryBuilder):
             # need to make sure the column is resolved with the appropriate alias
             # because the resolved snuba name may be different
             resolved_column = self.resolve_column(column, alias=True)
+
             if resolved_column not in self.columns:
                 resolved_columns.append(resolved_column)
 
@@ -645,6 +655,15 @@ class QueryBuilder(BaseQueryBuilder):
         """
         tag_match = constants.TAG_KEY_RE.search(raw_field)
         field = tag_match.group("tag") if tag_match else raw_field
+
+        if field == "group_id":
+            # We don't expose group_id publicly, so if a user requests it
+            # we expect it is a custom tag. Convert it to tags[group_id]
+            # and ensure it queries tag data
+            # These maps are updated so the response can be mapped back to group_id
+            self.tag_to_prefixed_map["group_id"] = "tags[group_id]"
+            self.prefixed_to_tag_map["tags[group_id]"] = "group_id"
+            raw_field = "tags[group_id]"
 
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)
@@ -1437,6 +1456,7 @@ class QueryBuilder(BaseQueryBuilder):
                 limitby=self.limitby,
             ),
             flags=Flags(turbo=self.turbo),
+            tenant_ids=self.tenant_ids,
         )
 
     @classmethod
@@ -1608,6 +1628,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
                 granularity=self.granularity,
                 limit=self.limit,
             ),
+            tenant_ids=self.tenant_ids,
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:

@@ -8,7 +8,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Frame} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -42,6 +42,7 @@ function Default({
   onMouseDown,
   onClick,
   frameMeta,
+  event,
   ...props
 }: Props) {
   const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
@@ -80,6 +81,7 @@ function Default({
             </Tooltip>
           ) : null}
           <LeadHint
+            event={event}
             isExpanded={isExpanded}
             nextFrame={nextFrame}
             leadsToApp={leadsToApp}
@@ -124,6 +126,7 @@ const Title = styled('div')`
 
 const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
+  margin-right: ${space(1)};
 `;
 
 const RepeatedFrames = styled('div')`

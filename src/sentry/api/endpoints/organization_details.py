@@ -24,13 +24,13 @@ from sentry.api.serializers.models.organization import (
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.datascrubbing import validate_pii_config_update
+from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
     STORE_CRASH_REPORTS_MAX,
     convert_crashreport_count,
 )
 from sentry.models import (
-    Authenticator,
     AuthProvider,
     Organization,
     OrganizationAvatar,
@@ -39,8 +39,9 @@ from sentry.models import (
     ScheduledDeletion,
     UserEmail,
 )
+from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization_mapping import (
-    ApiOrganizationMappingUpdate,
+    RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
 from sentry.utils.cache import memoize
@@ -177,7 +178,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
-        return AuthProvider.objects.filter(organization=org).exists()
+        return AuthProvider.objects.filter(organization_id=org.id).exists()
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -209,7 +210,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def validate_require2FA(self, value):
         user = self.context["user"]
-        has_2fa = Authenticator.objects.user_has_2fa(user)
+        has_2fa = user.has_2fa()
         if value and not has_2fa:
             raise serializers.ValidationError(ERR_NO_2FA)
 
@@ -428,7 +429,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 class OwnerOrganizationSerializer(OrganizationSerializer):
     defaultRole = serializers.ChoiceField(choices=roles.get_choices())
     cancelDeletion = serializers.BooleanField(required=False)
-    idempotencyKey = serializers.CharField(max_length=32, required=False)
+    idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def save(self, *args, **kwargs):
         org = self.context["organization"]
@@ -493,6 +494,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         was_pending_deletion = organization.status in DELETION_STATUSES
 
+        enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
+        if enabling_codecov:
+            has_integration, error = has_codecov_integration(organization)
+            if not has_integration:
+                return self.respond(
+                    {"codecovAccess": [error]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         serializer = serializer_cls(
             data=request.data,
             partial=True,
@@ -516,10 +526,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         )
                     elif "name" in changed_data:
                         organization_mapping_service.update(
-                            ApiOrganizationMappingUpdate(
-                                organization_id=organization.id,
-                                name=organization.name,
-                            )
+                            organization_id=organization.id,
+                            update=RpcOrganizationMappingUpdate(name=organization.name),
                         )
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.
@@ -587,6 +595,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     transaction_id=schedule.guid,
                 )
                 organization.send_delete_confirmation(entry, ONE_DAY)
+                Organization.objects.uncache_object(organization.id)
         context = serialize(
             organization,
             request.user,

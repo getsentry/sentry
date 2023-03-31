@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Type
+
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
@@ -7,6 +11,7 @@ from sentry.db.models import (
     control_silo_only_model,
     region_silo_only_model,
 )
+from sentry.silo import SiloMode
 
 
 class TombstoneBase(Model):
@@ -19,6 +24,14 @@ class TombstoneBase(Model):
     table_name = models.CharField(max_length=48, null=False)
     object_identifier = BoundedBigIntegerField(null=False)
     created_at = models.DateTimeField(null=False, default=timezone.now)
+
+    @staticmethod
+    def class_for_silo_mode(silo_mode: SiloMode) -> Type[TombstoneBase] | None:
+        if silo_mode == SiloMode.REGION:
+            return RegionTombstone
+        if silo_mode == SiloMode.CONTROL:
+            return ControlTombstone
+        return None
 
     @classmethod
     def record_delete(cls, table_name: str, identifier: int):

@@ -42,7 +42,9 @@ const MOCK_DATA = JSON.stringify({
   ],
 });
 
-const organization = TestStubs.Organization({features: ['event-attachments']});
+const organization = TestStubs.Organization({
+  features: ['event-attachments'],
+});
 const event = TestStubs.Event();
 
 describe('Event View Hierarchy', function () {

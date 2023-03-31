@@ -10,6 +10,14 @@ describe('Sudo Modal', function () {
     ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth});
 
   beforeEach(function () {
+    window.__initialData = {
+      links: {
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        regionUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/internal/health/',
@@ -96,8 +104,8 @@ describe('Sudo Modal', function () {
     expect(sudoMock).not.toHaveBeenCalled();
 
     // "Sudo" auth
-    userEvent.type(screen.getByRole('textbox', {name: 'Password'}), 'password');
-    userEvent.click(screen.getByRole('button', {name: 'Confirm Password'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Password'}), 'password');
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm Password'}));
 
     expect(sudoMock).toHaveBeenCalledWith(
       '/auth/',
@@ -138,25 +146,19 @@ describe('Sudo Modal', function () {
     );
 
     const api = new Client();
-    const successCb = jest.fn();
-    const errorCb = jest.fn();
 
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    // Should return w/ `sudoRequired`
-    api.request('/organizations/org-slug/', {
-      method: 'DELETE',
-      success: successCb,
-      error: errorCb,
-    });
+    // Should return w/ `sudoRequired` and trigger the the modal to open
+    api.requestPromise('/organizations/org-slug/', {method: 'DELETE'});
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
       'href',
-      '/auth/login/?next=%2F'
+      '/auth/login/?next=http%3A%2F%2Flocalhost%2F'
     );
   });
 });

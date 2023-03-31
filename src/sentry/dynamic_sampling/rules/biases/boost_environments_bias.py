@@ -1,13 +1,8 @@
 from typing import List
 
-from sentry.dynamic_sampling.rules.biases.base import (
-    Bias,
-    BiasData,
-    BiasDataProvider,
-    BiasParams,
-    BiasRulesGenerator,
-)
-from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, BaseRule, RuleType
+from sentry.dynamic_sampling.rules.biases.base import Bias
+from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
+from sentry.models import Project
 
 ENVIRONMENT_GLOBS = [
     "*dev*",
@@ -17,16 +12,14 @@ ENVIRONMENT_GLOBS = [
 ]
 
 
-class BoostEnvironmentsDataProvider(BiasDataProvider):
-    def get_bias_data(self, bias_params: BiasParams) -> BiasData:
-        return {"id": RESERVED_IDS[RuleType.BOOST_ENVIRONMENTS_RULE]}
-
-
-class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+class BoostEnvironmentsBias(Bias):
+    def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
         return [
             {
-                "sampleRate": 1,
+                "samplingValue": {
+                    "type": "sampleRate",
+                    "value": 1.0,
+                },
                 "type": "trace",
                 "condition": {
                     "op": "or",
@@ -35,16 +28,9 @@ class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
                             "op": "glob",
                             "name": "trace.environment",
                             "value": ENVIRONMENT_GLOBS,
-                            "options": {"ignoreCase": True},
                         }
                     ],
                 },
-                "active": True,
-                "id": bias_data["id"],
+                "id": RESERVED_IDS[RuleType.BOOST_ENVIRONMENTS_RULE],
             }
         ]
-
-
-class BoostEnvironmentsBias(Bias):
-    def __init__(self) -> None:
-        super().__init__(BoostEnvironmentsDataProvider, BoostEnvironmentsRulesGenerator)

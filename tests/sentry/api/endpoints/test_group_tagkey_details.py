@@ -1,8 +1,8 @@
+from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 
 
 @region_silo_test(stable=True)
@@ -44,7 +44,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase):
                 "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
-                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             },
             project_id=self.project.id,
         )
@@ -56,7 +56,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase):
                 "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
                 "tags": {"foo": "quux"},
                 "release": "releaseme",
-                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             },
             project_id=self.project.id,
         )

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import Tag from 'sentry/components/tag';
-import TimeSince, {getRelativeDate} from 'sentry/components/timeSince';
+import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
@@ -30,7 +30,9 @@ const EVENT_ROUND_LIMIT = 1000;
 function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   const {reason, reason_details: reasonDetails, date_added: dateAdded} = inbox;
   const relativeDateAdded = getDynamicText({
-    value: dateAdded && getRelativeDate(dateAdded, 'ago', true),
+    value: dateAdded && (
+      <TimeSince date={dateAdded} disabledAbsoluteTooltip unitStyle="short" />
+    ),
     fixed: '3s ago',
   });
 
@@ -101,10 +103,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           tagType: 'default',
           reasonBadgeText: t('Unignored'),
           tooltipText:
-            dateAdded &&
-            t('Unignored %(relative)s', {
-              relative: relativeDateAdded,
-            }),
+            dateAdded && t('Unignored %(relative)s', {relative: relativeDateAdded}),
           tooltipDescription: getTooltipDescription(),
         };
       case GroupInboxReason.REGRESSION:
@@ -171,7 +170,12 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       {showDateAdded && dateAdded && (
         <Fragment>
           <Separator type={tagType ?? 'default'}>{' | '}</Separator>
-          <TimeSince date={dateAdded} suffix="" extraShort disabledAbsoluteTooltip />
+          <TimeSince
+            date={dateAdded}
+            suffix=""
+            unitStyle="extraShort"
+            disabledAbsoluteTooltip
+          />
         </Fragment>
       )}
     </StyledTag>

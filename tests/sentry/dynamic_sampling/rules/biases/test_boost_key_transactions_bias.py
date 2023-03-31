@@ -1,29 +1,21 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from sentry.dynamic_sampling import BoostKeyTransactionsRulesGenerator
+from sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias import (
+    BoostKeyTransactionsBias,
+)
 
 
 @pytest.mark.django_db
-@patch(
-    "sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.BoostKeyTransactionsDataProvider"
-)
-def test_generate_bias_rules(data_provider, default_project):
-    rule_id = 1002
-    sample_rate = 0.8
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.get_key_transactions")
+def test_generate_bias_rules_v2(get_key_transactions, default_project):
     key_transactions = ["/foo", "/bar"]
+    get_key_transactions.return_value = key_transactions
 
-    data_provider.get_bias_data.return_value = {
-        "id": rule_id,
-        "sampleRate": sample_rate,
-        "keyTransactions": key_transactions,
-    }
-
-    rules = BoostKeyTransactionsRulesGenerator(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostKeyTransactionsBias().generate_rules(default_project, base_sample_rate=0.0)
     assert rules == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
@@ -35,23 +27,18 @@ def test_generate_bias_rules(data_provider, default_project):
                 ],
                 "op": "or",
             },
-            "id": rule_id,
-            "sampleRate": sample_rate,
+            "id": 1003,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "transaction",
         }
     ]
 
 
 @pytest.mark.django_db
-@patch(
-    "sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.BoostKeyTransactionsDataProvider"
-)
-def test_generate_bias_rules_with_no_key_transactions(data_provider, default_project):
-    data_provider.get_bias_data.return_value = {
-        "id": 1002,
-        "sampleRate": 0.8,
-        "keyTransactions": [],
-    }
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.get_key_transactions")
+def test_generate_bias_rules_with_no_key_transactions(get_key_transactions, default_project):
+    key_transactions = []
+    get_key_transactions.return_value = key_transactions
 
-    rules = BoostKeyTransactionsRulesGenerator(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostKeyTransactionsBias().generate_rules(project=default_project, base_sample_rate=0.0)
     assert rules == []

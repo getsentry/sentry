@@ -24,7 +24,7 @@ import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Group,
   GroupReprocessing,
@@ -247,6 +247,7 @@ function BaseGroupRow({
       pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
       query: {
         referrer,
+        stream_index: index,
         ...commonQuery,
         query: filteredQuery,
       },
@@ -309,6 +310,7 @@ function BaseGroupRow({
   const groupCategoryCountTitles: Record<IssueCategory, string> = {
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
+    [IssueCategory.PROFILE]: t('Profile Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -395,10 +397,10 @@ function BaseGroupRow({
     <Placeholder height="18px" />
   ) : (
     <TimeSince
-      tooltipTitle={t('Last Triggered')}
+      tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
-      shorten
+      unitStyle="short"
     />
   );
 

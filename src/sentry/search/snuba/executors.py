@@ -34,20 +34,21 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     SEARCH_STRATEGIES,
     IntermediateSearchQueryPartial,
     MergeableRow,
     SearchQueryPartial,
+    UnsupportedSearchQuery,
     _query_params_for_generic,
     group_categories_from,
 )
 from sentry.models import Environment, Group, Organization, Project
 from sentry.search.events.fields import DateArg
-from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import validate_cdc_search_filters
-from sentry.types.issues import PERFORMANCE_TYPES, GroupCategory, GroupType
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
@@ -141,6 +142,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -156,8 +159,21 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         """Converts the SearchFilter format into snuba-compatible clauses"""
         converted_filters: list[Optional[Sequence[Any]]] = []
         for search_filter in search_filters or ():
-            converted_filters.append(
-                convert_search_filter_to_snuba_query(
+            conditions, projects_to_filter, group_ids = format_search_filter(
+                search_filter,
+                params={
+                    "organization_id": organization_id,
+                    "project_id": project_ids,
+                    "environment": environments,
+                },
+            )
+
+            # if no re-formatted conditions, use fallback method for selected groups
+            new_condition = None
+            if conditions:
+                new_condition = conditions[0]
+            elif group_ids:
+                new_condition = convert_search_filter_to_snuba_query(
                     search_filter,
                     params={
                         "organization_id": organization_id,
@@ -165,7 +181,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                         "environment": environments,
                     },
                 )
-            )
+
+            if new_condition:
+                converted_filters.append(new_condition)
 
         return converted_filters
 
@@ -195,7 +213,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     def _prepare_params_for_category(
         self,
-        group_category: GroupCategory,
+        group_category: int,
         query_partial: IntermediateSearchQueryPartial,
         organization_id: int,
         project_ids: Sequence[int],
@@ -208,7 +226,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         cursor: Optional[Cursor],
         get_sample: bool,
+        actor: Optional[Any] = None,
     ) -> SnubaQueryParams:
+        """
+        :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
+        """
 
         if group_category in SEARCH_FILTER_UPDATERS:
             # remove filters not relevant to the group_category
@@ -256,7 +278,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         )
 
         strategy = SEARCH_STRATEGIES.get(group_category, _query_params_for_generic)
-        return strategy(
+        snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
             aggregations,
@@ -266,7 +288,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             group_ids,
             filters,
             conditions,
+            actor,
         )
+        if snuba_query_params is not None:
+            snuba_query_params.kwargs["tenant_ids"] = {"organization_id": organization_id}
+        return snuba_query_params
 
     def snuba_search(
         self,
@@ -282,6 +308,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         offset: int = 0,
         get_sample: bool = False,
         search_filters: Optional[Sequence[SearchFilter]] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> Tuple[List[Tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -300,7 +328,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 ).values_list("name", flat=True)
             )
 
-        referrer = "search_sample" if get_sample else "search"
+        referrer = referrer or "search"
+        referrer = f"{referrer}_sample" if get_sample else referrer
 
         snuba_search_filters = [
             sf
@@ -331,31 +360,37 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             group_categories = {
                 gc
                 for gc in SEARCH_STRATEGIES.keys()
-                if gc != GroupCategory.PROFILE
-                or features.has("organizations:issue-platform", organization)
+                if gc != GroupCategory.PROFILE.value
+                or features.has("organizations:issue-platform", organization, actor=actor)
             }
 
         if not features.has("organizations:performance-issues-search", organization):
-            group_categories.discard(GroupCategory.PERFORMANCE)
+            group_categories.discard(GroupCategory.PERFORMANCE.value)
 
-        query_params_for_categories = [
-            self._prepare_params_for_category(
-                gc,
-                query_partial,
-                organization.id,
-                project_ids,
-                environments,
-                group_ids,
-                filters,
-                snuba_search_filters,
-                sort_field,
-                start,
-                end,
-                cursor,
-                get_sample,
-            )
-            for gc in group_categories
-        ]
+        query_params_for_categories = []
+
+        for gc in group_categories:
+            try:
+                query_params_for_categories.append(
+                    self._prepare_params_for_category(
+                        gc,
+                        query_partial,
+                        organization.id,
+                        project_ids,
+                        environments,
+                        group_ids,
+                        filters,
+                        snuba_search_filters,
+                        sort_field,
+                        start,
+                        end,
+                        cursor,
+                        get_sample,
+                        actor,
+                    )
+                )
+            except UnsupportedSearchQuery:
+                pass
 
         query_params_for_categories = [
             query_params for query_params in query_params_for_categories if query_params is not None
@@ -450,6 +485,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -513,9 +550,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 # general search query:
                 if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
                     group_queryset = group_queryset.filter(
-                        Q(type=GroupType.ERROR.value)
+                        Q(type=ErrorGroupType.type_id)
                         | (
-                            Q(type__in=PERFORMANCE_TYPES)
+                            Q(type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value))
                             and (
                                 ~Q(message__icontains=sf.value.raw_value)
                                 if sf.is_negation
@@ -546,7 +583,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             span.set_data("Max Candidates", max_candidates)
             span.set_data("Result Size", len(group_ids))
         metrics.timing("snuba.search.num_candidates", len(group_ids))
-
         too_many_candidates = False
         if not group_ids:
             # no matches could possibly be found from this point on
@@ -587,6 +623,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             search_filters,
             start,
             end,
+            actor,
         )
         if count_hits and hits == 0:
             return self.empty_result
@@ -627,6 +664,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 limit=chunk_limit,
                 offset=offset,
                 search_filters=search_filters,
+                referrer=referrer,
+                actor=actor,
             )
             metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
@@ -721,6 +760,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         search_filters: Optional[Sequence[SearchFilter]],
         start: datetime,
         end: datetime,
+        actor: Optional[Any] = None,
     ) -> Optional[int]:
         """
         This method should return an integer representing the number of hits (results) of your search.
@@ -774,6 +814,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 offset=0,
                 get_sample=True,
                 search_filters=search_filters,
+                actor=actor,
             )
             if not too_many_candidates:
                 kwargs["group_ids"] = group_ids
@@ -913,6 +954,8 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         date_from: Optional[datetime],
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> CursorResult[Group]:
 
         if not validate_cdc_search_filters(search_filters):
@@ -965,6 +1008,8 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             op = Op.GTE if cursor.is_prev else Op.LTE
             having.append(Condition(sort_func, op, cursor.value))
 
+        tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
+
         query = Query(
             match=Join([Relationship(e_event, "grouped", e_group)]),
             select=[
@@ -977,7 +1022,12 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             orderby=[OrderBy(sort_func, direction=Direction.DESC)],
             limit=Limit(limit + 1),
         )
-        request = Request(dataset="events", app_id="cdc", query=query)
+        request = Request(
+            dataset="events",
+            app_id="cdc",
+            query=query,
+            tenant_ids=tenant_ids,
+        )
         data = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.query")["data"]
 
         hits_query = Query(
@@ -989,7 +1039,9 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
         hits = None
         if count_hits:
-            request = Request(dataset="events", app_id="cdc", query=hits_query)
+            request = Request(
+                dataset="events", app_id="cdc", query=hits_query, tenant_ids=tenant_ids
+            )
             hits = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.hits")["data"][
                 0
             ]["count"]

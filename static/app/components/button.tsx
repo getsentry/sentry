@@ -8,7 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import HookStore from 'sentry/stores/hookStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
 /**

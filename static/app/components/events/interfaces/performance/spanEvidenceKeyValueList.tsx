@@ -1,11 +1,14 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
+import {Button} from 'sentry/components/button';
+import ClippedBox from 'sentry/components/clippedBox';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {toPercent} from 'sentry/components/performance/waterfall/utils';
+import Link from 'sentry/components/links/link';
+import {toRoundedPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -18,6 +21,10 @@ import {
   KeyValueListDataItem,
 } from 'sentry/types';
 import {formatBytesBase2} from 'sentry/utils';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import useOrganization from 'sentry/utils/useOrganization';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
 
 import KeyValueList from '../keyValueList';
@@ -35,12 +42,21 @@ type SpanEvidenceKeyValueListProps = {
   causeSpans: Span[];
   event: EventTransaction;
   offendingSpans: Span[];
+  orgSlug: string;
   parentSpan: Span | null;
+  projectSlug?: string;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
-export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
+export function SpanEvidenceKeyValueList({
+  event,
+  projectSlug,
+}: {
+  event: EventTransaction;
+  projectSlug?: string;
+}) {
+  const {slug: orgSlug} = useOrganization();
   const spanInfo = getSpanInfoFromTransactionEvent(event);
   const performanceProblem = event?.perfProblem;
 
@@ -51,6 +67,8 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
         offendingSpans={[]}
         causeSpans={[]}
         parentSpan={null}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
       />
     );
   }
@@ -63,20 +81,32 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
+      [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
     }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
-  return <Component event={event} {...spanInfo} />;
+  return (
+    <ClippedBox clipHeight={300}>
+      <Component
+        event={event}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        {...spanInfo}
+      />
+    </ClippedBox>
+  );
 }
 
 const ConsecutiveDBQueriesSpanEvidence = ({
   event,
   causeSpans,
   offendingSpans,
+  orgSlug,
+  projectSlug,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
       [
-        makeTransactionNameRow(event),
+        makeTransactionNameRow(event, orgSlug, projectSlug),
         causeSpans
           ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
           : null,
@@ -90,28 +120,64 @@ const ConsecutiveDBQueriesSpanEvidence = ({
   />
 );
 
-const NPlusOneDBQueriesSpanEvidence = ({
+const ConsecutiveHTTPSpanEvidence = ({
   event,
-  parentSpan,
   offendingSpans,
+  orgSlug,
+  projectSlug,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
       [
-        makeTransactionNameRow(event),
-        parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+        makeTransactionNameRow(event, orgSlug, projectSlug),
         makeRow(
-          t('Repeating Spans (%s)', offendingSpans.length),
-          getSpanEvidenceValue(offendingSpans[0])
+          'Offending Spans',
+          offendingSpans.map(span => span.description)
         ),
       ].filter(Boolean) as KeyValueListData
     }
   />
 );
 
+const NPlusOneDBQueriesSpanEvidence = ({
+  event,
+  causeSpans,
+  parentSpan,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) => {
+  const dbSpans = offendingSpans.filter(span => (span.op || '').startsWith('db'));
+  const repeatingSpanRows = dbSpans
+    .filter(span => offendingSpans.find(s => s.hash === span.hash) === span)
+    .map((span, i) =>
+      makeRow(
+        i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
+        getSpanEvidenceValue(span)
+      )
+    );
+
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event, orgSlug, projectSlug),
+          parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+          causeSpans.length > 0
+            ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]))
+            : null,
+          ...repeatingSpanRows,
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+};
+
 const NPlusOneAPICallsSpanEvidence = ({
   event,
   offendingSpans,
+  orgSlug,
+  projectSlug,
 }: SpanEvidenceKeyValueListProps) => {
   const requestEntry = event?.entries?.find(isRequestEntry);
   const baseURL = requestEntry?.data?.url;
@@ -123,7 +189,7 @@ const NPlusOneAPICallsSpanEvidence = ({
     <PresortedKeyValueList
       data={
         [
-          makeTransactionNameRow(event),
+          makeTransactionNameRow(event, orgSlug, projectSlug),
           commonPathPrefix
             ? makeRow(
                 t('Repeating Spans (%s)', offendingSpans.length),
@@ -156,34 +222,58 @@ const isRequestEntry = (entry: Entry): entry is EntryRequest => {
   return entry.type === EntryType.REQUEST;
 };
 
-const SlowDBQueryEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
-  <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event),
-      makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
-    ]}
-  />
-);
+const SlowDBQueryEvidence = ({
+  event,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) => {
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event, orgSlug, projectSlug),
+        makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
+        makeRow(
+          t('Duration Impact'),
+          getSingleSpanDurationImpact(event, offendingSpans[0])
+        ),
+      ]}
+    />
+  );
+};
 
 const RenderBlockingAssetSpanEvidence = ({
   event,
   offendingSpans,
-}: SpanEvidenceKeyValueListProps) => (
-  <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event),
-      makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
-    ]}
-  />
-);
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) => {
+  const offendingSpan = offendingSpans[0]; // For render-blocking assets, there is only one offender
+
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event, orgSlug, projectSlug),
+        makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpan)),
+        makeRow(
+          t('FCP Delay'),
+          formatDelay(getSpanDuration(offendingSpan), event.measurements?.fcp?.value ?? 0)
+        ),
+        makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, offendingSpan)),
+      ]}
+    />
+  );
+};
 
 const UncompressedAssetSpanEvidence = ({
   event,
   offendingSpans,
+  orgSlug,
+  projectSlug,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={[
-      makeTransactionNameRow(event),
+      makeTransactionNameRow(event, orgSlug, projectSlug),
       makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
       makeRow(t('Asset Size'), getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')),
       makeRow(
@@ -194,11 +284,16 @@ const UncompressedAssetSpanEvidence = ({
   />
 );
 
-const DefaultSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
+const DefaultSpanEvidence = ({
+  event,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
       [
-        makeTransactionNameRow(event),
+        makeTransactionNameRow(event, orgSlug, projectSlug),
         offendingSpans.length > 0
           ? makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0]))
           : null,
@@ -211,11 +306,40 @@ const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
   <KeyValueList shouldSort={false} data={data} />
 );
 
-const makeTransactionNameRow = (event: Event) => makeRow(t('Transaction'), event.title);
+const makeTransactionNameRow = (event: Event, orgSlug: string, projectSlug?: string) => {
+  const transactionSummaryLocation = transactionSummaryRouteWithQuery({
+    orgSlug,
+    projectID: event.projectID,
+    transaction: event.title,
+    query: {},
+  });
+
+  const eventSlug = generateEventSlug({
+    id: event.eventID,
+    project: projectSlug,
+  });
+
+  const eventDetailsLocation = getTransactionDetailsUrl(orgSlug, eventSlug);
+
+  const actionButton = projectSlug ? (
+    <Button size="xs" to={eventDetailsLocation}>
+      {t('View Full Event')}
+    </Button>
+  ) : undefined;
+
+  return makeRow(
+    t('Transaction'),
+    <pre>
+      <Link to={transactionSummaryLocation}>{event.title}</Link>
+    </pre>,
+    actionButton
+  );
+};
 
 const makeRow = (
   subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][]
+  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][],
+  actionButton?: ReactNode
 ): KeyValueListDataItem => {
   const itemKey = kebabCase(subject);
 
@@ -225,6 +349,7 @@ const makeRow = (
     value,
     subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
     isMultiValue: Array.isArray(value),
+    actionButton,
   };
 };
 
@@ -275,7 +400,7 @@ const sumSpanDurations = (spans: Span[]) => {
 };
 
 const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
-  return timestamp && start_timestamp ? (timestamp - start_timestamp) * 1000 : 0;
+  return ((timestamp ?? 0) - (start_timestamp ?? 0)) * 1000;
 };
 
 function getDurationImpact(event: EventTransaction, durationAdded: number) {
@@ -283,21 +408,28 @@ function getDurationImpact(event: EventTransaction, durationAdded: number) {
   if (!transactionTime) {
     return null;
   }
-  const percent = durationAdded / transactionTime;
-  return `${toPercent(percent)} (${getPerformanceDuration(
+
+  return formatDurationImpact(durationAdded, transactionTime);
+}
+
+function formatDurationImpact(durationAdded: number, totalDuration: number) {
+  const percent = durationAdded / totalDuration;
+
+  return `${toRoundedPercent(percent)} (${getPerformanceDuration(
     durationAdded
-  )}/${getPerformanceDuration(transactionTime)})`;
+  )}/${getPerformanceDuration(totalDuration)})`;
+}
+
+function formatDelay(durationAdded: number, totalDuration: number) {
+  const percent = durationAdded / totalDuration;
+
+  return `${getPerformanceDuration(durationAdded)} (${toRoundedPercent(
+    percent
+  )} of ${getPerformanceDuration(totalDuration)})`;
 }
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
-  if (
-    typeof span.timestamp === 'undefined' ||
-    typeof span.start_timestamp === 'undefined'
-  ) {
-    return null;
-  }
-  const spanTime = span?.timestamp - span?.start_timestamp;
-  return getDurationImpact(event, spanTime * 1000);
+  return getDurationImpact(event, getSpanDuration(span));
 }
 
 function getSpanDataField(span: Span, field: string) {
@@ -345,13 +477,23 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
   return pairs;
 }
 
+/** Parses the span data and pulls out the URL. Accounts for different SDKs and
+     different versions of SDKs formatting and parsing the URL contents
+     differently. Mirror of `get_url_from_span`. Ideally, this should not exist,
+     and instead it should use the data provided by the backend */
 export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
   let URLString;
 
   URLString = span?.data?.url;
   if (URLString) {
     try {
-      return new URL(span?.data?.url, baseURL);
+      let url = span?.data?.url ?? '';
+      const query = span?.data?.['http.query'];
+      if (query) {
+        url += `?${query}`;
+      }
+
+      return new URL(url, baseURL);
     } catch (e) {
       // Ignore error
     }

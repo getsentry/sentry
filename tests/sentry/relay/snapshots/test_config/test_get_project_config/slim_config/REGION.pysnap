@@ -1,6 +1,4 @@
 ---
-created: '2023-01-17T00:14:22.995246Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -10,9 +8,7 @@ config:
     excludeFields: []
     scrubData: true
     scrubDefaults: true
-    scrubIpAddresses: false
     sensitiveFields: []
-  features: []
   measurements:
     builtinMeasurements:
     - name: app_start_cold
@@ -53,6 +49,10 @@ config:
       unit: millisecond
     - name: ttfb
       unit: millisecond
+    - name: time_to_full_display
+      unit: millisecond
+    - name: time_to_initial_display
+      unit: millisecond
     maxCustomMeasurements: 10
   piiConfig:
     applications:
@@ -61,7 +61,6 @@ config:
       - project:remove_ips_and_macs
     rules:
       organization:remove_ips_and_macs:
-        hide_rule: false
         redaction:
           method: remove
         rules:
@@ -69,7 +68,6 @@ config:
         - '@mac'
         type: multiple
       project:remove_ips_and_macs:
-        hide_rule: false
         redaction:
           method: remove
         rules:

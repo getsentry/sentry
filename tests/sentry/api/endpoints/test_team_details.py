@@ -1,6 +1,8 @@
 from sentry import audit_log
 from sentry.models import AuditLogEntry, DeletedTeam, ScheduledDeletion, Team, TeamStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.asserts import assert_org_audit_log_exists
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -79,6 +81,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "hello world"
         assert team.slug == "foobar"
 
+    @with_feature("organizations:org-roles-for-teams")
     def test_put_team_org_role__success(self):
         team = self.team
         user = self.create_user("foo@example.com")
@@ -89,6 +92,42 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert team.org_role == "owner"
 
+        data = {
+            "id": team.id,
+            "slug": team.slug,
+            "name": team.name,
+            "status": team.status,
+            "org_role": "owner",
+            "old_org_role": None,
+        }
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("TEAM_EDIT"),
+            data=data,
+        )
+
+        test_team_edit = audit_log.get(21)
+        assert (
+            test_team_edit.render(AuditLogEntry.objects.get(event=21))
+            == f"edited team {team.slug}'s org role to owner"
+        )
+
+    def test_put_team_org_role__missing_flag(self):
+        # the put goes through but doesn't update the org role field
+        team = self.team
+        user = self.create_user("foo@example.com")
+        self.create_member(user=user, organization=self.organization, role="owner")
+        self.login_as(user)
+        self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
+
+        team = Team.objects.get(id=team.id)
+        assert not team.org_role
+        test_team_edit = audit_log.get(21)
+        assert (
+            test_team_edit.render(AuditLogEntry.objects.get(event=21)) == f"edited team {team.slug}"
+        )
+
+    @with_feature("organizations:org-roles-for-teams")
     def test_put_team_org_role__success_with_org_role_from_team(self):
         team = self.team
         user = self.create_user("foo@example.com")
@@ -103,6 +142,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert team.org_role == "owner"
 
+    @with_feature("organizations:org-roles-for-teams")
     def test_put_team_org_role__member(self):
         team = self.team
         user = self.create_user("foo@example.com")
@@ -117,10 +157,11 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert not team.org_role
 
-    def test_put_team_org_role__admin(self):
+    @with_feature("organizations:org-roles-for-teams")
+    def test_put_team_org_role__manager(self):
         team = self.team
         user = self.create_user("foo@example.com")
-        self.create_member(user=user, organization=self.organization, role="admin")
+        self.create_member(user=user, organization=self.organization, role="manager")
         self.login_as(user)
 
         response = self.get_error_response(
@@ -131,6 +172,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert not team.org_role
 
+    @with_feature("organizations:org-roles-for-teams")
     def test_put_team_org_role__invalid_role(self):
         team = self.team
         user = self.create_user("foo@example.com")
@@ -141,6 +183,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert not team.org_role
 
+    @with_feature("organizations:org-roles-for-teams")
     def test_put_team_org_role__idp_provisioned_team(self):
         team = self.create_team(idp_provisioned=True)
         user = self.create_user("foo@example.com")
@@ -157,6 +200,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert not team.org_role
 
+    @with_feature("organizations:org-roles-for-teams")
     def test_put_team_org_role__remove_success(self):
         team = self.create_team(org_role="owner")
         user = self.create_user("foo@example.com")
@@ -167,6 +211,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert not team.org_role
 
+    @with_feature("organizations:org-roles-for-teams")
     def test_put_team_org_role__remove_error(self):
         team = self.create_team(org_role="owner")
         user = self.create_user("foo@example.com")

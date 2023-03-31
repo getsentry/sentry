@@ -292,14 +292,14 @@ class SentryAppInstallationPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, installation.organization)
+        self.determine_access(request, installation.organization_id)
 
         if is_active_superuser(request):
             return True
 
         # if user is an app, make sure it's for that same app
         if request.user.is_sentry_app:
-            return request.user == installation.sentry_app.proxy_user
+            return request.user.id == installation.sentry_app.proxy_user_id
 
         # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
         org_context = organization_service.get_organization_by_id(

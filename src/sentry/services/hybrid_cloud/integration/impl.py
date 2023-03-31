@@ -4,12 +4,13 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 
 from sentry.api.paginator import OffsetPaginator
+from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud import ApiPaginationArgs, ApiPaginationResult
+from sentry.services.hybrid_cloud import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.integration import (
-    APIIntegration,
-    APIOrganizationIntegration,
     IntegrationService,
+    RpcIntegration,
+    RpcOrganizationIntegration,
 )
 
 if TYPE_CHECKING:
@@ -23,13 +24,26 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def close(self) -> None:
         pass
 
+    def send_message(
+        self, *, integration_id: int, organization_id: int, channel: str, message: str
+    ) -> bool:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if integration is None:
+            return False
+        install = self.get_installation(integration=integration, organization_id=organization_id)
+        if isinstance(install, NotifyBasicMixin):
+            install.send_message(channel_id=channel, message=message)
+            return True
+
+        return False
+
     def page_integration_ids(
         self,
         *,
         provider_keys: List[str],
         organization_id: int,
-        args: ApiPaginationArgs,
-    ) -> ApiPaginationResult:
+        args: RpcPaginationArgs,
+    ) -> RpcPaginationResult:
         return args.do_hybrid_cloud_pagination(
             description="page_integration_ids",
             paginator_cls=OffsetPaginator,
@@ -46,8 +60,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization_id: int,
         statuses: List[int],
         provider_key: str | None = None,
-        args: ApiPaginationArgs,
-    ) -> ApiPaginationResult:
+        args: RpcPaginationArgs,
+    ) -> RpcPaginationResult:
         queryset = OrganizationIntegration.objects.filter(
             organization_id=organization_id,
             status__in=statuses,
@@ -72,7 +86,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         providers: List[str] | None = None,
         org_integration_status: int | None = None,
         limit: int | None = None,
-    ) -> List[APIIntegration]:
+    ) -> List[RpcIntegration]:
         integration_kwargs: Dict[str, Any] = {}
         if integration_ids is not None:
             integration_kwargs["id__in"] = integration_ids
@@ -102,7 +116,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         provider: str | None = None,
         external_id: str | None = None,
         organization_id: int | None = None,
-    ) -> APIIntegration | None:
+    ) -> RpcIntegration | None:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
             integration_kwargs["id"] = integration_id
@@ -129,7 +143,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
         limit: int | None = None,
-    ) -> List[APIOrganizationIntegration]:
+    ) -> List[RpcOrganizationIntegration]:
         oi_kwargs: Dict[str, Any] = {}
 
         if org_integration_ids is not None:
@@ -157,7 +171,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
-    ) -> APIOrganizationIntegration | None:
+    ) -> RpcOrganizationIntegration | None:
         organization_integration = OrganizationIntegration.objects.filter(
             integration_id=integration_id, organization_id=organization_id
         ).first()
@@ -175,7 +189,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> Tuple[APIIntegration | None, APIOrganizationIntegration | None]:
+    ) -> Tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
         integration = self.get_integration(
             organization_id=organization_id,
             integration_id=integration_id,
@@ -202,7 +216,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         name: str | None = None,
         metadata: Dict[str, Any] | None = None,
         status: int | None = None,
-    ) -> List[APIIntegration]:
+    ) -> List[RpcIntegration]:
         integrations = Integration.objects.filter(id__in=integration_ids)
         if not integrations.exists():
             return []
@@ -229,7 +243,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         name: str | None = None,
         metadata: Dict[str, Any] | None = None,
         status: int | None = None,
-    ) -> APIIntegration | None:
+    ) -> RpcIntegration | None:
         integrations = self.update_integrations(
             integration_ids=[integration_id],
             name=name,
@@ -246,7 +260,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
-    ) -> List[APIOrganizationIntegration]:
+    ) -> List[RpcOrganizationIntegration]:
         ois = OrganizationIntegration.objects.filter(id__in=org_integration_ids)
         if not ois.exists():
             return []
@@ -276,7 +290,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
-    ) -> APIOrganizationIntegration | None:
+    ) -> RpcOrganizationIntegration | None:
         ois = self.update_organization_integrations(
             org_integration_ids=[org_integration_id],
             config=config,

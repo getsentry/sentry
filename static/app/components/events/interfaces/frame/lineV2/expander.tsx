@@ -4,10 +4,8 @@ import {Button} from 'sentry/components/button';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PlatformType} from 'sentry/types';
-
-import {isDotnet} from '../utils';
 
 type Props = {
   isExpandable: boolean;
@@ -17,13 +15,7 @@ type Props = {
   isHoverPreviewed?: boolean;
 };
 
-function Expander({
-  isExpandable,
-  isHoverPreviewed,
-  isExpanded,
-  platform,
-  onToggleContext,
-}: Props) {
+function Expander({isExpandable, isHoverPreviewed, isExpanded, onToggleContext}: Props) {
   if (!isExpandable) {
     return null;
   }
@@ -31,7 +23,6 @@ function Expander({
   return (
     <StyledButton
       className="btn-toggle"
-      css={isDotnet(platform) && {display: 'block !important'}} // remove important once we get rid of css files
       size="zero"
       title={t('Toggle Context')}
       tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}

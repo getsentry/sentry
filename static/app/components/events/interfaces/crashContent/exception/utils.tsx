@@ -3,9 +3,9 @@ import {getFileExtension} from 'sentry/utils/fileExtension';
 
 const fileNameBlocklist = ['@webkit-masked-url'];
 export function isFrameFilenamePathlike(frame: Frame): boolean {
-  let filename = '';
+  let filename = frame.absPath ?? '';
   try {
-    filename = new URL(frame.absPath ?? '').pathname.split('/').reverse()[0];
+    filename = new URL(filename).pathname.split('/').reverse()[0];
   } catch {
     // do nothing
   }
@@ -19,3 +19,19 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
     (!!frame.absPath && !getFileExtension(filename))
   );
 }
+
+// Maps the SDK name to the url token for docs
+export const sourceMapSdkDocsMap: Record<string, string> = {
+  'sentry.javascript.browser': 'javascript',
+  'sentry.javascript.node': 'node',
+  'sentry.javascript.react': 'react',
+  'sentry.javascript.angular': 'angular',
+  'sentry.javascript.angular-ivy': 'angular',
+  'sentry.javascript.ember': 'ember',
+  'sentry.javascript.gatsby': 'gatsby',
+  'sentry.javascript.vue': 'vue',
+  'sentry.javascript.nextjs': 'nextjs',
+  'sentry.javascript.remix': 'remix',
+  'sentry.javascript.svelte': 'svelte',
+  'sentry.javascript.react-native': 'react-native',
+};

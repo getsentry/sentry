@@ -22,7 +22,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         notification = NewProcessingIssuesActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.NEW_PROCESSING_ISSUES,
                 data={
                     "issues": get_issues_data(),
@@ -54,7 +54,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         notification = NewProcessingIssuesActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.NEW_PROCESSING_ISSUES,
                 data={
                     "issues": get_issues_data(),

@@ -9,6 +9,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 @region_silo_only_model
@@ -23,7 +24,7 @@ class GroupBookmark(Model):
     project = FlexibleForeignKey("sentry.Project", related_name="bookmark_set")
     group = FlexibleForeignKey("sentry.Group", related_name="bookmark_set")
     # namespace related_name on User since we don't own the model
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_bookmark_set")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = BaseManager()
@@ -32,6 +33,6 @@ class GroupBookmark(Model):
         app_label = "sentry"
         db_table = "sentry_groupbookmark"
         # composite index includes project for efficient queries
-        unique_together = (("project", "user", "group"),)
+        unique_together = (("project", "user_id", "group"),)
 
     __repr__ = sane_repr("project_id", "group_id", "user_id")

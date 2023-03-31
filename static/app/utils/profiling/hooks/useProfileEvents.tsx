@@ -62,10 +62,16 @@ export function useProfileEvents<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  let dataset: 'profiles' | 'discover' = 'profiles';
+  if (organization.features.includes('profiling-using-transactions')) {
+    dataset = 'discover';
+    query = `has:profile.id ${query ?? ''}`;
+  }
+
   const path = `/organizations/${organization.slug}/events/`;
   const endpointOptions = {
     query: {
-      dataset: 'profiles',
+      dataset,
       referrer,
       project: projects || selection.projects,
       environment: selection.environments,

@@ -1,5 +1,6 @@
 __all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
+import functools
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -14,7 +15,7 @@ from sentry.features.base import OrganizationFeature, ProjectFeature
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.organization import ApiOrganization
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def Feature(names):
 
             if isinstance(feature, OrganizationFeature):
                 org = args[0] if len(args) > 0 else kwargs.get("organization", None)
-                if not isinstance(org, Organization) and not isinstance(org, ApiOrganization):
+                if not isinstance(org, Organization) and not isinstance(org, RpcOrganization):
                     raise ValueError("Must provide organization to check feature")
                 return resolve_feature_name_value_for_org(org, names[name])
 
@@ -114,6 +115,7 @@ def with_feature(feature):
             with Feature(feature):
                 return func(self, *args, **kwargs)
 
+        functools.update_wrapper(wrapped, func)
         return wrapped
 
     return decorator

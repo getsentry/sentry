@@ -683,7 +683,7 @@ class SpanTreeModel {
     addTraceBounds: (bounds: TraceBound) => void;
     removeTraceBounds: (eventSlug: string) => void;
   }) =>
-    action('toggleEmbeddedChildren', (props: {eventSlug: string; orgSlug: string}) => {
+    action('toggleEmbeddedChildren', (orgSlug: string, eventSlugs: string[]) => {
       this.showEmbeddedChildren = !this.showEmbeddedChildren;
       this.fetchEmbeddedChildrenState = 'idle';
 
@@ -697,7 +697,11 @@ class SpanTreeModel {
 
       if (this.showEmbeddedChildren) {
         if (this.embeddedChildren.length === 0) {
-          return this.fetchEmbeddedTransactions({...props, addTraceBounds});
+          return this.fetchEmbeddedTransactions({
+            orgSlug,
+            eventSlugs,
+            addTraceBounds,
+          });
         }
         this.embeddedChildren.forEach(child => {
           addTraceBounds(child.generateTraceBounds());
@@ -709,67 +713,73 @@ class SpanTreeModel {
 
   fetchEmbeddedTransactions({
     orgSlug,
-    eventSlug,
+    eventSlugs,
     addTraceBounds,
   }: {
     addTraceBounds: (bounds: TraceBound) => void;
-    eventSlug: string;
+    eventSlugs: string[];
     orgSlug: string;
   }) {
-    const url = `/organizations/${orgSlug}/events/${eventSlug}/`;
+    const urls = eventSlugs.map(
+      eventSlug => `/organizations/${orgSlug}/events/${eventSlug}/`
+    );
 
     this.fetchEmbeddedChildrenState = 'loading_embedded_transactions';
 
-    return this.api
-      .requestPromise(url, {
-        method: 'GET',
-        query: {},
-      })
-      .then(
-        action('fetchEmbeddedTransactionsSuccess', (event: EventTransaction) => {
-          if (!event) {
-            return;
-          }
-
-          const parsedTrace = parseTrace(event);
-
-          // We need to adjust the timestamps for this embedded transaction only if it is not within the bounds of its parent span
-          if (
-            parsedTrace.traceStartTimestamp < this.span.start_timestamp ||
-            parsedTrace.traceEndTimestamp > this.span.timestamp
-          ) {
-            const startTimeDelta =
-              this.span.start_timestamp - parsedTrace.traceStartTimestamp;
-
-            parsedTrace.traceStartTimestamp += startTimeDelta;
-            parsedTrace.traceEndTimestamp += startTimeDelta;
-
-            parsedTrace.spans.forEach(span => {
-              span.start_timestamp += startTimeDelta;
-              span.timestamp += startTimeDelta;
-            });
-
-            this.isEmbeddedTransactionTimeAdjusted = true;
-          }
-
-          const rootSpan = generateRootSpan(parsedTrace);
-          const parsedRootSpan = new SpanTreeModel(
-            rootSpan,
-            parsedTrace.childSpans,
-            this.api,
-            false
-          );
-          this.embeddedChildren = [parsedRootSpan];
-          this.fetchEmbeddedChildrenState = 'idle';
-          addTraceBounds(parsedRootSpan.generateTraceBounds());
+    const promiseArray = urls.map(url =>
+      this.api
+        .requestPromise(url, {
+          method: 'GET',
+          query: {},
         })
-      )
-      .catch(
-        action('fetchEmbeddedTransactionsError', () => {
-          this.embeddedChildren = [];
-          this.fetchEmbeddedChildrenState = 'error_fetching_embedded_transactions';
-        })
-      );
+        .then(
+          action('fetchEmbeddedTransactionsSuccess', (event: EventTransaction) => {
+            if (!event) {
+              return;
+            }
+
+            const parsedTrace = parseTrace(event);
+
+            // We need to adjust the timestamps for this embedded transaction only if it is not within the bounds of its parent span
+            if (
+              parsedTrace.traceStartTimestamp < this.span.start_timestamp ||
+              parsedTrace.traceEndTimestamp > this.span.timestamp
+            ) {
+              const startTimeDelta =
+                this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+
+              parsedTrace.traceStartTimestamp += startTimeDelta;
+              parsedTrace.traceEndTimestamp += startTimeDelta;
+
+              parsedTrace.spans.forEach(span => {
+                span.start_timestamp += startTimeDelta;
+                span.timestamp += startTimeDelta;
+              });
+
+              this.isEmbeddedTransactionTimeAdjusted = true;
+            }
+
+            const rootSpan = generateRootSpan(parsedTrace);
+            const parsedRootSpan = new SpanTreeModel(
+              rootSpan,
+              parsedTrace.childSpans,
+              this.api,
+              false
+            );
+            this.embeddedChildren.push(parsedRootSpan);
+            this.fetchEmbeddedChildrenState = 'idle';
+            addTraceBounds(parsedRootSpan.generateTraceBounds());
+          })
+        )
+        .catch(
+          action('fetchEmbeddedTransactionsError', () => {
+            this.embeddedChildren = [];
+            this.fetchEmbeddedChildrenState = 'error_fetching_embedded_transactions';
+          })
+        )
+    );
+
+    return Promise.all(promiseArray);
   }
 
   toggleNestedSpanGroup = () => {
