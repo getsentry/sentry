@@ -421,6 +421,8 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         assert commit_context == commit_context_expected
 
+        # We are now going to test the case where the Gitlab instance will return a non-UTC committed_data
+        # This 2015-12-18T11:12:22.000+03:00 vs 2015-10-03T09:34:32.000Z
         event_frame["lineno"] = 31
         responses.add(
             responses.GET,
@@ -443,6 +445,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             ],
         )
         commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
+        # The returned commit context has converted the timezone to UTC (000Z)
         assert commit_context == commit_context_expected
 
 
