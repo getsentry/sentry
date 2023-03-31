@@ -20,6 +20,7 @@ import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -139,6 +140,9 @@ function MonitorForm({
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
 
+  const isSuperuser = isActiveSuperuser();
+  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
+
   const parsedSchedule = crontabAsText(crontabInput);
 
   return (
@@ -194,7 +198,7 @@ function MonitorForm({
           )}
           <StyledSentryProjectSelectorField
             name="project"
-            projects={projects.filter(project => project.isMember)}
+            projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
             disabledReason={t('Existing monitors cannot be moved between projects')}

@@ -532,7 +532,7 @@ export class Client {
     }: {includeAllArgs?: IncludeAllArgsType} & Readonly<RequestOptions> = {}
   ): Promise<
     IncludeAllArgsType extends true
-      ? [any, string | undefined, ResponseMeta | undefined]
+      ? [data: any, textStatus: string | undefined, response: ResponseMeta | undefined]
       : any
   > {
     // Create an error object here before we make any async calls so that we
