@@ -922,6 +922,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.textContent:Hello",
                 "replay_click.title:MyTitle",
                 "replay_click.selector:div#myid",
+                "replay_click.selector:div#myid.class1.class2",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -941,6 +942,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.title:NotMyTitle",
                 "!replay_click.selector:div#myid",
                 "replay_click.selector:div#notmyid",
+                # Assert all classes must match.
+                "replay_click.selector:div#myid.class1.class2.class3",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
