@@ -92,7 +92,12 @@ export const OrgRoleInfo = ({
 
       <div>
         {tct(
-          'Sentry will grant them permissions equivalent to the union-set of all their role. [docsLink:See docs here].', {docsLink:  <ExternalLink href="https://docs.sentry.io/product/accounts/membership/#roles" />}
+          'Sentry will grant them permissions equivalent to the union-set of all their role. [docsLink:See docs here].',
+          {
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/accounts/membership/#roles" />
+            ),
+          }
         )}
       </div>
     </TooltipWrapper>
