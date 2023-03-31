@@ -27,7 +27,7 @@ from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
 )
 
 from sentry import options
-from sentry.incidents.subscription_processor import SubscriptionUpdate
+from sentry.incidents.utils.types import SubscriptionUpdate
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba

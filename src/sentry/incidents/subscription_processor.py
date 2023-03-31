@@ -4,7 +4,7 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, TypeVar, cast
+from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, cast
 
 from django.conf import settings
 from django.db import transaction
@@ -31,6 +31,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
+from sentry.incidents.utils.types import SubscriptionUpdate
 from sentry.models import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -60,13 +61,6 @@ ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: Optional[int] = None
 
 T = TypeVar("T")
-
-
-class SubscriptionUpdate(TypedDict):
-    entity: str
-    subscription_id: str
-    values: Any
-    timestamp: datetime
 
 
 class SubscriptionProcessor:

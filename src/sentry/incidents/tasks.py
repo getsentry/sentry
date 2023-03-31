@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -18,6 +18,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
 )
+from sentry.incidents.utils.types import SubscriptionUpdate
 from sentry.models import Project
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.snuba.dataset import Dataset
@@ -27,9 +28,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
-
-if TYPE_CHECKING:
-    from sentry.incidents.subscription_processor import SubscriptionUpdate
 
 logger = logging.getLogger(__name__)
 
