@@ -16,10 +16,10 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
-    Team,
-    User,
     Rule,
     RuleMuted,
+    Team,
+    User,
 )
 from sentry.notifications.helpers import (
     get_settings_by_provider,
