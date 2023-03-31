@@ -13,30 +13,29 @@ from typing import Any, Dict, List, Union
 
 ForecastObject = Dict[str, Union[int, str]]
 
-"""
-  Calculates daily issue spike limits, given an input dataset from snuba.
-
-  For issues with at least 14 days of history, we combine a weighted average of the last
-  7 days of hourly data with the observed variance over that time interval. We double the
-  weight if historical observation falls on the same day of week to incorporate daily seasonality.
-  The overall multiplier is calibrated to 5 standard deviations, although it is
-  truncated to [5, 8] to avoid poor results in a timeseries with very high
-  or low variance.
-  In addition, we also calculate the cv (coefficient of variance) of the timeseries the past week, which is the ratio of the
-  standard deviation over the average. This is to get an understanding of how high or low the variance
-  is relative to the data. The CV is then placed into an exponential equation that outputs
-  a multiplier inversely related to how high the cv is. The multiplier is bounded between 2 and 5. The
-  ceilings for the next week are all the same - which is the maximum number of events in an hour over the
-  past week multiplied by this multiplier. This calculation is to accound for bursty issues or those that
-  have a very high variance.
-  The final spike limit for each hour is set to the max of the bursty limit bound or the calculated limit.
-  :param data: Dict of Snuba query results - hourly data over past 7 days
-  :param start_time: datetime indicating the first hour to calc spike protection for
-  :return output: Dict containing a list of spike protection values
-  """
-
 
 def issue_spike(data: Dict[str, Any], start_time: datetime) -> List[ForecastObject]:
+    """
+    Calculates daily issue spike limits, given an input dataset from snuba.
+
+    For issues with at least 14 days of history, we combine a weighted average of the last
+    7 days of hourly data with the observed variance over that time interval. We double the
+    weight if historical observation falls on the same day of week to incorporate daily seasonality.
+    The overall multiplier is calibrated to 5 standard deviations, although it is
+    truncated to [5, 8] to avoid poor results in a timeseries with very high
+    or low variance.
+    In addition, we also calculate the cv (coefficient of variance) of the timeseries the past week, which is the ratio of the
+    standard deviation over the average. This is to get an understanding of how high or low the variance
+    is relative to the data. The CV is then placed into an exponential equation that outputs
+    a multiplier inversely related to how high the cv is. The multiplier is bounded between 2 and 5. The
+    ceilings for the next week are all the same - which is the maximum number of events in an hour over the
+    past week multiplied by this multiplier. This calculation is to accound for bursty issues or those that
+    have a very high variance.
+    The final spike limit for each hour is set to the max of the bursty limit bound or the calculated limit.
+    :param data: Dict of Snuba query results - hourly data over past 7 days
+    :param start_time: datetime indicating the first hour to calc spike protection for
+    :return output: Dict containing a list of spike protection values
+    """
 
     # output list of dictionaries
     output: List[ForecastObject] = []

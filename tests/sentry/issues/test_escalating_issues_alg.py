@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sentry.tasks.escalating_issues_alg import issue_spike
+from sentry.issues.escalating_issues_alg import issue_spike
 
 START_TIME = datetime.strptime("2022-07-27T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%f%z")
 

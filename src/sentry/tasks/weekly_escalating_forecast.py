@@ -3,11 +3,11 @@ from typing import Any, Dict, List, Tuple
 
 from django.db import transaction
 
+from sentry.issues.escalating_issues_alg import issue_spike
 from sentry.models import Group, GroupStatus
 from sentry.models.groupforecast import GroupForecast
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.escalating_issues_alg import issue_spike
 from sentry.utils.json import JSONData
 
 BATCH_SIZE = 200
