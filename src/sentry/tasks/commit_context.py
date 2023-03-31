@@ -176,6 +176,9 @@ def process_commit_context(
                         repository_id=code_mapping.repository_id,
                         key=commit_context.get("commitId"),
                     )
+                    if commit.message == "":
+                        commit.message = commit_context.get("commitMessage")
+                        commit.save()
                     selected_code_mapping = code_mapping
                     break
                 except Commit.DoesNotExist:
