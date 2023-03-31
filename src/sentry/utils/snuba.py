@@ -379,6 +379,11 @@ def to_naive_timestamp(value):
     return (value - epoch_naive).total_seconds()
 
 
+def to_start_of_hour(date):
+    """This is a function that mimics toStartOfHour from Clickhouse"""
+    return date.replace(minute=0, second=0, microsecond=0).isoformat() + "+00:00"
+
+
 def get_snuba_column_name(name, dataset=Dataset.Events):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found

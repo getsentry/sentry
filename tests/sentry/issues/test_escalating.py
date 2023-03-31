@@ -1,9 +1,9 @@
 # import unittest
 # from typing import Dict, List
-
-# import pytest
+from datetime import datetime
 
 from sentry.issues.escalating import query_groups_past_counts
+from sentry.utils.snuba import to_start_of_hour
 from sentry.models import Group
 
 # from sentry.issues.escalating import InvalidProjectsToGroupsMap, query_groups_past_counts
@@ -21,12 +21,10 @@ class HistoricGroupCounts(TestCase, SnubaTestCase):
         self.event = self.store_event(data, project_id=self.project.id)
 
     def test_query(self) -> None:
-        # print(self.timestamp)
-        # breakpoint()
         assert query_groups_past_counts(Group.objects.all()) == [
             {
                 "group_id": self.event.group_id,
-                "hourBucket": "2023-03-30T20:00:00+00:00",  # XXX: Update the hour for now
+                "hourBucket": to_start_of_hour(self.timestamp),
                 "project_id": self.event.project_id,
             }
         ]

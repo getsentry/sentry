@@ -44,8 +44,7 @@ def query_groups_past_counts(groups: List[Group]) -> JSONData:
         where=[
             Condition(Column("project_id"), Op.IN, Function("tuple", project_ids)),
             Condition(Column("group_id"), Op.IN, Function("tuple", group_ids)),
-            # TODO: We need to verify the datetimes and timezones
-            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(days=14)),
+            Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
             Condition(Column("timestamp"), Op.LT, datetime.today()),
         ],
         limit=Limit(1),  # Limit(10000)
