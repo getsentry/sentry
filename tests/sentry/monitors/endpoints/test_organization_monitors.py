@@ -67,13 +67,15 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
 
     def test_all_monitor_environments(self):
-        monitor = self._create_monitor()
+        monitor = self._create_monitor(status=MonitorStatus.OK)
         monitor_environment = self._create_monitor_environment(monitor, name="test")
 
+        monitor_empty = self._create_monitor(name="empty")
+
         response = self.get_success_response(self.organization.slug)
-        self.check_valid_response(response, [monitor])
-        for monitor in response.data:
-            self.check_valid_environments_response(response, monitor, [monitor_environment])
+        self.check_valid_response(response, [monitor, monitor_empty])
+        self.check_valid_environments_response(response, response.data[0], [monitor_environment])
+        self.check_valid_environments_response(response, response.data[1], [])
 
     def test_monitor_environment(self):
         monitor = self._create_monitor()
