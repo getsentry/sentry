@@ -263,8 +263,7 @@ class FeatureManager(RegisteredFeatureManager):
                 feature_names, actor, projects=projects, organization=organization
             )
         else:
-            # Fall back to default handler if no entity handler available. We can add batching here
-            # if w
+            # Fall back to default handler if no entity handler available.
             project_features = filter(lambda name: name.startswith("projects:"), feature_names)
             if projects and project_features:
                 results: MutableMapping[str, Mapping[str, bool]] = {}
