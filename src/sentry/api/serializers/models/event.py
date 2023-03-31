@@ -8,6 +8,7 @@ import sqlparse
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import (
@@ -81,7 +82,12 @@ def get_tags_with_meta(event):
     return (tags, meta_with_chunks(tags, tags_meta))
 
 
-def format_breadcrumb_messages(breadcrumb_data):
+def format_breadcrumb_messages(breadcrumb_data, event: Event | GroupEvent, user: User):
+    if not features.has(
+        "organizations:issue-breadcrumbs-sql-format", event.project.organization, actor=user
+    ):
+        return breadcrumb_data
+
     for entry in breadcrumb_data["values"]:
         if entry["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
             entry["message_formatted"] = sqlparse.format(entry["message"], reindent_aligned=True)
@@ -109,7 +115,7 @@ def get_entries(event: Event | GroupEvent, user: User, is_public: bool = False):
         entry = {"data": data, "type": interface.external_type}
 
         if entry["type"] == "breadcrumbs":
-            entry["data"] = format_breadcrumb_messages(entry["data"])
+            entry["data"] = format_breadcrumb_messages(entry["data"], event, user)
 
         api_meta = None
         if meta.get(key):
