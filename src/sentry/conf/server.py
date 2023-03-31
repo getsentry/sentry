@@ -1211,6 +1211,8 @@ SENTRY_FEATURES = {
     "organizations:issue-list-removal-action": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
+    # Display CPU and memory metrics in transactions with profiles
+    "organizations:mobile-cpu-memory-in-transactions": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1267,6 +1269,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
+    # Enable Session Replay DOM search
+    "organizations:session-replay-dom-search": False,
     # Enabled for those orgs who participated in the Replay Beta program
     "organizations:session-replay-beta-grace": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
@@ -2130,7 +2134,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
+            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
@@ -3012,14 +3016,21 @@ INJECTED_SCRIPT_ASSETS = []
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 
+PG_VERSION = os.getenv("PG_VERSION") or "9.6"
+
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
-# Note: The docs have this backwards. We set this to False here so that we always add check
-# constraints instead of setting the column to not null.
-ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
+
+if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
+    # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+
+    # https://github.com/tbicr/django-pg-zero-downtime-migrations/blob/7b3f5c045b40e656772859af4206acf3f11c0951/CHANGES.md#06
+
+    # Note: The docs have this backwards. We set this to False here so that we always add check
+    # constraints instead of setting the column to not null.
+    ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
 ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30

@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import marked from 'sentry/utils/marked';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {AiLoaderMessage} from 'sentry/views/issueDetails/openAIFixSuggestion/aiLoaderMessage';
@@ -78,7 +78,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
     isError: dataIsError,
     refetch: dataRefetch,
     error,
-  } = useQuery<{suggestion: string}>(
+  } = useApiQuery<{suggestion: string}>(
     [
       `/projects/${organization.slug}/${projectSlug}/events/${eventID}/ai-fix-suggest/`,
       {query: {consent: individualConsent ? 'yes' : undefined}},
@@ -107,7 +107,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
                 query: {...router.location.query, showSuggestedFix: undefined},
               }}
             >
-              {t('Cancel')}
+              {t('Dismiss')}
             </Button>
             <Button priority="primary" to={`/settings/${organization.slug}/legal/`}>
               {t('Accept in Settings')}
@@ -133,7 +133,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
                 query: {...router.location.query, showSuggestedFix: undefined},
               }}
             >
-              {t('Cancel')}
+              {t('Dismiss')}
             </Button>
             <Button
               priority="primary"
@@ -178,7 +178,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
       </FixSuggestionPanelHeader>
       {expandedSuggestedFix && (
         <Fragment>
-          <StyledPanelBody withPadding isLoading={dataIsLoading}>
+          <StyledPanelBody withPadding whiteBg={dataIsLoading}>
             {dataIsLoading ? (
               <AiLoaderWrapper>
                 <div className="ai-loader" />
@@ -254,8 +254,9 @@ const FixSuggestionPanel = styled(Panel)`
   overflow: hidden;
 `;
 
-const StyledPanelBody = styled(PanelBody)<{isLoading: boolean}>`
-  background: ${p => (p.isLoading ? 'white' : undefined)};
+const StyledPanelBody = styled(PanelBody)<{whiteBg: boolean}>`
+  background: ${p => (p.whiteBg ? 'white' : undefined)};
+  min-height: 268px;
 `;
 
 const FixSuggestionPanelHeader = styled(PanelHeader)<{isExpanded: boolean}>`
@@ -286,5 +287,5 @@ const FeatureBadgeNotUppercase = styled(FeatureBadge)`
 
 const AiLoaderWrapper = styled('div')`
   text-align: center;
-  padding-bottom: ${space(4)};
+  padding-bottom: ${space(1.5)};
 `;

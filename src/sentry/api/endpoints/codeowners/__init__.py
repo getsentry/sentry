@@ -71,12 +71,20 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         )
 
         # Convert IssueOwner syntax into schema syntax
+        has_targeting_context = features.has(
+            "organizations:streamline-targeting-context", self.context["project"].organization
+        )
         try:
-            validated_data = create_schema_from_issue_owners(
-                issue_owners=issue_owner_rules,
-                project_id=self.context["project"].id,
-                add_owner_ids=True,
-            )
+            if has_targeting_context:
+                validated_data = create_schema_from_issue_owners(
+                    issue_owners=issue_owner_rules,
+                    project_id=self.context["project"].id,
+                    add_owner_ids=True,
+                )
+            else:
+                validated_data = create_schema_from_issue_owners(
+                    issue_owners=issue_owner_rules, project_id=self.context["project"].id
+                )
             return {
                 **attrs,
                 "schema": validated_data,
