@@ -38,7 +38,7 @@ INCIDENT_SNAPSHOT_BATCH_SIZE = 50
 SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
-@instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
+@instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")  # type: ignore
 def send_subscriber_notifications(activity_id: int) -> None:
     from sentry.incidents.logic import get_incident_subscribers, unsubscribe_from_incident
 
@@ -128,9 +128,6 @@ def handle_subscription_metrics_logger(
 ) -> None:
     """
     Logs results from a `QuerySubscription`.
-    :param subscription_update: dict formatted according to schemas in
-    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResult
-    :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
@@ -161,9 +158,6 @@ def handle_snuba_query_update(
 ) -> None:
     """
     Handles a subscription update for a `QuerySubscription`.
-    :param subscription_update: dict formatted according to schemas in
-    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResult
-    :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
@@ -177,7 +171,7 @@ def handle_snuba_query_update(
     queue="incidents",
     default_retry_delay=60,
     max_retries=5,
-)
+)  # type: ignore
 def handle_trigger_action(
     action_id: int,
     incident_id: int,
@@ -242,7 +236,7 @@ def handle_trigger_action(
     queue="incidents",
     default_retry_delay=60,
     max_retries=2,
-)
+)  # type: ignore
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
     from sentry.incidents.models import AlertRule
