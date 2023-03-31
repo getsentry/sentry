@@ -13,7 +13,11 @@ import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import {
+  FlamegraphFrame,
+  getFlamegraphFrameDisplayName,
+  getFlamegraphFrameSearchId,
+} from '../flamegraphFrame';
 import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 class FlamegraphTextRenderer extends TextRenderer {
@@ -129,11 +133,13 @@ class FlamegraphTextRenderer extends TextRenderer {
       const y = frameY + (frameHeight < 0 ? frameHeight : 0) + BASELINE_OFFSET;
       const x = frameX + (frameWidth < 0 ? frameWidth : 0) + HALF_SIDE_PADDING;
 
+      const frameName = getFlamegraphFrameDisplayName(frame);
+
       const trim = trimTextCenter(
-        frame.frame.name,
+        frameName,
         findRangeBinarySearch(
           {low: 0, high: paddedRectangleWidth},
-          n => this.measureAndCacheText(frame.frame.name.substring(0, n)).width,
+          n => this.measureAndCacheText(frameName.substring(0, n)).width,
           paddedRectangleWidth
         )[0]
       );
