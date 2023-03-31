@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from django.db import transaction
 
@@ -11,10 +11,41 @@ from sentry.tasks.escalating_issues_alg import issue_spike
 from sentry.utils.json import JSONData
 
 BATCH_SIZE = 200
+GroupForecastTuple = Tuple[Group, List[int]]
 
 
 def query_groups_past_counts(groups: List[Group]) -> JSONData:
     return {}
+
+
+def get_forecast_per_group(
+    group_forecast_list: List[GroupForecastTuple],
+    archived_groups: List[Group],
+    response: JSONData,
+) -> None:
+    """
+    Modifies `group_forecast_list` to contain a list of forecasted values for each group.
+
+    `group_forecast_list`: List of GroupForecastTuple to be modified
+    `archived_groups`: List of archived groups to be forecasted
+    `archived_groups`: Snuba response for group event counts
+    """
+    data_index = 0
+    time = datetime.now()
+    for group in archived_groups:
+        group_data: Dict[str, List[Any]] = {"intervals": [], "data": []}
+        while (
+            data_index < len(response["data"])
+            and group.id == response["data"][data_index]["group_id"]
+        ):
+            # Flatten data into lists to be used in issue_spike
+            group_data["intervals"].append(response["data"][data_index]["hourBucket"])
+            group_data["data"].append(response["data"][data_index]["count()"])
+            data_index += 1
+
+        forecasts = issue_spike(group_data, time)
+        forecasts_list = [int(forecast["forecasted_value"]) for forecast in forecasts]
+        group_forecast_list.append((group, forecasts_list))
 
 
 @instrumented_task(
@@ -33,23 +64,8 @@ def run_escalating_forecast() -> None:
     archived_groups.sort(key=lambda x: int(x.id), reverse=True)
     response = query_groups_past_counts(archived_groups)
 
-    # Flatten data into lists to be used in issue_spike
-    data_index = 0
-    time = datetime.now()
-    group_forecast_list = []
-    for group in archived_groups:
-        group_data: Dict[str, List[Any]] = {"intervals": [], "data": []}
-        while (
-            data_index < len(response["data"])
-            and group.id == response["data"][data_index]["group_id"]
-        ):
-            group_data["intervals"].append(response["data"][data_index]["hourBucket"])
-            group_data["data"].append(response["data"][data_index]["count()"])
-            data_index += 1
-
-        forecasts = issue_spike(group_data, time)
-        forecasts_list = [forecast["forecasted_value"] for forecast in forecasts]
-        group_forecast_list.append((group, forecasts_list))
+    group_forecast_list: List[GroupForecastTuple] = []
+    get_forecast_per_group(group_forecast_list, archived_groups, response)
 
     with transaction.atomic():
         # Delete old forecasts

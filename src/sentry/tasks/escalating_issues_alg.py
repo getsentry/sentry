@@ -9,9 +9,9 @@ Validation is located at
 import math
 import statistics
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
-ForecastObject = Dict[str, object]
+ForecastObject = Dict[str, Union[int, str]]
 
 """
   Calculates daily issue spike limits, given an input dataset from snuba.
