@@ -1,7 +1,5 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
-import uniq from 'lodash/uniq';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
@@ -9,13 +7,13 @@ import Confirm from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OrgRoleInfo} from 'sentry/components/orgRole';
 import {PanelItem} from 'sentry/components/panels';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarUser, Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
-import {sortOrgRoles} from 'sentry/utils/orgRole';
 
 type Props = {
   canAddMembers: boolean;
@@ -73,24 +71,12 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     if (typeof onSendInvite !== 'function') {
       return;
     }
-
     onSendInvite(member);
   };
 
   renderMemberRole() {
     const {member, organization} = this.props;
-    const {orgRole, pending, expired, orgRolesFromTeams} = member;
-    const {orgRoleList} = organization;
-
-    const allOrgRoleNames =
-      orgRolesFromTeams?.filter(obj => obj.role !== null).map(obj => obj.role.id) ?? [];
-    allOrgRoleNames?.push(orgRole);
-    const orgRoleNames = uniq(allOrgRoleNames);
-
-    const orgRoleNamesString = sortOrgRoles(orgRoleNames, orgRoleList ?? [])
-      .map(roleName => capitalize(roleName))
-      .join(', ');
-
+    const {roleName, pending, expired} = member;
     if (isMemberDisabledFromLimit(member)) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
     }
@@ -98,13 +84,11 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       return (
         <InvitedRole>
           <IconMail size="md" />
-          {expired
-            ? t('Expired Invite')
-            : tct('Invited [orgRoleNamesString]', {orgRoleNamesString})}
+          {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
         </InvitedRole>
       );
     }
-    return orgRoleNamesString;
+    return <OrgRoleInfo member={member} organization={organization} />;
   }
 
   render() {
