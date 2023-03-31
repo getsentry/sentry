@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {RefObject, useCallback, useMemo, useRef} from 'react';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
@@ -15,6 +15,7 @@ type Options = {
 };
 
 type Return = {
+  expandPathsRef: RefObject<Map<number, Set<string>>>;
   getMutationsTypes: () => {label: string; value: string}[];
   items: Extraction[];
   searchTerm: string;
@@ -33,6 +34,14 @@ const FILTERS = {
 
 function useDomFilters({actions}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
+  // by log row, so they they can be restored as the Console pane is scrolling.
+  // Due to virtualization, components can be unmounted as the user scrolls, so
+  // state needs to be remembered.
+  //
+  // Note that this is intentionally not in state because we do not want to
+  // re-render when items are expanded/collapsed, though it may work in state as well.
+  const expandPathsRef = useRef(new Map<number, Set<string>>());
 
   const type = useMemo(() => decodeList(query.f_d_type), [query.f_d_type]);
   const searchTerm = useMemo(
@@ -63,14 +72,24 @@ function useDomFilters({actions}: Options): Return {
     [actions, type]
   );
 
-  const setType = useCallback((f_d_type: string[]) => setFilter({f_d_type}), [setFilter]);
+  const setType = useCallback(
+    (f_d_type: string[]) => {
+      setFilter({f_d_type});
+      expandPathsRef.current = new Map();
+    },
+    [setFilter]
+  );
 
   const setSearchTerm = useCallback(
-    (f_d_search: string) => setFilter({f_d_search: f_d_search || undefined}),
+    (f_d_search: string) => {
+      setFilter({f_d_search: f_d_search || undefined});
+      expandPathsRef.current = new Map();
+    },
     [setFilter]
   );
 
   return {
+    expandPathsRef,
     getMutationsTypes,
     items,
     searchTerm,

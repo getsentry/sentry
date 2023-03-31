@@ -19,6 +19,8 @@ import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
+import useVirtualizedInspector from '../useVirtualizedInspector';
+
 type Props = {
   replay: null | ReplayReader;
   startTimestampMs: number;
@@ -36,7 +38,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
   const filterProps = useDomFilters({actions: actions || []});
-  const {items, setSearchTerm} = filterProps;
+  const {items, setSearchTerm, expandPathsRef} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
@@ -46,6 +48,12 @@ function DomMutations({replay, startTimestampMs}: Props) {
     cellMeasurer,
     ref: listRef,
     deps,
+  });
+
+  const {handleDimensionChange} = useVirtualizedInspector({
+    cache,
+    listRef,
+    expandPathsRef,
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
@@ -60,11 +68,14 @@ function DomMutations({replay, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <DomMutationRow
+          index={index}
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
           mutation={mutation}
           startTimestampMs={startTimestampMs}
           style={style}
+          expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
+          onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
     );

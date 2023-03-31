@@ -1,10 +1,10 @@
-import {CSSProperties, useCallback, useMemo} from 'react';
+import {CSSProperties, MouseEvent, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import beautify from 'js-beautify';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import ObjectInspector from 'sentry/components/objectInspector';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
@@ -16,7 +16,15 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 type Props = {
   currentHoverTime: number | undefined;
   currentTime: number;
+  expandPaths: string[];
+  index: number;
   mutation: Extraction;
+  onDimensionChange: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>,
+    event: MouseEvent<HTMLDivElement>
+  ) => void;
   startTimestampMs: number;
   style: CSSProperties;
 };
@@ -24,9 +32,12 @@ type Props = {
 function DomMutationRow({
   currentHoverTime,
   currentTime,
+  expandPaths,
+  index,
   mutation,
   startTimestampMs,
   style,
+  onDimensionChange,
 }: Props) {
   const {html, crumb: breadcrumb} = mutation;
 
@@ -52,6 +63,11 @@ function DomMutationRow({
   );
   const hasOccurred = currentTime >= crumbTime;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
+  const handleDimensionChange = useCallback(
+    (path, expandedState, e) =>
+      onDimensionChange && onDimensionChange(index, path, expandedState, e),
+    [index, onDimensionChange]
+  );
 
   const {title} = getDetails(breadcrumb);
 
@@ -81,9 +97,11 @@ function DomMutationRow({
         </Row>
         <Selector>{breadcrumb.message}</Selector>
         <CodeContainer>
-          <CodeSnippet language="html" hideCopyButton>
-            {beautify.html(html, {indent_size: 2})}
-          </CodeSnippet>
+          <ObjectInspector
+            data={html}
+            expandPaths={expandPaths}
+            onExpand={handleDimensionChange}
+          />
         </CodeContainer>
       </List>
     </MutationListItem>
@@ -164,9 +182,9 @@ const Selector = styled('p')`
 
 const CodeContainer = styled('div')`
   margin-top: ${space(1)};
-  max-height: 400px;
   max-width: 100%;
   overflow: auto;
+  font-size: ${p => p.theme.codeFontSize};
 `;
 
 export default DomMutationRow;

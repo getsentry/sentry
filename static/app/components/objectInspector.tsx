@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {
   chromeDark,
   chromeLight,
-  ObjectInspector as OrigObjectInspector,
+  Inspector as OrigObjectInspector,
 } from '@sentry-internal/react-inspector';
 
 import {Button} from 'sentry/components/button';
@@ -42,7 +42,7 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
       OBJECT_PREVIEW_OBJECT_MAX_PROPERTIES: 1,
       ...theme,
     }),
-    [isDark, theme, emotionTheme.red400, emotionTheme.text]
+    [isDark, theme, emotionTheme.red400, emotionTheme.text.familyMono]
   );
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');

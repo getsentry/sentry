@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Replayer} from '@sentry-internal/rrweb';
 import {eventWithTime} from '@sentry-internal/rrweb/typings/types';
+import {INode} from '@sentry-internal/rrweb-snapshot';
 import first from 'lodash/first';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
@@ -20,7 +21,7 @@ enum EventType {
 
 export type Extraction = {
   crumb: Crumb;
-  html: string;
+  html: INode;
   timestamp: number;
 };
 
@@ -175,11 +176,11 @@ class BreadcrumbReferencesPlugin {
       return;
     }
 
-    const truncated = extractNode(crumb, replayer) || this.nextExtract;
-    if (truncated) {
+    const node = extractNode(crumb, replayer) || this.nextExtract;
+    if (node) {
       this.activities.push({
         crumb,
-        html: truncated,
+        html: node,
         timestamp: crumbTimestamp,
       });
     }
@@ -205,55 +206,8 @@ function extractNode(crumb: Crumb, replayer: Replayer) {
   // @ts-expect-error
   const nodeId = crumb.data?.nodeId || '';
   const node = mirror.getNode(nodeId);
-  // @ts-expect-error
-  const html = node?.outerHTML || node?.textContent || '';
 
-  // Limit document node depth to 2
-  let truncated = removeNodesAtLevel(html, 2);
-  // If still very long and/or removeNodesAtLevel failed, truncate
-  if (truncated.length > 1500) {
-    truncated = truncated.substring(0, 1500);
-  }
-  return truncated;
-}
-
-function removeNodesAtLevel(html: string, level: number) {
-  const parser = new DOMParser();
-  try {
-    const doc = parser.parseFromString(html, 'text/html');
-
-    const removeChildLevel = (
-      max: number,
-      collection: HTMLCollection,
-      current: number = 0
-    ) => {
-      for (let i = 0; i < collection.length; i++) {
-        const child = collection[i];
-
-        if (child.nodeName === 'STYLE') {
-          child.textContent = '/* Inline CSS */';
-        }
-
-        if (child.nodeName === 'svg') {
-          child.innerHTML = '<!-- SVG -->';
-        }
-
-        if (max <= current) {
-          if (child.childElementCount > 0) {
-            child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
-          }
-        } else {
-          removeChildLevel(max, child.children, current + 1);
-        }
-      }
-    };
-
-    removeChildLevel(level, doc.body.children);
-    return doc.body.innerHTML;
-  } catch (err) {
-    // If we can't parse the HTML, just return the original
-    return html;
-  }
+  return node;
 }
 
 export default useExtractedCrumbHtml;
