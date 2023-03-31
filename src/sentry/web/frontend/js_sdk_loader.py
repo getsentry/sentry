@@ -128,7 +128,7 @@ class JavaScriptSdkLoader(BaseView):
             config["debug"] = True
 
         if has_performance:
-            config["tracesSampleRate"] = 0.1
+            config["tracesSampleRate"] = 1
 
         if has_replay:
             config["replaysSessionSampleRate"] = 0.1
