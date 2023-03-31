@@ -178,7 +178,7 @@ def convert_device_class_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[int]:
+) -> List[str]:
     """Convert high, medium, and low to the underlying device class values"""
     results = set()
     for device_class in value:
