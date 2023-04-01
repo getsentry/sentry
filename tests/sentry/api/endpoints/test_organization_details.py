@@ -143,7 +143,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             sentry_options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 48 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 50
+        expected_queries = 58 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 60
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
