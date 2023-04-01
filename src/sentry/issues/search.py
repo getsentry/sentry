@@ -207,18 +207,18 @@ def _query_params_for_generic(
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
     actor: Optional[Any] = None,
+    categories: Optional[Sequence[GroupCategory]] = None,
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
     if organization and features.has(
         "organizations:issue-platform", organization=organization, actor=actor
     ):
-        group_types = {gt.type_id for gt in grouptype.registry.get_visible(organization, actor)}
-        # Extra check here just for while we're migrating performance issues to the issue platform
-        if not options.get("performance.issues.create_issues_through_platform", False):
-            # TODO: Possibly check project options here, but there could be multiple projects, so
-            #  will only
-            # add if it seems necessary
-            group_types -= grouptype.registry.get_by_category(GroupCategory.PERFORMANCE.value)
+        category_ids = {gc.value for gc in categories} if categories else None
+        group_types = {
+            gt.type_id
+            for gt in grouptype.registry.get_visible(organization, actor)
+            if not category_ids or gt.category in category_ids
+        }
 
         filters = {"occurrence_type_id": list(group_types), **filters}
         if group_ids:
@@ -248,9 +248,13 @@ def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
             if not options.get("performance.issues.create_issues_through_platform", False):
                 strategy = _query_params_for_perf
             else:
-                strategy = _query_params_for_generic
+                strategy = functools.partial(
+                    _query_params_for_generic, categories=[GroupCategory.PERFORMANCE]
+                )
         else:
-            strategy = _query_params_for_generic
+            strategy = functools.partial(
+                _query_params_for_generic, categories=[GroupCategory.PROFILE]
+            )
         strategies[group_category.value] = strategy
     return strategies
 
