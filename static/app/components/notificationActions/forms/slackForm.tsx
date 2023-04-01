@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import Input from 'sentry/components/input';
 // import {
 //   NotificationActionCell,
@@ -53,9 +53,9 @@ const SlackForm = ({
     action.integrationId ? availableWorkspaces[action.integrationId] : ''
   );
 
-  const workspaceOptions = useMemo(() => {
+  const workspaceOptions: MenuItemProps[] = useMemo(() => {
     return availableActions
-      .map(service => ({
+      .map<MenuItemProps>(service => ({
         key: service.action.integrationName ?? '',
         label: service.action.integrationName ?? '',
         onAction: value => {

@@ -44,7 +44,7 @@ const PagerdutyForm = ({
   );
   const [selectedDisplay, setSelectedDisplay] = useState(action.targetDisplay ?? '');
 
-  const accountOptions = useMemo(() => {
+  const accountOptions: MenuItemProps[] = useMemo(() => {
     return Object.keys(pagerdutyIntegrations).map<MenuItemProps>(integrationId => {
       // Get the name of the integration for the integrationId from the first
       // AvailableNotificationAction element in the array
