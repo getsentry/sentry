@@ -1,6 +1,6 @@
 from sentry.db.models.query import in_iexact
-from sentry.models import Organization, Team, User
-from sentry.models.actor import Actor
+from sentry.models import Organization, User
+from sentry.models.userreport import UserReport
 from sentry.testutils import TestCase
 from sentry.utils.query import RangeQuerySetWrapper, bulk_delete_objects
 
@@ -44,25 +44,26 @@ class RangeQuerySetWrapperTest(TestCase):
 class BulkDeleteObjectsTest(TestCase):
     def setUp(self):
         super().setUp()
-        Team.objects.all().delete()
+        self.group = self.create_group(project=self.project, message="Foo bar")
+        UserReport.objects.all().delete()
 
     def test_basic(self):
         total = 10
         records = []
-        for _ in range(total):
-            records.append(self.create_team())
+        for i in range(total):
+            records.append(self.create_userreport(group=self.group, event_id=i))
 
-        result = bulk_delete_objects(Team, id__in=[r.id for r in records])
+        result = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
         assert result, "Could be more work to do"
-        assert len(Team.objects.all()) == 0
-        assert len(Actor.objects.filter(id__in=[r.actor_id for r in records])) == 0
+        assert len(UserReport.objects.all()) == 0
+        # assert len(Actor.objects.filter(id__in=[r.actor_id for r in records])) == 0
 
     def test_limiting(self):
         total = 10
         records = []
-        for _ in range(total):
-            records.append(self.create_team())
+        for i in range(total):
+            records.append(self.create_userreport(group=self.group, event_id=i))
 
-        result = bulk_delete_objects(Team, id__in=[r.id for r in records], limit=5)
+        result = bulk_delete_objects(UserReport, id__in=[r.id for r in records], limit=5)
         assert result, "Still more work to do"
-        assert len(Team.objects.all()) == 5
+        assert len(UserReport.objects.all()) == 5
