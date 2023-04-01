@@ -62,6 +62,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
             response["Content-Length"] = file.size
+            response["Content-Disposition"] = f'attachment; filename="{file.name}"'
             return response
         except OSError:
             raise Http404
@@ -208,6 +209,10 @@ def try_resolve_urls(
             dist = Distribution.objects.get(release=release, name=dist_name)
     except Exception as exc:
         logger.error("Failed to read", exc_info=exc)
+
+    # TODO: should we rather return an error from the API in case the release is not found?
+    if release is None:
+        return list()
 
     remaining_urls = collect_legacy_artifact_bundles_containing_urls(
         remaining_urls, release, dist, bundle_file_ids
