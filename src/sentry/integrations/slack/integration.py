@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from typing import Any, Mapping, Optional, Sequence
 
@@ -82,8 +84,8 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type:
         if this is their ONLY Slack integration, set their parent-independent
         Slack notification setting to NEVER.
         """
-        org_context: RpcUserOrganizationContext = organization_service.get_organization_by_id(
-            id=self.organization_id, user_id=None
+        org_context: RpcUserOrganizationContext | None = (
+            organization_service.get_organization_by_id(id=self.organization_id, user_id=None)
         )
         if org_context:
             notifications_service.uninstall_slack_settings(

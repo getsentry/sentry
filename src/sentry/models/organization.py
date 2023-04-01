@@ -653,25 +653,9 @@ class Organization(Model, SnowflakeIdMixin):
         This method takes customer-domains into account and will update the path when
         customer-domains are active.
         """
-        # Avoid cycles.
-        from sentry.api.utils import customer_domain_path, generate_organization_url
-        from sentry.utils.http import absolute_uri
-
-        url_base = None
-        if self._has_customer_domain():
-            path = customer_domain_path(path)
-            url_base = generate_organization_url(self.slug)
-        uri = absolute_uri(path, url_prefix=url_base)
-        parts = [uri]
-        if query and not query.startswith("?"):
-            query = f"?{query}"
-        if query:
-            parts.append(query)
-        if fragment and not fragment.startswith("#"):
-            fragment = f"#{fragment}"
-        if fragment:
-            parts.append(fragment)
-        return "".join(parts)
+        return organization_absolute_url(
+            self._has_customer_domain(), self.slug, path=path, query=query, fragment=fragment
+        )
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
         if role.id != "member":
@@ -698,6 +682,40 @@ class Organization(Model, SnowflakeIdMixin):
         from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 
         organization_mapping_service.delete(organization_id=instance.id)
+
+
+def organization_absolute_url(
+    has_customer_domain: bool,
+    slug: str,
+    path: str,
+    query: Optional[str] = None,
+    fragment: Optional[str] = None,
+) -> str:
+    """
+    Get an absolute URL to `path` for this organization.
+
+    This method takes customer-domains into account and will update the path when
+    customer-domains are active.
+    """
+    # Avoid cycles.
+    from sentry.api.utils import customer_domain_path, generate_organization_url
+    from sentry.utils.http import absolute_uri
+
+    url_base = None
+    if has_customer_domain:
+        path = customer_domain_path(path)
+        url_base = generate_organization_url(slug)
+    uri = absolute_uri(path, url_prefix=url_base)
+    parts = [uri]
+    if query and not query.startswith("?"):
+        query = f"?{query}"
+    if query:
+        parts.append(query)
+    if fragment and not fragment.startswith("#"):
+        fragment = f"#{fragment}"
+    if fragment:
+        parts.append(fragment)
+    return "".join(parts)
 
 
 post_delete.connect(

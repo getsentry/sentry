@@ -202,10 +202,10 @@ class ControlSiloOrganizationSerializerResponse(TypedDict):
     name: str
 
 
-class ControlSiloOrganizationSerializer(Serializer):
+class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
-    ) -> ControlSiloOrganizationSerializer:
+    ) -> ControlSiloOrganizationSerializerResponse:
         return dict(
             id=str(obj.id),
             slug=obj.slug,

@@ -105,7 +105,7 @@ class NotificationsService(RpcService):
         self,
         organization_id: int,
         project_ids: List[int],
-    ):
+    ) -> None:
         pass
 
     @rpc_method
