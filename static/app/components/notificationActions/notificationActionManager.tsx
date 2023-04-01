@@ -42,7 +42,7 @@ const NotificationActionManager = ({
   availableActions,
   recipientRoles,
   project,
-  updateAlertCount,
+  updateAlertCount = () => {},
 }: NotificationActionManagerProps) => {
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
@@ -118,7 +118,7 @@ const NotificationActionManager = ({
     }
   });
 
-  function renderNotificationActions() {
+  const renderNotificationActions = () => {
     if (!notificationActions) {
       return null;
     }
@@ -146,7 +146,7 @@ const NotificationActionManager = ({
       );
     });
     return serviceActions;
-  }
+  };
 
   const getMenuItems = () => {
     const menuItems: MenuItemProps[] = [];

@@ -177,8 +177,14 @@ const NotificationActionItem = ({
     }
   };
 
-  const handleChange = (name: string, value: any) => {
-    setEditedAction({...editedAction, [name]: value});
+  // Only used for Pagerduty
+  const handleChange = (names: string[], values: any[]) => {
+    const updatedAction = {...editedAction};
+    names.forEach((name, i) => {
+      const value = values[i];
+      updatedAction[name] = value;
+    });
+    setEditedAction(updatedAction);
   };
 
   // Edit button is located outside of the form
@@ -260,7 +266,9 @@ const NotificationActionItem = ({
       return (
         <SlackForm
           action={editedAction}
-          onChange={handleChange}
+          onChange={(name: string, value: any) =>
+            setEditedAction({...editedAction, [name]: value})
+          }
           onSave={handleSave}
           onCancel={handleCancel}
           availableActions={availableActions}
