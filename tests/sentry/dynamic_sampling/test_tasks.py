@@ -36,6 +36,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
                 {"id": "ignoreHealthChecks", "active": False},
                 {"id": "boostLatestRelease", "active": False},
                 {"id": "boostKeyTransactions", "active": False},
+                {"id": "boostLowVolumeTransactions", "active": False},
             ],
         )
         # Store performance metrics for proj A

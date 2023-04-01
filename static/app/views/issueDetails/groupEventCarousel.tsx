@@ -14,9 +14,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCopy,
-  IconDownload,
   IconEllipsis,
   IconNext,
+  IconOpen,
   IconPrevious,
   IconWarning,
 } from 'sentry/icons';
@@ -175,7 +175,7 @@ export const GroupEventCarousel = ({
       {xlargeViewport && (
         <Button
           size={BUTTON_SIZE}
-          icon={<IconDownload size={BUTTON_ICON_SIZE} />}
+          icon={<IconOpen size={BUTTON_ICON_SIZE} />}
           aria-label="Newest"
           onClick={downloadJson}
         >
@@ -271,6 +271,7 @@ const CarouselAndButtonsWrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
   margin-bottom: ${space(0.5)};
+  max-width: 900px;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

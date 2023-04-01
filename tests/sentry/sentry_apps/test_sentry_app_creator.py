@@ -218,7 +218,9 @@ class TestInternalCreator(TestCase):
     def test_creates_access_token(self):
         sentry_app = self.run_creator()
 
-        install = SentryAppInstallation.objects.get(organization=self.org, sentry_app=sentry_app)
+        install = SentryAppInstallation.objects.get(
+            organization_id=self.org.id, sentry_app=sentry_app
+        )
 
         assert install.api_token
 

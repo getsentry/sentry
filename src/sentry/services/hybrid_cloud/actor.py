@@ -3,11 +3,11 @@
 # in modules such as this one where hybrid cloud service classes and data models are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-import dataclasses
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
 
 from sentry.models.actor import get_actor_id_for_user
+from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
@@ -19,8 +19,7 @@ class ActorType(Enum):
     TEAM = "Team"
 
 
-@dataclasses.dataclass(frozen=True, eq=True)
-class RpcActor:
+class RpcActor(RpcModel):
     """Can represent any model object with a foreign key to Actor."""
 
     id: int
@@ -32,6 +31,9 @@ class RpcActor:
     def __post_init__(self) -> None:
         if (self.actor_type == ActorType.TEAM) == (self.slug is None):
             raise ValueError("Slugs are expected for teams only")
+
+    def __hash__(self) -> int:
+        return hash((self.id, self.actor_id, self.actor_type))
 
     @classmethod
     def from_object(cls, obj: Union["RpcActor", "User", "Team", "RpcUser"]) -> "RpcActor":

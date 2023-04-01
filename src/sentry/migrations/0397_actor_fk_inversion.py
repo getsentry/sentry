@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0394_set_none_date_uploaded_to_date_added"),
+        ("sentry", "0396_add_usecase_to_indexer"),
     ]
 
     operations = [

@@ -18,6 +18,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.types.integrations import (
@@ -271,18 +272,18 @@ def get_scope(
     user: User | None = None,
     team: Team | None = None,
     actor: RpcActor | None = None,
-    project: Project | None = None,
-    organization: Organization | None = None,
+    project: Project | int | None = None,
+    organization: Organization | int | None = None,
 ) -> tuple[NotificationScopeType, int]:
     """
     Figure out the scope from parameters and return it as a tuple.
     TODO(mgaeta): Make sure the user/team is in the project/organization.
     """
     if project:
-        return NotificationScopeType.PROJECT, project.id
+        return NotificationScopeType.PROJECT, extract_id_from(project)
 
     if organization:
-        return NotificationScopeType.ORGANIZATION, organization.id
+        return NotificationScopeType.ORGANIZATION, extract_id_from(organization)
 
     if user is not None:
         actor = RpcActor.from_object(user)
@@ -290,9 +291,9 @@ def get_scope(
         actor = RpcActor.from_object(team)
     if actor:
         if actor.actor_type == ActorType.TEAM:
-            return NotificationScopeType.TEAM, actor.id
+            return NotificationScopeType.TEAM, extract_id_from(actor)
         else:
-            return NotificationScopeType.USER, actor.id
+            return NotificationScopeType.USER, extract_id_from(actor)
 
     raise Exception("scope must be either user, team, organization, or project")
 

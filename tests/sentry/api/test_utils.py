@@ -113,9 +113,18 @@ def test_customer_domain_path():
             "/getting-started/project-slug/python",
         ],
         ["/settings/projects/python/filters/", "/settings/projects/python/filters/"],
+        ["/settings/projects/onboarding/abc123/", "/settings/projects/onboarding/abc123/"],
+        [
+            "/settings/projects/join-request/abc123/",
+            "/settings/projects/join-request/abc123/",
+        ],
         [
             "/settings/projects/python/filters/discarded/",
             "/settings/projects/python/filters/discarded/",
+        ],
+        [
+            "/settings/projects/getting-started/abc123/",
+            "/settings/projects/getting-started/abc123/",
         ],
         ["/settings/teams/peeps/", "/settings/teams/peeps/"],
     ]
