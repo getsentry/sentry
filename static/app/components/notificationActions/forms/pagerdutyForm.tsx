@@ -22,7 +22,7 @@ type PagerdutyFormProps = {
    */
   action: Partial<NotificationAction>;
   onCancel: () => void;
-  onChange: (name: string, value: any) => void;
+  onChange: (names: string[], values: any[]) => void;
   onSave: () => void;
   /**
    * Map of pagerduty integration IDs to available actions for those IDs
@@ -54,7 +54,7 @@ const PagerdutyForm = ({
         key: integrationName,
         label: integrationName,
         onAction: value => {
-          onChange('integrationId', integrationId);
+          onChange(['integrationId'], [integrationId]);
           setSelectedAccount(value);
         },
       };
@@ -71,8 +71,10 @@ const PagerdutyForm = ({
       key: service.action.targetDisplay ?? '',
       label: service.action.targetDisplay,
       onAction: value => {
-        onChange('targetDisplay', service.action.targetDisplay);
-        onChange('targetIdentifier', service.action.targetIdentifier);
+        onChange(
+          ['targetIdentifier', 'targetDisplay'],
+          [service.action.targetIdentifier, value]
+        );
         setSelectedDisplay(value);
       },
     }));
