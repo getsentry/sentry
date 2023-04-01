@@ -39,7 +39,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
     def test_uninstallation(self):
         self.installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug,
-            organization_id=self.organization.id,
+            organization=self.organization,
             user=self.user,
             prevent_token_exchange=True,
         )
