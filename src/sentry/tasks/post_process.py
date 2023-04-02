@@ -786,7 +786,7 @@ def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import Commit, Integration
+    from sentry.models import Commit
     from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
@@ -819,11 +819,13 @@ def process_commits(job: PostProcessJob) -> None:
                 )
                 has_integrations = cache.get(integration_cache_key)
                 if has_integrations is None:
-                    integrations = Integration.objects.filter(
-                        organizations=event.project.organization,
-                        provider__in=["github", "gitlab"],
+                    from sentry.services.hybrid_cloud.integration import integration_service
+
+                    org_integrations = integration_service.get_organization_integrations(
+                        organization_id=event.project.organization_id,
+                        providers=["github", "gitlab"],
                     )
-                    has_integrations = integrations.exists()
+                    has_integrations = len(org_integrations) > 0
                     # Cache the integrations check for 4 hours
                     cache.set(integration_cache_key, has_integrations, 14400)
 
