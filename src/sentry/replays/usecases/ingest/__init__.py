@@ -258,9 +258,11 @@ def decompress(data: bytes) -> bytes:
         return zlib.decompress(data, zlib.MAX_WBITS | 32)
 
 
-def _report_size_metrics(size_compressed: int, size_uncompressed: int) -> None:
-    metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
-    metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
+def _report_size_metrics(size_compressed: int = None, size_uncompressed: int = None) -> None:
+    if size_compressed:
+        metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
+    if size_uncompressed:
+        metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
 
 
 def replay_click_post_processor(
@@ -274,6 +276,7 @@ def replay_click_post_processor(
         options.get("replay.ingest.dom-click-search"),
         settings.SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST,
     ):
+        _report_size_metrics(size_compressed=len(segment_bytes))
         return None
 
     try:
