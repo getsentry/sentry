@@ -193,12 +193,23 @@ def get_oldest_or_latest_event_for_environments(
         conditions.append(["environment", "IN", environments])
 
     if group.issue_category == GroupCategory.PERFORMANCE:
-        apply_performance_conditions(conditions, group)
-        _filter = eventstore.Filter(
-            conditions=conditions,
-            project_ids=[group.project_id],
-        )
-        dataset = Dataset.Transactions
+        from sentry import options
+
+        if not (
+            options.get("performance.issues.send_to_issues_platform", True)
+            and group.project.get_option("sentry:performance_issue_send_to_issues_platform", True)
+        ):
+            apply_performance_conditions(conditions, group)
+            _filter = eventstore.Filter(
+                conditions=conditions,
+                project_ids=[group.project_id],
+            )
+            dataset = Dataset.Transactions
+        else:
+            _filter = eventstore.Filter(
+                conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
+            )
+            dataset = Dataset.IssuePlatform
     else:
         if group.issue_category == GroupCategory.ERROR:
             dataset = Dataset.Events
