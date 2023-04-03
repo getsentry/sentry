@@ -1,6 +1,8 @@
 import logging
 from typing import Sequence, Tuple
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
@@ -191,7 +193,11 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     transactions = project_transactions["transaction_counts"]
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
-    project = Project.objects.get_from_cache(id=project_id)
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except ObjectDoesNotExist:
+        return  # project has probably been deleted no need to continue
+
     sample_rate = quotas.get_blended_sample_rate(project)
 
     if sample_rate is None or sample_rate == 1.0:
