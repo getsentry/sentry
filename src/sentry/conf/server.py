@@ -895,8 +895,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-prioritize-transactions": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
-        # Run job every hour at min 10
-        "schedule": crontab(minute=10),
+        # Run every 5 minutes
+        "schedule": timedelta(minutes=6),
     },
 }
 
@@ -1093,6 +1093,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enable the sentry sample format response
     "organizations:profiling-sampled-format": False,
+    # Enabled for those orgs who participated in the profiling Beta program
+    "organizations:profiling-beta-grace": False,
+    # Enable profiling GA messaging (update paths from AM1 to AM2)
+    "organizations:profiling-ga": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1300,6 +1304,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
+    # Enable apply actual sample rate to dynamic sampling biases
+    "organizations:ds-apply-actual-sample-rate-to-biases": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
     # Enable version 2 of reprocessing (completely distinct from v1)
@@ -1319,8 +1325,6 @@ SENTRY_FEATURES = {
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable new DS bias: prioritise by transaction
-    "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
@@ -2134,7 +2138,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
+            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
@@ -3016,14 +3020,21 @@ INJECTED_SCRIPT_ASSETS = []
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 
+PG_VERSION = os.getenv("PG_VERSION") or "9.6"
+
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
-# Note: The docs have this backwards. We set this to False here so that we always add check
-# constraints instead of setting the column to not null.
-ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
+
+if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
+    # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+
+    # https://github.com/tbicr/django-pg-zero-downtime-migrations/blob/7b3f5c045b40e656772859af4206acf3f11c0951/CHANGES.md#06
+
+    # Note: The docs have this backwards. We set this to False here so that we always add check
+    # constraints instead of setting the column to not null.
+    ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
 ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30

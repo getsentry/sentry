@@ -7,7 +7,7 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ProjectKey} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
@@ -77,7 +77,7 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
 const guideToSelectOption = ({key, label}) => ({label, value: key});
 
 export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
-  const {data: projectKeys} = useQuery<Array<ProjectKey>>(
+  const {data: projectKeys} = useApiQuery<Array<ProjectKey>>(
     [`/projects/${orgId}/${monitor.project.slug}/keys/`],
     {staleTime: Infinity}
   );
