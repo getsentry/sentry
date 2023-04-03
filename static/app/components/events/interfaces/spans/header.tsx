@@ -523,8 +523,35 @@ class TraceViewHeader extends Component<PropType, State> {
                           </RightSidePane>
                         )}
                       </CursorGuideHandler.Consumer>
+
                       {hasProfileMeasurementsChart && (
-                        <ProfilingMeasurements profileData={profiles.data} />
+                        <CursorGuideHandler.Consumer>
+                          {({
+                            displayCursorGuide,
+                            hideCursorGuide,
+                            mouseLeft,
+                            showCursorGuide,
+                          }) => (
+                            <ProfilingMeasurements
+                              profileData={profiles.data}
+                              onChartMouseEnter={event => {
+                                displayCursorGuide(event.pageX);
+                              }}
+                              onChartMouseLeave={() => {
+                                hideCursorGuide();
+                              }}
+                              onChartMouseMove={event => {
+                                displayCursorGuide(event.pageX);
+                              }}
+                            >
+                              {this.renderCursorGuide({
+                                showCursorGuide,
+                                mouseLeft,
+                                cursorGuideHeight: PROFILE_MEASUREMENTS_CHART_HEIGHT,
+                              })}
+                            </ProfilingMeasurements>
+                          )}
+                        </CursorGuideHandler.Consumer>
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
                     </Fragment>

@@ -64,17 +64,16 @@ function Chart({data}: ChartProps) {
         show: false,
         axisLabel: {show: false},
         axisTick: {show: false},
+        max: 100,
       }}
       xAxis={{
         show: false,
         axisLabel: {show: false},
         axisTick: {show: false},
         axisPointer: {
-          lineStyle: {
-            color: theme.red300,
-            width: 2,
-            opacity: 0.5,
-          },
+          type: 'none',
+          triggerOn: 'mousemove',
+          triggerTooltip: true,
         },
         boundaryGap: false,
       }}
@@ -101,9 +100,21 @@ function Chart({data}: ChartProps) {
 
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
+  children?: React.ReactNode;
+  onChartMouseEnter?: (event: React.MouseEvent) => void;
+  onChartMouseLeave?: (event: React.MouseEvent) => void;
+  onChartMouseMove?: (event: React.MouseEvent) => void;
 };
 
-function ProfilingMeasurements({profileData}: ProfilingMeasurementsProps) {
+function ProfilingMeasurements({
+  profileData,
+
+  onChartMouseEnter,
+  onChartMouseLeave,
+  onChartMouseMove,
+
+  children,
+}: ProfilingMeasurementsProps) {
   const theme = useTheme();
 
   if (!('measurements' in profileData) || !defined(profileData.measurements?.cpu_usage)) {
@@ -127,8 +138,13 @@ function ProfilingMeasurements({profileData}: ProfilingMeasurementsProps) {
               </OpsLine>
             </ChartOpsLabel>
             <DividerSpacer />
-            <ChartContainer>
-              <Chart data={cpuUsageData} />;
+            <ChartContainer
+              onMouseEnter={onChartMouseEnter}
+              onMouseLeave={onChartMouseLeave}
+              onMouseMove={onChartMouseMove}
+            >
+              <Chart data={cpuUsageData} />
+              {children}
             </ChartContainer>
           </MeasurementContainer>
         );
@@ -140,6 +156,7 @@ function ProfilingMeasurements({profileData}: ProfilingMeasurementsProps) {
 export {ProfilingMeasurements};
 
 const ChartContainer = styled('div')`
+  position: relative;
   flex: 1;
   border-top: 1px solid ${p => p.theme.border};
 `;
