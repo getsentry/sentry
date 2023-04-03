@@ -42,6 +42,8 @@ const SearchContainer = styled('div')`
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
+  display: flex;
+  flex-basis: content;
   width: 100%;
   max-width: 43rem;
 `;
