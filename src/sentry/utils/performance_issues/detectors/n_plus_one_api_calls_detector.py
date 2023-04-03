@@ -277,6 +277,9 @@ HTTP_METHODS = {
 
 
 def get_span_hash(span: Span) -> Optional[str]:
+    if span.get("op") != "http.client":
+        return span.get("hash")
+
     parts = remove_http_client_query_string_strategy(span)
     if not parts:
         return None
