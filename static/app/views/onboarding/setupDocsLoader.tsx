@@ -16,9 +16,16 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
+
+const newDynamicSdkLoaderOptions: Record<DynamicSDKLoaderOption, boolean> = {
+  [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
+  [DynamicSDKLoaderOption.HAS_REPLAY]: false,
+  [DynamicSDKLoaderOption.HAS_DEBUG]: false,
+};
 
 export function SetupDocsLoader({
   organization,
@@ -61,10 +68,10 @@ export function SetupDocsLoader({
   // Automatically update the products on the project key when the user changes the product selection
   // Note that on initial visit, this will also update the project key with the default products (=all products)
   // This DOES NOT take into account any initial products that may already be set on the project key - they will always be overwritten!
-  const updateSelectedProducts = useCallback(async () => {
+  const handleUpdateSelectedProducts = useCallback(async () => {
     const productsQuery =
       (location.query.product as PRODUCT | PRODUCT[] | undefined) ?? [];
-    const products = typeof productsQuery === 'string' ? [productsQuery] : productsQuery;
+    const products = decodeList(productsQuery);
 
     const keyId = projectKey?.id;
 
@@ -72,13 +79,6 @@ export function SetupDocsLoader({
       return;
     }
 
-    const apiEndpoint = `/projects/${organization.slug}/${project.slug}/keys/${keyId}/`;
-
-    const newDynamicSdkLoaderOptions: Record<DynamicSDKLoaderOption, boolean> = {
-      [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
-      [DynamicSDKLoaderOption.HAS_REPLAY]: false,
-      [DynamicSDKLoaderOption.HAS_DEBUG]: false,
-    };
     products.forEach(product => {
       // eslint-disable-next-line default-case
       switch (product) {
@@ -92,12 +92,15 @@ export function SetupDocsLoader({
     });
 
     try {
-      await api.requestPromise(apiEndpoint, {
-        method: 'PUT',
-        data: {
-          dynamicSdkLoaderOptions: newDynamicSdkLoaderOptions,
-        },
-      });
+      await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/keys/${keyId}/`,
+        {
+          method: 'PUT',
+          data: {
+            dynamicSdkLoaderOptions: newDynamicSdkLoaderOptions,
+          },
+        }
+      );
       setProjectKeyUpdateError(false);
     } catch (error) {
       const message = t('Unable to updated dynamic SDK loader configuration');
@@ -111,8 +114,8 @@ export function SetupDocsLoader({
   }, [fetchData, organization.slug, project.slug]);
 
   useEffect(() => {
-    updateSelectedProducts();
-  }, [updateSelectedProducts, location.query.product]);
+    handleUpdateSelectedProducts();
+  }, [handleUpdateSelectedProducts, location.query.product]);
 
   return (
     <Fragment>
@@ -132,7 +135,7 @@ export function SetupDocsLoader({
       {projectKeyUpdateError && (
         <LoadingError
           message={t('Failed to update the project key with the selected products.')}
-          onRetry={() => updateSelectedProducts()}
+          onRetry={handleUpdateSelectedProducts}
         />
       )}
 
@@ -174,7 +177,7 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
           )}
         </p>
 
-        <CodeSnippet dark language="html" onCopy={() => {}}>
+        <CodeSnippet dark language="html">
           {beautify.html(
             `<script src="${loaderLink}" crossorigin="anonymous"></script>`,
             {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
@@ -197,7 +200,7 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
         </OptionalConfigWrapper>
         {showOptionalConfig && (
           <div>
-            <CodeSnippet dark language="js" onCopy={() => {}}>
+            <CodeSnippet dark language="js">
               {configCodeSnippet}
             </CodeSnippet>
           </div>
