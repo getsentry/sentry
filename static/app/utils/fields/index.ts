@@ -968,6 +968,7 @@ export const ISSUE_FIELDS = [
   FieldKey.BOOKMARKS,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_CLASS,
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_LOCALE,
   FieldKey.DEVICE_LOCALE,
