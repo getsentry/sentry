@@ -163,7 +163,7 @@ const storeConfig: TagStoreDefinition = {
    * Get all tags including builtin issue tags and issue attributes
    */
   getIssueTags(org: Organization) {
-    return {
+    const issueTags = {
       ...BUILTIN_TAGS,
       ...SEMVER_TAGS,
       // State tags should overwrite built ins.
@@ -171,6 +171,10 @@ const storeConfig: TagStoreDefinition = {
       // We want issue attributes to overwrite any built in and state tags
       ...this.getIssueAttributes(org),
     };
+    if (!org.features.includes('device-classification')) {
+      delete issueTags[FieldKey.DEVICE_CLASS];
+    }
+    return issueTags;
   },
 
   getState() {
