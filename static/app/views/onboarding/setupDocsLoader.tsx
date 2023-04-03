@@ -144,7 +144,7 @@ export function SetupDocsLoader({
       ) : (
         <LoadingError
           message={t('Failed to load Client Keys for the project.')}
-          onRetry={() => fetchData()}
+          onRetry={fetchData}
         />
       )}
     </Fragment>
