@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_dangerous = False
 
     dependencies = [
         ("sentry", "0397_break_some_more_fks"),
@@ -34,14 +34,15 @@ class Migration(CheckedMigration):
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="actor_from_team",
                 to="sentry.Team",
-                unique=True,
+                unique=False,
+                db_index=False,
             ),
         ),
         migrations.AddField(
             model_name="actor",
             name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="CASCADE", unique=True
+                "sentry.User", db_index=False, null=True, on_delete="CASCADE", unique=False
             ),
         ),
         migrations.AlterField(
