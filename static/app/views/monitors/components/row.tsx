@@ -102,7 +102,9 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
       <MonitorName>
         <MonitorBadge status={monitorEnv.status} />
         <NameAndSlug>
-          <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
+          <Link
+            to={`/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${monitorEnv.name}`}
+          >
             {monitor.name}
           </Link>
           <MonitorSlug>{monitor.slug}</MonitorSlug>
