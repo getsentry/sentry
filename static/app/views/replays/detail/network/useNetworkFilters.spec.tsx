@@ -198,6 +198,69 @@ describe('useNetworkFilters', () => {
     });
   });
 
+  it('should clear details params when setters are called', () => {
+    const TYPE_FILTER = ['resource.fetch'];
+    const STATUS_FILTER = ['200'];
+    const SEARCH_FILTER = 'pikachu';
+
+    mockUseLocation
+      .mockReturnValueOnce({
+        pathname: '/',
+        query: {
+          n_detail_row: '0',
+          n_detail_tab: 'response',
+        },
+      } as Location<FilterFields>)
+      .mockReturnValueOnce({
+        pathname: '/',
+        query: {f_n_type: TYPE_FILTER, n_detail_row: '0', n_detail_tab: 'response'},
+      } as Location<FilterFields>)
+      .mockReturnValueOnce({
+        pathname: '/',
+        query: {
+          f_n_type: TYPE_FILTER,
+          f_n_status: STATUS_FILTER,
+          n_detail_row: '0',
+          n_detail_tab: 'response',
+        },
+      } as Location<FilterFields>);
+
+    const {result, rerender} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
+
+    result.current.setType(TYPE_FILTER);
+    expect(browserHistory.push).toHaveBeenLastCalledWith({
+      pathname: '/',
+      query: {
+        f_n_type: TYPE_FILTER,
+      },
+    });
+
+    rerender();
+
+    result.current.setStatus(STATUS_FILTER);
+    expect(browserHistory.push).toHaveBeenLastCalledWith({
+      pathname: '/',
+      query: {
+        f_n_type: TYPE_FILTER,
+        f_n_status: STATUS_FILTER,
+      },
+    });
+
+    rerender();
+
+    result.current.setSearchTerm(SEARCH_FILTER);
+    expect(browserHistory.push).toHaveBeenLastCalledWith({
+      pathname: '/',
+      query: {
+        f_n_type: TYPE_FILTER,
+        f_n_status: STATUS_FILTER,
+        f_n_search: SEARCH_FILTER,
+      },
+    });
+  });
+
   it('should not filter anything when no values are set', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',

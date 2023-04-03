@@ -22,6 +22,7 @@ class OptionsTypesTest(TestCase):
         assert Bool("YES") is True
         assert Bool("t") is True
         assert Bool("true") is True
+        assert Bool("True") is True
         assert Bool("1") is True
         assert Bool("on") is True
         assert Bool(False) is False
@@ -30,6 +31,7 @@ class OptionsTypesTest(TestCase):
         assert Bool("NO") is False
         assert Bool("f") is False
         assert Bool("false") is False
+        assert Bool("False") is False
         assert Bool("0") is False
         assert Bool("off") is False
         assert Bool() is False

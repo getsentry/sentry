@@ -24,5 +24,5 @@ class Updater(Mediator):
             "sentry_app_installation.updated",
             sentry_app_installation_id=self.sentry_app_installation.id,
             sentry_app_id=self.sentry_app_installation.sentry_app.id,
-            organization_id=self.sentry_app_installation.organization.id,
+            organization_id=self.sentry_app_installation.organization_id,
         )
