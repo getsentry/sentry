@@ -295,11 +295,15 @@ def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[st
     return [method, url.scheme, url.netloc, url.path]
 
 
-def get_span_hash(span: Span) -> str:
+def get_span_hash(span: Span) -> Optional[str]:
     parts = remove_http_client_query_string_strategy(span)
+    if not parts:
+        return None
 
     hash = md5()
-    hash.update(force_bytes(parts, errors="replace"))
+    for part in parts:
+        hash.update(force_bytes(part, errors="replace"))
+
     return hash.hexdigest()[:16]
 
 
