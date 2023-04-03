@@ -92,6 +92,8 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         test_org = self.create_organization(name="sample-org-2")
 
         # Create 3 projects and emulate oversampling
+        # to do so we set tag decision = keep which gives actual_sample_rate = 1.0,
+        # because we have 1 record per project and transaction just given count
         proj_a = self.create_project_and_add_metrics(
             "a", 5, test_org, tags={"transaction": "name", "decision": "keep"}
         )
