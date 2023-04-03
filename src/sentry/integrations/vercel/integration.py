@@ -227,7 +227,7 @@ class VercelIntegration(IntegrationInstallation):
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
 
             sentry_auth_token = SentryAppInstallationToken.objects.get_token(
-                sentry_project.organization.id,
+                sentry_project.organization_id,
                 "vercel",
             )
 
@@ -346,7 +346,7 @@ class VercelIntegrationProvider(IntegrationProvider):
     def post_install(self, integration, organization, extra=None):
         # check if we have an Vercel internal installation already
         if SentryAppInstallationForProvider.objects.filter(
-            organization=organization, provider="vercel"
+            organization_id=organization.id, provider="vercel"
         ).exists():
             logger.info(
                 "vercel.post_install.installation_exists",
@@ -368,6 +368,6 @@ class VercelIntegrationProvider(IntegrationProvider):
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         SentryAppInstallationForProvider.objects.create(
             sentry_app_installation=sentry_app_installation,
-            organization=organization,
+            organization_id=organization.id,
             provider="vercel",
         )

@@ -108,7 +108,7 @@ class SlackTasksTest(TestCase):
                 "workspace": self.integration.id,
             }
         ]
-        assert rule.created_by == self.user
+        assert rule.created_by_id == self.user.id
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -252,7 +252,7 @@ class SlackTasksTest(TestCase):
                 find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
-        assert rule.created_by.id == self.user.id
+        assert rule.created_by_id == self.user.id
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(
             integration_service._serialize_integration(self.integration), "my-channel", 180
