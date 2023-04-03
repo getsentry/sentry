@@ -70,7 +70,7 @@ function SourceMapsTableRow({
         {idColumnDetails}
       </IDColumn>
       <ArtifactsTotalColumn>
-        <Count value={fileCount} />
+        {!isEmptyReleaseBundle && <Count value={fileCount} />}
         {isEmptyReleaseBundle && (
           <IconWrapper>
             <Tooltip title={t('No bundle connected to this release')}>
