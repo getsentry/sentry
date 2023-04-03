@@ -473,10 +473,6 @@ class TestCase(BaseTestCase, TestCase):
             state.used_db[request.function.__name__] = False
             yield
 
-    def reload_users(self, *users):
-        for user in users:
-            user = type(user).objects.get(id=user.id)
-
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
     pass

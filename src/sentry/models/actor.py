@@ -112,14 +112,9 @@ def get_actor_id_for_user(user: Union["User", RpcUser]):
     if user.actor_id:
         return user.actor_id
     # Temporary Dual write
-    actor = Actor.objects.filter(type=1, user_id=user.id).first()
-    if actor is None:
-        actor = Actor.objects.create(
-            type=ACTOR_TYPES["user"],
-            user_id=user.id,
-        )
-        # TODO(hybrid-cloud): remove this after actor migration is complete
-        user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+    actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
+    # TODO(hybrid-cloud): remove this after actor migration is complete
+    user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
     return actor.id
 
 
