@@ -330,7 +330,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "providerName": "github",
+            "providerName": "google",
             "providerConfig": {"option": "test"},
         }
 
