@@ -61,7 +61,7 @@ function SourceMapsTableRow({
   idColumnDetails?: React.ReactNode;
 }) {
   const isEmptyReleaseBundle =
-    bundleType === SourceMapsBundleType.Release && fileCount === 0;
+    bundleType === SourceMapsBundleType.Release && fileCount === -1;
 
   return (
     <Fragment>
