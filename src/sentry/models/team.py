@@ -155,8 +155,8 @@ class Team(Model):
     actor = FlexibleForeignKey(
         "sentry.Actor",
         related_name="team_from_actor",
-        db_index=False,
-        unique=False,
+        db_index=True,
+        unique=True,
         null=True,
     )
     idp_provisioned = models.BooleanField(default=False)
