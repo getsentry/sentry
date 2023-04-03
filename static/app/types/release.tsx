@@ -120,6 +120,7 @@ export type ReleaseProject = {
 };
 
 export type ReleaseMeta = {
+  bundleId: string | null;
   commitCount: number;
   commitFilesChanged: number;
   deployCount: number;
