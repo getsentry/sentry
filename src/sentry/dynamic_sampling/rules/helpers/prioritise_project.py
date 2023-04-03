@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
@@ -14,6 +14,23 @@ def _generate_cache_key_actual_rate(org_id: int) -> str:
     return f"ds::o:{org_id}:prioritise_projects:actual_rate"
 
 
+def apply_actual_sample_rate(
+    blended_sample_rate: float,
+    adjusted_sample_rate: Optional[float],
+    actual_sample_rate: Optional[float],
+) -> Optional[float]:
+    if adjusted_sample_rate is None or actual_sample_rate is None:
+        return None
+    if actual_sample_rate < blended_sample_rate:
+        # It means we are under sampling, so we can increase `adjusted_sample_rate` on 10%
+        # Note: 10% selected randomly
+        return adjusted_sample_rate + (adjusted_sample_rate * 0.1)
+    elif actual_sample_rate > blended_sample_rate:
+        # It means we are over sampling, so we can decrease `adjusted_sample_rate` on 10%
+        return adjusted_sample_rate - (adjusted_sample_rate * 0.1)
+    return adjusted_sample_rate
+
+
 def get_prioritise_by_project_sample_rate(project: "Project", default_sample_rate: float) -> float:
     """
     This function returns cached sample rate from prioritise by project
@@ -22,7 +39,18 @@ def get_prioritise_by_project_sample_rate(project: "Project", default_sample_rat
     redis_client = get_redis_client_for_ds()
     cache_key = _generate_cache_key(project.organization.id)
     try:
-        cached_sample_rate = float(redis_client.hget(cache_key, project.id))
+        adjusted_sample_rate = float(redis_client.hget(cache_key, project.id))
     except (TypeError, ValueError):
-        cached_sample_rate = None
-    return cached_sample_rate if cached_sample_rate else default_sample_rate
+        adjusted_sample_rate = None
+
+    cache_key_actual_rate = _generate_cache_key_actual_rate(project.organization.id)
+    try:
+        actual_sample_rate = float(redis_client.hget(cache_key_actual_rate, project.id))
+    except (TypeError, ValueError):
+        actual_sample_rate = None
+
+    adjusted_sample_rate = apply_actual_sample_rate(
+        default_sample_rate, adjusted_sample_rate, actual_sample_rate
+    )
+
+    return adjusted_sample_rate if adjusted_sample_rate else default_sample_rate
