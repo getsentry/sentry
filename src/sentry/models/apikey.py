@@ -9,11 +9,11 @@ from sentry.db.models import (
     ArrayField,
     BaseManager,
     BoundedPositiveIntegerField,
-    FlexibleForeignKey,
     Model,
     control_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 # TODO(dcramer): pull in enum library
@@ -26,7 +26,7 @@ class ApiKeyStatus:
 class ApiKey(Model):
     __include_in_export__ = True
 
-    organization = FlexibleForeignKey("sentry.Organization", related_name="key_set")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     label = models.CharField(max_length=64, blank=True, default="Default")
     key = models.CharField(max_length=32, unique=True)
     scopes = BitField(
