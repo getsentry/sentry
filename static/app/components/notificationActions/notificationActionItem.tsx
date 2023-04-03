@@ -150,7 +150,7 @@ const NotificationActionItem = ({
   };
 
   const handleSave = async () => {
-    const formProps = getFormProps();
+    const {apiMethod, apiEndpoint, successMessage, errorMessage} = getFormData();
     addLoadingMessage();
     // TODO(enterprise): use "requires" to get data to send
     // This is currently optimized for spike protection
@@ -164,16 +164,16 @@ const NotificationActionItem = ({
     });
 
     try {
-      const resp = await api.requestPromise(formProps.apiEndpoint, {
-        method: formProps.apiMethod,
+      const resp = await api.requestPromise(apiEndpoint, {
+        method: apiMethod,
         data: {...data, projects: [project.slug]},
       });
-      addSuccessMessage(formProps.successMessage);
+      addSuccessMessage(successMessage);
       onUpdate(index, resp);
       setEditedAction(resp);
       setIsEditing(false);
     } catch (err) {
-      addErrorMessage(formProps.errorMessage);
+      addErrorMessage(errorMessage);
     }
   };
 
@@ -228,7 +228,7 @@ const NotificationActionItem = ({
     );
   };
 
-  const getFormProps = () => {
+  const getFormData = () => {
     if (editedAction.id) {
       return {
         apiMethod: 'PUT' as const,
