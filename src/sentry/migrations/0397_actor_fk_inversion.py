@@ -34,14 +34,15 @@ class Migration(CheckedMigration):
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="actor_from_team",
                 to="sentry.Team",
-                unique=True,
+                unique=False,
+                db_index=False,
             ),
         ),
         migrations.AddField(
             model_name="actor",
             name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="CASCADE", unique=True
+                "sentry.User", db_index=False, null=True, on_delete="CASCADE", unique=False
             ),
         ),
         migrations.AlterField(

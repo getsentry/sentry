@@ -186,8 +186,8 @@ class User(BaseModel, AbstractBaseUser):
     actor = FlexibleForeignKey(
         "sentry.Actor",
         related_name="user_from_actor",
-        db_index=True,
-        unique=True,
+        db_index=False,
+        unique=False,
         null=True,
         on_delete=models.PROTECT,
     )
