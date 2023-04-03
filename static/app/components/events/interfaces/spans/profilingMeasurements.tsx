@@ -75,7 +75,6 @@ function Chart({data}: ChartProps) {
         axisPointer: {
           type: 'none',
           triggerOn: 'mousemove',
-          triggerTooltip: true,
         },
         boundaryGap: false,
       }}
@@ -105,7 +104,6 @@ const MemoizedChart = React.memo(Chart);
 
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
-  children?: React.ReactNode;
   renderCursorGuide?: ({
     cursorGuideHeight,
     mouseLeft,

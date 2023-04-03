@@ -523,7 +523,6 @@ class TraceViewHeader extends Component<PropType, State> {
                           </RightSidePane>
                         )}
                       </CursorGuideHandler.Consumer>
-
                       {hasProfileMeasurementsChart && (
                         <ProfilingMeasurements
                           profileData={profiles.data}
