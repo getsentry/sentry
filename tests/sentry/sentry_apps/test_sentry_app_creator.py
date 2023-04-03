@@ -66,7 +66,7 @@ class TestCreator(TestCase):
         app = ApiApplication.objects.get(owner=proxy)
 
         sentry_app = SentryApp.objects.get(
-            name="nulldb", application=app, owner=self.org, proxy_user=proxy
+            name="nulldb", application=app, owner_id=self.org.id, proxy_user=proxy
         )
 
         assert sentry_app
@@ -203,7 +203,7 @@ class TestInternalCreator(TestCase):
         sentry_app = self.run_creator()
 
         assert SentryAppInstallation.objects.filter(
-            organization=self.org, sentry_app=sentry_app
+            organization_id=self.org.id, sentry_app=sentry_app
         ).exists()
 
     def test_author(self):

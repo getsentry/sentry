@@ -128,6 +128,11 @@ class RpcOrganizationSummary(RpcModel):
     id: int = -1
     name: str = ""
 
+    def __hash__(self) -> int:
+        # Mimic the behavior of hashing a Django ORM entity, for compatibility with
+        # serializers, as this organization summary object is often used for that.
+        return hash((self.id, self.slug))
+
 
 class RpcOrganization(RpcOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by

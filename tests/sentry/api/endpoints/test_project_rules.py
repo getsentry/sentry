@@ -105,7 +105,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             expected_conditions if expected_conditions is not None else conditions
         )
         assert rule.data["frequency"] == frequency
-        assert rule.created_by == self.user
+        assert rule.created_by_id == self.user.id
         if "environment" in kwargs:
             environment = kwargs["environment"]
             assert response.data["environment"] == environment
