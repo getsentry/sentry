@@ -173,6 +173,8 @@ def get_source_context(source, lineno, context=5):
     # just in case. sometimes math is hard
     if lineno > 0:
         lineno -= 1
+    else:
+        return None, None, None
 
     lower_bound = max(0, lineno - context)
     upper_bound = min(lineno + 1 + context, len(source))
