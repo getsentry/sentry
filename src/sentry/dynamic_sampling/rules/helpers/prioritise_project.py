@@ -54,6 +54,7 @@ def get_prioritise_by_project_sample_rate(project: "Project", default_sample_rat
         actual_sample_rate = float(redis_client.hget(cache_key_actual_rate, project.id))
     except (TypeError, ValueError):
         actual_sample_rate = None
+
     if features.has("organizations:ds-apply-actual-sample-rate-to-biases", project.organization):
         new_adjusted_sample_rate = apply_actual_sample_rate(
             default_sample_rate, adjusted_sample_rate, actual_sample_rate
