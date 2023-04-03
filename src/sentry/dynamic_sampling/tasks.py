@@ -2,14 +2,7 @@ import logging
 from collections import namedtuple
 from typing import Sequence, Tuple
 
-<<<<<<< HEAD
-from sentry import features, options, quotas
-||||||| parent of b8c4c2bb33 (style(lint): Auto commit lint changes)
-
 from sentry import options, quotas
-=======
-from sentry import options, quotas
->>>>>>> b8c4c2bb33 (style(lint): Auto commit lint changes)
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
 from sentry.dynamic_sampling.models.utils import DSElement, actual_sample_rate
