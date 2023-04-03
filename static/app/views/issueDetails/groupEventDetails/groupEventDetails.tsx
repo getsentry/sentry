@@ -62,13 +62,11 @@ export interface GroupEventDetailsProps
 
 type State = {
   eventNavLinks: string;
-  releasesCompletion: any;
 };
 
 class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
   state: State = {
     eventNavLinks: '',
-    releasesCompletion: null,
   };
 
   componentDidMount() {
@@ -117,18 +115,11 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     this.props.api.clear();
   }
 
-  fetchData = async () => {
+  fetchData = () => {
     const {api, project, organization} = this.props;
     const orgSlug = organization.slug;
-    const projSlug = project.slug;
     const projectId = project.id;
 
-    /**
-     * Perform below requests in parallel
-     */
-    const releasesCompletionPromise = api.requestPromise(
-      `/projects/${orgSlug}/${projSlug}/releases/completion/`
-    );
     fetchSentryAppInstallations(api, orgSlug);
 
     // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
@@ -141,9 +132,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         Sentry.captureMessage('Project ID was not set');
       });
     }
-
-    const releasesCompletion = await releasesCompletionPromise;
-    this.setState({releasesCompletion});
   };
 
   renderContent(eventWithMeta?: Event) {
