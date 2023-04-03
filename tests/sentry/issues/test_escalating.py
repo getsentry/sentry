@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -55,26 +56,28 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         event3 = self._load_event_for_group(fingerprint="group-2", minutes_ago=60)
         self._load_event_for_group(fingerprint="group-2", minutes_ago=60)
 
-        assert query_groups_past_counts(Group.objects.all()) == [
-            {
-                "count()": 1,
-                "group_id": group_1_id,
-                "hourBucket": to_start_of_hour(event1.datetime),
-                "project_id": self.project.id,
-            },
-            {
-                "count()": 1,
-                "group_id": group_2_id,
-                "hourBucket": to_start_of_hour(event2.datetime),
-                "project_id": self.project.id,
-            },
-            {
-                "count()": 2,
-                "group_id": group_2_id,
-                "hourBucket": to_start_of_hour(event3.datetime),
-                "project_id": self.project.id,
-            },
-        ]
+        # This forces to test the iteration over the Snuba data
+        with patch("sentry.issues.escalating.QUERY_LIMIT", new=2):
+            assert query_groups_past_counts(Group.objects.all()) == [
+                {
+                    "count()": 1,
+                    "group_id": group_1_id,
+                    "hourBucket": to_start_of_hour(event1.datetime),
+                    "project_id": self.project.id,
+                },
+                {
+                    "count()": 1,
+                    "group_id": group_2_id,
+                    "hourBucket": to_start_of_hour(event2.datetime),
+                    "project_id": self.project.id,
+                },
+                {
+                    "count()": 2,
+                    "group_id": group_2_id,
+                    "hourBucket": to_start_of_hour(event3.datetime),
+                    "project_id": self.project.id,
+                },
+            ]
 
     def test_query_no_groups(self) -> None:
         with pytest.raises(SnubaError):
