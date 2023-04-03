@@ -13,7 +13,6 @@ import {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -108,7 +107,6 @@ const QuickTraceWrapper = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: ${space(0.5)};
 `;
 
 export default IssueQuickTrace;

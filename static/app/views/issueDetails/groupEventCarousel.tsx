@@ -42,9 +42,6 @@ type GroupEventCarouselProps = {
   projectSlug: string;
 };
 
-const BUTTON_SIZE = 'md';
-const BUTTON_ICON_SIZE = 'sm';
-
 const copyToClipboard = (value: string) => {
   navigator.clipboard
     .writeText(value)
@@ -64,7 +61,11 @@ export const GroupEventCarousel = ({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
+  const smallViewport = useMedia(`(max-width: ${theme.breakpoints.small})`);
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+
+  const buttonSize = smallViewport ? 'sm' : 'md';
+  const buttonIconSize = smallViewport ? 'xs' : 'sm';
 
   const groupId = group.id;
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
@@ -101,163 +102,178 @@ export const GroupEventCarousel = ({
 
   return (
     <CarouselAndButtonsWrapper>
-      <StyledButtonBar merged>
-        <EventNavigationButton
-          size={BUTTON_SIZE}
-          icon={<IconPrevious size={BUTTON_ICON_SIZE} />}
-          aria-label="Oldest"
-          to={{
-            pathname: `${baseEventsPath}oldest/`,
-            query: {...location.query, referrer: 'oldest-event'},
-          }}
-          disabled={!hasPreviousEvent}
-        />
-        <EventNavigationButton
-          size={BUTTON_SIZE}
-          icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
-          aria-label="Older"
-          to={{
-            pathname: `${baseEventsPath}${event.previousEventID}/`,
-            query: {...location.query, referrer: 'previous-event'},
-          }}
-          disabled={!hasPreviousEvent}
-        />
-        <EventLabelContainer>
-          <div>
-            <EventIdLabel>Event ID:</EventIdLabel>{' '}
-            <Tooltip overlayStyle={{maxWidth: 'max-content'}} title={event.id}>
-              <Clipboard value={event.id}>
-                <EventId>
-                  {getShortEventId(event.id)}
-                  <CopyIconContainer>
-                    <IconCopy size="xs" />
-                  </CopyIconContainer>
-                </EventId>
-              </Clipboard>
-            </Tooltip>{' '}
-            {(event.dateCreated ?? event.dateReceived) && (
-              <EventTimeLabel>
-                {getDynamicText({
-                  fixed: 'Jan 1, 12:00 AM',
-                  value: (
-                    <Tooltip showUnderline title={<EventCreatedTooltip event={event} />}>
-                      <DateTime date={event.dateCreated ?? event.dateReceived} />
-                    </Tooltip>
-                  ),
-                })}
-                {isOverLatencyThreshold && (
-                  <Tooltip title="High latency">
-                    <StyledIconWarning size="xs" color="warningText" />
-                  </Tooltip>
-                )}
-              </EventTimeLabel>
+      <EventHeading>
+        <EventIdLabel>Event ID:</EventIdLabel>{' '}
+        <Tooltip overlayStyle={{maxWidth: 'max-content'}} title={event.id}>
+          <Clipboard value={event.id}>
+            <EventId>
+              {getShortEventId(event.id)}
+              <CopyIconContainer>
+                <IconCopy size="xs" />
+              </CopyIconContainer>
+            </EventId>
+          </Clipboard>
+        </Tooltip>{' '}
+        {(event.dateCreated ?? event.dateReceived) && (
+          <EventTimeLabel>
+            {getDynamicText({
+              fixed: 'Jan 1, 12:00 AM',
+              value: (
+                <Tooltip showUnderline title={<EventCreatedTooltip event={event} />}>
+                  <DateTime date={event.dateCreated ?? event.dateReceived} />
+                </Tooltip>
+              ),
+            })}
+            {isOverLatencyThreshold && (
+              <Tooltip title="High latency">
+                <StyledIconWarning size="xs" color="warningText" />
+              </Tooltip>
             )}
-          </div>
-        </EventLabelContainer>
-        <EventNavigationButton
-          size={BUTTON_SIZE}
-          icon={<IconChevron direction="right" size={BUTTON_ICON_SIZE} />}
-          aria-label="Newer"
-          to={{
-            pathname: `${baseEventsPath}${event.nextEventID}/`,
-            query: {...location.query, referrer: 'next-event'},
+          </EventTimeLabel>
+        )}
+      </EventHeading>
+      <ActionsWrapper>
+        <DropdownMenu
+          position="bottom-end"
+          triggerProps={{
+            'aria-label': t('Event Actions Menu'),
+            icon: <IconEllipsis size={buttonIconSize} />,
+            showChevron: false,
+            size: buttonSize,
           }}
-          disabled={!hasNextEvent}
-        />
-        <EventNavigationButton
-          size={BUTTON_SIZE}
-          icon={<IconNext size={BUTTON_ICON_SIZE} />}
-          aria-label="Newest"
-          to={{
-            pathname: `${baseEventsPath}latest/`,
-            query: {...location.query, referrer: 'latest-event'},
-          }}
-          disabled={!hasNextEvent}
-        />
-      </StyledButtonBar>
-      {xlargeViewport && (
-        <Button
-          size={BUTTON_SIZE}
-          icon={<IconOpen size={BUTTON_ICON_SIZE} />}
-          onClick={downloadJson}
-        >
-          JSON
-        </Button>
-      )}
-      {xlargeViewport && (
-        <Button size={BUTTON_SIZE} onClick={copyLink}>
-          Copy Link
-        </Button>
-      )}
-      <DropdownMenu
-        position="bottom-end"
-        triggerProps={{
-          'aria-label': t('Event Actions Menu'),
-          icon: <IconEllipsis size={BUTTON_ICON_SIZE} />,
-          showChevron: false,
-          size: BUTTON_SIZE,
-        }}
-        items={[
-          {
-            key: 'copy-event-id',
-            label: t('Copy Event ID'),
-            onAction: () => copyToClipboard(event.id),
-          },
-          {
-            key: 'copy-event-url',
-            label: t('Copy Event Link'),
-            hidden: xlargeViewport,
-            onAction: copyLink,
-          },
-          {
-            key: 'json',
-            label: `JSON (${formatBytesBase2(event.size)})`,
-            onAction: downloadJson,
-            hidden: xlargeViewport,
-          },
-          {
-            key: 'full-event-discover',
-            label: t('Full Event Details'),
-            hidden: !organization.features.includes('discover-basic'),
-            to: eventDetailsRoute({
-              eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-              orgSlug: organization.slug,
-            }),
-            onAction: () => {
-              trackAdvancedAnalyticsEvent('issue_details.event_details_clicked', {
-                organization,
-                ...getAnalyticsDataForGroup(group),
-                ...getAnalyticsDataForEvent(event),
-              });
+          items={[
+            {
+              key: 'copy-event-id',
+              label: t('Copy Event ID'),
+              onAction: () => copyToClipboard(event.id),
             },
-          },
-          {
-            key: 'replay',
-            label: t('View Replay'),
-            hidden: !hasReplay || !isReplayEnabled,
-            onAction: () => {
-              const breadcrumbsHeader = document.getElementById('breadcrumbs');
-              if (breadcrumbsHeader) {
-                breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
-              }
-              trackAdvancedAnalyticsEvent('issue_details.header_view_replay_clicked', {
-                organization,
-                ...getAnalyticsDataForGroup(group),
-                ...getAnalyticsDataForEvent(event),
-              });
+            {
+              key: 'copy-event-url',
+              label: t('Copy Event Link'),
+              hidden: xlargeViewport,
+              onAction: copyLink,
             },
-          },
-        ]}
-      />
+            {
+              key: 'json',
+              label: `JSON (${formatBytesBase2(event.size)})`,
+              onAction: downloadJson,
+              hidden: xlargeViewport,
+            },
+            {
+              key: 'full-event-discover',
+              label: t('Full Event Details'),
+              hidden: !organization.features.includes('discover-basic'),
+              to: eventDetailsRoute({
+                eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
+                orgSlug: organization.slug,
+              }),
+              onAction: () => {
+                trackAdvancedAnalyticsEvent('issue_details.event_details_clicked', {
+                  organization,
+                  ...getAnalyticsDataForGroup(group),
+                  ...getAnalyticsDataForEvent(event),
+                });
+              },
+            },
+            {
+              key: 'replay',
+              label: t('View Replay'),
+              hidden: !hasReplay || !isReplayEnabled,
+              onAction: () => {
+                const breadcrumbsHeader = document.getElementById('breadcrumbs');
+                if (breadcrumbsHeader) {
+                  breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
+                }
+                trackAdvancedAnalyticsEvent('issue_details.header_view_replay_clicked', {
+                  organization,
+                  ...getAnalyticsDataForGroup(group),
+                  ...getAnalyticsDataForEvent(event),
+                });
+              },
+            },
+          ]}
+        />
+        {xlargeViewport && (
+          <Button
+            size={buttonSize}
+            icon={<IconOpen size={buttonIconSize} />}
+            onClick={downloadJson}
+          >
+            JSON
+          </Button>
+        )}
+        {xlargeViewport && (
+          <Button size={buttonSize} onClick={copyLink}>
+            Copy Link
+          </Button>
+        )}
+        <StyledButtonBar merged>
+          <EventNavigationButton
+            size={buttonSize}
+            icon={<IconPrevious size={buttonIconSize} />}
+            aria-label="Oldest"
+            to={{
+              pathname: `${baseEventsPath}oldest/`,
+              query: {...location.query, referrer: 'oldest-event'},
+            }}
+            disabled={!hasPreviousEvent}
+          />
+          <EventNavigationButton
+            size={buttonSize}
+            icon={<IconChevron direction="left" size={buttonIconSize} />}
+            aria-label="Older"
+            to={{
+              pathname: `${baseEventsPath}${event.previousEventID}/`,
+              query: {...location.query, referrer: 'previous-event'},
+            }}
+            disabled={!hasPreviousEvent}
+          />
+          <EventNavigationButton
+            size={buttonSize}
+            icon={<IconChevron direction="right" size={buttonIconSize} />}
+            aria-label="Newer"
+            to={{
+              pathname: `${baseEventsPath}${event.nextEventID}/`,
+              query: {...location.query, referrer: 'next-event'},
+            }}
+            disabled={!hasNextEvent}
+          />
+          <EventNavigationButton
+            size={buttonSize}
+            icon={<IconNext size={buttonIconSize} />}
+            aria-label="Newest"
+            to={{
+              pathname: `${baseEventsPath}latest/`,
+              query: {...location.query, referrer: 'latest-event'},
+            }}
+            disabled={!hasNextEvent}
+          />
+        </StyledButtonBar>
+      </ActionsWrapper>
     </CarouselAndButtonsWrapper>
   );
 };
 
 const CarouselAndButtonsWrapper = styled('div')`
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: ${space(1)};
   margin-bottom: ${space(0.5)};
-  max-width: 900px;
+`;
+
+const EventHeading = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+
+  @media (max-width: 600px) {
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
+`;
+
+const ActionsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
@@ -269,32 +285,12 @@ const EventNavigationButton = styled(Button)`
   width: 42px;
 `;
 
-const EventLabelContainer = styled('div')`
-  background: ${p => p.theme.background};
-  display: flex;
-  border-top: 1px solid ${p => p.theme.button.default.border};
-  border-bottom: 1px solid ${p => p.theme.button.default.border};
-  height: ${p => p.theme.form[BUTTON_SIZE].height}px;
-  justify-content: center;
-  align-items: center;
-  padding: 0 ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
 const EventIdLabel = styled('span')`
   font-weight: bold;
-
-  @media (max-width: 600px) {
-    display: none;
-  }
 `;
 
 const EventTimeLabel = styled('span')`
   color: ${p => p.theme.subText};
-
-  @media (max-width: 500px) {
-    display: none;
-  }
 `;
 
 const StyledIconWarning = styled(IconWarning)`

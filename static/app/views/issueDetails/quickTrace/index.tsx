@@ -26,7 +26,7 @@ function QuickTrace({group, event, organization, location}: Props) {
   }
 
   if (quickTrace?.isLoading) {
-    return <GrowingPlaceholder height="24px" />;
+    return <GrowingPlaceholder height="20px" />;
   }
 
   return (
