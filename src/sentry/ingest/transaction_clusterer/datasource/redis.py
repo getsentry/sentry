@@ -91,12 +91,7 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
         and _should_store_transaction_name(event_data)
     ):
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
-
-        # TODO: For every transaction that had a rule applied to it, we should
-        # bump the rule's lifetime here such that it stays alive while it is
-        # being used.
-        # For that purpose, we need to add the applied rule to the transaction
-        # payload so we can check it here.
+        _bump_rule_lifetime(project, event_data)
 
 
 def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
@@ -121,3 +116,28 @@ def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
         return False
 
     return True
+
+
+def _bump_rule_lifetime(project, event_data: Mapping[str, Any]):
+    from sentry.ingest.transaction_clusterer import rules as clusterer_rules
+
+    applied_rules = event_data.get("_meta", {}).get("transaction", {}).get("", {}).get("rem", {})
+    if not applied_rules:
+        return
+
+    stored_rules = clusterer_rules._get_rules(project)
+
+    for rule in applied_rules:
+        # There are two types of rules:
+        # Transaction clustering rules  -- ["<pattern>", "<action>"]
+        # Other rules                   -- ["<reason>", "<action>", <from>, <to>]
+        # We are only looking at the transaction clustering rules, so checking
+        # for the length of the array should be enough.
+        if len(rule) == 2:
+            pattern = rule[0]
+            if pattern in stored_rules:
+                stored_rules[pattern] = clusterer_rules._now()
+                # Only one transaction name rule is applied at a time
+                break
+
+    clusterer_rules.update_rules(project, stored_rules)
