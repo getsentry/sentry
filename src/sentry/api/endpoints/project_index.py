@@ -43,7 +43,7 @@ class ProjectIndexEndpoint(Endpoint):
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project_id)
             elif request.auth.organization_id is not None:
-                queryset = queryset.filter(organization=request.auth.organization_id)
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
             else:
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
