@@ -535,7 +535,7 @@ describe('Onboarding Setup Docs', function () {
       router.location.query = {
         product: [PRODUCT.SESSION_REPLAY],
       };
-      await rerender(
+      rerender(
         <PersistedStoreContext.Provider
           value={[
             {

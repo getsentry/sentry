@@ -21,12 +21,6 @@ import useApi from 'sentry/utils/useApi';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 
-const newDynamicSdkLoaderOptions: Record<DynamicSDKLoaderOption, boolean> = {
-  [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
-  [DynamicSDKLoaderOption.HAS_REPLAY]: false,
-  [DynamicSDKLoaderOption.HAS_DEBUG]: false,
-};
-
 export function SetupDocsLoader({
   organization,
   location,
@@ -78,6 +72,12 @@ export function SetupDocsLoader({
     if (!keyId) {
       return;
     }
+
+    const newDynamicSdkLoaderOptions: Record<DynamicSDKLoaderOption, boolean> = {
+      [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
+      [DynamicSDKLoaderOption.HAS_REPLAY]: false,
+      [DynamicSDKLoaderOption.HAS_DEBUG]: false,
+    };
 
     products.forEach(product => {
       // eslint-disable-next-line default-case
