@@ -23,12 +23,6 @@ import {SingleListProps} from './list';
 import {SelectOption} from './types';
 
 export interface SelectContextValue {
-  /**
-   * Filter function to determine whether an option should be rendered in the select
-   * list. A true return value means the option should be rendered. This function is
-   * automatically updated based on the current search string.
-   */
-  filterOption: (opt: SelectOption<React.Key>) => boolean;
   overlayIsOpen: boolean;
   /**
    * Function to be called once when a list is initialized, to register its state in
@@ -47,6 +41,10 @@ export interface SelectContextValue {
     newSelectedOptions: SelectOption<React.Key> | SelectOption<React.Key>[]
   ) => void;
   /**
+   * Search string to determine whether an option should be rendered in the select list.
+   */
+  search: string;
+  /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
@@ -56,8 +54,8 @@ export interface SelectContextValue {
 export const SelectContext = createContext<SelectContextValue>({
   registerListState: () => {},
   saveSelectedOptions: () => {},
-  filterOption: () => true,
   overlayIsOpen: false,
+  search: '',
 });
 
 export interface ControlProps
@@ -205,13 +203,6 @@ export function Control({
       onSearch?.(newValue);
     },
     [onSearch]
-  );
-  const filterOption = useCallback<SelectContextValue['filterOption']>(
-    opt =>
-      String(opt.label ?? '')
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    [search]
   );
 
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
@@ -369,9 +360,9 @@ export function Control({
       saveSelectedOptions,
       overlayState,
       overlayIsOpen,
-      filterOption,
+      search,
     }),
-    [registerListState, saveSelectedOptions, overlayState, overlayIsOpen, filterOption]
+    [registerListState, saveSelectedOptions, overlayState, overlayIsOpen, search]
   );
 
   const theme = useTheme();

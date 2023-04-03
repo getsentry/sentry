@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import {AriaGridListOptions} from '@react-aria/gridlist';
 import {AriaListBoxOptions} from '@react-aria/listbox';
@@ -12,7 +12,14 @@ import {SelectContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
 import {SelectOption, SelectOptionOrSectionWithKey} from './types';
-import {getDisabledOptions, getSelectedOptions, HiddenSectionToggle} from './utils';
+import {
+  getDisabledOptions,
+  getHiddenOptions,
+  getSelectedOptions,
+  HiddenSectionToggle,
+} from './utils';
+
+export const SelectFilterContext = createContext(new Set<React.Key>());
 
 interface BaseListProps<Value extends React.Key>
   extends ListProps<any>,
@@ -54,6 +61,17 @@ interface BaseListProps<Value extends React.Key>
    */
   label?: React.ReactNode;
   size?: FormSize;
+  /**
+   * Upper limit for the number of options to display in the menu at a time. Users can
+   * still find overflowing options by using the search box (if `searchable` is true).
+   * If used, make sure to hoist selected options to the top, otherwise they may be
+   * hidden from view.
+   */
+  sizeLimit?: number;
+  /**
+   * Message to be displayed when some options are hidden due to `sizeLimit`.
+   */
+  sizeLimitMessage?: string;
 }
 
 export interface SingleListProps<Value extends React.Key> extends BaseListProps<Value> {
@@ -89,11 +107,18 @@ function List<Value extends React.Key>({
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
   compositeIndex = 0,
+  sizeLimit,
+  sizeLimitMessage,
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, registerListState, saveSelectedOptions, filterOption} =
+  const {overlayState, registerListState, saveSelectedOptions, search} =
     useContext(SelectContext);
+
+  const hiddenOptions = useMemo(
+    () => getHiddenOptions(items, search, sizeLimit),
+    [items, search, sizeLimit]
+  );
 
   /**
    * Props to be passed into useListState()
@@ -101,10 +126,8 @@ function List<Value extends React.Key>({
   const listStateProps = useMemo<Partial<ListProps<any>>>(() => {
     const disabledKeys = [
       ...getDisabledOptions(items, isOptionDisabled),
-      // Items that have been filtered out by the search function also needs to be marked
-      // as disabled, so they are not reachable via keyboard.
-      ...getDisabledOptions(items, (opt: SelectOption<Value>) => !filterOption(opt)),
-    ];
+      ...hiddenOptions,
+    ].map(String);
 
     if (multiple) {
       return {
@@ -156,7 +179,7 @@ function List<Value extends React.Key>({
     onChange,
     items,
     isOptionDisabled,
-    filterOption,
+    hiddenOptions,
     multiple,
     disallowEmptySelection,
     compositeIndex,
@@ -180,19 +203,6 @@ function List<Value extends React.Key>({
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listState.collection]);
-
-  const filteredItems = useMemo(() => {
-    return [...listState.collection].filter(item => {
-      // If this is a section
-      if (item.type === 'section') {
-        // Don't render section if all of its children are filtered out
-        return [...item.childNodes].some(child => filterOption(child.props));
-      }
-
-      // If this is an option
-      return filterOption(item.props);
-    });
-  }, [listState.collection, filterOption]);
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed
@@ -284,44 +294,51 @@ function List<Value extends React.Key>({
 
   const listId = useMemo(() => domId('select-list-'), []);
 
+  const sections = useMemo(
+    () =>
+      [...listState.collection].filter(
+        item =>
+          // This is a section
+          item.type === 'section' &&
+          // Options inside the section haven't been all filtered out
+          ![...item.childNodes].every(child => hiddenOptions.has(child.props.value))
+      ),
+
+    [listState.collection, hiddenOptions]
+  );
+
   return (
-    <Fragment>
+    <SelectFilterContext.Provider value={hiddenOptions}>
       {grid ? (
         <GridList
           {...props}
           id={listId}
-          listItems={filteredItems}
           listState={listState}
+          sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
         />
       ) : (
         <ListBox
           {...props}
           id={listId}
-          listItems={filteredItems}
           listState={listState}
           shouldFocusWrap={shouldFocusWrap}
           shouldFocusOnHover={shouldFocusOnHover}
+          sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
         />
       )}
 
       {multiple &&
-        filteredItems.map(item => {
-          if (item.type !== 'section' || !item.value.showToggleAllButton) {
-            return null;
-          }
-
-          return (
-            <HiddenSectionToggle
-              key={item.key}
-              item={item}
-              listState={listState}
-              listId={listId}
-            />
-          );
-        })}
-    </Fragment>
+        sections.map(section => (
+          <HiddenSectionToggle
+            key={section.key}
+            item={section}
+            listState={listState}
+            listId={listId}
+          />
+        ))}
+    </SelectFilterContext.Provider>
   );
 }
 
