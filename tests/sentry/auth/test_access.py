@@ -268,21 +268,65 @@ class FromUserTest(AccessFactoryTestCase):
             assert result.has_project_membership(project)
 
     @with_feature("organizations:team-roles")
-    def test_has_scope_from_team_role(self):
-        user = self.create_user()
+    def test_has_project_scope_from_team_role(self):
         organization = self.create_organization()
         team = self.create_team(organization=organization)
         project = self.create_project(organization=organization, teams=[team])
+        team_other = self.create_team(organization=organization)
+        project_other = self.create_project(organization=organization, teams=[team_other])
+
+        # Team Contributor
+        user = self.create_user()
         member = self.create_member(organization=organization, user=user)
-        self.create_team_membership(team, member, role="admin")
+        self.create_team_membership(team, member, role="contributor")
 
         request = self.make_request(user=user)
         results = [self.from_user(user, organization), self.from_request(request, organization)]
 
         for result in results:
+            # Does not have scopes from org-role
             assert not result.has_scope("team:admin")
+            assert not result.has_scope("team:write")
+            assert not result.has_scope("project:admin")
+            assert not result.has_scope("project:write")
+
+            # Has scopes from team-role
+            assert not result.has_team_scope(team, "team:admin")
+            assert not result.has_team_scope(team, "team:write")
+            assert result.has_team_scope(team, "team:read")
+            assert not result.has_project_scope(project, "project:admin")
+            assert not result.has_project_scope(project, "project:write")
+            assert result.has_project_scope(project, "project:read")
+
+        # Team Admin
+        user = self.create_user()
+        member = self.create_member(organization=organization, user=user)
+        self.create_team_membership(team, member, role="admin")
+
+        request = self.make_request(user=user)
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+        for result in results:
+            # Does not have scopes from org-role
+            assert not result.has_scope("team:admin")
+            assert not result.has_scope("team:write")
+            assert not result.has_scope("project:admin")
+            assert not result.has_scope("project:write")
+
+            # Has scopes from team-role
             assert result.has_team_scope(team, "team:admin")
-            assert result.has_project_scope(project, "team:admin")
+            assert result.has_team_scope(team, "team:write")
+            assert result.has_team_scope(team, "team:read")
+            assert result.has_project_scope(project, "project:admin")
+            assert result.has_project_scope(project, "project:write")
+            assert result.has_project_scope(project, "project:read")
+
+            # Does not have scope from other team
+            assert not result.has_team_scope(team_other, "team:admin")
+            assert not result.has_team_scope(team_other, "team:write")
+            assert result.has_team_scope(team_other, "team:read")
+            assert not result.has_project_scope(project_other, "project:admin")
+            assert not result.has_project_scope(project_other, "project:write")
+            assert result.has_project_scope(project_other, "project:read")
 
     def test_get_organization_roles_from_teams(self):
         user = self.create_user()

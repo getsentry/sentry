@@ -41,7 +41,7 @@ class AuthIdentityHandlerTest(TestCase):
         self.request = _set_up_request()
 
         self.auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider=self.provider
+            organization_id=self.organization.id, provider=self.provider
         )
         self.email = "test@example.com"
         self.identity = {
@@ -379,7 +379,7 @@ class AuthHelperTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
         self.auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider=self.provider
+            organization_id=self.organization.id, provider=self.provider
         )
 
         self.auth_key = "test_auth_key"

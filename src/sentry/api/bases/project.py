@@ -24,10 +24,11 @@ class ProjectPermission(OrganizationPermission):
     }
 
     def has_object_permission(self, request: Request, view, project):
-        result = super().has_object_permission(request, view, project.organization)
+        has_org_scope = super().has_object_permission(request, view, project.organization)
 
-        if not result:
-            return result
+        # If allow_joinleave is False, some org-roles will not have project:read for all projects
+        if has_org_scope and request.access.has_project_access(project):
+            return has_org_scope
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return request.access.has_any_project_scope(project, allowed_scopes)

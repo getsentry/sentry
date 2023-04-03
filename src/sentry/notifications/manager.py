@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, MutableSet, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    MutableSet,
+    Sequence,
+    Union,
+)
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
@@ -393,19 +402,17 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         )
 
     def remove_parent_settings_for_organization(
-        self, organization: Organization, provider: ExternalProviders | None = None
+        self, organization_id: int, project_ids: List[int], provider: ExternalProviders
     ) -> None:
         """Delete all parent-specific notification settings referencing this organization."""
         kwargs = {}
-        if provider:
-            kwargs["provider"] = provider.value
+        kwargs["provider"] = provider.value
 
-        project_ids = [project.id for project in organization.project_set.all()]
         self.filter(
             Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier__in=project_ids)
             | Q(
                 scope_type=NotificationScopeType.ORGANIZATION.value,
-                scope_identifier=organization.id,
+                scope_identifier=organization_id,
             ),
             **kwargs,
         ).delete()
