@@ -6,6 +6,7 @@ export function Member(params = {}) {
     email: 'sentry1@test.com',
     name: 'Sentry 1 Name',
     orgRole: 'member',
+    orgRolesFromTeams: [],
     teamRoles: [],
     role: 'member',
     roleName: 'Member',
@@ -18,7 +19,6 @@ export function Member(params = {}) {
     },
     user: User(),
     inviteStatus: 'approved',
-    orgRolesFromTeams: [],
     ...params,
   };
 }
