@@ -1338,9 +1338,9 @@ def get_available_action_integrations_for_org(organization):
     )
 
 
-def get_pagerduty_services(organization, integration_id):
+def get_pagerduty_services(organization_id, integration_id):
     return PagerDutyService.objects.filter(
-        organization_integration__organization=organization,
+        organization_integration__organization_id=organization_id,
         organization_integration__integration_id=integration_id,
     ).values("id", "service_name")
 

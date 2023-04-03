@@ -1207,6 +1207,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-experiment": False,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
+    # Enable SQL formatting for breadcrumb items
+    "organizations:issue-breadcrumbs-sql-format": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1300,6 +1302,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
+    # Enable apply actual sample rate to dynamic sampling biases
+    "organizations:ds-apply-actual-sample-rate-to-biases": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
     # Enable version 2 of reprocessing (completely distinct from v1)
@@ -1319,8 +1323,6 @@ SENTRY_FEATURES = {
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable new DS bias: prioritise by transaction
-    "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui

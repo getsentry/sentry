@@ -1,4 +1,3 @@
-import {useContext} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -7,9 +6,8 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Clipboard from 'sentry/components/clipboard';
+import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
@@ -24,7 +22,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
@@ -33,7 +30,6 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -103,8 +99,6 @@ export const GroupEventCarousel = ({
     });
   };
 
-  const quickTrace = useContext(QuickTraceContext);
-
   return (
     <CarouselAndButtonsWrapper>
       <StyledButtonBar merged>
@@ -144,13 +138,11 @@ export const GroupEventCarousel = ({
             {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
                 {getDynamicText({
-                  fixed: '1d ago',
+                  fixed: 'Jan 1, 12:00 AM',
                   value: (
-                    <TimeSince
-                      date={event.dateCreated ?? event.dateReceived}
-                      tooltipBody={<EventCreatedTooltip event={event} />}
-                      unitStyle="short"
-                    />
+                    <Tooltip showUnderline title={<EventCreatedTooltip event={event} />}>
+                      <DateTime date={event.dateCreated ?? event.dateReceived} />
+                    </Tooltip>
                   ),
                 })}
                 {isOverLatencyThreshold && (
@@ -236,24 +228,6 @@ export const GroupEventCarousel = ({
                 organization,
                 ...getAnalyticsDataForGroup(group),
                 ...getAnalyticsDataForEvent(event),
-              });
-            },
-          },
-          {
-            key: 'full-trace',
-            label: t('View Full Trace'),
-            hidden:
-              !defined(quickTrace) ||
-              defined(quickTrace.error) ||
-              quickTrace.isLoading ||
-              quickTrace.type === 'empty',
-            to: generateTraceTarget(event, organization),
-            onAction: () => {
-              trackAnalyticsEvent({
-                eventKey: 'quick_trace.trace_id.clicked',
-                eventName: 'Quick Trace: Trace ID clicked',
-                organization_id: parseInt(organization.id, 10),
-                source: 'issues',
               });
             },
           },
