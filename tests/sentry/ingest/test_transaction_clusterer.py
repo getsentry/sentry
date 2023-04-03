@@ -197,14 +197,17 @@ def test_save_rules(default_project):
 )
 @pytest.mark.django_db
 def test_run_clusterer_task(cluster_projects_delay, default_organization):
+    def _add_mock_data(proj, number):
+        for i in range(0, number):
+            _store_transaction_name(proj, f"/user/tx-{proj.name}-{i}")
+            _store_transaction_name(proj, f"/org/tx-{proj.name}-{i}")
+
     with Feature({"organizations:transaction-name-clusterer": True}):
         project1 = Project(id=123, name="project1", organization_id=default_organization.id)
         project2 = Project(id=223, name="project2", organization_id=default_organization.id)
         for project in (project1, project2):
             project.save()
-            for i in range(10):
-                _store_transaction_name(project, f"/user/tx-{project.name}-{i}")
-                _store_transaction_name(project, f"/org/tx-{project.name}-{i}")
+            _add_mock_data(project, 10)
 
         spawn_clusterers()
 
@@ -214,6 +217,13 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         # Not stored enough transactions yet
         assert _get_rules(project1) == {}
         assert _get_rules(project2) == {}
+
+        # Clear transactions if batch minimum is not met
+        assert list(get_transaction_names(project1)) == []
+        assert list(get_transaction_names(project2)) == []
+
+        _add_mock_data(project1, 10)
+        _add_mock_data(project2, 10)
 
         # add more transactions to the project 1
         for i in range(5):
