@@ -28,7 +28,6 @@ import {MonitorBadge} from './monitorBadge';
 
 interface MonitorRowProps {
   monitor: Monitor;
-  monitorEnv: MonitorEnvironment;
   onDelete: () => void;
   organization: Organization;
   monitorEnv?: MonitorEnvironment;
