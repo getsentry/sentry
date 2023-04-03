@@ -259,7 +259,9 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
     with Feature({"organizations:transaction-name-clusterer": True}):
         cluster_projects([project])
     assert mock_update_rules.call_count == 0
+    assert _get_rules(project) == {}  # Transaction names are deleted if there aren't enough
 
+    _store_transaction_name(project, "/transaction/number/1")
     _store_transaction_name(project, "/transaction/number/2")
     with Feature({"organizations:transaction-name-clusterer": True}):
         cluster_projects([project])
