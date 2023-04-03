@@ -6,8 +6,8 @@ from symbolic import ProguardMapper, SourceView
 from sentry.lang.java.processing import deobfuscate_exception_value
 from sentry.lang.java.utils import (
     deobfuscate_view_hierarchy,
+    get_jvm_images,
     get_proguard_images,
-    get_source_images,
     has_proguard_file,
 )
 from sentry.models import ArtifactBundleArchive, EventError, ProjectDebugFile
@@ -197,31 +197,59 @@ def get_source_context(source, lineno, context=5):
     return pre_context or None, context_line, post_context or None
 
 
+# A processor that delegates to JavaStacktraceProcessor for restoring code
+# obfuscated by ProGuard or similar. It then tries to look up source context
+# for either the de-obfuscated stack frame or the stack frame that was passed in.
 class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
+        self.proguard_processor = JavaStacktraceProcessor(*args, **kwargs)
+        self._proguard_processor_handles_frame = None
+        self._handles_frame = None
 
-        self.images = get_source_images(self.data)
-        logger.warning(f"images lookup: ({self.images})")
+        # logger.warning(json.dumps(dict(self.data)))
+        self.images = get_jvm_images(self.data)
+        # logger.warning(f"images sourcelookup found: ({self.images})")
         self.available = len(self.images) > 0
 
     def handles_frame(self, frame, stacktrace_info):
-        # platform = frame.get("platform") or self.data.get("platform")
-        return self.available and "abs_path" in frame and "module" in frame and "lineno" in frame
+        self._proguard_processor_handles_frame = self.proguard_processor.handles_frame(
+            frame, stacktrace_info
+        )
+
+        platform = frame.get("platform") or self.data.get("platform")
+        self._handles_frame = (
+            platform == "java"
+            and self.available
+            and "abs_path" in frame
+            and "module" in frame
+            and "lineno" in frame
+        )
+        logger.warning(f"sourcelookup handles frame ({self._handles_frame})")
+        return self._proguard_processor_handles_frame or self._handles_frame
 
     def preprocess_step(self, processing_task):
-        return self.available
+        proguard_processor_preprocess_rv = False
+        if self._proguard_processor_handles_frame:
+            proguard_processor_preprocess_rv = self.proguard_processor.preprocess_step(
+                processing_task
+            )
+        return proguard_processor_preprocess_rv or self.available
 
     def process_exception(self, exception):
+        if self._proguard_processor_handles_frame:
+            return self.proguard_processor.process_exception(exception)
         return False
 
     # if path contains a $ sign it has most likely been obfuscated
     def _is_valid_path(self, abs_path):
-        abs_path_dollar_index = abs_path.rfind("$")
+        if abs_path is None:
+            return False
+        abs_path_dollar_index = abs_path.find("$")
         return abs_path_dollar_index < 0
 
     def _build_source_file_name(self, frame):
-        abs_path = frame["abs_path"]
+        abs_path = frame.get("abs_path")
         module = frame["module"]
 
         if self._is_valid_path(abs_path):
@@ -231,59 +259,82 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                 source_file_name = module[:module_dot_index].replace(".", "/") + "/"
             else:
                 source_file_name = ""
-            source_file_name += abs_path
+
+            abs_path_dot_index = abs_path.rfind(".")
+            if abs_path_dot_index >= 0:
+                source_file_name += abs_path[:abs_path_dot_index]
+            else:
+                source_file_name += abs_path
         else:
             # use module as filename (excluding inner classes, marked by $) and append .java
-            module_dollar_index = module.rfind("$")
+            module_dollar_index = module.find("$")
             if module_dollar_index >= 0:
                 source_file_name = module[:module_dollar_index].replace(".", "/")
             else:
                 source_file_name = module.replace(".", "/")
-            source_file_name += ".java"
+
+        source_file_name += (
+            ".jvm"  # fake extension because we don't know whether it's .java, .kt or something else
+        )
 
         return "~/" + source_file_name
 
     def process_frame(self, processable_frame, processing_task):
-        frame = processable_frame.frame
-        new_frame = dict(frame)
-        raw_frame = dict(frame)
-        # TODO could be undefined but inApp later
-        in_app = raw_frame.get("in_app", False)
-        if not in_app:
-            return
+        new_frames = None
+        raw_frames = None
+        processing_errors = None
 
-        logger.warning(f"raw frame: ({raw_frame})")
-        lineno = raw_frame["lineno"]
+        if self._proguard_processor_handles_frame:
+            proguard_result = self.proguard_processor.process_frame(
+                processable_frame, processing_task
+            )
 
-        source_file_name = self._build_source_file_name(raw_frame)
-        logger.warning(f"source_file_name ({source_file_name})")
+            if proguard_result:
+                new_frames, raw_frames, processing_errors = proguard_result
+
+        if not self.handles_frame:
+            return new_frames, raw_frames, processing_errors
+
+        if not new_frames:
+            new_frames = [dict(processable_frame.frame)]
 
         # TODO unable to use dif cache as file can't be recognized as ZIP by ArtifactBundleArchive(file)
         difs = ProjectDebugFile.objects.find_by_debug_ids(self.project, self.images)
 
-        for key, dif in difs.items():
-            file = dif.file.getfile(prefetch=True)
-            archive = ArtifactBundleArchive(file)
-            try:
-                result, _ = archive.get_file_by_url(source_file_name)
-                source_view = SourceView.from_bytes(result.read())
-                source_context = get_source_context(source_view, lineno)
+        for new_frame in new_frames:
+            # logger.warning(f"frame ({json.dumps(new_frame)})")
+            lineno = new_frame.get("lineno")
+            if not lineno:
+                logger.warning("unable to find lineno, skipping")
+                continue
 
-                (pre_context, context_line, post_context) = source_context
+            source_file_name = self._build_source_file_name(new_frame)
 
-                if pre_context is not None and len(pre_context) > 0:
-                    new_frame["pre_context"] = [trim_line(x) for x in pre_context]
-                if context_line is not None:
-                    new_frame["context_line"] = trim_line(context_line, new_frame.get("colno") or 0)
-                if post_context is not None and len(post_context) > 0:
-                    new_frame["post_context"] = [trim_line(x) for x in post_context]
-            except KeyError:
-                # file not available in source bundle, proceed
-                pass
-            finally:
-                archive.close()
+            for key, dif in difs.items():
+                file = dif.file.getfile(prefetch=True)
+                archive = ArtifactBundleArchive(file)
+                try:
+                    result, _ = archive.get_file_by_url(source_file_name)
+                    source_view = SourceView.from_bytes(result.read())
+                    source_context = get_source_context(source_view, lineno)
 
-        return [new_frame], None, None
+                    (pre_context, context_line, post_context) = source_context
+
+                    if pre_context is not None and len(pre_context) > 0:
+                        new_frame["pre_context"] = [trim_line(x) for x in pre_context]
+                    if context_line is not None:
+                        new_frame["context_line"] = trim_line(
+                            context_line, new_frame.get("colno") or 0
+                        )
+                    if post_context is not None and len(post_context) > 0:
+                        new_frame["post_context"] = [trim_line(x) for x in post_context]
+                except KeyError:
+                    # file not available in source bundle, proceed
+                    pass
+                finally:
+                    archive.close()
+
+        return new_frames, raw_frames, processing_errors
 
 
 class JavaPlugin(Plugin2):
@@ -293,8 +344,9 @@ class JavaPlugin(Plugin2):
         return False
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
+        logger.warning(f"platforms: ({platforms})")
         if "java" in platforms:
-            return [JavaStacktraceProcessor, JavaSourceLookupStacktraceProcessor]
+            return [JavaSourceLookupStacktraceProcessor]
 
     def get_event_preprocessors(self, data):
         if has_proguard_file(data):
