@@ -180,7 +180,7 @@
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "benchmark": "^2.1.4",
     "eslint": "8.34.0",
-    "eslint-config-sentry-app": "1.110.0",
+    "eslint-config-sentry-app": "1.111.0",
     "html-webpack-plugin": "^5.5.0",
     "jest": "29.4.1",
     "jest-canvas-mock": "^2.4.0",
