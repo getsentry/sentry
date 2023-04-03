@@ -62,9 +62,10 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         proj_c = self.create_project_and_add_metrics("c", 3, test_org)
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            with self.tasks():
-                prioritise_projects()
+        with self.feature(["organizations:ds-apply-actual-sample-rate-to-biases"]):
+            with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+                with self.tasks():
+                    prioritise_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats

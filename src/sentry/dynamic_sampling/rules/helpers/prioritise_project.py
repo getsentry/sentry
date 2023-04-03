@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
+from sentry import features
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
 if TYPE_CHECKING:
@@ -24,7 +25,7 @@ def apply_actual_sample_rate(
     adjusted_sample_rate: Optional[float],
     actual_sample_rate: Optional[float],
 ) -> Optional[float]:
-    if adjusted_sample_rate is None or actual_sample_rate is None:
+    if not (adjusted_sample_rate and actual_sample_rate):
         return None
     if actual_sample_rate < blended_sample_rate:
         # It means we are under sampling, so we can increase `adjusted_sample_rate` on 10%
@@ -53,9 +54,12 @@ def get_prioritise_by_project_sample_rate(project: "Project", default_sample_rat
         actual_sample_rate = float(redis_client.hget(cache_key_actual_rate, project.id))
     except (TypeError, ValueError):
         actual_sample_rate = None
-    # if features.has("organizations:ds-apply-actual-sample-rate-to-biases", project.organization):
-    adjusted_sample_rate = apply_actual_sample_rate(
-        default_sample_rate, adjusted_sample_rate, actual_sample_rate
-    )
+    if features.has("organizations:ds-apply-actual-sample-rate-to-biases", project.organization):
+        new_adjusted_sample_rate = apply_actual_sample_rate(
+            default_sample_rate, adjusted_sample_rate, actual_sample_rate
+        )
+        adjusted_sample_rate = (
+            new_adjusted_sample_rate if new_adjusted_sample_rate else adjusted_sample_rate
+        )
 
     return adjusted_sample_rate if adjusted_sample_rate else default_sample_rate
