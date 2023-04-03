@@ -131,40 +131,37 @@ function ProfilingMeasurements({
     <CursorGuideHandler.Consumer>
       {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => (
         <DividerHandlerManager.Consumer>
-          {dividerHandlerChildrenProps => {
-            const {dividerPosition} = dividerHandlerChildrenProps;
-            return (
-              <MeasurementContainer>
-                <ChartOpsLabel dividerPosition={dividerPosition}>
-                  <OpsLine>
-                    <OpsNameContainer>
-                      <OpsDot style={{backgroundColor: theme.green200}} />
-                      <OpsName>{t('CPU Usage')}</OpsName>
-                    </OpsNameContainer>
-                  </OpsLine>
-                </ChartOpsLabel>
-                <DividerSpacer />
-                <ChartContainer
-                  onMouseEnter={event => {
-                    displayCursorGuide(event.pageX);
-                  }}
-                  onMouseLeave={() => {
-                    hideCursorGuide();
-                  }}
-                  onMouseMove={event => {
-                    displayCursorGuide(event.pageX);
-                  }}
-                >
-                  <MemoizedChart data={cpuUsageData} />
-                  {renderCursorGuide?.({
-                    showCursorGuide,
-                    mouseLeft,
-                    cursorGuideHeight: PROFILE_MEASUREMENTS_CHART_HEIGHT,
-                  })}
-                </ChartContainer>
-              </MeasurementContainer>
-            );
-          }}
+          {({dividerPosition}) => (
+            <MeasurementContainer>
+              <ChartOpsLabel dividerPosition={dividerPosition}>
+                <OpsLine>
+                  <OpsNameContainer>
+                    <OpsDot style={{backgroundColor: theme.green200}} />
+                    <OpsName>{t('CPU Usage')}</OpsName>
+                  </OpsNameContainer>
+                </OpsLine>
+              </ChartOpsLabel>
+              <DividerSpacer />
+              <ChartContainer
+                onMouseEnter={event => {
+                  displayCursorGuide(event.pageX);
+                }}
+                onMouseLeave={() => {
+                  hideCursorGuide();
+                }}
+                onMouseMove={event => {
+                  displayCursorGuide(event.pageX);
+                }}
+              >
+                <MemoizedChart data={cpuUsageData} />
+                {renderCursorGuide?.({
+                  showCursorGuide,
+                  mouseLeft,
+                  cursorGuideHeight: PROFILE_MEASUREMENTS_CHART_HEIGHT,
+                })}
+              </ChartContainer>
+            </MeasurementContainer>
+          )}
         </DividerHandlerManager.Consumer>
       )}
     </CursorGuideHandler.Consumer>
