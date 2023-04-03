@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0396_add_usecase_to_indexer"),
+        ("sentry", "0397_break_some_more_fks"),
     ]
 
     operations = [
