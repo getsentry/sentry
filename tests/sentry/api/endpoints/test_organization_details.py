@@ -329,11 +329,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-<<<<<<< HEAD
             "providerKey": "google",
             "providerConfig": {"domain": "foo.com"},
-=======
->>>>>>> 4c04dd4de5 (fix(api): Remove feature flag code changes to put in other PR)
         }
 
         # needed to set require2FA
