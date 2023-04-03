@@ -657,7 +657,7 @@ register("performance.issues.m_n_plus_one_db.ga-rollout", default=1.0)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=0)
-register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
+register("performance.issues.n_plus_one_db.duration_threshold", default=10.0)
 register("performance.issues.render_blocking_assets.fcp_minimum_threshold", default=2000.0)
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
