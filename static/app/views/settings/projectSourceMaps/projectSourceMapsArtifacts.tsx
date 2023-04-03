@@ -122,7 +122,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   // debug id bundles tab url
   const debugIdsUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/debug-id-bundles/${params.bundleId}/`
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/${params.bundleId}/`
   );
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
@@ -183,7 +183,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={tabDebugIdBundlesActive ? t('Debug ID Bundle') : t('Release Bundle')}
+        title={tabDebugIdBundlesActive ? t('Artifact Bundle') : t('Release Bundle')}
         subtitle={
           <VersionAndDetails>
             {params.bundleId}
