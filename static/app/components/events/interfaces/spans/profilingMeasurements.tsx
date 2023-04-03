@@ -1,3 +1,4 @@
+import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
@@ -21,6 +22,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+
+import * as CursorGuideHandler from './cursorGuideHandler';
 
 const NS_PER_MS = 1000000;
 
@@ -64,7 +67,6 @@ function Chart({data}: ChartProps) {
         show: false,
         axisLabel: {show: false},
         axisTick: {show: false},
-        max: 100,
       }}
       xAxis={{
         show: false,
@@ -98,22 +100,26 @@ function Chart({data}: ChartProps) {
   );
 }
 
+// Memoized to prevent re-rendering when the cursor guide is displayed
+const MemoizedChart = React.memo(Chart);
+
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
   children?: React.ReactNode;
-  onChartMouseEnter?: (event: React.MouseEvent) => void;
-  onChartMouseLeave?: (event: React.MouseEvent) => void;
-  onChartMouseMove?: (event: React.MouseEvent) => void;
+  renderCursorGuide?: ({
+    cursorGuideHeight,
+    mouseLeft,
+    showCursorGuide,
+  }: {
+    cursorGuideHeight: number;
+    mouseLeft: number | undefined;
+    showCursorGuide: boolean;
+  }) => void;
 };
 
 function ProfilingMeasurements({
   profileData,
-
-  onChartMouseEnter,
-  onChartMouseLeave,
-  onChartMouseMove,
-
-  children,
+  renderCursorGuide,
 }: ProfilingMeasurementsProps) {
   const theme = useTheme();
 
@@ -124,32 +130,46 @@ function ProfilingMeasurements({
   const cpuUsageData = profileData.measurements!.cpu_usage!;
 
   return (
-    <DividerHandlerManager.Consumer>
-      {dividerHandlerChildrenProps => {
-        const {dividerPosition} = dividerHandlerChildrenProps;
-        return (
-          <MeasurementContainer>
-            <ChartOpsLabel dividerPosition={dividerPosition}>
-              <OpsLine>
-                <OpsNameContainer>
-                  <OpsDot style={{backgroundColor: theme.green200}} />
-                  <OpsName>{t('CPU Usage')}</OpsName>
-                </OpsNameContainer>
-              </OpsLine>
-            </ChartOpsLabel>
-            <DividerSpacer />
-            <ChartContainer
-              onMouseEnter={onChartMouseEnter}
-              onMouseLeave={onChartMouseLeave}
-              onMouseMove={onChartMouseMove}
-            >
-              <Chart data={cpuUsageData} />
-              {children}
-            </ChartContainer>
-          </MeasurementContainer>
-        );
-      }}
-    </DividerHandlerManager.Consumer>
+    <CursorGuideHandler.Consumer>
+      {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => (
+        <DividerHandlerManager.Consumer>
+          {dividerHandlerChildrenProps => {
+            const {dividerPosition} = dividerHandlerChildrenProps;
+            return (
+              <MeasurementContainer>
+                <ChartOpsLabel dividerPosition={dividerPosition}>
+                  <OpsLine>
+                    <OpsNameContainer>
+                      <OpsDot style={{backgroundColor: theme.green200}} />
+                      <OpsName>{t('CPU Usage')}</OpsName>
+                    </OpsNameContainer>
+                  </OpsLine>
+                </ChartOpsLabel>
+                <DividerSpacer />
+                <ChartContainer
+                  onMouseEnter={event => {
+                    displayCursorGuide(event.pageX);
+                  }}
+                  onMouseLeave={() => {
+                    hideCursorGuide();
+                  }}
+                  onMouseMove={event => {
+                    displayCursorGuide(event.pageX);
+                  }}
+                >
+                  <MemoizedChart data={cpuUsageData} />
+                  {renderCursorGuide?.({
+                    showCursorGuide,
+                    mouseLeft,
+                    cursorGuideHeight: PROFILE_MEASUREMENTS_CHART_HEIGHT,
+                  })}
+                </ChartContainer>
+              </MeasurementContainer>
+            );
+          }}
+        </DividerHandlerManager.Consumer>
+      )}
+    </CursorGuideHandler.Consumer>
   );
 }
 
