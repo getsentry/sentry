@@ -184,7 +184,8 @@ class MonitorValidator(serializers.Serializer):
         return value
 
     def validate_slug(self, value):
-        if not value:
+        # Ignore if slug is equal to current value
+        if not value or (self.instance and value == self.instance.get("slug")):
             return value
 
         if Monitor.objects.filter(

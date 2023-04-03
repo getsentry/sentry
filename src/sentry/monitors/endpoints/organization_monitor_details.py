@@ -80,6 +80,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             partial=True,
             instance={
                 "name": monitor.name,
+                "slug": monitor.slug,
                 "status": monitor.status,
                 "type": monitor.type,
                 "config": monitor.config,
