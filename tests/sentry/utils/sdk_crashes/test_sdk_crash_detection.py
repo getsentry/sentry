@@ -179,9 +179,16 @@ def test_report_cocoa_sdk_crash_frames(frames, should_be_reported):
 
 def test_sdk_crash_detected_event_is_not_reported():
     event = get_crash_event()
-    event["type"] = "extracted_sdk_crash"
+    event["contexts"]["sdk_crash_detection"] = {"detected": True}
 
     _run_report_test_with_event(event, should_be_reported=False)
+
+
+def test_cocoa_sdk_crash_detection_without_context():
+    event = get_crash_event(function="-[SentryHub getScope]")
+    event["contexts"] = {}
+
+    _run_report_test_with_event(event, True)
 
 
 def given_crash_detector() -> Tuple[SDKCrashDetection, SDKCrashReporter]:
@@ -213,7 +220,7 @@ def assert_sdk_crash_reported(
     crash_reporter.report.assert_called_once_with(expected_event)
 
     reported_event = crash_reporter.report.call_args.args[0]
-    assert reported_event["type"] == "extracted_sdk_crash"
+    assert reported_event["contexts"]["sdk_crash_detection"]["detected"] is True
 
 
 def assert_no_sdk_crash_reported(crash_reporter: SDKCrashReporter):
