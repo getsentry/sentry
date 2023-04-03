@@ -64,7 +64,6 @@ def get_monitor_environment_context(monitor_environment):
         "id": str(monitor_environment.monitor.guid),
         "slug": monitor_environment.monitor.slug,
         "name": monitor_environment.monitor.name,
-        "environment": monitor_environment.environment.name,
         "config": monitor_environment.monitor.config,
         "status": monitor_environment.get_status_display(),
         "type": monitor_environment.monitor.get_type_display(),
