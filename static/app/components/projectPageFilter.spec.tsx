@@ -46,7 +46,7 @@ describe('ProjectPageFilter', function () {
     PageFiltersStore.reset();
   });
 
-  it('can pick project', function () {
+  it('can pick project', async function () {
     render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
@@ -54,16 +54,16 @@ describe('ProjectPageFilter', function () {
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
-    userEvent.click(screen.getByText('My Projects'));
+    await userEvent.click(screen.getByText('My Projects'));
 
     // Select project-2
-    userEvent.click(screen.getByRole('checkbox', {name: 'project-2'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'project-2'}));
 
     // Confirm the selection changed the visible text
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
 
     // Close the dropdown
-    userEvent.click(screen.getAllByText('project-2')[0]);
+    await userEvent.click(screen.getAllByText('project-2')[0]);
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
@@ -79,11 +79,11 @@ describe('ProjectPageFilter', function () {
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
-    userEvent.click(screen.getByText('My Projects'));
+    await userEvent.click(screen.getByText('My Projects'));
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
-    userEvent.click(pinButton, undefined, {skipHover: true});
+    await userEvent.click(pinButton, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
@@ -105,10 +105,10 @@ describe('ProjectPageFilter', function () {
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
-    userEvent.click(screen.getByText('My Projects'));
+    await userEvent.click(screen.getByText('My Projects'));
 
     // Click the first project's checkbox
-    userEvent.click(screen.getByText('project-2'));
+    await userEvent.click(screen.getByText('project-2'));
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({query: {environment: [], project: ['2']}})
@@ -135,7 +135,7 @@ describe('ProjectPageFilter', function () {
     );
   });
 
-  it('will change projects when page filter selection changes, e.g. from back button nav', async function () {
+  it('will change projects when page filter selection changes, async e.g. from back button nav', async function () {
     render(<ProjectPageFilter />, {
       context: routerContext,
       organization,

@@ -54,18 +54,18 @@ describe('AccountClose', function () {
     expect(nonSingleOwner).toBeEnabled();
 
     // Can check 2nd org
-    userEvent.click(nonSingleOwner);
+    await userEvent.click(nonSingleOwner);
     expect(nonSingleOwner).toBeChecked();
 
     // Delete
-    userEvent.click(screen.getByRole('button', {name: 'Close Account'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close Account'}));
 
     expect(
       screen.getByText(
         'This is permanent and cannot be undone, are you really sure you want to do this?'
       )
     ).toBeInTheDocument();
-    userEvent.click(screen.getByText('Confirm'));
+    await userEvent.click(screen.getByText('Confirm'));
 
     await screen.findByText(
       'Your account has been deactivated and scheduled for removal.'

@@ -17,9 +17,17 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self.login_as(self.user)
 
     def check_valid_response(self, response, expected_monitors):
-        assert [str(monitor.guid) for monitor in expected_monitors] == [
-            str(monitor_resp["id"]) for monitor_resp in response.data
+        assert [monitor.slug for monitor in expected_monitors] == [
+            monitor_resp["slug"] for monitor_resp in response.data
         ]
+
+    def check_valid_environments_response(self, response, monitor, expected_environments):
+        assert {
+            monitor_environment.environment.name for monitor_environment in expected_environments
+        } == {
+            monitor_environment_resp["name"]
+            for monitor_environment_resp in monitor.get("environments", [])
+        }
 
     def test_simple(self):
         monitor = self._create_monitor()
@@ -58,6 +66,40 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             ],
         )
 
+    def test_all_monitor_environments(self):
+        monitor = self._create_monitor(status=MonitorStatus.OK)
+        monitor_environment = self._create_monitor_environment(monitor, name="test")
+
+        monitor_empty = self._create_monitor(name="empty")
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor, monitor_empty])
+        self.check_valid_environments_response(response, response.data[0], [monitor_environment])
+        self.check_valid_environments_response(response, response.data[1], [])
+
+    def test_monitor_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor)
+
+        monitor_hidden = self._create_monitor(name="hidden")
+        self._create_monitor_environment(monitor_hidden, name="hidden")
+
+        response = self.get_success_response(self.organization.slug, environment="production")
+        self.check_valid_response(response, [monitor])
+
+    def test_monitor_environment_include_new(self):
+        monitor = self._create_monitor(
+            status=MonitorStatus.OK, last_checkin=datetime.now() - timedelta(minutes=1)
+        )
+        self._create_monitor_environment(monitor)
+
+        monitor_visible = self._create_monitor(name="visible")
+
+        response = self.get_success_response(
+            self.organization.slug, environment="production", includeNew=True
+        )
+        self.check_valid_response(response, [monitor, monitor_visible])
+
 
 @region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(MonitorTestCase):
@@ -78,9 +120,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         response = self.get_success_response(self.organization.slug, **data)
 
-        assert response.data["id"]
-
-        monitor = Monitor.objects.get(guid=response.data["id"])
+        monitor = Monitor.objects.get(slug=response.data["slug"])
         assert monitor.organization_id == self.organization.id
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
@@ -113,5 +153,4 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         response = self.get_success_response(self.organization.slug, **data)
 
-        assert response.data["id"]
         assert response.data["slug"] == "my-monitor"

@@ -14,6 +14,7 @@ import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {handleFlamegraphKeyboardNavigation} from 'sentry/utils/profiling/flamegraph/flamegraphKeyboardNavigation';
+import {FlamegraphSearchResult} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {
   useDispatchFlamegraphState,
@@ -21,12 +22,14 @@ import {
 } from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {
+  FlamegraphFrame,
+  getFlamegraphFrameSearchId,
+} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeMinZoomConfigViewForFrames,
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-  Rect,
 } from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
@@ -35,6 +38,7 @@ import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegrap
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -69,6 +73,7 @@ interface FlamegraphZoomViewProps {
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
   >;
+  disableCallOrderSort?: boolean;
   disableGrid?: boolean;
   disablePanX?: boolean;
   disableZoom?: boolean;
@@ -88,6 +93,7 @@ function FlamegraphZoomView({
   disablePanX = false,
   disableZoom = false,
   disableGrid = false,
+  disableCallOrderSort = false,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const profileGroup = useProfileGroup();
@@ -105,6 +111,8 @@ function FlamegraphZoomView({
   const [flamegraphState, {previousState, nextState}] = useFlamegraphState();
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
+
+  const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
   const textRenderer: FlamegraphTextRenderer | null = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
@@ -164,15 +172,11 @@ function FlamegraphZoomView({
     return flamegraphRenderer.findHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
 
-  useEffect(() => {
-    if (!flamegraphRenderer) {
-      return;
-    }
-    flamegraphRenderer.setSearchResults(
-      flamegraphSearch.query,
-      flamegraphSearch.results.frames
-    );
-  }, [flamegraphRenderer, flamegraphSearch.query, flamegraphSearch.results]);
+  const hoveredNodeOnContextMenuOpen = useRef<FlamegraphFrame | null>(null);
+  const contextMenu = useContextMenu({container: flamegraphCanvasRef});
+  const [highlightingAllOccurences, setHighlightingAllOccurences] = useState(
+    isHighlightingAllOccurences(hoveredNode, selectedFramesRef.current)
+  );
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !textRenderer || !flamegraphRenderer) {
@@ -259,22 +263,62 @@ function FlamegraphZoomView({
     flamegraphSearch.results.frames,
   ]);
 
-  const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
-
   useEffect(() => {
-    if (flamegraphState.profiles.highlightFrames) {
-      selectedFramesRef.current = flamegraph.findAllMatchingFrames(
-        flamegraphState.profiles.highlightFrames.name,
-        flamegraphState.profiles.highlightFrames.package
+    if (!flamegraphRenderer) {
+      return;
+    }
+
+    if (flamegraphState.search.highlightFrames) {
+      let frames = flamegraph.findAllMatchingFrames(
+        flamegraphState.search.highlightFrames.name,
+        flamegraphState.search.highlightFrames.package
       );
-    } else {
+
+      // there is a chance that the reason we did not find any frames is because
+      // for node, we try to infer some package from the frontend code.
+      // If that happens, we'll try and just do a search by name. This logic
+      // is duplicated in flamegraph.tsx and should be kept in sync
+      if (
+        !frames.length &&
+        !flamegraphState.search.highlightFrames.package &&
+        flamegraphState.search.highlightFrames.name
+      ) {
+        frames = flamegraph.findAllMatchingFramesBy(
+          flamegraphState.search.highlightFrames.name,
+          ['name']
+        );
+      }
+
+      const frameMap = frames.reduce<Map<string, FlamegraphSearchResult>>(
+        (acc, frame) => {
+          acc.set(getFlamegraphFrameSearchId(frame), {frame, match: []});
+          return acc;
+        },
+        new Map()
+      );
+
+      flamegraphRenderer.setSearchResults('', frameMap);
+      selectedFramesRef.current = frames;
+    }
+    if (flamegraphState.search.query && !flamegraphState.search.highlightFrames) {
+      flamegraphRenderer.setSearchResults(
+        flamegraphState.search.query,
+        flamegraphState.search.results.frames
+      );
       selectedFramesRef.current = null;
     }
 
-    if (flamegraphRenderer) {
-      flamegraphRenderer?.setHighlightedFrames(selectedFramesRef.current);
+    if (!flamegraphState.search.query && !flamegraphState.search.highlightFrames) {
+      flamegraphRenderer.setSearchResults('', new Map());
+      selectedFramesRef.current = null;
     }
-  }, [flamegraph, flamegraphRenderer, flamegraphState.profiles.highlightFrames]);
+  }, [
+    flamegraph,
+    flamegraphRenderer,
+    flamegraphState.search.results.frames,
+    flamegraphState.search.query,
+    flamegraphState.search.highlightFrames,
+  ]);
 
   useInteractionViewCheckPoint({
     view: flamegraphView,
@@ -293,7 +337,11 @@ function FlamegraphZoomView({
 
   useDrawHoveredBorderEffect({
     scheduler,
-    hoveredNode,
+    hoveredNode: hoveredNode
+      ? hoveredNode
+      : contextMenu.open
+      ? hoveredNodeOnContextMenuOpen.current
+      : null,
     canvas: flamegraphCanvas,
     view: flamegraphView,
     theme: flamegraphTheme,
@@ -406,7 +454,7 @@ function FlamegraphZoomView({
     );
   }, []);
 
-  const onCanvasMouseUp = useCallback(
+  const onCanvasDoubleClick = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       evt.preventDefault();
       evt.stopPropagation();
@@ -419,31 +467,29 @@ function FlamegraphZoomView({
 
       // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
       // This essentially tracks double click action on a rectangle
-      if (lastInteraction === 'click') {
-        if (
-          hoveredNode &&
-          selectedFramesRef.current?.length === 1 &&
-          selectedFramesRef.current[0] === hoveredNode
-        ) {
-          // If double click is fired on a node, then zoom into it
-          canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
-          canvasPoolManager.dispatch('show in table view', [hoveredNode]);
+      if (hoveredNode) {
+        // If double click is fired on a node, then zoom into it
+        canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
+        canvasPoolManager.dispatch('show in table view', [hoveredNode]);
+        canvasPoolManager.dispatch('highlight frame', [[hoveredNode], 'selected']);
+        flamegraphRenderer?.setSearchResults('', new Map());
+      } else {
+        canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
+        if (!flamegraphSearch.query) {
+          flamegraphRenderer?.setSearchResults('', new Map());
         }
-
-        dispatch({
-          type: 'set highlight all frames',
-          payload: null,
-        });
-        canvasPoolManager.dispatch('highlight frame', [
-          hoveredNode ? [hoveredNode] : null,
-          'selected',
-        ]);
       }
 
-      setLastInteraction(null);
+      setLastInteraction('click');
       setStartInteractionVector(null);
     },
-    [configSpaceCursor, dispatch, hoveredNode, canvasPoolManager, lastInteraction]
+    [
+      configSpaceCursor,
+      hoveredNode,
+      canvasPoolManager,
+      flamegraphRenderer,
+      flamegraphSearch.query,
+    ]
   );
 
   const onMouseDrag = useCallback(
@@ -503,6 +549,16 @@ function FlamegraphZoomView({
     ]
   );
 
+  const onCanvasMouseUp = useCallback(() => {
+    if (hoveredNode) {
+      // If double click is fired on a node, then zoom into it
+      canvasPoolManager.dispatch('highlight frame', [[hoveredNode], 'selected']);
+    }
+
+    setLastInteraction(null);
+    setStartInteractionVector(null);
+  }, [hoveredNode, canvasPoolManager]);
+
   const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);
     setStartInteractionVector(null);
@@ -539,7 +595,11 @@ function FlamegraphZoomView({
       ) {
         return;
       }
-      canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
+      if (contextMenu.open) {
+        evt.preventDefault();
+        evt.stopPropagation();
+      }
+
       setConfigSpaceCursor(null);
     };
 
@@ -548,13 +608,7 @@ function FlamegraphZoomView({
     return () => {
       document.removeEventListener('click', onClickOutside);
     };
-  });
-
-  const hoveredNodeOnContextMenuOpen = useRef<FlamegraphFrame | null>(null);
-  const contextMenu = useContextMenu({container: flamegraphCanvasRef});
-  const [highlightingAllOccurences, setHighlightingAllOccurences] = useState(
-    isHighlightingAllOccurences(hoveredNode, selectedFramesRef.current)
-  );
+  }, [canvasContainerRef, contextMenu, canvasPoolManager]);
 
   const handleContextMenuOpen = useCallback(
     (event: React.MouseEvent) => {
@@ -587,24 +641,50 @@ function FlamegraphZoomView({
     }
 
     setHighlightingAllOccurences(true);
+
+    const frameName = hoveredNodeOnContextMenuOpen.current.frame.name;
+    const packageName =
+      hoveredNodeOnContextMenuOpen.current.frame.package ??
+      hoveredNodeOnContextMenuOpen.current.frame.module ??
+      '';
+
     dispatch({
       type: 'set highlight all frames',
       payload: {
-        name: hoveredNodeOnContextMenuOpen.current.frame.name,
-        package: hoveredNodeOnContextMenuOpen.current.frame.image ?? '',
+        name: frameName,
+        package: packageName,
       },
     });
 
-    const frames = flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current);
+    let frames = flamegraph.findAllMatchingFrames(frameName, packageName);
+    if (
+      !frames.length &&
+      !packageName &&
+      frameName &&
+      profileGroup.metadata.platform === 'node'
+    ) {
+      // there is a chance that the reason we did not find any frames is because
+      // for node, we try to infer some package from the frontend code.
+      // If that happens, we'll try and just do a search by name. This logic
+      // is duplicated in flamegraphZoomView.tsx and should be kept in sync
+      frames = flamegraph.findAllMatchingFramesBy(frameName, ['name']);
+    }
+
     const rectFrames = frames.map(f => new Rect(f.start, f.depth, f.end - f.start, 1));
     const newConfigView = computeMinZoomConfigViewForFrames(
       flamegraphView.configView,
       rectFrames
-    );
+    ).transformRect(flamegraphView.configSpaceTransform);
 
     canvasPoolManager.dispatch('highlight frame', [frames, 'selected']);
     canvasPoolManager.dispatch('set config view', [newConfigView, flamegraphView]);
-  }, [canvasPoolManager, flamegraph, flamegraphView, dispatch]);
+  }, [
+    canvasPoolManager,
+    flamegraph,
+    flamegraphView,
+    dispatch,
+    profileGroup.metadata.platform,
+  ]);
 
   const handleCopyFunctionName = useCallback(() => {
     if (!hoveredNodeOnContextMenuOpen.current) {
@@ -626,9 +706,10 @@ function FlamegraphZoomView({
       <Canvas
         ref={setFlamegraphCanvasRef}
         onMouseDown={onCanvasMouseDown}
-        onMouseUp={onCanvasMouseUp}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
+        onMouseUp={onCanvasMouseUp}
+        onDoubleClick={onCanvasDoubleClick}
         onContextMenu={handleContextMenuOpen}
         cursor={lastInteraction === 'pan' ? 'grabbing' : 'default'}
         tabIndex={1}
@@ -641,6 +722,7 @@ function FlamegraphZoomView({
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}
         onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
+        disableCallOrderSort={disableCallOrderSort}
       />
       {flamegraphCanvas &&
       flamegraphRenderer &&

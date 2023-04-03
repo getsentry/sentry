@@ -30,7 +30,7 @@ describe('Project Ownership Input', function () {
     ]);
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {container} = render(
       <OwnerInput
         organization={org}
@@ -43,14 +43,14 @@ describe('Project Ownership Input', function () {
     expect(put).not.toHaveBeenCalled();
 
     // if text is unchanged, submit button is disabled
-    userEvent.click(submitButton);
+    await userEvent.click(submitButton);
     expect(put).not.toHaveBeenCalled();
 
     const textarea = screen.getByRole('textbox', {name: 'Ownership Rules'});
 
-    userEvent.clear(textarea);
-    userEvent.type(textarea, 'new');
-    userEvent.click(submitButton);
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, 'new');
+    await userEvent.click(submitButton);
 
     expect(put).toHaveBeenCalled();
 
@@ -67,7 +67,7 @@ describe('Project Ownership Input', function () {
     );
 
     // Set a path, as path is selected bu default.
-    userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'file.js');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'file.js');
 
     // Select the user.
     await selectEvent.select(
@@ -76,7 +76,7 @@ describe('Project Ownership Input', function () {
     );
 
     // Add the new rule.
-    userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
 
     expect(put).toHaveBeenCalledWith(
       '/projects/org-slug/project-slug/ownership/',

@@ -63,11 +63,7 @@ def create_topics(cluster_name: str, topics: List[str]):
     topics must be from the same cluster.
     """
     if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
-        # This is required for confluent-kafka>=1.5.0, otherwise the topics will
-        # not be automatically created.
-        conf = kafka_config.get_kafka_admin_cluster_options(
-            cluster_name, override_params={"allow.auto.create.topics": "true"}
-        )
+        conf = kafka_config.get_kafka_admin_cluster_options(cluster_name)
         admin_client = AdminClient(conf)
         wait_for_topics(admin_client, topics)
 

@@ -4,6 +4,7 @@ from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
+    FLAG_MODIFIABLE_BOOL,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -229,6 +230,13 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
+# The sample rate at which to allow dom-click-search.
+register(
+    "replay.ingest.dom-click-search",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -400,9 +408,6 @@ register("processing.can-use-scrubbers", default=True)
 # Set this value of the fraction of projects that you want to use it for.
 register("processing.sourcemapcache-processor", default=0.0)  # unused
 
-# Flag for enabling deobfuscation for ProGuard files in ingest consumer
-register("processing.view-hierarchies-deobfuscation-general-availability", default=0.0)
-
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -423,6 +428,9 @@ register("store.nodestore-stats-sample-rate", default=0.0)  # unused
 register("store.reprocessing-force-disable", default=False)
 
 register("store.race-free-group-creation-force-disable", default=False)
+
+# Option to enable dart deobfuscation on ingest
+register("processing.view-hierarchies-dart-deobfuscation", default=0.0)
 
 
 # ## sentry.killswitches
@@ -604,6 +612,11 @@ register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", defa
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
+register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
+
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
@@ -623,6 +636,7 @@ register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 register("performance.issues.file_io_main_thread.problem-creation", default=0.0)
+register("performance.issues.db_main_thread.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_api_calls.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_api_calls.la-rollout", default=0.0)
 register("performance.issues.n_plus_one_api_calls.ea-rollout", default=0.0)
@@ -649,8 +663,15 @@ register("performance.issues.render_blocking_assets.fcp_maximum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
-# System-wise option for performance issue creation through issues platform
-register("performance.issues.send_to_issues_platform", default=False)
+# System-wide option for sending occurrences to the issues platform
+register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
+
+# System-wide option for performance issue creation through issues platform
+register(
+    "performance.issues.create_issues_through_platform",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL,
+)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
@@ -662,12 +683,8 @@ register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
 # controls how many orgs will be queried by the prioritise by transaction task
 # 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
 register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
-
-# Killswitch for deriving code mappings
-register("post_process.derive-code-mappings", default=True)
-# Allows adjusting the percentage of orgs we test under the dry run mode
-register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
-register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)
-# Allows adjusting the GA percentage
-register("derive-code-mappings.general-availability-rollout", default=0.0)
+# the number of large transactions to retrieve from Snuba for transaction re-balancing
+register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions", 30)
+# the number of large transactions to retrieve from Snuba for transaction re-balancing
+register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
 register("hybrid_cloud.outbox_rate", default=0.0)

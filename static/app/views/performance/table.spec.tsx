@@ -200,21 +200,21 @@ describe('Performance > Table', function () {
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
       expect(cellActionContainers).toHaveLength(18); // 9 cols x 2 rows
-      userEvent.hover(cellActionContainers[8]);
+      await userEvent.hover(cellActionContainers[8]);
       const cellActions = await screen.findByTestId('cell-action');
       expect(cellActions).toBeInTheDocument();
-      userEvent.click(cellActions);
+      await userEvent.click(cellActions);
 
       expect(await screen.findByTestId('add-to-filter')).toBeInTheDocument();
       expect(screen.getByTestId('exclude-from-filter')).toBeInTheDocument();
 
-      userEvent.hover(cellActionContainers[0]); // Transaction name
+      await userEvent.hover(cellActionContainers[0]); // Transaction name
       const transactionCellActions = await screen.findAllByTestId('cell-action');
       expect(transactionCellActions[0]).toBeInTheDocument();
-      userEvent.click(transactionCellActions[0]);
+      await userEvent.click(transactionCellActions[0]);
 
       expect(browserHistory.push).toHaveBeenCalledTimes(0);
-      userEvent.click(screen.getByTestId('add-to-filter'));
+      await userEvent.click(screen.getByTestId('add-to-filter'));
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenNthCalledWith(1, {

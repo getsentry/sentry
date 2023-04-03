@@ -16,7 +16,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, OnboardingStatus, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
@@ -70,8 +70,9 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   const {projects} = useProjects();
   const onboardingContext = useContext(OnboardingContext);
   const projectData = projectId ? onboardingContext.data[projectId] : undefined;
+  const selectedProject = projects.find(project => project.slug === projectSlug);
 
-  useQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
+  useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
     staleTime: 0,
     refetchInterval: DEFAULT_POLL_INTERVAL,
     enabled:
@@ -85,7 +86,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   // *not* include sample events, while just looking at the issues list will.
   // We will wait until the project.firstEvent is set and then locate the
   // event given that event datetime
-  useQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
+  useApiQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
     staleTime: 0,
     enabled:
       !!firstError && !firstIssue && projectData?.status === OnboardingStatus.PROCESSING, // Only fetch if an error event is received and we have not yet located the first issue,
@@ -122,6 +123,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.first_error_received', {
       organization,
       new_organization: !!newOrg,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     onboardingContext.setProjectData({
@@ -139,6 +142,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     projectData,
     onboardingContext,
     projectSlug,
+    selectedProject,
   ]);
 
   useEffect(() => {
@@ -157,6 +161,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.first_error_processed', {
       organization,
       new_organization: !!newOrg,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     onboardingContext.setProjectData({
@@ -175,6 +181,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     projectId,
     onboardingContext,
     projectSlug,
+    selectedProject,
   ]);
 
   // The explore button is only showed if Sentry has not yet received any errors OR the issue is still being processed
@@ -189,6 +196,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
 
     trackAdvancedAnalyticsEvent('onboarding.explore_sentry_button_clicked', {
       organization,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     if (clientState) {
@@ -202,7 +211,15 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       ...router.location,
       pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
     });
-  }, [organization, projectId, onboardingContext, clientState, router, setClientState]);
+  }, [
+    organization,
+    projectId,
+    onboardingContext,
+    clientState,
+    router,
+    setClientState,
+    selectedProject,
+  ]);
 
   const handleSkipOnboarding = useCallback(() => {
     if (!projectId) {
@@ -218,7 +235,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       source: 'targeted_onboarding_first_event_footer',
     });
 
-    const selectedProjectId = projects.find(project => project.slug === projectSlug)?.id;
+    const selectedProjectId = selectedProject?.id;
 
     let pathname = `/organizations/${organization.slug}/issues/?`;
     if (selectedProjectId) {
@@ -239,8 +256,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     organization,
     setClientState,
     clientState,
-    projects,
-    projectSlug,
+    selectedProject,
     onboardingContext,
     projectId,
   ]);
@@ -253,6 +269,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
       organization,
       new_organization: !!newOrg,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     if (clientState) {
@@ -274,6 +292,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     setClientState,
     onboardingContext,
     projectId,
+    selectedProject,
   ]);
 
   return (

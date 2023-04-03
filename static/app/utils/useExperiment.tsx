@@ -21,7 +21,7 @@ type UseExperimentOptions = {
 };
 
 type UseExperimentReturnValue<E extends ExperimentKey> = {
-  experimentAssignment: ExperimentAssignment[E];
+  experimentAssignment: ExperimentAssignment[E] | typeof unassignedValue;
   /**
    * Call this method when the user has been exposed to the experiment.
    * You do not need to call this unless you have disabled logging on mount.

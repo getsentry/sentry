@@ -11,6 +11,7 @@ from sentry.models import (
 )
 from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.types.integrations import ExternalProviders
 
@@ -27,7 +28,7 @@ class SlackUninstallTest(APITestCase):
 
     def uninstall(self) -> None:
         org_integration = OrganizationIntegration.objects.get(
-            integration=self.integration, organization=self.organization
+            integration=self.integration, organization_id=self.organization.id
         )
 
         with self.tasks():
@@ -37,7 +38,7 @@ class SlackUninstallTest(APITestCase):
 
         assert not OrganizationIntegration.objects.filter(
             integration=self.integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             status=ObjectStatus.VISIBLE,
         ).exists()
         assert ScheduledDeletion.objects.filter(
@@ -49,12 +50,12 @@ class SlackUninstallTest(APITestCase):
     ) -> NotificationSettingOptionValues:
         type = NotificationSettingTypes.ISSUE_ALERTS
         parent_specific_setting = NotificationSetting.objects.get_settings(
-            provider=provider, type=type, user=user, project=parent
+            provider=provider, type=type, actor=RpcActor.from_orm_user(user), project=parent
         )
         if parent_specific_setting != NotificationSettingOptionValues.DEFAULT:
             return parent_specific_setting
         parent_independent_setting = NotificationSetting.objects.get_settings(
-            provider=provider, type=type, user=user
+            provider=provider, type=type, actor=RpcActor.from_orm_user(user)
         )
         if parent_independent_setting != NotificationSettingOptionValues.DEFAULT:
             return parent_independent_setting
@@ -111,7 +112,7 @@ class SlackUninstallTest(APITestCase):
         # No changes to second organization.
         assert Integration.objects.filter(id=integration.id).exists()
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=organization
+            integration=integration, organization_id=organization.id
         ).exists()
 
         self.assert_settings(ExternalProviders.EMAIL, NotificationSettingOptionValues.NEVER)

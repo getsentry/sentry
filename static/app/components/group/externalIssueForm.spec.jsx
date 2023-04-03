@@ -35,7 +35,7 @@ describe('ExternalIssueForm', () => {
     jest.clearAllMocks();
   });
 
-  const renderComponent = (action = 'Create') => {
+  const renderComponent = async (action = 'Create') => {
     MockApiClient.addMockResponse({
       url: `/groups/${group.id}/integrations/${integration.id}/`,
       body: formConfig,
@@ -50,7 +50,7 @@ describe('ExternalIssueForm', () => {
         onChange={onChange}
       />
     );
-    userEvent.click(screen.getByText(action));
+    await userEvent.click(screen.getByText(action));
     return wrapper;
   };
 
@@ -65,8 +65,8 @@ describe('ExternalIssueForm', () => {
         body: formConfig,
       });
     });
-    it('renders', () => {
-      const {container} = renderComponent();
+    it('renders', async () => {
+      const {container} = await renderComponent();
       expect(container).toSnapshot();
     });
   });
@@ -137,8 +137,8 @@ describe('ExternalIssueForm', () => {
       });
     });
 
-    it('renders and loads options', () => {
-      const {container} = renderComponent('Link');
+    it('renders and loads options', async () => {
+      const {container} = await renderComponent('Link');
       expect(getFormConfigRequest).toHaveBeenCalled();
       expect(container).toSnapshot();
     });
@@ -179,11 +179,11 @@ describe('ExternalIssueForm', () => {
       });
 
       it('fast typing is debounced and uses trailing call when fetching data', async () => {
-        renderComponent('Link');
+        await renderComponent('Link');
         jest.useFakeTimers();
         const textbox = screen.getByRole('textbox', {name: 'Issue'});
-        userEvent.click(textbox);
-        userEvent.type(textbox, 'faster');
+        await userEvent.click(textbox, {delay: null});
+        await userEvent.type(textbox, 'faster', {delay: null});
         expect(window.fetch).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(300);
         expect(window.fetch).toHaveBeenCalledTimes(1);

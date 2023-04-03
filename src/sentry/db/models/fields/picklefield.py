@@ -7,8 +7,8 @@ import django_picklefield
 from sentry.db.models.fields import jsonfield
 from sentry.utils import json
 
-PICKLE_WRITE_JSON = False
-VALIDATE_JSON_SAMPLE_RATE = 0.0001
+PICKLE_WRITE_JSON = True
+VALIDATE_JSON_SAMPLE_RATE = 1
 
 
 def _validate_roundtrip(o: object) -> None:

@@ -3,10 +3,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {
-  FlamegraphFrame,
-  getFlamegraphFrameSearchId,
-} from 'sentry/utils/profiling/flamegraphFrame';
+import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   createAndBindBuffer,
   createProgram,
@@ -16,7 +13,6 @@ import {
   getUniform,
   makeProjectionMatrix,
   pointToAndEnableVertexAttribute,
-  Rect,
   resizeCanvasToDisplaySize,
 } from 'sentry/utils/profiling/gl/utils';
 import {
@@ -24,6 +20,7 @@ import {
   FlamegraphRenderer,
   FlamegraphRendererOptions,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {fragment, vertex} from './shaders';
 
@@ -262,33 +259,15 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     this.gl.uniform1i(this.uniforms.u_grayscale, 0);
   }
 
-  setHighlightedFrames(frames: FlamegraphFrame[] | null) {
-    if (!this.program || !this.gl) {
-      return;
-    }
-
-    this.gl.uniform1i(this.uniforms.u_grayscale, frames && frames.length > 0 ? 1 : 0);
-
-    if (!frames) {
-      this.updateSearchResultsBuffer(new Map());
-      return;
-    }
-    const searchResultsMap = frames
-      ? frames?.reduce<Map<string, boolean>>((acc, frame) => {
-          acc.set(getFlamegraphFrameSearchId(frame), true);
-          return acc;
-        }, new Map())
-      : new Map();
-
-    this.updateSearchResultsBuffer(searchResultsMap);
-  }
-
   setSearchResults(query: string, searchResults: FlamegraphSearch['results']['frames']) {
     if (!this.program || !this.gl) {
       return;
     }
 
-    this.gl.uniform1i(this.uniforms.u_grayscale, query.length > 0 ? 1 : 0);
+    this.gl.uniform1i(
+      this.uniforms.u_grayscale,
+      query.length > 0 || searchResults.size > 0 ? 1 : 0
+    );
     this.updateSearchResultsBuffer(searchResults);
   }
 

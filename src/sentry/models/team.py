@@ -18,6 +18,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
@@ -28,7 +29,7 @@ class TeamManager(BaseManager):
     def get_for_user(
         self,
         organization: "Organization",
-        user: "User",
+        user: Union["User", RpcUser],
         scope: Optional[str] = None,
         with_projects: bool = False,
     ) -> Union[Sequence["Team"], Sequence[Tuple["Team", Sequence["Project"]]]]:
@@ -53,7 +54,7 @@ class TeamManager(BaseManager):
             team_list = list(base_team_qs)
         else:
             try:
-                om = OrganizationMember.objects.get(user=user, organization=organization)
+                om = OrganizationMember.objects.get(user_id=user.id, organization=organization)
             except OrganizationMember.DoesNotExist:
                 # User is not a member of the organization at all
                 return []
@@ -174,7 +175,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:team", duration=5, name="team_slug")
+            lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
         super().save(*args, **kwargs)

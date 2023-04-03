@@ -7,9 +7,11 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
@@ -31,7 +33,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {MonitorRow} from './row';
+import {MonitorRow} from './components/row';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
@@ -120,7 +122,7 @@ class Monitors extends AsyncView<Props, State> {
             <ButtonBar gap={1}>
               <CronsFeedbackButton />
               <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
-                {t('Add monitor')}
+                {t('Add Monitor')}
               </NewMonitorButton>
             </ButtonBar>
           </Layout.HeaderActions>
@@ -128,7 +130,10 @@ class Monitors extends AsyncView<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Filters>
-              <ProjectPageFilter resetParamsOnChange={['cursor']} />
+              <PageFilterBar>
+                <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+              </PageFilterBar>
               <SearchBar
                 query={decodeScalar(qs.parse(location.search)?.query, '')}
                 placeholder={t('Search by name')}
@@ -144,21 +149,29 @@ class Monitors extends AsyncView<Props, State> {
                     t('Schedule'),
                     t('Next Checkin'),
                     t('Project'),
+                    t('Environment'),
                     t('Actions'),
                   ]}
                 >
-                  {monitorList?.map(monitor => (
-                    <MonitorRow
-                      key={monitor.slug}
-                      monitor={monitor}
-                      onDelete={() => {
-                        this.setState({
-                          monitorList: monitorList.filter(m => m.slug !== monitor.slug),
-                        });
-                      }}
-                      organization={organization}
-                    />
-                  ))}
+                  {monitorList
+                    ?.map(monitor =>
+                      monitor.environments.map(monitorEnv => (
+                        <MonitorRow
+                          key={monitor.slug}
+                          monitor={monitor}
+                          monitorEnv={monitorEnv}
+                          onDelete={() => {
+                            this.setState({
+                              monitorList: monitorList.filter(
+                                m => m.slug !== monitor.slug
+                              ),
+                            });
+                          }}
+                          organization={organization}
+                        />
+                      ))
+                    )
+                    .flat()}
                 </StyledPanelTable>
                 {monitorListPageLinks && (
                   <Pagination pageLinks={monitorListPageLinks} {...this.props} />
@@ -195,7 +208,7 @@ const Filters = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content max-content max-content max-content;
+  grid-template-columns: 1fr max-content 1fr max-content max-content max-content max-content;
 `;
 
 const ButtonList = styled(ButtonBar)`

@@ -17,6 +17,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models import (
@@ -34,7 +35,12 @@ from sentry.models import (
     ProjectTeam,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, ISSUE_OWNERS_DEBOUNCE_KEY
+from sentry.models.groupowner import (
+    ASSIGNEE_EXISTS_DURATION,
+    ASSIGNEE_EXISTS_KEY,
+    ISSUE_OWNERS_DEBOUNCE_DURATION,
+    ISSUE_OWNERS_DEBOUNCE_KEY,
+)
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user import user_service
@@ -936,6 +942,71 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee.user_id == user_4.id
 
+    def test_auto_assignment_when_owners_have_been_unassigned(self):
+        """
+        Test that ensures that if assignee gets unassigned and project rules are changed,
+        then the new group assignees should be re-calculated and re-assigned
+        """
+        # Create rules and check assignees
+        self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assignee = (
+            GroupOwner.objects.filter()
+            .exclude(user_id__isnull=True, team_id__isnull=True)
+            .order_by("type")
+            .first()
+        )
+        assert assignee.user_id == self.user.id
+
+        user_3 = self.create_user()
+        self.create_team_membership(self.team, user=user_3)
+
+        # Set assignee_exists cache to self.user
+        cache.set(ASSIGNEE_EXISTS_KEY(event.group_id), self.user, ASSIGNEE_EXISTS_DURATION)
+        # De-assign group assignees
+        GroupAssignee.objects.deassign(event.group, self.user)
+        assert event.group.assignee_set.first() is None
+
+        # Change ProjectOwnership rules
+        rules = [
+            Rule(Matcher("path", "src/*"), [Owner("user", user_3.email)]),
+        ]
+        self.prj_ownership.schema = dump_schema(rules)
+        self.prj_ownership.save()
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Mimic filter used in get_autoassigned_owner_cached to get the issue owner to be
+        # auto-assigned
+        assignee = (
+            GroupOwner.objects.filter()
+            .exclude(user_id__isnull=True, team_id__isnull=True)
+            .order_by("type")
+            .first()
+        )
+        # Group should be re-assigned to the new group owner
+        assert assignee.user_id == user_3.id
+
     def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(self):
         self.make_ownership()
         event = self.create_event(
@@ -995,6 +1066,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
             (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
         )
+        cache.set(f"commit-context-scm-integration:{self.project.organization_id}", True, 60)
         event = self.create_event(
             data={
                 "message": "oh no",
@@ -1100,7 +1172,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
     @with_feature("organizations:commit-context")
-    @with_feature("organizations:commit-context-fallback")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value=github_blame_return_value,
@@ -1287,13 +1358,14 @@ class PostProcessGroupPerformanceTest(
         )
         if cache_key is None:
             cache_key = write_event_to_cache(event)
-        post_process_group(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
-            group_states=group_states,
-        )
+        with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=cache_key,
+                group_states=group_states,
+            )
         return cache_key
 
     @patch("sentry.tasks.post_process.run_post_process_job")
@@ -1367,6 +1439,9 @@ class PostProcessGroupPerformanceTest(
             is_new_group_environment=True,
         )
 
+        # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
+        # but because post-processing is async, this causes the assert to fail because it doesn't
+        # wait for the side effects to happen
         call_order = []
         mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
         mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
@@ -1453,7 +1528,7 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature("organizations:profile-blocked-main-thread-ppg"):
+        with self.feature(ProfileFileIOGroupType.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,

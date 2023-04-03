@@ -1,10 +1,9 @@
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import {RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -16,15 +15,17 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
-import TextCopyInput from 'sentry/components/textCopyInput';
 import TimeSince from 'sentry/components/timeSince';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {crontabAsText} from 'sentry/views/monitors/utils';
 
 import {
   IntervalConfig,
@@ -35,8 +36,8 @@ import {
 } from '../types';
 
 const SCHEDULE_OPTIONS: RadioOption<string>[] = [
-  [ScheduleType.INTERVAL, t('Interval')],
   [ScheduleType.CRONTAB, t('Crontab')],
+  [ScheduleType.INTERVAL, t('Interval')],
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
@@ -104,6 +105,11 @@ function MonitorForm({
   const form = useRef(new FormModel({transformData}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const [crontabInput, setCrontabInput] = useState(
+    monitor?.config.schedule_type === ScheduleType.CRONTAB
+      ? monitor?.config.schedule
+      : null
+  );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
@@ -134,6 +140,11 @@ function MonitorForm({
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
 
+  const isSuperuser = isActiveSuperuser();
+  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
+
+  const parsedSchedule = crontabAsText(crontabInput);
+
   return (
     <Form
       allowUndo
@@ -145,6 +156,7 @@ function MonitorForm({
         monitor
           ? {
               name: monitor.name,
+              slug: monitor.slug,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               ...formDataFromConfig(monitor.type, monitor.config),
@@ -170,9 +182,24 @@ function MonitorForm({
             stacked
             inline={false}
           />
+          {monitor && (
+            <StyledTextField
+              name="slug"
+              help={tct(
+                'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
+                {strong: <strong />}
+              )}
+              placeholder={t('monitor-slug')}
+              required
+              stacked
+              inline={false}
+              transformInput={slugify}
+            />
+          )}
           <StyledSentryProjectSelectorField
             name="project"
-            projects={projects.filter(project => project.isMember)}
+            projects={filteredProjects}
+            placeholder={t('Choose Project')}
             disabled={!!monitor}
             disabledReason={t('Existing monitors cannot be moved between projects')}
             valueIsSlug
@@ -180,16 +207,11 @@ function MonitorForm({
             stacked
             inline={false}
           />
-          {monitor && (
-            <StyledFieldGroup flexibleControlStateSize stacked inline={false}>
-              <StyledTextCopyInput>{monitor.slug}</StyledTextCopyInput>
-            </StyledFieldGroup>
-          )}
         </InputGroup>
 
         <StyledListItem>{t('Choose your schedule type')}</StyledListItem>
         <ListItemSubText>
-          {tct('You can use our simple schedule or [link:the crontab syntax].', {
+          {tct('You can use [link:the crontab syntax] or our interval schedule.', {
             link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
           })}
         </ListItemSubText>
@@ -235,6 +257,7 @@ function MonitorForm({
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
                       required
                       stacked
+                      onChange={setCrontabInput}
                       inline={false}
                     />
                     <StyledSelectField
@@ -245,6 +268,7 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
+                    {parsedSchedule && <CronstrueText>"{parsedSchedule}"</CronstrueText>}
                   </ScheduleGroupInputs>
                 );
               }
@@ -264,6 +288,7 @@ function MonitorForm({
                       options={getIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
+                      placeholder="minute"
                       required
                       stacked
                       inline={false}
@@ -277,35 +302,29 @@ function MonitorForm({
         </InputGroup>
         <StyledListItem>{t('Set a missed status')}</StyledListItem>
         <ListItemSubText>
-          {t('How long to wait before we consider a check-in as missed.')}
+          {t("The number of minutes we'll wait before we consider a check-in as missed.")}
         </ListItemSubText>
         <InputGroup>
-          <LabeledInputs>
-            <StyledNumberField
-              name="config.checkin_margin"
-              placeholder="e.g. 30"
-              stacked
-              inline={false}
-            />
-            <LabelText>{t('Minutes')}</LabelText>
-          </LabeledInputs>
+          <StyledNumberField
+            name="config.checkin_margin"
+            placeholder="e.g. 30"
+            stacked
+            inline={false}
+          />
         </InputGroup>
         <StyledListItem>{t('Set a failed status')}</StyledListItem>
         <ListItemSubText>
           {t(
-            "How long a check-in is allowed to run before it's considered failed. If the job encounters an error it will also fail."
+            "The number of minutes a check-in is allowed to run before it's considered failed."
           )}
         </ListItemSubText>
         <InputGroup>
-          <LabeledInputs>
-            <StyledNumberField
-              name="config.max_runtime"
-              placeholder="e.g. 30"
-              stacked
-              inline={false}
-            />
-            <LabelText>{t('Minutes')}</LabelText>
-          </LabeledInputs>
+          <StyledNumberField
+            name="config.max_runtime"
+            placeholder="e.g. 30"
+            stacked
+            inline={false}
+          />
         </InputGroup>
       </StyledList>
     </Form>
@@ -315,11 +334,7 @@ function MonitorForm({
 export default MonitorForm;
 
 const StyledList = styled(List)`
-  width: 500px;
-`;
-
-const StyledTextCopyInput = styled(TextCopyInput)`
-  padding: 0;
+  width: 600px;
 `;
 
 const StyledNumberField = styled(NumberField)`
@@ -327,10 +342,6 @@ const StyledNumberField = styled(NumberField)`
 `;
 
 const StyledSelectField = styled(SelectField)`
-  padding: 0;
-`;
-
-const StyledFieldGroup = styled(FieldGroup)`
   padding: 0;
 `;
 
@@ -367,13 +378,16 @@ const InputGroup = styled('div')`
   gap: ${space(1)};
 `;
 
-const LabeledInputs = styled('div')`
+const ScheduleGroupInputs = styled('div')<{interval?: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto;
   align-items: center;
   gap: ${space(1)};
+  grid-template-columns: ${p => p.interval && 'auto'} 1fr 2fr;
 `;
 
-const ScheduleGroupInputs = styled(LabeledInputs)<{interval?: boolean}>`
-  grid-template-columns: ${p => p.interval && 'auto'} 1fr 2fr;
+const CronstrueText = styled(LabelText)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-family: ${p => p.theme.text.familyMono};
+  grid-column: auto / span 2;
 `;

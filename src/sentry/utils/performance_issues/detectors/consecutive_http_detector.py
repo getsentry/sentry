@@ -80,6 +80,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
+            evidence_data={},
+            evidence_display=[],
         )
 
         self._reset_variables()
@@ -136,4 +138,4 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False
+        return True

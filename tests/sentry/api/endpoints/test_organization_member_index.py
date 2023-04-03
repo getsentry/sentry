@@ -189,17 +189,27 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert response.data[0]["email"] == self.user.email
 
     def test_role_query(self):
+        member_team = self.create_team(organization=self.organization, org_role="member")
+        user = self.create_user("zoo@localhost", username="zoo")
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="owner",
+            teams=[member_team],
+        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:member"}
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data[0]["email"] == self.user2.email
+        assert response.data[1]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:owner"}
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == user.email
 
     def test_is_invited_query(self):
         response = self.get_success_response(
@@ -234,7 +244,6 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         sso_member = self.create_member(
             organization=self.organization,
             user=user,
-            email=user.email,
             invite_status=InviteStatus.APPROVED.value,
             flags=OrganizationMember.flags["sso:linked"],
         )
@@ -243,7 +252,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
             self.organization.slug, qs_params={"query": "ssoLinked:true"}
         )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == sso_member.email
+        assert sso_member.email is None
+        assert response.data[0]["name"] == response.data[0]["user"]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "ssoLinked:false"}
@@ -260,7 +270,6 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         member_2fa = self.create_member(
             organization=self.organization,
             user=user,
-            email=user.email,
             invite_status=InviteStatus.APPROVED.value,
         )
 
@@ -273,7 +282,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
             self.organization.slug, qs_params={"query": "has2fa:true"}
         )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == member_2fa.email
+        assert member_2fa.email is None
+        assert response.data[0]["name"] == response.data[0]["user"]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:false"}

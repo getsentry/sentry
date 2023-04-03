@@ -24,7 +24,9 @@ logger = logging.getLogger("sentry.plugins.heroku")
 class HerokuReleaseHook(ReleaseHook):
     def get_auth(self):
         try:
-            return ApiKey(organization=self.project.organization, scope_list=["project:write"])
+            return ApiKey(
+                organization_id=self.project.organization_id, scope_list=["project:write"]
+            )
         except ApiKey.DoesNotExist:
             return None
 
@@ -75,7 +77,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         commit = slug.get("commit")
         app_name = data.get("app", {}).get("name")
-        if data.get("action") == "update":
+        if body.get("action") == "update":
             if app_name:
                 self.finish_release(
                     version=commit,

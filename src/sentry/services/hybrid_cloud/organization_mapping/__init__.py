@@ -4,25 +4,25 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, cast
 
 from django.utils import timezone
+from pydantic.fields import Field
 
 from sentry.models import Organization
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
-@dataclass(frozen=True, eq=True)
-class RpcOrganizationMapping:
+class RpcOrganizationMapping(RpcModel):
     organization_id: int = -1
     slug: str = ""
     name: str = ""
     region_name: str = ""
-    date_created: datetime = timezone.now()
+    date_created: datetime = Field(default_factory=timezone.now)
     verified: bool = False
     customer_id: Optional[str] = None
 
@@ -49,7 +49,19 @@ def update_organization_mapping_from_instance(
     return RpcOrganizationMappingUpdate(**attributes)  # type: ignore
 
 
-class OrganizationMappingService(InterfaceWithLifecycle):
+class OrganizationMappingService(RpcService):
+    key = "organization_mapping"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.organization_mapping.impl import (
+            DatabaseBackedOrganizationMappingService,
+        )
+
+        return DatabaseBackedOrganizationMappingService()
+
+    @rpc_method
     @abstractmethod
     def create(
         self,
@@ -81,31 +93,22 @@ class OrganizationMappingService(InterfaceWithLifecycle):
     def close(self) -> None:
         pass
 
+    @rpc_method
     @abstractmethod
-    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
+    def update(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         pass
 
+    @rpc_method
     @abstractmethod
-    def verify_mappings(self, organization_id: int, slug: str) -> None:
+    def verify_mappings(self, *, organization_id: int, slug: str) -> None:
         pass
 
+    @rpc_method
     @abstractmethod
-    def delete(self, organization_id: int) -> None:
+    def delete(self, *, organization_id: int) -> None:
         pass
 
 
-def impl_with_db() -> OrganizationMappingService:
-    from sentry.services.hybrid_cloud.organization_mapping.impl import (
-        DatabaseBackedOrganizationMappingService,
-    )
-
-    return DatabaseBackedOrganizationMappingService()
-
-
-organization_mapping_service: OrganizationMappingService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+organization_mapping_service: OrganizationMappingService = cast(
+    OrganizationMappingService, OrganizationMappingService.create_delegation()
 )

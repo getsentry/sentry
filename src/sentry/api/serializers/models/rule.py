@@ -15,6 +15,7 @@ from sentry.models import (
     actor_type_to_string,
     fetch_actors_by_actor_ids,
 )
+from sentry.services.hybrid_cloud.user import user_service
 
 
 def _generate_rule_label(project, rule, data):
@@ -51,14 +52,23 @@ class RuleSerializer(Serializer):
         )
 
         result = {i: {"environment": environments.get(i.environment_id)} for i in item_list}
-        for rule_activity in RuleActivity.objects.filter(
-            rule__in=item_list, type=RuleActivityType.CREATED.value
-        ).select_related("rule", "user"):
-            if rule_activity.user:
+        ras = list(
+            RuleActivity.objects.filter(
+                rule__in=item_list, type=RuleActivityType.CREATED.value
+            ).select_related("rule")
+        )
+
+        users = {
+            u.id: u for u in user_service.get_many(filter=dict(user_ids=[ra.user_id for ra in ras]))
+        }
+
+        for rule_activity in ras:
+            u = users.get(rule_activity.user_id)
+            if u:
                 user = {
-                    "id": rule_activity.user.id,
-                    "name": rule_activity.user.get_display_name(),
-                    "email": rule_activity.user.email,
+                    "id": u.id,
+                    "name": u.get_display_name(),
+                    "email": u.email,
                 }
             else:
                 user = None

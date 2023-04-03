@@ -61,8 +61,8 @@ class IncidentManager(BaseManager):
         return self.filter(organization=organization, projects__in=projects).distinct()
 
     @classmethod
-    def _build_active_incident_cache_key(self, alert_rule_id, project_id):
-        return self.CACHE_KEY % (alert_rule_id, project_id)
+    def _build_active_incident_cache_key(cls, alert_rule_id, project_id):
+        return cls.CACHE_KEY % (alert_rule_id, project_id)
 
     def get_active_incident(self, alert_rule, project):
         cache_key = self._build_active_incident_cache_key(alert_rule.id, project.id)
@@ -312,8 +312,8 @@ class AlertRuleManager(BaseManager):
         return self.filter(snuba_query__subscriptions__project=project)
 
     @classmethod
-    def __build_subscription_cache_key(self, subscription_id):
-        return self.CACHE_SUBSCRIPTION_KEY % subscription_id
+    def __build_subscription_cache_key(cls, subscription_id):
+        return cls.CACHE_SUBSCRIPTION_KEY % subscription_id
 
     def get_for_subscription(self, subscription):
         """
@@ -394,12 +394,12 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     @property
-    def created_by(self):
+    def created_by_id(self):
         try:
             created_activity = AlertRuleActivity.objects.get(
                 alert_rule=self, type=AlertRuleActivityType.CREATED.value
             )
-            return user_service.get_user(user_id=created_activity.user_id)
+            return created_activity.user_id
         except AlertRuleActivity.DoesNotExist:
             pass
         return None
@@ -417,8 +417,8 @@ class IncidentTriggerManager(BaseManager):
     CACHE_KEY = "incident:triggers:%s"
 
     @classmethod
-    def _build_cache_key(self, incident_id):
-        return self.CACHE_KEY % incident_id
+    def _build_cache_key(cls, incident_id):
+        return cls.CACHE_KEY % incident_id
 
     def get_for_incident(self, incident):
         """
@@ -464,8 +464,8 @@ class AlertRuleTriggerManager(BaseManager):
     CACHE_KEY = "alert_rule_triggers:alert_rule:%s"
 
     @classmethod
-    def _build_trigger_cache_key(self, alert_rule_id):
-        return self.CACHE_KEY % alert_rule_id
+    def _build_trigger_cache_key(cls, alert_rule_id):
+        return cls.CACHE_KEY % alert_rule_id
 
     def get_for_alert_rule(self, alert_rule):
         """

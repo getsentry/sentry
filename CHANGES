@@ -1,3 +1,77 @@
+23.3.1
+------
+
+### Various fixes & improvements
+
+- fix(dynamic-sampling):Set low volume transaction boost default to True (#46179) by @RaduW
+- feat(replays): Add backend support for `session-replay-network-details` feature (#46200) by @ryan953
+- fix(roles): check for existence of org roles from team (#46197) by @cathteng
+- feat(escalating-issues): Add escalating group status (#45965) by @NisanthanNanthakumar
+- feat: Add a simple endpoint to lookup artifacts (#45757) by @Swatinem
+- fix(profiling): fix profiling timeout (#46193) by @JonasBa
+- fix(db-issue): Add db detector (#46154) by @wmak
+- chore(hybrid-cloud): Add outbox_runner to outbox tests (#46155) by @dashed
+- chore(hybrid-cloud): Update user type for sync_assignee_outbound (#46160) by @dashed
+- ref(profiling): Replace DataDog metric by a Sentry tag (#46156) by @phacops
+- fix(dashboards): Clear GroupStore when unmounting dashboard (#46189) by @edwardgou-sentry
+- fix(profiling): Show p75 only for suspect functions table (#46140) by @Zylphrex
+- feat(flag): Add flag for onboarding product selection - (#46184) by @priscilawebdev
+- ref(sourcemaps): Add date_uploaded field to bundle (#46172) by @iambriccardo
+- fix(sourcemaps): Change reverse sql type (#46180) by @iambriccardo
+- ref(sourcemaps): Remove date_last_accessed field from db (#46118) by @iambriccardo
+- chore(oss): add license to api docs spectacular ports (#46164) by @JoshFerge
+- fix(test): fix flake when time rolls to the next day (#46166) by @barkbarkimashark
+- feat(issue-platform): Hook up noise reduction config to occurrence ingestion (#46159) by @wedamija
+- chore(issue-platform): Remove unused features (#46161) by @wedamija
+- fix(codecov): Change endpoint for has_integration check (#46127) by @snigdhas
+- fix(profiling): Typo in format name sampled vs sample (#46150) by @Zylphrex
+- chore: Add missing license for jsonfield (#46148) by @markstory
+- fix(workflow): Add `ref_fallback` to issue details analytics (#46125) by @scttcper
+
+_Plus 233 more_
+
+23.3.0
+------
+
+### Stacktrace Codecov V2 (ongoing)
+
+This is the work post-MVP release.
+
+By: @armenzg (#44827)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44496)
+
+### Various fixes & improvements
+
+- fix(ecosystem): Preserve codeowners filters on update (#45810) by @scttcper
+- chore(trace_view): Add perf issues to the mock trace (#45794) by @wmak
+- feat(dynamic-sampling): Add prioritise low volume transaction rules [TET-736] (#45635) by @RaduW
+- ref(onboarding): Update experiment segments (#45843) by @priscilawebdev
+- ref(onboarding): Update copy (#45830) by @priscilawebdev
+- ref(dynamic-sampling): Update Health Check copy (#45826) by @ale-cota
+- chore(commit-context): Flag cleanup (#45804) by @snigdhas
+- ref(compactSelect): Maintain menu width while searching (#45356) by @vuluongj20
+- ref(outcomes) Add methods to build outcomes queries without django (#45730) by @markstory
+- feat(compactSelect): Add optional menu footer (#45339) by @vuluongj20
+- ref(dynamic-sampling): Add onboarding experiement to the ds page (temp test) -  (#45827) by @priscilawebdev
+- chore(view-hierarchy): Remove frontend feature flags (#45761) by @narsaynorath
+- chore(dashboards): Reintroduce release widget feature flag (#45791) by @shruthilayaj
+- fix (dyn-sampling): Change schedule interval for prioritise by project task [TET-788] (#45821) by @andriisoldatenko
+- chore(hybrid-cloud): Deprecate mediator destroyers (#45656) by @corps
+- feat(onboarding): Add view sample error button new design - (#45820) by @priscilawebdev
+- feat(onboarding): Add feature flag to control the View Sample Error button - (#45818) by @priscilawebdev
+- fix(onboarding): Fix issue when first error sent (#45817) by @priscilawebdev
+-  feat(source-maps): Add debug ids UI - (#45711) by @priscilawebdev
+- feat(sourcemaps): Add endpoint for listing all artifact bundles of a project (#45751) by @iambriccardo
+- chore(hybrid-cloud): Backfill installation_id to service hooks (#45800) by @corps
+- fix(issue-platform): Explicitly pass `culprit` as part of the occurrence, and store `subtitle` correctly (#45809) by @wedamija
+- feat(crons): Explain crontab syntax in monitor form (#45801) by @davidenwang
+- ref(hybrid-cloud): Denormalize user avatars 1/3 (#45685) by @mikejihbe
+
+_Plus 792 more_
+
 23.2.0
 ------
 

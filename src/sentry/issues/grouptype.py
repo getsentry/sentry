@@ -257,6 +257,14 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
 
 
 @dataclass(frozen=True)
+class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1013
+    slug = "performance_db_main_thread"
+    description = "DB on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
@@ -307,7 +315,7 @@ def reduce_noise(
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
-    grouptype: GroupType,
+    grouptype: Type[GroupType],
     client: Any,
     grouphash: str,
     project: Project,

@@ -70,8 +70,6 @@ _DEFAULT_DAEMONS = {
         "sentry",
         "run",
         "query-subscription-consumer",
-        "--commit-batch-size",
-        "1",
         "--force-offset-reset",
         "latest",
     ],
@@ -354,6 +352,14 @@ and run `sentry devservices up kafka zookeeper`.
         daemons += [
             ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
         ]
+
+    # Create all topics if the Kafka eventstream is selected
+    if settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
+        from sentry.utils.batching_kafka_consumer import create_topics
+
+        for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():
+            if topic_data is not None:
+                create_topics(topic_data["cluster"], [topic_name])
 
     from sentry.runner.commands.devservices import _prepare_containers
 

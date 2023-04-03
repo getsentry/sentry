@@ -7,10 +7,11 @@ import sys
 import time
 import zlib
 from datetime import datetime
+from enum import Enum
 from io import BytesIO
 from itertools import groupby
 from os.path import splitext
-from typing import IO, Optional, Tuple
+from typing import IO, Callable, Optional, Tuple
 from urllib.parse import urlsplit
 
 import sentry_sdk
@@ -24,8 +25,9 @@ from symbolic import SourceView
 from sentry import features, http, options
 from sentry.event_manager import set_tag
 from sentry.models import (
+    NULL_STRING,
+    ArtifactBundle,
     ArtifactBundleArchive,
-    DebugIdArtifactBundle,
     EventError,
     Organization,
     ReleaseFile,
@@ -48,7 +50,6 @@ from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
 __all__ = ["JavaScriptStacktraceProcessor"]
-
 
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
@@ -382,11 +383,13 @@ def fetch_release_file(filename, release, dist=None):
 
 
 @metrics.wraps("sourcemaps.get_from_archive")
-def get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
+def try_get_with_normalized_urls(
+    url: str, block: Callable[[str], Tuple[bytes, dict]]
+) -> Tuple[bytes, dict]:
     candidates = ReleaseFile.normalize(url)
     for candidate in candidates:
         try:
-            return archive.get_file_by_url(candidate)
+            return block(candidate)
         except KeyError:
             pass
 
@@ -492,7 +495,6 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
             # `cache.set` will only keep values up to a certain size,
             # so we should not read the entire file if it's too large for caching
             if CACHE_MAX_VALUE_SIZE is not None and file_.size > CACHE_MAX_VALUE_SIZE:
-
                 return file_
 
             with sentry_sdk.start_span(op="fetch_release_archive_for_url.read_for_caching") as span:
@@ -511,84 +513,6 @@ def compress(fp: IO) -> Tuple[bytes, bytes]:
     """Alternative for compress_file when fp does not support chunks"""
     content = fp.read()
     return zlib.compress(content), content
-
-
-def fetch_release_artifact(url, release, dist):
-    """
-    Get a release artifact either by extracting it or fetching it directly.
-
-    If a release archive was saved, the individual file will be extracted
-    from the archive.
-    """
-    cache_key, cache_key_meta = get_cache_keys(url, release, dist)
-
-    result = cache.get(cache_key)
-
-    if result == -1:  # Cached as unavailable
-        return None
-
-    if result:
-        return result_from_cache(url, result)
-
-    start = time.monotonic()
-    with sentry_sdk.start_span(
-        op="JavaScriptStacktraceProcessor.fetch_release_artifact.fetch_release_archive_for_url"
-    ):
-        archive_file = fetch_release_archive_for_url(release, dist, url)
-    if archive_file is not None:
-        try:
-            archive = ReleaseArchive(archive_file)
-        except Exception as exc:
-            archive_file.seek(0)
-            logger.error(
-                "Failed to initialize archive for release %s",
-                release.id,
-                exc_info=exc,
-                extra={"contents": base64.b64encode(archive_file.read(256))},
-            )
-            # TODO(jjbayer): cache error and return here
-        else:
-            with archive:
-                try:
-                    fp, headers = get_from_archive(url, archive)
-                except KeyError:
-                    # The manifest mapped the url to an archive, but the file
-                    # is not there.
-                    logger.error(
-                        "Release artifact %r not found in archive %s", url, archive_file.id
-                    )
-                    cache.set(cache_key, -1, 60)
-                    metrics.timing(
-                        "sourcemaps.release_artifact_from_archive", time.monotonic() - start
-                    )
-                    return None
-                except Exception as exc:
-                    logger.error("Failed to read %s from release %s", url, release.id, exc_info=exc)
-                    # TODO(jjbayer): cache error and return here
-                else:
-                    result = fetch_and_cache_artifact(
-                        url,
-                        lambda: fp,
-                        cache_key,
-                        cache_key_meta,
-                        headers,
-                        # Cannot use `compress_file` because `ZipExtFile` does not support chunks
-                        compress_fn=compress,
-                    )
-                    metrics.timing(
-                        "sourcemaps.release_artifact_from_archive", time.monotonic() - start
-                    )
-
-                    return result
-
-    # Fall back to maintain compatibility with old releases and versions of
-    # sentry-cli which upload files individually
-    with sentry_sdk.start_span(
-        op="JavaScriptStacktraceProcessor.fetch_release_artifact.fetch_release_file"
-    ):
-        result = fetch_release_file(url, release, dist)
-
-    return result
 
 
 def is_html_response(result):
@@ -618,9 +542,8 @@ def is_data_uri(url):
     return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
 
 
-def debug_id_urlify(debug_id):
-    # TODO(iambriccardo): This function should also take the original filename and concatenate them.
-    return f"debug-id:{debug_id}"
+def urlify_debug_id(debug_id, file_url=""):
+    return f"debug-id://{debug_id}/{file_url}"
 
 
 def generate_module(src):
@@ -718,6 +641,10 @@ def fold_function_name(function_name):
 # Sentinel value used to represent the failure of loading an archive.
 INVALID_ARCHIVE = type("INVALID_ARCHIVE", (), {})()
 
+# Maximum number of artifacts that we can pull and open from the database. This upper bound serves as a way to protect
+# the system from loading an arbitrarily big number of artifacts that might cause high memory and cpu usage.
+MAX_ARTIFACTS_NUMBER = 5
+
 
 class Fetcher:
     """
@@ -731,7 +658,15 @@ class Fetcher:
         self.release = release
         self.dist = dist
         self.allow_scraping = allow_scraping
+        # Mappings between bundle_id -> ArtifactBundleArchive to keep all the open archives in memory.
         self.open_archives = {}
+        # Set that contains all the tuples (debug_id, source_file_type) for which the query returned an empty result.
+        # Here we don't put the project in the set, under the assumption that the project will remain the same for the
+        # whole lifecycle of the Fetcher.
+        self.empty_result_for_debug_ids = set()
+        # Set that contains all the tuples (release, dist) of a bundle for which the query returned an empty result.
+        # Here we also don't put the project for the same reasoning as above.
+        self.empty_result_for_releases = set()
 
     def bind_release(self, release=None, dist=None):
         """
@@ -748,29 +683,28 @@ class Fetcher:
             if open_archive is not INVALID_ARCHIVE:
                 open_archive.close()
 
-    def _lookup_in_open_archives(self, debug_id, source_file_type):
+    def _lookup_in_open_archives(self, block):
         """
         Looks up in open archives if there is one that contains a matching file with debug_id and source_file_type.
         """
-        for bundle_id, open_archive in self.open_archives.items():
+        for artifact_bundle_id, open_archive in self.open_archives.items():
             if open_archive is INVALID_ARCHIVE:
                 continue
+
             try:
-                open_archive.get_file_by_debug_id(debug_id, source_file_type)
+                block(open_archive)
                 return open_archive
             except Exception as exc:
                 logger.debug(
-                    "Archive for bundle_id %s doesn't contain file with debug_id %s and source_file_type %s",
-                    bundle_id,
-                    debug_id,
-                    source_file_type,
+                    "Archive with id %s doesn't contain file",
+                    artifact_bundle_id,
                     exc_info=exc,
                 )
                 continue
 
         return None
 
-    def _get_debug_id_artifact_bundle_entry(self, debug_id, source_file_type):
+    def _get_artifact_bundle_entry_by_debug_id(self, debug_id, source_file_type):
         """
         Gets the DebugIdArtifactBundle entry that maps the debug_id and source_file_type to a specific ArtifactBundle.
 
@@ -778,13 +712,37 @@ class Fetcher:
         decided to take the first element from the result set, but we could use a stronger heuristic like taking the
         newest entry.
         """
-        # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
-        #  we have permissions on not all the bundles.
-        return DebugIdArtifactBundle.objects.filter(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            source_file_type=source_file_type.value if source_file_type is not None else None,
-        ).select_related("artifact_bundle__file")[0]
+        project_id = self.project.id if self.project else None
+
+        if (debug_id, source_file_type) in self.empty_result_for_debug_ids:
+            raise Exception(
+                f"There are no artifact bundles bound to project {project_id}"
+                f"that contain debug_id {debug_id} for source_file_type {source_file_type}"
+            )
+
+        entry = list(
+            ArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                debugidartifactbundle__debug_id=debug_id,
+                debugidartifactbundle__source_file_type=source_file_type.value
+                if source_file_type is not None
+                else None,
+                projectartifactbundle__project_id=project_id,
+            )
+            .order_by("-date_uploaded")
+            .select_related("file")[:1]
+        )
+
+        # In case we didn't find any matching result, we will cache that this query had an empty result in order to
+        # avoid making the query for subsequent frames.
+        if len(entry) == 0:
+            self.empty_result_for_debug_ids.add((debug_id, source_file_type))
+            raise Exception(
+                f"There are no artifact bundles bound to project {self.project.id}"
+                f"that contain debug_id {debug_id} for source_file_type {source_file_type}"
+            )
+
+        return entry[0]
 
     @staticmethod
     def _fetch_artifact_bundle_file(artifact_bundle):
@@ -840,16 +798,17 @@ class Fetcher:
             # and opened archive.
             # We do this under the assumption that the number of open archives for a single event is not very big,
             # considering that most frames will be resolved with the data from within the same artifact bundle.
-            cached_open_archive = self._lookup_in_open_archives(debug_id, source_file_type)
+            cached_open_archive = self._lookup_in_open_archives(
+                lambda open_archive: open_archive.get_file_by_debug_id(debug_id, source_file_type)
+            )
             if cached_open_archive:
                 return cached_open_archive
 
             # We want to run a query to determine the artifact bundle that contains the tuple
             # (debug_id, source_file_type).
-            artifact_bundle = self._get_debug_id_artifact_bundle_entry(
+            artifact_bundle = self._get_artifact_bundle_entry_by_debug_id(
                 debug_id, source_file_type
-            ).artifact_bundle
-
+            )
             artifact_bundle_id = artifact_bundle.id
 
             # Given an artifact bundle id we check in the local cache if we have the archive already opened.
@@ -866,7 +825,7 @@ class Fetcher:
             # from the source.
             artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
         except Exception as exc:
-            logger.error(
+            logger.debug(
                 "Failed to load the artifact bundle for debug_id %s and source_file_type %s",
                 debug_id,
                 source_file_type,
@@ -886,9 +845,8 @@ class Fetcher:
                 self.open_archives[artifact_bundle_id] = archive
             except Exception as exc:
                 artifact_bundle_file.seek(0)
-                logger.error(
-                    "Failed to initialize archive for the artifact bundle %s",
-                    artifact_bundle_file.id,
+                logger.debug(
+                    "Failed to initialize archive for the artifact bundle file",
                     exc_info=exc,
                     extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
                 )
@@ -910,10 +868,9 @@ class Fetcher:
 
         try:
             # Now we actually read the wanted file.
-            # TODO(iambriccardo): Return matched file url from this call.
             fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
         except Exception as exc:
-            logger.error(
+            logger.debug(
                 "File with debug id %s and source type %s not found in artifact bundle",
                 debug_id,
                 source_file_type,
@@ -925,13 +882,266 @@ class Fetcher:
             # We decided to reuse the existing function but without caching in order to reuse some logic but in reality
             # the code could be inlined and simplified.
             result = fetch_and_cache_artifact(
-                debug_id_urlify(debug_id),
+                urlify_debug_id(
+                    debug_id, archive.get_file_url_by_debug_id(debug_id, source_file_type)
+                ),
                 lambda: fp,
                 None,
                 None,
                 headers,
                 compress_fn=compress,
             )
+
+        return result
+
+    def _get_artifact_bundle_entries_by_release_dist_pair(self):
+        """
+        Gets the MAX_ARTIFACT_NUMBER most recent entries in the ReleaseArtifactBundle table together with the respective
+        ArtifactBundle and the connected File.
+        """
+        # In case we don't have a release set, we don't even want to try and run the query because we won't be able
+        # to look for the bundle we want.
+        if self.release is None:
+            return []
+
+        project_id = self.project.id if self.project else None
+
+        if (self.release, self.dist) in self.empty_result_for_releases:
+            raise Exception(
+                f"There are no artifact bundles bound to project {project_id}"
+                f"for release {self.release} and dist {self.dist}"
+            )
+
+        entries = list(
+            ArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                releaseartifactbundle__release_name=self.release.version,
+                releaseartifactbundle__dist_name=self.dist.name if self.dist else NULL_STRING,
+                projectartifactbundle__project_id=project_id,
+            )
+            .order_by("-date_uploaded")
+            .select_related("file")[: MAX_ARTIFACTS_NUMBER + 1]
+        )
+
+        # In case we didn't find any matching result, we will cache that this query had an empty result in order to
+        # avoid making the query for subsequent frames.
+        if len(entries) == 0:
+            self.empty_result_for_releases.add((self.release, self.dist))
+            raise Exception(
+                f"There are no artifact bundles bound to project {project_id}"
+                f"for release {self.release} and dist {self.dist}"
+            )
+
+        # We want to log if the user has more artifacts than the current max.
+        if len(entries) > MAX_ARTIFACTS_NUMBER:
+            logger.debug(
+                f"The number of artifact bundles for the release {self.release.version}"
+                f"is more than the default {MAX_ARTIFACTS_NUMBER}."
+            )
+
+        return entries[:MAX_ARTIFACTS_NUMBER]
+
+    def _open_archive_by_url(self, url):
+        """
+        Opens all the archives connected to the release/dist pair and returns the first one containing a file with
+        the supplied "url".
+
+        The idea of opening all connected archives is because we upper bound them, and we know that for most frames,
+        they will be resolved by files within the same archive.
+        """
+        artifact_bundle_files = []
+        failed_artifact_bundle_ids = set()
+
+        def file_by_url_candidates_lookup(open_archive):
+            try_get_with_normalized_urls(
+                url, lambda candidate: open_archive.get_file_by_url(candidate)
+            )
+
+        try:
+            # We want to first lookup in all existing open archives, just to save us an expensive query.
+            cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
+            if cached_open_archive:
+                return cached_open_archive
+
+            artifact_bundles = self._get_artifact_bundle_entries_by_release_dist_pair()
+            for artifact_bundle in artifact_bundles:
+                cached_open_archive = self.open_archives.get(artifact_bundle.id)
+
+                # In case the archive is marked as INVALID_ARCHIVE we are just going to continue in the hope of
+                # finding other cached archives.
+                if cached_open_archive is INVALID_ARCHIVE:
+                    continue
+
+                # Only if we find a valid open archive we return the archive itself.
+                if cached_open_archive is not None:
+                    return cached_open_archive
+
+                try:
+                    # In case we didn't find the archive in the cache, we want to fetch the artifact bundle to put later
+                    # in the cache.
+                    artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
+                    artifact_bundle_files.append((artifact_bundle.id, artifact_bundle_file))
+                except Exception as exc:
+                    logger.debug(
+                        "Failed to fetch artifact bundle %s", artifact_bundle.id, exc_info=exc
+                    )
+                    failed_artifact_bundle_ids.add(artifact_bundle.id)
+
+            # In case during the loading we ended up not being able to load anything and we got at least one error, we
+            # can't do much.
+            if len(artifact_bundle_files) == 0 and len(failed_artifact_bundle_ids) > 0:
+                raise Exception(
+                    "Failed to fetch at least one artifact bundle given a release/dist pair"
+                )
+        except Exception as exc:
+            logger.debug(
+                "Failed to load the artifact bundles for release %s and dist %s",
+                self.release,
+                self.dist,
+                exc_info=exc,
+            )
+            # In case we got an exception we want to mark all the ids that we failed to fetch as invalid. In case
+            # an exception is thrown before fetching any bundles, the set will be empty, thus no bundles will be marked
+            # as invalid.
+            for failed_artifact_bundle_id in failed_artifact_bundle_ids:
+                self.open_archives[failed_artifact_bundle_id] = INVALID_ARCHIVE
+
+            return None
+        else:
+            for artifact_bundle_id, artifact_bundle_file in artifact_bundle_files:
+                try:
+                    archive = ArtifactBundleArchive(artifact_bundle_file)
+                    self.open_archives[artifact_bundle_id] = archive
+                except Exception as exc:
+                    artifact_bundle_file.seek(0)
+                    logger.debug(
+                        "Failed to initialize archive for the artifact bundle file",
+                        exc_info=exc,
+                        extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
+                    )
+                    if artifact_bundle_id:
+                        self.open_archives[artifact_bundle_id] = INVALID_ARCHIVE
+
+            # After having loaded all the archives into memory, we want to look if we have the file again. Technically
+            # we could recursively implement this behavior but that would require the usage of a discriminator variable
+            # that will immediately return if the lookup is not successful. The repetition of the lookup seems a more
+            # explicit way to do the work.
+            cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
+            if cached_open_archive:
+                return cached_open_archive
+
+            return None
+
+    def fetch_by_url_new(self, url):
+        """
+        Pulls down the file indexed by url using the data in the ReleaseArtifactBundle table and returns a UrlResult
+        object that "falsely" emulates an HTTP response connected to an HTTP request for fetching the file.
+        """
+        result = None
+
+        # We want to first look for the file by url in the new tables ReleaseArtifactBundle and ArtifactBundle.
+        with sentry_sdk.start_span(op="Fetcher.fetch_by_url_new._open_archive_by_url"):
+            archive = self._open_archive_by_url(url)
+            if archive is not None:
+                try:
+                    # We know that if we have an archive which is not None, that the url will be found internally but
+                    # we still cover with an exception handler the whole code to make sure all possible failures are
+                    # caught.
+                    #
+                    # Technically we could return the matched candidate url from _open_archive_by_url() but considering
+                    # that try_get_with_normalized_urls() is O(1) the benefits will not outweigh the clean code.
+                    fp, headers = try_get_with_normalized_urls(
+                        url, lambda candidate: archive.get_file_by_url(candidate)
+                    )
+                    result = fetch_and_cache_artifact(
+                        url,
+                        lambda: fp,
+                        None,
+                        None,
+                        headers,
+                        compress_fn=compress,
+                    )
+                except Exception as exc:
+                    logger.debug(
+                        "Failed to open file with base url %s in artifact bundle", url, exc_info=exc
+                    )
+
+        return result
+
+    def _fetch_release_artifact(self, url):
+        """
+        Get a release artifact either by extracting it or fetching it directly.
+
+        If a release archive was saved, the individual file will be extracted
+        from the archive.
+        """
+        # If we weren't able to load the file by release in the new tables, we want to fallback to the old mechanism.
+        cache_key, cache_key_meta = get_cache_keys(url, self.release, self.dist)
+        result = cache.get(cache_key)
+        if result == -1:  # Cached as unavailable
+            return None
+        if result:
+            return result_from_cache(url, result)
+
+        start = time.monotonic()
+        with sentry_sdk.start_span(
+            op="Fetcher._fetch_release_artifact.fetch_release_archive_for_url"
+        ):
+            archive_file = fetch_release_archive_for_url(self.release, self.dist, url)
+        if archive_file is not None:
+            try:
+                archive = ReleaseArchive(archive_file)
+            except Exception as exc:
+                archive_file.seek(0)
+                logger.error(
+                    "Failed to initialize archive for release %s",
+                    self.release.id,
+                    exc_info=exc,
+                    extra={"contents": base64.b64encode(archive_file.read(256))},
+                )
+                # TODO(jjbayer): cache error and return here
+            else:
+                with archive:
+                    try:
+                        fp, headers = try_get_with_normalized_urls(
+                            url, lambda candidate: archive.get_file_by_url(candidate)
+                        )
+                    except KeyError:
+                        # The manifest mapped the url to an archive, but the file
+                        # is not there.
+                        logger.error(
+                            "Release artifact %r not found in archive %s", url, archive_file.id
+                        )
+                        cache.set(cache_key, -1, 60)
+                        metrics.timing(
+                            "sourcemaps.release_artifact_from_archive", time.monotonic() - start
+                        )
+                        return None
+                    except Exception as exc:
+                        logger.error(
+                            "Failed to read %s from release %s", url, self.release.id, exc_info=exc
+                        )
+                        # TODO(jjbayer): cache error and return here
+                    else:
+                        result = fetch_and_cache_artifact(
+                            url,
+                            lambda: fp,
+                            cache_key,
+                            cache_key_meta,
+                            headers,
+                            # Cannot use `compress_file` because `ZipExtFile` does not support chunks
+                            compress_fn=compress,
+                        )
+                        metrics.timing(
+                            "sourcemaps.release_artifact_from_archive", time.monotonic() - start
+                        )
+
+                        return result
+
+        # Fall back to maintain compatibility with old releases and versions of
+        # sentry-cli which upload files individually
+        with sentry_sdk.start_span(op="Fetcher._fetch_release_artifact.fetch_release_file"):
+            result = fetch_release_file(url, self.release, self.dist)
 
         return result
 
@@ -952,11 +1162,9 @@ class Fetcher:
             )
 
         # if we've got a release to look on, try that first (incl associated cache)
-        # TODO(iambriccardo): we want to implement the fetching of data from the ReleaseArtifactBundle table in order
-        #   to allow for uploads with new tables but old release association.
         if self.release:
             with sentry_sdk.start_span(op="Fetcher.fetch_by_url.fetch_release_artifact"):
-                result = fetch_release_artifact(url, self.release, self.dist)
+                result = self._fetch_release_artifact(url)
         else:
             result = None
 
@@ -965,8 +1173,12 @@ class Fetcher:
         cache_key = f"source:cache:v4:{md5_text(url).hexdigest()}"
 
         if result is None:
-            if not self.allow_scraping or not url.startswith(("http:", "https:")):
+            if not url.startswith(("http:", "https:")):
                 error = {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)}
+                raise http.CannotFetch(error)
+
+            if not self.allow_scraping:
+                error = {"type": EventError.JS_SCRAPING_DISABLED, "url": http.expose_url(url)}
                 raise http.CannotFetch(error)
 
             logger.debug("Checking cache for url %r", url)
@@ -1060,6 +1272,23 @@ class Fetcher:
         return result
 
 
+class FetcherSource(Enum):
+    """
+    Source of the data returned from the fetcher.
+
+    We use this enumerator to determine the source from which the Fetcher fetched the data. This can't be inferred
+    directly from the result of the function call because we always return the same UrlObject irrespectively of the
+    data source. The need for the fetching source is because we want to change our processing behavior based on the
+    source from which the data has been fetched (e.g., if we fetched through debug_id, we need to enforce the
+    'sourcesContent' in the sourcemap).
+    """
+
+    NONE = 0
+    URL = 1
+    URL_NEW = 2
+    DEBUG_ID = 3
+
+
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
     Modern SourceMap processor using symbolic-sourcemapcache.
@@ -1102,17 +1331,25 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.fetch_by_url_sourceviews = {}
         self.fetch_by_url_errors = {}
 
+        # Cache holding the results of the new fetching by url that uses the ReleaseArtifactBundle and ArtifactBundle
+        # tables.
+        self.fetch_by_url_new_sourceviews = {}
+        self.fetch_by_url_new_errors = {}
+
         # Cache holding the results of the fetching by debug id.
         self.fetch_by_debug_id_sourceviews = {}
         self.fetch_by_debug_id_errors = {}
 
-        # Cache holding the sourcemaps views indexed by either debug id or sourcemap url.
+        # Cache holding the sourcemap caches indexed by either debug id, sourcemap url new or sourcemap url.
         self.debug_id_sourcemap_cache = {}
+        self.sourcemap_url_new_sourcemap_cache = {}
         self.sourcemap_url_sourcemap_cache = {}
 
         # Contains a mapping between the minified source url ('abs_path' of the frame) and the sourcemap url
         # which is discovered by looking at the minified source.
         self.minified_source_url_to_sourcemap_url = {}
+        # Contains a mapping between the debug id and the sourcemap url resolved with that debug id.
+        self.sourcemap_debug_id_to_sourcemap_url = {}
 
         # Component responsible for fetching the files.
         self.fetcher = Fetcher(
@@ -1207,33 +1444,38 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # The 'sourceview' is used for pre/post and 'context_line' frame expansion.
         # Here it's pointing to the minified source, however the variable can be shadowed with the original sourceview
         # (or 'None' if the token doesn't provide us with the 'context_line') down the road.
-        sourceview, resolved_sv_with_debug_id = self.get_or_fetch_sourceview(
+        sourceview, resolved_sv_with = self.get_or_fetch_sourceview(
             url=frame["abs_path"],
             debug_id=debug_id,
             source_file_type=SourceFileType.MINIFIED_SOURCE,
         )
         # Only if we resolved the minified source with a debug_id we want to try and resolve the sourcemap with the
         # debug_id.
-        sourcemap_cache, resolved_smc_with_debug_id = self.get_or_fetch_sourcemap_cache(
-            url=frame["abs_path"], debug_id=debug_id if resolved_sv_with_debug_id else None
+        sourcemap_cache, resolved_smc_with = self.get_or_fetch_sourcemap_cache(
+            url=frame["abs_path"],
+            debug_id=debug_id if resolved_sv_with == FetcherSource.DEBUG_ID else None,
         )
 
         # We check for errors once both the minified file and the corresponding sourcemaps are loaded. In case errors
-        # happen in one of the two we will detect them and add them to 'all_errors'.
+        # happen in one of the three we will detect them and add them to 'all_errors'.
         url_errors = self.fetch_by_url_errors.get(frame["abs_path"])
         if url_errors is not None:
             all_errors.extend(url_errors)
+
+        url_new_errors = self.fetch_by_url_new_errors.get(frame["abs_path"])
+        if url_new_errors:
+            all_errors.extend(url_new_errors)
+
         debug_id_errors = self.fetch_by_debug_id_errors.get(debug_id)
         if debug_id_errors is not None:
             all_errors.extend(debug_id_errors)
 
-        # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
-        # In case we resolved the sourcemap with the debug_id, the url will be the debug_id.
-        sourcemap_url = (
-            self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
-            if not resolved_smc_with_debug_id
-            else debug_id_urlify(debug_id)  # TODO(iambricardo): debug-id://12334/mysourcemap.json
-        )
+        # We want to compute the sourcemap url for logging purposes based on which resolution source we used.
+        if resolved_smc_with == FetcherSource.DEBUG_ID:
+            sourcemap_url = self.sourcemap_debug_id_to_sourcemap_url.get(debug_id)
+        else:
+            sourcemap_url = self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
+        # We keep track of how many sourcemaps we touched.
         self.sourcemaps_touched.add(sourcemap_url)
 
         source_context = None
@@ -1294,7 +1536,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # obtain source context directly from there.
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
-                    if resolved_smc_with_debug_id:
+                    # We require "sourcesContent" to be present in case we fetched the sourcemap via either
+                    # fetch_by_debug_id() or fetch_by_url_new().
+                    if resolved_smc_with in {FetcherSource.DEBUG_ID, FetcherSource.URL_NEW}:
                         all_errors.append(
                             {
                                 "type": EventError.JS_MISSING_SOURCES_CONTENT,
@@ -1513,11 +1757,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if debug_id is not None and source_file_type == SourceFileType.SOURCE:
             return None
 
-        sourceview, resolved_with_debug_id = self._get_cached_sourceview(
-            url, debug_id, source_file_type
-        )
+        sourceview, resolved_with = self._get_cached_sourceview(url, debug_id, source_file_type)
         if sourceview is not None:
-            return sourceview, resolved_with_debug_id
+            return sourceview, resolved_with
 
         return self._fetch_and_cache_sourceview(url, debug_id, source_file_type)
 
@@ -1525,14 +1767,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if debug_id is not None:
             sourceview = self.fetch_by_debug_id_sourceviews.get((debug_id, source_file_type))
             if sourceview is not None:
-                return sourceview, True
+                return sourceview, FetcherSource.DEBUG_ID
 
         if url is not None:
+            sourceview = self.fetch_by_url_new_sourceviews.get(url)
+            if sourceview is not None:
+                return sourceview, FetcherSource.URL_NEW
+
             sourceview = self.fetch_by_url_sourceviews.get(url)
             if sourceview is not None:
-                return sourceview, False
+                return sourceview, FetcherSource.URL
 
-        return None, False
+        return None, FetcherSource.NONE
 
     def _fetch_and_cache_sourceview(self, url, debug_id, source_file_type):
         self.fetch_count += 1
@@ -1541,7 +1787,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.fetch_by_url_errors.setdefault(url, []).append(
                 {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES}
             )
-            return None, False
+            return None, FetcherSource.NONE
 
         if debug_id is not None:
             logger.debug("Attempting to cache source with debug id %r", debug_id)
@@ -1553,7 +1799,23 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 if result is not None:
                     sourceview = SourceView.from_bytes(result.body)
                     self.fetch_by_debug_id_sourceviews[debug_id, source_file_type] = sourceview
-                    return sourceview, True
+                    return sourceview, FetcherSource.DEBUG_ID
+
+        logger.debug("Attempting to cache source with url new %r", debug_id)
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.fetch_and_cache_sourceview.fetch_by_url_new"
+        ) as span:
+            span.set_data("url", url)
+            result = self.fetcher.fetch_by_url_new(url)
+            if result is not None:
+                sourceview = SourceView.from_bytes(result.body)
+                self.fetch_by_url_new_sourceviews[url] = sourceview
+
+                sourcemap_url = discover_sourcemap(result)
+                if sourcemap_url:
+                    self.minified_source_url_to_sourcemap_url[url] = sourcemap_url
+
+                return sourceview, FetcherSource.URL_NEW
 
         try:
             logger.debug("Attempting to cache source with url %r", url)
@@ -1567,7 +1829,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
             # either way, there's no more for us to do here, since we don't have
             # a valid file to cache
-            return None, False
+            return None, FetcherSource.NONE
         else:
             sourceview = SourceView.from_bytes(result.body)
             self.fetch_by_url_sourceviews[url] = sourceview
@@ -1576,7 +1838,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             if sourcemap_url:
                 self.minified_source_url_to_sourcemap_url[url] = sourcemap_url
 
-            return sourceview, False
+            return sourceview, FetcherSource.URL
 
     def get_or_fetch_sourcemap_cache(self, url=None, debug_id=None):
         """
@@ -1584,39 +1846,48 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         Returns None when a sourcemap corresponding to the file at 'url' is not found.
         """
-        sourcemap_cache, resolved_with_debug_id = self._get_cached_sourcemap_cache(url, debug_id)
+        sourcemap_cache, resolved_with = self._get_cached_sourcemap_cache(url, debug_id)
         if sourcemap_cache is not None:
-            return sourcemap_cache, resolved_with_debug_id
+            return sourcemap_cache, resolved_with
 
         return self._fetch_and_cache_sourcemap_cache(url, debug_id)
 
     def _get_cached_sourcemap_cache(self, url, debug_id):
         if debug_id is not None:
-            rv = self.debug_id_sourcemap_cache.get(debug_id)
-            if rv is not None:
-                return rv, True
+            sourcemap_cache = self.debug_id_sourcemap_cache.get(debug_id)
+            if sourcemap_cache is not None:
+                return sourcemap_cache, FetcherSource.DEBUG_ID
 
         if url is not None:
             # We get the url of the sourcemap from the url of the minified file.
             sourcemap_url = self.minified_source_url_to_sourcemap_url.get(url)
-            rv = self.sourcemap_url_sourcemap_cache.get(sourcemap_url)
-            if rv is not None:
-                return rv, False
 
-        return None, False
+            sourcemap_cache = self.sourcemap_url_new_sourcemap_cache.get(sourcemap_url)
+            if sourcemap_cache is not None:
+                return sourcemap_cache, FetcherSource.URL_NEW
+
+            sourcemap_cache = self.sourcemap_url_sourcemap_cache.get(sourcemap_url)
+            if sourcemap_cache is not None:
+                return sourcemap_cache, FetcherSource.URL
+
+        return None, FetcherSource.NONE
 
     def _fetch_and_cache_sourcemap_cache(self, url, debug_id):
         if debug_id is not None:
-            sourcemap_view = self._handle_debug_id_sourcemap_lookup(debug_id)
-            if sourcemap_view is not None:
-                return sourcemap_view, True
+            sourcemap_cache = self._handle_debug_id_sourcemap_lookup(debug_id)
+            if sourcemap_cache is not None:
+                return sourcemap_cache, FetcherSource.DEBUG_ID
 
         if url is not None:
-            sourcemap_view = self._handle_url_sourcemap_lookup(url)
-            if sourcemap_view is not None:
-                return sourcemap_view, False
+            sourcemap_cache = self._handle_url_sourcemap_lookup(url, use_url_new=True)
+            if sourcemap_cache is not None:
+                return sourcemap_cache, FetcherSource.URL_NEW
 
-        return None, False
+            sourcemap_cache = self._handle_url_sourcemap_lookup(url, use_url_new=False)
+            if sourcemap_cache is not None:
+                return sourcemap_cache, FetcherSource.URL
+
+        return None, FetcherSource.NONE
 
     def _handle_debug_id_sourcemap_lookup(self, debug_id):
         minified_sourceview = self.fetch_by_debug_id_sourceviews.get(
@@ -1642,6 +1913,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 with sentry_sdk.start_span(
                     op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_debug_id.SmCache.from_bytes"
                 ):
+                    # We want to keep track of the sourcemap url of the sourcemap resolved with this specific debug id.
+                    self.sourcemap_debug_id_to_sourcemap_url[debug_id] = result.url
                     # This is an expensive operation that should be executed as few times as possible.
                     return SmCache.from_bytes(
                         minified_sourceview.get_source().encode("utf-8"), result.body
@@ -1649,17 +1922,22 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             except Exception as exc:
                 # This is in debug because the product shows an error already.
                 logger.debug(str(exc), exc_info=True)
-                raise UnparseableSourcemap({"debug_id": debug_id_urlify(debug_id)})
+                raise UnparseableSourcemap({"debug_id": result.url})
 
         return None
 
-    def _handle_url_sourcemap_lookup(self, url):
+    def _handle_url_sourcemap_lookup(self, url, use_url_new=False):
         # In case there are any fetching errors tied to the url of the minified file, we don't want to attempt the
         # construction of the sourcemap cache.
-        if url in self.fetch_by_url_errors:
+        errors = self.fetch_by_url_new_errors if use_url_new else self.fetch_by_url_errors
+        if url in errors:
             return None
 
-        minified_sourceview = self.fetch_by_url_sourceviews.get(url)
+        minified_sourceview = (
+            self.fetch_by_url_new_sourceviews.get(url)
+            if use_url_new
+            else self.fetch_by_url_sourceviews.get(url)
+        )
         if minified_sourceview is None:
             return None
 
@@ -1674,7 +1952,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 span.set_data("url", url)
                 span.set_data("sourcemap_url", sourcemap_url)
                 sourcemap_cache = self._fetch_sourcemap_cache_by_url(
-                    sourcemap_url, source=minified_sourceview.get_source().encode()
+                    sourcemap_url,
+                    source=minified_sourceview.get_source().encode(),
+                    use_url_new=use_url_new,
                 )
         except http.BadSource as exc:
             # we don't perform the same check here as above, because if someone has
@@ -1683,13 +1963,21 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # working, if that's the case). If they're not looking for it to be
             # mapped, then they shouldn't be uploading the source file in the
             # first place.
-            self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
+            if use_url_new:
+                self.fetch_by_url_new_errors.setdefault(url, []).append(exc.data)
+            else:
+                self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
+
             return None
         else:
-            self.sourcemap_url_sourcemap_cache[sourcemap_url] = sourcemap_cache
+            if use_url_new:
+                self.sourcemap_url_new_sourcemap_cache[sourcemap_url] = sourcemap_cache
+            else:
+                self.sourcemap_url_sourcemap_cache[sourcemap_url] = sourcemap_cache
+
             return sourcemap_cache
 
-    def _fetch_sourcemap_cache_by_url(self, url, source=b""):
+    def _fetch_sourcemap_cache_by_url(self, url, source=b"", use_url_new=False):
         if is_data_uri(url):
             try:
                 body = base64.b64decode(
@@ -1704,7 +1992,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url"
             ) as span:
                 span.set_data("url", url)
-                result = self.fetcher.fetch_by_url(url)
+                if use_url_new:
+                    result = self.fetcher.fetch_by_url_new(url)
+                    # In case we are fetching with url new we want to early return None in case we didn't find a match.
+                    if result is None:
+                        return None
+                else:
+                    result = self.fetcher.fetch_by_url(url)
 
             body = result.body
 

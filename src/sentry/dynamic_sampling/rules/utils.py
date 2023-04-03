@@ -17,6 +17,8 @@ IGNORE_HEALTH_CHECKS_FACTOR = 5
 
 
 ProjectId = int
+DecisionDropCount = int
+DecisionKeepCount = int
 OrganizationId = int
 TransactionName = str
 
@@ -49,7 +51,7 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     },
     {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
-    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,

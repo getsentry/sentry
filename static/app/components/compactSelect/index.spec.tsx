@@ -28,7 +28,7 @@ describe('CompactSelect', function () {
     expect(screen.getByRole('button')).toBeDisabled();
   });
 
-  it('renders with menu title', function () {
+  it('renders with menu title', async function () {
     render(
       <CompactSelect
         menuTitle="Menu title"
@@ -40,13 +40,13 @@ describe('CompactSelect', function () {
     );
 
     // click on the trigger button
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     expect(screen.getByText('Menu title')).toBeInTheDocument();
   });
 
   describe('ListBox', function () {
-    it('updates trigger label on selection', function () {
+    it('updates trigger label on selection', async function () {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -59,16 +59,16 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
 
       // select Option One
-      userEvent.click(screen.getByRole('option', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Option One'}));
 
       expect(mock).toHaveBeenCalledWith({value: 'opt_one', label: 'Option One'});
       expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
     });
 
-    it('can select multiple options', function () {
+    it('can select multiple options', async function () {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -82,11 +82,11 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
 
       // select Option One & Option Two
-      userEvent.click(screen.getByRole('option', {name: 'Option One'}));
-      userEvent.click(screen.getByRole('option', {name: 'Option Two'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Option Two'}));
 
       expect(mock).toHaveBeenCalledWith([
         {value: 'opt_one', label: 'Option One'},
@@ -109,7 +109,7 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
     });
 
-    it('can search', function () {
+    it('can search', async function () {
       render(
         <CompactSelect
           searchable
@@ -122,15 +122,56 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
 
       // type 'Two' into the search box
-      userEvent.click(screen.getByPlaceholderText('Search here…'));
-      userEvent.keyboard('Two');
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
 
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('can limit the number of options', async function () {
+      render(
+        <CompactSelect
+          sizeLimit={2}
+          sizeLimitMessage="Use search for more options…"
+          searchable
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // only the first two options should be visible due to `sizeLimit`
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Option Three'})
+      ).not.toBeInTheDocument();
+
+      // there's a message prompting the user to use search to find more options
+      expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
+
+      // Option Three is not reachable via keyboard, focus wraps back to Option One
+      await userEvent.keyboard(`{ArrowDown}`);
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      await userEvent.keyboard(`{ArrowDown>2}`);
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+
+      // Option Three is still available via search
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
+      expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
+
+      // the size limit message is gone during search
+      expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
     it('can toggle sections', async function () {
@@ -159,15 +200,15 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button', {expanded: false}));
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
       await waitFor(() =>
         expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus()
       );
 
       // move focus to Section 1's toggle button and press it to select all
-      userEvent.keyboard('{Tab}');
+      await userEvent.keyboard('{Tab}');
       expect(screen.getByRole('button', {name: 'Select All in Section 1'})).toHaveFocus();
-      userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{Enter}');
       expect(screen.getByRole('option', {name: 'Option One'})).toHaveAttribute(
         'aria-selected',
         'true'
@@ -178,7 +219,7 @@ describe('CompactSelect', function () {
       );
 
       // press Section 1's toggle button again to unselect all
-      userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{Enter}');
       expect(screen.getByRole('option', {name: 'Option One'})).toHaveAttribute(
         'aria-selected',
         'false'
@@ -189,9 +230,9 @@ describe('CompactSelect', function () {
       );
 
       // move to Section 2's toggle button and select all
-      userEvent.keyboard('{Tab}');
+      await userEvent.keyboard('{Tab}');
       expect(screen.getByRole('button', {name: 'Select All in Section 2'})).toHaveFocus();
-      userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{Enter}');
       expect(screen.getByRole('option', {name: 'Option Three'})).toHaveAttribute(
         'aria-selected',
         'true'
@@ -202,7 +243,7 @@ describe('CompactSelect', function () {
       );
     });
 
-    it('triggers onClose when the menu is closed if provided', function () {
+    it('triggers onClose when the menu is closed if provided', async function () {
       const onCloseMock = jest.fn();
       render(
         <CompactSelect
@@ -215,17 +256,17 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
       expect(onCloseMock).not.toHaveBeenCalled();
 
       // close the menu
-      userEvent.click(document.body);
+      await userEvent.click(document.body);
       expect(onCloseMock).toHaveBeenCalled();
     });
   });
 
   describe('GridList', function () {
-    it('updates trigger label on selection', function () {
+    it('updates trigger label on selection', async function () {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -239,16 +280,16 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
 
       // select Option One
-      userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
 
       expect(mock).toHaveBeenCalledWith({value: 'opt_one', label: 'Option One'});
       expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
     });
 
-    it('can select multiple options', function () {
+    it('can select multiple options', async function () {
       const mock = jest.fn();
       render(
         <CompactSelect
@@ -263,11 +304,11 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
 
       // select Option One & Option Two
-      userEvent.click(screen.getByRole('row', {name: 'Option One'}));
-      userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
 
       expect(mock).toHaveBeenCalledWith([
         {value: 'opt_one', label: 'Option One'},
@@ -291,7 +332,7 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
     });
 
-    it('can search', function () {
+    it('can search', async function () {
       render(
         <CompactSelect
           grid
@@ -305,15 +346,55 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
 
       // type 'Two' into the search box
-      userEvent.click(screen.getByPlaceholderText('Search here…'));
-      userEvent.keyboard('Two');
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
 
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('can limit the number of options', async function () {
+      render(
+        <CompactSelect
+          grid
+          sizeLimit={2}
+          sizeLimitMessage="Use search for more options…"
+          searchable
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // only the first two options should be visible due to `sizeLimit`
+      expect(screen.getByRole('row', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: 'Option Three'})).not.toBeInTheDocument();
+
+      // there's a message prompting the user to use search to find more options
+      expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
+
+      // Option Three is not reachable via keyboard, focus wraps back to Option One
+      await userEvent.keyboard(`{ArrowDown}`);
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
+      await userEvent.keyboard(`{ArrowDown>2}`);
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
+
+      // Option Three is still available via search
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
+      expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
+
+      // the size limit message is gone during search
+      expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
     it('can toggle sections', async function () {
@@ -343,15 +424,15 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button', {expanded: false}));
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
       await waitFor(() =>
         expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus()
       );
 
       // move focus to Section 1's toggle button and press it to select all
-      userEvent.keyboard('{Tab}');
+      await userEvent.keyboard('{Tab}');
       expect(screen.getByRole('button', {name: 'Select All in Section 1'})).toHaveFocus();
-      userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{Enter}');
       expect(screen.getByRole('row', {name: 'Option One'})).toHaveAttribute(
         'aria-selected',
         'true'
@@ -362,7 +443,7 @@ describe('CompactSelect', function () {
       );
 
       // press Section 1's toggle button again to unselect all
-      userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{Enter}');
       expect(screen.getByRole('row', {name: 'Option One'})).toHaveAttribute(
         'aria-selected',
         'false'
@@ -373,9 +454,9 @@ describe('CompactSelect', function () {
       );
 
       // move to Section 2's toggle button and select all
-      userEvent.keyboard('{Tab}');
+      await userEvent.keyboard('{Tab}');
       expect(screen.getByRole('button', {name: 'Select All in Section 2'})).toHaveFocus();
-      userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{Enter}');
       expect(screen.getByRole('row', {name: 'Option Three'})).toHaveAttribute(
         'aria-selected',
         'true'
@@ -386,7 +467,7 @@ describe('CompactSelect', function () {
       );
     });
 
-    it('triggers onClose when the menu is closed if provided', function () {
+    it('triggers onClose when the menu is closed if provided', async function () {
       const onCloseMock = jest.fn();
       render(
         <CompactSelect
@@ -400,11 +481,11 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
       expect(onCloseMock).not.toHaveBeenCalled();
 
       // close the menu
-      userEvent.click(document.body);
+      await userEvent.click(document.body);
       expect(onCloseMock).toHaveBeenCalled();
     });
 
@@ -439,21 +520,21 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
       await waitFor(() =>
         expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus()
       );
 
       // press Arrow Right, focus should be moved to the trailing button
-      userEvent.keyboard('{ArrowRight}');
+      await userEvent.keyboard('{ArrowRight}');
       expect(screen.getByRole('button', {name: 'Trailing Button One'})).toHaveFocus();
 
       // press Enter, onKeyUpMock is called
-      userEvent.keyboard('{ArrowRight}');
+      await userEvent.keyboard('{ArrowRight}');
       expect(onKeyUpMock).toHaveBeenCalled();
 
       // click on Trailing Button Two, onPointerUpMock is called
-      userEvent.click(screen.getByRole('button', {name: 'Trailing Button Two'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Trailing Button Two'}));
       expect(onPointerUpMock).toHaveBeenCalled();
     });
   });

@@ -21,27 +21,15 @@ export function PlatformSelection(props: StepProps) {
 
   const [clientState, _setClientState] = usePersistedOnboardingState();
 
-  const disabledPlatforms = Object.keys(clientState?.platformToProjectIdMap ?? {}).reduce(
-    (acc, key) => {
-      if (!acc[key]) {
-        acc[key] = t('Project already created');
-      }
-      return acc;
-    },
-    {}
-  );
-
   useEffect(() => {
     if (!clientState) {
       return;
     }
 
-    const selectedprojectCreated = disabledPlatforms[clientState.selectedPlatforms[0]];
-
-    if (selectedPlatform === undefined && !selectedprojectCreated) {
+    if (selectedPlatform === undefined) {
       setSelectedPlatform(clientState.selectedPlatforms[0]);
     }
-  }, [clientState, disabledPlatforms, selectedPlatform]);
+  }, [clientState, selectedPlatform]);
 
   return (
     <Wrapper>
@@ -69,7 +57,6 @@ export function PlatformSelection(props: StepProps) {
           setPlatform={platformKey => {
             setSelectedPlatform(platformKey ?? undefined);
           }}
-          disabledPlatforms={disabledPlatforms}
           organization={organization}
         />
       </motion.div>

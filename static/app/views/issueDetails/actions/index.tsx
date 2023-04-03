@@ -20,6 +20,8 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import FeatureBadge from 'sentry/components/featureBadge';
+import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCheckmark,
   IconEllipsis,
@@ -51,6 +53,8 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {OpenAIFixSuggestionButton} from 'sentry/views/issueDetails/openAIFixSuggestion/openAIFixSuggestionButton';
+import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
@@ -107,6 +111,7 @@ class Actions extends Component<Props> {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
+      | 'open_ai_suggested_fix'
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
@@ -403,6 +408,30 @@ class Actions extends Component<Props> {
               onAction: () => this.trackIssueAction('open_in_discover'),
             },
             {
+              key: 'suggested-fix',
+              className: 'hidden-sm hidden-md hidden-lg',
+              label: (
+                <Tooltip
+                  title={experimentalFeatureTooltipDesc}
+                  containerDisplayMode="inline-flex"
+                >
+                  {t('Suggested Fix')}
+                  <FeatureBadge type="experimental" noTooltip />
+                </Tooltip>
+              ),
+              onAction: () => {
+                this.trackIssueAction('open_ai_suggested_fix');
+                browserHistory.push({
+                  pathname: browserHistory.getCurrentLocation().pathname,
+                  query: {
+                    ...browserHistory.getCurrentLocation().query,
+                    showSuggestedFix: true,
+                  },
+                });
+              },
+              hidden: !orgFeatures.has('open-ai-suggestion'),
+            },
+            {
               key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
               className: 'hidden-sm hidden-md hidden-lg',
               label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
@@ -481,6 +510,17 @@ class Actions extends Component<Props> {
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
+        </Feature>
+        <Feature features={['open-ai-suggestion']} organization={organization}>
+          <GuideAnchor target="suggested-fix" position="bottom" offset={20}>
+            <OpenAIFixSuggestionButton
+              className="hidden-xs"
+              size="sm"
+              disabled={disabled}
+              groupId={group.id}
+              onClick={() => this.trackIssueAction('open_ai_suggested_fix')}
+            />
+          </GuideAnchor>
         </Feature>
         {isResolved || isIgnored ? (
           <ActionButton

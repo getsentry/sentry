@@ -39,7 +39,7 @@ describe('OrganizationJoinRequest', function () {
 
     render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
 
-    userEvent.type(
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Email Address'}),
       'email@example.com{enter}'
     );
@@ -64,7 +64,7 @@ describe('OrganizationJoinRequest', function () {
 
     render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
 
-    userEvent.type(
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Email Address'}),
       'email@example.com{enter}'
     );
@@ -77,11 +77,11 @@ describe('OrganizationJoinRequest', function () {
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
   });
 
-  it('cancels', function () {
+  it('cancels', async function () {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
     render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(spy).toHaveBeenCalledWith(`/auth/login/${org.slug}/`);
   });
 });

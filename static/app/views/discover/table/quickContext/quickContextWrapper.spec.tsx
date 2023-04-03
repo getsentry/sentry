@@ -1,10 +1,9 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Event, EventOrGroupType} from 'sentry/types/event';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {QuickContextHoverWrapper} from './quickContextWrapper';
@@ -92,7 +91,7 @@ describe('Quick Context', function () {
       });
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByText('Text from Child'));
+      await userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByTestId('quick-context-hover-body')).toBeInTheDocument();
     });
@@ -115,7 +114,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByText('Text from Child'));
+      await userEvent.hover(screen.getByText('Text from Child'));
 
       // Error is expected, do not fail when calling console.error
       jest.spyOn(console, 'error').mockImplementation();
@@ -133,7 +132,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent();
 
-      userEvent.hover(screen.getByText('Text from Child'));
+      await userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
       expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
@@ -162,7 +161,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.RELEASE);
 
-      userEvent.hover(screen.getByText('Text from Child'));
+      await userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Release/i)).toBeInTheDocument();
       expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
@@ -181,7 +180,7 @@ describe('Quick Context', function () {
 
       renderQuickContextContent(defaultRow, ContextType.EVENT);
 
-      userEvent.hover(screen.getByText('Text from Child'));
+      await userEvent.hover(screen.getByText('Text from Child'));
 
       expect(await screen.findByText(/Event ID/i)).toBeInTheDocument();
       expect(screen.getByText(/6b43e285/i)).toBeInTheDocument();

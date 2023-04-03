@@ -21,7 +21,7 @@ describe('ProjectUserFeedback', function () {
     });
   });
 
-  it('can toggle sentry branding option', function () {
+  it('can toggle sentry branding option', async function () {
     render(
       <ProjectUserFeedback
         organizatigon={org}
@@ -37,7 +37,7 @@ describe('ProjectUserFeedback', function () {
     });
 
     // Click Regenerate Token
-    userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
 
     expect(mock).toHaveBeenCalledWith(
       url,

@@ -5,7 +5,7 @@ from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
@@ -162,6 +162,7 @@ def process_commit_context(
                     extra={
                         **basic_logging_details,
                         "reason": "could_not_fetch_commit_context",
+                        "code_mappings_count": len(code_mappings),
                     },
                 )
                 return
@@ -198,33 +199,41 @@ def process_commit_context(
                         },
                     )
 
-            if not commit and new_commit:
-                context = new_commit["context"]
-                # If none of the commits exist in sentry_commit, we add the first commit we found
-                commit_author, _ = CommitAuthor.objects.get_or_create(
-                    organization_id=project.organization_id,
-                    email=context.get("commitAuthorEmail"),
-                    defaults={"name": context.get("commitAuthorName")},
-                )
-                commit = Commit.objects.create(
-                    organization_id=project.organization_id,
-                    repository_id=new_commit["repository_id"],
-                    key=context.get("commitId"),
-                    date_added=context.get("committedDate"),
-                    author=commit_author,
-                    message=context.get("message"),
-                )
+            if not commit:
+                if new_commit:
+                    context = new_commit["context"]
+                    # If none of the commits exist in sentry_commit, we add the first commit we found
+                    commit_author, _ = CommitAuthor.objects.get_or_create(
+                        organization_id=project.organization_id,
+                        email=context.get("commitAuthorEmail"),
+                        defaults={"name": context.get("commitAuthorName")},
+                    )
+                    commit = Commit.objects.create(
+                        organization_id=project.organization_id,
+                        repository_id=new_commit["repository_id"],
+                        key=context.get("commitId"),
+                        date_added=context.get("committedDate"),
+                        author=commit_author,
+                        message=context.get("message"),
+                    )
 
-                logger.info(
-                    "process_commit_context.added_commit_to_sentry_commit",
-                    extra={
-                        **basic_logging_details,
-                        "sha": new_commit.get("commitId"),
-                        "repository_id": new_commit["repository_id"],
-                        "code_mapping_id": new_commit["code_mapping_id"],
-                        "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
-                    },
-                )
+                    logger.info(
+                        "process_commit_context.added_commit_to_sentry_commit",
+                        extra={
+                            **basic_logging_details,
+                            "sha": new_commit.get("commitId"),
+                            "repository_id": new_commit["repository_id"],
+                            "code_mapping_id": new_commit["code_mapping_id"],
+                            "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
+                        },
+                    )
+                else:
+                    metrics.incr(
+                        "sentry.tasks.process_commit_context.aborted",
+                        tags={
+                            "detail": "commit_sha_does_not_exist_in_sentry",
+                        },
+                    )
 
             authors = list(CommitAuthor.objects.get_many_from_cache([commit.author_id]))
             author_to_user = get_users_for_authors(commit.organization_id, authors)
@@ -285,20 +294,19 @@ def process_commit_context(
     except UnableToAcquireLock:
         pass
     except MaxRetriesExceededError:
-        if features.has("organizations:commit-context-fallback", project.organization):
-            logger.info(
-                "process_commit_context.max_retries_exceeded",
-                extra={
-                    **basic_logging_details,
-                    "reason": "max_retries_exceeded",
-                },
-            )
+        logger.info(
+            "process_commit_context.max_retries_exceeded",
+            extra={
+                **basic_logging_details,
+                "reason": "max_retries_exceeded",
+            },
+        )
 
-            process_suspect_commits.delay(
-                event_id=event_id,
-                event_platform=event_platform,
-                event_frames=event_frames,
-                group_id=group_id,
-                project_id=project_id,
-                sdk_name=sdk_name,
-            )
+        process_suspect_commits.delay(
+            event_id=event_id,
+            event_platform=event_platform,
+            event_frames=event_frames,
+            group_id=group_id,
+            project_id=project_id,
+            sdk_name=sdk_name,
+        )
