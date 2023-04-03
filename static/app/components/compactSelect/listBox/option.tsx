@@ -28,6 +28,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
     leadingItems,
     trailingItems,
     priority,
+    hideCheck,
     tooltip,
     tooltipOptions,
     selectionMode,
@@ -36,11 +37,8 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
     ? selectionMode === 'multiple'
     : listState.selectionManager.selectionMode === 'multiple';
 
-  const {optionProps, labelProps, isSelected, isFocused, isDisabled} = useOption(
-    {key: item.key, 'aria-label': item['aria-label']},
-    listState,
-    ref
-  );
+  const {optionProps, labelProps, isSelected, isFocused, isDisabled, isPressed} =
+    useOption({key: item.key, 'aria-label': item['aria-label']}, listState, ref);
 
   const optionPropsMemo = useMemo(
     () => optionProps,
@@ -57,24 +55,31 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
 
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
+
+    if (hideCheck && !leadingItems) {
+      return null;
+    }
+
     return (
       <Fragment>
-        <CheckWrap multiple={multiple} isSelected={isSelected} aria-hidden="true">
-          {multiple ? (
-            <Checkbox
-              size={checkboxSize}
-              checked={isSelected}
-              disabled={isDisabled}
-              readOnly
-            />
-          ) : (
-            isSelected && <IconCheckmark size={checkboxSize} />
-          )}
-        </CheckWrap>
+        {!hideCheck && (
+          <CheckWrap multiple={multiple} isSelected={isSelected} aria-hidden="true">
+            {multiple ? (
+              <Checkbox
+                size={checkboxSize}
+                checked={isSelected}
+                disabled={isDisabled}
+                readOnly
+              />
+            ) : (
+              isSelected && <IconCheckmark size={checkboxSize} />
+            )}
+          </CheckWrap>
+        )}
         {leadingItems}
       </Fragment>
     );
-  }, [multiple, isSelected, isDisabled, size, leadingItems]);
+  }, [multiple, isSelected, isDisabled, size, leadingItems, hideCheck]);
 
   return (
     <MenuListItem
@@ -84,6 +89,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
       label={label}
       details={details}
       disabled={isDisabled}
+      isPressed={isPressed}
       isSelected={isSelected}
       isFocused={listState.selectionManager.isFocused && isFocused}
       priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}

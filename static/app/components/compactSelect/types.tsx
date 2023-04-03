@@ -1,6 +1,14 @@
 import {SelectValue} from 'sentry/types';
 
-export interface SelectOption<Value extends React.Key> extends SelectValue<Value> {}
+export interface SelectOption<Value extends React.Key> extends SelectValue<Value> {
+  /**
+   * Whether to hide the checkbox/checkmark. Available for backward compatibility only.
+   * If true, an alternative selection state indicator must be present.
+   *
+   * @deprecated
+   */
+  hideCheck?: boolean;
+}
 
 export interface SelectSection<Value extends React.Key> {
   options: SelectOption<Value>[];

@@ -117,6 +117,12 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
     opacity: 0;
     pointer-events: none;
   `}
+
+  li[role="rowgroup"]:hover &,
+  li[role="presentation"]:hover & {
+    opacity: 1;
+    pointer-events: all;
+  }
 `;
 
 export const SectionSeparator = styled('li')`
