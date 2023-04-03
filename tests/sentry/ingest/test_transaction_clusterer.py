@@ -297,3 +297,43 @@ def test_transaction_clusterer_generates_rules(default_project):
                 "redaction": {"method": "replace", "substitution": "*"},
             },
         ]
+
+
+@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch(
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
+    wraps=cluster_projects,  # call immediately
+)
+@pytest.mark.django_db
+def test_transaction_clusterer_bumps_rules(_m, default_organization):
+    with Feature({"organizations:transaction-name-clusterer": True}):
+        project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+        project1.save()
+        for i in range(10):
+            _store_transaction_name(project1, f"/user/tx-{project1.name}-{i}/settings")
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
+            spawn_clusterers()
+
+        assert _get_rules(project1) == {"/user/*/**": 1}
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 2):
+            record_transaction_name(
+                project1,
+                {
+                    "transaction": "/user/*/settings",
+                    "transaction_info": {"source": "sanitized"},
+                    "_meta": {
+                        "transaction": {
+                            "": {
+                                "rem": [["int", "s", 0, 0], ["/user/*/**", "s"]],
+                                "val": "/user/tx-project1-pi/settings",
+                            }
+                        }
+                    },
+                },
+            )
+
+        assert _get_rules(project1) == {"/user/*/**": 2}
