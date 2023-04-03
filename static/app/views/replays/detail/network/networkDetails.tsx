@@ -26,7 +26,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
     'n_detail_row',
     ''
   );
-  const {getParamValue: getDetailTab} = useUrlParams('n_details_tab', 'request');
+  const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'request');
   const itemIndex = getDetailRow();
 
   const item = itemIndex ? (items[itemIndex] as NetworkSpan) : null;
