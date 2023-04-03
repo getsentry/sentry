@@ -264,19 +264,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_providerName(self, value):
-        if value not in (
-            "github",
-            "google",
-            "saml2",
-            "auth0",
-            "jumpcloud",
-            "okta",
-            "onelogin",
-            "rippling",
-        ):
-            raise serializers.ValidationError(
-                "providerName must be one of github, google, saml2, auth0, jumpcloud, okta, onelogin, or rippling"
-            )
+        from sentry.auth import manager
+
+        if not manager.exists(value):
+            raise serializers.ValidationError("Invalid providerName")
         return value
 
     def validate(self, attrs):
@@ -405,10 +396,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if "providerName" in data and "providerConfig" in data:
             provider_name = data["providerName"]
             provider_config = data["providerConfig"]
-            AuthProvider.objects.update_or_create(
-                organization=org,
-                defaults={"provider": provider_name, "config": provider_config},
-            )
+            auth_provider = AuthProvider.objects.update_or_create(
+                organization_id=org.id,
+                defaults={"provider": provider_name},
+            )[0]
+            provider = auth_provider.get_provider()
+            config = provider.build_config(provider_config)
+            auth_provider.update(config=config)
 
         org_tracked_field = {
             "name": org.name,
