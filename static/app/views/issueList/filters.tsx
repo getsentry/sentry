@@ -43,11 +43,7 @@ const SearchContainer = styled('div')`
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: 100%;
-  max-width: 40rem;
-
-  > div > button {
-    width: 100%;
-  }
+  max-width: 43rem;
 `;
 
 export default IssueListFilters;
