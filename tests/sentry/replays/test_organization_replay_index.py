@@ -922,11 +922,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.textContent:Hello",
                 "replay_click.title:MyTitle",
                 "replay_click.selector:div#myid",
-                # No quotes around button.
+                "replay_click.selector:div[alt=Alt]",
+                "replay_click.selector:div[title=MyTitle]",
+                "replay_click.selector:div[data-testid='1']",
                 "replay_click.selector:div[role=button]",
-                # Single quotes around button.
-                "replay_click.selector:div[role='button']",
                 "replay_click.selector:div#myid.class1.class2",
+                # Single quotes around attribute value.
+                "replay_click.selector:div[role='button']",
                 "replay_click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
             ]
             for query in queries:
@@ -951,6 +953,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.selector:div#myid.class1.class2.class3",
                 # Invalid selectors return no rows.
                 "replay_click.selector:$#%^#%",
+                # Integer type role values are not allowed and must be wrapped in single quotes.
+                "replay_click.selector:div[title=1]",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
