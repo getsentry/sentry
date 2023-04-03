@@ -111,6 +111,8 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
         data = deepcopy(data)
         data["payload"]["values"] = data["payload"]["result"]
+        data["payload"].pop("result")
+        data["payload"].pop("request")
         data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
             tzinfo=pytz.utc
         )
