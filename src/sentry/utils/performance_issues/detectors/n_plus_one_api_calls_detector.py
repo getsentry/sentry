@@ -276,6 +276,18 @@ HTTP_METHODS = {
 }
 
 
+def get_span_hash(span: Span) -> Optional[str]:
+    parts = remove_http_client_query_string_strategy(span)
+    if not parts:
+        return None
+
+    hash = hashlib.md5()
+    for part in parts:
+        hash.update(force_bytes(part, errors="replace"))
+
+    return hash.hexdigest()[:16]
+
+
 def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[str]]:
     """
     This is an inline version of the `http.client` parameterization code in
@@ -298,18 +310,6 @@ def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[st
 
     url = urlparse(url_str)
     return [method, url.scheme, url.netloc, url.path]
-
-
-def get_span_hash(span: Span) -> Optional[str]:
-    parts = remove_http_client_query_string_strategy(span)
-    if not parts:
-        return None
-
-    hash = hashlib.md5()
-    for part in parts:
-        hash.update(force_bytes(part, errors="replace"))
-
-    return hash.hexdigest()[:16]
 
 
 def without_query_params(url: str) -> str:
