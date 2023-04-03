@@ -276,7 +276,10 @@ HTTP_METHODS = {
 
 def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[str]]:
     """
-    This is an inline version of the `http.client` parameterization code in `"default:2022-10-27"`, the default span grouping strategy at time of writing. It's inlined here to insulate this detector from changes in the strategy, which are coming soon.
+    This is an inline version of the `http.client` parameterization code in
+    `"default:2022-10-27"`, the default span grouping strategy at time of
+    writing. It's inlined here to insulate this detector from changes in the
+    strategy, which are coming soon.
     """
 
     # Check the description is of the form `<HTTP METHOD> <URL>`
