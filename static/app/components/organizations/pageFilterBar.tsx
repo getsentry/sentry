@@ -52,7 +52,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
     }
 
     /* Prevent date filter from shrinking below 6.5rem */
-    &:nth-last-child(2) {
+    &:last-child {
       min-width: 6.5rem;
     }
   }

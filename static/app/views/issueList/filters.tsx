@@ -46,6 +46,18 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   flex-basis: content;
   width: 100%;
   max-width: 43rem;
+  align-self: flex-start;
+
+  & > * {
+    /* Prevent date filter from shrinking below 6.5rem */
+    &:nth-last-child(2) {
+      min-width: 6.5rem;
+    }
+
+    &:last-child {
+      min-width: 0;
+    }
+  }
 `;
 
 export default IssueListFilters;
