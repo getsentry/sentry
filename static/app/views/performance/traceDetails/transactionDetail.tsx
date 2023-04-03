@@ -55,9 +55,9 @@ class TransactionDetail extends Component<Props> {
 
   renderTransactionErrors() {
     const {organization, transaction} = this.props;
-    const {errors} = transaction;
+    const {errors, performance_issues} = transaction;
 
-    if (errors.length === 0) {
+    if (errors.length + performance_issues.length === 0) {
       return null;
     }
 
@@ -65,7 +65,7 @@ class TransactionDetail extends Component<Props> {
       <Alert
         system
         type="error"
-        expand={errors.map(error => (
+        expand={[...errors, ...performance_issues].map(error => (
           <ErrorMessageContent key={error.event_id}>
             <ErrorDot level={error.level} />
             <ErrorLevel>{error.level}</ErrorLevel>
@@ -79,9 +79,9 @@ class TransactionDetail extends Component<Props> {
       >
         <ErrorMessageTitle>
           {tn(
-            '%s error event occurred in this transaction.',
-            '%s error events occurred in this transaction.',
-            errors.length
+            '%s issue occurred in this transaction.',
+            '%s issues occurred in this transaction.',
+            errors.length + performance_issues.length
           )}
         </ErrorMessageTitle>
       </Alert>

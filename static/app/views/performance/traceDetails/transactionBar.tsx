@@ -14,7 +14,7 @@ import {
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
   RowCell,
@@ -429,7 +429,10 @@ class TransactionBar extends Component<Props, State> {
   renderErrorBadge() {
     const {transaction} = this.props;
 
-    if (!isTraceFullDetailed(transaction) || !transaction.errors.length) {
+    if (
+      !isTraceFullDetailed(transaction) ||
+      !(transaction.errors.length + transaction.performance_issues.length)
+    ) {
       return null;
     }
 
@@ -440,7 +443,7 @@ class TransactionBar extends Component<Props, State> {
     const {transaction, traceInfo, barColor} = this.props;
     const {showDetail} = this.state;
 
-    // Use 1 as the difference in the event that startTimestamp === endTimestamp
+    // Use 1 as the difference in the case that startTimestamp === endTimestamp
     const delta = Math.abs(traceInfo.endTimestamp - traceInfo.startTimestamp) || 1;
     const startPosition = Math.abs(
       transaction.start_timestamp - traceInfo.startTimestamp
@@ -457,6 +460,7 @@ class TransactionBar extends Component<Props, State> {
           width: toPercent(widthPercentage || 0),
         }}
       >
+        {this.renderPerformanceIssues()}
         <DurationPill
           durationDisplay={getDurationDisplay({
             left: startPercentage,
@@ -468,6 +472,35 @@ class TransactionBar extends Component<Props, State> {
         </DurationPill>
       </RowRectangle>
     );
+  }
+
+  renderPerformanceIssues() {
+    const {transaction, barColor} = this.props;
+    if (!isTraceFullDetailed(transaction)) {
+      return null;
+    }
+
+    const rows: React.ReactElement[] = [];
+    // Use 1 as the difference in the case that startTimestamp === endTimestamp
+    const delta = Math.abs(transaction.timestamp - transaction.start_timestamp) || 1;
+    for (let i = 0; i < transaction.performance_issues.length; i++) {
+      const issue = transaction.performance_issues[i];
+      const startPosition = Math.abs(issue.start - transaction.start_timestamp);
+      const startPercentage = startPosition / delta;
+      const duration = Math.abs(issue.end - issue.start);
+      const widthPercentage = duration / delta;
+      rows.push(
+        <RowRectangle
+          style={{
+            backgroundColor: barColor,
+            left: `min(${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
+            width: toPercent(widthPercentage || 0),
+          }}
+          spanBarType={SpanBarType.AFFECTED}
+        />
+      );
+    }
+    return rows;
   }
 
   renderHeader({

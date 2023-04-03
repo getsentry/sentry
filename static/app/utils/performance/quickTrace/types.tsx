@@ -36,7 +36,9 @@ export type TraceError = {
 
 export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
   culprit: string;
+  end: number;
   span: string[];
+  start: number;
   suspect_spans: string[];
   type: number;
   issue_short_id?: string;
