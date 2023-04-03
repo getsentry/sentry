@@ -1,0 +1,15 @@
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/workflows/bump-version.yml
+        with:
+          package: sentry-kafka-schemas
+          version: latest
+          # TODO: we'd like to auto-assign SNS to the PR, but the BUMP_TOKEN
+          # does not have permissions
