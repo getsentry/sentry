@@ -24,7 +24,9 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
     def now(self):
         return MOCK_DATETIME
 
-    def create_project_and_add_metrics(self, name, count, org):
+    def create_project_and_add_metrics(self, name, count, org, tags=None):
+        if tags is None:
+            tags = {"transaction": "foo_transaction"}
         # Create 4 projects
         proj = self.create_project(name=name, organization=org)
 
@@ -42,7 +44,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         # Store performance metrics for proj A
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction"},
+            tags=tags,
             minutes_before_now=30,
             value=count,
             project_id=proj.id,
@@ -82,6 +84,42 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
             "value": pytest.approx(0.4444444444444444),
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    def test_prioritise_projects_simple_three_projects(self, get_blended_sample_rate):
+        get_blended_sample_rate.return_value = 0.5
+        # Create a org
+        test_org = self.create_organization(name="sample-org-2")
+
+        # Create 3 projects and emulate oversampling
+        proj_a = self.create_project_and_add_metrics(
+            "a", 5, test_org, tags={"transaction": "name", "decision": "keep"}
+        )
+        proj_b = self.create_project_and_add_metrics(
+            "b", 4, test_org, tags={"transaction": "name", "decision": "keep"}
+        )
+        proj_c = self.create_project_and_add_metrics(
+            "c", 3, test_org, tags={"transaction": "name", "decision": "keep"}
+        )
+
+        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+            with self.tasks():
+                prioritise_projects()
+        # we expect only uniform rule
+        # also we test here that `generate_rules` can handle trough redis long floats
+        with self.feature(["organizations:ds-apply-actual-sample-rate-to-biases"]):
+            assert generate_rules(proj_a)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 0.36,  # originally adjusted_sample_rate = 0.4, but since we are oversampling
+            }
+            assert generate_rules(proj_b)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 0.45,  # originally adjusted_sample_rate = 0.5, but since we are oversampling
+            }
+            assert generate_rules(proj_c)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 0.6,  # originally adjusted_sample_rate = 0.66, but since we are oversampling
+            }
 
 
 @freeze_time(MOCK_DATETIME)
