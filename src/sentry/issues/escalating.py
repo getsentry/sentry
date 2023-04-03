@@ -45,6 +45,7 @@ def _generate_query(groups: List[Group], offset: int) -> Query:
     project_ids, group_ids = _extract_project_and_group_ids(groups)
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
+    start_date, end_date = _start_and_end_dates()
     return Query(
         match=Entity("events"),
         select=[
@@ -57,8 +58,8 @@ def _generate_query(groups: List[Group], offset: int) -> Query:
         where=[
             Condition(proj_id_col, Op.IN, Function("tuple", project_ids)),
             Condition(Column("group_id"), Op.IN, Function("tuple", group_ids)),
-            Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
-            Condition(Column("timestamp"), Op.LT, datetime.today()),
+            Condition(Column("timestamp"), Op.GTE, start_date),
+            Condition(Column("timestamp"), Op.LT, end_date),
         ],
         limit=Limit(QUERY_LIMIT),
         offset=Offset(offset),
@@ -70,6 +71,15 @@ def _generate_query(groups: List[Group], offset: int) -> Query:
             OrderBy(Column("hourBucket"), Direction.ASC),
         ],
     )
+
+
+# XXX: Add unit tests
+def _start_and_end_dates(hours: int = 168) -> Tuple[datetime, datetime]:
+    """Return start and end date based on the last hour.
+    This will ensure that when we query Snuba we will have N buckets of an hour
+    without missing any minutes of it."""
+    datetime_to_minute_zero = datetime.now().replace(minute=0, second=0, microsecond=0)
+    return datetime_to_minute_zero - timedelta(hours=hours), datetime_to_minute_zero
 
 
 def _extract_project_and_group_ids(groups: List[Group]) -> Tuple[List[int], List[int]]:

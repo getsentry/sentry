@@ -37,7 +37,8 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         )
 
     def test_query_single_group(self) -> None:
-        event = self._load_event_for_group()
+        # XXX: Adjust test to handle events within current hour
+        event = self._load_event_for_group(minutes_ago=60)
         assert query_groups_past_counts(Group.objects.all()) == [
             {
                 "count()": 1,
@@ -48,7 +49,8 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         ]
 
     def test_query_multiple_groups_same_project(self) -> None:
-        event1 = self._load_event_for_group(fingerprint="group-1")
+        # XXX: Adjust test to handle events within current hour
+        event1 = self._load_event_for_group(fingerprint="group-1", minutes_ago=60)
         group_1_id = event1.group_id
         # one event in its own hour and two in another
         event2 = self._load_event_for_group(fingerprint="group-2", minutes_ago=120)
