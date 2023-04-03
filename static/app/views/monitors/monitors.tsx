@@ -69,7 +69,7 @@ class Monitors extends AsyncView<Props, State> {
     return [
       [
         'monitorList',
-        `/organizations/${this.orgSlug}/monitors/`,
+        `/organizations/${this.orgSlug}/monitors/?includeNew`,
         {
           query: location.query,
         },
