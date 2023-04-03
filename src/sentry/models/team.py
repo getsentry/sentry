@@ -155,7 +155,7 @@ class Team(Model):
     actor = FlexibleForeignKey(
         "sentry.Actor",
         related_name="team_from_actor",
-        db_index=False,
+        db_index=True,
         unique=False,
         null=True,
     )
