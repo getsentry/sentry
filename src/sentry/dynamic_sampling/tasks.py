@@ -94,9 +94,8 @@ def adjust_sample_rates(
     so relay can reread it, and we'll inject it from redis cache.
     """
     projects = []
-    project_ids_with_counts = {}
-    # TODO: replace it in another PR with calculating actual sample rate
     Counter = namedtuple("Counter", ["count", "count_keep", "count_drop"])
+    project_ids_with_counts = {}
     for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
         project_ids_with_counts[project_id] = Counter(count_per_root, count_keep, count_drop)
 
@@ -132,8 +131,8 @@ def adjust_sample_rates(
             )
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
-            _, count_keep, count_drop = project_ids_with_counts[ds_project.id]
-            if (rate := actual_sample_rate(count_keep, count_drop)) != 0:
+            counter = project_ids_with_counts[int(ds_project.id)]
+            if (rate := actual_sample_rate(counter.count_keep, counter.count_drop)) != 0:
                 actual_rate_cache_key = _generate_cache_key_actual_rate(org_id)
                 pipeline.hset(actual_rate_cache_key, ds_project.id, rate)
                 pipeline.pexpire(actual_rate_cache_key, CACHE_KEY_TTL)
