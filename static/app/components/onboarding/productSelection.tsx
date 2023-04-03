@@ -21,14 +21,14 @@ export enum PRODUCT {
 
 type Props = {
   defaultSelectedProducts?: PRODUCT[];
-  dontUseLazyLoader?: () => void;
   lazyLoader?: boolean;
+  skipLazyLoader?: () => void;
 };
 
 export function ProductSelection({
   defaultSelectedProducts,
   lazyLoader,
-  dontUseLazyLoader,
+  skipLazyLoader,
 }: Props) {
   const router = useRouter();
   const products = decodeList(router.location.query.product);
@@ -153,7 +153,7 @@ export function ProductSelection({
             npm: <strong>npm</strong>,
             yarn: <strong>yarn</strong>,
             goHere: (
-              <Button onClick={dontUseLazyLoader} priority="link">
+              <Button onClick={skipLazyLoader} priority="link">
                 {t('Go here')}
               </Button>
             ),

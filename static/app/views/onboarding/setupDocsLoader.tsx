@@ -126,7 +126,7 @@ export function SetupDocsLoader({
       <ProductSelection
         defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
         lazyLoader
-        dontUseLazyLoader={close}
+        skipLazyLoader={close}
       />
 
       {projectKeyUpdateError && (
