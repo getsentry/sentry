@@ -53,9 +53,9 @@ function SubscriptionBox({
   }
 
   const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
-    // Swap ignored for escalating if the feature is enabled
+    // Swap ignored for archived if the feature is enabled
     issue: `created, resolved, assigned, ${
-      features.includes('escalating-issues') ? 'escalating' : 'ignored'
+      features.includes('escalating-issues') ? 'archived' : 'ignored'
     }`,
     error: 'created',
     comment: 'created, edited, deleted',
