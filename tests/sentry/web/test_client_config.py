@@ -83,7 +83,7 @@ def make_user_request_from_org_with_auth_identities(org=None):
     request, user = make_user_request_from_org(org)
     org = user.get_orgs()[0]
     provider = AuthProvider.objects.create(
-        organization=org, provider="google", config={"domain": "olddomain.com"}
+        organization_id=org.id, provider="google", config={"domain": "olddomain.com"}
     )
     AuthIdentity.objects.create(user=user, auth_provider=provider, ident="me@google.com", data={})
     return request, user

@@ -41,7 +41,9 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
 
     Returns a tuple of (has_codecov_integration, error_message)
     """
-    integrations = Integration.objects.filter(organizations=organization.id, provider="github")
+    integrations = Integration.objects.filter(
+        organizationintegration__organization_id=organization.id, provider="github"
+    )
     if not integrations.exists():
         logger.info(
             "codecov.get_integrations",

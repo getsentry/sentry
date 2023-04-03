@@ -4,12 +4,14 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import TYPE_CHECKING, List, Optional, cast
 
-from sentry.models.identity import Identity, IdentityProvider
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models.identity import Identity, IdentityProvider
 
 
 class RpcIdentityProvider(RpcModel):
@@ -36,7 +38,7 @@ class IdentityService(RpcService):
         return DatabaseBackedIdentityService()
 
     def _serialize_identity_provider(
-        self, identity_provider: IdentityProvider
+        self, identity_provider: "IdentityProvider"
     ) -> RpcIdentityProvider:
         return RpcIdentityProvider(
             id=identity_provider.id,
@@ -44,7 +46,7 @@ class IdentityService(RpcService):
             external_id=identity_provider.external_id,
         )
 
-    def _serialize_identity(self, identity: Identity) -> RpcIdentity:
+    def _serialize_identity(self, identity: "Identity") -> RpcIdentity:
         return RpcIdentity(
             id=identity.id,
             idp_id=identity.idp_id,
@@ -95,6 +97,17 @@ class IdentityService(RpcService):
         Returns a list of APIIdentities for a given user based on idp.type (provider_type).
         If exclude_matching_external_ids is True, excludes entries with
         identity.external_id == idp.external_id
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def delete_identities(self, user_id: int, organization_id: int) -> None:
+        """
+        Deletes the set of identities associated with a user and organization context.
+        :param user_id:
+        :param organization_id:
+        :return:
         """
         pass
 

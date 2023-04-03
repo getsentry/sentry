@@ -15,7 +15,7 @@ class UserIdentityConfigTest(APITestCase):
         self.google_idp = IdentityProvider.objects.create(type="google", external_id="C", config={})
 
         self.org_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
 
         self.login_as(self.user)

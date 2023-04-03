@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from typing import Any, Mapping, Optional, Sequence
 
@@ -12,14 +14,15 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import Integration, NotificationSetting, Organization, User
+from sentry.models import Integration, Organization
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations.slack import link_slack_user_identities
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 
+from ...services.hybrid_cloud.notifications import notifications_service
+from ...services.hybrid_cloud.organization import RpcUserOrganizationContext, organization_service
 from .client import SlackClient
 from .notifications import SlackNotifyBasicMixin
 from .utils import logger
@@ -81,13 +84,14 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type:
         if this is their ONLY Slack integration, set their parent-independent
         Slack notification setting to NEVER.
         """
-        provider = ExternalProviders.SLACK
-        organization = Organization.objects.get(id=self.organization_id)
-        users = User.objects.get_users_with_only_one_integration_for_provider(
-            provider, organization
+        org_context: RpcUserOrganizationContext | None = (
+            organization_service.get_organization_by_id(id=self.organization_id, user_id=None)
         )
-        NotificationSetting.objects.remove_parent_settings_for_organization(organization, provider)
-        NotificationSetting.objects.disable_settings_for_users(provider, users)
+        if org_context:
+            notifications_service.uninstall_slack_settings(
+                organization_id=self.organization_id,
+                project_ids=[p.id for p in org_context.organization.projects],
+            )
 
 
 class SlackIntegrationProvider(IntegrationProvider):  # type: ignore

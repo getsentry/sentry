@@ -227,7 +227,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
     def post_install(self, integration, organization, extra):
         default_project_id = extra["default_project_id"]
         OrganizationIntegration.objects.filter(
-            organization=organization, integration=integration
+            organization_id=organization.id, integration=integration
         ).update(config={"default_project_id": default_project_id})
 
 

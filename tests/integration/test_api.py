@@ -24,7 +24,7 @@ class AuthenticationTest(AuthProviderTestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         group_id = event.group_id
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy", flags=0
+            organization_id=self.organization.id, provider="dummy", flags=0
         )
         AuthIdentity.objects.create(auth_provider=auth_provider, user=self.user)
         self.login_as(self.user)

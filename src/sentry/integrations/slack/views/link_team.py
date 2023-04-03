@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Sequence
 
 from django import forms
@@ -10,7 +12,7 @@ from sentry.models import ExternalActor, Integration, OrganizationMember, Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
@@ -33,7 +35,11 @@ SUCCESS_LINKED_MESSAGE = (
 
 
 def build_team_linking_url(
-    integration: Integration, slack_id: str, channel_id: str, channel_name: str, response_url: str
+    integration: Integration | RpcIntegration,
+    slack_id: str,
+    channel_id: str,
+    channel_name: str,
+    response_url: str,
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-link-team",

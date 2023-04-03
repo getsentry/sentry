@@ -77,7 +77,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user=user,
+        user_id=user.id if user else None,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -85,7 +85,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user=user,
+            user_id=user.id if user else None,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )
@@ -97,7 +97,7 @@ def record_raven_installed(project, user, **kwargs):
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
-        user=user,
+        user_id=user.id if user else None,
         project_id=project.id,
     )
 
@@ -135,7 +135,7 @@ def record_first_event(project, event, **kwargs):
     # this event fires once per project
     analytics.record(
         "first_event_for_project.sent",
-        user_id=user.id,
+        user_id=user.id if user else None,
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
@@ -148,7 +148,7 @@ def record_first_event(project, event, **kwargs):
         # this event only fires once per org
         analytics.record(
             "first_event.sent",
-            user_id=user.id,
+            user_id=user.id if user else None,
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
@@ -179,7 +179,7 @@ def record_first_event(project, event, **kwargs):
         if rows_affected or created:
             analytics.record(
                 "second_platform.added",
-                user_id=user.id,
+                user_id=user.id if user else None,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
@@ -327,7 +327,7 @@ def record_release_received(project, event, **kwargs):
 
         analytics.record(
             "first_release_tag.sent",
-            user_id=user.id,
+            user_id=user.id if user else None,
             project_id=project.id,
             organization_id=project.organization_id,
         )
@@ -366,7 +366,7 @@ def record_user_context_received(project, event, **kwargs):
 
             analytics.record(
                 "first_user_context.sent",
-                user_id=user.id,
+                user_id=user.id if user else None,
                 organization_id=project.organization_id,
                 project_id=project.id,
             )
@@ -403,7 +403,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         ):
             analytics.record(
                 "first_event_with_minified_stack_trace_for_project.sent",
-                user_id=user.id,
+                user_id=user.id if user else None,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
@@ -437,7 +437,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             return
         analytics.record(
             "first_sourcemaps.sent",
-            user_id=user.id,
+            user_id=user.id if user else None,
             organization_id=project.organization_id,
             project_id=project.id,
         )
@@ -456,7 +456,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         organization_id=project.organization_id,
         task=task,
         status=status,
-        user=user,
+        user_id=user.id if user else None,
         project_id=project.id,
         data={"plugin": plugin.slug},
     )
@@ -465,7 +465,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
     analytics.record(
         "plugin.enabled",
-        user_id=user.id,
+        user_id=user.id if user else None,
         organization_id=project.organization_id,
         project_id=project.id,
         plugin=plugin.slug,
@@ -498,7 +498,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user": user,
+            "user_id": user.id,
             "project_id": project.id,
             "date_completed": timezone.now(),
             "data": {"plugin": plugin.slug},

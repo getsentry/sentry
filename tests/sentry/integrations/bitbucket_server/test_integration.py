@@ -264,7 +264,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         assert integration.metadata["verify_ssl"] is False
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert org_integration.config == {}
 

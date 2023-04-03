@@ -75,7 +75,7 @@ def send_incident_alert_notification(
 
     try:
         install = SentryAppInstallation.objects.get(
-            organization=organization.id,
+            organization_id=organization.id,
             sentry_app=sentry_app,
             status=SentryAppInstallationStatus.INSTALLED,
         )

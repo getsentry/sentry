@@ -124,7 +124,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             "include_subgroups": True,
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -544,7 +544,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
             "include_subgroups": False,
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 

@@ -134,7 +134,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
             "sentry_app_installation.updated",
             sentry_app_installation_id=self.installation.id,
             sentry_app_id=self.installation.sentry_app.id,
-            organization_id=self.installation.organization.id,
+            organization_id=self.installation.organization_id,
         )
 
     def test_sentry_app_installation_mark_pending_status(self):

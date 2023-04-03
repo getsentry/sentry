@@ -12,7 +12,9 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = Integration.objects.get(
-                organizations=organization, id=integration_id, provider="gitlab"
+                organizationintegration__organization_id=organization.id,
+                id=integration_id,
+                provider="gitlab",
             )
         except Integration.DoesNotExist:
             return Response(status=404)

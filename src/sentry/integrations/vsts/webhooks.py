@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.models import Integration
 from sentry.utils.email import parse_email
@@ -114,16 +115,18 @@ def handle_status_change(
     if status_change is None:
         return
 
-    for installation in integration.get_installations():
-        installation.sync_status_inbound(
-            external_issue_key,
-            {
-                "new_state": status_change["newValue"],
-                # old_state is None when the issue is New
-                "old_state": status_change.get("oldValue"),
-                "project": project,
-            },
-        )
+    for org_id in integration.organizationintegration_set.values_list("organization_id", flat=True):
+        installation = integration.get_installation(organization_id=org_id)
+        if isinstance(installation, IssueSyncMixin):
+            installation.sync_status_inbound(
+                external_issue_key,
+                {
+                    "new_state": status_change["newValue"],
+                    # old_state is None when the issue is New
+                    "old_state": status_change.get("oldValue"),
+                    "project": project,
+                },
+            )
 
 
 def handle_updated_workitem(data: Mapping[str, Any], integration: Integration) -> None:

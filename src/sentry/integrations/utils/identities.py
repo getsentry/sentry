@@ -30,9 +30,9 @@ def get_identity_or_404(
         provider_ext_id=integration.external_id, provider_type=EXTERNAL_PROVIDERS[provider]
     )
 
-    qs = OrganizationMember.objects.get_for_integration(integration, user)
-    if organization_id:
-        qs = qs.filter(organization_id=organization_id)
+    qs = OrganizationMember.objects.get_for_integration(
+        integration, user, organization_id=organization_id
+    )
     organization = qs.first().organization if qs else None
     if organization is None:
         raise Http404

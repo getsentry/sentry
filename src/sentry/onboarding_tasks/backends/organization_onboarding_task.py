@@ -11,7 +11,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
     Model = OrganizationOnboardingTask
 
     def fetch_onboarding_tasks(self, organization, user):
-        return self.Model.objects.filter(organization=organization).select_related("user")
+        return self.Model.objects.filter(organization=organization)
 
     def create_or_update_onboarding_task(self, organization, user, task, values):
         return self.Model.objects.create_or_update(

@@ -83,7 +83,7 @@ def handle_status_change(integration, data):
         )
         return
 
-    for org_id in integration.organizations.values_list("id", flat=True):
+    for org_id in integration.organizationintegration_set.values_list("organization_id", flat=True):
         installation = integration.get_installation(org_id)
 
         installation.sync_status_inbound(

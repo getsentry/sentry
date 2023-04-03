@@ -63,12 +63,12 @@ class Rule(Model):
         return rules_list
 
     @property
-    def created_by(self):
+    def created_by_id(self):
         try:
             created_activity = RuleActivity.objects.get(
                 rule=self, type=RuleActivityType.CREATED.value
             )
-            return created_activity.user
+            return created_activity.user_id
         except RuleActivity.DoesNotExist:
             pass
 

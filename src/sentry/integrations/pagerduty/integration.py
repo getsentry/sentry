@@ -150,7 +150,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(
-                integration=integration, organization=organization
+                integration=integration, organization_id=organization.id
             )
         except OrganizationIntegration.DoesNotExist:
             logger.exception("The PagerDuty post_install step failed.")

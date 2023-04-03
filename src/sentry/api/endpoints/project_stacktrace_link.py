@@ -190,7 +190,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
         result: JSONData = {"config": None, "sourceUrl": None}
 
-        integrations = Integration.objects.filter(organizations=project.organization_id)
+        integrations = Integration.objects.filter(
+            organizationintegration__organization_id=project.organization_id
+        )
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [

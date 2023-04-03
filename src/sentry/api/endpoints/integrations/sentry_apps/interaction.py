@@ -32,7 +32,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
             model=tsdb.models.sentry_app_viewed,
             keys=[sentry_app.id],
             **self._parse_args(request),
-            tenant_ids={"organization_id": sentry_app.owner.id},
+            tenant_ids={"organization_id": sentry_app.owner_id},
         )[sentry_app.id]
 
         component_interactions = tsdb.get_range(
@@ -42,7 +42,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
                 for component in sentry_app.components.all()
             ],
             **self._parse_args(request),
-            tenant_ids={"organization_id": sentry_app.owner.id},
+            tenant_ids={"organization_id": sentry_app.owner_id},
         )
 
         return Response(

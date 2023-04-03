@@ -14,6 +14,7 @@ from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
 from sentry.mediators import InstallationNotifier
 from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 
@@ -27,8 +28,17 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
     @catch_raised_errors
     def put(self, request: Request, sentry_app) -> Response:
-        if self._has_hook_events(request) and not features.has(
-            "organizations:integrations-event-hooks", sentry_app.owner, actor=request.user
+        owner_context = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=None
+        )
+        if (
+            owner_context
+            and self._has_hook_events(request)
+            and not features.has(
+                "organizations:integrations-event-hooks",
+                owner_context.organization,
+                actor=request.user,
+            )
         ):
 
             return Response(
@@ -76,7 +86,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     "user_id": request.user.id,
                     "sentry_app_id": sentry_app.id,
                     "sentry_app_name": sentry_app.name,
-                    "organization_id": sentry_app.owner.id,
+                    "organization_id": sentry_app.owner_id,
                     "error_message": error_message,
                 }
                 logger.info(name, extra=log_info)

@@ -133,7 +133,7 @@ def unfurl_discover(
         if query_id:
             try:
                 response = client.get(
-                    auth=ApiKey(organization=org, scope_list=["org:read"]),
+                    auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                     path=f"/organizations/{org_slug}/discover/saved/{query_id}/",
                 )
 
@@ -240,7 +240,7 @@ def unfurl_discover(
 
         try:
             resp = client.get(
-                auth=ApiKey(organization=org, scope_list=["org:read"]),
+                auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                 user=user,
                 path=f"/organizations/{org_slug}/{endpoint}",
                 params=params,

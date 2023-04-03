@@ -99,9 +99,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 queryset = Project.objects.filter(id=request.auth.project.id)
-            elif request.auth.organization is not None:
-                org = request.auth.organization
-                team_list = list(Team.objects.filter(organization=org))
+            elif request.auth.organization_id is not None:
+                org = request.auth.organization_id
+                team_list = list(Team.objects.filter(organization_id=org))
                 queryset = Project.objects.filter(teams__in=team_list)
             else:
                 return Response(
