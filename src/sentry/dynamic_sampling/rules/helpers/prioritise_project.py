@@ -6,6 +6,11 @@ if TYPE_CHECKING:
     from sentry.models import Project
 
 
+# We use this coeffietien to calculate new adjusted sample rate
+# as close as it can be to actual sample rate
+ADJUSTED_COEFFICIENT = 0.1
+
+
 def _generate_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:prioritise_projects"
 
@@ -24,10 +29,10 @@ def apply_actual_sample_rate(
     if actual_sample_rate < blended_sample_rate:
         # It means we are under sampling, so we can increase `adjusted_sample_rate` on 10%
         # Note: 10% selected randomly
-        return adjusted_sample_rate + (adjusted_sample_rate * 0.1)
+        return adjusted_sample_rate + (adjusted_sample_rate * ADJUSTED_COEFFICIENT)
     elif actual_sample_rate > blended_sample_rate:
         # It means we are over sampling, so we can decrease `adjusted_sample_rate` on 10%
-        return adjusted_sample_rate - (adjusted_sample_rate * 0.1)
+        return adjusted_sample_rate - (adjusted_sample_rate * ADJUSTED_COEFFICIENT)
     return adjusted_sample_rate
 
 
@@ -48,7 +53,7 @@ def get_prioritise_by_project_sample_rate(project: "Project", default_sample_rat
         actual_sample_rate = float(redis_client.hget(cache_key_actual_rate, project.id))
     except (TypeError, ValueError):
         actual_sample_rate = None
-
+    # if features.has("organizations:ds-apply-actual-sample-rate-to-biases", project.organization):
     adjusted_sample_rate = apply_actual_sample_rate(
         default_sample_rate, adjusted_sample_rate, actual_sample_rate
     )
