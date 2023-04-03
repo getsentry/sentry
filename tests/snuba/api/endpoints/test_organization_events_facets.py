@@ -632,3 +632,40 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+    def test_device_class(self):
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"device.class": "1"},
+            },
+            project_id=self.project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"device.class": "2"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"device.class": "3"},
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        expected = [
+            {"count": 1, "name": "high", "value": "high"},
+            {"count": 1, "name": "medium", "value": "medium"},
+            {"count": 1, "name": "low", "value": "low"},
+        ]
+        self.assert_facet(response, "device.class", expected)

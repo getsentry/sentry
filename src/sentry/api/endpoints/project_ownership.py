@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
@@ -11,6 +11,7 @@ from sentry.models import ProjectOwnership
 from sentry.models.project import Project
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
+from sentry.utils.audit import create_audit_entry
 
 MAX_RAW_LENGTH = 100_000
 HIGHER_MAX_RAW_LENGTH = 200_000
@@ -69,7 +70,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             self.context["ownership"].project.organization,
         ):
             schema = create_schema_from_issue_owners(
-                attrs["raw"], self.context["ownership"].project_id, True
+                attrs["raw"], self.context["ownership"].project_id, add_owner_ids=True
             )
         else:
             schema = create_schema_from_issue_owners(
@@ -169,7 +170,9 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             and ownership.schema.get("rules")
             and "id" not in ownership.schema["rules"][0]["owners"][0].keys()
         ):
-            ownership.schema = create_schema_from_issue_owners(ownership.raw, project.id, True)
+            ownership.schema = create_schema_from_issue_owners(
+                ownership.raw, project.id, add_owner_ids=True, remove_deleted_owners=True
+            )
             ownership.save()
 
     def rename_schema_identifier_for_parsing(self, ownership: ProjectOwnership) -> None:
@@ -177,7 +180,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         Rename the attribute "identifier" to "name" in the schema response so that it can be parsed
         in the frontend
 
-        `rules`: List of rules from the schema
+        `ownership`: The ownership containing the schema with the rules that will be renamed
         """
         if hasattr(ownership, "schema") and ownership.schema and ownership.schema.get("rules"):
             for rule in ownership.schema["rules"]:
@@ -217,6 +220,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         :param string raw: Raw input for ownership configuration.
         :param boolean fallthrough: Indicate if there is no match on explicit rules,
                                     to fall through and make everyone an implicit owner.
+
+        :param autoAssignment: String detailing automatic assignment setting
         :auth: required
         """
         should_return_schema = features.has(
@@ -227,6 +232,14 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         )
         if serializer.is_valid():
             ownership = serializer.save()
+            create_audit_entry(
+                request=self.request,
+                actor=request.user,
+                organization=project.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                data={**serializer.validated_data, **project.get_audit_log_data()},
+            )
             ownership_rule_created.send_robust(project=project, sender=self.__class__)
             return Response(
                 serialize(ownership, request.user, should_return_schema=should_return_schema)

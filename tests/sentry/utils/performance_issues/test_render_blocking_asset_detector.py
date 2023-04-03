@@ -11,9 +11,9 @@ from sentry.testutils.performance_issues.event_generators import (
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.detectors import RenderBlockingAssetSpanDetector
 from sentry.utils.performance_issues.performance_detection import (
     PerformanceProblem,
-    RenderBlockingAssetSpanDetector,
     get_detection_settings,
     run_detector_on_data,
 )
@@ -79,6 +79,8 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -144,6 +146,8 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 

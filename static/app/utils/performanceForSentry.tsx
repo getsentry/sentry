@@ -1,9 +1,17 @@
 import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
-import {captureException, captureMessage} from '@sentry/react';
+import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {IdleTransaction} from '@sentry/tracing';
-import {Transaction, TransactionEvent} from '@sentry/types';
-import {browserPerformanceTimeOrigin, timestampWithMs} from '@sentry/utils';
+import {
+  type MeasurementUnit,
+  type Transaction,
+  type TransactionEvent,
+} from '@sentry/types';
+import {
+  _browserPerformanceTimeOriginMode,
+  browserPerformanceTimeOrigin,
+  timestampWithMs,
+} from '@sentry/utils';
 
 import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
 
@@ -109,80 +117,7 @@ export class PerformanceInteraction {
   }
 }
 
-export class LongTaskObserver {
-  private static observer: PerformanceObserver;
-  private static longTaskCount = 0;
-  private static longTaskDuration = 0;
-  private static lastTransaction: IdleTransaction | Transaction | undefined;
-
-  static setLongTaskData(t: IdleTransaction | Transaction) {
-    const group =
-      [
-        1, 2, 5, 10, 25, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1001,
-      ].find(n => LongTaskObserver.longTaskCount <= n) || -1;
-    t.setTag('ui.longTaskCount.grouped', group < 1001 ? `<=${group}` : `>1000`);
-
-    t.setMeasurement('longTaskCount', LongTaskObserver.longTaskCount, '');
-    t.setMeasurement('longTaskDuration', LongTaskObserver.longTaskDuration, '');
-  }
-
-  static startPerformanceObserver(): PerformanceObserver | null {
-    try {
-      if (LongTaskObserver.observer) {
-        LongTaskObserver.observer.disconnect();
-        try {
-          LongTaskObserver.observer.observe({entryTypes: ['longtask']});
-        } catch (_) {
-          // Safari doesn't support longtask, ignore this error.
-        }
-        return LongTaskObserver.observer;
-      }
-      if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
-        return null;
-      }
-
-      const observer = new PerformanceObserver(function () {
-        try {
-          const transaction = getPerformanceTransaction();
-          if (!transaction) {
-            return;
-          }
-
-          if (transaction !== LongTaskObserver.lastTransaction) {
-            // If long tasks observer is active and is called while the transaction has changed.
-            if (LongTaskObserver.lastTransaction) {
-              LongTaskObserver.setLongTaskData(LongTaskObserver.lastTransaction);
-            }
-            LongTaskObserver.longTaskCount = 0;
-            LongTaskObserver.longTaskDuration = 0;
-            LongTaskObserver.lastTransaction = transaction;
-          }
-          LongTaskObserver.setLongTaskData(transaction);
-        } catch (_) {
-          // Defensive catch.
-        }
-      });
-
-      if (!observer || !observer.observe) {
-        return null;
-      }
-      LongTaskObserver.observer = observer;
-      try {
-        LongTaskObserver.observer.observe({entryTypes: ['longtask']});
-      } catch (_) {
-        // Safari doesn't support longtask, ignore this error.
-      }
-
-      return LongTaskObserver.observer;
-    } catch (e) {
-      captureException(e);
-      // Defensive try catch.
-    }
-    return null;
-  }
-}
-
-export const CustomerProfiler = ({id, children}: {children: ReactNode; id: string}) => {
+export const CustomProfiler = ({id, children}: {children: ReactNode; id: string}) => {
   return (
     <Profiler id={id} onRender={onRenderCallback}>
       {children}
@@ -207,24 +142,6 @@ export const VisuallyCompleteWithData = ({
   id: string;
 }) => {
   const isDataCompleteSet = useRef(false);
-  const longTaskCount = useRef(0);
-
-  useEffect(() => {
-    let observer;
-    try {
-      if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
-        return () => {};
-      }
-      observer = LongTaskObserver.startPerformanceObserver();
-    } catch (_) {
-      // Defensive since this is auxiliary code.
-    }
-    return () => {
-      if (observer && observer.disconnect) {
-        observer.disconnect();
-      }
-    };
-  }, []);
 
   const num = useRef(1);
 
@@ -252,37 +169,12 @@ export const VisuallyCompleteWithData = ({
             return;
           }
           performance.mark(`${id}-vcsd-end`);
-          const measureName = `VCD [${id}] #${num.current}`;
           performance.measure(
             `VCD [${id}] #${num.current}`,
             `${id}-vcsd-start`,
             `${id}-vcsd-end`
           );
           num.current = num.current++;
-          const [measureEntry] = performance.getEntriesByName(measureName);
-          if (!measureEntry) {
-            return;
-          }
-
-          transaction.registerBeforeFinishCallback((t: Transaction) => {
-            if (!browserPerformanceTimeOrigin) {
-              return;
-            }
-            // Should be called after performance entries finish callback.
-            const lcp = (t as any)._measurements.lcp?.value;
-
-            // Adjust to be relative to transaction.startTimestamp
-            const entryStartSeconds =
-              browserPerformanceTimeOrigin / 1000 + measureEntry.startTime / 1000;
-            const time = (entryStartSeconds - transaction.startTimestamp) * 1000;
-
-            if (lcp) {
-              t.setMeasurement('lcpDiffVCD', lcp - time, 'millisecond');
-            }
-
-            t.setTag('longTaskCount', longTaskCount.current);
-            t.setMeasurement('visuallyCompleteData', time, 'millisecond');
-          });
         }, 0);
       }
     } catch (_) {
@@ -309,7 +201,11 @@ const OP_ASSET_MEASUREMENT_MAP: Record<string, OpAssetMeasurementDefinition> = {
 const ASSET_MEASUREMENT_ALL = 'allResources';
 const SENTRY_ASSET_DOMAINS = ['sentry-cdn.com'];
 
-const measureAssetsOnTransaction = (transaction: TransactionEvent) => {
+/**
+ * Creates aggregate measurements for assets to understand asset size impact on performance.
+ * The `hasAnyAssetTimings` is also added here since the asset information depends on the `allow-timing-origin` header.
+ */
+const addAssetMeasurements = (transaction: TransactionEvent) => {
   const spans = transaction.spans;
 
   if (!spans) {
@@ -318,7 +214,6 @@ const measureAssetsOnTransaction = (transaction: TransactionEvent) => {
 
   let allTransfered = 0;
   let allEncoded = 0;
-  let allCount = 0;
   let hasAssetTimings = false;
 
   for (const [op, _] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
@@ -329,7 +224,6 @@ const measureAssetsOnTransaction = (transaction: TransactionEvent) => {
           domain => !s.description || s.description.includes(domain)
         )
     );
-    const count = filtered.length;
     const transfered = filtered.reduce(
       (acc, curr) => acc + (curr.data['Transfer Size'] ?? 0),
       0
@@ -343,7 +237,6 @@ const measureAssetsOnTransaction = (transaction: TransactionEvent) => {
       hasAssetTimings = true;
     }
 
-    allCount += count;
     allTransfered += transfered;
     allEncoded += encoded;
   }
@@ -360,14 +253,10 @@ const measureAssetsOnTransaction = (transaction: TransactionEvent) => {
     value: allTransfered,
     unit: 'byte',
   };
-  transaction.measurements[`${ASSET_MEASUREMENT_ALL}.count`] = {
-    value: allCount,
-    unit: 'none',
-  };
   transaction.tags.hasAnyAssetTimings = hasAssetTimings;
 };
 
-const additionalMeasurements = (transaction: TransactionEvent) => {
+const addCustomMeasurements = (transaction: TransactionEvent) => {
   if (
     !transaction.measurements ||
     !browserPerformanceTimeOrigin ||
@@ -384,29 +273,176 @@ const additionalMeasurements = (transaction: TransactionEvent) => {
     return;
   }
 
-  const headMark = performance.getEntriesByName('head-start')[0];
-
-  if (!headMark) {
-    return;
-  }
-
-  const ttfbValue = ttfb[1].value;
-
-  const entryStartSeconds =
-    browserPerformanceTimeOrigin / 1000 + headMark.startTime / 1000;
-  const time = (entryStartSeconds - transaction.start_timestamp) * 1000 - ttfbValue;
-
-  transaction.measurements.pre_bundle_load = {
-    value: time,
-    unit: 'millisecond',
+  const context: MeasurementContext = {
+    transaction,
+    ttfb: ttfb[1].value,
+    browserTimeOrigin: browserPerformanceTimeOrigin,
+    transactionStart: transaction.start_timestamp,
   };
+  for (const [name, fn] of Object.entries(customMeasurements)) {
+    const measurement = fn(context);
+    if (measurement) {
+      transaction.measurements[name] = measurement;
+    }
+  }
+};
+
+interface Measurement {
+  unit: MeasurementUnit;
+  value: number;
+}
+interface MeasurementContext {
+  browserTimeOrigin: number;
+  transaction: TransactionEvent;
+  transactionStart: number;
+  ttfb: number;
+}
+
+const getVCDSpan = (transaction: TransactionEvent) =>
+  transaction.spans?.find(s => s.description?.startsWith('VCD'));
+const getBundleLoadSpan = (transaction: TransactionEvent) =>
+  transaction.spans?.find(s => s.description === 'app.page.bundle-load');
+
+const customMeasurements: Record<
+  string,
+  (ctx: MeasurementContext) => Measurement | undefined
+> = {
+  /**
+   * Budget measurement between the time to first byte (the beginning of the response) and the beginning of our
+   * webpack bundle load. Useful for us since we have an entrypoint script we want to measure the impact of.
+   *
+   * Performance budget: **0 ms**
+   *
+   * - We should get rid of delays before loading the main app bundle to improve performance.
+   */
+  pre_bundle_load: ({ttfb, browserTimeOrigin, transactionStart}) => {
+    const headMark = performance.getEntriesByName('head-start')[0];
+
+    if (!headMark) {
+      return undefined;
+    }
+
+    const entryStartSeconds = browserTimeOrigin / 1000 + headMark.startTime / 1000;
+    const value = (entryStartSeconds - transactionStart) * 1000 - ttfb;
+    return {
+      value,
+      unit: 'millisecond',
+    };
+  },
+  /**
+   * Budget measurement representing the `app.page.bundle-load` measure.
+   * We can use this to track asset transfer performance impact over time as a measurement.
+   *
+   * Performance budget: **__** ms
+   *
+   */
+  bundle_load: ({transaction}) => {
+    const span = getBundleLoadSpan(transaction);
+    if (!span?.endTimestamp || !span?.startTimestamp) {
+      return undefined;
+    }
+    return {
+      value: (span?.endTimestamp - span?.startTimestamp) * 1000,
+      unit: 'millisecond',
+    };
+  },
+  /**
+   * Experience measurement representing the time when the first "visually complete" component approximately *finishes* rendering on the page.
+   * - Provided by the {@link VisuallyCompleteWithData} wrapper component.
+   * - This only fires when it receives a non-empty data set for that component. Which won't capture onboarding or empty states,
+   *   but most 'happy path' performance for using any product occurs only in views with data.
+   *
+   * This should replace LCP as a 'load' metric when it's present, since it also works on navigations.
+   */
+  visually_complete_with_data: ({transaction, transactionStart}) => {
+    const vcdSpan = getVCDSpan(transaction);
+    if (!vcdSpan?.endTimestamp) {
+      return undefined;
+    }
+    const value = (vcdSpan?.endTimestamp - transactionStart) * 1000;
+    return {
+      value,
+      unit: 'millisecond',
+    };
+  },
+
+  /**
+   * Budget measurement for the time between loading the bundle and a visually complete component finishing it's render.
+   *
+   * For now this is a quite broad measurement but can be roughly be broken down into:
+   * - Post bundle load application initialization
+   * - Http waterfalls for data
+   * - Rendering of components, including the VCD component.
+   */
+  init_to_vcd: ({transaction}) => {
+    const bundleSpan = getBundleLoadSpan(transaction);
+    const vcdSpan = getVCDSpan(transaction);
+    if (!vcdSpan?.endTimestamp) {
+      return undefined;
+    }
+    const timestamp = bundleSpan?.endTimestamp || 0; // Default to 0 so this works for navigations.
+    return {
+      value: (vcdSpan.endTimestamp - timestamp) * 1000,
+      unit: 'millisecond',
+    };
+  },
 };
 
 export const addExtraMeasurements = (transaction: TransactionEvent) => {
   try {
-    measureAssetsOnTransaction(transaction);
-    additionalMeasurements(transaction);
+    addAssetMeasurements(transaction);
+    addCustomMeasurements(transaction);
   } catch (_) {
     // Defensive catch since this code is auxiliary.
   }
+};
+
+/**
+ * A util function to help create some broad buckets to group entity counts without exploding cardinality.
+ *
+ * @param tagName - Name for the tag, will create `<tagName>` in data and `<tagname>.grouped` as a tag
+ * @param max - The approximate maximum value for the tag, A bucket between max and Infinity is also captured so it's fine if it's not precise, the data won't be entirely lost.
+ * @param n - The value to be grouped, should represent `n` entities.
+ * @param [buckets=[1,2,5]] - An optional param to specify the bucket progression. Default is 1,2,5 (10,20,50 etc).
+ */
+export const setGroupedEntityTag = (
+  tagName: string,
+  max: number,
+  n: number,
+  buckets = [1, 2, 5]
+) => {
+  setExtra(tagName, n);
+  let groups = [0];
+  loop: for (let m = 1, mag = 0; m <= max; m *= 10, mag++) {
+    for (const i of buckets) {
+      const group = i * 10 ** mag;
+      if (group > max) {
+        break loop;
+      }
+      groups = [...groups, group];
+    }
+  }
+  groups = [...groups, +Infinity];
+  setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
+};
+
+/**
+ * A temporary util function used for interaction transactions that will attach a tag to the transaction, indicating the element
+ * that was interacted with. This will allow for querying for transactions by a specific element. This is a high cardinality tag, but
+ * it is only temporary for an experiment
+ */
+export const addUIElementTag = (transaction: TransactionEvent) => {
+  if (!transaction || transaction.contexts?.trace?.op !== 'ui.action.click') {
+    return;
+  }
+
+  if (!transaction.tags) {
+    return;
+  }
+
+  const interactionSpan = transaction.spans?.find(
+    span => span.op === 'ui.interaction.click'
+  );
+
+  transaction.tags.interactionElement = interactionSpan?.description;
 };

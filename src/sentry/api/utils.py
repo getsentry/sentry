@@ -7,15 +7,25 @@ from datetime import timedelta
 from typing import Any, List, Literal, Tuple, overload
 from urllib.parse import urlparse
 
+from django.http import HttpResponseNotAllowed
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.auth.access import get_cached_organization_member
+
+# Unfortunately, this function is imported as an export of this module in several places, keep it.
+from sentry.auth.access import get_cached_organization_member  # noqa
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import OrganizationMember
 from sentry.models.organization import Organization
 from sentry.search.utils import InvalidQuery, parse_datetime_string
+from sentry.services.hybrid_cloud import extract_id_from
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationMember,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
@@ -192,7 +202,12 @@ def get_date_range_from_stats_period(
     return start, end
 
 
-def is_member_disabled_from_limit(request: Request, organization: Organization) -> bool:
+# The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
+# If you can use the wider more correct type, please do.
+def is_member_disabled_from_limit(
+    request: Request,
+    organization: RpcUserOrganizationContext | RpcOrganization | Organization | int,
+) -> bool:
     user = request.user
 
     # never limit sentry apps
@@ -204,13 +219,18 @@ def is_member_disabled_from_limit(request: Request, organization: Organization) 
         return False
 
     # must be a simple user at this point
-    try:
-        member = get_cached_organization_member(user.id, organization.id)
-    except OrganizationMember.DoesNotExist:
-        # if org member doesn't exist, we should be getting an auth error later
+
+    member: RpcOrganizationMember | None
+    if isinstance(organization, RpcUserOrganizationContext):
+        member = organization.member
+    else:
+        member = organization_service.check_membership_by_id(
+            organization_id=extract_id_from(organization), user_id=user.id
+        )
+    if member is None:
         return False
     else:
-        return member.flags["member-limit:restricted"]  # type: ignore[no-any-return]
+        return member.flags.member_limit__restricted
 
 
 def generate_organization_hostname(org_slug: str) -> str:
@@ -232,12 +252,13 @@ def generate_organization_url(org_slug: str) -> str:
     return org_url_template.replace("{hostname}", generate_organization_hostname(org_slug))
 
 
-def generate_region_url() -> str:
-    region_url_template: str = options.get("system.region-api-url-template")
-    region = options.get("system.region") or None
-    if not region_url_template or not region:
+def generate_region_url(region_name: str | None = None) -> str:
+    region_url_template: str | None = options.get("system.region-api-url-template")
+    if region_name is None:
+        region_name = options.get("system.region") or None
+    if not region_url_template or not region_name:
         return options.get("system.url-prefix")  # type: ignore[no-any-return]
-    return region_url_template.replace("{region}", region)
+    return region_url_template.replace("{region}", region_name)
 
 
 _path_patterns: List[Tuple[re.Pattern[str], str]] = [
@@ -250,10 +271,13 @@ _path_patterns: List[Tuple[re.Pattern[str], str]] = [
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
-    (re.compile(r"\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)"), r"/settings/\1"),
-    (re.compile(r"\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
-    (re.compile(r"\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
-    (re.compile(r"\/?[^\/]+\/([^\/]+)\/getting-started\/(.*)"), r"/getting-started/\1/\2"),
+    (re.compile(r"^\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)"), r"/settings/\1"),
+    (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
+    (re.compile(r"^\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
+    (
+        re.compile(r"^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)"),
+        r"/getting-started/\1/\2",
+    ),
 ]
 
 
@@ -266,3 +290,23 @@ def customer_domain_path(path: str) -> str:
         if updated != path:
             return updated
     return path
+
+
+def method_dispatch(**dispatch_mapping):  # type: ignore[no-untyped-def]
+    """
+    Dispatches a incoming request to a different handler based on the HTTP method
+
+    >>> url('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
+    """
+
+    def invalid_method(request, *args, **kwargs):  # type: ignore[no-untyped-def]
+        return HttpResponseNotAllowed(dispatch_mapping.keys())
+
+    def dispatcher(request, *args, **kwargs):  # type: ignore[no-untyped-def]
+        handler = dispatch_mapping.get(request.method, invalid_method)
+        return handler(request, *args, **kwargs)
+
+    if dispatch_mapping.get("csrf_exempt"):
+        return csrf_exempt(dispatcher)
+
+    return dispatcher

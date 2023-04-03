@@ -51,7 +51,7 @@ describe('TeamKeyTransactionField', function () {
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
     const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
       screen.getAllByRole('checkbox');
@@ -96,7 +96,7 @@ describe('TeamKeyTransactionField', function () {
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
     const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
       screen.getAllByRole('checkbox');
@@ -138,7 +138,7 @@ describe('TeamKeyTransactionField', function () {
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
     const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
       screen.getAllByRole('checkbox');
@@ -188,14 +188,14 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
     const [_allTeamsCheckbox, teamOneCheckbox, _teamTwoCheckbox] =
       screen.getAllByRole('checkbox');
 
     expect(teamOneCheckbox).not.toBeChecked();
 
-    userEvent.click(teamOneCheckbox);
+    await userEvent.click(teamOneCheckbox);
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
@@ -244,14 +244,14 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
     const [_allTeamsCheckbox, teamOneCheckbox, _teamTwoCheckbox] =
       screen.getAllByRole('checkbox');
 
     expect(teamOneCheckbox).toBeChecked();
 
-    userEvent.click(teamOneCheckbox);
+    await userEvent.click(teamOneCheckbox);
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
@@ -303,13 +303,13 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
     const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
       screen.getAllByRole('checkbox');
 
     expect(allTeamsCheckbox).not.toBeChecked();
-    userEvent.click(allTeamsCheckbox);
+    await userEvent.click(allTeamsCheckbox);
 
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
@@ -364,13 +364,13 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
     const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
       screen.getAllByRole('checkbox');
 
     expect(allTeamsCheckbox).toBeChecked();
-    userEvent.click(allTeamsCheckbox);
+    await userEvent.click(allTeamsCheckbox);
 
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
@@ -417,7 +417,7 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
     expect(screen.getByText('My Teams with Access')).toBeInTheDocument();
     expect(screen.getByText('My Teams without Access')).toBeInTheDocument();

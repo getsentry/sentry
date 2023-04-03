@@ -2,7 +2,7 @@ import {EntrySpans, EventOrGroupType, EventTransaction} from 'sentry/types/event
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 
-import {Rect} from './gl/utils';
+import {Rect} from './speedscope';
 
 function s(partial: Partial<EntrySpans['data'][0]>): EntrySpans['data'][0] {
   return {

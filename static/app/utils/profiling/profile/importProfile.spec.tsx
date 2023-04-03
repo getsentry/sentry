@@ -1,4 +1,3 @@
-import {ChromeTraceProfile} from 'sentry/utils/profiling/profile/chromeTraceProfile';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {
   importProfile,
@@ -67,32 +66,6 @@ describe('importProfile', () => {
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
-  });
-
-  it('imports typescript profile', () => {
-    const typescriptProfile: ChromeTrace.ArrayFormat = [
-      {
-        ph: 'B',
-        ts: 1000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-      {
-        ph: 'E',
-        ts: 2000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-    ];
-
-    const imported = importProfile(typescriptProfile, '', 'flamechart');
-    expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
   it('imports JS self profile from schema', () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
@@ -257,38 +230,6 @@ describe('parseDroppedProfile', () => {
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
-  });
-
-  it('imports dropped typescript profile', async () => {
-    const typescriptProfile: ChromeTrace.ArrayFormat = [
-      {
-        ph: 'B',
-        ts: 1000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-      {
-        ph: 'E',
-        ts: 2000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-    ];
-
-    const file = new File([JSON.stringify(typescriptProfile)], 'test.tsx');
-    const imported = importProfile(
-      await parseDroppedProfile(file),
-      file.name,
-      'flamechart'
-    );
-
-    expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
 
   it('imports dropped JS self profile', async () => {

@@ -85,6 +85,7 @@ export function SortByStep({
           ? t("Choose one of the columns you've created to sort by.")
           : t("Choose one of the y-axis you've created to sort by.")
       }
+      data-test-id="sort-by-step"
     >
       <Tooltip
         title={disableSortReason}

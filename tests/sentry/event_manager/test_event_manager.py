@@ -345,18 +345,20 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         group = Group.objects.get(id=event.group_id)
 
+        group_hashes = GroupHash.objects.filter(
+            project=self.project, hash__in=event.get_hashes().hashes
+        )
+        assert group_hashes
+        for hash in group_hashes:
+            assert hash.group_id == event.group_id
+
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
 
-        # FIXME: *Full* downgrade does not yet work. We currently still need the
-        # hierarchical hash to find the proper group. We do not yet update that
-        # "hierarchical group" with new non-hierarchical hashes, and would not
-        # be able to find it anymore at all if we did not have hierarchical hashes.
-
         # After expiry, new events are still assigned to the same group:
-        # project.update_option("sentry:secondary_grouping_expiry", 0)
-        # event3 = save_event(4)
-        # assert event3.group_id == event2.group_id
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+        event3 = save_event(4)
+        assert event3.group_id == event2.group_id
 
     @mock.patch("sentry.event_manager._calculate_background_grouping")
     def test_applies_background_grouping(self, mock_calc_grouping):
@@ -2368,6 +2370,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                     "88a5ccaf25b9bd8f",
                     "bb32cf50fc56b296",
                 ],
+                {},
+                [],
             )
 
     @override_options({"performance.issues.all.problem-detection": 1.0})

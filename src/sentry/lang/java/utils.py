@@ -5,13 +5,11 @@ from symbolic import ProguardMapper
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.eventstore.models import Event
+from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.options import sample_modulo
 from sentry.utils.safe import get_path
-
-CACHE_TIMEOUT = 3600
 
 
 def is_valid_image(image):
@@ -34,7 +32,7 @@ def get_proguard_images(event: Event):
 
 
 def get_proguard_mapper(uuid: str, project: Project):
-    with sentry_sdk.start_span(op="proguard.get_proguard_mapper") as span:
+    with sentry_sdk.start_span(op="proguard.fetch_debug_files") as span:
         dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
         debug_file_path = dif_paths.get(uuid)
         if debug_file_path is None:
@@ -47,7 +45,9 @@ def get_proguard_mapper(uuid: str, project: Project):
             sentry_sdk.capture_exception(exc)
             return
 
+    with sentry_sdk.start_span(op="proguard.open"):
         mapper = ProguardMapper.open(debug_file_path)
+
     if not mapper.has_line_info:
         return
 
@@ -79,13 +79,13 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
                     windows_to_deobfuscate.extend(children)
 
 
-def deobfuscate_view_hierarchy(data):
-    project = Project.objects.get_from_cache(id=data["project"])
+def deobfuscation_template(data, map_type, deobfuscation_fn):
+    """
+    Template for operations involved in deobfuscating view hierarchies.
 
-    if not sample_modulo(
-        "processing.view-hierarchies-deobfuscation-general-availability", project.organization.id
-    ):
-        return
+    The provided deobfuscation function is expected to modify the view hierarchy dict in-place.
+    """
+    project = Project.objects.get_from_cache(id=data["project"])
 
     cache_key = cache_key_for_event(data)
     attachments = [*attachment_cache.get(cache_key)]
@@ -93,12 +93,12 @@ def deobfuscate_view_hierarchy(data):
     if not any(attachment.type == "event.view_hierarchy" for attachment in attachments):
         return
 
-    with sentry_sdk.start_transaction(name="proguard.deobfuscate_view_hierarchy", sampled=True):
+    with sentry_sdk.start_transaction(name=f"{map_type}.deobfuscate_view_hierarchy", sampled=True):
         new_attachments = []
         for attachment in attachments:
             if attachment.type == "event.view_hierarchy":
                 view_hierarchy = json.loads(attachment_cache.get_data(attachment))
-                _deobfuscate_view_hierarchy(data, project, view_hierarchy)
+                deobfuscation_fn(data, project, view_hierarchy)
 
                 # Reupload to cache as a unchunked data
                 new_attachments.append(
@@ -115,3 +115,7 @@ def deobfuscate_view_hierarchy(data):
                 new_attachments.append(attachment)
 
         attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
+
+
+def deobfuscate_view_hierarchy(data):
+    deobfuscation_template(data, "proguard", _deobfuscate_view_hierarchy)

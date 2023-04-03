@@ -1,11 +1,31 @@
+import random
+
+import sentry_sdk
 from django.conf import settings
 
 import django_picklefield
 from sentry.db.models.fields import jsonfield
 from sentry.utils import json
 
-PICKLE_WRITE_JSON = False
-PICKLE_READ_JSON = True
+PICKLE_WRITE_JSON = True
+VALIDATE_JSON_SAMPLE_RATE = 1
+
+
+def _validate_roundtrip(o: object) -> None:
+    try:
+        s = json.dumps(o, default=jsonfield.default)
+    except Exception:
+        raise TypeError(
+            "Tried to serialize a pickle field with a value that cannot be serialized as JSON"
+        )
+    else:
+        rt = json.loads(s)
+        if o != rt:
+            raise TypeError(
+                f"json serialized database value was not the same after deserializing:\n"
+                f"- {type(o)=}\n"
+                f"- {type(rt)=}"
+            )
 
 
 class PickledObjectField(django_picklefield.PickledObjectField):
@@ -23,7 +43,6 @@ class PickledObjectField(django_picklefield.PickledObjectField):
 
     def __init__(self, *args, **kwargs):
         self.write_json = kwargs.pop("write_json", PICKLE_WRITE_JSON)
-        self.read_json = kwargs.pop("read_json", PICKLE_READ_JSON)
         self.disable_pickle_validation = kwargs.pop("disable_pickle_validation", False)
         super().__init__(*args, **kwargs)
 
@@ -34,17 +53,19 @@ class PickledObjectField(django_picklefield.PickledObjectField):
             if value is None and self.null:
                 return None
             return json.dumps(value, default=jsonfield.default)
-        elif (
+
+        if not self.disable_pickle_validation and (
             settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
-            and not self.disable_pickle_validation
+            or random.random() < VALIDATE_JSON_SAMPLE_RATE
         ):
             try:
-                json.dumps(value, default=jsonfield.default)
+                _validate_roundtrip(value)
             except Exception as e:
-                raise TypeError(
-                    "Tried to serialize a pickle field with a value that cannot be serialized as JSON: %s"
-                    % (e,)
-                )
+                if settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE:
+                    raise
+                else:
+                    sentry_sdk.capture_exception(e)
+
         return super().get_db_prep_value(value, *args, **kwargs)
 
     def to_python(self, value):

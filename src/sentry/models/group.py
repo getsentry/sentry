@@ -143,6 +143,8 @@ class GroupStatus:
     # be deleted. In this state no new events shall be added to the group.
     REPROCESSING = 6
 
+    ESCALATING = 7
+
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
 
@@ -213,6 +215,7 @@ def get_oldest_or_latest_event_for_environments(
         orderby=ordering.value,
         referrer="Group.get_latest",
         dataset=dataset,
+        tenant_ids={"organization_id": group.project.organization_id},
     )
 
     if events:
@@ -290,7 +293,7 @@ class GroupManager(BaseManager):
 
         return self.get(id=group_id)
 
-    def filter_by_event_id(self, project_ids, event_id):
+    def filter_by_event_id(self, project_ids, event_id, tenant_ids=None):
         events = eventstore.get_events(
             filter=eventstore.Filter(
                 event_ids=[event_id],
@@ -299,6 +302,7 @@ class GroupManager(BaseManager):
             ),
             limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",
+            tenant_ids=tenant_ids,
         )
         return self.filter(id__in={event.group_id for event in events})
 
@@ -309,6 +313,7 @@ class GroupManager(BaseManager):
         external_issue_key: str,
     ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
+        from sentry.services.hybrid_cloud.integration import integration_service
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key
@@ -318,10 +323,16 @@ class GroupManager(BaseManager):
             linked_id__in=external_issue_subquery
         ).values_list("group_id", flat=True)
 
+        org_ids_with_integration = list(
+            i.organization_id
+            for i in integration_service.get_organization_integrations(
+                organization_ids=[o.id for o in organizations], integration_id=integration.id
+            )
+        )
+
         return self.filter(
             id__in=group_link_subquery,
-            project__organization__in=organizations,
-            project__organization__organizationintegration__integration_id=integration.id,
+            project__organization_id__in=org_ids_with_integration,
         ).select_related("project")
 
     def update_group_status(
@@ -404,6 +415,7 @@ class Group(Model):
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
+            (GroupStatus.ESCALATING, _("Escalating")),
         ),
         db_index=True,
     )
@@ -421,7 +433,7 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id)
+    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
     objects = GroupManager(cache_fields=("id",))
 

@@ -89,7 +89,9 @@ export enum PROJECT_PERFORMANCE_TYPE {
 
 // The native SDK is equally used on clients and end-devices as on
 // backend, the default view should be "All Transactions".
-const FRONTEND_PLATFORMS: string[] = [...frontend];
+const FRONTEND_PLATFORMS: string[] = [...frontend].filter(
+  platform => platform !== 'javascript-nextjs' // Next has both frontend and backend transactions.
+);
 const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
@@ -109,31 +111,27 @@ export function platformToPerformanceType(
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
 
-  if (
-    selectedProjects.every(project =>
-      FRONTEND_PLATFORMS.includes(project.platform as string)
-    )
-  ) {
-    return PROJECT_PERFORMANCE_TYPE.FRONTEND;
-  }
+  const projectPerformanceTypes = new Set<PROJECT_PERFORMANCE_TYPE>();
 
-  if (
-    selectedProjects.every(project =>
-      BACKEND_PLATFORMS.includes(project.platform as string)
-    )
-  ) {
-    return PROJECT_PERFORMANCE_TYPE.BACKEND;
-  }
+  selectedProjects.forEach(project => {
+    if (FRONTEND_PLATFORMS.includes(project.platform ?? '')) {
+      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.FRONTEND);
+    }
+    if (BACKEND_PLATFORMS.includes(project.platform ?? '')) {
+      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.BACKEND);
+    }
+    if (MOBILE_PLATFORMS.includes(project.platform ?? '')) {
+      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.MOBILE);
+    }
+  });
 
-  if (
-    selectedProjects.every(project =>
-      MOBILE_PLATFORMS.includes(project.platform as string)
-    )
-  ) {
-    return PROJECT_PERFORMANCE_TYPE.MOBILE;
-  }
+  const uniquePerformanceTypeCount = projectPerformanceTypes.size;
 
-  return PROJECT_PERFORMANCE_TYPE.ANY;
+  if (!uniquePerformanceTypeCount || uniquePerformanceTypeCount > 1) {
+    return PROJECT_PERFORMANCE_TYPE.ANY;
+  }
+  const [platformType] = projectPerformanceTypes;
+  return platformType;
 }
 
 /**

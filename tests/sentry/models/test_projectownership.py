@@ -1,4 +1,13 @@
-from sentry.models import ActorTuple, GroupAssignee, ProjectOwnership, Repository, Team, User
+from sentry.models import (
+    ActorTuple,
+    GroupAssignee,
+    ProjectOwnership,
+    Repository,
+    Team,
+    User,
+    UserAvatar,
+    UserEmail,
+)
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.services.hybrid_cloud.user import user_service
@@ -305,6 +314,55 @@ class ProjectOwnershipTestCase(TestCase):
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
+    def test_handle_auto_assignment_when_only_suspect_commit_exists_multiple_emails(self):
+        """Test that if a user has 2 verified email addresses, the non-primary one is the commit author, and the project
+        is using the suspect committer auto assignment we correctly assign the issue to the user.
+        """
+        self.ownership = ProjectOwnership.objects.create(
+            project_id=self.project2.id,
+            fallthrough=False,
+            auto_assignment=True,
+            suspect_committer_auto_assignment=True,
+        )
+        self.repo = Repository.objects.create(
+            organization_id=self.project2.organization.id,
+            name="example",
+            integration_id=self.integration.id,
+        )
+        self.second_email = UserEmail.objects.create(
+            user=self.user2, email="hb@mysecondemail.com", is_verified=True
+        )
+        self.commit_author = self.create_commit_author(
+            project=self.project2, user=self.user2, email=self.second_email.email
+        )
+        self.commit = self.create_commit(
+            project=self.project2,
+            repo=self.repo,
+            author=self.commit_author,
+            key="asdfwreqr",
+            message="placeholder commit message",
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project2.id,
+        )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user2.id,
+            team_id=None,
+            project=self.project2,
+            organization=self.project2.organization,
+            context={"commitId": self.commit.id},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.user_id == self.user2.id
+
     def test_handle_skip_auto_assignment(self):
         """Test that if an issue has already been manually assigned, we skip overriding the assignment
         on a future event with auto-assignment.
@@ -582,3 +640,17 @@ class ResolveActorsTestCase(TestCase):
             owner5: actor5,
             owner6: actor6,
         }
+
+    def test_with_user_avatar(self):
+        # Check for regressions associated with serializing to RpcUser with a
+        # non-null UserAvatar
+
+        user = self.create_user()
+        UserAvatar.objects.create(user=user)
+
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org, members=[user])
+        project = self.create_project(organization=org, teams=[team])
+
+        owner = Owner("user", user.email)
+        resolve_actors([owner], project.id)

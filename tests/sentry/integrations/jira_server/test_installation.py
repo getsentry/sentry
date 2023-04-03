@@ -1,5 +1,4 @@
 import responses
-from django.test.utils import override_settings
 from requests.exceptions import ReadTimeout
 
 from sentry.integrations.jira_server import JiraServerIntegrationProvider
@@ -266,7 +265,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         assert integration.metadata["webhook_secret"]
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert org_integration.config == {}
 
@@ -427,7 +426,3 @@ class JiraServerInstallationTest(IntegrationTestCase):
         self.assertContains(resp, "Could not create issue webhook")
 
         assert Integration.objects.count() == 0
-
-    @override_settings(JIRA_USE_EMAIL_SCOPE=True)
-    def test_email_scope(self):
-        assert not self.provider.integration_cls.use_email_scope

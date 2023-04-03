@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
 
 from django.conf import settings
 
+from sentry import features
+from sentry.features.base import OrganizationFeature
 from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models import Organization, Project, User
     from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
 
@@ -24,11 +26,46 @@ class GroupCategory(Enum):
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
-_group_type_registry: Dict[int, Type[GroupType]] = {}
-_slug_lookup: Dict[str, Type[GroupType]] = {}
-_category_lookup: Dict[int, Set[int]] = defaultdict(set)
 DEFAULT_IGNORE_LIMIT: int = 3
 DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
+
+
+@dataclass()
+class GroupTypeRegistry:
+    _registry: Dict[int, Type[GroupType]] = field(default_factory=dict)
+    _slug_lookup: Dict[str, Type[GroupType]] = field(default_factory=dict)
+    _category_lookup: Dict[int, Set[int]] = field(default_factory=lambda: defaultdict(set))
+
+    def add(self, group_type: Type[GroupType]) -> None:
+        if self._registry.get(group_type.type_id):
+            raise ValueError(
+                f"A group type with the type_id {group_type.type_id} has already been registered."
+            )
+        self._registry[group_type.type_id] = group_type
+        self._slug_lookup[group_type.slug] = group_type
+        self._category_lookup[group_type.category].add(group_type.type_id)
+
+    def all(self) -> List[Type[GroupType]]:
+        return list(self._registry.values())
+
+    def get_all_group_type_ids(self) -> Set[int]:
+        return {type.type_id for type in self._registry.values()}
+
+    def get_by_category(self, category: int) -> Set[int]:
+        return self._category_lookup[category]
+
+    def get_by_slug(self, slug: str) -> Optional[Type[GroupType]]:
+        if slug not in self._slug_lookup:
+            return None
+        return self._slug_lookup[slug]
+
+    def get_by_type_id(self, id_: int) -> Type[GroupType]:
+        if id_ not in self._registry:
+            raise ValueError(f"No group type with the id {id_} is registered.")
+        return self._registry[id_]
+
+
+registry = GroupTypeRegistry()
 
 
 @dataclass(frozen=True)
@@ -49,41 +86,84 @@ class GroupType:
     description: str
     category: int
     noise_config: Optional[NoiseConfig] = None
+    # If True this group type should be released everywhere. If False, fall back to features to
+    # decide if this is released.
+    released: bool = False
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        if _group_type_registry.get(cls.type_id):
-            raise ValueError(
-                f"A group type with the type_id {cls.type_id} has already been registered."
-            )
-        _group_type_registry[cls.type_id] = cls
-        _slug_lookup[cls.slug] = cls
-        _category_lookup[cls.category].add(cls.type_id)
+        registry.add(cls)
+
+        if not cls.released:
+            features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
+            features.add(cls.build_ingest_feature_name(), OrganizationFeature)
+            features.add(cls.build_post_process_group_feature_name(), OrganizationFeature)
 
     def __post_init__(self) -> None:
         valid_categories = [category.value for category in GroupCategory]
         if self.category not in valid_categories:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
+    @classmethod
+    def is_visible(cls, organization: Organization, user: Optional[User] = None) -> bool:
+        if cls.released:
+            return True
+
+        return features.has(cls.build_visible_feature_name(), organization, actor=user)
+
+    @classmethod
+    def allow_ingest(cls, organization: Organization) -> bool:
+        if cls.released:
+            return True
+
+        return features.has(cls.build_ingest_feature_name(), organization)
+
+    @classmethod
+    def allow_post_process_group(cls, organization: Organization) -> bool:
+        if cls.released:
+            return True
+
+        return features.has(cls.build_post_process_group_feature_name(), organization)
+
+    @classmethod
+    def build_feature_name_slug(cls) -> str:
+        return cls.slug.replace("_", "-")
+
+    @classmethod
+    def build_base_feature_name(cls) -> str:
+        return f"organizations:{cls.build_feature_name_slug()}"
+
+    @classmethod
+    def build_visible_feature_name(cls) -> str:
+        return f"{cls.build_base_feature_name()}-visible"
+
+    @classmethod
+    def build_ingest_feature_name(cls) -> str:
+        return f"{cls.build_base_feature_name()}-ingest"
+
+    @classmethod
+    def build_post_process_group_feature_name(cls) -> str:
+        return f"{cls.build_base_feature_name()}-post-process-group"
+
 
 def get_all_group_type_ids() -> Set[int]:
-    return {type.type_id for type in _group_type_registry.values()}
+    # TODO: Replace uses of this with the registry
+    return registry.get_all_group_type_ids()
 
 
 def get_group_types_by_category(category: int) -> Set[int]:
-    return _category_lookup[category]
+    # TODO: Replace uses of this with the registry
+    return registry.get_by_category(category)
 
 
 def get_group_type_by_slug(slug: str) -> Optional[Type[GroupType]]:
-    if slug not in _slug_lookup:
-        return None
-    return _slug_lookup[slug]
+    # TODO: Replace uses of this with the registry
+    return registry.get_by_slug(slug)
 
 
 def get_group_type_by_type_id(id: int) -> Type[GroupType]:
-    if id not in _group_type_registry:
-        raise ValueError(f"No group type with the id {id} is registered.")
-    return _group_type_registry[id]
+    # TODO: Replace uses of this with the registry
+    return registry.get_by_type_id(id)
 
 
 @dataclass(frozen=True)
@@ -92,6 +172,7 @@ class ErrorGroupType(GroupType):
     slug = "error"
     description = "Error"
     category = GroupCategory.ERROR.value
+    released = True
 
 
 # used as an additional superclass for Performance GroupType defaults
@@ -176,6 +257,14 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
 
 
 @dataclass(frozen=True)
+class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1013
+    slug = "performance_db_main_thread"
+    description = "DB on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
@@ -226,7 +315,7 @@ def reduce_noise(
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
-    grouptype: GroupType,
+    grouptype: Type[GroupType],
     client: Any,
     grouphash: str,
     project: Project,

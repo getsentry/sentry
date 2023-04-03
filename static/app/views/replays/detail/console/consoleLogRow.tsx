@@ -1,4 +1,4 @@
-import {CSSProperties, useCallback} from 'react';
+import {CSSProperties, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -7,7 +7,6 @@ import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
@@ -16,13 +15,30 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
-  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
+  index: number;
+  isCurrent: boolean;
+  isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
+  expandPaths?: string[];
+  onDimensionChange?: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>
+  ) => void;
 };
 
-function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
+function UnmemoizedConsoleLogRow({
+  index,
+  breadcrumb,
+  isHovered,
+  isCurrent,
+  startTimestampMs,
+  style,
+  expandPaths,
+  onDimensionChange,
+}: Props) {
+  const {currentTime} = useReplayContext();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -39,27 +55,14 @@ function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Prop
     () => handleMouseLeave(breadcrumb),
     [handleMouseLeave, breadcrumb]
   );
-
-  const current = getPrevReplayEvent({
-    items: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
-        allowEqual: true,
-        allowExact: true,
-      })
-    : undefined;
+  const handleDimensionChange = useCallback(
+    (path, expandedState) =>
+      onDimensionChange && onDimensionChange(index, path, expandedState),
+    [onDimensionChange, index]
+  );
 
   const hasOccurred =
     currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
-  const isCurrent = breadcrumb.id === current?.id;
-  const isHovered = breadcrumb.id === hovered?.id;
 
   return (
     <ConsoleLog
@@ -79,7 +82,11 @@ function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Prop
           </IssueLinkWrapper>
         ) : null}
         <ErrorBoundary mini>
-          <MessageFormatter breadcrumb={breadcrumb} />
+          <MessageFormatter
+            expandPaths={expandPaths}
+            breadcrumb={breadcrumb}
+            onDimensionChange={handleDimensionChange}
+          />
         </ErrorBoundary>
       </Message>
       <TimestampButton
@@ -148,4 +155,5 @@ const Message = styled('div')`
   word-break: break-word;
 `;
 
-export default ConsoleMessage;
+const ConsoleLogRow = memo(UnmemoizedConsoleLogRow);
+export default ConsoleLogRow;

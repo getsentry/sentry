@@ -16,7 +16,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -343,24 +342,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   renderButtonSave(disabled: boolean) {
     const {isNewQuery, isEditingQuery} = this.state;
-    const {organization} = this.props;
 
-    // TODO(nar): Remove this button when Discover homepage is released
-    // Existing query that hasn't been modified.
     if (!isNewQuery && !isEditingQuery) {
-      if (organization.features.includes('discover-query-builder-as-landing-page')) {
-        return null;
-      }
-      return (
-        <Button
-          icon={<IconStar color="yellow100" isSolid size="sm" />}
-          size="sm"
-          disabled
-          data-test-id="discover2-savedquery-button-saved"
-        >
-          {t('Saved for Org')}
-        </Button>
-      );
+      return null;
     }
     // Existing query with edits, show save and save as.
     if (!isNewQuery && isEditingQuery) {
@@ -493,7 +477,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           disabled={buttonDisabled}
         >
           {t('Remove Default')}
-          <FeatureBadge type="new" />
         </Button>
       );
     }
@@ -521,7 +504,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         disabled={buttonDisabled}
       >
         {t('Set as Default')}
-        <FeatureBadge type="new" />
       </Button>
     );
   }
@@ -540,7 +522,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
-  renderHomepageFeatureButtons() {
+  render() {
     const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
       this.props;
 
@@ -595,12 +577,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar gap={1}>
-        <Feature
-          organization={organization}
-          features={['discover-query-builder-as-landing-page']}
-        >
-          {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
-        </Feature>
+        {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
@@ -608,33 +585,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
         {contextMenuItems.length > 0 && contextMenu}
 
-        <Feature
-          organization={organization}
-          features={['discover-query-builder-as-landing-page']}
-        >
-          {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
-        </Feature>
-      </ResponsiveButtonBar>
-    );
-  }
-
-  render() {
-    const {organization} = this.props;
-
-    if (organization.features.includes('discover-query-builder-as-landing-page')) {
-      return this.renderHomepageFeatureButtons();
-    }
-
-    return (
-      <ResponsiveButtonBar gap={1}>
-        {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
-        <Feature organization={organization} features={['incidents']}>
-          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
-        </Feature>
-        <Feature organization={organization} features={['dashboards-edit']}>
-          {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
-        </Feature>
-        {this.renderQueryButton(disabled => this.renderButtonDelete(disabled))}
+        {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
       </ResponsiveButtonBar>
     );
   }

@@ -1105,6 +1105,9 @@ def create_alert_rule_trigger_action(
     :return: The created action
     """
     target_display = None
+    if type.value in AlertRuleTriggerAction.EXEMPT_SERVICES:
+        raise InvalidTriggerActionError("Selected notification service is exempt from alert rules")
+
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
@@ -1335,9 +1338,9 @@ def get_available_action_integrations_for_org(organization):
     )
 
 
-def get_pagerduty_services(organization, integration_id):
+def get_pagerduty_services(organization_id, integration_id):
     return PagerDutyService.objects.filter(
-        organization_integration__organization=organization,
+        organization_integration__organization_id=organization_id,
         organization_integration__integration_id=integration_id,
     ).values("id", "service_name")
 

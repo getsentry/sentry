@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import base64
-import dataclasses
-from typing import List, Mapping, Tuple
+from typing import List, Mapping, Tuple, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -41,6 +40,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
+    RpcOrganizationMemberSummary,
     organization_service,
 )
 from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
@@ -50,17 +50,14 @@ from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
 
-_SSO_BYPASS = RpcMemberSsoState(False, True)
-_SSO_NONMEMBER = RpcMemberSsoState(False, False)
+_SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
+_SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
 # than the OrganizationMember type.
 def query_sso_state(
-    organization_id: int | None,
-    is_super_user: bool,
-    member: RpcOrganizationMember | OrganizationMember | None,
-    org_member_class: Any = OrganizationMember,
+    organization_id: int | None, is_super_user: bool, member: RpcOrganizationMemberSummary | None
 ) -> RpcMemberSsoState:
     """
     Check whether SSO is required and valid for a given member.
@@ -80,7 +77,7 @@ def query_sso_state(
         return _SSO_NONMEMBER
 
     try:
-        auth_provider = AuthProvider.objects.get(organization=member.organization_id)
+        auth_provider = AuthProvider.objects.get(organization_id=member.organization_id)
     except AuthProvider.DoesNotExist:
         return _SSO_BYPASS
 
@@ -106,7 +103,7 @@ def query_sso_state(
                         organization_id=org_id
                     )
                     return (
-                        org_member_class.objects.filter(
+                        OrganizationMember.objects.filter(
                             Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
                             organization_id=org_id,
                             user__is_active=True,
@@ -136,10 +133,10 @@ def query_sso_state(
 
 class DatabaseBackedAuthService(AuthService):
     def _serialize_auth_provider_flags(self, ap: AuthProvider) -> RpcAuthProviderFlags:
-        d: dict[str, bool] = {}
-        for f in dataclasses.fields(RpcAuthProviderFlags):
-            d[f.name] = bool(ap.flags[f.name])
-        return RpcAuthProviderFlags(**d)
+        return cast(
+            RpcAuthProviderFlags,
+            RpcAuthProviderFlags.serialize_by_field_name(ap.flags, value_transform=bool),
+        )
 
     def _serialize_auth_provider(self, ap: AuthProvider) -> RpcAuthProvider:
         return RpcAuthProvider(
@@ -233,13 +230,10 @@ class DatabaseBackedAuthService(AuthService):
         user_id: int,
         is_superuser: bool,
         organization_id: int | None,
-        org_member: RpcOrganizationMember | OrganizationMember | None,
+        org_member: RpcOrganizationMemberSummary | None,
     ) -> RpcAuthState:
         sso_state = query_sso_state(
-            organization_id=organization_id,
-            is_super_user=is_superuser,
-            member=org_member,
-            org_member_class=OrganizationMember,
+            organization_id=organization_id, is_super_user=is_superuser, member=org_member
         )
         permissions: List[str] = list()
         # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you

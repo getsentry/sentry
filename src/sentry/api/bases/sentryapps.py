@@ -178,14 +178,17 @@ class SentryAppPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, sentry_app.owner)
+        owner_app = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id
+        )
+        self.determine_access(request, owner_app)
 
         if is_active_superuser(request):
             return True
 
         # if app is unpublished, user must be in the Org who owns the app.
         if not sentry_app.is_published:
-            if sentry_app.owner not in request.user.get_orgs():
+            if sentry_app.owner_id not in {o.id for o in request.user.get_orgs()}:
                 raise Http404
 
         # TODO(meredith): make a better way to allow for public
@@ -292,14 +295,14 @@ class SentryAppInstallationPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, installation.organization)
+        self.determine_access(request, installation.organization_id)
 
         if is_active_superuser(request):
             return True
 
         # if user is an app, make sure it's for that same app
         if request.user.is_sentry_app:
-            return request.user == installation.sentry_app.proxy_user
+            return request.user.id == installation.sentry_app.proxy_user_id
 
         # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
         org_context = organization_service.get_organization_by_id(
@@ -348,7 +351,10 @@ class SentryAppAuthorizationsPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, installation.organization)
+        installation_org_context = organization_service.get_organization_by_id(
+            id=installation.organization_id, user_id=request.user.id
+        )
+        self.determine_access(request, installation_org_context)
 
         if not request.user.is_sentry_app:
             return False
@@ -374,7 +380,10 @@ class SentryInternalAppTokenPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, sentry_app.owner)
+        owner_app = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id
+        )
+        self.determine_access(request, owner_app)
 
         if is_active_superuser(request):
             return True
@@ -394,7 +403,10 @@ class SentryAppStatsPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, sentry_app.owner)
+        owner_app = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id
+        )
+        self.determine_access(request, owner_app)
 
         if is_active_superuser(request):
             return True

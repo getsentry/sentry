@@ -12,28 +12,43 @@ from sentry.models import SentryApp, SentryAppComponent, SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
 from sentry.services.hybrid_cloud.app import (
     AppService,
+    RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
     RpcSentryAppInstallation,
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
-from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import (
+    FilterQueryDatabaseImpl,
+    OpaqueSerializedResponse,
+)
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class DatabaseBackedAppService(
-    FilterQueryDatabaseImpl[
-        SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
-    ],
-    AppService,
-):
+class DatabaseBackedAppService(AppService):
+    def serialize_many(
+        self,
+        *,
+        filter: SentryAppInstallationFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        return self._FQ.serialize_many(filter, as_user, auth_context)
+
+    def get_many(
+        self, *, filter: SentryAppInstallationFilterArgs
+    ) -> List[RpcSentryAppInstallation]:
+        return self._FQ.get_many(filter)
+
     def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
         return [
             RpcSentryAppComponent(
-                uuid=c.uuid,
+                uuid=str(c.uuid),
                 sentry_app_id=c.sentry_app_id,
                 type=c.type,
-                schema=c.schema,
+                app_schema=c.schema,
             )
             for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
         ]
@@ -44,7 +59,8 @@ class DatabaseBackedAppService(
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         ).select_related("sentry_app")
-        return [self._serialize_rpc(i) for i in installations]
+        fq = self._AppServiceFilterQuery()
+        return [fq.serialize_rpc(i) for i in installations]
 
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         result: List[RpcSentryAppService] = []
@@ -101,30 +117,41 @@ class DatabaseBackedAppService(
             group_by=group_by,
         )
 
-    def _base_query(self) -> QuerySet:
-        return SentryAppInstallation.objects.select_related("sentry_app")
+    class _AppServiceFilterQuery(
+        FilterQueryDatabaseImpl[
+            SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
+        ]
+    ):
+        def base_query(self) -> QuerySet:
+            return SentryAppInstallation.objects.select_related("sentry_app")
 
-    def _filter_arg_validator(self) -> Callable[[SentryAppInstallationFilterArgs], Optional[str]]:
-        return self._filter_has_any_key_validator(
-            "organization_id", "installation_ids", "app_ids", "uuids"
-        )
+        def filter_arg_validator(
+            self,
+        ) -> Callable[[SentryAppInstallationFilterArgs], Optional[str]]:
+            return self._filter_has_any_key_validator(
+                "organization_id", "installation_ids", "app_ids", "uuids"
+            )
 
-    def _serialize_api(self, serializer: Optional[None]) -> Serializer:
-        raise NotImplementedError("Serialization not supported for AppService")
+        def serialize_api(self, serializer: Optional[None]) -> Serializer:
+            raise NotImplementedError("Serialization not supported for AppService")
 
-    def _apply_filters(self, query: QuerySet, filters: SentryAppInstallationFilterArgs) -> QuerySet:
-        # filters["status"] = SentryAppInstallationStatus.INSTALLED
-        if "installation_ids" in filters:
-            query = query.filter(id__in=filters["installation_ids"])
-        if "organization_id" in filters:
-            query = query.filter(organization_id=filters["organization_id"])
-        if "uuids" in filters:
-            query = query.filter(uuid__in=filters["uuids"])
+        def apply_filters(
+            self, query: QuerySet, filters: SentryAppInstallationFilterArgs
+        ) -> QuerySet:
+            # filters["status"] = SentryAppInstallationStatus.INSTALLED
+            if "installation_ids" in filters:
+                query = query.filter(id__in=filters["installation_ids"])
+            if "organization_id" in filters:
+                query = query.filter(organization_id=filters["organization_id"])
+            if "uuids" in filters:
+                query = query.filter(uuid__in=filters["uuids"])
 
-        return query
+            return query
 
-    def _serialize_rpc(self, object: SentryAppInstallation) -> RpcSentryAppInstallation:
-        return self.serialize_sentry_app_installation(object)
+        def serialize_rpc(self, object: SentryAppInstallation) -> RpcSentryAppInstallation:
+            return AppService.serialize_sentry_app_installation(object)
+
+    _FQ = _AppServiceFilterQuery()
 
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
@@ -155,6 +182,14 @@ class DatabaseBackedAppService(
             fields=fields,
         )
         return result
+
+    def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
+        try:
+            return self.serialize_sentry_app(
+                SentryApp.objects.get(application_id=api_application_id)
+            )
+        except SentryApp.DoesNotExist:
+            return None
 
     def close(self) -> None:
         pass

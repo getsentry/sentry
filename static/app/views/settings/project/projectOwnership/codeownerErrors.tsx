@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -75,6 +76,16 @@ export function CodeOwnerErrors({
   orgSlug,
   projectSlug,
 }: CodeOwnerErrorsProps) {
+  const filteredCodeowners = useMemo(() => {
+    const owners = codeowners.filter(({errors}) => {
+      // Remove codeowners files with no errors
+      return Object.values(errors).some(values => values.length);
+    });
+
+    // Uniq errors
+    return uniqBy(owners, codeowner => JSON.stringify(codeowner.errors));
+  }, [codeowners]);
+
   const errMessage = (
     codeMapping: RepositoryProjectPathConfig,
     type: CodeOwnerErrorKeys,
@@ -84,7 +95,7 @@ export function CodeOwnerErrors({
       case 'missing_external_teams':
         return (
           <ErrorMessage
-            message={`The following teams do not have an association in the organization: ${orgSlug}`}
+            message="There’s a problem linking teams and members from an integration"
             values={values}
             link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=teamMappings`}
             linkValue="Configure Team Mappings"
@@ -138,35 +149,33 @@ export function CodeOwnerErrors({
 
   return (
     <Fragment>
-      {codeowners
-        .filter(({errors}) => Object.values(errors).some(values => values.length))
-        .map(({id, codeMapping, errors}) => {
-          const errorPairs = Object.entries(errors).filter(
-            ([_, values]) => values.length
-          ) as Array<[CodeOwnerErrorKeys, string[]]>;
-          const errorCount = errorPairs.reduce(
-            (acc, [_, values]) => acc + values.length,
-            0
-          );
-          return (
-            <Alert
-              key={id}
-              type="error"
-              showIcon
-              expand={
-                <AlertContentContainer key="container">
-                  {errorPairs.map(([type, values]) => (
-                    <ErrorContainer key={`${id}-${type}`}>
-                      {errMessage(codeMapping!, type, values)}
-                    </ErrorContainer>
-                  ))}
-                </AlertContentContainer>
-              }
-            >
-              {`There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
-            </Alert>
-          );
-        })}
+      {filteredCodeowners.map(({id, codeMapping, errors}) => {
+        const errorPairs = Object.entries(errors).filter(
+          ([_, values]) => values.length
+        ) as Array<[CodeOwnerErrorKeys, string[]]>;
+        const errorCount = errorPairs.reduce(
+          (acc, [_, values]) => acc + values.length,
+          0
+        );
+        return (
+          <Alert
+            key={id}
+            type="error"
+            showIcon
+            expand={
+              <AlertContentContainer key="container">
+                {errorPairs.map(([type, values]) => (
+                  <ErrorContainer key={`${id}-${type}`}>
+                    {errMessage(codeMapping!, type, values)}
+                  </ErrorContainer>
+                ))}
+              </AlertContentContainer>
+            }
+          >
+            {`There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
+          </Alert>
+        );
+      })}
     </Fragment>
   );
 }

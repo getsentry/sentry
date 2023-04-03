@@ -1,5 +1,6 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
 type IssueStream = {
   group_id: string;
@@ -12,6 +13,8 @@ type SourceMapDebugParam = {
   group_id?: string;
 } & BaseEventAnalyticsParams;
 
+interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
+
 export type IssueEventParameters = {
   'event_cause.dismissed': {};
   'event_cause.docs_clicked': {};
@@ -23,12 +26,11 @@ export type IssueEventParameters = {
   'inbox_tab.issue_clicked': {
     group_id: string;
   };
-  'issue.quick_trace_status': {
-    is_performance_issue: boolean;
-    status: string;
-  };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.copy_event_link_clicked': GroupEventParams;
+  'issue_details.event_details_clicked': GroupEventParams;
+  'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
@@ -116,6 +118,9 @@ export type IssueEventParameters = {
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
+  'issues_stream.issue_category_dropdown_changed': {
+    category: string;
+  };
   'issues_stream.issue_clicked': IssueStream;
   'issues_stream.paginate': {
     direction: string;
@@ -192,12 +197,13 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
+  'issues_stream.issue_category_dropdown_changed':
+    'Issues Stream: Issue Category Dropdown Changed',
   'issue.shared_publicly': 'Issue Shared Publicly',
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
     'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
-  'issue.quick_trace_status': 'Issue Quick Trace Status',
   'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
   'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
   'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
@@ -223,4 +229,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Hidden Spans Expanded',
   'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
+  'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
+  'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
+  'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
 };

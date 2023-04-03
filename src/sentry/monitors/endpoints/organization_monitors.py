@@ -7,8 +7,9 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import Organization, Project
+from sentry.models import Environment, Organization, Project
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
+from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.signals import first_cron_monitor_created
@@ -69,6 +70,19 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             )
         )
         query = request.GET.get("query")
+
+        environments = None
+        if "environment" in filter_params:
+            environments = filter_params["environment_objects"]
+            if request.GET.get("includeNew"):
+                queryset = queryset.filter(
+                    Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
+                )
+            else:
+                queryset = queryset.filter(monitorenvironment__environment__in=environments)
+        else:
+            environments = list(Environment.objects.filter(organization_id=organization.id))
+
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():
@@ -89,7 +103,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                 elif key == "type":
                     try:
                         queryset = queryset.filter(
-                            status__in=map_value_to_constant(MonitorType, value)
+                            type__in=map_value_to_constant(MonitorType, value)
                         )
                     except ValueError:
                         queryset = queryset.none()
@@ -100,7 +114,9 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             request=request,
             queryset=queryset,
             order_by=("status_order", "-last_checkin"),
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, MonitorSerializer(environments=environments)
+            ),
             paginator_cls=OffsetPaginator,
         )
 

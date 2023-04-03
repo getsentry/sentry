@@ -16,7 +16,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
 
-export const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
+export const MOBILE_TAGS = [
+  'device',
+  'device.class',
+  'os',
+  'release',
+  'environment',
+  'transaction',
+];
 
 export const FRONTEND_TAGS = ['browser', 'transaction', 'release', 'url', 'environment'];
 
@@ -121,6 +128,10 @@ export default function TagFacets({
   }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
+  if (!organization.features.includes('device-classification')) {
+    delete tagsData['device.class'];
+  }
+
   const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
   const remainingTagKeys = Object.keys(tagsData)
     .filter(tagKey => !tagKeys.includes(tagKey))

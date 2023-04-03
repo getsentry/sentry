@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db import transaction
 from rest_framework import status
 from rest_framework.request import Request
@@ -8,8 +10,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
-from sentry.mediators import service_hooks
 from sentry.models import ObjectStatus, ServiceHook
+from sentry.services.hybrid_cloud.hook import hook_service
 
 
 @region_silo_endpoint
@@ -100,13 +102,16 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         result = validator.validated_data
 
         with transaction.atomic():
-            hook = service_hooks.Creator.run(
-                projects=[project],
-                organization=project.organization,
+            app_id: int | None = getattr(request.auth, "application_id", None)
+
+            hook = hook_service.create_service_hook(
+                project_ids=[project.id],
+                organization_id=project.organization.id,
                 url=result["url"],
-                actor=request.user,
+                actor_id=request.user.id,
                 events=result.get("events"),
-                application=getattr(request.auth, "application", None) if request.auth else None,
+                application_id=app_id,
+                installation_id=None,  # Just being explicit here.
             )
 
             self.create_audit_entry(
@@ -117,4 +122,6 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
                 data=hook.get_audit_log_data(),
             )
 
-        return self.respond(serialize(hook, request.user), status=201)
+        return self.respond(
+            serialize(ServiceHook.objects.get(id=hook.id), request.user), status=201
+        )

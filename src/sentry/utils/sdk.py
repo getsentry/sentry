@@ -42,7 +42,7 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-external-user-details": settings.SAMPLED_DEFAULT_RATE,
     # integration platform
     "external-issues": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-sentry-app-authorizations": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-sentry-app-installation-authorizations": settings.SAMPLED_DEFAULT_RATE,
     # integrations
     "sentry-extensions-jira-issue-hook": 0.05,
     "sentry-extensions-vercel-webhook": settings.SAMPLED_DEFAULT_RATE,
@@ -329,12 +329,8 @@ def configure_sdk():
         experimental_transport = None
 
     if settings.SENTRY_PROFILING_ENABLED:
-        sdk_options.setdefault("_experiments", {}).update(
-            {
-                "profiles_sample_rate": settings.SENTRY_PROFILES_SAMPLE_RATE,
-                "profiler_mode": settings.SENTRY_PROFILER_MODE,
-            }
-        )
+        sdk_options["profiles_sample_rate"] = settings.SENTRY_PROFILES_SAMPLE_RATE
+        sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):

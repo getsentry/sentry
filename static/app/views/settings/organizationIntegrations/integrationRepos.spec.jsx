@@ -61,8 +61,8 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      userEvent.click(screen.getByText('Add Repository'));
-      userEvent.click(screen.getByText('repo-name'));
+      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.click(screen.getByText('repo-name'));
 
       expect(addRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/`,
@@ -79,7 +79,7 @@ describe('IntegrationRepos', function () {
       expect(resetReposSpy).toHaveBeenCalled();
     });
 
-    it('handles failure during save', function () {
+    it('handles failure during save', async function () {
       const addRepo = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
@@ -103,8 +103,8 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      userEvent.click(screen.getByText('Add Repository'));
-      userEvent.click(screen.getByText('sentry-repo'));
+      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.click(screen.getByText('sentry-repo'));
 
       expect(addRepo).toHaveBeenCalled();
       expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
@@ -160,8 +160,8 @@ describe('IntegrationRepos', function () {
       });
       render(<IntegrationRepos integration={integration} />);
 
-      userEvent.click(screen.getByText('Add Repository'));
-      userEvent.click(screen.getByText('repo-name'));
+      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.click(screen.getByText('repo-name'));
 
       expect(updateRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/4/`,
@@ -172,7 +172,7 @@ describe('IntegrationRepos', function () {
       await waitFor(() => expect(resetReposSpy).toHaveBeenCalled());
     });
 
-    it('uses externalSlug not name for comparison', () => {
+    it('uses externalSlug not name for comparison', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
@@ -192,8 +192,8 @@ describe('IntegrationRepos', function () {
       });
       render(<IntegrationRepos integration={integration} />);
 
-      userEvent.click(screen.getByText('Add Repository'));
-      userEvent.click(screen.getByText('repo-name'));
+      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.click(screen.getByText('repo-name'));
 
       expect(getItems).toHaveBeenCalled();
       expect(updateRepo).toHaveBeenCalledWith(

@@ -21,7 +21,6 @@ from sentry.models import (
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
-    FallthroughChoiceType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -31,7 +30,6 @@ from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.silo import region_silo_test
@@ -445,7 +443,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         """Test that issue alerts are sent to a team in Slack."""
         # add a second organization
         org = self.create_organization(owner=self.user)
-        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
+        OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
 
         # add a second user to the team so we can be sure it's only
         # sent once (to the team, and not to each individual user)
@@ -744,22 +742,3 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert attachment["title"] == "Hello world"
         assert attachment["text"] == ""
-
-    @mock.patch("sentry.experiments.manager.get", return_value=1)
-    @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_issue_alert_fallback_experiment(self, mock_func):
-        """Test that the fallback experiment adds a query param"""
-
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"},
-            project_id=self.project.id,
-        )
-        notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule),
-            target_type=ActionTargetType.ISSUE_OWNERS,
-            fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
-        )
-        context = notification.get_context()
-        assert "&ref_fallback=expt" in context["link"]
-        params = notification.get_log_params(self.user)
-        assert params["fallback_experiment"] == "expt"

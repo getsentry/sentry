@@ -31,21 +31,14 @@ def _get_client(integration: Integration) -> JiraServerClient:
 def get_assignee_email(
     integration: Integration,
     assignee: Mapping[str, str],
-    use_email_scope: bool = False,
 ) -> str | None:
-    """Get email from `assignee` or pull it from API (if we have the scope for it.)"""
-    email = assignee.get("emailAddress")
-    if not email and use_email_scope:
-        account_id = assignee.get("accountId")
-        client = _get_client(integration)
-        email = client.get_email(account_id)
-    return email
+    """Get email from `assignee`."""
+    return assignee.get("emailAddress")
 
 
 def handle_assignee_change(
     integration: Integration,
     data: Mapping[str, Any],
-    use_email_scope: bool = False,
 ) -> None:
     assignee_changed = any(
         item for item in data["changelog"]["items"] if item["field"] == "assignee"
@@ -63,8 +56,7 @@ def handle_assignee_change(
         sync_group_assignee_inbound(integration, None, issue_key, assign=False)
         return
 
-    email = get_assignee_email(integration, assignee, use_email_scope)
-    # TODO(steve) check display name
+    email = get_assignee_email(integration, assignee)
     if not email:
         logger.info(
             "missing-assignee-email",
@@ -91,7 +83,7 @@ def handle_status_change(integration, data):
         )
         return
 
-    for org_id in integration.organizations.values_list("id", flat=True):
+    for org_id in integration.organizationintegration_set.values_list("organization_id", flat=True):
         installation = integration.get_installation(org_id)
 
         installation.sync_status_inbound(

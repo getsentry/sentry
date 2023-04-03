@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import patch
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -113,7 +114,8 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 200
         assert response.data["raw"] == "# cool stuff comment\n*.js admin@sentry.io\n# good comment"
 
-    def test_codeowners_max_raw_length(self):
+    @patch("sentry.analytics.record")
+    def test_codeowners_max_raw_length(self, mock_record):
         with mock.patch(
             "sentry.api.endpoints.codeowners.MAX_RAW_LENGTH", len(self.data["raw"]) + 1
         ):
@@ -132,6 +134,11 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
                     )
                 ]
             }
+
+            mock_record.assert_called_with(
+                "codeowners.max_length_exceeded",
+                organization_id=self.organization.id,
+            )
 
             # Test that we allow this to be modified for existing large rows
             code_mapping = self.create_code_mapping(project=self.project, stack_root="/")

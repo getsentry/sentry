@@ -1,24 +1,31 @@
-import {Fragment, useRef} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import Alert from 'sentry/components/alert';
+import {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
+import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {crontabAsText} from 'sentry/views/monitors/utils';
 
 import {
   IntervalConfig,
@@ -28,9 +35,9 @@ import {
   ScheduleType,
 } from '../types';
 
-const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
-  {value: ScheduleType.CRONTAB, label: 'Crontab'},
-  {value: ScheduleType.INTERVAL, label: 'Interval'},
+const SCHEDULE_OPTIONS: RadioOption<string>[] = [
+  [ScheduleType.CRONTAB, t('Crontab')],
+  [ScheduleType.INTERVAL, t('Interval')],
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
@@ -98,6 +105,11 @@ function MonitorForm({
   const form = useRef(new FormModel({transformData}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const [crontabInput, setCrontabInput] = useState(
+    monitor?.config.schedule_type === ScheduleType.CRONTAB
+      ? monitor?.config.schedule
+      : null
+  );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
@@ -128,6 +140,11 @@ function MonitorForm({
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
 
+  const isSuperuser = isActiveSuperuser();
+  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
+
+  const parsedSchedule = crontabAsText(crontabInput);
+
   return (
     <Form
       allowUndo
@@ -139,6 +156,7 @@ function MonitorForm({
         monitor
           ? {
               name: monitor.name,
+              slug: monitor.slug,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               ...formDataFromConfig(monitor.type, monitor.config),
@@ -151,47 +169,70 @@ function MonitorForm({
       onSubmitSuccess={onSubmitSuccess}
       submitLabel={submitLabel}
     >
-      <Panel>
-        <PanelHeader>{t('Details')}</PanelHeader>
-
-        <PanelBody>
-          <SentryProjectSelectorField
+      <StyledList symbol="colored-numeric">
+        <StyledListItem>{t('Add a name and project')}</StyledListItem>
+        <ListItemSubText>
+          {t('The monitor name will show up in alerts and notifications')}
+        </ListItemSubText>
+        <InputGroup>
+          <StyledTextField
+            name="name"
+            placeholder={t('My Cron Job')}
+            required
+            stacked
+            inline={false}
+          />
+          {monitor && (
+            <StyledTextField
+              name="slug"
+              help={tct(
+                'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
+                {strong: <strong />}
+              )}
+              placeholder={t('monitor-slug')}
+              required
+              stacked
+              inline={false}
+              transformInput={slugify}
+            />
+          )}
+          <StyledSentryProjectSelectorField
             name="project"
-            label={t('Project')}
-            projects={projects.filter(project => project.isMember)}
+            projects={filteredProjects}
+            placeholder={t('Choose Project')}
             disabled={!!monitor}
             disabledReason={t('Existing monitors cannot be moved between projects')}
             valueIsSlug
-            help={t(
-              "Select the project which contains the recurring job you'd like to monitor."
-            )}
             required
+            stacked
+            inline={false}
           />
-          {monitor && (
-            <FieldGroup
-              label={t('Monitor Slug')}
-              flexibleControlStateSize
-              help={t(
-                'The monitor slug is the organization-wide unique identifier for your monitor.'
-              )}
-            >
-              <TextCopyInput>{monitor.slug}</TextCopyInput>
-            </FieldGroup>
-          )}
-          <TextField
-            name="name"
-            placeholder={t('My Cron Job')}
-            label={t('Name your cron monitor')}
-            required
-          />
-        </PanelBody>
-      </Panel>
-      <Panel>
-        <PanelHeader>{t('Config')}</PanelHeader>
+        </InputGroup>
 
-        <PanelBody>
+        <StyledListItem>{t('Choose your schedule type')}</StyledListItem>
+        <ListItemSubText>
+          {tct('You can use [link:the crontab syntax] or our interval schedule.', {
+            link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
+          })}
+        </ListItemSubText>
+        <InputGroup>
+          <RadioField
+            name="config.schedule_type"
+            choices={SCHEDULE_OPTIONS}
+            defaultValue={ScheduleType.CRONTAB}
+            orientInline
+            required
+            stacked
+            inline={false}
+          />
+        </InputGroup>
+        <StyledListItem>{t('Choose your schedule')}</StyledListItem>
+        <ListItemSubText>
+          {t('How often you expect your recurring jobs to run.')}
+        </ListItemSubText>
+        <InputGroup>
           {monitor !== undefined && monitor.nextCheckIn && (
-            <PanelAlert type="info">
+            <Alert type="info">
               {tct(
                 'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
                 {
@@ -202,130 +243,151 @@ function MonitorForm({
                   ),
                 }
               )}
-            </PanelAlert>
+            </Alert>
           )}
-          <NumberField
-            name="config.max_runtime"
-            label={t('Max Runtime')}
-            help={t(
-              "Set the number of minutes a recurring job is allowed to run before it's considered failed."
-            )}
-            placeholder="e.g. 30"
-          />
-          <SelectField
-            name="config.schedule_type"
-            label={t('Schedule Type')}
-            options={SCHEDULE_TYPES}
-            defaultValue={ScheduleType.CRONTAB}
-            required
-          />
           <Observer>
             {() => {
-              switch (form.current.getValue('config.schedule_type')) {
-                case 'crontab':
-                  return (
-                    <Fragment>
-                      <TextField
-                        name="config.schedule"
-                        label={t('Schedule')}
-                        placeholder="*/5 * * * *"
-                        required
-                        help={tct(
-                          'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
-                          {
-                            link: (
-                              <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />
-                            ),
-                          }
-                        )}
-                        css={{input: {fontFamily: commonTheme.text.familyMono}}}
-                      />
-                      <SelectField
-                        name="config.timezone"
-                        label={t('Timezone')}
-                        defaultValue="UTC"
-                        options={timezoneOptions}
-                        help={tct(
-                          "The timezone of your execution environment. Be sure to set this correctly, otherwise the schedule may be mismatched and check-ins will be marked as missed! Use [code:timedatectl] or similar to determine your machine's timezone.",
-                          {code: <code />}
-                        )}
-                      />
-                      <NumberField
-                        name="config.checkin_margin"
-                        label={t('Check-in Margin')}
-                        help={t(
-                          "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
-                        )}
-                        placeholder="e.g. 30"
-                      />
-                    </Fragment>
-                  );
-                case 'interval':
-                  return (
-                    <Fragment>
-                      <CombinedField>
-                        <FieldGroup
-                          label={t('Frequency')}
-                          help={t(
-                            'The amount of time between each job execution. Example, every 5 hours.'
-                          )}
-                          stacked
-                          required
-                        />
-                        <StyledNumberField
-                          name="config.schedule.frequency"
-                          label={t('Frequency')}
-                          placeholder="e.g. 1"
-                          hideLabel
-                          required
-                        />
-                        <StyledSelectField
-                          name="config.schedule.interval"
-                          label={t('Interval')}
-                          options={getIntervals(
-                            Number(
-                              form.current.getValue('config.schedule.frequency') ?? 1
-                            )
-                          )}
-                          hideLabel
-                          required
-                        />
-                      </CombinedField>
-                      <NumberField
-                        name="config.checkin_margin"
-                        label={t('Check-in Margin')}
-                        help={t(
-                          "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
-                        )}
-                        placeholder="e.g. 30"
-                      />
-                    </Fragment>
-                  );
-                default:
-                  return null;
+              const schedule_type = form.current.getValue('config.schedule_type');
+              if (schedule_type === 'crontab') {
+                return (
+                  <ScheduleGroupInputs>
+                    <StyledTextField
+                      name="config.schedule"
+                      placeholder="*/5 * * * *"
+                      css={{input: {fontFamily: commonTheme.text.familyMono}}}
+                      required
+                      stacked
+                      onChange={setCrontabInput}
+                      inline={false}
+                    />
+                    <StyledSelectField
+                      name="config.timezone"
+                      defaultValue="UTC"
+                      options={timezoneOptions}
+                      required
+                      stacked
+                      inline={false}
+                    />
+                    {parsedSchedule && <CronstrueText>"{parsedSchedule}"</CronstrueText>}
+                  </ScheduleGroupInputs>
+                );
               }
+              if (schedule_type === 'interval') {
+                return (
+                  <ScheduleGroupInputs interval>
+                    <LabelText>{t('Every')}</LabelText>
+                    <StyledNumberField
+                      name="config.schedule.frequency"
+                      placeholder="e.g. 1"
+                      required
+                      stacked
+                      inline={false}
+                    />
+                    <StyledSelectField
+                      name="config.schedule.interval"
+                      options={getIntervals(
+                        Number(form.current.getValue('config.schedule.frequency') ?? 1)
+                      )}
+                      placeholder="minute"
+                      required
+                      stacked
+                      inline={false}
+                    />
+                  </ScheduleGroupInputs>
+                );
+              }
+              return null;
             }}
           </Observer>
-        </PanelBody>
-      </Panel>
+        </InputGroup>
+        <StyledListItem>{t('Set a missed status')}</StyledListItem>
+        <ListItemSubText>
+          {t("The number of minutes we'll wait before we consider a check-in as missed.")}
+        </ListItemSubText>
+        <InputGroup>
+          <StyledNumberField
+            name="config.checkin_margin"
+            placeholder="e.g. 30"
+            stacked
+            inline={false}
+          />
+        </InputGroup>
+        <StyledListItem>{t('Set a failed status')}</StyledListItem>
+        <ListItemSubText>
+          {t(
+            "The number of minutes a check-in is allowed to run before it's considered failed."
+          )}
+        </ListItemSubText>
+        <InputGroup>
+          <StyledNumberField
+            name="config.max_runtime"
+            placeholder="e.g. 30"
+            stacked
+            inline={false}
+          />
+        </InputGroup>
+      </StyledList>
     </Form>
   );
 }
 
 export default MonitorForm;
 
-const CombinedField = styled('div')`
-  display: grid;
-  grid-template-columns: 50% 1fr 1fr;
-  align-items: center;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+const StyledList = styled(List)`
+  width: 600px;
 `;
 
 const StyledNumberField = styled(NumberField)`
   padding: 0;
-  border-bottom: none;
 `;
 
 const StyledSelectField = styled(SelectField)`
-  padding-left: 0;
+  padding: 0;
+`;
+
+const StyledTextField = styled(TextField)`
+  padding: 0;
+`;
+
+const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
+  padding: 0;
+`;
+
+const StyledListItem = styled(ListItem)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: bold;
+  line-height: 1.3;
+`;
+
+const LabelText = styled(Text)`
+  font-weight: bold;
+  color: ${p => p.theme.subText};
+`;
+
+const ListItemSubText = styled(LabelText)`
+  font-weight: normal;
+  padding-left: ${space(4)};
+`;
+
+const InputGroup = styled('div')`
+  padding-left: ${space(4)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(4)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const ScheduleGroupInputs = styled('div')<{interval?: boolean}>`
+  display: grid;
+  align-items: center;
+  gap: ${space(1)};
+  grid-template-columns: ${p => p.interval && 'auto'} 1fr 2fr;
+`;
+
+const CronstrueText = styled(LabelText)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-family: ${p => p.theme.text.familyMono};
+  grid-column: auto / span 2;
 `;

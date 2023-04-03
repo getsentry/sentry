@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -37,11 +36,11 @@ function CreateMonitor({}: Props) {
                 to: `/organizations/${orgSlug}/crons/`,
               },
               {
-                label: t('Set Up Cron Monitor'),
+                label: t('Add Monitor'),
               },
             ]}
           />
-          <Layout.Title>{t('Set Up Cron Monitor')}</Layout.Title>
+          <Layout.Title>{t('Add Monitor')}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <CronsFeedbackButton />
@@ -49,16 +48,11 @@ function CreateMonitor({}: Props) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <HelpText>
-            {t(
-              `Sentry will tell you if your recurring jobs are running on schedule, failing, or succeeding.`
-            )}
-          </HelpText>
           <MonitorForm
             apiMethod="POST"
             apiEndpoint={`/organizations/${orgSlug}/monitors/`}
             onSubmitSuccess={onSubmitSuccess}
-            submitLabel={t('Next Steps')}
+            submitLabel={t('Next')}
           />
         </Layout.Main>
       </Layout.Body>
@@ -67,8 +61,3 @@ function CreateMonitor({}: Props) {
 }
 
 export default CreateMonitor;
-
-const HelpText = styled('p')`
-  color: ${p => p.theme.subText};
-  max-width: 760px;
-`;

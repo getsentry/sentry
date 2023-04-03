@@ -1,15 +1,27 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
-from sentry import features, quotas, roles
+from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -37,6 +49,7 @@ from sentry.constants import (
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
 )
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     Organization,
@@ -52,6 +65,7 @@ from sentry.models import (
 )
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.http import is_using_customer_domain
 
@@ -178,6 +192,25 @@ class OrganizationSerializerResponse(TypedDict):
     features: Any  # TODO
     links: _Links
     hasAuthProvider: bool
+
+
+class ControlSiloOrganizationSerializerResponse(TypedDict):
+    # The control silo will not, cannot, should not contain most organization data.
+    # Therefore, we need a specialized, limited via of that data.
+    id: str
+    slug: str
+    name: str
+
+
+class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
+    def serialize(
+        self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
+    ) -> ControlSiloOrganizationSerializerResponse:
+        return dict(
+            id=str(obj.id),
+            slug=obj.slug,
+            name=obj.name,
+        )
 
 
 @register(Organization)
@@ -339,6 +372,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
     data: Any  # JSON object
 
 
+@register(OrganizationOnboardingTask)
 class OnboardingTasksSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
@@ -415,9 +449,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         from sentry import experiments
 
-        onboarding_tasks = list(
-            OrganizationOnboardingTask.objects.filter(organization=obj).select_related("user")
-        )
+        tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
@@ -517,7 +549,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        context["onboardingTasks"] = serialize(onboarding_tasks, user, OnboardingTasksSerializer())
+        context["onboardingTasks"] = serialize(tasks_to_serialize, user)
         return context
 
 
@@ -561,7 +593,10 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
     def serialize(  # type: ignore
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
-        from sentry.api.serializers.models.project import ProjectSummarySerializer
+        from sentry.api.serializers.models.project import (
+            LATEST_DEPLOYS_KEY,
+            ProjectSummarySerializer,
+        )
         from sentry.api.serializers.models.team import TeamSerializer
 
         context = cast(
@@ -573,6 +608,18 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         project_list = self._project_list(obj, access)
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
-        context["projects"] = serialize(project_list, user, ProjectSummarySerializer(access=access))
+
+        collapse_projects: Set[str] = set()
+        if killswitch_matches_context(
+            "api.organization.disable-last-deploys",
+            {
+                "organization_id": obj.id,
+            },
+        ):
+            collapse_projects = {LATEST_DEPLOYS_KEY}
+
+        context["projects"] = serialize(
+            project_list, user, ProjectSummarySerializer(access=access, collapse=collapse_projects)
+        )
 
         return context
