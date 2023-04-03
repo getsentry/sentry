@@ -30,7 +30,6 @@ def query_groups_past_counts(groups: List[Group]) -> JSONData:
     while True:
         query = _generate_query(groups, offset)
         request = Request(dataset="events", app_id="sentry.issues.escalating", query=query)
-        request.validate()
         results = raw_snql_query(request, referrer="sentry.issues.escalating")["data"]
         if not results:
             break
