@@ -73,6 +73,9 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             for pr in project_releases
         ]
 
+        # We want to first check if there are any bundles that are weakly associated with this release, if so we want
+        # to count the artifacts of the newest "ArtifactBundle".
+        last_bundle = release.last_weakly_associated_artifact_bundle()
         return Response(
             {
                 "version": release.version,
@@ -83,6 +86,11 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "commitCount": release.commit_count,
                 "released": release.date_released or release.date_added,
                 "commitFilesChanged": commit_files_changed,
-                "releaseFileCount": release.count_artifacts(),
+                # In case there is not artifact bundle that is weakly associated with this release, we check if there is
+                # the old "ReleaseFile". In case the old "ReleaseFile" is not present, we will return 0.
+                "releaseFileCount": release.count_artifacts()
+                if last_bundle is None
+                else last_bundle.artifact_count,
+                "bundleId": None if last_bundle is None else str(last_bundle.bundle_id),
             }
         )
