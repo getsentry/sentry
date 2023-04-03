@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import zlib
 from datetime import datetime, timezone
-from typing import TypedDict, Union
+from typing import Optional, TypedDict, Union
 
 from django.conf import settings
 from sentry_sdk import Hub
@@ -258,7 +258,9 @@ def decompress(data: bytes) -> bytes:
         return zlib.decompress(data, zlib.MAX_WBITS | 32)
 
 
-def _report_size_metrics(size_compressed: int = None, size_uncompressed: int = None) -> None:
+def _report_size_metrics(
+    size_compressed: Optional[int] = None, size_uncompressed: Optional[int] = None
+) -> None:
     if size_compressed:
         metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
     if size_uncompressed:
