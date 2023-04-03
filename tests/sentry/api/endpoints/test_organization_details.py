@@ -13,6 +13,7 @@ from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
+from sentry.auth.providers.google.constants import DATA_VERSION
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
@@ -786,33 +787,32 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
     def test_configure_auth_provider(self):
-        old_config = {"option": "old"}
-        new_config = {"option": "new"}
-        old_provider = "github"
-        new_provider = "google"
+        old_config = {"domain": "foo.com"}
+        new_config = {"domain": "bar.com"}
+        provider = "google"
         self.get_success_response(
             self.organization.slug,
             method="put",
-            providerName=old_provider,
+            providerName=provider,
             providerConfig=old_config,
         )
-        auth_provider = AuthProvider.objects.get(organization=self.organization.id)
-        assert auth_provider.provider == old_provider
-        assert auth_provider.config == old_config
+        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
+        assert auth_provider.provider == provider
+        assert auth_provider.config == {"domains": ["foo.com"], "version": DATA_VERSION}
 
         self.get_success_response(
             self.organization.slug,
             method="put",
-            providerName=new_provider,
+            providerName=provider,
             providerConfig=new_config,
         )
-        auth_provider = AuthProvider.objects.get(organization=self.organization.id)
-        assert auth_provider.provider == new_provider
-        assert auth_provider.config == new_config
+        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
+        assert auth_provider.provider == provider
+        assert auth_provider.config == {"domains": ["bar.com"], "version": DATA_VERSION}
 
     def test_invalid_auth_provider_configuration(self):
         self.get_error_response(
-            self.organization.slug, method="put", providerName="github", status_code=400
+            self.organization.slug, method="put", providerName="google", status_code=400
         )
         self.get_error_response(
             self.organization.slug,
