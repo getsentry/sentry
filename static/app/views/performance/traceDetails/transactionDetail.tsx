@@ -79,8 +79,8 @@ class TransactionDetail extends Component<Props> {
       >
         <ErrorMessageTitle>
           {tn(
-            '%s error event occurred in this transaction.',
-            '%s error events occurred in this transaction.',
+            '%s issue occurred in this transaction.',
+            '%s issues occurred in this transaction.',
             errors.length + performance_issues.length
           )}
         </ErrorMessageTitle>
