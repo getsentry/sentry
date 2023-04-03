@@ -47,14 +47,6 @@ const NotificationActionManager = ({
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
 
-  const addNotificationAction = (
-    actionInstance: AvailableNotificationAction['action']
-  ) => {
-    const updatedActions = [...notificationActions, actionInstance];
-    setNotificationActions(updatedActions);
-    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
-  };
-
   const removeNotificationAction = (index: number) => {
     // Removes notif action from state using the index
     const updatedActions = [...notificationActions];
@@ -170,7 +162,12 @@ const NotificationActionManager = ({
             ? capitalize(serviceType)
             : 'Sentry'
         ),
-        onAction: () => addNotificationAction(validActions[0].action),
+        onAction: () => {
+          // Add notification action
+          const updatedActions = [...notificationActions, validActions[0].action];
+          setNotificationActions(updatedActions);
+          updateAlertCount(parseInt(project.id, 10), updatedActions.length);
+        },
       });
     });
     return menuItems;
