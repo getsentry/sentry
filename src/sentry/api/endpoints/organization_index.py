@@ -72,8 +72,8 @@ class OrganizationIndexEndpoint(Endpoint):
         if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
-            elif request.auth.organization is not None:
-                queryset = queryset.filter(id=request.auth.organization.id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         elif owner_only:
             # This is used when closing an account
