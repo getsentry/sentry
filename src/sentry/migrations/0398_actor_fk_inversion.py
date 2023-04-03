@@ -45,33 +45,37 @@ class Migration(CheckedMigration):
                 "sentry.User", db_index=False, null=True, on_delete="CASCADE", unique=False
             ),
         ),
-        migrations.AlterField(
-            model_name="team",
-            name="actor",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="team_from_actor",
-                to="sentry.Actor",
-                unique=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="user",
-            name="actor",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.PROTECT,
-                related_name="user_from_actor",
-                to="sentry.Actor",
-                unique=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="alertrule",
-            name="owner",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True, on_delete=django.db.models.deletion.SET_NULL, to="sentry.Actor"
-            ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name="team",
+                    name="actor",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="team_from_actor",
+                        to="sentry.Actor",
+                        unique=True,
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="user",
+                    name="actor",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="user_from_actor",
+                        to="sentry.Actor",
+                        unique=True,
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="alertrule",
+                    name="owner",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True, on_delete=django.db.models.deletion.SET_NULL, to="sentry.Actor"
+                    ),
+                ),
+            ],
         ),
     ]
