@@ -5,7 +5,6 @@ import os
 import random
 import re
 from datetime import timedelta
-from hashlib import md5
 from typing import Optional, Sequence
 from urllib.parse import parse_qs, urlparse
 
@@ -306,7 +305,7 @@ def get_span_hash(span: Span) -> Optional[str]:
     if not parts:
         return None
 
-    hash = md5()
+    hash = hashlib.md5()
     for part in parts:
         hash.update(force_bytes(part, errors="replace"))
 
