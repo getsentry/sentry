@@ -161,6 +161,8 @@ describe('CompactSelect', function () {
       expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
 
       // Option Three is not reachable via keyboard, focus wraps back to Option One
+      await userEvent.keyboard(`{ArrowDown}`);
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
       await userEvent.keyboard(`{ArrowDown>2}`);
       expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
 
@@ -382,6 +384,8 @@ describe('CompactSelect', function () {
       expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
 
       // Option Three is not reachable via keyboard, focus wraps back to Option One
+      await userEvent.keyboard(`{ArrowDown}`);
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
       await userEvent.keyboard(`{ArrowDown>2}`);
       expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
 
