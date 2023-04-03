@@ -307,7 +307,9 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(organization=organization, scope_list=scope_list)
+        return ApiKey.objects.create(
+            organization_id=organization.id if organization else None, scope_list=scope_list
+        )
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -360,7 +362,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_project_bookmark(project, user):
-        return ProjectBookmark.objects.create(project_id=project.id, user=user)
+        return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -543,8 +545,11 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_artifact_bundle(
-        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids"
+        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids", date_uploaded=None
     ):
+        if date_uploaded is None:
+            date_uploaded = timezone.now()
+
         bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
         file_ = File.objects.create(name="artifact-bundle.zip")
         file_.putfile(ContentFile(bundle))
@@ -555,6 +560,7 @@ class Factories:
             bundle_id=uuid4(),
             file=file_,
             artifact_count=artifact_count,
+            date_uploaded=date_uploaded,
         )
         return artifact_bundle
 
@@ -696,6 +702,8 @@ class Factories:
                         parent_span_ids=None,
                         cause_span_ids=None,
                         offender_span_ids=None,
+                        evidence_data={},
+                        evidence_display=[],
                     )
                 )
 

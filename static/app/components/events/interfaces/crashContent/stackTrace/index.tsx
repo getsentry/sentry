@@ -58,7 +58,6 @@ function StackTrace({
           newestFirst={newestFirst}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
-          hideIcon={inlined}
           inlined={inlined}
           maxDepth={maxDepth}
         />

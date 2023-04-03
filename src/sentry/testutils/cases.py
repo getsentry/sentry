@@ -95,6 +95,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DeletedOrganization,
     Deploy,
+    Environment,
     File,
     GroupMeta,
     Identity,
@@ -109,7 +110,7 @@ from sentry.models import (
     UserEmail,
     UserOption,
 )
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.models import ReplayRecordingSegment
@@ -137,6 +138,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
+from ..services.hybrid_cloud.actor import RpcActor
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -2010,7 +2012,9 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
+        self.auth_provider = AuthProviderModel(
+            organization_id=self.organization.id, provider=provider
+        )
         self.auth_provider.enable_scim(self.user)
         self.auth_provider.save()
         self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
@@ -2085,19 +2089,19 @@ class SlackActivityNotificationTest(ActivityTestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         self.integration = install_slack(self.organization)
@@ -2149,19 +2153,19 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
@@ -2307,6 +2311,19 @@ class MonitorTestCase(APITestCase):
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             **kwargs,
+        )
+
+    def _create_monitor_environment(self, monitor, name="production"):
+        environment = Environment.get_or_create(project=self.project, name=name)
+
+        monitorenvironment_defaults = {
+            "status": monitor.status,
+            "next_checkin": monitor.next_checkin,
+            "last_checkin": monitor.last_checkin,
+        }
+
+        return MonitorEnvironment.objects.create(
+            monitor=monitor, environment=environment, **monitorenvironment_defaults
         )
 
 

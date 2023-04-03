@@ -55,7 +55,7 @@ class PromptsActivityEndpoint(Endpoint):
             condition = Q(feature=feature, **filters)
             conditions = condition if conditions is None else (conditions | condition)
 
-        result = PromptsActivity.objects.filter(conditions, user=request.user)
+        result = PromptsActivity.objects.filter(conditions, user_id=request.user.id)
         featuredata = {k.feature: k.data for k in result}
         if len(features) == 1:
             result = result.first()
@@ -103,7 +103,7 @@ class PromptsActivityEndpoint(Endpoint):
         try:
             with transaction.atomic():
                 PromptsActivity.objects.create_or_update(
-                    feature=feature, user=request.user, values={"data": data}, **fields
+                    feature=feature, user_id=request.user.id, values={"data": data}, **fields
                 )
         except IntegrityError:
             pass

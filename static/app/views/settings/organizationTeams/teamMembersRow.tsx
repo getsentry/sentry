@@ -80,7 +80,7 @@ const TeamRoleSelect = (props: {
   // Determine the team-role, including if the current team has an org role
   // and if adding the user to the current team changes their minimum team-role
   const possibleOrgRoles = [member.orgRole];
-  if (member.orgRolesFromTeams) {
+  if (member.orgRolesFromTeams && member.orgRolesFromTeams.length > 0) {
     possibleOrgRoles.push(member.orgRolesFromTeams[0].role.id);
   }
   if (team.orgRole) {

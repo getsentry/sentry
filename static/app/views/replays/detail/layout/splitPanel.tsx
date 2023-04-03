@@ -1,11 +1,10 @@
-import {DOMAttributes, ReactNode, useCallback} from 'react';
+import {ReactNode, useCallback} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {IconGrabbable} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import useSplitPanelTracking from 'sentry/utils/replays/hooks/useSplitPanelTracking';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 
 type Side = {
   content: ReactNode;
@@ -87,7 +86,7 @@ function SplitPanel(props: Props) {
         size={sizePct}
       >
         <Panel>{a.content}</Panel>
-        <Divider
+        <SplitDivider
           isHeld={isHeld}
           onDoubleClick={onDoubleClick}
           onMouseDown={onMouseDown}
@@ -106,7 +105,7 @@ function SplitPanel(props: Props) {
       className={isHeld ? 'disable-iframe-pointer' : undefined}
     >
       <Panel>{a.content}</Panel>
-      <Divider
+      <SplitDivider
         isHeld={isHeld}
         onDoubleClick={onDoubleClick}
         onMouseDown={onMouseDown}
@@ -136,47 +135,6 @@ const SplitPanelContainer = styled('div')<{
 
 const Panel = styled('div')`
   overflow: hidden;
-`;
-
-type DividerProps = {isHeld: boolean; slideDirection: 'leftright' | 'updown'};
-const Divider = styled(
-  ({
-    isHeld: _a,
-    slideDirection: _b,
-    ...props
-  }: DividerProps & DOMAttributes<HTMLDivElement>) => (
-    <div {...props}>
-      <IconGrabbable size="sm" />
-    </div>
-  )
-)<DividerProps>`
-  display: grid;
-  place-items: center;
-  height: 100%;
-  width: 100%;
-
-  ${p => (p.isHeld ? 'user-select: none;' : '')}
-
-  :hover {
-    background: ${p => p.theme.hover};
-  }
-
-  ${p =>
-    p.slideDirection === 'leftright'
-      ? `
-        cursor: ew-resize;
-        height: 100%;
-        width: ${space(2)};
-      `
-      : `
-        cursor: ns-resize;
-        width: 100%;
-        height: ${space(2)};
-
-        & > svg {
-          transform: rotate(90deg);
-        }
-      `}
 `;
 
 export default SplitPanel;

@@ -419,8 +419,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_project_write = request.access and request.access.has_scope("project:write")
 
-        changed_proj_settings = {}
-
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
         else:
@@ -454,6 +452,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
 
         changed = False
+        changed_proj_settings = {}
 
         old_slug = None
         if result.get("slug"):
@@ -480,11 +479,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("isBookmarked"):
             try:
                 with transaction.atomic():
-                    ProjectBookmark.objects.create(project_id=project.id, user=request.user)
+                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
                 pass
         elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user=request.user).delete()
+            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
 
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
@@ -619,7 +618,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
                     "performanceIssueCreationRate"
                 ]
-        if "performanceIssueCreationThroughPlatform" in result:
+        if "performanceIssueSendToPlatform" in result:
             if project.update_option(
                 "sentry:performance_issue_send_to_issues_platform",
                 result["performanceIssueCreationThroughPlatform"],
@@ -627,6 +626,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
                     "performanceIssueCreationThroughPlatform"
                 ]
+        if "performanceIssueCreationThroughPlatform" in result:
+            if project.update_option(
+                "sentry:performance_issue_create_issue_through_platform",
+                result["performanceIssueCreationThroughPlatform"],
+            ):
+                changed_proj_settings[
+                    "sentry:performance_issue_create_issue_through_platform"
+                ] = result["performanceIssueCreationThroughPlatform"]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})

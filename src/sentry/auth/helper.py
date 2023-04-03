@@ -228,7 +228,10 @@ class AuthIdentityHandler:
 
     def _handle_new_membership(self, auth_identity: RpcAuthIdentity) -> RpcOrganizationMember:
         user, om = auth_service.handle_new_membership(
-            self.request, self.organization, auth_identity, self.auth_provider
+            request=self.request,
+            organization=self.organization,
+            auth_identity=auth_identity,
+            auth_provider=self.auth_provider,
         )
 
         if om is not None:
@@ -825,7 +828,7 @@ class AuthHelper(Pipeline):
         self.disable_2fa_required()
 
         self.provider_model = AuthProvider.objects.create(
-            organization=self.organization, provider=self.provider.key, config=config
+            organization_id=self.organization.id, provider=self.provider.key, config=config
         )
 
         self.auth_handler(identity).handle_attach_identity(om)
