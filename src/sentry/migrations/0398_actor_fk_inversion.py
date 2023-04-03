@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0397_break_some_more_fks.py"),
+        ("sentry", "0397_break_some_more_fks"),
     ]
 
     operations = [
