@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import capitalize from 'lodash/capitalize';
 
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -66,78 +66,89 @@ const NotificationActionManager = ({
   const availableServices: Record<
     NotificationActionService,
     AvailableNotificationAction[]
-  > = {
-    [NotificationActionService.SENTRY_NOTIFICATION]: [],
-    [NotificationActionService.EMAIL]: [],
-    [NotificationActionService.SLACK]: [],
-    [NotificationActionService.PAGERDUTY]: [],
-    [NotificationActionService.MSTEAMS]: [],
-    [NotificationActionService.SENTRY_APP]: [],
-  };
-  availableActions.forEach(a => {
-    availableServices[a.action.serviceType as NotificationActionService].push(a);
-  });
+  > = useMemo(() => {
+    const availableServicesMap: Record<
+      NotificationActionService,
+      AvailableNotificationAction[]
+    > = {
+      [NotificationActionService.SENTRY_NOTIFICATION]: [],
+      [NotificationActionService.EMAIL]: [],
+      [NotificationActionService.SLACK]: [],
+      [NotificationActionService.PAGERDUTY]: [],
+      [NotificationActionService.MSTEAMS]: [],
+      [NotificationActionService.SENTRY_APP]: [],
+    };
+    availableActions.forEach(a => {
+      availableServicesMap[a.action.serviceType as NotificationActionService].push(a);
+    });
+    return availableServicesMap;
+  }, [availableActions]);
 
   // Groups the notification actions together by service
   // Will render the notif actions in the order the keys are listed in
   const actionsMap: Record<
     NotificationActionService,
     {action: NotificationAction; index: number}[]
-  > = {
-    [NotificationActionService.SENTRY_NOTIFICATION]: [],
-    [NotificationActionService.EMAIL]: [],
-    [NotificationActionService.SLACK]: [],
-    [NotificationActionService.PAGERDUTY]: [],
-    [NotificationActionService.MSTEAMS]: [],
-    [NotificationActionService.SENTRY_APP]: [],
-  };
-  notificationActions.forEach((action, index) => {
-    if (action.serviceType) {
-      actionsMap[action.serviceType].push({action, index});
-    }
-  });
+  > = useMemo(() => {
+    const notificationActionsMap: Record<
+      NotificationActionService,
+      {action: NotificationAction; index: number}[]
+    > = {
+      [NotificationActionService.SENTRY_NOTIFICATION]: [],
+      [NotificationActionService.EMAIL]: [],
+      [NotificationActionService.SLACK]: [],
+      [NotificationActionService.PAGERDUTY]: [],
+      [NotificationActionService.MSTEAMS]: [],
+      [NotificationActionService.SENTRY_APP]: [],
+    };
+    notificationActions.forEach((action, index) => {
+      if (action.serviceType) {
+        notificationActionsMap[action.serviceType].push({action, index});
+      }
+    });
+    return notificationActionsMap;
+  }, [notificationActions]);
 
   // Groups the pagerduty integrations with their corresponding allowed services
-  const pagerdutyIntegrations: Record<number, AvailableNotificationAction[]> = {};
-  availableServices[NotificationActionService.PAGERDUTY].forEach(service => {
-    const integrationId = service.action.integrationId;
-    if (integrationId) {
-      if (integrationId in pagerdutyIntegrations) {
-        pagerdutyIntegrations[integrationId].push(service);
-      } else {
-        pagerdutyIntegrations[integrationId] = [service];
-      }
-    }
-  });
+  const pagerdutyIntegrations: Record<number, AvailableNotificationAction[]> =
+    useMemo(() => {
+      const integrations: Record<number, AvailableNotificationAction[]> = {};
+      availableServices[NotificationActionService.PAGERDUTY].forEach(service => {
+        const integrationId = service.action.integrationId;
+        if (integrationId) {
+          if (integrationId in integrations) {
+            integrations[integrationId].push(service);
+          } else {
+            integrations[integrationId] = [service];
+          }
+        }
+      });
+      return integrations;
+    }, [availableServices]);
 
   const renderNotificationActions = () => {
     if (!notificationActions) {
-      return null;
+      return [];
     }
 
-    const serviceActions: NotificationAction[] = [];
-
     // Renders the notif actions grouped together by kind
-    Object.keys(actionsMap).forEach(serviceType => {
+    return Object.keys(actionsMap).map(serviceType => {
       const services = actionsMap[serviceType];
-      serviceActions.push(
-        services.map(({action, index}) => (
-          <NotificationActionItem
-            key={index}
-            index={index}
-            defaultEdit={!action.id}
-            action={action}
-            recipientRoles={recipientRoles}
-            availableActions={availableServices[serviceType]}
-            pagerdutyIntegrations={pagerdutyIntegrations}
-            project={project}
-            onDelete={removeNotificationAction}
-            onUpdate={updateNotificationAction}
-          />
-        ))
-      );
+      return services.map(({action, index}) => (
+        <NotificationActionItem
+          key={index}
+          index={index}
+          defaultEdit={!action.id}
+          action={action}
+          recipientRoles={recipientRoles}
+          availableActions={availableServices[serviceType]}
+          pagerdutyIntegrations={pagerdutyIntegrations}
+          project={project}
+          onDelete={removeNotificationAction}
+          onUpdate={updateNotificationAction}
+        />
+      ));
     });
-    return serviceActions;
   };
 
   const getMenuItems = () => {
