@@ -29,7 +29,7 @@ def can_create_group(
             # system-wide option
             and options.get("performance.issues.create_issues_through_platform", False)
             # more-granular per-project option
-            and project.get_option("sentry:performance_issue_create_issue_through_platform", False)
+            and project.get_option("sentry:performance_issue_create_issue_through_platform", True)
         )
     )
 
