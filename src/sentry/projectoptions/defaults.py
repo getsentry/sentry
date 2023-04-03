@@ -107,7 +107,7 @@ register(key="sentry:performance_issue_send_to_issues_platform", default=True)
 
 # Rate at which performance issues are created through issues platform per project. Defaults to False, system flags and options will determine if an organization creates issues through platform.
 # Can be used to turn off issue creation for users if there is a project-specific issue.
-register(key="sentry:performance_issue_create_issue_through_platform", default=True)
+register(key="sentry:performance_issue_create_issue_through_platform", default=False)
 
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "n_plus_one_db_detection_rate": 1.0,
