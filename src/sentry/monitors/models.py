@@ -393,9 +393,9 @@ class MonitorEnvironment(Model):
                 "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
                 "contexts": {"monitor": get_monitor_environment_context(self)},
                 "fingerprint": ["monitor", str(self.monitor.guid), reason],
+                "environment": self.environment.name,
                 "tags": {
                     "monitor.id": str(self.monitor.guid),
-                    "environment": self.environment.name,
                 },
             },
             project=Project(id=self.monitor.project_id),
