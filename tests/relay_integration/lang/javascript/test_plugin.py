@@ -1631,6 +1631,42 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert "errors" not in event.data
 
+    def test_expansion_with_allow_scraping_false(self):
+        project = self.project
+        project.organization.update_option("sentry:scrape_javascript", False)
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "1.0",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert len(event.data["errors"]) == 1
+        assert event.data["errors"][0] == {
+            "type": "js_scraping_disabled",
+            "url": "http://example.com/file.min.js",
+        }
+
     def test_expansion_with_debug_id(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
