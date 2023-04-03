@@ -8,6 +8,7 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResult,
     KeyResults,
     Metadata,
+    UseCaseCollection,
 )
 
 
@@ -35,6 +36,55 @@ class KeyCollectionTest(TestCase):
 
         assert collection.mapping == org_strings
         assert collection.size == 5
+        assert sorted(list(collection.as_tuples())) == sorted(collection_tuples)
+        assert sorted(list(collection.as_strings())) == sorted(collection_strings)
+
+
+class UseCaseCollectionTest(TestCase):
+    def test_no_date(self) -> None:
+        collection = UseCaseCollection({})
+        assert collection.mapping == {}
+        assert collection.size == 0
+
+        assert collection.as_tuples() == []
+        assert collection.as_strings() == []
+
+    def test_basic(self) -> None:
+        org_strings = {
+            "use_case_1": {1: {"a", "b", "c"}, 2: {"e", "f"}},
+            "use_case_2": {1: {"a", "b", "c"}, 4: {"g", "f"}},
+            "use_case_3": {5: {"k"}},
+        }
+
+        collection = UseCaseCollection(org_strings)
+        collection_tuples = [
+            ("use_case_1", 1, "a"),
+            ("use_case_1", 1, "b"),
+            ("use_case_1", 1, "c"),
+            ("use_case_1", 2, "e"),
+            ("use_case_1", 2, "f"),
+            ("use_case_2", 1, "a"),
+            ("use_case_2", 1, "b"),
+            ("use_case_2", 1, "c"),
+            ("use_case_2", 4, "g"),
+            ("use_case_2", 4, "f"),
+            ("use_case_3", 5, "k"),
+        ]
+        collection_strings = [
+            "use_case_1:1:a",
+            "use_case_1:1:b",
+            "use_case_1:1:c",
+            "use_case_1:2:e",
+            "use_case_1:2:f",
+            "use_case_2:1:a",
+            "use_case_2:1:b",
+            "use_case_2:1:c",
+            "use_case_2:4:g",
+            "use_case_2:4:f",
+            "use_case_3:5:k",
+        ]
+
+        assert collection.size == 11
         assert sorted(list(collection.as_tuples())) == sorted(collection_tuples)
         assert sorted(list(collection.as_strings())) == sorted(collection_strings)
 

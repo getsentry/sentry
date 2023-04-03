@@ -31,6 +31,7 @@ class FetchTypeExt(NamedTuple):
 
 
 KR = TypeVar("KR", bound="KeyResult")
+UR = TypeVar("UR", bound="UseCaseResult")
 
 
 class Metadata(NamedTuple):
@@ -49,6 +50,19 @@ class KeyResult:
     def from_string(cls: Type[KR], key: str, id: int) -> KR:
         org_id, string = key.split(":", 1)
         return cls(int(org_id), string, id)
+
+
+@dataclass(frozen=True)
+class UseCaseResult:
+    org_id: int
+    string: str
+    id: Optional[int]
+    use_case_id: str
+
+    @classmethod
+    def from_string(cls: Type[UR], key: str, id: int) -> UR:
+        use_case_id, org_id, string = key.split(":", 1)
+        return cls(use_case_id, int(org_id), string, id)
 
 
 class KeyCollection:
@@ -92,6 +106,32 @@ class KeyCollection:
             keys.extend([f"{org_id}:{string}" for string in self.mapping[org_id]])
 
         return keys
+
+
+class UseCaseCollection:
+    def __init__(self, mapping: Mapping[str, Mapping[int, Set[str]]]):
+        self.mapping = {
+            use_case_id: KeyCollection(keyCollection)
+            for use_case_id, keyCollection in mapping.items()
+        }
+        self.size = self._size()
+
+    def _size(self) -> int:
+        return sum(keyCollection.size for keyCollection in self.mapping.values())
+
+    def as_tuples(self) -> Sequence[Tuple[str, int, str]]:
+        return [
+            (use_case_id, org_id, s)
+            for use_case_id, keyCollection in self.mapping.items()
+            for org_id, s in keyCollection.as_tuples()
+        ]
+
+    def as_strings(self) -> Sequence[str]:
+        return [
+            f"{use_case_id}:{s}"
+            for use_case_id, keyCollection in self.mapping.items()
+            for s in keyCollection.as_strings()
+        ]
 
 
 class KeyResults:
