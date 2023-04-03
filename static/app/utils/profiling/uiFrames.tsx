@@ -93,8 +93,8 @@ class UIFrames {
       const unitFn = nextType === 'slow' ? toSlowFinalUnit : toFrozenFinalUnit;
 
       frames.push({
-        start: unitFn(frame.elapsed_since_start_ns - frame.value),
-        end: unitFn(frame.elapsed_since_start_ns),
+        start: unitFn(frame.elapsed_since_start_ns),
+        end: unitFn(frame.elapsed_since_start_ns + frame.value),
         duration: unitFn(frame.value),
         node: frame,
         type: nextType,
