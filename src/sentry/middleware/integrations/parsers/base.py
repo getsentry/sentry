@@ -30,10 +30,7 @@ class BaseRequestParser(abc.ABC):
 
     @property
     def provider() -> str:
-        return "base"
-
-    def log_name(self, log_name: str) -> str:
-        return f"request_parser.{self.provider}.{log_name}"
+        raise NotImplementedError
 
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
@@ -43,7 +40,7 @@ class BaseRequestParser(abc.ABC):
     def ensure_control_silo(self):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             logger.error(
-                self.log_name("silo_error"),
+                "silo_error",
                 extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
             )
             raise SiloLimit.AvailabilityError(
@@ -61,7 +58,7 @@ class BaseRequestParser(abc.ABC):
         region_client = RegionSiloClient(region)
         return region_client.proxy_request(self.request).to_http_response()
 
-    def get_response_from_region_silos(
+    def get_responses_from_region_silos(
         self, regions: Sequence[Region]
     ) -> Mapping[str, RegionResult]:
         """
@@ -85,18 +82,15 @@ class BaseRequestParser(abc.ABC):
                 # This will capture errors from this silo and any 4xx/5xx responses from others
                 except Exception as e:
                     capture_exception(e)
-                    logger.error(self.log_name("region_proxy_error"), extra={"region": region.name})
+                    logger.error("region_proxy_error", extra={"region": region.name})
                     region_to_response_map[region.name] = RegionResult(error=e)
                 else:
-                    region_to_response_map[region.name] = RegionResult(result=region_response)
+                    region_to_response_map[region.name] = RegionResult(response=region_response)
 
         if len(region_to_response_map) == 0:
             logger.error(
-                self.log_name("region_no_response"),
-                extra={
-                    "path": self.request.path,
-                    "regions": [region.name for region in regions],
-                },
+                "region_no_response",
+                extra={"path": self.request.path, "regions": [region.name for region in regions]},
             )
             return self.response_handler(self.request)
 
@@ -110,27 +104,24 @@ class BaseRequestParser(abc.ABC):
         """
         return self.response_handler(self.request)
 
-    def get_integration(self) -> RpcIntegration | None:
+    def get_integration_from_request(self) -> RpcIntegration | None:
         """
         Parse the request to retreive organizations to forward the request to.
         Should be overwritten by implementation.
         """
         return None
 
-    def get_organizations(
+    def get_organizations_from_integration(
         self, integration: Integration = None
     ) -> Sequence[RpcOrganizationSummary]:
         """
-        Use the get_integration() method to identify organizations associated with
+        Use the get_integration_from_request() method to identify organizations associated with
         the integration request.
         """
         if not integration:
-            integration = self.get_integration()
+            integration = self.get_integration_from_request()
         if not integration:
-            logger.error(
-                self.log_name("no_integration"),
-                extra={"path": self.request.path},
-            )
+            logger.error("no_integration", extra={"path": self.request.path})
             return []
         organization_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id
@@ -140,19 +131,16 @@ class BaseRequestParser(abc.ABC):
             user_id=None, scope=None, only_visible=False, organization_ids=organization_ids
         )
 
-    def get_regions(
+    def get_regions_from_organizations(
         self, organizations: Sequence[RpcOrganizationSummary] = None
     ) -> Sequence[Region]:
         """
-        Use the get_organizations() method to identify forwarding regions.
+        Use the get_organizations_from_integration() method to identify forwarding regions.
         """
         if not organizations:
-            organizations = self.get_organizations()
+            organizations = self.get_organizations_from_integration()
         if not organizations:
-            logger.error(
-                self.log_name("no_organizations"),
-                extra={"path": self.request.path},
-            )
+            logger.error("no_organizations", extra={"path": self.request.path})
             return []
 
         return [get_region_for_organization(organization) for organization in organizations]

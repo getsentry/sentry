@@ -41,7 +41,7 @@ class SlackRequestParser(BaseRequestParser):
     Django views which will not map to an existing integration
     """
 
-    def get_integration(self) -> RpcIntegration | None:
+    def get_integration_from_request(self) -> RpcIntegration | None:
         view_class_name = self.match.func.view_class.__name__
         if view_class_name in self.endpoint_classes:
             # We need convert the raw Django request to a Django Rest Framework request
@@ -53,10 +53,7 @@ class SlackRequestParser(BaseRequestParser):
                 slack_request._validate_integration()
             except SlackRequestError as error:
                 capture_exception(error)
-                logger.error(
-                    self.create_log_name("validation_error"),
-                    extra={"path": self.request.path},
-                )
+                logger.error("validation_error", extra={"path": self.request.path})
                 return None
             return slack_request.integration
 
@@ -72,12 +69,9 @@ class SlackRequestParser(BaseRequestParser):
         """
         Slack Webhook Requests all require synchronous responses.
         """
-        regions = self.get_regions()
+        regions = self.get_regions_from_organizations()
         if len(regions) == 0:
-            logger.error(
-                self.create_log_name("no_regions"),
-                extra={"path": self.request.path},
-            )
+            logger.error("no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         # Django views are returned from the control silo no matter what.
@@ -88,13 +82,12 @@ class SlackRequestParser(BaseRequestParser):
         # Slack only requires one synchronous response.
         # By convention, we just assume it's the first returned region.
         first_region = regions[0]
-        response_map = self.get_response_from_region_silos(regions=[first_region])
+        response_map = self.get_responses_from_region_silos(regions=[first_region])
         region_result = response_map[first_region.name]
         if region_result.error is not None:
-            logger.error(
-                self.create_log_name("region_error"),
-                extra={"path": self.request.path, "region": first_region.name},
-            )
             capture_exception(region_result.error)
+            logger.error(
+                "region_error", extra={"path": self.request.path, "region": first_region.name}
+            )
             return self.get_response_from_control_silo()
         return region_result.response
