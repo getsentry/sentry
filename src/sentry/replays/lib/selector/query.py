@@ -38,10 +38,7 @@ def union_find(arrs: List[Column], values: List[Union[str, List[str]]]) -> Funct
                 parameters=[
                     Lambda(
                         ["tuple"],
-                        Function(
-                            "equals",
-                            parameters=[Identifier("tuple"), _make_matched_tuple(len(arrs))],
-                        ),
+                        Function("equals", parameters=[Identifier("tuple"), (1,) * len(arrs)]),
                     ),
                     Function(
                         "arrayZip",
@@ -90,15 +87,3 @@ def _apply_scalar_bitmask(arr: Column, value: str) -> Function:
     """
     map_fn = Lambda(["item"], Function("equals", parameters=[Identifier("item"), value]))
     return Function("arrayMap", parameters=[map_fn, arr])
-
-
-def _make_matched_tuple(length: int) -> str:
-    """Return a string tuple of length `length`.
-
-    Accepts as input:
-        4
-
-    Returns as output:
-        "(1,1,1,1)"
-    """
-    return "({})".format(",".join(["1"] * length))
