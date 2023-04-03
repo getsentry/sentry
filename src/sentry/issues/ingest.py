@@ -182,8 +182,9 @@ def save_issue_from_occurrence(
             granted_quota = issue_rate_limiter.check_and_use_quotas(
                 [RequestedQuota(f"issue-platform-issues:{project.id}", 1, [ISSUE_QUOTA])]
             )[0]
-
-        if not granted_quota.granted:
+        # XXX: bypass issue creation rate limiting
+        bypass_issue_rate_limit = True
+        if not granted_quota.granted and not bypass_issue_rate_limit:
             metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
