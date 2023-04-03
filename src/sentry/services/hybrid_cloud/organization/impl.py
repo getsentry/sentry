@@ -303,7 +303,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 org_id=organization.id, org_member_id=org_member.id
             )
             region_outbox.save()
-            region_outbox.drain_shard(max_updates_to_drain=1000)
+        region_outbox.drain_shard(max_updates_to_drain=1000)
         return self.serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
