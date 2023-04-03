@@ -69,6 +69,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
+        self.span_hashes = {}
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsDetector.is_span_eligible(span):
@@ -83,6 +84,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         if span_duration < duration_threshold:
             return
+
+        self.span_hashes[span["span_id"]] = get_span_hash(span)
 
         previous_span = self.spans[-1] if len(self.spans) > 0 else None
 
@@ -256,7 +259,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
-            span_a["hash"] == span_b["hash"]
+            self.span_hashes[span_a["span_id"]] == self.span_hashes[span_b["span_id"]]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
 
