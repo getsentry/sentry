@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {
   addErrorMessage,
@@ -142,6 +141,7 @@ const NotificationActionItem = ({
 
   const handleCancel = () => {
     if (action.id) {
+      setEditedAction(action);
       setIsEditing(false);
       return;
     }
@@ -154,7 +154,7 @@ const NotificationActionItem = ({
     addLoadingMessage();
     // TODO(enterprise): use "requires" to get data to send
     // This is currently optimized for spike protection
-    const data = cloneDeep(editedAction);
+    const data = {...editedAction};
 
     // Remove keys from the data if they are falsy
     Object.keys(data).forEach(key => {
@@ -246,48 +246,46 @@ const NotificationActionItem = ({
   };
 
   const renderNotificationActionForm = () => {
-    if (serviceType === NotificationActionService.SENTRY_NOTIFICATION) {
-      // No form for Sentry notifications, just Cancel + Save buttons
-      return (
-        <NotificationActionFormContainer>
-          <NotificationActionCell>{renderDescription()}</NotificationActionCell>
-          <ButtonBar gap={0.5}>
-            <Button onClick={handleCancel} size="xs">
-              {t('Cancel')}
-            </Button>
-            <Button priority="primary" size="xs" onClick={handleSave}>
-              {t('Save')}
-            </Button>
-          </ButtonBar>
-        </NotificationActionFormContainer>
-      );
+    switch (serviceType) {
+      case NotificationActionService.SENTRY_NOTIFICATION:
+        return (
+          <NotificationActionFormContainer>
+            <NotificationActionCell>{renderDescription()}</NotificationActionCell>
+            <ButtonBar gap={0.5}>
+              <Button onClick={handleCancel} size="xs">
+                {t('Cancel')}
+              </Button>
+              <Button priority="primary" size="xs" onClick={handleSave}>
+                {t('Save')}
+              </Button>
+            </ButtonBar>
+          </NotificationActionFormContainer>
+        );
+      case NotificationActionService.SLACK:
+        return (
+          <SlackForm
+            action={editedAction}
+            onChange={(name: string, value: any) =>
+              setEditedAction({...editedAction, [name]: value})
+            }
+            onSave={handleSave}
+            onCancel={handleCancel}
+            availableActions={availableActions}
+          />
+        );
+      case NotificationActionService.PAGERDUTY:
+        return (
+          <PagerdutyForm
+            action={editedAction}
+            onChange={handleChange}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            pagerdutyIntegrations={pagerdutyIntegrations}
+          />
+        );
+      default:
+        return null;
     }
-    if (serviceType === NotificationActionService.SLACK) {
-      return (
-        <SlackForm
-          action={editedAction}
-          onChange={(name: string, value: any) =>
-            setEditedAction({...editedAction, [name]: value})
-          }
-          onSave={handleSave}
-          onCancel={handleCancel}
-          availableActions={availableActions}
-        />
-      );
-    }
-    if (serviceType === NotificationActionService.PAGERDUTY) {
-      return (
-        <PagerdutyForm
-          action={editedAction}
-          onChange={handleChange}
-          onSave={handleSave}
-          onCancel={handleCancel}
-          pagerdutyIntegrations={pagerdutyIntegrations}
-        />
-      );
-    }
-    // TODO(enterprise): forms for email, msteams, sentry_app
-    return null;
   };
 
   return (
