@@ -117,7 +117,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     `/settings/${organization.slug}/projects/${project.slug}/source-maps/release-bundles/`
   );
   const debugIdsUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/debug-id-bundles/`
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
   );
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
@@ -236,7 +236,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           {t('Release Bundles')}
         </ListLink>
         <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
-          {t('Debug ID Bundles')}
+          {t('Artifact Bundles')}
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom
@@ -301,7 +301,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                 onDelete={handleDelete}
                 link={`/settings/${organization.slug}/projects/${
                   project.slug
-                }/source-maps/debug-id-bundles/${encodeURIComponent(data.bundleId)}`}
+                }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
                   <DebugIdBundlesTags dist={data.dist} release={data.release} />
                 }

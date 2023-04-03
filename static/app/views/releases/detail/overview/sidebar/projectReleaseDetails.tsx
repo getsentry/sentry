@@ -57,7 +57,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
               <Link
                 to={
                   bundleId
-                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/debug-id-bundles/${encodeURIComponent(
+                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/${encodeURIComponent(
                         bundleId
                       )}/`
                     : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/release-bundles/${encodeURIComponent(

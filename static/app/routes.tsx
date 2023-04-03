@@ -514,8 +514,8 @@ function buildRoutes() {
           })}
         />
         <Route
-          path="debug-id-bundles/"
-          name={t('Debug ID Bundles')}
+          path="artifact-bundles/"
+          name={t('Artifact Bundles')}
           component={make(async () => {
             const {ProjectSourceMapsContainer} = await import(
               'sentry/views/settings/projectSourceMaps'
@@ -526,7 +526,7 @@ function buildRoutes() {
           })}
         >
           <Route
-            name={t('Debug ID Bundle')}
+            name={t('Artifact Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
