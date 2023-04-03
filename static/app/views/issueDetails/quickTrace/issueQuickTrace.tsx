@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -15,12 +14,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory, Organization} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 type Props = {
@@ -34,19 +32,12 @@ type Props = {
 function TransactionMissingPlaceholder({
   type,
   event,
-  group,
 }: {
   event: Event;
-  group: Group;
   type?: QuickTraceQueryChildrenProps['type'];
 }) {
-  const organization = useOrganization();
-  useEffect(() => {
-    trackAdvancedAnalyticsEvent('issue.quick_trace_status', {
-      organization,
-      status: type === 'missing' ? 'transaction missing' : 'trace missing',
-      is_performance_issue: group.issueCategory === IssueCategory.PERFORMANCE,
-    });
+  useRouteAnalyticsParams({
+    trace_status: type === 'missing' ? 'transaction missing' : 'trace missing',
   });
 
   return (
@@ -82,27 +73,18 @@ function TransactionMissingPlaceholder({
   );
 }
 
-function IssueQuickTrace({group, event, location, organization, quickTrace}: Props) {
-  if (
+function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
+  const shouldShowPlaceholder =
     !quickTrace ||
     quickTrace.error ||
     !defined(quickTrace.trace) ||
-    quickTrace.trace.length === 0
-  ) {
-    return (
-      <TransactionMissingPlaceholder
-        event={event}
-        group={group}
-        type={quickTrace?.type}
-      />
-    );
-  }
+    quickTrace.trace.length === 0;
 
-  trackAdvancedAnalyticsEvent('issue.quick_trace_status', {
-    organization,
-    status: 'success',
-    is_performance_issue: group.issueCategory === IssueCategory.PERFORMANCE,
-  });
+  useRouteAnalyticsParams(shouldShowPlaceholder ? {} : {trace_status: 'success'});
+
+  if (shouldShowPlaceholder) {
+    return <TransactionMissingPlaceholder event={event} type={quickTrace?.type} />;
+  }
 
   return (
     <ErrorBoundary mini>
