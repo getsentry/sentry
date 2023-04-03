@@ -11,7 +11,7 @@ class SDKCrashReporter:
         self
 
     def report(self, event: Event) -> None:
-        pass
+        return
 
 
 class SDKCrashDetection:
