@@ -26,6 +26,7 @@ import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
+import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 
 import FirstEventFooter from './components/firstEventFooter';
 import ProjectSidebarSection from './components/projectSidebarSection';
@@ -263,9 +264,13 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     'onboarding-heartbeat-footer'
   );
 
-  const docsWithProductSelection = organization.features?.includes(
+  const docsWithProductSelection = !!organization.features?.includes(
     'onboarding-docs-with-product-selection'
   );
+
+  const loaderOnboarding = !!organization.features?.includes('onboarding-project-loader');
+
+  const jsDynamicLoader = !!organization.features?.includes('js-sdk-dynamic-loader');
 
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
@@ -315,6 +320,10 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
+  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
+    loaderOnboarding && jsDynamicLoader && currentPlatform === 'javascript'
+  );
+
   const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
@@ -323,6 +332,11 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
 
     // this will be fetched in the SetupDocsReact component
     if (project.platform === 'javascript-react' && docsWithProductSelection) {
+      return;
+    }
+
+    // Show loader setup for base javascript platform
+    if (showLoaderOnboarding) {
       return;
     }
 
@@ -355,6 +369,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     integrationSlug,
     integrationUseManualSetup,
     docsWithProductSelection,
+    showLoaderOnboarding,
   ]);
 
   useEffect(() => {
@@ -431,6 +446,14 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
               organization={organization}
               project={project}
               location={location}
+            />
+          ) : showLoaderOnboarding ? (
+            <SetupDocsLoader
+              organization={organization}
+              project={project}
+              location={location}
+              platform={loadedPlatform}
+              close={() => setShowLoaderOnboarding(false)}
             />
           ) : (
             <ProjectDocs
