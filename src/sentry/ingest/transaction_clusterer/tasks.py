@@ -63,13 +63,11 @@ def cluster_projects(projects: Sequence[Project]) -> None:
             with sentry_sdk.start_span(op="txcluster_project") as span:
                 span.set_data("project_id", project.id)
                 tx_names = list(redis.get_transaction_names(project))
-                if len(tx_names) < redis.MAX_SET_SIZE:
-                    redis.clear_transaction_names(project)
-                    continue
-                clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
-                clusterer.add_input(tx_names)
-                new_rules = clusterer.get_rules()
-                rules.update_rules(project, new_rules)
+                if len(tx_names) >= redis.MAX_SET_SIZE:
+                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                    clusterer.add_input(tx_names)
+                    new_rules = clusterer.get_rules()
+                    rules.update_rules(project, new_rules)
 
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.
