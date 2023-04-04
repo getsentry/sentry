@@ -87,7 +87,7 @@ type ReplayOnboardinCTAProps = {children: React.ReactNode; organization: Organiz
 
 type ProfilingBetaAlertBannerProps = {
   organization: Organization;
-}
+};
 
 type SetUpSdkDocProps = {
   location: Location;
