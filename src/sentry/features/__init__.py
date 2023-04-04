@@ -4,6 +4,7 @@ from .base import (  # NOQA
     OrganizationFeature,
     ProjectFeature,
     ProjectPluginFeature,
+    SystemFeature,
     UserFeature,
 )
 from .handler import *  # NOQA
@@ -56,9 +57,9 @@ default_manager = FeatureManager()  # NOQA
 # No formatting so that we can keep them as single lines
 # fmt: off
 
-# Unscoped features
-default_manager.add("auth:register")
-default_manager.add("organizations:create")
+# Features that don't use resource scoping
+default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -74,8 +75,7 @@ default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, F
 default_manager.add("organizations:dashboards-template", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:ds-prioritise-by-project-bias", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:ds-prioritise-by-transaction-bias", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:ds-apply-actual-sample-rate-to-biases", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -111,7 +111,6 @@ default_manager.add("organizations:anr-rate", OrganizationFeature, FeatureHandle
 default_manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:monitors", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:notification-actions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -169,7 +168,7 @@ default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, Fe
 default_manager.add("organizations:sentry-functions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:session-replay-dom-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:session-replay-dom-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-beta-grace", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-ga", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-network-details", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

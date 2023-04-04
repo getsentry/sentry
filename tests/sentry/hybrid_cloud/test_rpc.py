@@ -2,6 +2,7 @@ from unittest import mock
 
 from django.test import override_settings
 
+from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
@@ -12,25 +13,52 @@ from sentry.services.hybrid_cloud.rpc import dispatch_to_local_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.region import override_regions
+from sentry.types.region import Region, RegionCategory
 
 
 class RpcServiceTest(TestCase):
-    def test_remote_service(self):
+    @mock.patch("sentry.services.hybrid_cloud.rpc.dispatch_remote_call")
+    def test_remote_service(self, mock_dispatch_remote_call):
+        regions = [
+            Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
+            Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
+        ]
+        target_region = regions[0]
+
         user = self.create_user()
         organization = self.create_organization()
+        OrganizationMapping.objects.create(
+            organization_id=organization.id,
+            slug=organization.slug,
+            name=organization.name,
+            region_name=target_region.name,
+        )
 
         serial_user = RpcUser(id=user.id)
         serial_org = DatabaseBackedOrganizationService.serialize_organization(organization)
 
-        with override_settings(SILO_MODE=SiloMode.CONTROL):
-            service = OrganizationService.create_delegation()
-
+        service = OrganizationService.create_delegation()
+        with override_regions(regions), override_settings(SILO_MODE=SiloMode.CONTROL):
             service.add_organization_member(
                 organization=serial_org,
                 user=serial_user,
                 flags=RpcOrganizationMemberFlags(),
                 role=None,
             )
+
+        assert mock_dispatch_remote_call.called
+        (
+            region,
+            service_name,
+            method_name,
+            serial_arguments,
+        ) = mock_dispatch_remote_call.call_args.args
+        assert region == target_region
+        assert service_name == OrganizationService.key
+        assert method_name == "add_organization_member"
+        assert serial_arguments.keys() == {"flags", "organization", "role", "user"}
+        assert serial_arguments["organization"]["id"] == organization.id
 
     @mock.patch("sentry.services.hybrid_cloud.report_pydantic_type_validation_error")
     def test_models_tolerate_invalid_types(self, mock_report):

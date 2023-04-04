@@ -1,4 +1,5 @@
 import logging
+import sys
 from datetime import timedelta
 from typing import TYPE_CHECKING, Iterable, Tuple, Type
 
@@ -152,3 +153,5 @@ def run_deletion(deletion_id, first_pass=True, silo_mode="CONTROL"):
             },
         )
         sentry_sdk.capture_exception(err)
+        if "pytest" in sys.modules:
+            raise err

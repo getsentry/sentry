@@ -144,6 +144,7 @@ class GroupStatus:
     REPROCESSING = 6
 
     ESCALATING = 7
+    ARCHIVED_UNTIL_ESCALATING = 8
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
@@ -173,6 +174,7 @@ STATUS_UPDATE_CHOICES = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
+    "archivedUntilEscalating": GroupStatus.ARCHIVED_UNTIL_ESCALATING,
     "resolvedInNextRelease": GroupStatus.UNRESOLVED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
@@ -313,6 +315,7 @@ class GroupManager(BaseManager):
         external_issue_key: str,
     ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
+        from sentry.services.hybrid_cloud.integration import integration_service
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key
@@ -322,10 +325,16 @@ class GroupManager(BaseManager):
             linked_id__in=external_issue_subquery
         ).values_list("group_id", flat=True)
 
+        org_ids_with_integration = list(
+            i.organization_id
+            for i in integration_service.get_organization_integrations(
+                organization_ids=[o.id for o in organizations], integration_id=integration.id
+            )
+        )
+
         return self.filter(
             id__in=group_link_subquery,
-            project__organization__in=organizations,
-            project__organization__organizationintegration__integration_id=integration.id,
+            project__organization_id__in=org_ids_with_integration,
         ).select_related("project")
 
     def update_group_status(
@@ -408,6 +417,7 @@ class Group(Model):
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
+            (GroupStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived Until Escalating")),
             (GroupStatus.ESCALATING, _("Escalating")),
         ),
         db_index=True,
