@@ -125,7 +125,7 @@ class ConsecutiveDbDetectorTest(TestCase):
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
-                parent_span_ids="None",
+                parent_span_ids=None,
                 cause_span_ids=[],
                 offender_span_ids=[
                     "bbbbbbbbbbbbbbbb",
