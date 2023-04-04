@@ -12,6 +12,11 @@ from sentry.spans.grouping.strategy.wildcard_replacement import glob_replace
             "/api/0/issues/*/details",
         ),
         (
+            "/api/0/organizations/sentry/issues/",
+            "/api/**/issues",
+            "/api/0/organizations/sentry/issues/",
+        ),
+        (
             "/api/0/organizations/sentry/projects/javascript/info",
             "/api/0/organizations/*/projects/*/**",
             "/api/0/organizations/*/projects/*/info",
