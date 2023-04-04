@@ -10,7 +10,6 @@ import {
   QuickTraceContainer,
   TraceConnector,
 } from 'sentry/components/quickTrace/styles';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -43,10 +42,11 @@ function TransactionMissingPlaceholder({
   return (
     <QuickTraceWrapper>
       <QuickTraceContainer data-test-id="missing-trace-placeholder">
-        <Tooltip
-          isHoverable
-          position="bottom"
-          title={tct(
+        <EventNode
+          type="white"
+          icon={null}
+          tooltipProps={{isHoverable: true, position: 'bottom'}}
+          tooltipText={tct(
             'The [type] for this event cannot be found. [link:Read the  docs] to understand why.',
             {
               type: type === 'missing' ? t('transaction') : t('trace'),
@@ -56,10 +56,8 @@ function TransactionMissingPlaceholder({
             }
           )}
         >
-          <EventNode type="white" icon={null}>
-            ???
-          </EventNode>
-        </Tooltip>
+          ???
+        </EventNode>
         <TraceConnector />
         <EventNode type="error" data-test-id="event-node">
           <ErrorNodeContent>

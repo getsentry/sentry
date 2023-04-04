@@ -114,6 +114,7 @@ export const GroupEventCarousel = ({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
+  const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
 
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
@@ -211,7 +212,7 @@ export const GroupEventCarousel = ({
               key: 'json',
               label: `JSON (${formatBytesBase2(event.size)})`,
               onAction: downloadJson,
-              hidden: xlargeViewport,
+              hidden: largeViewport,
             },
             {
               key: 'full-event-discover',
@@ -252,7 +253,7 @@ export const GroupEventCarousel = ({
             Copy Link
           </Button>
         )}
-        {xlargeViewport && (
+        {largeViewport && (
           <Button
             size={BUTTON_SIZE}
             icon={<IconOpen size={BUTTON_ICON_SIZE} />}
