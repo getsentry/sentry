@@ -53,7 +53,7 @@ class ByOrganizationId(RegionResolution):
 
     def resolve(self, arguments: ArgumentDict) -> Region:
         organization_id = arguments[self.parameter_name]
-        mapping = self.organization_mapping_manager.get(id=organization_id)
+        mapping = self.organization_mapping_manager.get(organization_id=organization_id)
         return self._resolve_from_mapping(mapping)
 
 
@@ -79,7 +79,7 @@ class ByOrganizationIdAttribute(RegionResolution):
     def resolve(self, arguments: ArgumentDict) -> Region:
         argument = arguments[self.parameter_name]
         organization_id = getattr(argument, self.attribute_name)
-        mapping = self.organization_mapping_manager.get(id=organization_id)
+        mapping = self.organization_mapping_manager.get(organization_id=organization_id)
         return self._resolve_from_mapping(mapping)
 
 
