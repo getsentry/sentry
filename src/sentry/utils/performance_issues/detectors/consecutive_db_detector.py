@@ -125,6 +125,13 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         self._reset_variables()
 
+    def _sum_span_duration(self, spans: list[Span]) -> int:
+        "Given a list of spans, find the sum of the span durations in milliseconds"
+        sum = 0
+        for span in spans:
+            sum += get_span_duration(span).total_seconds() * 1000
+        return sum
+
     def _set_independent_spans(self, spans: list[Span]):
         """
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
