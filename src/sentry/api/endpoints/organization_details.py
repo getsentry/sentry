@@ -408,15 +408,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             and "providerName" in data
             and "providerConfig" in data
         ):
-            provider_name = data["providerName"]
-            provider_config = data["providerConfig"]
-            auth_provider = AuthProvider.objects.update_or_create(
-                organization_id=org.id,
-                defaults={"provider": provider_name},
-            )[0]
-            provider = auth_provider.get_provider()
-            config = provider.build_config(provider_config)
-            auth_provider.update(config=config)
+            with transaction.atomic():
+                provider_name = data["providerName"]
+                provider_config = data["providerConfig"]
+                auth_provider = AuthProvider.objects.update_or_create(
+                    organization_id=org.id,
+                    defaults={"provider": provider_name},
+                )[0]
+                provider = auth_provider.get_provider()
+                config = provider.build_config(provider_config)
+                auth_provider.update(config=config)
 
         org_tracked_field = {
             "name": org.name,
