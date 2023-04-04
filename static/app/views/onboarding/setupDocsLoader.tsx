@@ -171,11 +171,7 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
     <DocsWrapper>
       <DocumentationWrapper>
         <h2>{t('Install')}</h2>
-        <p>
-          {t(
-            'After including this script tag to a page, we’ll send a test error to make sure Sentry is set up correctly.'
-          )}
-        </p>
+        <p>{t('Add this script tag to the top of the page:')}</p>
 
         <CodeSnippet dark language="html">
           {beautify.html(
@@ -206,6 +202,18 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
           </div>
         )}
         <hr />
+
+        <p>
+          {t(
+            'Then create an intentional error, so you can test that everything is working:'
+          )}
+        </p>
+
+        <CodeSnippet dark language="js">
+          myUndefinedFunction();
+        </CodeSnippet>
+        <hr />
+
         <h2>{t('Next Steps')}</h2>
         <ul>
           <li>
