@@ -436,7 +436,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             resp = snuba._snuba_pool.urlopen(
                 "POST",
                 f"/tests/{entity}/eventstream",
-                body=json.dumps(encoded_data),
+                body=encoded_data,
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
             if resp.status != 200:
