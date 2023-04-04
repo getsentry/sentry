@@ -898,7 +898,7 @@ const Handle = ({
 const WindowSelection = styled('div')`
   position: absolute;
   top: 0;
-  height: ${MINIMAP_HEIGHT}px;
+  height: 100%;
   background-color: ${p => p.theme.textColor};
   opacity: 0.1;
 `;
