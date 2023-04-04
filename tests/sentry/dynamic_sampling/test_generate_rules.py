@@ -91,6 +91,12 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
     assert generate_rules(default_project) == [
         {
             "condition": {"inner": [], "op": "and"},
+            "id": 1004,
+            "samplingValue": {"type": "factor", "value": 1.0},
+            "type": "trace",
+        },
+        {
+            "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",

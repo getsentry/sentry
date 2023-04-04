@@ -15,10 +15,7 @@ from sentry.dynamic_sampling.prioritise_transactions import (
     get_orgs_with_project_counts,
     transactions_zip,
 )
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    _generate_cache_key,
-    _generate_cache_key_adj_factor,
-)
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
@@ -27,6 +24,7 @@ from sentry.dynamic_sampling.rules.utils import (
     DecisionKeepCount,
     OrganizationId,
     ProjectId,
+    generate_cache_key_adj_factor,
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.snuba_utils import get_orgs_with_project_counts_without_modulo
@@ -62,7 +60,7 @@ def prioritise_projects() -> None:
                 org_ids=orgs
             ).items():
                 process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
-            #
+            # TODO: @andrii potentially run it as separate celery job
             for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
                 org_ids=orgs, query_interval=timedelta(minutes=5)
             ).items():
@@ -175,7 +173,7 @@ def process_projects_sample_factors(
 
                 counter = project_ids_with_counts[project.id]
                 if (actual_rate := actual_sample_rate(counter.count_keep, counter.count_drop)) != 0:
-                    adj_factor_cache_key = _generate_cache_key_adj_factor(org_id)
+                    adj_factor_cache_key = generate_cache_key_adj_factor(org_id)
 
                     try:
                         prev_factor = float(pipeline.hget(adj_factor_cache_key, project.id))

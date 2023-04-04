@@ -1,11 +1,9 @@
 from datetime import timedelta
 
-import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import apply_actual_sample_rate
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
@@ -69,29 +67,3 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             results = fetch_projects_with_total_volumes(org_ids=[org1.id])
             # No data because rate is too small
             assert results[org1.id] == []
-
-
-@pytest.mark.parametrize(
-    "blended_sample_rate,adjusted_sample_rate,actual_sample_rate,new_adjusted_sample_rate",
-    [
-        (0.25, None, None, None),
-        (0.25, None, 0.1, None),
-        (0.25, 0.1, None, None),
-        (0.1, 0.075, 0.2, 0.0675),  # actual_sample_rate > blended_sample_rate - over sampling
-        (
-            0.2,
-            0.075,
-            0.1,
-            0.08249999999999999,
-        ),  # actual_sample_rate < blended_sample_rate - under sampling
-        (0.1, 0.1, 0.1, 0.1),  # actual_sample_rate == blended_sample_rate - we are good
-        (0.1, 0.08, 0.1, 0.08),  # actual_sample_rate == blended_sample_rate - we are good
-    ],
-)
-def test_apply_actual_sample_rate(
-    blended_sample_rate, adjusted_sample_rate, actual_sample_rate, new_adjusted_sample_rate
-):
-    assert (
-        apply_actual_sample_rate(blended_sample_rate, adjusted_sample_rate, actual_sample_rate)
-        == new_adjusted_sample_rate
-    )
