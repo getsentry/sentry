@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-function Scrubber({className}: Props) {
+const Scrubber = ({className}: Props) => {
   const {currentHoverTime, currentTime, replay, setCurrentTime} = useReplayContext();
   const durationMs = replay?.getDurationMs();
 
@@ -36,7 +36,7 @@ function Scrubber({className}: Props) {
       </RangeWrapper>
     </Wrapper>
   );
-}
+};
 
 const Meter = styled(Progress.Meter)`
   background: ${p => p.theme.gray200};

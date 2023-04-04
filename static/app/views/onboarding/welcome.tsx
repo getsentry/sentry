@@ -35,7 +35,7 @@ type TextWrapperProps = {
   title: React.ReactNode;
 };
 
-function InnerAction({title, subText, cta, src}: TextWrapperProps) {
+const InnerAction = ({title, subText, cta, src}: TextWrapperProps) => {
   return (
     <Fragment>
       <ActionImage src={src} />
@@ -46,9 +46,9 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
       <ButtonWrapper>{cta}</ButtonWrapper>
     </Fragment>
   );
-}
+};
 
-function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
+const TargetedOnboardingWelcome = ({jumpToSetupProject, ...props}: StepProps) => {
   const organization = useOrganization();
   const [clientState, setClientState] = usePersistedOnboardingState();
 
@@ -164,7 +164,7 @@ function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
       )}
     </FallingError>
   );
-}
+};
 
 export default TargetedOnboardingWelcome;
 

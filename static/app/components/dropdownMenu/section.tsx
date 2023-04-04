@@ -15,7 +15,7 @@ type DropdownMenuSectionProps = {
  * A wrapper component for menu sections. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-function DropdownMenuSection({node, children}: DropdownMenuSectionProps) {
+const DropdownMenuSection = ({node, children}: DropdownMenuSectionProps) => {
   const {itemProps, headingProps, groupProps} = useMenuSection({
     heading: node.rendered,
     'aria-label': node['aria-label'],
@@ -27,7 +27,7 @@ function DropdownMenuSection({node, children}: DropdownMenuSectionProps) {
       <Group {...groupProps}>{children}</Group>
     </DropdownMenuSectionWrap>
   );
-}
+};
 
 export default DropdownMenuSection;
 

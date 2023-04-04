@@ -19,7 +19,7 @@ type State = {
   view: number;
 };
 
-export function FrameRegisterValue({meta, value}: Props) {
+export const FrameRegisterValue = ({meta, value}: Props) => {
   const [state, setState] = useState<State>({view: 0});
 
   function formatValue() {
@@ -58,7 +58,7 @@ export function FrameRegisterValue({meta, value}: Props) {
       </StyledTooltip>
     </InlinePre>
   );
-}
+};
 
 const StyledTooltip = styled(Tooltip)`
   align-items: center;

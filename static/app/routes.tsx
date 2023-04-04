@@ -2298,6 +2298,6 @@ export const routes = memoize(buildRoutes);
 // Exported for use in tests.
 export {buildRoutes};
 
-function NoOp(props: {children: React.ReactNode}) {
+const NoOp = (props: {children: React.ReactNode}) => {
   return <Fragment>{props.children}</Fragment>;
-}
+};

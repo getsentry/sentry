@@ -19,7 +19,7 @@ type Props = {
   projects: Project[];
 };
 
-function TransactionTags(props: Props) {
+const TransactionTags = (props: Props) => {
   const {location, organization, projects} = props;
 
   return (
@@ -33,7 +33,7 @@ function TransactionTags(props: Props) {
       childComponent={TagsPageContent}
     />
   );
-}
+};
 
 function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =

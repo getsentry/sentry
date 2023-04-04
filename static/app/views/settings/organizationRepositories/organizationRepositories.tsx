@@ -17,7 +17,11 @@ type Props = {
   organization: Organization;
 };
 
-function OrganizationRepositories({itemList, onRepositoryChange, organization}: Props) {
+const OrganizationRepositories = ({
+  itemList,
+  onRepositoryChange,
+  organization,
+}: Props) => {
   const api = useApi();
 
   const hasItemList = itemList && itemList.length > 0;
@@ -80,6 +84,6 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
       )}
     </div>
   );
-}
+};
 
 export default OrganizationRepositories;

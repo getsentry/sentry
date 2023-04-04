@@ -48,7 +48,7 @@ type Props = {
   showIcon?: boolean;
 };
 
-function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Props) {
+const CommitLink = ({inline, commitId, repository, showIcon = true, onClick}: Props) => {
   if (!commitId || !repository) {
     return <span>{t('Unknown Commit')}</span>;
   }
@@ -89,6 +89,6 @@ function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Pr
       {' ' + shortId}
     </ExternalLink>
   );
-}
+};
 
 export default CommitLink;

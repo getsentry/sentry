@@ -47,7 +47,7 @@ function CompactSelect<Value extends React.Key>(props: SelectProps<Value>): JSX.
 /**
  * Flexible select component with a customizable trigger button
  */
-function CompactSelect<Value extends React.Key>({
+const CompactSelect = <Value extends React.Key>({
   // List props
   options,
   value,
@@ -67,7 +67,7 @@ function CompactSelect<Value extends React.Key>({
   closeOnSelect,
   triggerProps,
   ...controlProps
-}: SelectProps<Value>) {
+}: SelectProps<Value>) => {
   const triggerId = useMemo(() => domId('select-trigger-'), []);
 
   // Combine list props into an object with two clearly separated types, one where
@@ -139,6 +139,6 @@ function CompactSelect<Value extends React.Key>({
       <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
     </Control>
   );
-}
+};
 
 export {CompactSelect};

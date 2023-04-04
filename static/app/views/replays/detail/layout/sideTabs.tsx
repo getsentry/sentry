@@ -15,7 +15,7 @@ type Props = {
   className?: string;
 };
 
-function SideTabs({className}: Props) {
+const SideTabs = ({className}: Props) => {
   const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('t_side', 'crumbs');
   const activeTab = getParamValue();
@@ -37,6 +37,6 @@ function SideTabs({className}: Props) {
       ))}
     </ScrollableTabs>
   );
-}
+};
 
 export default SideTabs;

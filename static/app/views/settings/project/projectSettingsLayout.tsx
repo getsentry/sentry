@@ -16,14 +16,14 @@ type Props = {
 
 type InnerProps = Props & {project: Project};
 
-function InnerProjectSettingsLayout({
+const InnerProjectSettingsLayout = ({
   params,
   routes,
   project,
   organization,
   children,
   ...props
-}: InnerProps) {
+}: InnerProps) => {
   // set analytics params for route based analytics
   useRouteAnalyticsParams({
     project_id: project.id,
@@ -43,9 +43,9 @@ function InnerProjectSettingsLayout({
       </SettingsLayout>
     </AppStoreConnectContext.Provider>
   );
-}
+};
 
-function ProjectSettingsLayout({organization, params, ...props}: Props) {
+const ProjectSettingsLayout = ({organization, params, ...props}: Props) => {
   return (
     <ProjectContext orgId={organization.slug} projectId={params.projectId}>
       {({project}) => (
@@ -53,6 +53,6 @@ function ProjectSettingsLayout({organization, params, ...props}: Props) {
       )}
     </ProjectContext>
   );
-}
+};
 
 export default withOrganization(ProjectSettingsLayout);

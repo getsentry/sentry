@@ -31,7 +31,7 @@ type ProviderProps = {
   children: React.ReactNode;
 };
 
-function BreadcrumbProvider({children}: ProviderProps) {
+const BreadcrumbProvider = ({children}: ProviderProps) => {
   const routes = useRoutes();
 
   // Maps path strings to breadcrumb names
@@ -81,7 +81,7 @@ function BreadcrumbProvider({children}: ProviderProps) {
   };
 
   return <BreadcrumbContext.Provider value={ctx}>{children}</BreadcrumbContext.Provider>;
-}
+};
 
 /**
  * Provides the mapping of paths to breadcrumb titles.

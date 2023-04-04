@@ -31,7 +31,7 @@ type Props = {
   backupField?: string;
 };
 
-function DurationChart({
+const DurationChart = ({
   organization,
   eventView,
   field,
@@ -39,7 +39,7 @@ function DurationChart({
   titleTooltip,
   backupField,
   usingBackupAxis,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const api = useApi();
 
@@ -153,7 +153,7 @@ function DurationChart({
       }}
     </EventsRequest>
   );
-}
+};
 
 const ChartContainer = styled('div')`
   padding-top: ${space(1)};

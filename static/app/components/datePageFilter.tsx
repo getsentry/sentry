@@ -28,7 +28,7 @@ type Props = Omit<
   resetParamsOnChange?: string[];
 };
 
-function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
+const DatePageFilter = ({resetParamsOnChange, disabled, ...props}: Props) => {
   const router = useRouter();
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
@@ -100,7 +100,7 @@ function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
       {...props}
     />
   );
-}
+};
 
 const TitleContainer = styled('div')`
   text-align: left;

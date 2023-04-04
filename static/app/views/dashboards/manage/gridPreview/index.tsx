@@ -42,7 +42,7 @@ type Props = {
   widgetPreview: WidgetPreview[];
 };
 
-function GridPreview({widgetPreview}: Props) {
+const GridPreview = ({widgetPreview}: Props) => {
   const definedLayouts = widgetPreview
     .map(({layout}) => layout)
     .filter((layout): layout is WidgetLayout => defined(layout));
@@ -71,7 +71,7 @@ function GridPreview({widgetPreview}: Props) {
       })}
     </StyledGridLayout>
   );
-}
+};
 
 export default GridPreview;
 

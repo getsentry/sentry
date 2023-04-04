@@ -23,13 +23,13 @@ type Props = Pick<
   hideGuide?: boolean;
 };
 
-export function StackTrace({
+export const StackTrace = ({
   projectSlug,
   event,
   data,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-}: Props) {
+}: Props) => {
   const entryIndex = event.entries.findIndex(
     eventEntry => eventEntry.type === EntryType.STACKTRACE
   );
@@ -94,4 +94,4 @@ export function StackTrace({
       }
     </TraceEventDataSection>
   );
-}
+};

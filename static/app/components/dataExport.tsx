@@ -30,14 +30,14 @@ interface DataExportProps {
   icon?: React.ReactNode;
 }
 
-function DataExport({
+const DataExport = ({
   api,
   children,
   disabled,
   organization,
   payload,
   icon,
-}: DataExportProps): React.ReactElement {
+}: DataExportProps): React.ReactElement => {
   const unmountedRef = useRef(false);
   const [inProgress, setInProgress] = useState(false);
 
@@ -134,7 +134,7 @@ function DataExport({
       )}
     </Feature>
   );
-}
+};
 
 export {DataExport};
 export default withApi(withOrganization(DataExport));

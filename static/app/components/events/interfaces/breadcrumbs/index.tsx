@@ -54,7 +54,13 @@ const sortOptions = [
   {label: t('Oldest'), value: BreadcrumbSort.Oldest},
 ];
 
-function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
+const BreadcrumbsContainer = ({
+  data,
+  event,
+  organization,
+  projectSlug,
+  isShare,
+}: Props) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
@@ -347,7 +353,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
       </ErrorBoundary>
     </EventDataSection>
   );
-}
+};
 
 export {BreadcrumbsContainer as Breadcrumbs};
 

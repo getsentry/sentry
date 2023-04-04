@@ -174,7 +174,7 @@ interface SectionToggleProps {
  * A visible toggle button to select/unselect all options within a given section. See
  * also: `HiddenSectionToggle`.
  */
-export function SectionToggle({item, listState}: SectionToggleProps) {
+export const SectionToggle = ({item, listState}: SectionToggleProps) => {
   const allOptionsSelected = useMemo(
     () => [...item.childNodes].every(n => listState.selectionManager.isSelected(n.key)),
     [item, listState.selectionManager]
@@ -215,7 +215,7 @@ export function SectionToggle({item, listState}: SectionToggleProps) {
       {allOptionsSelected ? t('Unselect All') : t('Select All')}
     </SectionToggleButton>
   );
-}
+};
 
 /**
  * A visually hidden but keyboard-focusable button to toggle (select/unselect) all
@@ -223,12 +223,12 @@ export function SectionToggle({item, listState}: SectionToggleProps) {
  * buttons inside ListBox/GridList are not keyboard-focusable (due to them implementing
  * roving `tabindex`).
  */
-export function HiddenSectionToggle({
+export const HiddenSectionToggle = ({
   item,
   listState,
   listId = '',
   ...props
-}: SectionToggleProps) {
+}: SectionToggleProps) => {
   // Highlight this toggle's visible counterpart (rendered inside the list box) on focus
   const {focusProps} = useFocus({
     onFocus: () => {
@@ -282,4 +282,4 @@ export function HiddenSectionToggle({
       </button>
     </VisuallyHidden>
   );
-}
+};

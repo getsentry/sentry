@@ -26,9 +26,9 @@ import {QueryHandler} from './queryHandler';
 import {WidgetHeader} from './widgetHeader';
 
 // Generic performance widget for type T, where T defines all the data contained in the widget.
-export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
+export const GenericPerformanceWidget = <T extends WidgetDataConstraint>(
   props: WidgetPropUnion<T>
-) {
+) => {
   // Use object keyed to chart setting so switching between charts of a similar type doesn't retain data with query components still having inflight requests.
   const [allWidgetData, setWidgetData] = useState<{[chartSetting: string]: T}>({});
   const widgetData = allWidgetData[props.chartSetting] ?? {};
@@ -82,7 +82,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       </MEPDataProvider>
     </Fragment>
   );
-}
+};
 
 function trackDataComponentClicks(
   chartSetting: PerformanceWidgetSetting,
@@ -94,9 +94,9 @@ function trackDataComponentClicks(
   });
 }
 
-export function DataDisplay<T extends WidgetDataConstraint>(
+export const DataDisplay = <T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T> & {totalHeight: number}
-) {
+) => {
   const {Visualizations, chartHeight, totalHeight, containerType, EmptyComponent} = props;
 
   const Container = getPerformanceWidgetContainer({
@@ -155,7 +155,7 @@ export function DataDisplay<T extends WidgetDataConstraint>(
       />
     </Container>
   );
-}
+};
 
 const DefaultErrorComponent = (props: {height: number}) => {
   return (

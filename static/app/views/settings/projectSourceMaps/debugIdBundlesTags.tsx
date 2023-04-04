@@ -12,7 +12,7 @@ type Props = {
   release?: string | null;
 };
 
-export function DebugIdBundlesTags({dist, release, loading}: Props) {
+export const DebugIdBundlesTags = ({dist, release, loading}: Props) => {
   return (
     <Tags>
       {loading ? (
@@ -51,7 +51,7 @@ export function DebugIdBundlesTags({dist, release, loading}: Props) {
       )}
     </Tags>
   );
-}
+};
 
 const Tags = styled('div')`
   display: flex;

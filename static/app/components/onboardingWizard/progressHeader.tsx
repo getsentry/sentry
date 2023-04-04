@@ -12,7 +12,7 @@ type Props = {
   completedTasks: OnboardingTaskStatus[];
 };
 
-function ProgressHeader({allTasks, completedTasks}: Props) {
+const ProgressHeader = ({allTasks, completedTasks}: Props) => {
   const theme = useTheme();
 
   let title: string, description: string;
@@ -45,7 +45,7 @@ function ProgressHeader({allTasks, completedTasks}: Props) {
       <Description>{description}</Description>
     </Container>
   );
-}
+};
 
 export default ProgressHeader;
 

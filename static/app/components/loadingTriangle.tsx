@@ -8,7 +8,7 @@ type Props = {
   children?: React.ReactNode;
 };
 
-function LoadingTriangle({children}: Props) {
+const LoadingTriangle = ({children}: Props) => {
   return (
     <LoadingTriangleWrapper data-test-id="loading-indicator">
       <CircleBackground>
@@ -17,7 +17,7 @@ function LoadingTriangle({children}: Props) {
       {children && <div>{children}</div>}
     </LoadingTriangleWrapper>
   );
-}
+};
 
 const LoadingTriangleWrapper = styled('div')`
   position: absolute;

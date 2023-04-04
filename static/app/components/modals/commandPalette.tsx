@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {analytics} from 'sentry/utils/analytics';
 
-function CommandPalette({Body}: ModalRenderProps) {
+const CommandPalette = ({Body}: ModalRenderProps) => {
   const theme = useTheme();
 
   useEffect(() => void analytics('omnisearch.open', {}), []);
@@ -47,7 +47,7 @@ function CommandPalette({Body}: ModalRenderProps) {
       </ClassNames>
     </Body>
   );
-}
+};
 
 export default CommandPalette;
 

@@ -66,7 +66,7 @@ type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'tota
   statsPeriod?: string | null;
 };
 
-function SidebarCharts({
+const SidebarCharts = ({
   organization,
   isLoading,
   error,
@@ -78,7 +78,7 @@ function SidebarCharts({
   chartData,
   eventView,
   transactionName,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
@@ -196,16 +196,16 @@ function SidebarCharts({
       </AnomaliesQuery>
     </RelativeBox>
   );
-}
+};
 
-function SidebarChartsContainer({
+const SidebarChartsContainer = ({
   eventView,
   organization,
   isLoading,
   error,
   totals,
   transactionName,
-}: ContainerProps) {
+}: ContainerProps) => {
   const location = useLocation();
   const router = useRouter();
   const api = useApi();
@@ -363,7 +363,7 @@ function SidebarChartsContainer({
       }}
     </EventsRequest>
   );
-}
+};
 
 type ChartValueProps = {
   'data-test-id': string;
@@ -372,7 +372,7 @@ type ChartValueProps = {
   value: React.ReactNode;
 };
 
-function ChartSummaryValue({error, isLoading, value, ...props}: ChartValueProps) {
+const ChartSummaryValue = ({error, isLoading, value, ...props}: ChartValueProps) => {
   if (error) {
     return <div {...props}>{'\u2014'}</div>;
   }
@@ -382,7 +382,7 @@ function ChartSummaryValue({error, isLoading, value, ...props}: ChartValueProps)
   }
 
   return <ChartValue {...props}>{value}</ChartValue>;
-}
+};
 
 const RelativeBox = styled('div')`
   position: relative;

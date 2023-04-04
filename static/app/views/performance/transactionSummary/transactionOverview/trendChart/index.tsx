@@ -29,7 +29,7 @@ type Props = ViewProps & {
   withoutZerofill: boolean;
 };
 
-function TrendChart({
+const TrendChart = ({
   project,
   environment,
   organization,
@@ -41,7 +41,7 @@ function TrendChart({
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
-}: Props) {
+}: Props) => {
   const router = useRouter();
   const location = useLocation();
   const api = useApi();
@@ -143,6 +143,6 @@ function TrendChart({
       </EventsRequest>
     </Fragment>
   );
-}
+};
 
 export default TrendChart;

@@ -52,7 +52,7 @@ type Props = {
   reloading: boolean;
 };
 
-function ReleaseAdoption({
+const ReleaseAdoption = ({
   release,
   project,
   environment,
@@ -61,7 +61,7 @@ function ReleaseAdoption({
   loading,
   reloading,
   errored,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
@@ -334,7 +334,7 @@ function ReleaseAdoption({
       </SidebarSection.Wrap>
     </div>
   );
-}
+};
 
 const NotAvailableWrapper = styled('div')`
   display: flex;

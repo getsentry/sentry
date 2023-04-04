@@ -56,7 +56,7 @@ class TooltipStore {
 
 const tooltipStore = new TooltipStore();
 
-export function AcceptanceTestTooltip(props: InternalTooltipProps) {
+export const AcceptanceTestTooltip = (props: InternalTooltipProps) => {
   const [forceVisible, setForceVisible] = useState<undefined | boolean>(undefined);
 
   useEffect(() => {
@@ -69,4 +69,4 @@ export function AcceptanceTestTooltip(props: InternalTooltipProps) {
   }, []);
 
   return <DO_NOT_USE_TOOLTIP forceVisible={forceVisible} {...props} />;
-}
+};

@@ -6,7 +6,7 @@ import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 
-function ViewReplayLink({
+const ViewReplayLink = ({
   children,
   replayId,
   to,
@@ -14,7 +14,7 @@ function ViewReplayLink({
   children: ReactNode;
   replayId: ReactText | string;
   to: ComponentProps<typeof Link>['to'];
-}) {
+}) => {
   const count = useContext(ReplayCountContext)[replayId] || 0;
 
   if (count < 1) {
@@ -29,7 +29,7 @@ function ViewReplayLink({
       <StyledLink to={to}>{children}</StyledLink>
     </Tooltip>
   );
-}
+};
 
 const StyledLink = styled(Link)`
   & div {

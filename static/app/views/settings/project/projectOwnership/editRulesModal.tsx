@@ -13,7 +13,10 @@ interface EditOwnershipRulesModalProps extends EditOwnershipRulesModalOptions {
   onCancel: () => void;
 }
 
-export function EditOwnershipRules({ownership, ...props}: EditOwnershipRulesModalProps) {
+export const EditOwnershipRules = ({
+  ownership,
+  ...props
+}: EditOwnershipRulesModalProps) => {
   const hasStreamlineTargetingFeature = props.organization.features.includes(
     'streamline-targeting-context'
   );
@@ -74,7 +77,7 @@ export function EditOwnershipRules({ownership, ...props}: EditOwnershipRulesModa
       )}
     </Fragment>
   );
-}
+};
 
 const Block = styled(TextBlock)`
   margin-bottom: ${space(2)};

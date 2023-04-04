@@ -9,14 +9,14 @@ type Props = {
   breadcrumbs: undefined | Extract<Crumb, BreadcrumbTypeDefault>[];
 } & ReturnType<typeof useConsoleFilters>;
 
-function Filters({
+const Filters = ({
   breadcrumbs,
   getLogLevels,
   logLevel,
   searchTerm,
   setLogLevel,
   setSearchTerm,
-}: Props) {
+}: Props) => {
   const logLevels = getLogLevels();
   return (
     <FiltersGrid>
@@ -39,6 +39,6 @@ function Filters({
       />
     </FiltersGrid>
   );
-}
+};
 
 export default Filters;

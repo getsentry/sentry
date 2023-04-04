@@ -29,7 +29,7 @@ type Props = React.ComponentProps<typeof Expander> &
     timesRepeated?: number;
   };
 
-function Default({
+const Default = ({
   frame,
   debugFrames,
   nextFrame,
@@ -44,7 +44,7 @@ function Default({
   frameMeta,
   event,
   ...props
-}: Props) {
+}: Props) => {
   const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
   const {data} = useSourceMapDebug(debugFrame?.query, {
     enabled: !!debugFrame,
@@ -104,7 +104,7 @@ function Default({
       />
     </Wrapper>
   );
-}
+};
 
 export default Default;
 

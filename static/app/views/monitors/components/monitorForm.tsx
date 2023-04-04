@@ -95,13 +95,13 @@ function transformData(_data: Record<string, any>, model: FormModel) {
   }, {});
 }
 
-function MonitorForm({
+const MonitorForm = ({
   monitor,
   submitLabel,
   apiEndpoint,
   apiMethod,
   onSubmitSuccess,
-}: Props) {
+}: Props) => {
   const form = useRef(new FormModel({transformData}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -329,7 +329,7 @@ function MonitorForm({
       </StyledList>
     </Form>
   );
-}
+};
 
 export default MonitorForm;
 

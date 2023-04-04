@@ -77,13 +77,13 @@ type Props = {
   specificProjectSlugs?: string[];
 };
 
-function ProjectPageFilter({
+const ProjectPageFilter = ({
   specificProjectSlugs,
   maxTitleLength = 25,
   resetParamsOnChange = [],
   disabled,
   ...otherProps
-}: Props) {
+}: Props) => {
   const router = useRouter();
 
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
@@ -208,7 +208,7 @@ function ProjectPageFilter({
       {...otherProps}
     />
   );
-}
+};
 
 const TitleContainer = styled('span')`
   text-align: left;

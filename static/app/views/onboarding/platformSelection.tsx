@@ -13,7 +13,7 @@ import CreateProjectsFooter from './components/createProjectsFooter';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
-export function PlatformSelection(props: StepProps) {
+export const PlatformSelection = (props: StepProps) => {
   const organization = useOrganization();
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey | undefined>(
     undefined
@@ -68,7 +68,7 @@ export function PlatformSelection(props: StepProps) {
       />
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled('div')`
   max-width: 850px;

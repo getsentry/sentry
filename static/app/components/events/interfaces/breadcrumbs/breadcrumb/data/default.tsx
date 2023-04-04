@@ -19,7 +19,7 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
+export const Default = ({meta, breadcrumb, event, orgSlug, searchTerm}: Props) => {
   const {message, data} = breadcrumb;
   return (
     <Summary kvData={data} meta={meta}>
@@ -38,7 +38,7 @@ export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
       )}
     </Summary>
   );
-}
+};
 
 function isEventId(maybeEventId: string): boolean {
   // maybeEventId is an event id if it's a hex string of 32 characters long

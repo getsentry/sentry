@@ -11,7 +11,7 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-export function AnnotatedText({value, meta, className, ...props}: Props) {
+export const AnnotatedText = ({value, meta, className, ...props}: Props) => {
   const organization = useOrganization();
   const location = useLocation();
   const projectId = location.query.project;
@@ -29,4 +29,4 @@ export function AnnotatedText({value, meta, className, ...props}: Props) {
       <AnnotatedTextErrors errors={meta?.err} />
     </span>
   );
-}
+};

@@ -21,7 +21,7 @@ const selection: PageFilters = {
   projects: [],
 };
 
-function TestContext({children}: {children: ReactElement}) {
+const TestContext = ({children}: {children: ReactElement}) => {
   const {organization} = useMemo(() => initializeOrg(), []);
   // ensure client is rebuilt on each render otherwise caching will interfere with subsequent tests
   const client = useMemo(() => new QueryClient(), []);
@@ -33,7 +33,7 @@ function TestContext({children}: {children: ReactElement}) {
       </OrganizationContext.Provider>
     </QueryClientProvider>
   );
-}
+};
 
 describe('useFunctions', function () {
   afterEach(function () {

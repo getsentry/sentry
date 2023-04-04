@@ -43,7 +43,7 @@ type Props = {
   teams: TeamWithProjects[];
 } & RouteComponentProps<{}, {}>;
 
-function ProjectCardList({projects}: {projects: Project[]}) {
+const ProjectCardList = ({projects}: {projects: Project[]}) => {
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
 
@@ -72,9 +72,16 @@ function ProjectCardList({projects}: {projects: Project[]}) {
       ))}
     </ProjectCards>
   );
-}
+};
 
-function Dashboard({teams, organization, loadingTeams, error, router, location}: Props) {
+const Dashboard = ({
+  teams,
+  organization,
+  loadingTeams,
+  error,
+  router,
+  location,
+}: Props) => {
   useEffect(() => {
     return function cleanup() {
       ProjectsStatsStore.reset();
@@ -203,7 +210,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
       {showResources && <Resources organization={organization} />}
     </Fragment>
   );
-}
+};
 
 const OrganizationDashboard = (props: Props) => (
   <Layout.Page>

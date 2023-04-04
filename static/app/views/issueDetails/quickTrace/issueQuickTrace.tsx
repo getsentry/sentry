@@ -29,13 +29,13 @@ type Props = {
   quickTrace: undefined | QuickTraceQueryChildrenProps;
 };
 
-function TransactionMissingPlaceholder({
+const TransactionMissingPlaceholder = ({
   type,
   event,
 }: {
   event: Event;
   type?: QuickTraceQueryChildrenProps['type'];
-}) {
+}) => {
   useRouteAnalyticsParams({
     trace_status: type === 'missing' ? 'transaction missing' : 'trace missing',
   });
@@ -71,9 +71,9 @@ function TransactionMissingPlaceholder({
       </QuickTraceContainer>
     </QuickTraceWrapper>
   );
-}
+};
 
-function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
+const IssueQuickTrace = ({event, location, organization, quickTrace}: Props) => {
   const shouldShowPlaceholder =
     !quickTrace ||
     quickTrace.error ||
@@ -102,7 +102,7 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
       </QuickTraceWrapper>
     </ErrorBoundary>
   );
-}
+};
 
 const QuickTraceWrapper = styled('div')`
   display: flex;

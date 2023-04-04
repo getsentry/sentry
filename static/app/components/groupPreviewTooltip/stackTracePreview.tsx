@@ -52,7 +52,7 @@ export function getStacktrace(event: Event): StacktraceType | null {
   return null;
 }
 
-export function StackTracePreviewContent({
+export const StackTracePreviewContent = ({
   event,
   stacktrace,
   orgFeatures = [],
@@ -62,7 +62,7 @@ export function StackTracePreviewContent({
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
   orgFeatures?: string[];
-}) {
+}) => {
   const includeSystemFrames = useMemo(() => {
     return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
   }, [stacktrace]);
@@ -95,7 +95,7 @@ export function StackTracePreviewContent({
   }
 
   return <StackTraceContent {...commonProps} />;
-}
+};
 
 type StackTracePreviewProps = {
   children: React.ReactChild;
@@ -115,7 +115,7 @@ interface StackTracePreviewBodyProps
   onUnmount: () => void;
 }
 
-function StackTracePreviewBody({
+const StackTracePreviewBody = ({
   issueId,
   eventId,
   groupingCurrentLevel,
@@ -123,7 +123,7 @@ function StackTracePreviewBody({
   onRequestBegin,
   onRequestEnd,
   onUnmount,
-}: StackTracePreviewBodyProps) {
+}: StackTracePreviewBodyProps) => {
   const organization = useOrganization();
 
   const {data, isLoading, isError} = useApiQuery<Event>(
@@ -178,9 +178,9 @@ function StackTracePreviewBody({
       {t('There is no stack trace available for this issue.')}
     </NoStackTraceWrapper>
   );
-}
+};
 
-function StackTracePreview({children, ...props}: StackTracePreviewProps) {
+const StackTracePreview = ({children, ...props}: StackTracePreviewProps) => {
   const organization = useOrganization();
   const {shouldShowLoadingState, onRequestBegin, onRequestEnd, reset} =
     useDelayedLoadingState();
@@ -209,7 +209,7 @@ function StackTracePreview({children, ...props}: StackTracePreviewProps) {
       </GroupPreviewHovercard>
     </Wrapper>
   );
-}
+};
 
 export {StackTracePreview};
 

@@ -140,13 +140,13 @@ export default function QuickTraceMeta({
   );
 }
 
-export function QuickTraceMetaBase({
+export const QuickTraceMetaBase = ({
   body,
   footer,
 }: {
   body: React.ReactNode;
   footer: React.ReactNode;
-}) {
+}) => {
   return (
     <MetaData
       headingText={t('Trace Navigator')}
@@ -157,4 +157,4 @@ export function QuickTraceMetaBase({
       subtext={<div data-test-id="quick-trace-footer">{footer}</div>}
     />
   );
-}
+};

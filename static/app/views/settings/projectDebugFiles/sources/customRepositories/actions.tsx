@@ -25,7 +25,7 @@ type Props = {
   syncNowButton?: React.ReactElement;
 };
 
-function Actions({
+const Actions = ({
   repositoryName,
   repositoryType,
   disabled,
@@ -34,7 +34,7 @@ function Actions({
   hasFeature,
   hasAccess,
   syncNowButton,
-}: Props) {
+}: Props) => {
   function renderConfirmDelete(element: React.ReactElement) {
     return (
       <ConfirmDelete
@@ -147,7 +147,7 @@ function Actions({
       </DropDownWrapper>
     </StyledButtonBar>
   );
-}
+};
 
 export default Actions;
 

@@ -43,7 +43,7 @@ type Props = {
   title?: React.ReactNode;
 };
 
-function FormPanel({
+const FormPanel = ({
   additionalFieldProps = {},
   title,
   fields,
@@ -53,7 +53,7 @@ function FormPanel({
   renderHeader,
   collapsible,
   ...otherProps
-}: Props) {
+}: Props) => {
   const [collapsed, setCollapse] = useState(false);
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
 
@@ -104,7 +104,7 @@ function FormPanel({
       )}
     </Panel>
   );
-}
+};
 
 export default FormPanel;
 

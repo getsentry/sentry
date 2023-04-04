@@ -26,7 +26,7 @@ type NoContextProps = {
   isLoading: boolean;
 };
 
-export function NoContext({isLoading}: NoContextProps) {
+export const NoContext = ({isLoading}: NoContextProps) => {
   return isLoading ? (
     <NoContextWrapper>
       <LoadingIndicator
@@ -38,7 +38,7 @@ export function NoContext({isLoading}: NoContextProps) {
   ) : (
     <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
   );
-}
+};
 
 function getHoverBody(
   dataRow: EventData,
@@ -117,13 +117,13 @@ type HoverHeaderProps = {
   hideCopy?: boolean;
 };
 
-function HoverHeader({
+const HoverHeader = ({
   title,
   hideCopy = false,
   copyLabel,
   copyContent,
   organization,
-}: HoverHeaderProps) {
+}: HoverHeaderProps) => {
   return (
     <HoverHeaderWrapper>
       {title}
@@ -148,7 +148,7 @@ function HoverHeader({
       </HoverHeaderContent>
     </HoverHeaderWrapper>
   );
-}
+};
 
 type ContextProps = {
   children: React.ReactNode;
@@ -159,7 +159,7 @@ type ContextProps = {
   projects?: Project[];
 };
 
-export function QuickContextHoverWrapper(props: ContextProps) {
+export const QuickContextHoverWrapper = (props: ContextProps) => {
   const location = useLocation();
   const {dataRow, contextType, organization, projects, eventView} = props;
 
@@ -182,7 +182,7 @@ export function QuickContextHoverWrapper(props: ContextProps) {
       </StyledHovercard>
     </HoverWrapper>
   );
-}
+};
 
 const StyledHovercard = styled(Hovercard)`
   ${Body} {

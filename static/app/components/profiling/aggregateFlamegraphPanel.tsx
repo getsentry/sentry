@@ -13,7 +13,7 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
-export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
+export const AggregateFlamegraphPanel = ({transaction}: {transaction: string}) => {
   const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
 
   const isEmpty = data?.shared.frames.length === 0;
@@ -66,7 +66,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
       </ProfileGroupProvider>
     </Flex>
   );
-}
+};
 
 export const HeaderTitle = styled('span')`
   ${p => p.theme.text.cardTitle};

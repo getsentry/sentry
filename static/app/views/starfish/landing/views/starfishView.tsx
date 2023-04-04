@@ -8,7 +8,7 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
-export function StarfishView(props: BasePerformanceViewProps) {
+export const StarfishView = (props: BasePerformanceViewProps) => {
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div data-test-id="starfish-view">
@@ -28,4 +28,4 @@ export function StarfishView(props: BasePerformanceViewProps) {
       </div>
     </PerformanceDisplayProvider>
   );
-}
+};

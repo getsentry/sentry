@@ -8,10 +8,10 @@ import {RouteContext} from 'sentry/views/routeContext';
 describe('useLocation', () => {
   it('returns the current location object', function () {
     let location;
-    function HomePage() {
+    const HomePage = () => {
       location = useLocation();
       return null;
-    }
+    };
 
     const memoryHistory = createMemoryHistory();
     memoryHistory.push('/?hello');

@@ -4,7 +4,7 @@ import {toPercent} from 'sentry/components/performance/waterfall/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 
-function SpanBarCursorGuide() {
+const SpanBarCursorGuide = () => {
   return (
     <CursorGuideHandler.Consumer>
       {({
@@ -28,7 +28,7 @@ function SpanBarCursorGuide() {
       }}
     </CursorGuideHandler.Consumer>
   );
-}
+};
 
 const CursorGuide = styled('div')`
   position: absolute;

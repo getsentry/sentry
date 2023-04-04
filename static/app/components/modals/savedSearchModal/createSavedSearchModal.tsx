@@ -46,14 +46,14 @@ function validateSortOption({
   return IssueSortOptions.DATE;
 }
 
-export function CreateSavedSearchModal({
+export const CreateSavedSearchModal = ({
   Header,
   Body,
   closeModal,
   organization,
   query,
   sort,
-}: CreateSavedSearchModalProps) {
+}: CreateSavedSearchModalProps) => {
   const [error, setError] = useState(null);
 
   const {mutateAsync: createSavedSearch} = useCreateSavedSearch();
@@ -127,4 +127,4 @@ export function CreateSavedSearchModal({
       </Body>
     </Form>
   );
-}
+};

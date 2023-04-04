@@ -28,7 +28,7 @@ type Props = {
   pageLinks?: string;
 };
 
-function MergedList({
+const MergedList = ({
   fingerprints = [],
   pageLinks,
   onToggleCollapse,
@@ -36,7 +36,7 @@ function MergedList({
   organization,
   groupId,
   project,
-}: Props) {
+}: Props) => {
   const fingerprintsWithLatestEvent = fingerprints.filter(
     ({latestEvent}) => !!latestEvent
   );
@@ -82,6 +82,6 @@ function MergedList({
       {pageLinks && <Pagination pageLinks={pageLinks} />}
     </Fragment>
   );
-}
+};
 
 export default withOrganization(MergedList);

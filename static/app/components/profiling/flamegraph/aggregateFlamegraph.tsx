@@ -88,7 +88,7 @@ function findLongestMatchingFrame(
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 
-export function AggregateFlamegraph(): ReactElement {
+export const AggregateFlamegraph = (): ReactElement => {
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
@@ -428,7 +428,7 @@ export function AggregateFlamegraph(): ReactElement {
       </AggregateFlamegraphToolbar>
     </Fragment>
   );
-}
+};
 
 const AggregateFlamegraphToolbar = styled('div')`
   position: absolute;

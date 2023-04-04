@@ -23,7 +23,7 @@ type Props = {
   successMessage?: React.ReactNode;
 };
 
-function EditableText({
+const EditableText = ({
   value,
   onChange,
   name,
@@ -34,7 +34,7 @@ function EditableText({
   autoSelect = false,
   className,
   'aria-label': ariaLabel,
-}: Props) {
+}: Props) => {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
 
@@ -174,7 +174,7 @@ function EditableText({
       )}
     </Wrapper>
   );
-}
+};
 
 export default EditableText;
 

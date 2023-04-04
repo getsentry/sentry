@@ -18,7 +18,7 @@ type Props = {
   projects: Project[];
 };
 
-function TransactionAnomalies(props: Props) {
+const TransactionAnomalies = (props: Props) => {
   const {location, organization, projects} = props;
 
   return (
@@ -34,7 +34,7 @@ function TransactionAnomalies(props: Props) {
       />
     </MEPSettingProvider>
   );
-}
+};
 
 function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =

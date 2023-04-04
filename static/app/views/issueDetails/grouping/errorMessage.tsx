@@ -38,7 +38,7 @@ type Props = {
   className?: string;
 };
 
-function ErrorMessage({
+const ErrorMessage = ({
   error,
   groupId,
   onRetry,
@@ -46,7 +46,7 @@ function ErrorMessage({
   projSlug,
   hasProjectWriteAccess,
   className,
-}: Props) {
+}: Props) => {
   function getErrorDetails(errorCode: ErrorCode) {
     switch (errorCode) {
       case 'merged_issues':
@@ -172,6 +172,6 @@ function ErrorMessage({
       className={className}
     />
   );
-}
+};
 
 export default ErrorMessage;

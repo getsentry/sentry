@@ -16,13 +16,13 @@ export interface ProfilingBreadcrumbsProps {
   trails: Trail[];
 }
 
-function ProfilingBreadcrumbs({organization, trails}: ProfilingBreadcrumbsProps) {
+const ProfilingBreadcrumbs = ({organization, trails}: ProfilingBreadcrumbsProps) => {
   const crumbs = useMemo(
     () => trails.map(trail => trailToCrumb(trail, {organization})),
     [organization, trails]
   );
   return <_Breadcrumbs crumbs={crumbs} />;
-}
+};
 
 function trailToCrumb(
   trail: Trail,

@@ -17,13 +17,13 @@ type Props = {
   meta?: Meta;
 };
 
-export function RichHttpContentClippedBoxKeyValueList({
+export const RichHttpContentClippedBoxKeyValueList = ({
   data,
   title,
   defaultCollapsed = false,
   isContextData = false,
   meta,
-}: Props) {
+}: Props) => {
   const transformedData = getTransformedData(data, meta);
 
   function getContent() {
@@ -65,4 +65,4 @@ export function RichHttpContentClippedBoxKeyValueList({
       <ErrorBoundary mini>{getContent()}</ErrorBoundary>
     </ClippedBox>
   );
-}
+};

@@ -9,7 +9,7 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
-export function AllTransactionsView(props: BasePerformanceViewProps) {
+export const AllTransactionsView = (props: BasePerformanceViewProps) => {
   const showSpanOperationsWidget =
     props.organization.features.includes('performance-new-widget-designs') &&
     canUseMetricsData(props.organization);
@@ -45,4 +45,4 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
       </div>
     </PerformanceDisplayProvider>
   );
-}
+};

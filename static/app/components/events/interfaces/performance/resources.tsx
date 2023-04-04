@@ -19,7 +19,7 @@ type Props = {
 };
 
 // This section provides users with resources on how to resolve an issue
-export function Resources({group, event}: Props) {
+export const Resources = ({group, event}: Props) => {
   const config = getConfigForIssueType(group);
 
   if (!config.resources) {
@@ -43,7 +43,7 @@ export function Resources({group, event}: Props) {
       </LinkSection>
     </EventDataSection>
   );
-}
+};
 
 const LinkSection = styled('div')`
   display: grid;

@@ -35,7 +35,7 @@ interface Props {
   noDashboardsMEPProvider?: boolean;
 }
 
-export function VisualizationStep({
+export const VisualizationStep = ({
   organization,
   pageFilters,
   displayType,
@@ -46,7 +46,7 @@ export function VisualizationStep({
   dashboardFilters,
   location,
   isWidgetInvalid,
-}: Props) {
+}: Props) => {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
   const previousWidget = usePrevious(widget);
@@ -126,7 +126,7 @@ export function VisualizationStep({
       </VisualizationWrapper>
     </BuildStep>
   );
-}
+};
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};

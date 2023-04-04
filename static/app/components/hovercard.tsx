@@ -68,7 +68,7 @@ function useUpdateOverlayPositionOnContentChange({
   return ref;
 }
 
-function HovercardContent({
+const HovercardContent = ({
   body,
   bodyClassName,
   className,
@@ -76,7 +76,7 @@ function HovercardContent({
   tipColor,
   header,
   hoverOverlayState: {arrowData, arrowProps, overlayProps, placement, update},
-}: HovercardContentProps) {
+}: HovercardContentProps) => {
   const theme = useTheme();
   const ref = useUpdateOverlayPositionOnContentChange({update});
 
@@ -100,9 +100,9 @@ function HovercardContent({
       </StyledHovercard>
     </PositionWrapper>
   );
-}
+};
 
-function Hovercard({
+const Hovercard = ({
   body,
   bodyClassName,
   children,
@@ -114,7 +114,7 @@ function Hovercard({
   tipBorderColor = 'translucentBorder',
   tipColor = 'backgroundElevated',
   ...hoverOverlayProps
-}: HovercardProps): React.ReactElement {
+}: HovercardProps): React.ReactElement => {
   const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay('hovercard', {
     offset,
     displayTimeout,
@@ -150,7 +150,7 @@ function Hovercard({
       {createPortal(<AnimatePresence>{hovercardContent}</AnimatePresence>, document.body)}
     </Fragment>
   );
-}
+};
 
 const StyledHovercard = styled(Overlay)`
   width: 295px;

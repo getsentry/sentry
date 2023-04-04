@@ -38,13 +38,13 @@ const suggestedOptions = [
   },
 ];
 
-function TeamFilter({
+const TeamFilter = ({
   selectedTeams,
   handleChangeFilter,
   showIsMemberTeams = false,
   showSuggestedOptions = true,
   showMyTeamsDescription = false,
-}: Props) {
+}: Props) => {
   const {teams, onSearch, fetching} = useTeams({provideUserTeams: showIsMemberTeams});
 
   const teamOptions = useMemo(
@@ -116,7 +116,7 @@ function TeamFilter({
       triggerProps={{icon: triggerIcon}}
     />
   );
-}
+};
 
 export default TeamFilter;
 

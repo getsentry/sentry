@@ -16,7 +16,7 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({organization, router}) {
+const WrappedComponent = ({organization, router}) => {
   const client = new QueryClient();
 
   return (
@@ -37,7 +37,7 @@ function WrappedComponent({organization, router}) {
       </RouteContext.Provider>
     </QueryClientProvider>
   );
-}
+};
 
 function initializeData(projects, query, features = FEATURES) {
   const organization = TestStubs.Organization({

@@ -8,7 +8,7 @@ describe('withProjects HoC', function () {
     act(() => ProjectsStore.reset());
   });
 
-  function Output({projects, loadingProjects}) {
+  const Output = ({projects, loadingProjects}) => {
     if (loadingProjects) {
       return <p>Loading</p>;
     }
@@ -19,7 +19,7 @@ describe('withProjects HoC', function () {
         ))}
       </p>
     );
-  }
+  };
 
   it('works', async function () {
     const Container = withProjects(Output);

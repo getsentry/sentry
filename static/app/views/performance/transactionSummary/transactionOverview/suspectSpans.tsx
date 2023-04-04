@@ -96,7 +96,7 @@ type HeaderProps = {
   transactionName: string;
 };
 
-function SuspectSpansHeader(props: HeaderProps) {
+const SuspectSpansHeader = (props: HeaderProps) => {
   const {location, organization, projectId, transactionName, pageLinks} = props;
 
   const viewAllTarget = spansRouteWithQuery({
@@ -122,7 +122,7 @@ function SuspectSpansHeader(props: HeaderProps) {
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );
-}
+};
 
 const Header = styled('div')`
   display: grid;

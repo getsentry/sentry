@@ -11,7 +11,7 @@ type Props = Omit<ChartProps, 'series'> & {
   series: ScatterChartSeries[];
 };
 
-function ScatterChart({series, ...props}: Props) {
+const ScatterChart = ({series, ...props}: Props) => {
   return (
     <BaseChart
       {...props}
@@ -33,6 +33,6 @@ function ScatterChart({series, ...props}: Props) {
       )}
     />
   );
-}
+};
 
 export default ScatterChart;

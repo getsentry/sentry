@@ -24,7 +24,7 @@ export interface QueryFieldProps {
   style?: React.CSSProperties;
 }
 
-export function QueryField({
+export const QueryField = ({
   onDelete,
   onChange,
   fieldOptions,
@@ -36,7 +36,7 @@ export function QueryField({
   canDrag,
   style,
   isDragging,
-}: QueryFieldProps) {
+}: QueryFieldProps) => {
   return (
     <QueryFieldWrapper ref={forwardRef} style={style}>
       {isDragging ? null : (
@@ -72,7 +72,7 @@ export function QueryField({
       )}
     </QueryFieldWrapper>
   );
-}
+};
 
 const DragAndReorderButton = styled(Button)`
   height: ${p => p.theme.form.md.height}px;

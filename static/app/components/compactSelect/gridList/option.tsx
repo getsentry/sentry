@@ -26,7 +26,7 @@ interface GridListOptionProps extends AriaGridListItemOptions {
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListOption({node, listState, size}: GridListOptionProps) {
+export const GridListOption = ({node, listState, size}: GridListOptionProps) => {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
@@ -134,4 +134,4 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
       data-test-id={node.key}
     />
   );
-}
+};

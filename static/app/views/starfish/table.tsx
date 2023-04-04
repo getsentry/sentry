@@ -474,12 +474,14 @@ class _Table extends Component<Props, State> {
   }
 }
 
-function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}) {
+const Table = (
+  props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}
+) => {
   const summaryConditions =
     props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
 
   return <_Table {...props} summaryConditions={summaryConditions} />;
-}
+};
 
 // Align the contained IconStar with the IconStar buttons in individual table
 // rows, which have 2px padding + 1px border.

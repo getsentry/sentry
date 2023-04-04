@@ -70,7 +70,7 @@ interface SearchProps {
   sources?: React.ComponentType<any>[];
 }
 
-function Search({
+const Search = ({
   entryPoint,
   maxResults,
   minSearch,
@@ -81,7 +81,7 @@ function Search({
   resultFooter,
   searchOptions,
   sources,
-}: SearchProps): React.ReactElement {
+}: SearchProps): React.ReactElement => {
   const router = useRouter();
 
   const params = useParams<{orgId: string}>();
@@ -209,7 +209,7 @@ function Search({
       }}
     </AutoComplete>
   );
-}
+};
 
 export {Search, SearchProps};
 

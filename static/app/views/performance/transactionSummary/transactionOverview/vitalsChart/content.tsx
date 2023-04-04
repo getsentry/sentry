@@ -35,7 +35,7 @@ type Props = {
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
-function Content({
+const Content = ({
   errored,
   theme,
   series: data,
@@ -52,7 +52,7 @@ function Content({
   queryExtra,
   router,
   onLegendSelectChanged,
-}: Props) {
+}: Props) => {
   if (errored) {
     return (
       <ErrorPanel>
@@ -141,6 +141,6 @@ function Content({
       )}
     </ChartZoom>
   );
-}
+};
 
 export default Content;

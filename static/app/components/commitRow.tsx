@@ -32,12 +32,12 @@ export interface CommitRowProps {
   onPullRequestClick?: () => void;
 }
 
-function CommitRow({
+const CommitRow = ({
   commit,
   customAvatar,
   onPullRequestClick,
   onCommitClick,
-}: CommitRowProps) {
+}: CommitRowProps) => {
   const handleInviteClick = useCallback(() => {
     if (!commit.author?.email) {
       Sentry.captureException(
@@ -131,7 +131,7 @@ function CommitRow({
       )}
     </StyledPanelItem>
   );
-}
+};
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;

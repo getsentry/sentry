@@ -31,14 +31,14 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-function ReleaseActions({
+const ReleaseActions = ({
   location,
   organization,
   projectSlug,
   release,
   releaseMeta,
   refetchData,
-}: Props) {
+}: Props) => {
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
@@ -216,7 +216,7 @@ function ReleaseActions({
       />
     </ButtonBar>
   );
-}
+};
 
 const ProjectsWrapper = styled('div')`
   margin: ${space(2)} 0 ${space(2)} ${space(2)};

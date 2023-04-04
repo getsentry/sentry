@@ -155,7 +155,7 @@ async function fetchDiscoverTotal(
   }
 }
 
-function WidgetViewerModal(props: Props) {
+const WidgetViewerModal = (props: Props) => {
   const {
     organization,
     widget,
@@ -461,11 +461,11 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  function DiscoverTable({
+  const DiscoverTable = ({
     tableResults,
     loading,
     pageLinks,
-  }: GenericWidgetQueriesChildrenProps) {
+  }: GenericWidgetQueriesChildrenProps) => {
     const {isMetricsData} = useDashboardsMEPContext();
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
@@ -528,7 +528,7 @@ function WidgetViewerModal(props: Props) {
         )}
       </Fragment>
     );
-  }
+  };
 
   const renderIssuesTable = ({
     tableResults,
@@ -1027,7 +1027,7 @@ function WidgetViewerModal(props: Props) {
       </OrganizationContext.Provider>
     </Fragment>
   );
-}
+};
 
 interface OpenButtonProps {
   organization: Organization;
@@ -1036,12 +1036,12 @@ interface OpenButtonProps {
   widget: Widget;
 }
 
-function OpenButton({
+const OpenButton = ({
   widget,
   selection,
   organization,
   selectedQueryIndex,
-}: OpenButtonProps) {
+}: OpenButtonProps) => {
   let openLabel: string;
   let path: string;
   const {isMetricsData} = useDashboardsMEPContext();
@@ -1083,7 +1083,7 @@ function OpenButton({
       {openLabel}
     </Button>
   );
-}
+};
 
 function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
   if (totalResults === undefined) {

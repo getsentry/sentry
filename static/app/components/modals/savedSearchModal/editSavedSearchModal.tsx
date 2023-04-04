@@ -15,13 +15,13 @@ interface EditSavedSearchModalProps extends ModalRenderProps {
   savedSearch: SavedSearch;
 }
 
-export function EditSavedSearchModal({
+export const EditSavedSearchModal = ({
   Header,
   Body,
   closeModal,
   organization,
   savedSearch,
-}: EditSavedSearchModalProps) {
+}: EditSavedSearchModalProps) => {
   const [error, setError] = useState(null);
 
   const {mutateAsync: modifySavedSearch} = useModifySavedSearch();
@@ -87,4 +87,4 @@ export function EditSavedSearchModal({
       </Body>
     </Form>
   );
-}
+};

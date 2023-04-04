@@ -26,7 +26,7 @@ const VISIBLE_COLUMNS = [
   ReplayColumns.activity,
 ];
 
-function GroupReplays({group}: Props) {
+const GroupReplays = ({group}: Props) => {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
 
@@ -57,7 +57,7 @@ function GroupReplays({group}: Props) {
       visibleColumns={VISIBLE_COLUMNS}
     />
   );
-}
+};
 
 const GroupReplaysTable = ({
   eventView,

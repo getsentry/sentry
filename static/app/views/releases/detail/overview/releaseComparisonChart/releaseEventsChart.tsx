@@ -44,7 +44,7 @@ type Props = {
   utc?: boolean;
 };
 
-function ReleaseEventsChart({
+const ReleaseEventsChart = ({
   release,
   project,
   chartType,
@@ -55,7 +55,7 @@ function ReleaseEventsChart({
   start,
   end,
   utc,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const router = useRouter();
   const api = useApi();
@@ -231,6 +231,6 @@ function ReleaseEventsChart({
       )}
     </EventsRequest>
   );
-}
+};
 
 export default withOrganization(ReleaseEventsChart);

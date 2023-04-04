@@ -56,7 +56,7 @@ const getProject = memoize((slug: string, projects: Project[]) =>
   projects.find(project => project.slug === slug)
 );
 
-function RuleListRow({
+const RuleListRow = ({
   rule,
   projectsLoaded,
   projects,
@@ -65,7 +65,7 @@ function RuleListRow({
   onOwnerChange,
   userTeams,
   hasEditAccess,
-}: Props) {
+}: Props) => {
   const [assignee, setAssignee] = useState<string>('');
   const activeIncident =
     rule.latestIncident?.status !== undefined &&
@@ -397,7 +397,7 @@ function RuleListRow({
       </ActionsColumn>
     </ErrorBoundary>
   );
-}
+};
 
 const FlexCenter = styled('div')`
   display: flex;

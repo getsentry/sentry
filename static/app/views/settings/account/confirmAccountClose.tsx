@@ -2,11 +2,11 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 
-export function ConfirmAccountClose({
+export const ConfirmAccountClose = ({
   handleRemoveAccount,
 }: {
   handleRemoveAccount: () => void;
-}) {
+}) => {
   return (
     <Confirm
       priority="danger"
@@ -18,4 +18,4 @@ export function ConfirmAccountClose({
       <Button priority="danger">{t('Close Account')}</Button>
     </Confirm>
   );
-}
+};

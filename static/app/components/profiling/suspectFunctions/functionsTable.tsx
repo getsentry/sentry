@@ -28,7 +28,7 @@ interface FunctionsTableProps {
   sort: string;
 }
 
-function FunctionsTable(props: FunctionsTableProps) {
+const FunctionsTable = (props: FunctionsTableProps) => {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -129,7 +129,7 @@ function FunctionsTable(props: FunctionsTableProps) {
       location={location}
     />
   );
-}
+};
 
 const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p95', 'p99', 'count']);
 const SORTABLE_COLUMNS = RIGHT_ALIGNED_COLUMNS;
@@ -161,10 +161,10 @@ const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-function ProfilingFunctionsTableCell({
+const ProfilingFunctionsTableCell = ({
   column,
   dataRow,
-}: ProfilingFunctionsTableCellProps) {
+}: ProfilingFunctionsTableCellProps) => {
   const value = dataRow[column.key];
 
   switch (column.key) {
@@ -191,7 +191,7 @@ function ProfilingFunctionsTableCell({
     default:
       return <Container>{value}</Container>;
   }
-}
+};
 
 type TableColumnKey = keyof Omit<SuspectFunction, 'fingerprint' | 'worst'>;
 

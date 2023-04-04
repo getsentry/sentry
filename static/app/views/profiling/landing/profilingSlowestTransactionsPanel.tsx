@@ -35,7 +35,7 @@ import useProjects from 'sentry/utils/useProjects';
 const fields = ['transaction', 'project.id', 'last_seen()', 'p95()', 'count()'] as const;
 type SlowestTransactionsFields = (typeof fields)[number];
 
-export function ProfilingSlowestTransactionsPanel() {
+export const ProfilingSlowestTransactionsPanel = () => {
   const profilingTransactionsQuery = useProfileEvents({
     fields,
     sort: {
@@ -113,7 +113,7 @@ export function ProfilingSlowestTransactionsPanel() {
       </Flex>
     </FlexPanel>
   );
-}
+};
 interface SlowestTransactionPanelItemProps {
   onOpen: () => void;
   open: boolean;
@@ -121,12 +121,12 @@ interface SlowestTransactionPanelItemProps {
   units?: EventsResults<SlowestTransactionsFields>['meta']['units'];
 }
 
-function SlowestTransactionPanelItem({
+const SlowestTransactionPanelItem = ({
   transaction,
   open,
   onOpen,
   units,
-}: SlowestTransactionPanelItemProps) {
+}: SlowestTransactionPanelItemProps) => {
   const organization = useOrganization();
   const projects = useProjects();
   const transactionProject = useMemo(
@@ -203,7 +203,7 @@ function SlowestTransactionPanelItem({
       </PanelItemBody>
     </PanelItem>
   );
-}
+};
 
 interface PanelItemFunctionsMiniGridProps {
   organization: Organization;
@@ -211,7 +211,7 @@ interface PanelItemFunctionsMiniGridProps {
   transaction: string;
 }
 
-function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
+const PanelItemFunctionsMiniGrid = (props: PanelItemFunctionsMiniGridProps) => {
   const {transaction, project, organization} = props;
   const {functionsQuery, functions} = useProfilingTransactionQuickSummary({
     transaction,
@@ -244,7 +244,7 @@ function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
       />
     </PanelItemBodyInner>
   );
-}
+};
 
 const FlexPanel = styled(Panel)`
   display: flex;

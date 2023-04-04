@@ -9,7 +9,7 @@ type Props = {
   status: ImageStatus;
 };
 
-function ProcessingIcon({status}: Props) {
+const ProcessingIcon = ({status}: Props) => {
   switch (status) {
     case ImageStatus.TIMEOUT:
     case ImageStatus.FETCHING_FAILED: {
@@ -83,6 +83,6 @@ function ProcessingIcon({status}: Props) {
       return null; // This shall not happen
     }
   }
-}
+};
 
 export default ProcessingIcon;

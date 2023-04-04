@@ -59,7 +59,7 @@ const framesList = [
   PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
 ];
 
-export function LineChartListWidget(props: PerformanceWidgetProps) {
+export const LineChartListWidget = (props: PerformanceWidgetProps) => {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
@@ -218,160 +218,166 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided => () =>
-    (
-      <DurationChart
-        {...provided.widgetData.chart}
-        {...provided}
-        disableMultiAxis
-        disableXAxis
-        chartColors={props.chartColor ? [props.chartColor] : undefined}
-        isLineChart
-      />
-    );
+  const getChart = provided =>
+    function () {
+      return (
+        <DurationChart
+          {...provided.widgetData.chart}
+          {...provided}
+          disableMultiAxis
+          disableXAxis
+          chartColors={props.chartColor ? [props.chartColor] : undefined}
+          isLineChart
+        />
+      );
+    };
 
   const getItems = provided =>
-    provided.widgetData.list.data.map(listItem => () => {
-      const transaction = (listItem.transaction as string | undefined) ?? '';
+    provided.widgetData.list.data.map(
+      listItem =>
+        function () {
+          const transaction = (listItem.transaction as string | undefined) ?? '';
 
-      const additionalQuery: Record<string, string> = {};
+          const additionalQuery: Record<string, string> = {};
 
-      if (props.chartSetting === PerformanceWidgetSetting.SLOW_HTTP_OPS) {
-        additionalQuery.breakdown = 'http';
-        additionalQuery.display = 'latency';
-      } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS) {
-        additionalQuery.breakdown = 'db';
-        additionalQuery.display = 'latency';
-      } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_BROWSER_OPS) {
-        additionalQuery.breakdown = 'browser';
-        additionalQuery.display = 'latency';
-      } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_RESOURCE_OPS) {
-        additionalQuery.breakdown = 'resource';
-        additionalQuery.display = 'latency';
-      }
-
-      const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
-      const transactionTarget = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
-          })
-        : transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
-            projectID: listItem['project.id'] as string,
-            transaction,
-            query: props.eventView.getPageFiltersQuery(),
-            additionalQuery,
-          });
-
-      const fieldString = field;
-
-      const valueMap = {
-        [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
-        [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: listItem.issue,
-        slowest: getPerformanceDuration(listItem[fieldString] as number),
-      };
-      const rightValue =
-        valueMap[isSlowestType ? 'slowest' : props.chartSetting] ?? listItem[fieldString];
-
-      switch (props.chartSetting) {
-        case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
-          return (
-            <Fragment>
-              <GrowLink to={transactionTarget}>
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <RightAlignedCell>
-                <Tooltip title={listItem.title}>
-                  <Link
-                    to={`/organizations/${props.organization.slug}/issues/${listItem['issue.id']}/?referrer=performance-line-chart-widget`}
-                  >
-                    {rightValue}
-                  </Link>
-                </Tooltip>
-              </RightAlignedCell>
-              {!props.withStaticFilters && (
-                <ListClose
-                  setSelectListIndex={setSelectListIndex}
-                  onClick={() =>
-                    excludeTransaction(listItem.transaction, {
-                      eventView: props.eventView,
-                      location,
-                    })
-                  }
-                />
-              )}
-            </Fragment>
-          );
-        case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
-          return (
-            <Fragment>
-              <GrowLink to={transactionTarget}>
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <RightAlignedCell>
-                {tct('[count] errors', {
-                  count: <Count value={rightValue} />,
-                })}
-              </RightAlignedCell>
-              {!props.withStaticFilters && (
-                <ListClose
-                  setSelectListIndex={setSelectListIndex}
-                  onClick={() =>
-                    excludeTransaction(listItem.transaction, {
-                      eventView: props.eventView,
-                      location,
-                    })
-                  }
-                />
-              )}
-            </Fragment>
-          );
-        default:
-          if (typeof rightValue === 'number') {
-            return (
-              <Fragment>
-                <GrowLink to={transactionTarget}>
-                  <Truncate value={transaction} maxLength={40} />
-                </GrowLink>
-                <RightAlignedCell>
-                  <Count value={rightValue} />
-                </RightAlignedCell>
-                {!props.withStaticFilters && (
-                  <ListClose
-                    setSelectListIndex={setSelectListIndex}
-                    onClick={() =>
-                      excludeTransaction(listItem.transaction, {
-                        eventView: props.eventView,
-                        location,
-                      })
-                    }
-                  />
-                )}
-              </Fragment>
-            );
+          if (props.chartSetting === PerformanceWidgetSetting.SLOW_HTTP_OPS) {
+            additionalQuery.breakdown = 'http';
+            additionalQuery.display = 'latency';
+          } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS) {
+            additionalQuery.breakdown = 'db';
+            additionalQuery.display = 'latency';
+          } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_BROWSER_OPS) {
+            additionalQuery.breakdown = 'browser';
+            additionalQuery.display = 'latency';
+          } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_RESOURCE_OPS) {
+            additionalQuery.breakdown = 'resource';
+            additionalQuery.display = 'latency';
           }
-          return (
-            <Fragment>
-              <GrowLink to={transactionTarget}>
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <RightAlignedCell>{rightValue}</RightAlignedCell>
-              {!props.withStaticFilters && (
-                <ListClose
-                  setSelectListIndex={setSelectListIndex}
-                  onClick={() =>
-                    excludeTransaction(listItem.transaction, {
-                      eventView: props.eventView,
-                      location,
-                    })
-                  }
-                />
-              )}
-            </Fragment>
-          );
-      }
-    });
+
+          const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+          const transactionTarget = isUnparameterizedRow
+            ? createUnnamedTransactionsDiscoverTarget({
+                organization,
+                location,
+              })
+            : transactionSummaryRouteWithQuery({
+                orgSlug: props.organization.slug,
+                projectID: listItem['project.id'] as string,
+                transaction,
+                query: props.eventView.getPageFiltersQuery(),
+                additionalQuery,
+              });
+
+          const fieldString = field;
+
+          const valueMap = {
+            [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
+            [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: listItem.issue,
+            slowest: getPerformanceDuration(listItem[fieldString] as number),
+          };
+          const rightValue =
+            valueMap[isSlowestType ? 'slowest' : props.chartSetting] ??
+            listItem[fieldString];
+
+          switch (props.chartSetting) {
+            case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
+              return (
+                <Fragment>
+                  <GrowLink to={transactionTarget}>
+                    <Truncate value={transaction} maxLength={40} />
+                  </GrowLink>
+                  <RightAlignedCell>
+                    <Tooltip title={listItem.title}>
+                      <Link
+                        to={`/organizations/${props.organization.slug}/issues/${listItem['issue.id']}/?referrer=performance-line-chart-widget`}
+                      >
+                        {rightValue}
+                      </Link>
+                    </Tooltip>
+                  </RightAlignedCell>
+                  {!props.withStaticFilters && (
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() =>
+                        excludeTransaction(listItem.transaction, {
+                          eventView: props.eventView,
+                          location,
+                        })
+                      }
+                    />
+                  )}
+                </Fragment>
+              );
+            case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
+              return (
+                <Fragment>
+                  <GrowLink to={transactionTarget}>
+                    <Truncate value={transaction} maxLength={40} />
+                  </GrowLink>
+                  <RightAlignedCell>
+                    {tct('[count] errors', {
+                      count: <Count value={rightValue} />,
+                    })}
+                  </RightAlignedCell>
+                  {!props.withStaticFilters && (
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() =>
+                        excludeTransaction(listItem.transaction, {
+                          eventView: props.eventView,
+                          location,
+                        })
+                      }
+                    />
+                  )}
+                </Fragment>
+              );
+            default:
+              if (typeof rightValue === 'number') {
+                return (
+                  <Fragment>
+                    <GrowLink to={transactionTarget}>
+                      <Truncate value={transaction} maxLength={40} />
+                    </GrowLink>
+                    <RightAlignedCell>
+                      <Count value={rightValue} />
+                    </RightAlignedCell>
+                    {!props.withStaticFilters && (
+                      <ListClose
+                        setSelectListIndex={setSelectListIndex}
+                        onClick={() =>
+                          excludeTransaction(listItem.transaction, {
+                            eventView: props.eventView,
+                            location,
+                          })
+                        }
+                      />
+                    )}
+                  </Fragment>
+                );
+              }
+              return (
+                <Fragment>
+                  <GrowLink to={transactionTarget}>
+                    <Truncate value={transaction} maxLength={40} />
+                  </GrowLink>
+                  <RightAlignedCell>{rightValue}</RightAlignedCell>
+                  {!props.withStaticFilters && (
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() =>
+                        excludeTransaction(listItem.transaction, {
+                          eventView: props.eventView,
+                          location,
+                        })
+                      }
+                    />
+                  )}
+                </Fragment>
+              );
+          }
+        }
+    );
 
   const Visualizations = organization.features.includes('performance-new-widget-designs')
     ? [
@@ -435,6 +441,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       Visualizations={Visualizations}
     />
   );
-}
+};
 
 const EventsRequest = withApi(_EventsRequest);

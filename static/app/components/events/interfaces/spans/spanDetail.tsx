@@ -81,7 +81,7 @@ type Props = {
   trace: Readonly<ParsedTraceType>;
 };
 
-function SpanDetail(props: Props) {
+const SpanDetail = (props: Props) => {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = useTransactionProfileId();
@@ -539,7 +539,7 @@ function SpanDetail(props: Props) {
       {renderSpanDetails()}
     </SpanDetailContainer>
   );
-}
+};
 
 const StyledDiscoverButton = styled(DiscoverButton)`
   position: absolute;

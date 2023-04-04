@@ -68,7 +68,7 @@ type Props = {
   isGlobalSelectionReady?: boolean;
 };
 
-function ProjectSelector({
+const ProjectSelector = ({
   customDropdownButton,
   customLoadingIndicator,
   disableMultipleProjectSelection,
@@ -81,7 +81,7 @@ function ProjectSelector({
   organization,
   value,
   disabled,
-}: Props) {
+}: Props) => {
   const routes = useRoutes();
   // Used to determine if we should show the 'apply' changes button
   const [hasChanges, setHasChanges] = useState(false);
@@ -325,7 +325,7 @@ function ProjectSelector({
       )}
     </ClassNames>
   );
-}
+};
 
 export default ProjectSelector;
 

@@ -307,7 +307,7 @@ const QuickTraceContainer = styled('div')`
   }
 `;
 
-function EventID({event}: {event: Event}) {
+const EventID = ({event}: {event: Event}) => {
   return (
     <Clipboard value={event.eventID}>
       <EventIDContainer>
@@ -318,7 +318,7 @@ function EventID({event}: {event: Event}) {
       </EventIDContainer>
     </Clipboard>
   );
-}
+};
 
 const EventIDContainer = styled('div')`
   display: flex;
@@ -330,7 +330,7 @@ const EventIDWrapper = styled('span')`
   margin-right: ${space(1)};
 `;
 
-export function HttpStatus({event}: {event: Event}) {
+export const HttpStatus = ({event}: {event: Event}) => {
   const {tags} = event;
 
   const emptyStatus = <Fragment>{'\u2014'}</Fragment>;
@@ -346,7 +346,7 @@ export function HttpStatus({event}: {event: Event}) {
   }
 
   return <Fragment>HTTP {tag.value}</Fragment>;
-}
+};
 
 export function getStatusBodyText(event: EventTransaction): string {
   return event.contexts?.trace?.status ?? '\u2014';

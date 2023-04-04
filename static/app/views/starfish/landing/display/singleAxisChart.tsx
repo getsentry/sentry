@@ -20,7 +20,7 @@ type DisplayProps = {
   didReceiveMultiAxis?: (useBackup: boolean) => void;
 };
 
-export function SingleAxisChart(props: DisplayProps) {
+export const SingleAxisChart = (props: DisplayProps) => {
   const {axis, eventView, organization, usingBackupAxis} = props;
 
   const backupField = getBackupField(axis);
@@ -38,4 +38,4 @@ export function SingleAxisChart(props: DisplayProps) {
       backupField={backupField}
     />
   );
-}
+};

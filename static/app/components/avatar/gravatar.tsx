@@ -17,7 +17,7 @@ type Props = {
 
 type HasherHelper = typeof import('crypto-js/md5');
 
-function Gravatar({
+const Gravatar = ({
   remoteSize,
   gravatarId,
   placeholder,
@@ -25,7 +25,7 @@ function Gravatar({
   onError,
   onLoad,
   suggested,
-}: Props) {
+}: Props) => {
   const isMountedRef = useIsMountedRef();
   const [MD5, setMD5] = useState<HasherHelper>();
 
@@ -68,7 +68,7 @@ function Gravatar({
       suggested={suggested}
     />
   );
-}
+};
 
 export default Gravatar;
 

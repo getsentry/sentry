@@ -16,7 +16,7 @@ type Props = {
   organization: Organization;
 };
 
-function Resources({organization}: Props) {
+const Resources = ({organization}: Props) => {
   useEffect(() => {
     trackAnalyticsEvent({
       eventKey: 'orgdash.resources_shown',
@@ -43,7 +43,7 @@ function Resources({organization}: Props) {
       </ResourceCards>
     </ResourcesWrapper>
   );
-}
+};
 
 export default Resources;
 

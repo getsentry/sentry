@@ -20,7 +20,7 @@ export const runtimeKnownDataValues = [
 
 const runtimeIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
 
-export function RuntimeEventContext({data, event}: Props) {
+export const RuntimeEventContext = ({data, event}: Props) => {
   const meta = event._meta?.contexts?.runtime ?? {};
   return (
     <Fragment>
@@ -41,4 +41,4 @@ export function RuntimeEventContext({data, event}: Props) {
       />
     </Fragment>
   );
-}
+};

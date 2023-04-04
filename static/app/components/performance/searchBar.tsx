@@ -26,7 +26,7 @@ export type SearchBarProps = {
   query: string;
 };
 
-function SearchBar(props: SearchBarProps) {
+const SearchBar = (props: SearchBarProps) => {
   const {organization, eventView: _eventView, onSearch, query: searchQuery} = props;
 
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
@@ -236,7 +236,7 @@ function SearchBar(props: SearchBarProps) {
       )}
     </Container>
   );
-}
+};
 
 const encodeItemToValue = (item: DataItem) => {
   return `${item.transaction}:${item.project_id}`;

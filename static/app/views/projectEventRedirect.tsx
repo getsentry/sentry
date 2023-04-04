@@ -17,7 +17,7 @@ type Props = RouteComponentProps<{}, {}>;
  * See:
  * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
  */
-function ProjectEventRedirect({router}: Props) {
+const ProjectEventRedirect = ({router}: Props) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,6 +62,6 @@ function ProjectEventRedirect({router}: Props) {
   ) : (
     <Layout.Page withPadding />
   );
-}
+};
 
 export default ProjectEventRedirect;

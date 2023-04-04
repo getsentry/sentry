@@ -22,7 +22,7 @@ const MODAL_DESCRIPTION = t(
   "You've already started building this widget and will lose unsaved changes. Are you sure you want to overwrite this widget with the template values?"
 );
 
-function OverwriteWidgetModal({
+const OverwriteWidgetModal = ({
   Header,
   Body,
   Footer,
@@ -30,7 +30,7 @@ function OverwriteWidgetModal({
   onConfirm,
   widget,
   iconColor,
-}: Props) {
+}: Props) => {
   function handleConfirm() {
     onConfirm();
     closeModal();
@@ -57,7 +57,7 @@ function OverwriteWidgetModal({
       </Footer>
     </Fragment>
   );
-}
+};
 
 export default OverwriteWidgetModal;
 

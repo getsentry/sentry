@@ -44,13 +44,13 @@ const COMPONENT_STATUS_SORT: Status[] = [
   'major_outage',
 ];
 
-function ServiceIncidents({
+const ServiceIncidents = ({
   currentPanel,
   onShowPanel,
   hidePanel,
   collapsed,
   orientation,
-}: Props) {
+}: Props) => {
   const [serviceStatus, setServiceStatus] = useState<SentryServiceStatus | null>(null);
 
   async function fetchData() {
@@ -165,7 +165,7 @@ function ServiceIncidents({
       )}
     </Fragment>
   );
-}
+};
 
 function getStatusSymbol(status: Status) {
   return (

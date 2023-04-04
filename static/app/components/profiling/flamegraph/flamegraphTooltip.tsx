@@ -46,7 +46,7 @@ export interface FlamegraphTooltipProps {
   platform: 'javascript' | 'python' | 'ios' | 'android' | string | undefined;
 }
 
-export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
+export const FlamegraphTooltip = (props: FlamegraphTooltipProps) => {
   const frameInConfigSpace = useMemo<Rect>(() => {
     return new Rect(
       props.frame.start,
@@ -106,7 +106,7 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
       )}
     </BoundTooltip>
   );
-}
+};
 
 const FlamegraphInlineIndicator = styled('span')`
   border: 1px solid ${p => p.theme.border};

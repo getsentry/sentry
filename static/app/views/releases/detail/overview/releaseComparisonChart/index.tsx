@@ -87,7 +87,7 @@ type IssuesTotals = {
   unhandled: number;
 } | null;
 
-function ReleaseComparisonChart({
+const ReleaseComparisonChart = ({
   release,
   project,
   releaseSessions,
@@ -100,7 +100,7 @@ function ReleaseComparisonChart({
   api,
   organization,
   hasHealthData,
-}: Props) {
+}: Props) => {
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -1006,7 +1006,7 @@ function ReleaseComparisonChart({
       </ChartTable>
     </Fragment>
   );
-}
+};
 
 const ChartPanel = styled(Panel)`
   margin-bottom: 0;

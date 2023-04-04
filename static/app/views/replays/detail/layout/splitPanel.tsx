@@ -37,7 +37,7 @@ type Props =
       top: Side;
     };
 
-function SplitPanel(props: Props) {
+const SplitPanel = (props: Props) => {
   const isLeftRight = 'left' in props;
   const initialSize = isLeftRight ? props.left.default : props.top.default;
   const min = isLeftRight ? props.left.min : props.top.min;
@@ -114,7 +114,7 @@ function SplitPanel(props: Props) {
       <Panel>{b}</Panel>
     </SplitPanelContainer>
   );
-}
+};
 
 const SplitPanelContainer = styled('div')<{
   orientation: 'rows' | 'columns';

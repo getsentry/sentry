@@ -61,7 +61,7 @@ async function openChangeRouteModal({
   ));
 }
 
-export function Footer({projectSlug, projectId, router, newOrg}: Props) {
+export const Footer = ({projectSlug, projectId, router, newOrg}: Props) => {
   const organization = useOrganization();
   const preferences = useLegacyStore(PreferencesStore);
   const [firstError, setFirstError] = useState<string | null>(null);
@@ -344,7 +344,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       </ActionsColumn>
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled(GenericFooter, {
   shouldForwardProp: prop => isPropValid(prop),

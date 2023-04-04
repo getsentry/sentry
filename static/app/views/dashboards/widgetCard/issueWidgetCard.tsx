@@ -25,7 +25,7 @@ type Props = {
   errorMessage?: string;
 };
 
-export function IssueWidgetCard({
+export const IssueWidgetCard = ({
   organization,
   selection,
   widget,
@@ -33,7 +33,7 @@ export function IssueWidgetCard({
   loading,
   transformedResults,
   location,
-}: Props) {
+}: Props) => {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
 
   if (errorMessage) {
@@ -77,7 +77,7 @@ export function IssueWidgetCard({
       stickyHeaders
     />
   );
-}
+};
 
 const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface300};

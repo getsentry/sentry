@@ -15,7 +15,7 @@ interface CollapsibleTimelineProps {
   open: boolean;
   title: string;
 }
-function CollapsibleTimeline(props: CollapsibleTimelineProps) {
+const CollapsibleTimeline = (props: CollapsibleTimelineProps) => {
   const theme = useFlamegraphTheme();
   return (
     <Fragment>
@@ -35,7 +35,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
       ) : null}
     </Fragment>
   );
-}
+};
 
 const StyledButton = styled(Button)`
   height: 12px;
@@ -60,13 +60,13 @@ const StyledButton = styled(Button)`
   }
 `;
 
-export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
+export const CollapsibleTimelineLoadingIndicator = ({size}: {size?: number}) => {
   return (
     <CollapsibleTimelineLoadingIndicatorContainer>
       <LoadingIndicator size={size ?? 32} />
     </CollapsibleTimelineLoadingIndicatorContainer>
   );
-}
+};
 
 const CollapsibleTimelineContainer = styled('div')`
   position: relative;

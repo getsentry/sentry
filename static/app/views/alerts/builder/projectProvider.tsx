@@ -22,7 +22,7 @@ type RouteParams = {
   projectId?: string;
 };
 
-function AlertBuilderProjectProvider(props: Props) {
+const AlertBuilderProjectProvider = (props: Props) => {
   const api = useApi();
   const isMountedRef = useIsMountedRef();
   const [members, setMembers] = useState<Member[] | undefined>(undefined);
@@ -83,6 +83,6 @@ function AlertBuilderProjectProvider(props: Props) {
         : children}
     </Fragment>
   );
-}
+};
 
 export default AlertBuilderProjectProvider;

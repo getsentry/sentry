@@ -3,7 +3,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import RelayWrapper from './relayWrapper';
 
-function OrganizationRelay(props: Omit<RelayWrapper['props'], 'organization'>) {
+const OrganizationRelay = (props: Omit<RelayWrapper['props'], 'organization'>) => {
   const organization = useOrganization();
   return (
     <Feature
@@ -14,6 +14,6 @@ function OrganizationRelay(props: Omit<RelayWrapper['props'], 'organization'>) {
       <RelayWrapper organization={organization} {...props} />
     </Feature>
   );
-}
+};
 
 export default OrganizationRelay;

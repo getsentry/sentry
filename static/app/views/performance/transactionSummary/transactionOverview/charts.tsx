@@ -74,14 +74,14 @@ type Props = {
   withoutZerofill: boolean;
 };
 
-function TransactionSummaryCharts({
+const TransactionSummaryCharts = ({
   totalValue,
   eventView,
   organization,
   location,
   currentFilter,
   withoutZerofill,
-}: Props) {
+}: Props) => {
   function handleDisplayChange(value: string) {
     const display = decodeScalar(location.query.display, DisplayModes.DURATION);
     trackAdvancedAnalyticsEvent(
@@ -281,7 +281,7 @@ function TransactionSummaryCharts({
       </ReversedChartControls>
     </Panel>
   );
-}
+};
 
 const ReversedChartControls = styled(ChartControls)`
   flex-direction: row-reverse;

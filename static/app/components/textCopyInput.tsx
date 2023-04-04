@@ -24,7 +24,7 @@ interface Props extends Omit<InputProps, 'onCopy'> {
   style?: React.CSSProperties;
 }
 
-function TextCopyInput({
+const TextCopyInput = ({
   className,
   disabled,
   style,
@@ -33,7 +33,7 @@ function TextCopyInput({
   size,
   children,
   ...inputProps
-}: Props) {
+}: Props) => {
   const textRef = useRef<HTMLInputElement>(null);
 
   const handleSelectText = useCallback(() => {
@@ -106,7 +106,7 @@ function TextCopyInput({
       </InputGroup.TrailingItems>
     </InputGroup>
   );
-}
+};
 
 export default TextCopyInput;
 

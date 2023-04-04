@@ -37,7 +37,7 @@ export type ErrorItemProps = {
   meta?: Record<any, any>;
 };
 
-export function ErrorItem({error, meta}: ErrorItemProps) {
+export const ErrorItem = ({error, meta}: ErrorItemProps) => {
   const [expanded, setExpanded] = useState(false);
 
   const cleanedData = useMemo(() => {
@@ -134,7 +134,7 @@ export function ErrorItem({error, meta}: ErrorItemProps) {
       {expanded && <KeyValueList data={cleanedData} isContextData />}
     </StyledListItem>
   );
-}
+};
 
 const ToggleButton = styled(Button)`
   margin-left: ${space(1.5)};

@@ -21,7 +21,7 @@ type Props = {
   defaultSelectedProducts?: PRODUCT[];
 };
 
-export function ProductSelection({defaultSelectedProducts}: Props) {
+export const ProductSelection = ({defaultSelectedProducts}: Props) => {
   const router = useRouter();
   const products = decodeList(router.location.query.product);
 
@@ -138,7 +138,7 @@ export function ProductSelection({defaultSelectedProducts}: Props) {
       <Divider />
     </Fragment>
   );
-}
+};
 
 const Products = styled('div')`
   display: flex;

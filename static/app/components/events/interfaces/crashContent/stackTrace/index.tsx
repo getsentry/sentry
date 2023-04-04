@@ -26,7 +26,7 @@ type Props = Pick<
   stackView?: STACK_VIEW;
 };
 
-export function StackTraceContent({
+export const StackTraceContent = ({
   stackView,
   stacktrace,
   event,
@@ -37,7 +37,7 @@ export function StackTraceContent({
   maxDepth,
   meta,
   inlined,
-}: Props) {
+}: Props) => {
   if (stackView === STACK_VIEW.RAW) {
     return (
       <ErrorBoundary mini>
@@ -102,7 +102,7 @@ export function StackTraceContent({
       />
     </ErrorBoundary>
   );
-}
+};
 
 const inlinedStyles = `
   border-radius: 0;

@@ -21,13 +21,13 @@ type Props = {
   style: CSSProperties;
 };
 
-function DomMutationRow({
+const DomMutationRow = ({
   isCurrent,
   isHovered,
   mutation,
   startTimestampMs,
   style,
-}: Props) {
+}: Props) => {
   const {html, crumb: breadcrumb} = mutation;
 
   const {currentTime} = useReplayContext();
@@ -82,7 +82,7 @@ function DomMutationRow({
       </List>
     </MutationListItem>
   );
-}
+};
 
 const MutationListItem = styled('div')<{
   isCurrent: boolean;

@@ -28,7 +28,7 @@ type Props = {
   layout?: LayoutKey;
 };
 
-function ReplayLayout({layout = LayoutKey.topbar}: Props) {
+const ReplayLayout = ({layout = LayoutKey.topbar}: Props) => {
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
   const timeline = (
@@ -160,7 +160,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
       </MeasureSize>
     </BodyContent>
   );
-}
+};
 
 const BodyContent = styled('main')`
   background: ${p => p.theme.background};

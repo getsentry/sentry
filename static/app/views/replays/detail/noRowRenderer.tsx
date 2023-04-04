@@ -12,7 +12,7 @@ type Props = {
   unfilteredItems: unknown[];
 };
 
-function NoRowRenderer({children, unfilteredItems, clearSearchTerm}: Props) {
+const NoRowRenderer = ({children, unfilteredItems, clearSearchTerm}: Props) => {
   return unfilteredItems.length === 0 ? (
     <StyledEmptyStateWarning>
       <p>{children}</p>
@@ -29,7 +29,7 @@ function NoRowRenderer({children, unfilteredItems, clearSearchTerm}: Props) {
       </Button>
     </StyledEmptyStateWarning>
   );
-}
+};
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   height: 100%;

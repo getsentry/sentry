@@ -27,7 +27,7 @@ function isNanoseconds(props: PerformanceDurationProps): props is NanosecondsPro
   return defined((props as NanosecondsProps).nanoseconds);
 }
 
-function PerformanceDuration(props: PerformanceDurationProps) {
+const PerformanceDuration = (props: PerformanceDurationProps) => {
   const normalizedSeconds = isNanoseconds(props)
     ? props.nanoseconds / 1_000_000_000
     : isMilliseconds(props)
@@ -41,6 +41,6 @@ function PerformanceDuration(props: PerformanceDurationProps) {
       fixedDigits={2}
     />
   );
-}
+};
 
 export default PerformanceDuration;

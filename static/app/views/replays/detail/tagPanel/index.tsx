@@ -35,7 +35,7 @@ const notTags = [
   'user.ip',
 ];
 
-function TagPanel() {
+const TagPanel = () => {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
@@ -79,7 +79,7 @@ function TagPanel() {
       </FluidPanel>
     </Panel>
   );
-}
+};
 
 const Panel = styled(BasePanel)`
   width: 100%;

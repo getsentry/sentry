@@ -44,7 +44,7 @@ function defaultItemRenderer({item, highlighted, itemProps, matches}: RenderItem
   );
 }
 
-function List({
+const List = ({
   dropdownClassName,
   isLoading,
   hasAnyResults,
@@ -56,7 +56,7 @@ function List({
   registerItemCount,
   registerVisibleItem,
   renderItem = defaultItemRenderer,
-}: Props) {
+}: Props) => {
   const resultList = results.slice(0, maxResults);
 
   useEffect(
@@ -93,7 +93,7 @@ function List({
       {!isLoading && resultFooter ? <ResultFooter>{resultFooter}</ResultFooter> : null}
     </DropdownBox>
   );
-}
+};
 
 type SearchItemProps = {
   getItemProps: Props['getItemProps'];

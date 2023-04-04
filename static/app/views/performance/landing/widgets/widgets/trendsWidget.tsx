@@ -43,7 +43,7 @@ type DataType = {
 
 const fields = [{field: 'transaction'}, {field: 'project'}];
 
-export function TrendsWidget(props: PerformanceWidgetProps) {
+export const TrendsWidget = (props: PerformanceWidgetProps) => {
   const location = useLocation();
   const {projects} = useProjects();
 
@@ -100,88 +100,93 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided => () =>
-    (
-      <TrendsChart
-        {...provided}
-        {...rest}
-        isLoading={provided.widgetData.chart.isLoading}
-        statsData={provided.widgetData.chart.statsData}
-        query={eventView.query}
-        project={eventView.project}
-        environment={eventView.environment}
-        start={eventView.start}
-        end={eventView.end}
-        statsPeriod={eventView.statsPeriod}
-        transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-        trendChangeType={trendChangeType}
-        trendFunctionField={trendFunctionField}
-        disableXAxis
-        disableLegend
-      />
-    );
+  const getChart = provided =>
+    function () {
+      return (
+        <TrendsChart
+          {...provided}
+          {...rest}
+          isLoading={provided.widgetData.chart.isLoading}
+          statsData={provided.widgetData.chart.statsData}
+          query={eventView.query}
+          project={eventView.project}
+          environment={eventView.environment}
+          start={eventView.start}
+          end={eventView.end}
+          statsPeriod={eventView.statsPeriod}
+          transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
+          trendChangeType={trendChangeType}
+          trendFunctionField={trendFunctionField}
+          disableXAxis
+          disableLegend
+        />
+      );
+    };
 
   const getItems = provided =>
-    provided.widgetData.chart.transactionsList.map(listItem => () => {
-      const initialConditions = new MutableSearch([]);
-      initialConditions.addFilterValues('transaction', [listItem.transaction]);
+    provided.widgetData.chart.transactionsList.map(
+      listItem =>
+        function () {
+          const initialConditions = new MutableSearch([]);
+          initialConditions.addFilterValues('transaction', [listItem.transaction]);
 
-      const {statsPeriod, start, end} = eventView;
+          const {statsPeriod, start, end} = eventView;
 
-      const defaultPeriod = !start && !end ? DEFAULT_STATS_PERIOD : undefined;
+          const defaultPeriod = !start && !end ? DEFAULT_STATS_PERIOD : undefined;
 
-      const trendsTarget = trendsTargetRoute({
-        organization: props.organization,
-        location,
-        initialConditions,
-        additionalQuery: {
-          trendFunction: trendFunctionField,
-          statsPeriod: statsPeriod || DEFAULT_STATS_PERIOD,
-        },
-      });
+          const trendsTarget = trendsTargetRoute({
+            organization: props.organization,
+            location,
+            initialConditions,
+            additionalQuery: {
+              trendFunction: trendFunctionField,
+              statsPeriod: statsPeriod || DEFAULT_STATS_PERIOD,
+            },
+          });
 
-      const transactionTarget = transactionSummaryRouteWithQuery({
-        orgSlug: props.organization.slug,
-        projectID: getProjectID(listItem, projects),
-        transaction: listItem.transaction,
-        query: trendsTarget.query,
-        additionalQuery: {
-          display: DisplayModes.TREND,
-          trendFunction: trendFunctionField,
-          statsPeriod: statsPeriod || defaultPeriod,
-          start,
-          end,
-        },
-      });
+          const transactionTarget = transactionSummaryRouteWithQuery({
+            orgSlug: props.organization.slug,
+            projectID: getProjectID(listItem, projects),
+            transaction: listItem.transaction,
+            query: trendsTarget.query,
+            additionalQuery: {
+              display: DisplayModes.TREND,
+              trendFunction: trendFunctionField,
+              statsPeriod: statsPeriod || defaultPeriod,
+              start,
+              end,
+            },
+          });
 
-      const target = organization.features.includes(
-        'performance-metrics-backed-transaction-summary'
-      )
-        ? transactionTarget
-        : trendsTarget;
+          const target = organization.features.includes(
+            'performance-metrics-backed-transaction-summary'
+          )
+            ? transactionTarget
+            : trendsTarget;
 
-      return (
-        <Fragment>
-          <GrowLink to={target}>
-            <Truncate value={listItem.transaction} maxLength={40} />
-          </GrowLink>
-          <RightAlignedCell>
-            <CompareDurations transaction={listItem} />
-          </RightAlignedCell>
-          {!withStaticFilters && (
-            <ListClose
-              setSelectListIndex={setSelectListIndex}
-              onClick={() =>
-                excludeTransaction(listItem.transaction, {
-                  eventView: props.eventView,
-                  location,
-                })
-              }
-            />
-          )}
-        </Fragment>
-      );
-    });
+          return (
+            <Fragment>
+              <GrowLink to={target}>
+                <Truncate value={listItem.transaction} maxLength={40} />
+              </GrowLink>
+              <RightAlignedCell>
+                <CompareDurations transaction={listItem} />
+              </RightAlignedCell>
+              {!withStaticFilters && (
+                <ListClose
+                  setSelectListIndex={setSelectListIndex}
+                  onClick={() =>
+                    excludeTransaction(listItem.transaction, {
+                      eventView: props.eventView,
+                      location,
+                    })
+                  }
+                />
+              )}
+            </Fragment>
+          );
+        }
+    );
 
   const Queries = {
     chart,
@@ -276,6 +281,6 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       Visualizations={Visualizations}
     />
   );
-}
+};
 
 const TrendsChart = withProjects(Chart);

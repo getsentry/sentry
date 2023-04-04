@@ -57,7 +57,7 @@ interface ListBoxProps
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-function ListBox({
+const ListBox = ({
   listState,
   size = 'md',
   shouldFocusWrap = true,
@@ -66,7 +66,7 @@ function ListBox({
   keyDownHandler,
   label,
   ...props
-}: ListBoxProps) {
+}: ListBoxProps) => {
   const ref = useRef<HTMLUListElement>(null);
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -141,6 +141,6 @@ function ListBox({
       </ListWrap>
     </Fragment>
   );
-}
+};
 
 export {ListBox};

@@ -14,13 +14,13 @@ type ButtonBarProps = {
   merged?: boolean;
 };
 
-function ButtonBar({
+const ButtonBar = ({
   children,
   className,
   active,
   merged = false,
   gap = 0,
-}: ButtonBarProps) {
+}: ButtonBarProps) => {
   const shouldCheckActive = typeof active !== 'undefined';
   return (
     <ButtonGrid merged={merged} gap={gap} className={className}>
@@ -49,7 +49,7 @@ function ButtonBar({
           })}
     </ButtonGrid>
   );
-}
+};
 
 const MergedStyles = () => css`
   /* Raised buttons show borders on both sides. Useful to create pill bars */

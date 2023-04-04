@@ -5,7 +5,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-function UnhandledTag() {
+const UnhandledTag = () => {
   return (
     <TagWrapper>
       <Tooltip title={t('An unhandled error was detected in this Issue.')}>
@@ -13,7 +13,7 @@ function UnhandledTag() {
       </Tooltip>
     </TagWrapper>
   );
-}
+};
 
 const TagWrapper = styled('div')`
   margin-right: ${space(1)};

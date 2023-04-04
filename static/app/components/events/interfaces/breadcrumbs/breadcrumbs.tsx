@@ -38,7 +38,7 @@ type Props = Pick<
   onSwitchTimeFormat: () => void;
 };
 
-function Breadcrumbs({
+const Breadcrumbs = ({
   breadcrumbs,
   displayRelativeTime,
   onSwitchTimeFormat,
@@ -47,7 +47,7 @@ function Breadcrumbs({
   event,
   relativeTime,
   emptyMessage,
-}: Props) {
+}: Props) => {
   const [scrollbarSize, setScrollbarSize] = useState(0);
 
   const listRef = useRef<List>(null);
@@ -162,7 +162,7 @@ function Breadcrumbs({
       />
     </Wrapper>
   );
-}
+};
 
 export default Breadcrumbs;
 

@@ -13,14 +13,14 @@ type NodeProps = {
   isSelected?: boolean;
 };
 
-function Node({
+const Node = ({
   label,
   id,
   isExpanded,
   isFocused,
   onExpandClick,
   collapsible = false,
-}: NodeProps) {
+}: NodeProps) => {
   return (
     <NodeContents aria-labelledby={`${id}-title`}>
       <IconWrapper
@@ -42,7 +42,7 @@ function Node({
       </NodeTitle>
     </NodeContents>
   );
-}
+};
 
 export {Node};
 

@@ -47,14 +47,14 @@ interface FieldProps {
   project: Project;
 }
 
-function NumberField({
+const NumberField = ({
   data,
   index,
   disabled,
   name,
   fieldConfig,
   onPropertyChange,
-}: FieldProps) {
+}: FieldProps) => {
   const value = data[name] && typeof data[name] !== 'boolean' ? Number(data[name]) : NaN;
 
   // Set default value of number fields to the placeholder value
@@ -81,15 +81,15 @@ function NumberField({
       aria-label={t('Value')}
     />
   );
-}
+};
 
-function AssigneeFilterFields({
+const AssigneeFilterFields = ({
   data,
   organization,
   project,
   disabled,
   onMemberTeamChange,
-}: FieldProps) {
+}: FieldProps) => {
   const isInitialized = data.targetType !== undefined && `${data.targetType}`.length > 0;
   return (
     <MemberTeamFields
@@ -108,15 +108,15 @@ function AssigneeFilterFields({
       teamValue={AssigneeTargetType.Team}
     />
   );
-}
+};
 
-function MailActionFields({
+const MailActionFields = ({
   data,
   organization,
   project,
   disabled,
   onMemberTeamChange,
-}: FieldProps) {
+}: FieldProps) => {
   const isInitialized = data.targetType !== undefined && `${data.targetType}`.length > 0;
   let issueOwnersLabel = t('Issue Owners');
   if (hasStreamlineTargeting(organization)) {
@@ -139,9 +139,9 @@ function MailActionFields({
       teamValue={MailActionTargetType.Team}
     />
   );
-}
+};
 
-function ChoiceField({
+const ChoiceField = ({
   data,
   disabled,
   index,
@@ -149,7 +149,7 @@ function ChoiceField({
   onReset,
   name,
   fieldConfig,
-}: FieldProps) {
+}: FieldProps) => {
   // Select the first item on this list
   // If it's not yet defined, call onPropertyChange to make sure the value is set on state
   let initialVal: string | undefined;
@@ -192,16 +192,16 @@ function ChoiceField({
       }}
     />
   );
-}
+};
 
-function TextField({
+const TextField = ({
   data,
   index,
   onPropertyChange,
   disabled,
   name,
   fieldConfig,
-}: FieldProps) {
+}: FieldProps) => {
   const value =
     data[name] && typeof data[name] !== 'boolean' ? (data[name] as string | number) : '';
 
@@ -217,7 +217,7 @@ function TextField({
       }
     />
   );
-}
+};
 
 export type FormField = {
   // The rest is configuration for the form field
@@ -241,7 +241,7 @@ interface Props {
   ownership?: null | IssueOwnership;
 }
 
-function RuleNode({
+const RuleNode = ({
   index,
   data,
   node,
@@ -254,7 +254,7 @@ function RuleNode({
   ownership,
   incompatibleRule,
   incompatibleBanner,
-}: Props) {
+}: Props) => {
   const handleDelete = useCallback(() => {
     onDelete(index);
   }, [index, onDelete]);
@@ -596,7 +596,7 @@ function RuleNode({
       {conditionallyRenderHelpfulBanner()}
     </RuleRowContainer>
   );
-}
+};
 
 export default RuleNode;
 

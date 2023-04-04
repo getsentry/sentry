@@ -8,7 +8,7 @@ type Props = {
   title: string;
 };
 
-function DescriptionCard({title, description, children}: Props) {
+const DescriptionCard = ({title, description, children}: Props) => {
   return (
     <Wrapper>
       <LeftPanel>
@@ -18,7 +18,7 @@ function DescriptionCard({title, description, children}: Props) {
       <RightPanel>{children}</RightPanel>
     </Wrapper>
   );
-}
+};
 
 export default DescriptionCard;
 

@@ -80,7 +80,7 @@ export interface CompositeSelectProps extends ControlProps {
 /**
  * Flexible select component with a customizable trigger button
  */
-function CompositeSelect({
+const CompositeSelect = ({
   children,
   // Control props
   grid,
@@ -89,7 +89,7 @@ function CompositeSelect({
   size = 'md',
   closeOnSelect,
   ...controlProps
-}: CompositeSelectProps) {
+}: CompositeSelectProps) => {
   return (
     <Control {...controlProps} grid={grid} size={size} disabled={disabled}>
       <FocusScope>
@@ -116,7 +116,7 @@ function CompositeSelect({
       </FocusScope>
     </Control>
   );
-}
+};
 
 /**
  * A "region" inside composite selectors. Each "region" is a separated, self-contained
@@ -140,7 +140,7 @@ type RegionProps<Value extends React.Key> = CompositeSelectRegion<Value> & {
   size: SingleListProps<Value>['size'];
 };
 
-function Region<Value extends React.Key>({
+const Region = <Value extends React.Key>({
   options,
   value,
   defaultValue,
@@ -153,7 +153,7 @@ function Region<Value extends React.Key>({
   compositeIndex,
   label,
   ...props
-}: RegionProps<Value>) {
+}: RegionProps<Value>) => {
   // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
   const listProps = useMemo(() => {
@@ -199,7 +199,7 @@ function Region<Value extends React.Key>({
       )}
     </List>
   );
-}
+};
 
 const RegionsWrap = styled('div')`
   min-height: 0;

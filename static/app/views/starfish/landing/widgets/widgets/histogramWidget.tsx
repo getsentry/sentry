@@ -16,7 +16,7 @@ type AreaDataType = {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
 };
 
-export function HistogramWidget(props: PerformanceWidgetProps) {
+export const HistogramWidget = (props: PerformanceWidgetProps) => {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const {ContainerActions, InteractiveTitle} = props;
@@ -86,7 +86,7 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
       ]}
     />
   );
-}
+};
 
 const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};

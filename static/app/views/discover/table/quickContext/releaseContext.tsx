@@ -25,7 +25,7 @@ import {
 } from './styles';
 import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
-function ReleaseContext(props: BaseContextProps) {
+const ReleaseContext = (props: BaseContextProps) => {
   const {dataRow, organization} = props;
   const {isLoading, isError, data} = useApiQuery<ReleaseWithHealth>(
     [`/organizations/${organization.slug}/releases/${dataRow.release}/`],
@@ -163,7 +163,7 @@ function ReleaseContext(props: BaseContextProps) {
       {renderLastCommit()}
     </Wrapper>
   );
-}
+};
 
 const StyledAvatarList = styled(AvatarList)`
   margin: 0 ${space(0.75)};

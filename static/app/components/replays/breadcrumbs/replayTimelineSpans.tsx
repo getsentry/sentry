@@ -31,7 +31,12 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: Props) {
+const ReplayTimelineEvents = ({
+  className,
+  durationMs,
+  spans,
+  startTimestampMs,
+}: Props) => {
   const flattenedSpans = flattenSpans(spans);
   const {setActiveTab} = useActiveReplayTab();
 
@@ -72,7 +77,7 @@ function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: 
       })}
     </Spans>
   );
-}
+};
 
 const Spans = styled('ul')`
   /* Reset defaults for <ul> */

@@ -226,7 +226,7 @@ function getIntervalLine(
   return additionalLineSeries;
 }
 
-export function Chart({
+export const Chart = ({
   trendChangeType,
   statsPeriod,
   transaction,
@@ -241,7 +241,7 @@ export function Chart({
   height,
   projects,
   project,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
@@ -398,6 +398,6 @@ export function Chart({
       }}
     </ChartZoom>
   );
-}
+};
 
 export default Chart;

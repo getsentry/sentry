@@ -10,7 +10,7 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
-export function MobileView(props: BasePerformanceViewProps) {
+export const MobileView = (props: BasePerformanceViewProps) => {
   let columnTitles = checkIsReactNative(props.eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
@@ -52,4 +52,4 @@ export function MobileView(props: BasePerformanceViewProps) {
       </div>
     </PerformanceDisplayProvider>
   );
-}
+};

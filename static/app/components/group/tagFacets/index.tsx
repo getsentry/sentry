@@ -182,7 +182,7 @@ export default function TagFacets({
   );
 }
 
-function TagFacetsDistributionMeterWrapper({
+const TagFacetsDistributionMeterWrapper = ({
   groupId,
   organization,
   project,
@@ -196,7 +196,7 @@ function TagFacetsDistributionMeterWrapper({
   tagKeys: string[];
   tagsData: Record<string, TagWithTopValues>;
   expandFirstTag?: boolean;
-}) {
+}) => {
   const location = useLocation();
   const query = {...location.query};
   return (
@@ -244,7 +244,7 @@ function TagFacetsDistributionMeterWrapper({
       })}
     </TagFacetsList>
   );
-}
+};
 
 const TagPlaceholders = styled('div')`
   display: grid;

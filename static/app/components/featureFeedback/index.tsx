@@ -16,10 +16,10 @@ export type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
 
 // Provides a button that, when clicked, opens a modal with a form that,
 // when filled and submitted, will send feedback to Sentry (feedbacks project).
-export function FeatureFeedback<T extends Data>({
+export const FeatureFeedback = <T extends Data>({
   buttonProps = {},
   ...props
-}: FeatureFeedbackProps<T>) {
+}: FeatureFeedbackProps<T>) => {
   function handleClick(e: React.MouseEvent) {
     openModal(modalProps => <FeedbackModal {...modalProps} {...props} />, {
       modalCss,
@@ -33,4 +33,4 @@ export function FeatureFeedback<T extends Data>({
       {t('Give Feedback')}
     </Button>
   );
-}
+};

@@ -27,7 +27,7 @@ import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import useReplaysFromTransaction, {EventSpanData} from './useReplaysFromTransaction';
 import useReplaysWithTxData from './useReplaysWithTxData';
 
-function TransactionReplays() {
+const TransactionReplays = () => {
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -49,7 +49,7 @@ function TransactionReplays() {
       childComponent={ReplaysContentWrapper}
     />
   );
-}
+};
 
 function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =
@@ -89,12 +89,12 @@ function generateEventView({
   });
 }
 
-function ReplaysContentWrapper({
+const ReplaysContentWrapper = ({
   eventView: replayIdsEventView,
   location,
   organization,
   setError,
-}: ChildProps) {
+}: ChildProps) => {
   const {data, fetchError, isFetching, pageLinks} = useReplaysFromTransaction({
     replayIdsEventView,
     location,
@@ -124,9 +124,9 @@ function ReplaysContentWrapper({
       pageLinks={pageLinks}
     />
   );
-}
+};
 
-function ReplaysContent({
+const ReplaysContent = ({
   eventView,
   events,
   organization,
@@ -135,7 +135,7 @@ function ReplaysContent({
   events: EventSpanData[];
   organization: Organization;
   pageLinks: string | null;
-}) {
+}) => {
   const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
@@ -170,5 +170,5 @@ function ReplaysContent({
       />
     </Layout.Main>
   );
-}
+};
 export default TransactionReplays;

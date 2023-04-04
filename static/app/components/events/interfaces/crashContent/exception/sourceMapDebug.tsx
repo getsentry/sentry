@@ -184,12 +184,12 @@ interface ExpandableErrorListProps {
 /**
  * Kinda making this reuseable since we have this pattern in a few places
  */
-function ExpandableErrorList({
+const ExpandableErrorList = ({
   title,
   children,
   docsLink,
   onExpandClick,
-}: ExpandableErrorListProps) {
+}: ExpandableErrorListProps) => {
   const [expanded, setExpanded] = useState(false);
   return (
     <List symbol="bullet">
@@ -216,7 +216,7 @@ function ExpandableErrorList({
       </StyledListItem>
     </List>
   );
-}
+};
 
 function combineErrors(
   response: Array<SourceMapDebugResponse | undefined | null>,
@@ -246,7 +246,7 @@ interface SourcemapDebugProps {
   event: Event;
 }
 
-export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
+export const SourceMapDebug = ({debugFrames, event}: SourcemapDebugProps) => {
   const sdkName = event.sdk?.name;
   const organization = useOrganization();
   const results = useSourceMapDebugQueries(debugFrames.map(debug => debug.query));
@@ -324,7 +324,7 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
       )}
     </Alert>
   );
-}
+};
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.75)};

@@ -20,7 +20,12 @@ type Props = {
   rule?: MetricRule;
 };
 
-function DetailsHeader({hasMetricRuleDetailsError, rule, organization, project}: Props) {
+const DetailsHeader = ({
+  hasMetricRuleDetailsError,
+  rule,
+  organization,
+  project,
+}: Props) => {
   const isRuleReady = !!rule && !hasMetricRuleDetailsError;
   const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink =
@@ -72,7 +77,7 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, organization, project}:
       </Layout.HeaderActions>
     </Layout.Header>
   );
-}
+};
 
 export default DetailsHeader;
 

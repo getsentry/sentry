@@ -15,7 +15,13 @@ export interface BarChartProps extends Omit<ChartProps, 'series'> {
   stacked?: boolean;
 }
 
-export function BarChart({series, stacked, xAxis, animation, ...props}: BarChartProps) {
+export const BarChart = ({
+  series,
+  stacked,
+  xAxis,
+  animation,
+  ...props
+}: BarChartProps) => {
   return (
     <BaseChart
       {...props}
@@ -36,4 +42,4 @@ export function BarChart({series, stacked, xAxis, animation, ...props}: BarChart
       )}
     />
   );
-}
+};

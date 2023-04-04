@@ -12,7 +12,7 @@ type Props = {
   showLogout?: boolean;
 };
 
-function NarrowLayout({maxWidth, showLogout, children}: Props) {
+const NarrowLayout = ({maxWidth, showLogout, children}: Props) => {
   const api = useApi();
 
   useEffect(() => {
@@ -46,7 +46,7 @@ function NarrowLayout({maxWidth, showLogout, children}: Props) {
       </div>
     </div>
   );
-}
+};
 
 const Logout = styled('span')`
   font-size: ${p => p.theme.fontSizeLarge};

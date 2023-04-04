@@ -17,7 +17,7 @@ interface Props {
   widgetQuery: WidgetQuery;
 }
 
-function IssuesSearchBar({onClose, widgetQuery, organization}: Props) {
+const IssuesSearchBar = ({onClose, widgetQuery, organization}: Props) => {
   return (
     <ClassNames>
       {({css}) => (
@@ -36,7 +36,7 @@ function IssuesSearchBar({onClose, widgetQuery, organization}: Props) {
       )}
     </ClassNames>
   );
-}
+};
 
 export {IssuesSearchBar};
 

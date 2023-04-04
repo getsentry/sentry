@@ -29,13 +29,13 @@ interface CodeOwnerFileTableProps {
  * A list of codeowner files being used for this project
  * If you're looking for ownership rules table see `OwnershipRulesTable`
  */
-export function CodeOwnerFileTable({
+export const CodeOwnerFileTable = ({
   codeowners,
   project,
   onUpdate,
   onDelete,
   disabled,
-}: CodeOwnerFileTableProps) {
+}: CodeOwnerFileTableProps) => {
   const api = useApi();
   const organization = useOrganization();
 
@@ -160,7 +160,7 @@ export function CodeOwnerFileTable({
       ))}
     </StyledPanelTable>
   );
-}
+};
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 1fr 1fr auto min-content min-content;

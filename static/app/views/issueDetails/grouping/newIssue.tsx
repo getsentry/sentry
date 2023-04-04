@@ -15,7 +15,7 @@ type Props = {
   sampleEvent: Event;
 };
 
-function NewIssue({sampleEvent, eventCount, organization}: Props) {
+const NewIssue = ({sampleEvent, eventCount, organization}: Props) => {
   return (
     <Fragment>
       <EventDetails>
@@ -44,7 +44,7 @@ function NewIssue({sampleEvent, eventCount, organization}: Props) {
       <EventCount>{eventCount}</EventCount>
     </Fragment>
   );
-}
+};
 
 export default NewIssue;
 

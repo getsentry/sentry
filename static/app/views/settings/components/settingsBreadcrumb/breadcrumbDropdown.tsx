@@ -22,14 +22,14 @@ export interface BreadcrumbDropdownProps extends AdditionalDropdownProps {
   isLast?: boolean;
 }
 
-function BreadcrumbDropdown({
+const BreadcrumbDropdown = ({
   hasMenu,
   route,
   isLast,
   name,
   onSelect,
   ...dropdownProps
-}: BreadcrumbDropdownProps) {
+}: BreadcrumbDropdownProps) => {
   const [isActive, setIsActive] = useState(false);
 
   return (
@@ -61,6 +61,6 @@ function BreadcrumbDropdown({
       )}
     </DropdownAutoCompleteMenu>
   );
-}
+};
 
 export default BreadcrumbDropdown;

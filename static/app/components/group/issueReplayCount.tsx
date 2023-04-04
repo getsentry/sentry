@@ -16,7 +16,7 @@ type Props = {
 /**
  * Show the count of how many replays are associated to an issue.
  */
-function IssueReplayCount({groupId}: Props) {
+const IssueReplayCount = ({groupId}: Props) => {
   const organization = useOrganization();
   const count = useContext(ReplayCountContext)[groupId];
 
@@ -42,7 +42,7 @@ function IssueReplayCount({groupId}: Props) {
       </ReplayCountLink>
     </Tooltip>
   );
-}
+};
 
 const ReplayCountLink = styled(Link)`
   display: inline-flex;

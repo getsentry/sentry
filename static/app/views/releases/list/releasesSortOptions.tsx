@@ -24,7 +24,12 @@ type Props = {
   selectedDisplay: ReleasesDisplayOption;
 };
 
-function ReleasesSortOptions({selected, selectedDisplay, onSelect, environments}: Props) {
+const ReleasesSortOptions = ({
+  selected,
+  selectedDisplay,
+  onSelect,
+  environments,
+}: Props) => {
   const sortOptions = {
     [ReleasesSortOption.DATE]: {label: t('Date Created')},
     [ReleasesSortOption.SESSIONS]: {label: t('Total Sessions')},
@@ -58,7 +63,7 @@ function ReleasesSortOptions({selected, selectedDisplay, onSelect, environments}
       onSelect={onSelect}
     />
   );
-}
+};
 
 export default ReleasesSortOptions;
 

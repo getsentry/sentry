@@ -15,7 +15,7 @@ type Props = {
   event: Event;
 };
 
-export function MemoryInfoEventContext({data, event}: Props) {
+export const MemoryInfoEventContext = ({data, event}: Props) => {
   if (!data) {
     return null;
   }
@@ -42,4 +42,4 @@ export function MemoryInfoEventContext({data, event}: Props) {
       />
     </Fragment>
   );
-}
+};

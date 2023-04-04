@@ -13,7 +13,7 @@ type DetailsPanelProps = {
   getTitle?: (data: ViewHierarchyWindow) => string;
 };
 
-function DetailsPanel({data, getTitle}: DetailsPanelProps) {
+const DetailsPanel = ({data, getTitle}: DetailsPanelProps) => {
   const keyValueData = Object.entries(omit(data, 'children')).map(([key, value]) => ({
     key,
     value,
@@ -26,7 +26,7 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
       <KeyValueList data={keyValueData} />
     </Container>
   );
-}
+};
 
 export {DetailsPanel};
 

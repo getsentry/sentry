@@ -101,13 +101,13 @@ type DropdownItemProps = {
   width?: 'small' | 'large';
 };
 
-export function DropdownItem({
+export const DropdownItem = ({
   children,
   onSelect,
   allowDefaultEvent,
   to,
   width = 'large',
-}: DropdownItemProps) {
+}: DropdownItemProps) => {
   return (
     <StyledMenuItem
       data-test-id="dropdown-item"
@@ -119,7 +119,7 @@ export function DropdownItem({
       <MenuItemContent>{children}</MenuItemContent>
     </StyledMenuItem>
   );
-}
+};
 
 export const DropdownItemSubContainer = styled('div')`
   display: flex;
@@ -151,7 +151,7 @@ export const ExternalDropdownLink = styled(ExternalLink)`
   }
 `;
 
-export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {
+export const SingleEventHoverText = ({event}: {event: QuickTraceEvent}) => {
   return (
     <div>
       <Truncate
@@ -170,4 +170,4 @@ export function SingleEventHoverText({event}: {event: QuickTraceEvent}) {
       </div>
     </div>
   );
-}
+};

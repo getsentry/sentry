@@ -20,11 +20,11 @@ interface StatusData {
   color: ColorOrAlias;
 }
 
-function MonitorBadge({status}: MonitorBadgeProps) {
+const MonitorBadge = ({status}: MonitorBadgeProps) => {
   const {Icon, color} = statusMap[status] ?? statusMap.ok;
 
   return <DiamondStatus icon={Icon} color={color} />;
-}
+};
 
 // TODO(ts): Use satisfies
 const statusMap: Record<MonitorStatus, StatusData> = {

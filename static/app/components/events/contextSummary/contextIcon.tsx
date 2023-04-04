@@ -130,7 +130,7 @@ type Props = {
   size?: IconSize;
 };
 
-function ContextIcon({name, size: providedSize = 'xl'}: Props) {
+const ContextIcon = ({name, size: providedSize = 'xl'}: Props) => {
   const theme = useTheme();
   const size = theme.iconSizes[providedSize];
 
@@ -139,6 +139,6 @@ function ContextIcon({name, size: providedSize = 'xl'}: Props) {
   const extraCass = isDarkmode && INVERT_IN_DARKMODE.includes(name) ? darkCss : null;
 
   return <img height={size} width={size} css={extraCass} src={getLogoImage(name)} />;
-}
+};
 
 export default ContextIcon;

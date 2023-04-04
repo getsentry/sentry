@@ -31,7 +31,7 @@ interface ProfileGroupProviderProps {
   type: 'flamegraph' | 'flamechart';
 }
 
-export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
+export const ProfileGroupProvider = (props: ProfileGroupProviderProps) => {
   const profileGroup = useMemo(() => {
     if (!props.input) {
       return LoadingGroup;
@@ -44,4 +44,4 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
       {props.children}
     </ProfileGroupContext.Provider>
   );
-}
+};

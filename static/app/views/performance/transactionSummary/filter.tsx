@@ -49,7 +49,7 @@ type Props = {
   organization: OrganizationSummary;
 };
 
-function Filter(props: Props) {
+const Filter = (props: Props) => {
   const {currentFilter, onChangeFilter} = props;
 
   const menuOptions = OPTIONS.map(operationName => ({
@@ -79,7 +79,7 @@ function Filter(props: Props) {
       />
     </GuideAnchor>
   );
-}
+};
 
 const OperationDot = styled('div')<{backgroundColor: string}>`
   display: block;

@@ -52,13 +52,13 @@ interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'projec
   eventRoute: LocationDescriptor;
 }
 
-function GroupHeaderTabs({
+const GroupHeaderTabs = ({
   baseUrl,
   disabledTabs,
   eventRoute,
   group,
   project,
-}: GroupHeaderTabsProps) {
+}: GroupHeaderTabsProps) => {
   const organization = useOrganization();
   const projectIds = useMemo(
     () => (project.id ? [Number(project.id)] : []),
@@ -168,16 +168,16 @@ function GroupHeaderTabs({
       </TabList.Item>
     </StyledTabList>
   );
-}
+};
 
-function GroupHeader({
+const GroupHeader = ({
   baseUrl,
   group,
   groupReprocessingStatus,
   organization,
   event,
   project,
-}: Props) {
+}: Props) => {
   const location = useLocation();
 
   const disabledTabs = useMemo(() => {
@@ -359,7 +359,7 @@ function GroupHeader({
       </div>
     </Layout.Header>
   );
-}
+};
 
 export default GroupHeader;
 

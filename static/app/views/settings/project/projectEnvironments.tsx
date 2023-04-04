@@ -229,7 +229,7 @@ type RowProps = {
   shouldShowAction?: boolean;
 };
 
-function EnvironmentRow({
+const EnvironmentRow = ({
   environment,
   name,
   onHide,
@@ -237,7 +237,7 @@ function EnvironmentRow({
   isSystemRow = false,
   isHidden = false,
   actionText = '',
-}: RowProps) {
+}: RowProps) => {
   return (
     <EnvironmentItem>
       <Name>{isSystemRow ? t('All Environments') : name}</Name>
@@ -258,7 +258,7 @@ function EnvironmentRow({
       </Access>
     </EnvironmentItem>
   );
-}
+};
 
 const EnvironmentItem = styled(PanelItem)`
   align-items: center;

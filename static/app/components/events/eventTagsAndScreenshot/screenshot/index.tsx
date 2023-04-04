@@ -30,7 +30,7 @@ type Props = {
   onlyRenderScreenshot?: boolean;
 };
 
-function Screenshot({
+const Screenshot = ({
   eventId,
   organization,
   screenshot,
@@ -42,7 +42,7 @@ function Screenshot({
   onlyRenderScreenshot,
   onDelete,
   openVisualizationModal,
-}: Props) {
+}: Props) => {
   const orgSlug = organization.slug;
   const [loadingImage, setLoadingImage] = useState(true);
 
@@ -168,7 +168,7 @@ function Screenshot({
       }}
     </Role>
   );
-}
+};
 
 export default Screenshot;
 

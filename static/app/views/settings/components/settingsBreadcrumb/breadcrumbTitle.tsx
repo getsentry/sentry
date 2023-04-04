@@ -10,10 +10,10 @@ type Props = {
 /**
  * Breadcrumb title sets the breadcrumb label for the provided route match
  */
-function BreadcrumbTitle(props: Props) {
+const BreadcrumbTitle = (props: Props) => {
   useBreadcrumbTitleEffect(props);
 
   return null;
-}
+};
 
 export default BreadcrumbTitle;

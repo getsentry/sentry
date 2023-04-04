@@ -18,7 +18,7 @@ type Props = {
   project?: Project;
 };
 
-function ProjectTeamAccess({organization, project}: Props) {
+const ProjectTeamAccess = ({organization, project}: Props) => {
   const hasEditPermissions = organization.access.includes('project:write');
   const settingsLink = `/settings/${organization.slug}/projects/${project?.slug}/teams/`;
 
@@ -77,7 +77,7 @@ function ProjectTeamAccess({organization, project}: Props) {
       <div>{renderInnerBody()}</div>
     </StyledSidebarSection>
   );
-}
+};
 
 const StyledSidebarSection = styled(SidebarSection)`
   font-size: ${p => p.theme.fontSizeMedium};

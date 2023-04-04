@@ -53,7 +53,7 @@ type Props = {
  *
  * Note we only fetch environments when this component is mounted
  */
-function EnvironmentSelector({
+const EnvironmentSelector = ({
   loadingProjects,
   onUpdate,
   organization,
@@ -64,7 +64,7 @@ function EnvironmentSelector({
   customDropdownButton,
   customLoadingIndicator,
   disabled,
-}: Props) {
+}: Props) => {
   const router = useRouter();
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
@@ -235,7 +235,7 @@ function EnvironmentSelector({
       )}
     </ClassNames>
   );
-}
+};
 
 export default EnvironmentSelector;
 

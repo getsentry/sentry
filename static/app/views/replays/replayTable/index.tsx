@@ -32,7 +32,7 @@ type Props = {
   visibleColumns: Array<keyof typeof ReplayColumns>;
 };
 
-function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Props) {
+const ReplayTable = ({fetchError, isFetching, replays, sort, visibleColumns}: Props) => {
   const routes = useRoutes();
   const location = useLocation();
   const organization = useOrganization();
@@ -126,7 +126,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       })}
     </StyledPanelTable>
   );
-}
+};
 
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: Array<keyof typeof ReplayColumns>;

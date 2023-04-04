@@ -59,7 +59,7 @@ type Props = {
   onCreate?: (data: NoteType) => void;
 };
 
-function Note(props: Props) {
+const Note = (props: Props) => {
   const [editing, setEditing] = useState(false);
 
   const {
@@ -121,7 +121,7 @@ function Note(props: Props) {
       )}
     </ActivityItemNote>
   );
-}
+};
 
 const ActivityItemNote = styled(ActivityItem)`
   /* this was nested under ".activity-note.activity-bubble" */

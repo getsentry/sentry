@@ -58,14 +58,14 @@ export default function AwsLambdaFailureDetails({
   );
 }
 
-function SingleFailure(errorDetail: ErrorDetail) {
+const SingleFailure = (errorDetail: ErrorDetail) => {
   return (
     <StyledRow key={errorDetail.name}>
       <span>{errorDetail.name}</span>
       <Error>{errorDetail.error}</Error>
     </StyledRow>
   );
-}
+};
 
 const Wrapper = styled('div')`
   padding: 100px 50px 50px 50px;

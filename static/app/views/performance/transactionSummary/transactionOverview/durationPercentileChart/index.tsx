@@ -19,7 +19,7 @@ type Props = ViewProps & {
   queryExtras?: Record<string, string>;
 };
 
-function DurationPercentileChart({currentFilter, ...props}: Props) {
+const DurationPercentileChart = ({currentFilter, ...props}: Props) => {
   const percentiles = getPercentiles(props.organization as Organization);
   const header = (
     <HeaderTitleLegend>
@@ -59,6 +59,6 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
       <Content {...props} currentFilter={currentFilter} fields={fields} />
     </Fragment>
   );
-}
+};
 
 export default DurationPercentileChart;

@@ -38,14 +38,14 @@ type Props = {
   pageLinks: string;
 };
 
-function DashboardList({
+const DashboardList = ({
   api,
   organization,
   location,
   dashboards,
   pageLinks,
   onDashboardsChange,
-}: Props) {
+}: Props) => {
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
@@ -184,7 +184,7 @@ function DashboardList({
       />
     </Fragment>
   );
-}
+};
 
 const DashboardGrid = styled('div')`
   display: grid;

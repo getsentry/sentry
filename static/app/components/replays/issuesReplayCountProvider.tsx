@@ -37,11 +37,11 @@ export default function IssuesReplayCountProvider({children, groupIds}: Props) {
   return <Fragment>{children}</Fragment>;
 }
 
-function Provider({
+const Provider = ({
   children,
   groupIds,
   organization,
-}: Props & {organization: Organization}) {
+}: Props & {organization: Organization}) => {
   const {projects} = useProjects();
 
   const projectsById = useMemo(
@@ -78,4 +78,4 @@ function Provider({
   return (
     <ReplayCountContext.Provider value={counts}>{children}</ReplayCountContext.Provider>
   );
-}
+};

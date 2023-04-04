@@ -10,7 +10,7 @@ type Props = {
   project: Project;
 };
 
-function ProjectItem({project, organization}: Props) {
+const ProjectItem = ({project, organization}: Props) => {
   return (
     <Wrapper>
       <BookmarkStar organization={organization} project={project} />
@@ -21,7 +21,7 @@ function ProjectItem({project, organization}: Props) {
       />
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled('div')`
   display: grid;

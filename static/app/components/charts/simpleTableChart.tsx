@@ -40,7 +40,7 @@ type Props = {
   topResultsIndicators?: number;
 };
 
-function SimpleTableChart({
+const SimpleTableChart = ({
   className,
   loading,
   eventView,
@@ -56,7 +56,7 @@ function SimpleTableChart({
   location,
   fieldAliases,
   loader,
-}: Props) {
+}: Props) => {
   function renderRow(
     index: number,
     row: TableDataRow,
@@ -112,7 +112,7 @@ function SimpleTableChart({
       </StyledPanelTable>
     </Fragment>
   );
-}
+};
 
 const StyledTruncate = styled(Truncate)`
   white-space: nowrap;

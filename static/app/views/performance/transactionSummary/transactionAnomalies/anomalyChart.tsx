@@ -18,7 +18,7 @@ type Props = {
   height?: number;
 };
 
-export function AnomalyChart(props: Props) {
+export const AnomalyChart = (props: Props) => {
   const router = useRouter();
   const location = useLocation();
   const {data, statsPeriod, height, start: propsStart, end: propsEnd} = props;
@@ -64,4 +64,4 @@ export function AnomalyChart(props: Props) {
       )}
     </ChartZoom>
   );
-}
+};

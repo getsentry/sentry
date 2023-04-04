@@ -15,7 +15,7 @@ type Props = {
   query: string;
 };
 
-export function TagsTable({event, query, generateUrl}: Props) {
+export const TagsTable = ({event, query, generateUrl}: Props) => {
   const meta = event._meta?.tags;
 
   return (
@@ -38,7 +38,7 @@ export function TagsTable({event, query, generateUrl}: Props) {
       )}
     </StyledTagsTable>
   );
-}
+};
 
 const StyledTagsTable = styled('div')`
   margin-bottom: ${space(3)};

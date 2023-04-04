@@ -11,10 +11,10 @@ export interface ProfileDragDropImportProps {
   onImport: (input: Profiling.ProfileInput) => void;
 }
 
-function ProfileDragDropImport({
+const ProfileDragDropImport = ({
   onImport,
   children,
-}: ProfileDragDropImportProps): React.ReactElement {
+}: ProfileDragDropImportProps): React.ReactElement => {
   const [dropState, setDropState] = useState<
     'idle' | 'dragover' | 'processing' | 'errored'
   >('idle');
@@ -85,7 +85,7 @@ function ProfileDragDropImport({
       {children}
     </DragDropContainer>
   );
-}
+};
 
 const DragDropContainer = styled('div')`
   display: flex;

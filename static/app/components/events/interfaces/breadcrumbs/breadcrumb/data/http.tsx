@@ -15,7 +15,7 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-export function Http({breadcrumb, searchTerm, meta}: Props) {
+export const Http = ({breadcrumb, searchTerm, meta}: Props) => {
   const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
@@ -68,4 +68,4 @@ export function Http({breadcrumb, searchTerm, meta}: Props) {
       )}
     </Summary>
   );
-}
+};

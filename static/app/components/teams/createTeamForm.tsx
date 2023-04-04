@@ -17,7 +17,7 @@ type Props = {
   onSuccess?: (data: Payload) => void;
 };
 
-function CreateTeamForm({organization, formProps, ...props}: Props) {
+const CreateTeamForm = ({organization, formProps, ...props}: Props) => {
   return (
     <Fragment>
       <p>
@@ -52,6 +52,6 @@ function CreateTeamForm({organization, formProps, ...props}: Props) {
       </Form>
     </Fragment>
   );
-}
+};
 
 export default CreateTeamForm;

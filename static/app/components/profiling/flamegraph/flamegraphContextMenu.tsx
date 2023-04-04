@@ -67,7 +67,7 @@ function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean
   return platform === 'node' || platform === 'python';
 }
 
-export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
+export const FlamegraphContextMenu = (props: FlamegraphContextMenuProps) => {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -267,9 +267,9 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
       <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
     </Fragment>
   ) : null;
-}
+};
 
-function ProfileIdsSubMenu(props: {
+const ProfileIdsSubMenu = (props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];
   frameName: string;
   framePackage: string | undefined;
@@ -277,7 +277,7 @@ function ProfileIdsSubMenu(props: {
   profileIds: string[];
   projectSlug: string | undefined;
   subMenuPortalRef: HTMLElement | null;
-}) {
+}) => {
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
@@ -384,4 +384,4 @@ function ProfileIdsSubMenu(props: {
         )}
     </Fragment>
   );
-}
+};

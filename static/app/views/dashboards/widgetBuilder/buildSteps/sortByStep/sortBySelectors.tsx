@@ -43,7 +43,7 @@ interface Props {
   hasGroupBy?: boolean;
 }
 
-export function SortBySelectors({
+export const SortBySelectors = ({
   values,
   widgetType,
   onChange,
@@ -52,7 +52,7 @@ export function SortBySelectors({
   disableSortDirection,
   widgetQuery,
   displayType,
-}: Props) {
+}: Props) => {
   const datasetConfig = getDatasetConfig(widgetType);
   const organization = useOrganization();
   const columnSet = new Set(widgetQuery.columns);
@@ -184,7 +184,7 @@ export function SortBySelectors({
       )}
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled('div')`
   display: grid;

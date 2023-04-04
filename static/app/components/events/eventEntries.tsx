@@ -134,7 +134,7 @@ const EventEntries = ({
   );
 };
 
-function Entries({
+const Entries = ({
   definedEvent,
   projectSlug,
   isShare,
@@ -144,7 +144,7 @@ function Entries({
   definedEvent: Event;
   projectSlug: string;
   isShare?: boolean;
-} & Pick<Props, 'group' | 'organization'>) {
+} & Pick<Props, 'group' | 'organization'>) => {
   if (!Array.isArray(definedEvent.entries)) {
     return null;
   }
@@ -164,7 +164,7 @@ function Entries({
       ))}
     </Fragment>
   );
-}
+};
 
 const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};

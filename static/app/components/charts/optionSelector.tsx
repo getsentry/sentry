@@ -40,7 +40,7 @@ interface MultipleProps
   defaultValue?: string[];
 }
 
-function OptionSelector({
+const OptionSelector = ({
   options,
   onChange,
   selected,
@@ -49,7 +49,7 @@ function OptionSelector({
   multiple,
   defaultValue,
   ...rest
-}: SingleProps | MultipleProps) {
+}: SingleProps | MultipleProps) => {
   const mappedOptions = useMemo(() => {
     return options.map(opt => ({
       ...opt,
@@ -109,7 +109,7 @@ function OptionSelector({
       }}
     />
   );
-}
+};
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-left: 0px;

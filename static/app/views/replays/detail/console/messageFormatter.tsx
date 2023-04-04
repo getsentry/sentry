@@ -17,7 +17,11 @@ interface Props {
 /**
  * Attempt to emulate the browser console as much as possible
  */
-function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onDimensionChange}: Props) {
+const UnmemoizedMessageFormatter = ({
+  breadcrumb,
+  expandPaths,
+  onDimensionChange,
+}: Props) => {
   let args = breadcrumb.data?.arguments;
 
   if (!args) {
@@ -75,7 +79,7 @@ function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onDimensionChange}
   }
 
   return <Format expandPaths={expandPaths} onExpand={onDimensionChange} args={args} />;
-}
+};
 
 const MessageFormatter = memo(UnmemoizedMessageFormatter);
 export default MessageFormatter;

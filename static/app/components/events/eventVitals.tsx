@@ -44,7 +44,7 @@ export default function EventVitals({event}: Props) {
   );
 }
 
-function WebVitals({event}: Props) {
+const WebVitals = ({event}: Props) => {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
@@ -84,9 +84,9 @@ function WebVitals({event}: Props) {
       </Measurements>
     </Container>
   );
-}
+};
 
-function MobileVitals({event}: Props) {
+const MobileVitals = ({event}: Props) => {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => Boolean(MOBILE_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
@@ -111,14 +111,14 @@ function MobileVitals({event}: Props) {
       </Measurements>
     </Container>
   );
-}
+};
 
 type EventVitalProps = Props & {
   name: string;
   vital?: Vital;
 };
 
-function EventVital({event, name, vital}: EventVitalProps) {
+const EventVital = ({event, name, vital}: EventVitalProps) => {
   const value = event.measurements?.[name].value ?? null;
   if (value === null || !vital) {
     return null;
@@ -150,7 +150,7 @@ function EventVital({event, name, vital}: EventVitalProps) {
       </StyledPanel>
     </EventVitalContainer>
   );
-}
+};
 
 const Measurements = styled('div')`
   display: grid;

@@ -21,7 +21,7 @@ type Props = {
   className?: string;
 };
 
-function FocusTabs({className}: Props) {
+const FocusTabs = ({className}: Props) => {
   const organization = useOrganization();
   const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab();
@@ -49,6 +49,6 @@ function FocusTabs({className}: Props) {
       ))}
     </ScrollableTabs>
   );
-}
+};
 
 export default FocusTabs;

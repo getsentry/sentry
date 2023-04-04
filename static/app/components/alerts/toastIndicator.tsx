@@ -15,7 +15,7 @@ type Props = {
   className?: string;
 };
 
-function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
+const ToastIndicator = ({indicator, onDismiss, className, ...props}: Props) => {
   let icon: React.ReactNode;
   const {options, message, type} = indicator;
   const {undo, disableDismiss} = options || {};
@@ -53,7 +53,7 @@ function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
       {showUndo && <Undo onClick={undo}>{t('Undo')}</Undo>}
     </Toast>
   );
-}
+};
 
 const Toast = styled(motion.div)`
   display: flex;

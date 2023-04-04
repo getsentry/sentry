@@ -35,10 +35,10 @@ interface MixedOwnershipRule extends ParsedOwnershipRule {
 
 const PAGE_LIMIT = 25;
 
-export function OwnershipRulesTable({
+export const OwnershipRulesTable = ({
   projectRules,
   codeowners,
-}: OwnershipRulesTableProps) {
+}: OwnershipRulesTableProps) => {
   const [search, setSearch] = useState<string>('');
   const [page, setPage] = useState<number>(0);
   const [selectedActors, setSelectedActors] = useState<string[] | null>(null);
@@ -223,7 +223,7 @@ export function OwnershipRulesTable({
       </PaginationWrapper>
     </RulesTableWrapper>
   );
-}
+};
 
 const SearchAndSelectorWrapper = styled('div')`
   display: flex;

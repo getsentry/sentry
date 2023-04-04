@@ -37,7 +37,7 @@ interface EventContextProps extends BaseContextProps {
   projects?: Project[];
 }
 
-function EventContext(props: EventContextProps) {
+const EventContext = (props: EventContextProps) => {
   const {organization, dataRow, eventView, location} = props;
   const {isLoading, isError, data} = useApiQuery<Event>(
     [
@@ -152,7 +152,7 @@ function EventContext(props: EventContextProps) {
       {t('There is no stack trace available for this event.')}
     </NoContextWrapper>
   );
-}
+};
 const ErrorTitleContainer = styled(ContextContainer)`
   padding: ${space(1.5)};
 `;

@@ -47,7 +47,7 @@ type Props = {
   totalIssuesCount?: string;
 };
 
-function WidgetCardContextMenu({
+const WidgetCardContextMenu = ({
   organization,
   selection,
   widget,
@@ -65,7 +65,7 @@ function WidgetCardContextMenu({
   pageLinks,
   totalIssuesCount,
   seriesResultsType,
-}: Props) {
+}: Props) => {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
     return null;
@@ -279,7 +279,7 @@ function WidgetCardContextMenu({
       )}
     </WidgetViewerContext.Consumer>
   );
-}
+};
 
 export default WidgetCardContextMenu;
 

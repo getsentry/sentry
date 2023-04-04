@@ -33,13 +33,13 @@ export default function SelectableList(props: Props) {
   );
 }
 
-function SelectableItem({
+const SelectableItem = ({
   isSelected,
   currentIndex: index,
   children,
   setSelectedIndex,
   radioColor,
-}: {children: React.ReactNode; currentIndex: number; isSelected: boolean} & Props) {
+}: {children: React.ReactNode; currentIndex: number; isSelected: boolean} & Props) => {
   return (
     <ListItemContainer>
       <ItemRadioContainer color={radioColor ?? ''}>
@@ -50,7 +50,7 @@ function SelectableItem({
       {children}
     </ListItemContainer>
   );
-}
+};
 
 export const RightAlignedCell = styled('div')`
   text-align: right;
@@ -84,10 +84,10 @@ export const WidgetEmptyStateWarning = () => {
   );
 };
 
-export function ListClose(props: {
+export const ListClose = (props: {
   onClick: () => void;
   setSelectListIndex: (n: number) => void;
-}) {
+}) => {
   return (
     <StyledTooltip title={t('Exclude this transaction from the search filter.')}>
       <StyledIconClose
@@ -98,7 +98,7 @@ export function ListClose(props: {
       />
     </StyledTooltip>
   );
-}
+};
 
 const StyledTooltip = styled(Tooltip)`
   display: flex;

@@ -100,7 +100,7 @@ export type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-function TableView(props: TableViewProps) {
+const TableView = (props: TableViewProps) => {
   const {projects} = useProjects();
   const routes = useRoutes();
   const replayLinkGenerator = generateReplayLink(routes);
@@ -637,7 +637,7 @@ function TableView(props: TableViewProps) {
       />
     </ReplayIdCountProvider>
   );
-}
+};
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.subText};

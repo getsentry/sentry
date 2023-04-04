@@ -31,7 +31,7 @@ type State = {
   issues: Group[];
 };
 
-function IssueList({projectId, replayId}: Props) {
+const IssueList = ({projectId, replayId}: Props) => {
   const organization = useOrganization();
   const api = useApi();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
@@ -110,9 +110,9 @@ function IssueList({projectId, replayId}: Props) {
       </StyledPanelTable>
     </ReplayCountContext.Provider>
   );
-}
+};
 
-function TableRow({
+const TableRow = ({
   isScreenLarge,
   issue,
   organization,
@@ -120,7 +120,7 @@ function TableRow({
   isScreenLarge: boolean;
   issue: Group;
   organization: Organization;
-}) {
+}) => {
   return (
     <Fragment>
       <IssueDetailsWrapper>
@@ -147,7 +147,7 @@ function TableRow({
       <Item>{issue.userCount}</Item>
     </Fragment>
   );
-}
+};
 const ChartWrapper = styled('div')`
   width: 200px;
   margin-left: -${space(2)};

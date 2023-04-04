@@ -28,7 +28,7 @@ type Props = {
   stackView?: STACK_VIEW;
 };
 
-function StackTrace({
+const StackTrace = ({
   stackView,
   stacktrace,
   chainedException,
@@ -41,7 +41,7 @@ function StackTrace({
   expandFirstFrame,
   event,
   meta,
-}: Props) {
+}: Props) => {
   if (!defined(stacktrace)) {
     return null;
   }
@@ -125,6 +125,6 @@ function StackTrace({
       debugFrames={debugFrames}
     />
   );
-}
+};
 
 export default StackTrace;

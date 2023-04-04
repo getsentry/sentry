@@ -4,10 +4,10 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 import useRouteAnalyticsEventNames from './useRouteAnalyticsEventNames';
 
-function TestComponent({eventKey, eventName}: {eventKey: string; eventName: string}) {
+const TestComponent = ({eventKey, eventName}: {eventKey: string; eventName: string}) => {
   useRouteAnalyticsEventNames(eventKey, eventName);
   return <div>hi</div>;
-}
+};
 
 describe('useRouteAnalyticsEventNames', function () {
   it('disables analytics', function () {

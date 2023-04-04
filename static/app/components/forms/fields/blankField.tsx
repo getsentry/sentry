@@ -6,8 +6,8 @@ import {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
  * class, this doesn't have any fields of its own and is just meant to make
  * forms more flexible.
  */
-function BlankField(props: FieldGroupProps) {
+const BlankField = (props: FieldGroupProps) => {
   return <FieldGroup {...props} />;
-}
+};
 
 export default BlankField;

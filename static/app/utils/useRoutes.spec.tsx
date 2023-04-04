@@ -8,10 +8,10 @@ import {RouteContext} from 'sentry/views/routeContext';
 describe('useRoutes', () => {
   it('returns the current routes object', function () {
     let routes;
-    function HomePage() {
+    const HomePage = () => {
       routes = useRoutes();
       return null;
-    }
+    };
 
     const memoryHistory = createMemoryHistory();
     memoryHistory.push('/');

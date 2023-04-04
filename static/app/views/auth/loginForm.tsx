@@ -49,7 +49,7 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function LoginForm({authConfig}: Props) {
+const LoginForm = ({authConfig}: Props) => {
   const [error, setError] = useState('');
 
   const {githubLoginLink, vstsLoginLink} = authConfig;
@@ -111,7 +111,7 @@ function LoginForm({authConfig}: Props) {
       {hasLoginProvider && <LoginProviders {...{vstsLoginLink, githubLoginLink}} />}
     </FormWrapper>
   );
-}
+};
 
 const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
   display: grid;

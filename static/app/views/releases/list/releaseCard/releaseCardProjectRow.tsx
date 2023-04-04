@@ -72,7 +72,7 @@ type Props = {
   adoptionStages?: Release['adoptionStages'];
 };
 
-function ReleaseCardProjectRow({
+const ReleaseCardProjectRow = ({
   index,
   project,
   organization,
@@ -84,7 +84,7 @@ function ReleaseCardProjectRow({
   showReleaseAdoptionStages,
   isTopRelease,
   adoptionStages,
-}: Props) {
+}: Props) => {
   const theme = useTheme();
   const {id, newGroups} = project;
 
@@ -230,7 +230,7 @@ function ReleaseCardProjectRow({
       </ReleaseProjectsLayout>
     </ProjectRow>
   );
-}
+};
 
 export default ReleaseCardProjectRow;
 

@@ -9,7 +9,7 @@ type Props = {
   compact?: boolean;
 };
 
-function IntegrationItem({integration, compact = false}: Props) {
+const IntegrationItem = ({integration, compact = false}: Props) => {
   return (
     <Flex>
       <div>
@@ -23,7 +23,7 @@ function IntegrationItem({integration, compact = false}: Props) {
       </Labels>
     </Flex>
   );
-}
+};
 
 export default IntegrationItem;
 

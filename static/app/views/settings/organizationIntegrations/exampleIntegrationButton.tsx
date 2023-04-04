@@ -18,11 +18,11 @@ type ExampleIntegrationButtonProps = {
 /**
  * Button to direct users to the Example App repository
  */
-function ExampleIntegrationButton({
+const ExampleIntegrationButton = ({
   organization,
   analyticsView,
   ...buttonProps
-}: ExampleIntegrationButtonProps) {
+}: ExampleIntegrationButtonProps) => {
   return (
     <Button
       size="sm"
@@ -40,5 +40,5 @@ function ExampleIntegrationButton({
       {t('View Example App')}
     </Button>
   );
-}
+};
 export default withOrganization(ExampleIntegrationButton);

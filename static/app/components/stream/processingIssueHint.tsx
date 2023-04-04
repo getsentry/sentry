@@ -15,7 +15,7 @@ type Props = {
   showProject: boolean;
 };
 
-function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
+const ProcessingIssueHint = ({orgId, projectId, issue, showProject}: Props) => {
   const link = `/settings/${orgId}/projects/${projectId}/processing-issues/`;
   let showButton = false;
   let text = '';
@@ -83,7 +83,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
       {project} <strong>{text}</strong> {lastEvent}
     </StyledAlert>
   );
-}
+};
 
 export default ProcessingIssueHint;
 

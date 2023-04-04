@@ -18,7 +18,7 @@ interface FunctionsMiniGridProps {
   project: Project;
 }
 
-export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
+export const FunctionsMiniGrid = (props: FunctionsMiniGridProps) => {
   const {organization, project, functions, onLinkClick} = props;
 
   const linkToFlamechartRoute = (
@@ -67,9 +67,9 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
         })}
     </FunctionsMiniGridContainer>
   );
-}
+};
 
-export function FunctionsMiniGridLoading() {
+export const FunctionsMiniGridLoading = () => {
   return (
     <Flex align="stretch" justify="center" column h="100%">
       <Flex align="center" justify="center">
@@ -77,9 +77,9 @@ export function FunctionsMiniGridLoading() {
       </Flex>
     </Flex>
   );
-}
+};
 
-export function FunctionsMiniGridEmptyState() {
+export const FunctionsMiniGridEmptyState = () => {
   return (
     <Flex align="stretch" justify="center" column h="100%">
       <Flex align="center" justify="center">
@@ -87,7 +87,7 @@ export function FunctionsMiniGridEmptyState() {
       </Flex>
     </Flex>
   );
-}
+};
 
 export const FunctionsMiniGridContainer = styled('div')`
   display: grid;

@@ -79,7 +79,7 @@ interface FlamegraphZoomViewProps {
   disableZoom?: boolean;
 }
 
-function FlamegraphZoomView({
+const FlamegraphZoomView = ({
   canvasPoolManager,
   canvasBounds,
   flamegraphRenderer,
@@ -94,7 +94,7 @@ function FlamegraphZoomView({
   disableZoom = false,
   disableGrid = false,
   disableCallOrderSort = false,
-}: FlamegraphZoomViewProps): React.ReactElement {
+}: FlamegraphZoomViewProps): React.ReactElement => {
   const flamegraphTheme = useFlamegraphTheme();
   const profileGroup = useProfileGroup();
   const flamegraphSearch = useFlamegraphSearch();
@@ -741,7 +741,7 @@ function FlamegraphZoomView({
       ) : null}
     </CanvasContainer>
   );
-}
+};
 
 const CanvasContainer = styled('div')`
   display: flex;

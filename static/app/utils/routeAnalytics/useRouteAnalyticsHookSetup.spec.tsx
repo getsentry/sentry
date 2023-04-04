@@ -7,10 +7,10 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 import useRouteAnalyticsHookSetup from './useRouteAnalyticsHookSetup';
 
-function TestComponent() {
+const TestComponent = () => {
   useRouteAnalyticsHookSetup();
   return <div>hi</div>;
-}
+};
 
 describe('useRouteAnalyticsHookSetup', function () {
   it('registers callback', function () {

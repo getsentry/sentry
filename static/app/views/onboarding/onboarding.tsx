@@ -74,7 +74,7 @@ function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDesc
   ];
 }
 
-function Onboarding(props: Props) {
+const Onboarding = (props: Props) => {
   const api = useApi();
   const organization = useOrganization();
   const [clientState, setClientState] = usePersistedOnboardingState();
@@ -353,7 +353,7 @@ function Onboarding(props: Props) {
       </Container>
     </OnboardingWrapper>
   );
-}
+};
 
 const Container = styled('div')<{hasFooter: boolean; heartbeatFooter: boolean}>`
   flex-grow: 1;

@@ -49,13 +49,13 @@ type SpanEvidenceKeyValueListProps = {
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
-export function SpanEvidenceKeyValueList({
+export const SpanEvidenceKeyValueList = ({
   event,
   projectSlug,
 }: {
   event: EventTransaction;
   projectSlug?: string;
-}) {
+}) => {
   const {slug: orgSlug} = useOrganization();
   const spanInfo = getSpanInfoFromTransactionEvent(event);
   const performanceProblem = event?.perfProblem;
@@ -94,7 +94,7 @@ export function SpanEvidenceKeyValueList({
       />
     </ClippedBox>
   );
-}
+};
 
 const ConsecutiveDBQueriesSpanEvidence = ({
   event,

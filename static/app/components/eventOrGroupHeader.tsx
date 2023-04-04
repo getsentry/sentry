@@ -41,7 +41,7 @@ type Props = {
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-function EventOrGroupHeader({
+const EventOrGroupHeader = ({
   data,
   index,
   organization,
@@ -54,7 +54,7 @@ function EventOrGroupHeader({
   size = 'normal',
   grouping = false,
   source,
-}: Props) {
+}: Props) => {
   const location = useLocation();
 
   const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
@@ -157,7 +157,7 @@ function EventOrGroupHeader({
       )}
     </div>
   );
-}
+};
 
 const truncateStyles = css`
   overflow: hidden;
@@ -197,7 +197,7 @@ const LocationWrapper = styled('div')`
   }
 `;
 
-function Location(props) {
+const Location = props => {
   const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>
@@ -206,7 +206,7 @@ function Location(props) {
       })}
     </LocationWrapper>
   );
-}
+};
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   ${getMargin};

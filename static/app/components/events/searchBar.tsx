@@ -121,7 +121,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   projectIds?: number[] | Readonly<number[]>;
 };
 
-function SearchBar(props: SearchBarProps) {
+const SearchBar = (props: SearchBarProps) => {
   const {
     maxSearchItems,
     organization,
@@ -249,6 +249,6 @@ function SearchBar(props: SearchBarProps) {
       )}
     </Measurements>
   );
-}
+};
 
 export default withTags(SearchBar);

@@ -245,11 +245,11 @@ interface FlamegraphSearchProps {
   spans: SpanChart | SpanChart[];
 }
 
-function FlamegraphSearch({
+const FlamegraphSearch = ({
   flamegraphs,
   canvasPoolManager,
   spans,
-}: FlamegraphSearchProps): React.ReactElement | null {
+}: FlamegraphSearchProps): React.ReactElement | null => {
   const search = useFlamegraphSearch();
   const dispatch = useDispatchFlamegraphState();
 
@@ -428,7 +428,7 @@ function FlamegraphSearch({
       }
     />
   );
-}
+};
 
 const StyledIconInfo = styled(IconInfo)`
   transform: translateY(1px);

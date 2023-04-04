@@ -23,7 +23,7 @@ interface Props {
   group?: Group;
 }
 
-export function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
+export const EventCause = ({group, eventId, project, commitRow: CommitRow}: Props) => {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const {data, isLoading} = useCommitters({
@@ -108,7 +108,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
       </StyledPanel>
     </DataSection>
   );
-}
+};
 
 const StyledPanel = styled(Panel)`
   margin: 0;

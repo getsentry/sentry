@@ -37,7 +37,7 @@ function renderResultType({resultType, model}: Result['item']) {
   }
 }
 
-function SearchResult({item, matches, highlighted}: Props) {
+const SearchResult = ({item, matches, highlighted}: Props) => {
   const params = useParams<{orgId: string}>();
 
   const {sourceType, model, extra} = item;
@@ -96,7 +96,7 @@ function SearchResult({item, matches, highlighted}: Props) {
       <div>{renderResultType(item)}</div>
     </Wrapper>
   );
-}
+};
 
 export default SearchResult;
 

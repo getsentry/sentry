@@ -27,7 +27,7 @@ type Props = {
   projectId: Project['id'];
 };
 
-function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
+const GroupActivityItem = ({activity, orgSlug, projectId, author}: Props) => {
   const issuesLink = `/organizations/${orgSlug}/issues/`;
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
@@ -349,7 +349,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
   }
 
   return <Fragment>{renderContent()}</Fragment>;
-}
+};
 
 export default GroupActivityItem;
 

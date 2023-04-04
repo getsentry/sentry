@@ -98,7 +98,7 @@ type Props = {
   project: Project;
 };
 
-function Onboarding({organization, project}: Props) {
+const Onboarding = ({organization, project}: Props) => {
   const api = useApi();
   const {projects} = useProjects();
   const location = useLocation();
@@ -229,7 +229,7 @@ function Onboarding({organization, project}: Props) {
       </FeatureTourModal>
     </OnboardingPanel>
   );
-}
+};
 
 const PerfImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {

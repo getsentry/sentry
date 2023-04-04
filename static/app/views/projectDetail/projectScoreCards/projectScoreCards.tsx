@@ -25,7 +25,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectScoreCards({
+const ProjectScoreCards = ({
   organization,
   selection,
   isProjectStabilized,
@@ -34,7 +34,7 @@ function ProjectScoreCards({
   query,
   location,
   project,
-}: Props) {
+}: Props) => {
   return (
     <CardWrapper>
       <ProjectStabilityScoreCard
@@ -81,7 +81,7 @@ function ProjectScoreCards({
       )}
     </CardWrapper>
   );
-}
+};
 
 const CardWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {

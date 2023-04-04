@@ -11,7 +11,7 @@ type Props = FormProps & {
   onSubmit?: (data: Record<string, any>) => any | void;
 };
 
-function ApiForm({onSubmit, apiMethod, apiEndpoint, ...otherProps}: Props) {
+const ApiForm = ({onSubmit, apiMethod, apiEndpoint, ...otherProps}: Props) => {
   const api = useApi();
 
   const handleSubmit = useCallback(
@@ -39,6 +39,6 @@ function ApiForm({onSubmit, apiMethod, apiEndpoint, ...otherProps}: Props) {
   );
 
   return <Form onSubmit={handleSubmit} {...otherProps} />;
-}
+};
 
 export default ApiForm;

@@ -14,7 +14,7 @@ interface Props {
   generateUrl?: (name: string, value: string) => LocationDescriptor;
 }
 
-function ReplayTagsTableRow({name, values, generateUrl}: Props) {
+const ReplayTagsTableRow = ({name, values, generateUrl}: Props) => {
   const renderTagValue = useMemo(() => {
     if (name === 'release') {
       return values.map((value, index) => {
@@ -53,7 +53,7 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
       }
     />
   );
-}
+};
 
 export default ReplayTagsTableRow;
 

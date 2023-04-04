@@ -8,7 +8,7 @@ type Props = {
   className?: string;
 };
 
-function BufferingOverlay({className}: Props) {
+const BufferingOverlay = ({className}: Props) => {
   return (
     <Overlay className={className}>
       <Message>
@@ -17,7 +17,7 @@ function BufferingOverlay({className}: Props) {
       </Message>
     </Overlay>
   );
-}
+};
 
 /* Position the badge in the corner */
 const Overlay = styled('div')`

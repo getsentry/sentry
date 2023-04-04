@@ -20,13 +20,13 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({
+const ReplayTimelineEvents = ({
   className,
   crumbs,
   durationMs,
   startTimestampMs,
   width,
-}: Props) {
+}: Props) => {
   const markerWidth = crumbs.length < 200 ? 4 : crumbs.length < 500 ? 6 : 10;
 
   const totalColumns = Math.floor(width / markerWidth);
@@ -50,7 +50,7 @@ function ReplayTimelineEvents({
       ))}
     </Timeline.Columns>
   );
-}
+};
 
 const EventColumn = styled(Timeline.Col)<{column: number}>`
   grid-column: ${p => Math.floor(p.column)};
@@ -64,7 +64,7 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
   }
 `;
 
-function Event({
+const Event = ({
   crumbs,
   markerWidth,
   startTimestampMs,
@@ -72,7 +72,7 @@ function Event({
   crumbs: Crumb[];
   markerWidth: number;
   startTimestampMs: number;
-}) {
+}) => {
   const theme = useTheme();
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -115,7 +115,7 @@ function Event({
       </IconNodeTooltip>
     </IconPosition>
   );
-}
+};
 
 const IconNodeTooltip = styled(Tooltip)`
   display: grid;

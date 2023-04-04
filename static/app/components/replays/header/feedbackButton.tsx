@@ -8,12 +8,12 @@ const FeedbackButtonHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-function FeedbackButton() {
+const FeedbackButton = () => {
   return (
     <FeedbackButtonHook>
       <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
     </FeedbackButtonHook>
   );
-}
+};
 
 export default FeedbackButton;

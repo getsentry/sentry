@@ -15,7 +15,7 @@ type Props = {
   token: InternalAppApiToken;
 };
 
-function ApiTokenRow({token, onRemove}: Props) {
+const ApiTokenRow = ({token, onRemove}: Props) => {
   return (
     <StyledPanelItem>
       <Controls>
@@ -51,7 +51,7 @@ function ApiTokenRow({token, onRemove}: Props) {
       </Details>
     </StyledPanelItem>
   );
-}
+};
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;

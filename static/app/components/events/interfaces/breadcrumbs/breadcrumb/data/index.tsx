@@ -15,7 +15,7 @@ type Props = {
   meta?: BreadcrumbMeta;
 };
 
-export function Data({breadcrumb, event, organization, searchTerm, meta}: Props) {
+export const Data = ({breadcrumb, event, organization, searchTerm, meta}: Props) => {
   const orgSlug = organization.slug;
 
   if (breadcrumb.type === BreadcrumbType.HTTP) {
@@ -38,4 +38,4 @@ export function Data({breadcrumb, event, organization, searchTerm, meta}: Props)
       meta={meta}
     />
   );
-}
+};

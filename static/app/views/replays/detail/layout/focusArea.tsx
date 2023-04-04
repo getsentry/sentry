@@ -11,7 +11,7 @@ import Trace from 'sentry/views/replays/detail/trace/index';
 
 type Props = {};
 
-function FocusArea({}: Props) {
+const FocusArea = ({}: Props) => {
   const {getActiveTab} = useActiveReplayTab();
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
@@ -67,6 +67,6 @@ function FocusArea({}: Props) {
         />
       );
   }
-}
+};
 
 export default FocusArea;

@@ -22,7 +22,7 @@ type RowProps = {
   onUndiscard: (id: string) => void;
 };
 
-function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
+const GroupTombstoneRow = ({data, disabled, onUndiscard}: RowProps) => {
   const actor = data.actor;
 
   return (
@@ -69,7 +69,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
       </ActionContainer>
     </PanelItem>
   );
-}
+};
 
 type Props = AsyncComponent['props'] & {
   orgId: string;

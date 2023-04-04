@@ -19,7 +19,7 @@ type Props = ViewProps & {
   totalCount?: number | null;
 };
 
-function LatencyChart({currentFilter, ...props}: Props) {
+const LatencyChart = ({currentFilter, ...props}: Props) => {
   const header = (
     <HeaderTitleLegend>
       {currentFilter === SpanOperationBreakdownFilter.None
@@ -43,6 +43,6 @@ function LatencyChart({currentFilter, ...props}: Props) {
       <Content {...props} currentFilter={currentFilter} />
     </Fragment>
   );
-}
+};
 
 export default LatencyChart;

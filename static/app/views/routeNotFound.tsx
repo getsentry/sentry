@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 
 type Props = RouteComponentProps<{}, {}>;
 
-function RouteNotFound({router, location}: Props) {
+const RouteNotFound = ({router, location}: Props) => {
   const {pathname, search, hash} = location;
 
   const isMissingSlash = pathname[pathname.length - 1] !== '/';
@@ -44,6 +44,6 @@ function RouteNotFound({router, location}: Props) {
       </div>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default RouteNotFound;

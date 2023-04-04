@@ -35,7 +35,7 @@ type ChartProps = {
   };
 };
 
-function Chart({data}: ChartProps) {
+const Chart = ({data}: ChartProps) => {
   const theme = useTheme();
   const series: LineChartSeries[] = [
     {
@@ -97,13 +97,13 @@ function Chart({data}: ChartProps) {
       }}
     />
   );
-}
+};
 
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
 };
 
-function ProfilingMeasurements({profileData}: ProfilingMeasurementsProps) {
+const ProfilingMeasurements = ({profileData}: ProfilingMeasurementsProps) => {
   const theme = useTheme();
 
   if (!('measurements' in profileData) || !defined(profileData.measurements?.cpu_usage)) {
@@ -135,7 +135,7 @@ function ProfilingMeasurements({profileData}: ProfilingMeasurementsProps) {
       }}
     </DividerHandlerManager.Consumer>
   );
-}
+};
 
 export {ProfilingMeasurements};
 

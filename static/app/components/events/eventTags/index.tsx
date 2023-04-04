@@ -18,7 +18,7 @@ type Props = {
   projectSlug: string;
 };
 
-export function EventTags({event, organization, projectSlug, location}: Props) {
+export const EventTags = ({event, organization, projectSlug, location}: Props) => {
   const meta = event._meta?.tags;
 
   if (!!meta?.[''] && !event.tags) {
@@ -53,7 +53,7 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
       </Pills>
     </StyledClippedBox>
   );
-}
+};
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;

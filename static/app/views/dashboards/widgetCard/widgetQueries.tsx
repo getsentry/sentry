@@ -115,7 +115,7 @@ type Props = {
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
-function WidgetQueries({
+const WidgetQueries = ({
   api,
   children,
   organization,
@@ -125,7 +125,7 @@ function WidgetQueries({
   cursor,
   limit,
   onDataFetched,
-}: Props) {
+}: Props) => {
   const config = ErrorsAndTransactionsConfig;
   const context = useContext(DashboardsMEPContext);
   const mepSettingContext = useMEPSettingContext();
@@ -182,6 +182,6 @@ function WidgetQueries({
       {children}
     </GenericWidgetQueries>
   );
-}
+};
 
 export default WidgetQueries;

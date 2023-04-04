@@ -18,7 +18,7 @@ type Props = {
 
 const deviceIgnoredDataValues = [];
 
-export function DeviceEventContext({data, event}: Props) {
+export const DeviceEventContext = ({data, event}: Props) => {
   const inferredData = getInferredData(data);
   const meta = event._meta?.contexts?.device ?? {};
 
@@ -44,4 +44,4 @@ export function DeviceEventContext({data, event}: Props) {
       />
     </Fragment>
   );
-}
+};

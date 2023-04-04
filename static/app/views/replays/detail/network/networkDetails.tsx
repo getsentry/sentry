@@ -21,7 +21,7 @@ type Props = {
   initialHeight?: number;
 };
 
-function NetworkRequestDetails({initialHeight = 100, items}: Props) {
+const NetworkRequestDetails = ({initialHeight = 100, items}: Props) => {
   const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
     'n_detail_row',
     ''
@@ -95,7 +95,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
       </SectionList>
     </Fragment>
   );
-}
+};
 
 function getData(
   span: NetworkSpan | null

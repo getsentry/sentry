@@ -37,7 +37,7 @@ type GroupListProps = {
   sort: string;
 };
 
-function GroupListBody({
+const GroupListBody = ({
   groupIds,
   memberList,
   query,
@@ -48,7 +48,7 @@ function GroupListBody({
   error,
   refetchGroups,
   selectedProjectIds,
-}: GroupListBodyProps) {
+}: GroupListBodyProps) => {
   const api = useApi();
   const organization = useOrganization();
 
@@ -84,16 +84,16 @@ function GroupListBody({
       />
     </IssuesReplayCountProvider>
   );
-}
+};
 
-function GroupList({
+const GroupList = ({
   groupIds,
   memberList,
   query,
   sort,
   displayReprocessingLayout,
   groupStatsPeriod,
-}: GroupListProps) {
+}: GroupListProps) => {
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -131,6 +131,6 @@ function GroupList({
       })}
     </PanelBody>
   );
-}
+};
 
 export default GroupListBody;

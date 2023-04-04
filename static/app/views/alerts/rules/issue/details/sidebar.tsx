@@ -20,7 +20,7 @@ type Props = {
   teams: Team[];
 };
 
-function Conditions({rule, teams, memberList}: Props) {
+const Conditions = ({rule, teams, memberList}: Props) => {
   return (
     <PanelBody>
       <Step>
@@ -92,9 +92,9 @@ function Conditions({rule, teams, memberList}: Props) {
       </Step>
     </PanelBody>
   );
-}
+};
 
-function Sidebar({rule, teams, memberList}: Props) {
+const Sidebar = ({rule, teams, memberList}: Props) => {
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
 
@@ -147,7 +147,7 @@ function Sidebar({rule, teams, memberList}: Props) {
       </SidebarGroup>
     </Fragment>
   );
-}
+};
 
 export default Sidebar;
 

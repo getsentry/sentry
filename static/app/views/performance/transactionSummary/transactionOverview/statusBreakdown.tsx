@@ -24,7 +24,7 @@ type Props = {
   organization: Organization;
 };
 
-function StatusBreakdown({eventView, location, organization}: Props) {
+const StatusBreakdown = ({eventView, location, organization}: Props) => {
   const breakdownView = eventView
     .withColumns([
       {kind: 'function', function: ['count', '', '', undefined]},
@@ -97,7 +97,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
       </DiscoverQuery>
     </Fragment>
   );
-}
+};
 
 const EmptyStatusBreakdown = styled(EmptyStateWarning)`
   height: 124px;

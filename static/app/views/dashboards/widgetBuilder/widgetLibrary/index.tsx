@@ -24,12 +24,12 @@ interface Props {
   selectedWidgetId: string | null;
 }
 
-export function WidgetLibrary({
+export const WidgetLibrary = ({
   bypassOverwriteModal,
   onWidgetSelect,
   selectedWidgetId,
   organization,
-}: Props) {
+}: Props) => {
   const theme = useTheme();
   let defaultWidgets = getTopNConvertedDefaultWidgets();
   if (!organization.features.includes('dashboards-rh-widget')) {
@@ -95,7 +95,7 @@ export function WidgetLibrary({
       </WidgetLibraryWrapper>
     </Fragment>
   );
-}
+};
 
 const WidgetLibraryWrapper = styled('div')`
   display: flex;

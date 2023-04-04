@@ -10,7 +10,7 @@ type Props = {
   wrapClassName: string;
 };
 
-function Toggle({highUp, wrapClassName, children}: Props) {
+const Toggle = ({highUp, wrapClassName, children}: Props) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (Children.count(children) === 0) {
@@ -42,7 +42,7 @@ function Toggle({highUp, wrapClassName, children}: Props) {
       {isExpanded && wrappedChildren}
     </span>
   );
-}
+};
 
 export default Toggle;
 

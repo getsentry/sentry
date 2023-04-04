@@ -22,7 +22,7 @@ interface Props {
   noFieldsMessage?: string;
 }
 
-export function ColumnFields({
+export const ColumnFields = ({
   displayType,
   fieldOptions,
   widgetType,
@@ -33,7 +33,7 @@ export function ColumnFields({
   filterAggregateParameters,
   filterPrimaryOptions,
   noFieldsMessage,
-}: Props) {
+}: Props) => {
   return (
     <FieldGroup
       inline={false}
@@ -71,7 +71,7 @@ export function ColumnFields({
       )}
     </FieldGroup>
   );
-}
+};
 
 const ColumnCollectionEdit = styled(ColumnEditCollection)`
   margin-top: ${space(1)};

@@ -4,12 +4,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import ProjectDetail from './projectDetail';
 
-function ProjectDetailContainer(
+const ProjectDetailContainer = (
   props: Omit<
     React.ComponentProps<typeof ProjectDetail>,
     'projects' | 'loadingProjects' | 'selection'
   >
-) {
+) => {
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === props.params.projectId);
   useRouteAnalyticsParams(
@@ -21,6 +21,6 @@ function ProjectDetailContainer(
       : {}
   );
   return <ProjectDetail {...props} />;
-}
+};
 
 export default withOrganization(ProjectDetailContainer);

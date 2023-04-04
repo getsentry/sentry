@@ -210,13 +210,13 @@ function updateSavedReplayConfig(config: ReplayConfig) {
   localStorage.setItem(ReplayLocalstorageKeys.ReplayConfig, JSON.stringify(config));
 }
 
-export function Provider({
+export const Provider = ({
   children,
   initialTimeOffset = 0,
   isFetching,
   replay,
   value = {},
-}: Props) {
+}: Props) => {
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
   const events = replay?.getRRWebEvents();
@@ -549,6 +549,6 @@ export function Provider({
       {children}
     </ReplayPlayerContext.Provider>
   );
-}
+};
 
 export const useReplayContext = () => useContext(ReplayPlayerContext);

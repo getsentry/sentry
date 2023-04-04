@@ -7,14 +7,14 @@ import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {actions: undefined | Extraction[]} & ReturnType<typeof useDomFilters>;
 
-function DomFilters({
+const DomFilters = ({
   actions,
   getMutationsTypes,
   searchTerm,
   setSearchTerm,
   setType,
   type,
-}: Props) {
+}: Props) => {
   const mutationTypes = getMutationsTypes();
   return (
     <FiltersGrid>
@@ -37,6 +37,6 @@ function DomFilters({
       />
     </FiltersGrid>
   );
-}
+};
 
 export default DomFilters;

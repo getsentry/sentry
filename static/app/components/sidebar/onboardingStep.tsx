@@ -13,7 +13,7 @@ type Props = {
   project: Project;
 };
 
-export function OnboardingStep({docContent, docKey, prefix, project}: Props) {
+export const OnboardingStep = ({docContent, docKey, prefix, project}: Props) => {
   const [increment, setIncrement] = useState<number>(0);
 
   if (!docContent) {
@@ -47,7 +47,7 @@ export function OnboardingStep({docContent, docKey, prefix, project}: Props) {
       <DocumentationWrapper dangerouslySetInnerHTML={{__html: docContent}} />
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled('div')`
   position: relative;

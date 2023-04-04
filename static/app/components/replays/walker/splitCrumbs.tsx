@@ -66,13 +66,13 @@ function splitCrumbs({
   ));
 }
 
-function SingleLinkSegment({
+const SingleLinkSegment = ({
   onClick,
   path,
 }: {
   onClick: null | (() => void);
   path: undefined | string;
-}) {
+}) => {
   if (!path) {
     return null;
   }
@@ -86,9 +86,9 @@ function SingleLinkSegment({
     return <Link onClick={onClick}>{content}</Link>;
   }
   return <Span>{content}</Span>;
-}
+};
 
-function SummarySegment({
+const SummarySegment = ({
   crumbs,
   handleOnClick,
   startTimestampMs,
@@ -96,7 +96,7 @@ function SummarySegment({
   crumbs: Crumb[];
   handleOnClick: MaybeOnClickHandler;
   startTimestampMs: number;
-}) {
+}) => {
   const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers(startTimestampMs);
 
   const summaryItems = (
@@ -124,7 +124,7 @@ function SummarySegment({
       </HalfPaddingHovercard>
     </Span>
   );
-}
+};
 
 const ScrollingList = styled('ul')`
   padding: 0;

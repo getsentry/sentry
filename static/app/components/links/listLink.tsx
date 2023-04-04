@@ -27,7 +27,7 @@ type Props = LinkProps & {
   query?: string;
 };
 
-function ListLink({
+const ListLink = ({
   children,
   className,
   isActive,
@@ -37,7 +37,7 @@ function ListLink({
   index = false,
   disabled = false,
   ...props
-}: Props) {
+}: Props) => {
   const router = useRouter();
   const queryData = query ? qs.parse(query) : undefined;
   const targetLocation = typeof to === 'string' ? {pathname: to, query: queryData} : to;
@@ -55,7 +55,7 @@ function ListLink({
       </RouterLink>
     </StyledLi>
   );
-}
+};
 
 export default ListLink;
 

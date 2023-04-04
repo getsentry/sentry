@@ -27,7 +27,7 @@ type Props = ViewProps & {
   queryExtras?: Record<string, string>;
 };
 
-function VitalInfo({
+const VitalInfo = ({
   vital,
   location,
   isLoading,
@@ -37,7 +37,7 @@ function VitalInfo({
   hideVitalThresholds,
   hideDurationDetail,
   queryExtras,
-}: Props) {
+}: Props) => {
   const vitals = toArray(vital);
   const contentCommonProps = {
     vital,
@@ -63,6 +63,6 @@ function VitalInfo({
       )}
     </VitalsCardDiscoverQuery>
   );
-}
+};
 
 export default VitalInfo;

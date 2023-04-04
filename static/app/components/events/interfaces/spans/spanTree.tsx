@@ -795,7 +795,7 @@ type SpanRowProps = ListRowProps & {
   spanTree: SpanTreeNode[];
 };
 
-function SpanRow(props: SpanRowProps) {
+const SpanRow = (props: SpanRowProps) => {
   const {
     index,
     parent,
@@ -885,7 +885,7 @@ function SpanRow(props: SpanRowProps) {
       )}
     </CellMeasurer>
   );
-}
+};
 
 const TraceViewContainer = styled('div')`
   overflow-x: hidden;

@@ -12,7 +12,7 @@ type Props = {
   group?: Group;
 };
 
-export function EventContexts({event, group}: Props) {
+export const EventContexts = ({event, group}: Props) => {
   const {user, contexts} = event;
 
   const {feedback, ...otherContexts} = contexts ?? {};
@@ -63,4 +63,4 @@ export function EventContexts({event, group}: Props) {
       ))}
     </Fragment>
   );
-}
+};

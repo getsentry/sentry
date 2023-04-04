@@ -37,7 +37,7 @@ type Props = {
   relayPiiConfig?: string;
 };
 
-export function DataScrubbing({
+export const DataScrubbing = ({
   project,
   endpoint,
   organization,
@@ -45,7 +45,7 @@ export function DataScrubbing({
   onSubmitSuccess,
   additionalContext,
   relayPiiConfig,
-}: Props) {
+}: Props) => {
   const api = useApi();
   const [rules, setRules] = useState<Rule[]>([]);
   const navigate = useNavigate();
@@ -200,7 +200,7 @@ export function DataScrubbing({
       </PanelBody>
     </Panel>
   );
-}
+};
 
 const PanelAction = styled('div')`
   padding: ${space(1)} ${space(2)};

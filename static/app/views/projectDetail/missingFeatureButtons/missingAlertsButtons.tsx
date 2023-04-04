@@ -11,7 +11,7 @@ type Props = {
   projectSlug: string;
 };
 
-function MissingAlertsButtons({organization, projectSlug}: Props) {
+const MissingAlertsButtons = ({organization, projectSlug}: Props) => {
   return (
     <ButtonBar gap={1}>
       <CreateAlertButton
@@ -30,6 +30,6 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
       </Button>
     </ButtonBar>
   );
-}
+};
 
 export default MissingAlertsButtons;

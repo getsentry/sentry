@@ -15,7 +15,7 @@ export interface AreaChartProps extends Omit<ChartProps, 'series'> {
   stacked?: boolean;
 }
 
-export function AreaChart({series, stacked, colors, ...props}: AreaChartProps) {
+export const AreaChart = ({series, stacked, colors, ...props}: AreaChartProps) => {
   return (
     <BaseChart
       {...props}
@@ -43,4 +43,4 @@ export function AreaChart({series, stacked, colors, ...props}: AreaChartProps) {
       )}
     />
   );
-}
+};

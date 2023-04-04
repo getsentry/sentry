@@ -79,7 +79,7 @@ interface PlatformPickerProps {
   showOther?: boolean;
 }
 
-function PlatformPicker(props: PlatformPickerProps) {
+const PlatformPicker = (props: PlatformPickerProps) => {
   const {organization, source} = props;
   const [category, setCategory] = useState<Category>(
     props.defaultCategory ?? PLATFORM_CATEGORIES[0].id
@@ -250,7 +250,7 @@ function PlatformPicker(props: PlatformPickerProps) {
       )}
     </Fragment>
   );
-}
+};
 
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};

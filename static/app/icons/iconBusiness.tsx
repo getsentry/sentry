@@ -10,12 +10,12 @@ type WrappedProps = {
   forwardedRef: React.Ref<SVGSVGElement>;
 } & Props;
 
-function IconBusinessComponent({
+const IconBusinessComponent = ({
   gradient = false,
   withShine = false,
   forwardedRef,
   ...props
-}: WrappedProps) {
+}: WrappedProps) => {
   const theme = useTheme();
 
   const uid = useMemo(() => uniqueId(), []);
@@ -54,7 +54,7 @@ function IconBusinessComponent({
       )}
     </SvgIcon>
   );
-}
+};
 
 interface Props extends SVGIconProps {
   /**

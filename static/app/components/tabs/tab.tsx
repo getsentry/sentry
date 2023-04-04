@@ -41,10 +41,10 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-function BaseTab(
+const BaseTab = (
   {item, state, orientation, overflowing}: TabProps,
   forwardedRef: React.ForwardedRef<HTMLLIElement>
-) {
+) => {
   const ref = useObjectRef(forwardedRef);
 
   const {
@@ -96,7 +96,7 @@ function BaseTab(
       </InnerWrap>
     </TabWrap>
   );
-}
+};
 
 export const Tab = forwardRef(BaseTab);
 

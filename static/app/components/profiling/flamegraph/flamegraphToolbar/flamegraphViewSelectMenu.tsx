@@ -11,12 +11,12 @@ export interface FlamegraphViewSelectMenuProps {
   view: FlamegraphPreferences['view'];
 }
 
-function FlamegraphViewSelectMenu({
+const FlamegraphViewSelectMenu = ({
   view,
   onViewChange,
   sorting,
   onSortingChange,
-}: FlamegraphViewSelectMenuProps): React.ReactElement {
+}: FlamegraphViewSelectMenuProps): React.ReactElement => {
   return (
     <FlamegraphViewSelectMenuWrap>
       <SegmentedControl
@@ -44,7 +44,7 @@ function FlamegraphViewSelectMenu({
       </SegmentedControl>
     </FlamegraphViewSelectMenuWrap>
   );
-}
+};
 
 export {FlamegraphViewSelectMenu};
 

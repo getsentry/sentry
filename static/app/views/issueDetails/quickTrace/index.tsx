@@ -16,7 +16,7 @@ type Props = {
   organization: Organization;
 };
 
-function QuickTrace({group, event, organization, location}: Props) {
+const QuickTrace = ({group, event, organization, location}: Props) => {
   const hasPerformanceView = organization.features.includes('performance-view');
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
   const quickTrace = useContext(QuickTraceContext);
@@ -38,7 +38,7 @@ function QuickTrace({group, event, organization, location}: Props) {
       quickTrace={quickTrace}
     />
   );
-}
+};
 
 const GrowingPlaceholder = styled(Placeholder)`
   flex-grow: 1;

@@ -31,7 +31,7 @@ const cellMeasurer = {
   minHeight: 24,
 };
 
-function Console({breadcrumbs, startTimestampMs}: Props) {
+const Console = ({breadcrumbs, startTimestampMs}: Props) => {
   const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
   const {expandPaths, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
@@ -155,7 +155,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
       </ConsoleLogContainer>
     </FluidHeight>
   );
-}
+};
 
 const ConsoleLogContainer = styled('div')`
   position: relative;

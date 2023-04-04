@@ -15,7 +15,7 @@ type Props = {
   event: Event;
 };
 
-export function ThreadPoolInfoEventContext({data, event}: Props) {
+export const ThreadPoolInfoEventContext = ({data, event}: Props) => {
   if (!data) {
     return null;
   }
@@ -47,4 +47,4 @@ export function ThreadPoolInfoEventContext({data, event}: Props) {
       />
     </Fragment>
   );
-}
+};

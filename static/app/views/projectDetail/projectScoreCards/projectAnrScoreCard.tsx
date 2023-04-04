@@ -31,13 +31,13 @@ type Props = {
   query?: string;
 };
 
-export function ProjectAnrScoreCard({
+export const ProjectAnrScoreCard = ({
   isProjectStabilized,
   organization,
   selection,
   location,
   query,
-}: Props) {
+}: Props) => {
   const {environments, projects, datetime} = selection;
   const {start, end, period} = datetime;
 
@@ -187,4 +187,4 @@ export function ProjectAnrScoreCard({
       renderOpenButton={renderButton}
     />
   );
-}
+};

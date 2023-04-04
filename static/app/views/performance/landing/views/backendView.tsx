@@ -34,7 +34,7 @@ function getAllowedChartsSmall(
   return filterAllowedChartsMetrics(props.organization, charts, mepSetting);
 }
 
-export function BackendView(props: BasePerformanceViewProps) {
+export const BackendView = (props: BasePerformanceViewProps) => {
   const mepSetting = useMEPSettingContext();
   const showSpanOperationsWidget =
     props.organization.features.includes('performance-new-widget-designs') &&
@@ -66,4 +66,4 @@ export function BackendView(props: BasePerformanceViewProps) {
       </div>
     </PerformanceDisplayProvider>
   );
-}
+};

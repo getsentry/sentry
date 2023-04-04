@@ -33,13 +33,13 @@ interface MemoryChartProps extends Props {
 const formatTimestamp = timestamp =>
   getFormattedDate(timestamp * 1000, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
-function MemoryChart({
+const MemoryChart = ({
   forwardedRef,
   memorySpans,
   startTimestampMs = 0,
   setCurrentTime,
   setCurrentHoverTime,
-}: MemoryChartProps) {
+}: MemoryChartProps) => {
   const theme = useTheme();
 
   if (!memorySpans) {
@@ -221,7 +221,7 @@ function MemoryChart({
       <AreaChart forwardedRef={forwardedRef} series={series} {...chartOptions} />
     </MemoryChartWrapper>
   );
-}
+};
 
 const MemoryChartWrapper = styled(FluidHeight)`
   margin-bottom: ${space(3)};
@@ -251,12 +251,12 @@ interface MemoryChartContainerProps extends Props {
  * infrequently as possible, so we use React.memo and only pass in props that
  * are not frequently updated.
  * */
-function MemoryChartContainer({
+const MemoryChartContainer = ({
   currentTime,
   currentHoverTime,
   startTimestampMs = 0,
   ...props
-}: MemoryChartContainerProps) {
+}: MemoryChartContainerProps) => {
   const chart = useRef<ReactEchartsRef>(null);
   const theme = useTheme();
 
@@ -311,6 +311,6 @@ function MemoryChartContainer({
   return (
     <MemoizedMemoryChart ref={chart} startTimestampMs={startTimestampMs} {...props} />
   );
-}
+};
 
 export default MemoryChartContainer;

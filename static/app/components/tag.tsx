@@ -53,7 +53,7 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   type?: keyof Theme['tag'];
 }
 
-function Tag({
+const Tag = ({
   type = 'default',
   icon,
   tooltipText,
@@ -64,7 +64,7 @@ function Tag({
   children,
   textMaxWidth = 150,
   ...props
-}: Props) {
+}: Props) => {
   const iconsProps: SVGIconProps = {
     size: 'xs',
     color: theme.tag[type].iconColor as Color,
@@ -145,7 +145,7 @@ function Tag({
       {tagWithParent()}
     </TagWrapper>
   );
-}
+};
 
 const TagWrapper = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};

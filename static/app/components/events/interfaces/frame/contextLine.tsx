@@ -26,7 +26,7 @@ const coverageClass: Record<Coverage, string | undefined> = {
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 
-function ContextLine({line, isActive, children, coverage = ''}: Props) {
+const ContextLine = ({line, isActive, children, coverage = ''}: Props) => {
   let lineWs = '';
   let lineCode = '';
   if (typeof line[1] === 'string') {
@@ -53,7 +53,7 @@ function ContextLine({line, isActive, children, coverage = ''}: Props) {
       {children}
     </StyledLi>
   );
-}
+};
 
 export default ContextLine;
 

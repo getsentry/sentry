@@ -23,7 +23,7 @@ type Props = {
   projects: Project[];
 };
 
-function TransactionVitals(props: Props) {
+const TransactionVitals = (props: Props) => {
   const {location, organization, projects} = props;
 
   return (
@@ -37,7 +37,7 @@ function TransactionVitals(props: Props) {
       childComponent={VitalsContent}
     />
   );
-}
+};
 
 function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =

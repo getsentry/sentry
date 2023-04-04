@@ -41,7 +41,7 @@ type IssueListActionsProps = {
   onMarkReviewed?: (itemIds: string[]) => void;
 };
 
-function IssueListActions({
+const IssueListActions = ({
   allResultsVisible,
   displayReprocessingActions,
   groupIds,
@@ -55,7 +55,7 @@ function IssueListActions({
   selection,
   sort,
   statsPeriod,
-}: IssueListActionsProps) {
+}: IssueListActionsProps) => {
   const api = useApi();
   const organization = useOrganization();
   const {
@@ -267,7 +267,7 @@ function IssueListActions({
       )}
     </Sticky>
   );
-}
+};
 
 function useSelectedGroupsState() {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);

@@ -28,10 +28,10 @@ describe('useParams', () => {
   describe('when the path has no params', () => {
     it('returns an empty object', () => {
       let params;
-      function HomePage() {
+      const HomePage = () => {
         params = useParams();
         return null;
-      }
+      };
 
       const memoryHistory = createMemoryHistory();
       memoryHistory.push('/?hello');
@@ -58,10 +58,10 @@ describe('useParams', () => {
   describe('when the path has some params', () => {
     it('returns an object of the URL params', () => {
       let params;
-      function HomePage() {
+      const HomePage = () => {
         params = useParams();
         return null;
-      }
+      };
 
       const memoryHistory = createMemoryHistory();
       memoryHistory.push('/sentry');
@@ -96,14 +96,14 @@ describe('useParams', () => {
       let originalParams;
       let useParamsValue;
 
-      function Component() {
+      const Component = () => {
         const {params} = useRouteContext();
         originalParams = params;
         useParamsValue = useParams();
         return (
           <div>rendered component for org: {useParamsValue.orgId ?? 'no org id'}</div>
         );
-      }
+      };
 
       const memoryHistory = createMemoryHistory();
       memoryHistory.push('/issues/?hello');
@@ -139,14 +139,14 @@ describe('useParams', () => {
       let originalParams;
       let useParamsValue;
 
-      function Component() {
+      const Component = () => {
         const {params} = useRouteContext();
         originalParams = params;
         useParamsValue = useParams();
         return (
           <div>rendered component for org: {useParamsValue.orgId ?? 'no org id'}</div>
         );
-      }
+      };
 
       const memoryHistory = createMemoryHistory();
       memoryHistory.push('/issues/?hello');

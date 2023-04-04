@@ -25,7 +25,7 @@ type State = {
   currentCursor?: string;
 };
 
-function OrganizationAuditLog({location}: Props) {
+const OrganizationAuditLog = ({location}: Props) => {
   const [state, setState] = useState<State>({
     entryList: [],
     entryListPageLinks: null,
@@ -116,6 +116,6 @@ function OrganizationAuditLog({location}: Props) {
       />
     </Fragment>
   );
-}
+};
 
 export default OrganizationAuditLog;

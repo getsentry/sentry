@@ -7,7 +7,7 @@ type Props = {
   data: Record<string, any>;
 };
 
-export function ReduxContext({data}: Props) {
+export const ReduxContext = ({data}: Props) => {
   return (
     <ClippedBox clipHeight={250}>
       <ContextBlock
@@ -21,4 +21,4 @@ export function ReduxContext({data}: Props) {
       />
     </ClippedBox>
   );
-}
+};

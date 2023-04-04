@@ -41,7 +41,7 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
-function AdminLayout({children, ...props}: Props) {
+const AdminLayout = ({children, ...props}: Props) => {
   return (
     <SentryDocumentTitle noSuffix title={t('Sentry Admin')}>
       <Page>
@@ -53,7 +53,7 @@ function AdminLayout({children, ...props}: Props) {
       </Page>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default AdminLayout;
 

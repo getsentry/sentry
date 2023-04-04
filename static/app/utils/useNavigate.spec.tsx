@@ -15,10 +15,10 @@ describe('useNavigate', () => {
   it('returns the navigate function', function () {
     let navigate: ReturnType<typeof useNavigate> | undefined = undefined;
 
-    function HomePage() {
+    const HomePage = () => {
       navigate = useNavigate();
       return null;
-    }
+    };
 
     const memoryHistory = createMemoryHistory();
     memoryHistory.push('/');
@@ -50,14 +50,14 @@ describe('useNavigate', () => {
       },
     } as any;
 
-    function HomePage() {
+    const HomePage = () => {
       const navigate = useNavigate();
       useEffect(() => {
         navigate('/organizations/acme/issues/');
       }, [navigate]);
 
       return null;
-    }
+    };
 
     const memoryHistory = createMemoryHistory();
     memoryHistory.push('/');

@@ -22,7 +22,7 @@ type BodyProps = {
   organization?: Organization;
 };
 
-function DeletionInProgress({organization}: OrganizationProps) {
+const DeletionInProgress = ({organization}: OrganizationProps) => {
   return (
     <Layout.Body>
       <Layout.Main>
@@ -37,9 +37,9 @@ function DeletionInProgress({organization}: OrganizationProps) {
       </Layout.Main>
     </Layout.Body>
   );
-}
+};
 
-function DeletionPending({organization}: OrganizationProps) {
+const DeletionPending = ({organization}: OrganizationProps) => {
   const api = useApi();
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -102,9 +102,9 @@ function DeletionPending({organization}: OrganizationProps) {
       </Layout.Main>
     </Layout.Body>
   );
-}
+};
 
-function OrganizationDetailsBody({children, organization}: BodyProps) {
+const OrganizationDetailsBody = ({children, organization}: BodyProps) => {
   const status = organization?.status?.id;
   const routeContext = useRouteContext();
 
@@ -146,6 +146,6 @@ function OrganizationDetailsBody({children, organization}: BodyProps) {
       {showFooter && <Footer />}
     </Fragment>
   );
-}
+};
 
 export default withOrganization(OrganizationDetailsBody);

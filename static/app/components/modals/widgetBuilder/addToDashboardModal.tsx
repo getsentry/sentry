@@ -66,7 +66,7 @@ type Props = ModalRenderProps & AddToDashboardModalProps;
 
 const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
 
-function AddToDashboardModal({
+const AddToDashboardModal = ({
   Header,
   Body,
   Footer,
@@ -77,7 +77,7 @@ function AddToDashboardModal({
   selection,
   widget,
   widgetAsQueryParams,
-}: Props) {
+}: Props) => {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
   const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
@@ -280,7 +280,7 @@ function AddToDashboardModal({
       </Footer>
     </OrganizationContext.Provider>
   );
-}
+};
 
 export default AddToDashboardModal;
 

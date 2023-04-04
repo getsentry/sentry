@@ -33,7 +33,7 @@ const progressTextCss = () => css`
   font-weight: bold;
 `;
 
-function OnboardingStatus({
+const OnboardingStatus = ({
   collapsed,
   org,
   projects,
@@ -41,7 +41,7 @@ function OnboardingStatus({
   orientation,
   hidePanel,
   onShowPanel,
-}: Props) {
+}: Props) => {
   const handleShowPanel = () => {
     trackAdvancedAnalyticsEvent('onboarding.wizard_opened', {organization: org});
     onShowPanel();
@@ -118,7 +118,7 @@ function OnboardingStatus({
       )}
     </Fragment>
   );
-}
+};
 
 const Heading = styled('div')`
   transition: color 100ms;

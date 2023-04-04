@@ -25,7 +25,7 @@ type Sortable = {
 
 type Props = NotSortable | Sortable;
 
-function SortableHeader(props: Props) {
+const SortableHeader = (props: Props) => {
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
 
@@ -87,7 +87,7 @@ function SortableHeader(props: Props) {
       ) : null}
     </Header>
   );
-}
+};
 
 const Header = styled('div')`
   display: grid;

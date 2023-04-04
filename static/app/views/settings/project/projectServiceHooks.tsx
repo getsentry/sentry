@@ -27,7 +27,7 @@ type RowProps = {
   projectId: string;
 };
 
-function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
+const ServiceHookRow = ({orgId, projectId, hook, onToggleActive}: RowProps) => {
   return (
     <FieldGroup
       label={
@@ -51,7 +51,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
       <Switch isActive={hook.status === 'active'} size="lg" toggle={onToggleActive} />
     </FieldGroup>
   );
-}
+};
 
 type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;

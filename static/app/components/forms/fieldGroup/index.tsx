@@ -16,13 +16,13 @@ import {FieldGroupProps} from './types';
  *
  * This is unconnected to any Form state
  */
-function FieldGroup({
+const FieldGroup = ({
   className,
   disabled = false,
   inline = true,
   visible = true,
   ...rest
-}: FieldGroupProps) {
+}: FieldGroupProps) => {
   const props = {
     inline,
     disabled,
@@ -122,6 +122,6 @@ function FieldGroup({
       {control}
     </FieldWrapper>
   );
-}
+};
 
 export default FieldGroup;

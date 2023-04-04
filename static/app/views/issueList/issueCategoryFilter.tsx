@@ -12,13 +12,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const ISSUE_CATEGORY_FILTER = 'issue.category';
 
-function IssueCategoryFilter({
+const IssueCategoryFilter = ({
   query,
   onSearch,
 }: {
   onSearch: (query: string) => void;
   query: string;
-}) {
+}) => {
   const [isPerformanceSeen, setIsPerformanceSeen] = useLocalStorageState(
     'issue-category-dropdown-seen:performance',
     false
@@ -116,6 +116,6 @@ function IssueCategoryFilter({
       size="md"
     />
   );
-}
+};
 
 export default IssueCategoryFilter;

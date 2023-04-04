@@ -38,7 +38,7 @@ type Props = {
   value: React.ReactText | string[];
 };
 
-function ActionDropDown(props: Props) {
+const ActionDropDown = (props: Props) => {
   const menuItems: MenuItemProps[] = [];
   const {location, eventView, queryKey, value, organization, contextValueType, dataRow} =
     props;
@@ -164,7 +164,7 @@ function ActionDropDown(props: Props) {
       )}
     />
   );
-}
+};
 
 const StyledTrigger = styled(Button)`
   margin-left: ${space(0.5)};

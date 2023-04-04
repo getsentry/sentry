@@ -30,11 +30,11 @@ type Props = {
   toggleOperationNameFilter: (operationName: string) => void;
 };
 
-function Filter({
+const Filter = ({
   operationNameCounts,
   operationNameFilter,
   toggleOperationNameFilter,
-}: Props) {
+}: Props) => {
   const organization = useOrganization();
 
   const checkedQuantity =
@@ -118,7 +118,7 @@ function Filter({
       }}
     />
   );
-}
+};
 
 const OperationDot = styled('div')<{backgroundColor: string}>`
   display: block;

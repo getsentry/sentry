@@ -31,13 +31,13 @@ type Props = {
   size?: ButtonProps['size'];
 };
 
-function EnvironmentPageFilter({
+const EnvironmentPageFilter = ({
   resetParamsOnChange = [],
   alignDropdown,
   disabled,
   maxTitleLength = 20,
   size = 'md',
-}: Props) {
+}: Props) => {
   const router = useRouter();
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
@@ -111,7 +111,7 @@ function EnvironmentPageFilter({
       disabled={disabled}
     />
   );
-}
+};
 
 const TitleContainer = styled('div')`
   text-align: left;

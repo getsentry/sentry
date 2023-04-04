@@ -27,7 +27,7 @@ type Props = RouteComponentProps<
   {event_t: string; t: number}
 >;
 
-function ReplayDetails({
+const ReplayDetails = ({
   location: {
     query: {
       event_t: eventTimestamp, // Timestamp of the event or activity that was selected
@@ -35,7 +35,7 @@ function ReplayDetails({
     },
   },
   params: {replaySlug},
-}: Props) {
+}: Props) => {
   useReplayPageview('replay.details-time-spent');
   const {slug: orgSlug} = useOrganization();
 
@@ -119,15 +119,15 @@ function ReplayDetails({
       <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
     </ReplayContextProvider>
   );
-}
+};
 
-function LoadedDetails({
+const LoadedDetails = ({
   orgSlug,
   replayRecord,
 }: {
   orgSlug: string;
   replayRecord: ReplayRecord | undefined;
-}) {
+}) => {
   const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
 
@@ -136,6 +136,6 @@ function LoadedDetails({
       <ReplaysLayout layout={getLayout()} />
     </Page>
   );
-}
+};
 
 export default ReplayDetails;

@@ -37,7 +37,7 @@ type WrappedComponentState = {
 function withIssueTags<Props extends WithIssueTagsProps>(
   WrappedComponent: React.ComponentType<Props>
 ) {
-  function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps> & HocProps) {
+  const ComponentWithTags = (props: Omit<Props, keyof WithIssueTagsProps> & HocProps) => {
     const [state, setState] = useState<WrappedComponentState>({
       tags: TagStore.getIssueTags(props.organization),
       users: MemberListStore.getAll(),
@@ -111,7 +111,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
     }, [setAssigned]);
 
     return <WrappedComponent {...(props as Props)} tags={state.tags} />;
-  }
+  };
   ComponentWithTags.displayName = `withIssueTags(${getDisplayName(WrappedComponent)})`;
   return ComponentWithTags;
 }

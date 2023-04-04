@@ -50,7 +50,7 @@ type Props = {
   event: Event;
 };
 
-function ContextSummary({event}: Props) {
+const ContextSummary = ({event}: Props) => {
   const filteredContexts = KNOWN_CONTEXTS.filter(makeContextFilter(event));
 
   // XXX: We want to have *at least* MIN_CONTEXTS, so we first find all the
@@ -111,7 +111,7 @@ function ContextSummary({event}: Props) {
   });
 
   return <Wrapper>{contexts}</Wrapper>;
-}
+};
 
 export default ContextSummary;
 

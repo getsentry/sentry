@@ -35,14 +35,14 @@ const defaultProps = {
   onDelete: jest.fn(),
 };
 
-function WrappedComponent(props) {
+const WrappedComponent = props => {
   return (
     <Fragment>
       <GlobalModal />
       <IssueListActions {...defaultProps} {...props} />
     </Fragment>
   );
-}
+};
 
 describe('IssueListActions', function () {
   afterEach(() => {

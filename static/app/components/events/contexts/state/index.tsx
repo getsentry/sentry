@@ -20,7 +20,7 @@ type Props = {
   event: Event;
 };
 
-export function StateEventContext({data, event}: Props) {
+export const StateEventContext = ({data, event}: Props) => {
   const meta = event._meta?.contexts?.state ?? {};
 
   function getStateTitle(name: string, type?: string) {
@@ -59,4 +59,4 @@ export function StateEventContext({data, event}: Props) {
       <ContextBlock data={getUnknownData()} />
     </ClippedBox>
   );
-}
+};

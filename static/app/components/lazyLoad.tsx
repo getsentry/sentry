@@ -25,7 +25,7 @@ type Props<C extends ComponentType> = React.ComponentProps<C> & {
  *
  * <LazyLoad component={() => import('./myComponent')} someComponentProps={...} />
  */
-function LazyLoad<C extends ComponentType>({component, ...props}: Props<C>) {
+const LazyLoad = <C extends ComponentType>({component, ...props}: Props<C>) => {
   const LazyComponent = useMemo(
     () => lazy<C>(() => retryableImport(component)),
     [component]
@@ -44,7 +44,7 @@ function LazyLoad<C extends ComponentType>({component, ...props}: Props<C>) {
       </Suspense>
     </ErrorBoundary>
   );
-}
+};
 
 interface ErrorBoundaryState {
   error: Error | null;

@@ -57,7 +57,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectIssues({organization, location, projectId, query, api}: Props) {
+const ProjectIssues = ({organization, location, projectId, query, api}: Props) => {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
   const [issuesType, setIssuesType] = useState<IssuesType>(
@@ -289,7 +289,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       />
     </Fragment>
   );
-}
+};
 
 const ControlsWrapper = styled('div')`
   display: flex;

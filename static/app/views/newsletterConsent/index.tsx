@@ -11,7 +11,7 @@ type Props = {
   onSubmitSuccess?: () => void;
 };
 
-function NewsletterConsent({onSubmitSuccess}: Props) {
+const NewsletterConsent = ({onSubmitSuccess}: Props) => {
   useEffect(() => {
     document.body.classList.add('auth');
 
@@ -51,6 +51,6 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
       </ApiForm>
     </NarrowLayout>
   );
-}
+};
 
 export default NewsletterConsent;

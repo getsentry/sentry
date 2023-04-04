@@ -8,7 +8,7 @@ type Props = {
   className?: string;
 };
 
-function GroupingIndicator({className}: Props) {
+const GroupingIndicator = ({className}: Props) => {
   return (
     <StyledTooltip
       title={t('This frame appears in all other events related to this issue')}
@@ -18,7 +18,7 @@ function GroupingIndicator({className}: Props) {
       <IconRefresh size="xs" color="gray300" />
     </StyledTooltip>
   );
-}
+};
 
 export default GroupingIndicator;
 

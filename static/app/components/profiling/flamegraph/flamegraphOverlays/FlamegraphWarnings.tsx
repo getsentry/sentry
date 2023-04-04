@@ -11,7 +11,7 @@ interface FlamegraphWarningProps {
   flamegraph: Flamegraph;
 }
 
-export function FlamegraphWarnings(props: FlamegraphWarningProps) {
+export const FlamegraphWarnings = (props: FlamegraphWarningProps) => {
   const orgSlug = useOrganization().slug;
   const params = useParams();
   const profiles = useProfiles();
@@ -60,7 +60,7 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
   }
 
   return null;
-}
+};
 
 const Overlay = styled('div')`
   position: absolute;

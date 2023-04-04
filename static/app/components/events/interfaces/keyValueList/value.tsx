@@ -10,7 +10,13 @@ export interface ValueProps
   raw?: boolean;
 }
 
-export function Value({subjectIcon, meta, raw, isContextData, value = null}: ValueProps) {
+export const Value = ({
+  subjectIcon,
+  meta,
+  raw,
+  isContextData,
+  value = null,
+}: ValueProps) => {
   if (isContextData) {
     return (
       <ContextData
@@ -38,4 +44,4 @@ export function Value({subjectIcon, meta, raw, isContextData, value = null}: Val
       {subjectIcon}
     </pre>
   );
-}
+};

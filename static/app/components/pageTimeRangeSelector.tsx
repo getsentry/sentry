@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 
 type Props = React.ComponentProps<typeof TimeRangeSelector> & {className?: string};
 
-function PageTimeRangeSelector({className, ...props}: Props) {
+const PageTimeRangeSelector = ({className, ...props}: Props) => {
   return (
     <DropdownDate className={className}>
       <TimeRangeSelector
@@ -18,7 +18,7 @@ function PageTimeRangeSelector({className, ...props}: Props) {
       />
     </DropdownDate>
   );
-}
+};
 
 const DropdownDate = styled(Panel)`
   padding: 0;

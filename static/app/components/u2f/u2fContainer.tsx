@@ -11,7 +11,7 @@ type Props = {
   displayMode?: U2FSignProps['displayMode'];
 };
 
-function U2fContainer({className, authenticators, ...props}: Props) {
+const U2fContainer = ({className, authenticators, ...props}: Props) => {
   if (!authenticators.length) {
     return null;
   }
@@ -25,6 +25,6 @@ function U2fContainer({className, authenticators, ...props}: Props) {
       )}
     </div>
   );
-}
+};
 
 export default U2fContainer;

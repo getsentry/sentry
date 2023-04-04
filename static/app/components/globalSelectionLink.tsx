@@ -32,7 +32,7 @@ interface Props {
  *
  * Falls back to <a> if there is no router present.
  */
-function GlobalSelectionLink(props: Props) {
+const GlobalSelectionLink = (props: Props) => {
   const {to} = props;
   const location = useLocation();
 
@@ -71,6 +71,6 @@ function GlobalSelectionLink(props: Props) {
     (typeof to === 'string' ? to : to.pathname) + (queryString ? `?${queryString}` : '');
 
   return <a {...props} href={url} />;
-}
+};
 
 export default GlobalSelectionLink;

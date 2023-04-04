@@ -37,12 +37,12 @@ type ReleasesProviderProps = {
   skipLoad?: boolean;
 };
 
-function ReleasesProvider({
+const ReleasesProvider = ({
   children,
   organization,
   selection,
   skipLoad = false,
-}: ReleasesProviderProps) {
+}: ReleasesProviderProps) => {
   const api = useApi();
   const [releases, setReleases] = useState<Release[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -91,7 +91,7 @@ function ReleasesProvider({
       {children}
     </ReleasesContext.Provider>
   );
-}
+};
 
 interface ReleasesContextValue {
   loading: boolean;

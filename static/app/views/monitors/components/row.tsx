@@ -59,7 +59,7 @@ function scheduleAsText(config: MonitorConfig) {
   return t('Unknown schedule');
 }
 
-function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
+const MonitorRow = ({monitor, organization, onDelete}: MonitorRowProps) => {
   const api = useApi();
   const lastCheckin = <TimeSince unitStyle="regular" date={monitor.lastCheckIn} />;
 
@@ -147,7 +147,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
       </ActionsColumn>
     </Fragment>
   );
-}
+};
 
 export {MonitorRow};
 

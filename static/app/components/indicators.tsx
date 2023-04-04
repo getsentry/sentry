@@ -17,7 +17,7 @@ type Props = {
   className?: string;
 };
 
-function Indicators(props: Props) {
+const Indicators = (props: Props) => {
   const items = useLegacyStore(IndicatorStore);
 
   return (
@@ -33,6 +33,6 @@ function Indicators(props: Props) {
       </AnimatePresence>
     </Toasts>
   );
-}
+};
 
 export default Indicators;

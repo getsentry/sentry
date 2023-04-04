@@ -12,7 +12,7 @@ type Props = {
 
 const features = ['organizations:performance-view'];
 
-function PerfDisabled() {
+const PerfDisabled = () => {
   return (
     <FeatureDisabled
       featureName={t('Performance Monitoring')}
@@ -21,9 +21,9 @@ function PerfDisabled() {
       message={t('Requires performance monitoring.')}
     />
   );
-}
+};
 
-function TraceFeature({organization, replayRecord}: Props) {
+const TraceFeature = ({organization, replayRecord}: Props) => {
   return (
     <Feature
       features={features}
@@ -34,6 +34,6 @@ function TraceFeature({organization, replayRecord}: Props) {
       <Trace organization={organization} replayRecord={replayRecord} />
     </Feature>
   );
-}
+};
 
 export default TraceFeature;

@@ -23,14 +23,14 @@ type Props = {
   onMultiSelect?: (project: Project) => void;
 };
 
-function ProjectSelectorItem({
+const ProjectSelectorItem = ({
   project,
   organization,
   onMultiSelect,
   multi = false,
   inputValue = '',
   isChecked = false,
-}: Props) {
+}: Props) => {
   const onSelectedChange = () => {
     onMultiSelect?.(project);
   };
@@ -109,7 +109,7 @@ function ProjectSelectorItem({
       />
     </ProjectFilterRow>
   );
-}
+};
 
 export default ProjectSelectorItem;
 

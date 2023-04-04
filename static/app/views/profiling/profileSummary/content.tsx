@@ -29,7 +29,7 @@ interface ProfileSummaryContentProps {
   transaction: string;
 }
 
-function ProfileSummaryContent(props: ProfileSummaryContentProps) {
+const ProfileSummaryContent = (props: ProfileSummaryContentProps) => {
   const organization = useOrganization();
   const fields = useMemo(
     () => getProfilesTableFields(props.project.platform),
@@ -115,7 +115,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
       </Layout.Main>
     </Fragment>
   );
-}
+};
 
 const ALL_FIELDS = [
   'profile.id',

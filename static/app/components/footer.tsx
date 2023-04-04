@@ -14,7 +14,7 @@ type Props = {
   className?: string;
 };
 
-function BaseFooter({className}: Props) {
+const BaseFooter = ({className}: Props) => {
   const {isSelfHosted, version, privacyUrl, termsUrl, demoMode} =
     useLegacyStore(ConfigStore);
 
@@ -56,7 +56,7 @@ function BaseFooter({className}: Props) {
       <Hook name="footer" />
     </footer>
   );
-}
+};
 
 const LeftLinks = styled('div')`
   display: grid;

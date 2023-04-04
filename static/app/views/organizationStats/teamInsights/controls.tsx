@@ -42,13 +42,13 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'location'> & {
   showEnvironment?: boolean;
 };
 
-function TeamStatsControls({
+const TeamStatsControls = ({
   location,
   router,
   currentTeam,
   currentEnvironment,
   showEnvironment,
-}: Props) {
+}: Props) => {
   const {projects} = useProjects({
     slugs: currentTeam?.projects.map(project => project.slug) ?? [],
   });
@@ -225,7 +225,7 @@ function TeamStatsControls({
       />
     </ControlsWrapper>
   );
-}
+};
 
 export default TeamStatsControls;
 

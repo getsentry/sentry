@@ -9,7 +9,7 @@ type Props = {
   tooltip?: string;
 };
 
-function PackageStatus({status, tooltip}: Props) {
+const PackageStatus = ({status, tooltip}: Props) => {
   const getIcon = () => {
     switch (status) {
       case 'success':
@@ -37,7 +37,7 @@ function PackageStatus({status, tooltip}: Props) {
       <PackageStatusIcon>{icon}</PackageStatusIcon>
     </StyledTooltip>
   );
-}
+};
 
 const StyledTooltip = styled(Tooltip)`
   margin-left: ${space(0.75)};

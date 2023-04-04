@@ -37,7 +37,7 @@ describe('useApiRequests', () => {
     const memoryHistory = createMemoryHistory();
     memoryHistory.push('/');
 
-    function App() {
+    const App = () => {
       return (
         <Router
           history={memoryHistory}
@@ -53,7 +53,7 @@ describe('useApiRequests', () => {
           <Route path="/unique-error" component={UniqueErrorsAsyncComponent} />
         </Router>
       );
-    }
+    };
     it('renders on successful request', async function () {
       const mockRequest = MockApiClient.addMockResponse({
         url: '/some/path/to/something/',
@@ -143,7 +143,7 @@ describe('useApiRequests', () => {
 
       const mockOnAllEndpointsSuccess = jest.fn();
 
-      function MultiRouteComponent() {
+      const MultiRouteComponent = () => {
         const {remainingRequests} = useApiRequests({
           endpoints: [
             ['data', '/some/path/to/something/'],
@@ -152,11 +152,11 @@ describe('useApiRequests', () => {
           onLoadAllEndpointsSuccess: mockOnAllEndpointsSuccess,
         });
         return <div data-test-id="remaining-requests">{remainingRequests}</div>;
-      }
+      };
       const memoryHistory = createMemoryHistory();
       memoryHistory.push('/multi');
 
-      function App() {
+      const App = () => {
         return (
           <Router
             history={memoryHistory}
@@ -171,7 +171,7 @@ describe('useApiRequests', () => {
             <Route path="/multi" component={MultiRouteComponent} />
           </Router>
         );
-      }
+      };
       render(<App />);
 
       expect(await screen.findByText('2')).toBeInTheDocument();

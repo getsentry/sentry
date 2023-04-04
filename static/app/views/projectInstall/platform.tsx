@@ -27,7 +27,7 @@ const SetUpSdkDoc = HookOrDefault({
 
 type Props = RouteComponentProps<{platform: string; projectId: string}, {}>;
 
-export function ProjectInstallPlatform({location, params, route, router}: Props) {
+export const ProjectInstallPlatform = ({location, params, route, router}: Props) => {
   const organization = useOrganization();
 
   const {projects, initiallyLoaded} = useProjects({
@@ -135,7 +135,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
       </div>
     </Fragment>
   );
-}
+};
 
 const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};

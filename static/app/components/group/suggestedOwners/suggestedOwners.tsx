@@ -166,7 +166,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
   }
 }
 
-function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'>) {
+const SuggestedOwnersWrapper = (props: Omit<Props, 'committers' | 'organization'>) => {
   const organization = useOrganization();
   const {data} = useCommitters(
     {
@@ -187,6 +187,6 @@ function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'
       {...props}
     />
   );
-}
+};
 
 export default SuggestedOwnersWrapper;

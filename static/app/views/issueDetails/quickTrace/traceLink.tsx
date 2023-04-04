@@ -14,7 +14,7 @@ type TraceLinkProps = {
   event: Event;
 };
 
-export function TraceLink({event}: TraceLinkProps) {
+export const TraceLink = ({event}: TraceLinkProps) => {
   const organization = useOrganization();
   const quickTrace = useContext(QuickTraceContext);
   const handleTraceLink = useCallback(() => {
@@ -39,7 +39,7 @@ export function TraceLink({event}: TraceLinkProps) {
       {t('View Full Trace')}
     </StyledLink>
   );
-}
+};
 
 const StyledLink = styled(Link)`
   margin-left: ${space(1)};

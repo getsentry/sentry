@@ -23,14 +23,14 @@ type Props = {
   repository: CustomRepo;
 };
 
-function Repository({
+const Repository = ({
   repository,
   onSyncNow,
   onDelete,
   onEdit,
   hasFeature,
   hasAccess,
-}: Props) {
+}: Props) => {
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const {id, name, type} = repository;
 
@@ -104,7 +104,7 @@ function Repository({
       />
     </StyledPanelItem>
   );
-}
+};
 
 export default Repository;
 

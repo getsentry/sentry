@@ -44,13 +44,13 @@ const DEFAULT_CENTER_X = 10.97;
 const DISCOVER_QUERY_LIST_CENTER_Y = -12;
 const DEFAULT_CENTER_Y = 9.71;
 
-export function WorldMapChart({
+export const WorldMapChart = ({
   series,
   seriesOptions,
   fromDiscover,
   fromDiscoverQueryList,
   ...props
-}: WorldMapChartProps) {
+}: WorldMapChartProps) => {
   const theme = useTheme();
   const [state, setState] = useState<State>(() => ({
     countryToCodeMap: null,
@@ -197,4 +197,4 @@ export function WorldMapChart({
       height={fromDiscover ? 400 : undefined}
     />
   );
-}
+};

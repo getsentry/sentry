@@ -18,7 +18,7 @@ type Props = Omit<InterfaceProps, 'silentIfUnsupported' | 'flowMode'> & {
   displayMode?: 'signin' | 'enroll' | 'sudo';
 };
 
-function U2fSign({displayMode = 'signin', ...props}: Props) {
+const U2fSign = ({displayMode = 'signin', ...props}: Props) => {
   const flowMode = displayMode === 'enroll' ? 'enroll' : 'sign';
 
   return (
@@ -30,6 +30,6 @@ function U2fSign({displayMode = 'signin', ...props}: Props) {
       <p>{MESSAGES[displayMode] ?? null}</p>
     </U2fInterface>
   );
-}
+};
 
 export default U2fSign;

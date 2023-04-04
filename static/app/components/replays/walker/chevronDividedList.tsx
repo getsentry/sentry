@@ -8,7 +8,7 @@ type Props = {
   items: ReactElement[];
 };
 
-function ChevronDividedList({items}: Props) {
+const ChevronDividedList = ({items}: Props) => {
   return (
     <List>
       {items.flatMap((item, i) => {
@@ -27,7 +27,7 @@ function ChevronDividedList({items}: Props) {
       })}
     </List>
   );
-}
+};
 
 const List = styled('ul')`
   padding: 0;

@@ -60,7 +60,7 @@ export const sdkLoaderOptions = {
   },
 };
 
-export function KeySettings({onRemove, organization, params, data}: Props) {
+export const KeySettings = ({onRemove, organization, params, data}: Props) => {
   const api = useApi();
   const [browserSdkVersion, setBrowserSdkVersion] = useState(data.browserSdkVersion);
   const [dynamicSDKLoaderOptions, setDynamicSDKLoaderOptions] = useState(
@@ -336,4 +336,4 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
       )}
     </Access>
   );
-}
+};

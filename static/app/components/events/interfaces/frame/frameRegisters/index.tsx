@@ -18,7 +18,7 @@ type Props = {
 
 const CLIPPED_HEIGHT = 40;
 
-export function FrameRegisters({registers, deviceArch, meta}: Props) {
+export const FrameRegisters = ({registers, deviceArch, meta}: Props) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const [renderedHeight, setRenderedHeight] = useState(0);
 
@@ -59,7 +59,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
       </StyledClippedBox>
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled('div')`
   padding: ${space(0.5)} ${space(1.5)};

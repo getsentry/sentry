@@ -8,7 +8,7 @@ type Props = {
   sort?: Sort;
 };
 
-function HeaderCell({column, sort}: Props) {
+const HeaderCell = ({column, sort}: Props) => {
   switch (column) {
     case ReplayColumns.activity:
       return (
@@ -50,6 +50,6 @@ function HeaderCell({column, sort}: Props) {
     default:
       return null;
   }
-}
+};
 
 export default HeaderCell;

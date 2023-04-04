@@ -11,7 +11,7 @@ type Props = {
   organization: Organization;
 };
 
-function DiscoverContainer({organization, children}: Props) {
+const DiscoverContainer = ({organization, children}: Props) => {
   function renderNoAccess() {
     return (
       <Layout.Page withPadding>
@@ -30,6 +30,6 @@ function DiscoverContainer({organization, children}: Props) {
       <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
     </Feature>
   );
-}
+};
 
 export default withOrganization(DiscoverContainer);

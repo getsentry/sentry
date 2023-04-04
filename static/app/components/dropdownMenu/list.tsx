@@ -64,7 +64,7 @@ export interface DropdownMenuListProps
   size?: MenuItemProps['size'];
 }
 
-function DropdownMenuList({
+const DropdownMenuList = ({
   closeOnSelect = true,
   onClose,
   minWidth,
@@ -73,7 +73,7 @@ function DropdownMenuList({
   overlayState,
   overlayPositionProps,
   ...props
-}: DropdownMenuListProps) {
+}: DropdownMenuListProps) => {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
@@ -251,7 +251,7 @@ function DropdownMenuList({
       </PositionWrapper>
     </FocusScope>
   );
-}
+};
 
 export default DropdownMenuList;
 

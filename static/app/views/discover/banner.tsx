@@ -81,11 +81,11 @@ type Props = {
   showBuildNewQueryButton?: boolean;
 };
 
-function DiscoverBanner({
+const DiscoverBanner = ({
   organization,
   resultsUrl,
   showBuildNewQueryButton = true,
-}: Props) {
+}: Props) => {
   function onAdvance(step: number, duration: number) {
     trackAdvancedAnalyticsEvent('discover_v2.tour.advance', {
       organization,
@@ -143,6 +143,6 @@ function DiscoverBanner({
       </FeatureTourModal>
     </Banner>
   );
-}
+};
 
 export default DiscoverBanner;

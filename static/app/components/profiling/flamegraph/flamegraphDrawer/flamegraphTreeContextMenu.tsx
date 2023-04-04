@@ -16,7 +16,7 @@ interface FlamegraphTreeContextMenuProps {
   onZoomIntoFrameClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export function FlamegraphTreeContextMenu(props: FlamegraphTreeContextMenuProps) {
+export const FlamegraphTreeContextMenu = (props: FlamegraphTreeContextMenuProps) => {
   return props.contextMenu.open ? (
     <Fragment>
       <ProfilingContextMenuLayer onClick={() => props.contextMenu.setOpen(false)} />
@@ -47,4 +47,4 @@ export function FlamegraphTreeContextMenu(props: FlamegraphTreeContextMenuProps)
       </ProfilingContextMenu>
     </Fragment>
   ) : null;
-}
+};

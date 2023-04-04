@@ -64,7 +64,11 @@ function defaultField({
  * InputField should be thought of as a "base" field, and generally not used
  * within the Form itself.
  */
-function InputField({field = defaultField, hideControlState, ...props}: InputFieldProps) {
+const InputField = ({
+  field = defaultField,
+  hideControlState,
+  ...props
+}: InputFieldProps) => {
   return (
     <FormField {...props} hideControlState flexibleControlStateSize>
       {({children: _children, ...otherFieldProps}) =>
@@ -72,6 +76,6 @@ function InputField({field = defaultField, hideControlState, ...props}: InputFie
       }
     </FormField>
   );
-}
+};
 
 export default InputField;

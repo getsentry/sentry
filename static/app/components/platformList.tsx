@@ -35,7 +35,7 @@ type WrapperProps = Required<
   Pick<Props, 'showCounter' | 'size' | 'direction' | 'consistentWidth' | 'max'>
 >;
 
-function PlatformList({
+const PlatformList = ({
   platforms = [],
   direction = 'right',
   max = 3,
@@ -43,7 +43,7 @@ function PlatformList({
   consistentWidth = false,
   showCounter = false,
   className,
-}: Props) {
+}: Props) => {
   const visiblePlatforms = platforms.slice(0, max);
   const numNotVisiblePlatforms = platforms.length - visiblePlatforms.length;
   const displayCounter = showCounter && !!numNotVisiblePlatforms;
@@ -108,7 +108,7 @@ function PlatformList({
       {renderContent()}
     </Wrapper>
   );
-}
+};
 
 export default PlatformList;
 

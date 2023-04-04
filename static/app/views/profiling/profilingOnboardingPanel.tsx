@@ -10,7 +10,7 @@ interface ProfilingOnboardingPanelProps {
   children: React.ReactNode;
 }
 
-export function ProfilingOnboardingPanel(props: ProfilingOnboardingPanelProps) {
+export const ProfilingOnboardingPanel = (props: ProfilingOnboardingPanelProps) => {
   return (
     <OnboardingPanel image={<HeroImage src={emptyStateImg} />}>
       <h3>{t('Function level insights')}</h3>
@@ -22,7 +22,7 @@ export function ProfilingOnboardingPanel(props: ProfilingOnboardingPanelProps) {
       <ButtonList gap={1}>{props.children}</ButtonList>
     </OnboardingPanel>
   );
-}
+};
 
 const HeroImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {

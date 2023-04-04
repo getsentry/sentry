@@ -25,7 +25,7 @@ export const gpuKnownDataValues = [
 
 const gpuIgnoredDataValues = [];
 
-export function GPUEventContext({event, data}: Props) {
+export const GPUEventContext = ({event, data}: Props) => {
   const meta = event._meta?.contexts?.gpu ?? {};
 
   const gpuValues = [...gpuKnownDataValues];
@@ -57,4 +57,4 @@ export function GPUEventContext({event, data}: Props) {
       />
     </Fragment>
   );
-}
+};

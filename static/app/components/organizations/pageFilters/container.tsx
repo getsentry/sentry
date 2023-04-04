@@ -48,7 +48,7 @@ type Props = InitializeUrlStateProps & {
  * The page filters container handles initialization of page filters for the
  * wrapped content. Children will not be rendered until the filters are ready.
  */
-function Container({skipLoadLastUsed, children, ...props}: Props) {
+const Container = ({skipLoadLastUsed, children, ...props}: Props) => {
   const {
     forceProject,
     organization,
@@ -186,7 +186,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       {children}
     </Fragment>
   );
-}
+};
 
 const PageFiltersContainer = withOrganization(Container);
 

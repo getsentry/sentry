@@ -19,7 +19,7 @@ type Props = {
   replace?: boolean;
 };
 
-function SortLink({
+const SortLink = ({
   align,
   title,
   canSort,
@@ -27,7 +27,7 @@ function SortLink({
   onClick,
   direction,
   replace,
-}: Props) {
+}: Props) => {
   const target = generateSortLink();
 
   if (!target || !canSort) {
@@ -51,7 +51,7 @@ function SortLink({
       {title} {arrow}
     </StyledLink>
   );
-}
+};
 
 type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
 type StyledLinkProps = LinkProps & {align: Alignments};

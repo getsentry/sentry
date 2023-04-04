@@ -59,8 +59,8 @@ type QueryProps = DiscoverQueryProps & {
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
-function VitalsCardsDiscoverQuery(props: QueryProps) {
+const VitalsCardsDiscoverQuery = (props: QueryProps) => {
   return <GenericDiscoverQuery<TableData, QueryProps> route="events" {...props} />;
-}
+};
 
 export default VitalsCardsDiscoverQuery;

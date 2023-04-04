@@ -20,7 +20,7 @@ type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 
-function DashboardsV2Container(props: Props) {
+const DashboardsV2Container = (props: Props) => {
   const {organization, api, location, children} = props;
 
   if (organization.features.includes('dashboards-edit')) {
@@ -56,6 +56,6 @@ function DashboardsV2Container(props: Props) {
       </OrgDashboards>
     </DashboardBasicFeature>
   );
-}
+};
 
 export default withApi(withOrganization(DashboardsV2Container));

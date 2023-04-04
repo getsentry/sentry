@@ -34,7 +34,7 @@ type Props = {
     'groupingCurrentLevel' | 'hasHierarchicalGrouping'
   >;
 
-export function Content({
+export const Content = ({
   newestFirst,
   event,
   stackView,
@@ -45,7 +45,7 @@ export function Content({
   values,
   type,
   meta,
-}: Props) {
+}: Props) => {
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
   // instead.
@@ -126,7 +126,7 @@ export function Content({
   }
 
   return <div>{children}</div>;
-}
+};
 
 const StyledPre = styled('pre')`
   margin-bottom: ${space(1)};

@@ -67,21 +67,21 @@ const BadgeBorder = styled('div')<{
   justify-content: center;
 `;
 
-export function ErrorBadge() {
+export const ErrorBadge = () => {
   return (
     <BadgeBorder color="error">
       <IconFire color="errorText" size="xs" />
     </BadgeBorder>
   );
-}
+};
 
-export function EmbeddedTransactionBadge({
+export const EmbeddedTransactionBadge = ({
   expanded,
   onClick,
 }: {
   expanded: boolean;
   onClick: () => void;
-}) {
+}) => {
   return (
     <BadgeBorder
       data-test-id="embedded-transaction-badge"
@@ -99,12 +99,12 @@ export function EmbeddedTransactionBadge({
       )}
     </BadgeBorder>
   );
-}
+};
 
-export function ProfileBadge() {
+export const ProfileBadge = () => {
   return (
     <BadgeBorder data-test-id="profile-badge" color="activeText" fillBackground>
       <IconProfiling color="background" size="xs" />
     </BadgeBorder>
   );
-}
+};

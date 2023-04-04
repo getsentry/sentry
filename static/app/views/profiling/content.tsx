@@ -48,7 +48,7 @@ interface ProfilingContentProps {
   location: Location;
 }
 
-function ProfilingContent({location}: ProfilingContentProps) {
+const ProfilingContent = ({location}: ProfilingContentProps) => {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
@@ -272,7 +272,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
-}
+};
 
 const BASE_FIELDS = [
   'transaction',

@@ -115,7 +115,7 @@ type ChartProps = {
   disableChartPadding?: boolean;
 };
 
-export function Chart(props: ChartProps) {
+export const Chart = (props: ChartProps) => {
   const theme = useTheme();
   const {chartData, zoomProps, spanSlug} = props;
 
@@ -170,4 +170,4 @@ export function Chart(props: ChartProps) {
       })}
     </Fragment>
   );
-}
+};

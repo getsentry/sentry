@@ -92,7 +92,7 @@ export const useOnboardingTasks = (
   }, [organization, projects, onboardingState]);
 };
 
-function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Props) {
+const OnboardingWizardSidebar = ({collapsed, orientation, onClose, projects}: Props) => {
   const api = useApi();
   const organization = useOrganization();
 
@@ -211,7 +211,7 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
       </TaskList>
     </TaskSidebarPanel>
   );
-}
+};
 
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;

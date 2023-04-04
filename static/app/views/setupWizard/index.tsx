@@ -24,7 +24,7 @@ const platformDocsMapping = {
     'https://docs.sentry.io/platforms/javascript/guides/electron/#verify',
 };
 
-function SetupWizard({hash = false, organizations}: Props) {
+const SetupWizard = ({hash = false, organizations}: Props) => {
   const api = useApi();
   const closeTimeoutRef = useRef<number | undefined>(undefined);
   const [finished, setFinished] = useState(false);
@@ -131,7 +131,7 @@ function SetupWizard({hash = false, organizations}: Props) {
       </div>
     </ThemeAndStyleProvider>
   );
-}
+};
 
 const MinWidthButtonBar = styled(ButtonBar)`
   width: min-content;

@@ -39,7 +39,7 @@ type MetricAlertActivityProps = {
   organization: Organization;
 };
 
-function MetricAlertActivity({organization, incident}: MetricAlertActivityProps) {
+const MetricAlertActivity = ({organization, incident}: MetricAlertActivityProps) => {
   const activities = (incident.activities ?? []).filter(
     activity => activity.type === IncidentActivityType.STATUS_CHANGE
   );
@@ -120,14 +120,14 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
       />
     </ErrorBoundary>
   );
-}
+};
 
 type Props = {
   organization: Organization;
   incidents?: Incident[];
 };
 
-function MetricHistory({organization, incidents}: Props) {
+const MetricHistory = ({organization, incidents}: Props) => {
   const numOfIncidents = (incidents ?? []).length;
 
   return (
@@ -164,7 +164,7 @@ function MetricHistory({organization, incidents}: Props) {
       )}
     </CollapsePanel>
   );
-}
+};
 
 export default MetricHistory;
 

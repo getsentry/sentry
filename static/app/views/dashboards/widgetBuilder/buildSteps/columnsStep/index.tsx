@@ -24,7 +24,7 @@ interface Props {
   queryErrors?: Record<string, any>[];
 }
 
-export function ColumnsStep({
+export const ColumnsStep = ({
   dataSet,
   displayType,
   organization,
@@ -33,7 +33,7 @@ export function ColumnsStep({
   queryErrors,
   explodedFields,
   tags,
-}: Props) {
+}: Props) => {
   const {customMeasurements} = useCustomMeasurements();
   const datasetConfig = getDatasetConfig(widgetType);
   return (
@@ -92,4 +92,4 @@ export function ColumnsStep({
       />
     </BuildStep>
   );
-}
+};

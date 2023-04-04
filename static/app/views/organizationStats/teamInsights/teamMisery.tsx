@@ -38,7 +38,7 @@ type TeamMiseryProps = {
   period?: string | null;
 };
 
-function TeamMisery({
+const TeamMisery = ({
   organization,
   location,
   projects,
@@ -47,7 +47,7 @@ function TeamMisery({
   isLoading,
   period,
   error,
-}: TeamMiseryProps) {
+}: TeamMiseryProps) => {
   const miseryRenderer =
     periodTableData?.meta &&
     getFieldRenderer('user_misery()', periodTableData.meta, false);
@@ -173,7 +173,7 @@ function TeamMisery({
       )}
     </CollapsePanel>
   );
-}
+};
 
 type Props = AsyncComponent['props'] & {
   location: Location;
@@ -185,7 +185,7 @@ type Props = AsyncComponent['props'] & {
   start?: string;
 } & DateTimeObject;
 
-function TeamMiseryWrapper({
+const TeamMiseryWrapper = ({
   organization,
   teamId,
   projects,
@@ -193,7 +193,7 @@ function TeamMiseryWrapper({
   period,
   start,
   end,
-}: Props) {
+}: Props) => {
   if (projects.length === 0) {
     return (
       <TeamMisery
@@ -266,7 +266,7 @@ function TeamMiseryWrapper({
       )}
     </DiscoverQuery>
   );
-}
+};
 
 export default TeamMiseryWrapper;
 

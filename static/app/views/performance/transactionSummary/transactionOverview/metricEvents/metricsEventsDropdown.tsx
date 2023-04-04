@@ -46,15 +46,15 @@ function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOpt
   ];
 }
 
-export function MetricsEventsDropdown() {
+export const MetricsEventsDropdown = () => {
   return (
     <Feature features={['performance-use-metrics']}>
       <InnerDropdown />
     </Feature>
   );
-}
+};
 
-function InnerDropdown() {
+const InnerDropdown = () => {
   const mepSetting = useMEPSettingContext();
 
   const options = getOptions(mepSetting);
@@ -70,4 +70,4 @@ function InnerDropdown() {
       onChange={opt => mepSetting.setMetricSettingState(opt.value)}
     />
   );
-}
+};

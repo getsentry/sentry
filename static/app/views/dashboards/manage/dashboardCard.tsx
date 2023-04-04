@@ -18,7 +18,7 @@ interface Props {
   renderContextMenu?: () => void;
 }
 
-function DashboardCard({
+const DashboardCard = ({
   title,
   detail,
   createdBy,
@@ -27,7 +27,7 @@ function DashboardCard({
   to,
   onEventClick,
   renderContextMenu,
-}: Props) {
+}: Props) => {
   function onClick() {
     onEventClick?.();
   }
@@ -64,7 +64,7 @@ function DashboardCard({
       </StyledDashboardCard>
     </Link>
   );
-}
+};
 
 const AvatarWrapper = styled('span')`
   border: 3px solid ${p => p.theme.border};

@@ -22,14 +22,14 @@ type Props = {
   projSlug: Project['slug'];
 };
 
-function BuiltInRepositories({
+const BuiltInRepositories = ({
   api,
   organization,
   builtinSymbolSourceOptions,
   builtinSymbolSources,
   projSlug,
   isLoading,
-}: Props) {
+}: Props) => {
   // If the project details object has an unknown built-in source, this will be filtered here.
   // This prevents the UI from showing the wrong feedback message when updating the field
   const validBuiltInSymbolSources = builtinSymbolSources.filter(builtinSymbolSource =>
@@ -119,7 +119,7 @@ function BuiltInRepositories({
       </PanelBody>
     </Panel>
   );
-}
+};
 
 export default BuiltInRepositories;
 

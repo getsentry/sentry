@@ -37,7 +37,7 @@ type Props = {
   required?: boolean;
 } & FormFieldProps;
 
-function CheckboxField(props: Props) {
+const CheckboxField = (props: Props) => {
   const {name, disabled, stacked, required, label, help} = props;
 
   const helpElement = typeof help === 'function' ? help(props) : help;
@@ -82,7 +82,7 @@ function CheckboxField(props: Props) {
       }}
     </FormField>
   );
-}
+};
 
 const ControlWrapper = styled('span')`
   align-self: flex-start;

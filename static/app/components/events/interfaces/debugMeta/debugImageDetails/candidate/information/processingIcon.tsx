@@ -11,7 +11,7 @@ type Props = {
   processingInfo: CandidateProcessingInfo;
 };
 
-function ProcessingIcon({processingInfo}: Props) {
+const ProcessingIcon = ({processingInfo}: Props) => {
   switch (processingInfo.status) {
     case CandidateProcessingStatus.OK:
       return <IconCheckmark color="successText" size="xs" />;
@@ -41,6 +41,6 @@ function ProcessingIcon({processingInfo}: Props) {
       return null; // this shall never happen
     }
   }
-}
+};
 
 export default ProcessingIcon;

@@ -167,14 +167,14 @@ interface Props {
   timePeriod: TimePeriodType;
 }
 
-function RelatedTransactions({
+const RelatedTransactions = ({
   rule,
   projects,
   filter,
   location,
   organization,
   timePeriod,
-}: Props) {
+}: Props) => {
   const eventView = getMetricRuleDiscoverQuery({
     rule,
     timePeriod,
@@ -194,7 +194,7 @@ function RelatedTransactions({
       summaryConditions={`${rule.query} ${filter}`}
     />
   );
-}
+};
 
 export default RelatedTransactions;
 

@@ -12,7 +12,7 @@ type Props = {
   project?: Project;
 };
 
-function UpdateAlert({Wrapper, project, className}: Props) {
+const UpdateAlert = ({Wrapper, project, className}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
   if (
@@ -43,7 +43,7 @@ function UpdateAlert({Wrapper, project, className}: Props) {
   );
 
   return Wrapper ? <Wrapper>{notices}</Wrapper> : notices;
-}
+};
 
 export default UpdateAlert;
 

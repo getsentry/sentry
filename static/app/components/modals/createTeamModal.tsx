@@ -12,7 +12,7 @@ type Props = ModalRenderProps & {
   onClose?: (team: Team) => void;
 };
 
-function CreateTeamModal({Body, Header, ...props}: Props) {
+const CreateTeamModal = ({Body, Header, ...props}: Props) => {
   const {onClose, closeModal, organization} = props;
   const api = useApi();
 
@@ -40,6 +40,6 @@ function CreateTeamModal({Body, Header, ...props}: Props) {
       </Body>
     </Fragment>
   );
-}
+};
 
 export default CreateTeamModal;

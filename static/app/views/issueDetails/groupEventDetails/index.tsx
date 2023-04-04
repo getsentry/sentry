@@ -29,7 +29,7 @@ export interface GroupEventDetailsProps
 }
 
 // Blocks rendering of the event until the environment is loaded
-export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
+export const GroupEventDetailsContainer = (props: GroupEventDetailsProps) => {
   const api = useApi();
 
   // fetchOrganizationEnvironments is called in groupDetails.tsx
@@ -53,6 +53,6 @@ export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
   );
 
   return <GroupEventDetails {...otherProps} api={api} environments={environments} />;
-}
+};
 
 export default withOrganization(withPageFilters(GroupEventDetailsContainer));

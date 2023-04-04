@@ -18,7 +18,7 @@ export type CreateReleaseIntegrationModalOptions = {
 type CreateReleaseIntegrationModalProps = CreateReleaseIntegrationModalOptions &
   ModalRenderProps;
 
-function CreateReleaseIntegrationModal({
+const CreateReleaseIntegrationModal = ({
   Body,
   Header,
   closeModal,
@@ -26,7 +26,7 @@ function CreateReleaseIntegrationModal({
   organization,
   onCreateSuccess,
   onCancel,
-}: CreateReleaseIntegrationModalProps) {
+}: CreateReleaseIntegrationModalProps) => {
   const api = useApi();
   const fields: Field[] = [
     {
@@ -98,6 +98,6 @@ function CreateReleaseIntegrationModal({
       </Body>
     </Fragment>
   );
-}
+};
 
 export default CreateReleaseIntegrationModal;

@@ -10,7 +10,7 @@ type Props = {
   onRestore?: () => void;
 };
 
-function ReleaseArchivedNotice({onRestore, multi}: Props) {
+const ReleaseArchivedNotice = ({onRestore, multi}: Props) => {
   return (
     <Alert type="warning">
       {multi
@@ -27,7 +27,7 @@ function ReleaseArchivedNotice({onRestore, multi}: Props) {
       )}
     </Alert>
   );
-}
+};
 
 const UnarchiveButton = styled(Button)`
   font-size: inherit;

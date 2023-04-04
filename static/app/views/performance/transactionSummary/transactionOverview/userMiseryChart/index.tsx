@@ -27,7 +27,7 @@ type Props = ViewProps & {
 /**
  * Fetch and render an area chart that shows user misery over a period
  */
-function UserMiseryChart({
+const UserMiseryChart = ({
   project,
   environment,
   organization,
@@ -36,7 +36,7 @@ function UserMiseryChart({
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const api = useApi();
   const mepContext = useMEPSettingContext();
@@ -107,6 +107,6 @@ function UserMiseryChart({
       </EventsRequest>
     </Fragment>
   );
-}
+};
 
 export default UserMiseryChart;

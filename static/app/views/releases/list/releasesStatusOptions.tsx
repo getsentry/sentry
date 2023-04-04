@@ -19,7 +19,7 @@ type Props = {
   selected: ReleasesStatusOption;
 };
 
-function ReleasesStatusOptions({selected, onSelect}: Props) {
+const ReleasesStatusOptions = ({selected, onSelect}: Props) => {
   return (
     <StyledReleasesDropdown
       label={t('Status')}
@@ -28,7 +28,7 @@ function ReleasesStatusOptions({selected, onSelect}: Props) {
       onSelect={onSelect}
     />
   );
-}
+};
 
 export default ReleasesStatusOptions;
 

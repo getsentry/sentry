@@ -26,7 +26,7 @@ export const operatingSystemKnownDataValues = [
 
 const operatingSystemIgnoredDataValues = [OperatingSystemIgnoredDataType.BUILD];
 
-export function OperatingSystemEventContext({data, event}: Props) {
+export const OperatingSystemEventContext = ({data, event}: Props) => {
   const meta = event._meta?.contexts?.os ?? {};
   return (
     <Fragment>
@@ -50,4 +50,4 @@ export function OperatingSystemEventContext({data, event}: Props) {
       />
     </Fragment>
   );
-}
+};

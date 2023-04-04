@@ -4,10 +4,10 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 import useRouteAnalyticsParams from './useRouteAnalyticsParams';
 
-function TestComponent() {
+const TestComponent = () => {
   useRouteAnalyticsParams({foo: 'bar'});
   return <div>hi</div>;
-}
+};
 
 describe('useRouteAnalyticsParams', function () {
   it('calls setRouteAnalyticsParams', function () {

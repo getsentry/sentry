@@ -56,7 +56,7 @@ type Props = {
   task: OnboardingTask;
 };
 
-function Task(props: Props) {
+const Task = (props: Props) => {
   const {task, onSkip, onMarkComplete, forwardedRef, organization, hidePanel} = props;
   const routeContext = useRouteContext();
   const {router} = routeContext;
@@ -175,7 +175,7 @@ function Task(props: Props) {
       )}
     </TaskCard>
   );
-}
+};
 
 const TaskCard = styled(Card)`
   position: relative;

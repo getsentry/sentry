@@ -17,11 +17,11 @@ export interface FlamegraphThreadSelectorProps {
   threadId: FlamegraphState['profiles']['threadId'];
 }
 
-function FlamegraphThreadSelector({
+const FlamegraphThreadSelector = ({
   threadId,
   onThreadIdChange,
   profileGroup,
-}: FlamegraphThreadSelectorProps) {
+}: FlamegraphThreadSelectorProps) => {
   const [profileOptions, emptyProfileOptions]: [
     SelectOption<number>[],
     SelectOption<number>[]
@@ -89,21 +89,21 @@ function FlamegraphThreadSelector({
       searchable
     />
   );
-}
+};
 
 interface ThreadLabelDetailsProps {
   duration: string;
   samples: number;
 }
 
-function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
+const ThreadLabelDetails = (props: ThreadLabelDetailsProps) => {
   return (
     <DetailsContainer>
       <div>{props.duration}</div>
       <div>{tn('%s sample', '%s samples', props.samples)}</div>
     </DetailsContainer>
   );
-}
+};
 
 type ProfileLight = {
   name: Profile['name'];

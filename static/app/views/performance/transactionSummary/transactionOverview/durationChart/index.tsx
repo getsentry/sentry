@@ -43,7 +43,7 @@ enum DurationFunctionField {
  * Fetch and render a stacked area chart that shows duration percentiles over
  * the past 7 days
  */
-function DurationChart({
+const DurationChart = ({
   project,
   environment,
   organization,
@@ -55,7 +55,7 @@ function DurationChart({
   start: propsStart,
   end: propsEnd,
   queryExtras,
-}: Props) {
+}: Props) => {
   const router = useRouter();
   const location = useLocation();
   const api = useApi();
@@ -161,6 +161,6 @@ function DurationChart({
       </EventsRequest>
     </Fragment>
   );
-}
+};
 
 export default DurationChart;

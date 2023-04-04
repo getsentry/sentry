@@ -18,7 +18,7 @@ interface CodeSnippetProps {
   onCopy?: (copiedCode: string) => void;
 }
 
-export function CodeSnippet({
+export const CodeSnippet = ({
   children,
   language,
   dark,
@@ -26,7 +26,7 @@ export function CodeSnippet({
   hideCopyButton,
   onCopy,
   className,
-}: CodeSnippetProps) {
+}: CodeSnippetProps) => {
   const ref = useRef<HTMLModElement | null>(null);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function CodeSnippet({
       </pre>
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled('div')`
   position: relative;

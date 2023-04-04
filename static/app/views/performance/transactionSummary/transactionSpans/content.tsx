@@ -59,7 +59,7 @@ type Props = {
   transactionName: string;
 };
 
-function SpansContent(props: Props) {
+const SpansContent = (props: Props) => {
   const {location, organization, eventView, projectId, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
 
@@ -174,7 +174,7 @@ function SpansContent(props: Props) {
       </DiscoverQuery>
     </Layout.Main>
   );
-}
+};
 
 function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
   eventView = eventView.clone();

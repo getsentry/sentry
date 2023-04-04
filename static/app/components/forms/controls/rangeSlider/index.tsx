@@ -80,7 +80,7 @@ type SliderProps = {
   step?: number;
 };
 
-function RangeSlider({
+const RangeSlider = ({
   id,
   value,
   allowedValues,
@@ -95,7 +95,7 @@ function RangeSlider({
   forwardRef,
   showLabel = true,
   ...props
-}: SliderProps) {
+}: SliderProps) => {
   const [sliderValue, setSliderValue] = useState(
     allowedValues ? allowedValues.indexOf(Number(value || 0)) : value
   );
@@ -207,7 +207,7 @@ function RangeSlider({
       </SliderAndInputWrapper>
     </div>
   );
-}
+};
 
 const RangeSliderContainer = reactForwardRef(function RangeSliderContainer(
   props: SliderProps,

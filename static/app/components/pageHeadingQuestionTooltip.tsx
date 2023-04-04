@@ -15,11 +15,11 @@ interface PageHeadingQuestionTooltipProps extends TooltipProps {
   docsUrl: string;
 }
 
-export function PageHeadingQuestionTooltip({
+export const PageHeadingQuestionTooltip = ({
   docsUrl,
   title,
   ...props
-}: PageHeadingQuestionTooltipProps) {
+}: PageHeadingQuestionTooltipProps) => {
   const contents = (
     <Container>
       {title}
@@ -30,7 +30,7 @@ export function PageHeadingQuestionTooltip({
   return (
     <QuestionTooltip isHoverable position="right" size="sm" title={contents} {...props} />
   );
-}
+};
 
 const Container = styled('div')`
   display: inline-flex;

@@ -74,7 +74,7 @@ const MissingExampleWarning = ({
   );
 };
 
-export function ProjectDocsReact({
+export const ProjectDocsReact = ({
   organization,
   location,
   project,
@@ -84,7 +84,7 @@ export function ProjectDocsReact({
   organization: Organization;
   project: Project;
   newOrg?: boolean;
-}) {
+}) => {
   const api = useApi();
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [hasError, setHasError] = useState(false);
@@ -209,16 +209,16 @@ export function ProjectDocsReact({
       )}
     </Fragment>
   );
-}
+};
 
-function ProjectDocs(props: {
+const ProjectDocs = (props: {
   hasError: boolean;
   onRetry: () => void;
   organization: Organization;
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
   project: Project;
-}) {
+}) => {
   const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
 
   return (
@@ -260,9 +260,9 @@ function ProjectDocs(props: {
       })}
     </Fragment>
   );
-}
+};
 
-function SetupDocs({search, route, router, location, ...props}: Props) {
+const SetupDocs = ({search, route, router, location, ...props}: Props) => {
   const api = useApi();
   const organization = useOrganization();
   const {projects: rawProjects} = useProjects();
@@ -564,7 +564,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       )}
     </Fragment>
   );
-}
+};
 
 export default SetupDocs;
 

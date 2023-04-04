@@ -19,7 +19,7 @@ interface ProfileContextProps {
   event: Event;
 }
 
-export function ProfileEventContext({event, data}: ProfileContextProps) {
+export const ProfileEventContext = ({event, data}: ProfileContextProps) => {
   const organization = useOrganization();
   const meta = event._meta?.contexts?.profile ?? {};
 
@@ -55,7 +55,7 @@ export function ProfileEventContext({event, data}: ProfileContextProps) {
       </ErrorBoundary>
     </Feature>
   );
-}
+};
 
 function getProfileKnownDataDetails({
   data,

@@ -15,7 +15,7 @@ type Props = {
 
 const ContextIcon = lazy(() => import('./contextIcon'));
 
-function Item({children, icon = 'unknown'}: Props) {
+const Item = ({children, icon = 'unknown'}: Props) => {
   // XXX: Codesplit the ContextIcon component since it packs a lot of SVGs
   const iconNode =
     typeof icon === 'string' ? (
@@ -32,7 +32,7 @@ function Item({children, icon = 'unknown'}: Props) {
       {children && <Details>{children}</Details>}
     </ItemContainer>
   );
-}
+};
 
 export default Item;
 

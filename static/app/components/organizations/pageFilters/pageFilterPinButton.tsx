@@ -15,7 +15,7 @@ type Props = {
   className?: string;
 };
 
-function PageFilterPinButton({organization, filter, size, className}: Props) {
+const PageFilterPinButton = ({organization, filter, size, className}: Props) => {
   const {pinnedFilters} = usePageFilters();
   const pinned = pinnedFilters.has(filter);
 
@@ -44,7 +44,7 @@ function PageFilterPinButton({organization, filter, size, className}: Props) {
       {pinned ? t('Locked') : t('Lock')}
     </PinButton>
   );
-}
+};
 
 const PinButton = styled(Button)<{pinned: boolean; size: 'xs' | 'zero'}>`
   display: block;

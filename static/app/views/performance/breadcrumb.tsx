@@ -29,7 +29,7 @@ type Props = {
   vitalName?: string;
 };
 
-function Breadcrumb(props: Props) {
+const Breadcrumb = (props: Props) => {
   function getCrumbs() {
     const crumbs: Crumb[] = [];
     const {
@@ -148,6 +148,6 @@ function Breadcrumb(props: Props) {
   }
 
   return <Breadcrumbs crumbs={getCrumbs()} />;
-}
+};
 
 export default Breadcrumb;

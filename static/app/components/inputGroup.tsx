@@ -44,7 +44,7 @@ export const InputGroupContext = createContext<InputContext>({inputProps: {}});
  *     <InputGroup.TrailingItems> … </InputGroup.TrailingItems>
  *   </InputGroup>
  */
-function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivElement>) {
+const InputGroup = ({children, ...props}: React.HTMLAttributes<HTMLDivElement>) => {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
   const [inputProps, setInputProps] = useState<Partial<InputProps>>({});
@@ -68,7 +68,7 @@ function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivElement>) 
       </InputGroupWrap>
     </InputGroupContext.Provider>
   );
-}
+};
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({size, disabled, ...props}, ref) => {
@@ -130,7 +130,7 @@ interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
  *     <Input />
  *   </InputGroup>
  */
-function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProps) {
+const LeadingItems = ({children, disablePointerEvents, ...props}: InputItemsProps) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
@@ -155,7 +155,7 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
       {children}
     </InputLeadingItemsWrap>
   );
-}
+};
 
 /**
  * Container for trailing input items (e.g. a clear button). To be wrapped
@@ -165,7 +165,7 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
  *     <InputGroup.TrailingItems> … </InputGroup.TrailingItems>
  *   </InputGroup>
  */
-function TrailingItems({children, disablePointerEvents, ...props}: InputItemsProps) {
+const TrailingItems = ({children, disablePointerEvents, ...props}: InputItemsProps) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
@@ -190,7 +190,7 @@ function TrailingItems({children, disablePointerEvents, ...props}: InputItemsPro
       {children}
     </InputTrailingItemsWrap>
   );
-}
+};
 
 InputGroup.Input = Input;
 InputGroup.TextArea = TextArea;

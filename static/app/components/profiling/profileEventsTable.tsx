@@ -39,9 +39,9 @@ interface ProfileEventsTableProps<F extends FieldType> {
   sortableColumns?: Set<F>;
 }
 
-export function ProfileEventsTable<F extends FieldType>(
+export const ProfileEventsTable = <F extends FieldType>(
   props: ProfileEventsTableProps<F>
-) {
+) => {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -85,7 +85,7 @@ export function ProfileEventsTable<F extends FieldType>(
       location={location}
     />
   );
-}
+};
 
 type RenderBagger = {
   location: Location;
@@ -127,7 +127,7 @@ interface ProfileEventsCellProps<F extends FieldType> {
   rowIndex: number;
 }
 
-function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>) {
+const ProfileEventsCell = <F extends FieldType>(props: ProfileEventsCellProps<F>) => {
   const key = props.column.key;
   const value = props.dataRow[key];
   const columnType = props.meta.fields[key];
@@ -238,7 +238,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     default:
       return <Container>{value}</Container>;
   }
-}
+};
 
 function getProjectForRow<F extends FieldType>(
   baggage: ProfileEventsCellProps<F>['baggage'],

@@ -31,7 +31,7 @@ interface FlamegraphLayoutProps {
   spansTreeDepth?: number;
 }
 
-export function FlamegraphLayout(props: FlamegraphLayoutProps) {
+export const FlamegraphLayout = (props: FlamegraphLayoutProps) => {
   const flamegraphTheme = useFlamegraphTheme();
   const {layout, timelines} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
@@ -201,7 +201,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>
   );
-}
+};
 
 const ProfileLabel = styled(CollapsibleTimelineLabel)`
   position: absolute;

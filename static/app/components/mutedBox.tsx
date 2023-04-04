@@ -9,7 +9,7 @@ type Props = {
   statusDetails: ResolutionStatusDetails;
 };
 
-function MutedBox({statusDetails}: Props) {
+const MutedBox = ({statusDetails}: Props) => {
   function renderReason() {
     const {ignoreUntil, ignoreCount, ignoreWindow, ignoreUserCount, ignoreUserWindow} =
       statusDetails;
@@ -69,6 +69,6 @@ function MutedBox({statusDetails}: Props) {
       </BannerSummary>
     </BannerContainer>
   );
-}
+};
 
 export default MutedBox;

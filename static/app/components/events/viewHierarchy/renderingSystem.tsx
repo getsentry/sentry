@@ -12,7 +12,7 @@ type RenderingSystemProps = {
   system?: string;
 };
 
-function RenderingSystem({platform, system}: RenderingSystemProps) {
+const RenderingSystem = ({platform, system}: RenderingSystemProps) => {
   const organization = useOrganization();
   return (
     <Container>
@@ -36,7 +36,7 @@ function RenderingSystem({platform, system}: RenderingSystemProps) {
       </Tooltip>
     </Container>
   );
-}
+};
 
 export {RenderingSystem};
 

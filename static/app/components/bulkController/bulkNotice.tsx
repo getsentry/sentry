@@ -71,7 +71,7 @@ type Props = {
   className?: string;
 };
 
-function BulkNotice({
+const BulkNotice = ({
   selectedRowsCount,
   columnsCount,
   isPageSelected,
@@ -81,7 +81,7 @@ function BulkNotice({
   bulkLimit,
   allRowsCount,
   className,
-}: Props) {
+}: Props) => {
   if ((allRowsCount && allRowsCount <= selectedRowsCount) || !isPageSelected) {
     return null;
   }
@@ -111,7 +111,7 @@ function BulkNotice({
       )}
     </Wrapper>
   );
-}
+};
 
 type WrapperProps = {columnsCount: number} & React.ComponentProps<typeof PanelAlert>;
 const Wrapper = styled(({columnsCount: _columnsCount, ...props}: WrapperProps) => (

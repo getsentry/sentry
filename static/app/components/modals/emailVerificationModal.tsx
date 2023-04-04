@@ -10,11 +10,11 @@ type Props = Pick<ModalRenderProps, 'Body' | 'Header'> & {
   actionMessage?: string;
 };
 
-function EmailVerificationModal({
+const EmailVerificationModal = ({
   Header,
   Body,
   actionMessage = 'taking this action',
-}: Props) {
+}: Props) => {
   return (
     <Fragment>
       <Header closeButton>{t('Action Required')}</Header>
@@ -33,7 +33,7 @@ function EmailVerificationModal({
       </Body>
     </Fragment>
   );
-}
+};
 
 export default EmailVerificationModal;
 export {EmailVerificationModal};

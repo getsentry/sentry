@@ -10,7 +10,7 @@ type Props = {
   children?: React.ReactNode;
 };
 
-function TeamInsightsContainer({children, organization}: Props) {
+const TeamInsightsContainer = ({children, organization}: Props) => {
   return (
     <Feature organization={organization} features={['team-insights']}>
       <NoProjectMessage organization={organization}>
@@ -22,6 +22,6 @@ function TeamInsightsContainer({children, organization}: Props) {
       </NoProjectMessage>
     </Feature>
   );
-}
+};
 
 export default withOrganization(TeamInsightsContainer);

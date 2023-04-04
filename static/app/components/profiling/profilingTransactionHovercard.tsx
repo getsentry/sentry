@@ -32,7 +32,9 @@ interface ProfilingTransactionHovercardProps {
   transaction: string;
 }
 
-export function ProfilingTransactionHovercard(props: ProfilingTransactionHovercardProps) {
+export const ProfilingTransactionHovercard = (
+  props: ProfilingTransactionHovercardProps
+) => {
   const {project, transaction, organization} = props;
   const {query} = useLocation();
 
@@ -80,13 +82,13 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
       {triggerLink}
     </StyledHovercard>
   );
-}
+};
 
-export function ProfilingTransactionHovercardBody({
+export const ProfilingTransactionHovercardBody = ({
   transaction,
   project,
   organization,
-}: ProfilingTransactionHovercardProps) {
+}: ProfilingTransactionHovercardProps) => {
   const {
     slowestProfile,
     slowestProfileQuery,
@@ -190,15 +192,15 @@ export function ProfilingTransactionHovercardBody({
       </Flex>
     </Flex>
   );
-}
+};
 
 type ProfilingTransactionHovercardFunctionsProps = React.ComponentProps<
   typeof FunctionsMiniGrid
 > & {isLoading: boolean};
 
-function ProfilingTransactionHovercardFunctions(
+const ProfilingTransactionHovercardFunctions = (
   props: ProfilingTransactionHovercardFunctionsProps
-) {
+) => {
   if (props.isLoading) {
     return <FunctionsMiniGridLoading />;
   }
@@ -207,14 +209,14 @@ function ProfilingTransactionHovercardFunctions(
     return <FunctionsMiniGridEmptyState />;
   }
   return <FunctionsMiniGrid {...props} />;
-}
+};
 
 interface ContextDetailProps {
   children: React.ReactNode;
   isLoading: boolean;
   title?: React.ReactNode;
 }
-function ContextDetail(props: ContextDetailProps) {
+const ContextDetail = (props: ContextDetailProps) => {
   const {title, children, isLoading} = props;
 
   return (
@@ -231,7 +233,7 @@ function ContextDetail(props: ContextDetailProps) {
       </Fragment>
     </Flex>
   );
-}
+};
 
 const UppercaseTitle = styled('span')`
   text-transform: uppercase;

@@ -13,7 +13,7 @@ type Props = Omit<ComponentProps<typeof OrigObjectInspector>, 'theme'> & {
   theme?: Record<string, any>;
 };
 
-function ObjectInspector({data, theme, ...props}: Props) {
+const ObjectInspector = ({data, theme, ...props}: Props) => {
   const config = useLegacyStore(ConfigStore);
   const emotionTheme = useTheme();
   const isDark = config.theme === 'dark';
@@ -45,6 +45,6 @@ function ObjectInspector({data, theme, ...props}: Props) {
       {...props}
     />
   );
-}
+};
 
 export default ObjectInspector;

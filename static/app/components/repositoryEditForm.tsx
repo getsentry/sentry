@@ -29,13 +29,13 @@ const formFields: Field[] = [
   },
 ];
 
-function RepositoryEditForm({
+const RepositoryEditForm = ({
   repository,
   onCancel,
   orgSlug,
   onSubmitSuccess,
   closeModal,
-}: Props) {
+}: Props) => {
   const initialData = {
     name: repository.name,
     url: repository.url || '',
@@ -74,6 +74,6 @@ function RepositoryEditForm({
       ))}
     </Form>
   );
-}
+};
 
 export default RepositoryEditForm;

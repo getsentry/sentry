@@ -18,7 +18,7 @@ export interface LineChartProps extends Omit<ChartProps, 'series'> {
   seriesOptions?: LineSeriesOption;
 }
 
-export function LineChart({series, seriesOptions, ...props}: LineChartProps) {
+export const LineChart = ({series, seriesOptions, ...props}: LineChartProps) => {
   return (
     <BaseChart
       {...props}
@@ -35,4 +35,4 @@ export function LineChart({series, seriesOptions, ...props}: LineChartProps) {
       )}
     />
   );
-}
+};

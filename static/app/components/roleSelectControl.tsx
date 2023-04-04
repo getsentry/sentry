@@ -22,7 +22,7 @@ type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
   value?: string | null;
 };
 
-function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
+const RoleSelectControl = ({roles, disableUnallowed, ...props}: Props) => {
   return (
     <SelectControl
       options={roles?.map(
@@ -38,7 +38,7 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
       {...props}
     />
   );
-}
+};
 
 export default RoleSelectControl;
 

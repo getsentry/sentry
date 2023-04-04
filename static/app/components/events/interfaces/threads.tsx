@@ -86,14 +86,14 @@ export function getThreadStateIcon(state: ThreadStates | undefined) {
   }
 }
 
-export function Threads({
+export const Threads = ({
   data,
   event,
   projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   organization,
-}: Props) {
+}: Props) => {
   const threads = data.values ?? [];
 
   const [state, setState] = useState<State>(() => {
@@ -371,7 +371,7 @@ export function Threads({
       </TraceEventDataSection>
     </Fragment>
   );
-}
+};
 
 const Grid = styled('div')`
   display: grid;

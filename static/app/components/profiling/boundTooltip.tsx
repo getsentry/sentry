@@ -37,13 +37,13 @@ interface BoundTooltipProps {
   children?: React.ReactNode;
 }
 
-function BoundTooltip({
+const BoundTooltip = ({
   bounds,
   canvas,
   cursor,
   canvasView,
   children,
-}: BoundTooltipProps): React.ReactElement | null {
+}: BoundTooltipProps): React.ReactElement | null => {
   const flamegraphTheme = useFlamegraphTheme();
 
   const physicalSpaceCursor = vec2.transformMat3(
@@ -95,7 +95,7 @@ function BoundTooltip({
       {children}
     </Tooltip>
   );
-}
+};
 
 const Tooltip = styled('div')`
   background: ${p => p.theme.background};

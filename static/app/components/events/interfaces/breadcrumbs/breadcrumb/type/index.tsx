@@ -11,7 +11,7 @@ type Props = Required<Pick<SVGIconProps, 'color'>> &
     error?: boolean;
   };
 
-function Type({type, color, description, error}: Props) {
+const Type = ({type, color, description, error}: Props) => {
   return (
     <Wrapper error={error}>
       <Tooltip
@@ -26,7 +26,7 @@ function Type({type, color, description, error}: Props) {
       </Tooltip>
     </Wrapper>
   );
-}
+};
 
 export default Type;
 

@@ -11,7 +11,7 @@ type Props = {
   version?: string;
 };
 
-function Assembly({name, version, culture, publicKeyToken}: Props) {
+const Assembly = ({name, version, culture, publicKeyToken}: Props) => {
   return (
     <AssemblyWrapper>
       <AssemblyInfo>
@@ -38,7 +38,7 @@ function Assembly({name, version, culture, publicKeyToken}: Props) {
       )}
     </AssemblyWrapper>
   );
-}
+};
 
 const AssemblyWrapper = styled('div')`
   font-size: 80%;

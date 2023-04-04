@@ -17,7 +17,7 @@ type Props = AsyncView['props'] & {
   organization: Organization;
 };
 
-function CreateMonitor({}: Props) {
+const CreateMonitor = ({}: Props) => {
   const {slug: orgSlug} = useOrganization();
 
   function onSubmitSuccess(data: Monitor) {
@@ -58,6 +58,6 @@ function CreateMonitor({}: Props) {
       </Layout.Body>
     </Fragment>
   );
-}
+};
 
 export default CreateMonitor;

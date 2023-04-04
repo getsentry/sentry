@@ -31,7 +31,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {makeDocKeyMap, splitProjectsByProfilingSupport} from './util';
 
-export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
+export const ProfilingOnboardingSidebar = (props: CommonSidebarProps) => {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const isActive = currentPanel === SidebarPanelKey.ProfilingOnboarding;
   const organization = useOrganization();
@@ -179,15 +179,15 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       </TaskSidebarList>
     </TaskSidebar>
   );
-}
+};
 
-function OnboardingContent({
+const OnboardingContent = ({
   currentProject,
   isSupported,
 }: {
   currentProject: Project;
   isSupported: boolean;
-}) {
+}) => {
   const currentPlatform = platforms.find(p => p.id === currentProject?.platform);
   const api = useApi();
   const organization = useOrganization();
@@ -321,7 +321,7 @@ function OnboardingContent({
       </EventWaiter>
     </ContentContainer>
   );
-}
+};
 
 const EventReceivedIndicator = () => (
   <EventIndicator status="received">

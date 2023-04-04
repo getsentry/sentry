@@ -63,7 +63,7 @@ function scrollToSection(element: HTMLDivElement) {
   }
 }
 
-export function EventDataSection({
+export const EventDataSection = ({
   children,
   className,
   type,
@@ -74,7 +74,7 @@ export function EventDataSection({
   wrapTitle = true,
   showPermalink = true,
   ...props
-}: Props) {
+}: Props) => {
   let titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
   titleNode = guideTarget ? (
@@ -108,7 +108,7 @@ export function EventDataSection({
       <SectionContents>{children}</SectionContents>
     </DataSection>
   );
-}
+};
 
 const Title = styled('div')`
   display: grid;

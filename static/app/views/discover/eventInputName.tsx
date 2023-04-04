@@ -24,7 +24,7 @@ const HOMEPAGE_DEFAULT = t('New Query');
  * Allows user to edit the name of the query.
  * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
  */
-function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
+const EventInputName = ({organization, eventView, savedQuery, isHomepage}: Props) => {
   const api = useApi();
 
   function handleChange(nextQueryName: string) {
@@ -68,6 +68,6 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
       />
     </Layout.Title>
   );
-}
+};
 
 export default EventInputName;

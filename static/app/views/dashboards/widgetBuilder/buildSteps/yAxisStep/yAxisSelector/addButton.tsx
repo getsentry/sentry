@@ -8,10 +8,10 @@ interface Props {
   title: string;
 }
 
-export function AddButton({title, onAdd}: Props) {
+export const AddButton = ({title, onAdd}: Props) => {
   return (
     <Button size="sm" onClick={onAdd} icon={<IconAdd isCircled />}>
       {title}
     </Button>
   );
-}
+};

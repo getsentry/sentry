@@ -74,7 +74,7 @@ const StyledPills = styled(Pills)`
   padding-top: ${space(1.5)};
 `;
 
-export function Tags({
+export const Tags = ({
   location,
   organization,
   transaction,
@@ -82,7 +82,7 @@ export function Tags({
   location: Location;
   organization: Organization;
   transaction: TraceFullDetailed;
-}) {
+}) => {
   const {tags} = transaction;
 
   if (!tags || tags.length <= 0) {
@@ -122,4 +122,4 @@ export function Tags({
       </td>
     </tr>
   );
-}
+};

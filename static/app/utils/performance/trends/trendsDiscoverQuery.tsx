@@ -65,7 +65,7 @@ export function getTrendsRequestPayload(props: RequestProps) {
   return apiPayload;
 }
 
-function TrendsDiscoverQuery(props: Props) {
+const TrendsDiscoverQuery = (props: Props) => {
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
       {...props}
@@ -77,9 +77,9 @@ function TrendsDiscoverQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
-function EventsDiscoverQuery(props: EventProps) {
+const EventsDiscoverQuery = (props: EventProps) => {
   return (
     <GenericDiscoverQuery<TrendsDataEvents, TrendsRequest>
       {...props}
@@ -91,7 +91,7 @@ function EventsDiscoverQuery(props: EventProps) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export const TrendsEventsDiscoverQuery = withProjects(EventsDiscoverQuery);
 

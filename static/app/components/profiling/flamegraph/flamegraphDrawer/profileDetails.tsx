@@ -54,7 +54,7 @@ interface ProfileDetailsProps {
   transaction: EventTransaction | null;
 }
 
-export function ProfileDetails(props: ProfileDetailsProps) {
+export const ProfileDetails = (props: ProfileDetailsProps) => {
   const [detailsTab, setDetailsTab] = useState<'device' | 'transaction'>('transaction');
 
   const organization = useOrganization();
@@ -176,15 +176,15 @@ export function ProfileDetails(props: ProfileDetailsProps) {
       )}
     </ProfileDetailsBar>
   );
-}
+};
 
-function TransactionDeviceDetails({
+const TransactionDeviceDetails = ({
   profileGroup,
   transaction,
 }: {
   profileGroup: ProfileGroup;
   transaction: EventTransaction;
-}) {
+}) => {
   const deviceDetails = useMemo(() => {
     const profileMetadata = profileGroup.metadata;
     const deviceContext = transaction.contexts.device;
@@ -246,9 +246,9 @@ function TransactionDeviceDetails({
       ))}
     </DetailsContainer>
   );
-}
+};
 
-function TransactionEventDetails({
+const TransactionEventDetails = ({
   organization,
   profileGroup,
   project,
@@ -258,7 +258,7 @@ function TransactionEventDetails({
   profileGroup: ProfileGroup;
   project: Project | undefined;
   transaction: EventTransaction;
-}) {
+}) => {
   const transactionDetails = useMemo(() => {
     const profileMetadata = profileGroup.metadata;
 
@@ -338,9 +338,9 @@ function TransactionEventDetails({
       ))}
     </DetailsContainer>
   );
-}
+};
 
-function ProfileDeviceDetails({profileGroup}: {profileGroup: ProfileGroup}) {
+const ProfileDeviceDetails = ({profileGroup}: {profileGroup: ProfileGroup}) => {
   return (
     <DetailsContainer>
       {Object.entries(DEVICE_DETAILS_KEY).map(([label, key]) => {
@@ -354,9 +354,9 @@ function ProfileDeviceDetails({profileGroup}: {profileGroup: ProfileGroup}) {
       })}
     </DetailsContainer>
   );
-}
+};
 
-function ProfileEventDetails({
+const ProfileEventDetails = ({
   organization,
   profileGroup,
   project,
@@ -366,7 +366,7 @@ function ProfileEventDetails({
   profileGroup: ProfileGroup;
   project: Project | undefined;
   transaction: EventTransaction | null;
-}) {
+}) => {
   return (
     <DetailsContainer>
       {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
@@ -471,7 +471,7 @@ function ProfileEventDetails({
       })}
     </DetailsContainer>
   );
-}
+};
 
 const msFormatter = makeFormatter('milliseconds');
 

@@ -30,7 +30,7 @@ type Props = {
   existingConfig?: RepositoryProjectPathConfig;
 };
 
-function RepositoryProjectPathConfigForm({
+const RepositoryProjectPathConfigForm = ({
   existingConfig,
   integration,
   onCancel,
@@ -38,7 +38,7 @@ function RepositoryProjectPathConfigForm({
   organization,
   projects,
   repos,
-}: Props) {
+}: Props) => {
   const api = useApi();
   const formRef = useRef(new FormModel());
   const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
@@ -166,6 +166,6 @@ function RepositoryProjectPathConfigForm({
       ))}
     </Form>
   );
-}
+};
 
 export default RepositoryProjectPathConfigForm;

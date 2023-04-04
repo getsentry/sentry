@@ -298,7 +298,7 @@ type Props = {
   yAxis?: YAXisComponentOption | null;
 };
 
-function BaseChartUnwrapped({
+const BaseChartUnwrapped = ({
   colors,
   grid,
   tooltip,
@@ -351,7 +351,7 @@ function BaseChartUnwrapped({
   transformSinglePointToLine = false,
   onChartReady = () => {},
   'data-test-id': dataTestId,
-}: Props) {
+}: Props) => {
   const theme = useTheme();
 
   const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
@@ -580,7 +580,7 @@ function BaseChartUnwrapped({
       />
     </ChartContainer>
   );
-}
+};
 
 // Tooltip styles shared for regular and portalled tooltips
 const getTooltipStyles = (p: {theme: Theme}) => css`

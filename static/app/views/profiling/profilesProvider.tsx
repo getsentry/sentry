@@ -79,7 +79,9 @@ export function useProfileTransaction() {
   return context;
 }
 
-function ProfilesAndTransactionProvider(props: FlamegraphViewProps): React.ReactElement {
+const ProfilesAndTransactionProvider = (
+  props: FlamegraphViewProps
+): React.ReactElement => {
   const organization = useOrganization();
   const params = useParams();
 
@@ -114,7 +116,7 @@ function ProfilesAndTransactionProvider(props: FlamegraphViewProps): React.React
       </SetProfileProvider.Provider>
     </ProfilesProvider>
   );
-}
+};
 
 interface ProfilesProviderProps {
   children: React.ReactNode;
@@ -124,13 +126,13 @@ interface ProfilesProviderProps {
   onUpdateProfiles?: (any) => void;
 }
 
-export function ProfilesProvider({
+export const ProfilesProvider = ({
   children,
   onUpdateProfiles,
   orgSlug,
   projectSlug,
   profileId,
-}: ProfilesProviderProps) {
+}: ProfilesProviderProps) => {
   const api = useApi();
 
   const [profiles, setProfiles] = useState<RequestState<Profiling.ProfileInput>>({
@@ -168,6 +170,6 @@ export function ProfilesProvider({
   }, [api, onUpdateProfiles, orgSlug, projectSlug, profileId]);
 
   return <ProfileContext.Provider value={profiles}>{children}</ProfileContext.Provider>;
-}
+};
 
 export default ProfilesAndTransactionProvider;

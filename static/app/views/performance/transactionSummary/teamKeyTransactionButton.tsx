@@ -52,13 +52,13 @@ type Props = BaseProps &
     project: Project;
   };
 
-function TeamKeyTransactionButton({
+const TeamKeyTransactionButton = ({
   counts,
   getKeyedTeams,
   project,
   transactionName,
   ...props
-}: Props) {
+}: Props) => {
   const keyedTeams = getKeyedTeams(project.id, transactionName);
   return (
     <TeamKeyTransactionComponent
@@ -70,19 +70,19 @@ function TeamKeyTransactionButton({
       {...props}
     />
   );
-}
+};
 
 type WrapperProps = BaseProps & {
   eventView: EventView;
   projects: Project[];
 };
 
-function TeamKeyTransactionButtonWrapper({
+const TeamKeyTransactionButtonWrapper = ({
   eventView,
   organization,
   projects,
   ...props
-}: WrapperProps) {
+}: WrapperProps) => {
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
   if (eventView.project.length !== 1) {
@@ -115,6 +115,6 @@ function TeamKeyTransactionButtonWrapper({
       </TeamKeyTransactionManager.Consumer>
     </TeamKeyTransactionManager.Provider>
   );
-}
+};
 
 export default withProjects(TeamKeyTransactionButtonWrapper);

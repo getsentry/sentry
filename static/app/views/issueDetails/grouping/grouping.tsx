@@ -58,7 +58,7 @@ export const groupingFeedbackTypes = [
 const GROUPING_BREAKDOWN__DOC_LINK =
   'https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/';
 
-function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
+const Grouping = ({api, groupId, location, organization, router, projSlug}: Props) => {
   const {cursor, level} = location.query;
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
@@ -295,7 +295,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
       </Layout.Main>
     </Layout.Body>
   );
-}
+};
 
 export default withApi(Grouping);
 

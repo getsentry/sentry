@@ -9,7 +9,7 @@ type Props = {
   networkSpans: undefined | NetworkSpan[];
 } & ReturnType<typeof useNetworkFilters>;
 
-function NetworkFilters({
+const NetworkFilters = ({
   networkSpans,
   getResourceTypes,
   getStatusTypes,
@@ -19,7 +19,7 @@ function NetworkFilters({
   setType,
   status,
   type,
-}: Props) {
+}: Props) => {
   const statusTypes = getStatusTypes();
   const resourceTypes = getResourceTypes();
   return (
@@ -53,6 +53,6 @@ function NetworkFilters({
       />
     </FiltersGrid>
   );
-}
+};
 
 export default NetworkFilters;

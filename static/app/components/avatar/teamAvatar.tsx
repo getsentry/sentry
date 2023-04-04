@@ -6,7 +6,7 @@ type Props = {
   team: Team | null;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
-function TeamAvatar({team, tooltip: tooltipProp, ...props}: Props) {
+const TeamAvatar = ({team, tooltip: tooltipProp, ...props}: Props) => {
   if (!team) {
     return null;
   }
@@ -26,6 +26,6 @@ function TeamAvatar({team, tooltip: tooltipProp, ...props}: Props) {
       title={title}
     />
   );
-}
+};
 
 export default TeamAvatar;

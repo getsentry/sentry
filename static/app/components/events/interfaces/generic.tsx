@@ -45,7 +45,7 @@ type Props = {
 
 type View = 'report' | 'raw';
 
-export function Generic({type, data, meta}: Props) {
+export const Generic = ({type, data, meta}: Props) => {
   const [view, setView] = useState<View>('report');
   return (
     <EventDataSection
@@ -66,4 +66,4 @@ export function Generic({type, data, meta}: Props) {
       {getView({view, data, meta})}
     </EventDataSection>
   );
-}
+};

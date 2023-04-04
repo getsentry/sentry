@@ -14,7 +14,7 @@ type Props = {
   release: Release;
 };
 
-function ReleaseStats({organization, release, project}: Props) {
+const ReleaseStats = ({organization, release, project}: Props) => {
   const {lastDeploy, dateCreated, version} = release;
 
   return (
@@ -45,7 +45,7 @@ function ReleaseStats({organization, release, project}: Props) {
       </SidebarSection.Wrap>
     </Container>
   );
-}
+};
 
 const Container = styled('div')`
   display: grid;

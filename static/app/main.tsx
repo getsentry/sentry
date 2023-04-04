@@ -29,7 +29,7 @@ function renderRouter(props: any) {
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
-function Main() {
+const Main = () => {
   return (
     <ThemeAndStyleProvider>
       <QueryClientProvider client={queryClient}>
@@ -42,6 +42,6 @@ function Main() {
       </QueryClientProvider>
     </ThemeAndStyleProvider>
   );
-}
+};
 
 export default Main;

@@ -85,7 +85,7 @@ type Props = {
   unfilteredTotalValues?: Record<string, number> | null;
 };
 
-function SummaryContent({
+const SummaryContent = ({
   eventView,
   location,
   totalValues,
@@ -98,7 +98,7 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
   unfilteredTotalValues,
-}: Props) {
+}: Props) => {
   const routes = useRoutes();
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
@@ -462,7 +462,7 @@ function SummaryContent({
       </Layout.Side>
     </Fragment>
   );
-}
+};
 
 function getFilterOptions({
   p95,

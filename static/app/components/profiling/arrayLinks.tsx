@@ -16,7 +16,7 @@ interface ArrayLinksProps {
   items: Item[];
 }
 
-function ArrayLinks({items}: ArrayLinksProps) {
+const ArrayLinks = ({items}: ArrayLinksProps) => {
   const [expanded, setExpanded] = useState(false);
   const firstItem = items[0];
 
@@ -37,9 +37,9 @@ function ArrayLinks({items}: ArrayLinksProps) {
       ) : null}
     </ArrayContainer>
   );
-}
+};
 
-function LinkedItem({item}: {item: Item}) {
+const LinkedItem = ({item}: {item: Item}) => {
   return (
     <ArrayItem>
       <Link to={item.target} onClick={item?.onClick}>
@@ -47,7 +47,7 @@ function LinkedItem({item}: {item: Item}) {
       </Link>
     </ArrayItem>
   );
-}
+};
 
 const ArrayContainer = styled('div')<{expanded: boolean}>`
   display: flex;

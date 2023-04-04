@@ -43,7 +43,7 @@ function isSupported() {
   return !!document.queryCommandSupported?.('copy');
 }
 
-function Clipboard({
+const Clipboard = ({
   hideMessages = false,
   successMessage = t('Copied to clipboard'),
   errorMessage = t('Error copying to clipboard'),
@@ -52,7 +52,7 @@ function Clipboard({
   onError,
   hideUnsupported,
   children,
-}: Props) {
+}: Props) => {
   const [element, setElement] = useState<ReturnType<typeof findDOMNode>>();
 
   const handleClick = useCallback(() => {
@@ -95,6 +95,6 @@ function Clipboard({
   }
 
   return cloneElement<any>(children, {ref: handleMount});
-}
+};
 
 export default Clipboard;

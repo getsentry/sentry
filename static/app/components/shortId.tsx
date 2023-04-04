@@ -14,7 +14,7 @@ interface Props {
   to?: LinkProps['to'];
 }
 
-function ShortId({shortId, avatar, onClick, to, className}: Props) {
+const ShortId = ({shortId, avatar, onClick, to, className}: Props) => {
   if (!shortId) {
     return null;
   }
@@ -29,7 +29,7 @@ function ShortId({shortId, avatar, onClick, to, className}: Props) {
       )}
     </StyledShortId>
   );
-}
+};
 
 const StyledShortId = styled('div')`
   font-family: ${p => p.theme.text.familyMono};

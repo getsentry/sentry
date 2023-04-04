@@ -10,7 +10,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-function DeleteButton() {
+const DeleteButton = () => {
   const api = useApi();
   const navigate = useNavigate();
   const params = useParams();
@@ -43,6 +43,6 @@ function DeleteButton() {
       </Button>
     </Confirm>
   );
-}
+};
 
 export default DeleteButton;

@@ -34,7 +34,7 @@ type Props = {
   organization: Organization;
 };
 
-function VitalsContent(props: Props) {
+const VitalsContent = (props: Props) => {
   const {location, organization, eventView} = props;
   const query = decodeScalar(location.query.query, '');
 
@@ -147,7 +147,7 @@ function VitalsContent(props: Props) {
       )}
     </Histogram>
   );
-}
+};
 
 const FilterActions = styled('div')`
   display: grid;

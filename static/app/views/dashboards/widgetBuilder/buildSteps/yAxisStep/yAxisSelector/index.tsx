@@ -29,7 +29,7 @@ interface Props {
   noFieldsMessage?: string;
 }
 
-export function YAxisSelector({
+export const YAxisSelector = ({
   displayType,
   widgetType,
   aggregates,
@@ -37,7 +37,7 @@ export function YAxisSelector({
   onChange,
   errors,
   noFieldsMessage,
-}: Props) {
+}: Props) => {
   const organization = useOrganization();
   const datasetConfig = getDatasetConfig(widgetType);
 
@@ -122,7 +122,7 @@ export function YAxisSelector({
       )}
     </FieldGroup>
   );
-}
+};
 
 const QueryFieldWrapper = styled('div')`
   display: flex;

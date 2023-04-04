@@ -10,12 +10,12 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
   project: Project;
 };
 
-function ProjectPerformanceContainer(props: Props) {
+const ProjectPerformanceContainer = (props: Props) => {
   return (
     <Feature features={['performance-view']}>
       <ProjectPerformance {...props} />
     </Feature>
   );
-}
+};
 
 export default ProjectPerformanceContainer;

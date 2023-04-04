@@ -12,7 +12,7 @@ type Props = {
  * the color of the status level (Warning, Error, Success, etc)
  *
  */
-function StatusIndicator({status, tooltipTitle}: Props) {
+const StatusIndicator = ({status, tooltipTitle}: Props) => {
   let color: string = 'error';
 
   if (status === 'muted') {
@@ -30,7 +30,7 @@ function StatusIndicator({status, tooltipTitle}: Props) {
       <StatusLevel color={color} />
     </Tooltip>
   );
-}
+};
 
 export default StatusIndicator;
 

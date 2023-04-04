@@ -22,7 +22,7 @@ type Props = {
  * Render metadata about the event and provide a link to the JSON blob.
  * Used in the sidebar of performance event details and discover2 event details.
  */
-function EventMetadata({event, organization, projectId}: Props) {
+const EventMetadata = ({event, organization, projectId}: Props) => {
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${event.eventID}/json/`;
 
   return (
@@ -53,7 +53,7 @@ function EventMetadata({event, organization, projectId}: Props) {
       </MetadataJSON>
     </MetaDataID>
   );
-}
+};
 
 const MetaDataID = styled('div')`
   margin-bottom: ${space(4)};

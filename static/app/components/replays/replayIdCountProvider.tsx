@@ -16,7 +16,7 @@ function unique<T>(arr: T[]) {
 
 const projectIds = [];
 
-function ReplayIdCountProvider({children, organization, replayIds}: Props) {
+const ReplayIdCountProvider = ({children, organization, replayIds}: Props) => {
   const ids = useMemo(() => replayIds?.map(String)?.filter(Boolean) || [], [replayIds]);
   const counts = useReplaysCount({
     replayIds: unique(ids),
@@ -27,6 +27,6 @@ function ReplayIdCountProvider({children, organization, replayIds}: Props) {
   return (
     <ReplayCountContext.Provider value={counts}>{children}</ReplayCountContext.Provider>
   );
-}
+};
 
 export default ReplayIdCountProvider;

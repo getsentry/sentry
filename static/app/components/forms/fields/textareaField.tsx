@@ -12,13 +12,13 @@ export interface TextareaFieldProps
   extends Omit<InputFieldProps, 'field'>,
     Pick<TextAreaProps, 'monospace' | 'autosize' | 'rows' | 'maxRows'> {}
 
-function TextareaField({
+const TextareaField = ({
   monospace,
   rows,
   autosize,
   hideControlState,
   ...props
-}: TextareaFieldProps) {
+}: TextareaFieldProps) => {
   return (
     <FormField {...props} hideControlState flexibleControlStateSize>
       {({
@@ -46,6 +46,6 @@ function TextareaField({
       )}
     </FormField>
   );
-}
+};
 
 export default TextareaField;

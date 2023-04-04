@@ -19,7 +19,12 @@ type Props = {
   tagValueLoader: TagValueLoader;
 };
 
-function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: Props) {
+const ProjectFilters = ({
+  query,
+  relativeDateOptions,
+  tagValueLoader,
+  onSearch,
+}: Props) => {
   const getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
     const values = await tagValueLoader(tag.key, currentQuery);
     return values.map(({value}) => value);
@@ -51,7 +56,7 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
       </GuideAnchor>
     </FiltersWrapper>
   );
-}
+};
 
 const FiltersWrapper = styled('div')`
   display: grid;

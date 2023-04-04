@@ -32,7 +32,7 @@ import {
 
 import PageLayout from '../pageLayout';
 
-function Profiles(): React.ReactElement {
+const Profiles = (): React.ReactElement => {
   const location = useLocation();
   const organization = useOrganization();
   const projects = useProjects();
@@ -128,7 +128,7 @@ function Profiles(): React.ReactElement {
       }}
     />
   );
-}
+};
 
 const FilterActions = styled('div')`
   margin-bottom: ${space(2)};

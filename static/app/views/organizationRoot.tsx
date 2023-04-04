@@ -10,10 +10,10 @@ type Props = {children: React.ReactChildren};
  *
  * Currently is just used to unset active project
  */
-function OrganizationRoot({children}: Props) {
+const OrganizationRoot = ({children}: Props) => {
   useEffect(() => void setActiveProject(null), []);
 
   return <Fragment>{children}</Fragment>;
-}
+};
 
 export default OrganizationRoot;

@@ -18,7 +18,7 @@ import {
 } from 'sentry/types/debugFiles';
 import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
 
-function TestComponent({
+const TestComponent = ({
   organization,
   customRepositories,
   credetialsStatus,
@@ -29,7 +29,7 @@ function TestComponent({
     | [CustomRepoHttp, CustomRepoAppStoreConnect]
     | [CustomRepoHttp]
     | [CustomRepoAppStoreConnect];
-}) {
+}) => {
   const appStoreConnectRepo = customRepositories?.find(
     customRepository => customRepository.type === CustomRepoType.APP_STORE_CONNECT
   );
@@ -59,7 +59,7 @@ function TestComponent({
       />
     </AppStoreConnectContext.Provider>
   );
-}
+};
 
 function getProps(props?: {router: InjectedRouter}) {
   const {organization, router, project, routerContext} = initializeOrg({

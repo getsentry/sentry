@@ -35,7 +35,7 @@ interface Props {
   limit?: number;
 }
 
-export function SortByStep({
+export const SortByStep = ({
   displayType,
   onSortByChange,
   queries,
@@ -44,7 +44,7 @@ export function SortByStep({
   limit,
   onLimitChange,
   tags,
-}: Props) {
+}: Props) => {
   const datasetConfig = getDatasetConfig(widgetType);
 
   let disableSort = false;
@@ -137,7 +137,7 @@ export function SortByStep({
       </Tooltip>
     </BuildStep>
   );
-}
+};
 
 const ResultsLimitSelector = styled(SelectControl)`
   margin-bottom: ${space(1)};

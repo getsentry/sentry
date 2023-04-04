@@ -309,7 +309,7 @@ type TermDropdownProps = {
   optionGroups: DropdownOptionGroup[];
 };
 
-function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
+const TermDropdown = ({isOpen, optionGroups, handleSelect}: TermDropdownProps) => {
   return (
     <DropdownContainer isOpen={isOpen}>
       {isOpen && (
@@ -347,7 +347,7 @@ function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
       )}
     </DropdownContainer>
   );
-}
+};
 
 function makeFieldOptions(
   columns: Column[],

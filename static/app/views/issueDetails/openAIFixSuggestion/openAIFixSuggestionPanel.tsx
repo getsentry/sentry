@@ -39,7 +39,7 @@ type Props = {
   projectSlug: string;
 };
 
-export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
+export const OpenAIFixSuggestionPanel = ({eventID, projectSlug}: Props) => {
   const user = ConfigStore.get('user');
   const organization = useOrganization();
   const router = useRouter();
@@ -246,7 +246,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
       )}
     </FixSuggestionPanel>
   );
-}
+};
 
 const FixSuggestionPanel = styled(Panel)`
   margin-top: ${space(1.5)};

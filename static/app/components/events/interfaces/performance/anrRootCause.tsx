@@ -21,7 +21,7 @@ interface Props {
   organization: Organization;
 }
 
-export function AnrRootCause({organization}: Props) {
+export const AnrRootCause = ({organization}: Props) => {
   const quickTrace = useContext(QuickTraceContext);
   const {projects} = useProjects();
 
@@ -83,7 +83,7 @@ export function AnrRootCause({organization}: Props) {
       })}
     </EventDataSection>
   );
-}
+};
 
 const IssueSummary = styled('div')`
   padding-bottom: ${space(2)};

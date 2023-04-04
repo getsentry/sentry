@@ -40,7 +40,7 @@ type Props = {
   'params'
 >;
 
-function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
+const KeyRateLimitsForm = ({data, disabled, organization, params}: Props) => {
   function handleChangeWindow(
     onChange: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
     onBlur: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
@@ -213,7 +213,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
       </Feature>
     </Form>
   );
-}
+};
 
 export default KeyRateLimitsForm;
 

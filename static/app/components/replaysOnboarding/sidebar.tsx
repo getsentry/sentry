@@ -27,7 +27,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
-function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
+const ReplaysOnboardingSidebar = (props: CommonSidebarProps) => {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
@@ -136,9 +136,9 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
       </TaskList>
     </TaskSidebarPanel>
   );
-}
+};
 
-function OnboardingContent({currentProject}: {currentProject: Project}) {
+const OnboardingContent = ({currentProject}: {currentProject: Project}) => {
   const api = useApi();
   const organization = useOrganization();
   const previousProject = usePrevious(currentProject);
@@ -245,7 +245,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       })}
     </Fragment>
   );
-}
+};
 
 // TODO: we'll have to move this into a folder for common consumption w/ Profiling, Performance etc.
 interface OnboardingStepV2Props {
@@ -253,7 +253,7 @@ interface OnboardingStepV2Props {
   step: number;
 }
 
-function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
+const OnboardingStepV2 = ({step, content}: OnboardingStepV2Props) => {
   return (
     <OnboardingStepContainer>
       <div>
@@ -264,7 +264,7 @@ function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
       </div>
     </OnboardingStepContainer>
   );
-}
+};
 
 const OnboardingStepContainer = styled('div')`
   display: flex;

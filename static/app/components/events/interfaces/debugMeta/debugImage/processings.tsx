@@ -13,7 +13,7 @@ type Props = {
   unwind_status?: ImageStatus | null;
 };
 
-function Processings({unwind_status, debug_status}: Props) {
+const Processings = ({unwind_status, debug_status}: Props) => {
   const items: React.ComponentProps<typeof ProcessingList>['items'] = [];
 
   if (debug_status) {
@@ -37,7 +37,7 @@ function Processings({unwind_status, debug_status}: Props) {
   }
 
   return <StyledProcessingList items={items} />;
-}
+};
 
 export default Processings;
 

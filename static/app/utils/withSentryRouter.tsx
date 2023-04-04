@@ -13,7 +13,7 @@ import {customerDomain, usingCustomerDomain} from 'sentry/constants';
 function withSentryRouter<P extends WithRouterProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  function WithSentryRouterWrapper(props: P) {
+  const WithSentryRouterWrapper = (props: P) => {
     const {params} = props;
     if (usingCustomerDomain) {
       const newParams = {...params, orgId: customerDomain};
@@ -21,7 +21,7 @@ function withSentryRouter<P extends WithRouterProps>(
     }
 
     return <WrappedComponent {...props} />;
-  }
+  };
   return withRouter(WithSentryRouterWrapper);
 }
 

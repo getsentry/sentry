@@ -9,7 +9,7 @@ type Props = {
   event: Event;
 };
 
-export function EventDevice({event}: Props) {
+export const EventDevice = ({event}: Props) => {
   const data = event.device ?? {};
   const extras = Object.entries<any>(data.data ?? {}).map(([key, value]) => ({
     key,
@@ -47,4 +47,4 @@ export function EventDevice({event}: Props) {
       />
     </EventDataSection>
   );
-}
+};

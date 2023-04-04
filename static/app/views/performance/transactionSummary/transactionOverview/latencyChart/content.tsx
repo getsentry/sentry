@@ -43,7 +43,7 @@ type Props = ViewProps & {
  * This graph visualizes how many transactions were recorded
  * at each duration bucket, showing the modality of the transaction.
  */
-function Content({
+const Content = ({
   organization,
   query,
   start,
@@ -55,7 +55,7 @@ function Content({
   currentFilter,
   queryExtras,
   totalCount,
-}: Props) {
+}: Props) => {
   const [zoomError, setZoomError] = useState(false);
   const displayCountAsPercentage = organization.features.includes(
     'performance-metrics-backed-transaction-summary'
@@ -218,6 +218,6 @@ function Content({
       )}
     </Histogram>
   );
-}
+};
 
 export default Content;

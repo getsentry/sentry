@@ -13,7 +13,7 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-export function Exception({breadcrumb, searchTerm, meta}: Props) {
+export const Exception = ({breadcrumb, searchTerm, meta}: Props) => {
   const {data, message} = breadcrumb;
 
   return (
@@ -43,4 +43,4 @@ export function Exception({breadcrumb, searchTerm, meta}: Props) {
       )}
     </Summary>
   );
-}
+};

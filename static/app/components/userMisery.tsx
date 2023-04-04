@@ -13,7 +13,7 @@ type Props = {
   userMisery: number;
 };
 
-function UserMisery(props: Props) {
+const UserMisery = (props: Props) => {
   const {bars, barHeight, userMisery, miseryLimit, totalUsers, miserableUsers} = props;
   // User Misery will always be > 0 because of the maximum a posteriori estimate
   // and below 5% will always be an overestimation of the actual proportion
@@ -68,6 +68,6 @@ function UserMisery(props: Props) {
       />
     </Tooltip>
   );
-}
+};
 
 export default UserMisery;

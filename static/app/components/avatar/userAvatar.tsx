@@ -29,7 +29,7 @@ function getType(user: AvatarUser | Actor, gravatar: boolean | undefined) {
   return user.email && gravatar ? 'gravatar' : 'letter_avatar';
 }
 
-function UserAvatar({
+const UserAvatar = ({
   // Default gravatar to false in order to support transparent avatars
   // Avatar falls through to letter avatars if a remote image fails to load,
   // however gravatar sends back a transparent image when it does not find a gravatar,
@@ -38,7 +38,7 @@ function UserAvatar({
   renderTooltip,
   user,
   ...props
-}: Props) {
+}: Props) => {
   if (!user) {
     return null;
   }
@@ -80,6 +80,6 @@ function UserAvatar({
       tooltip={tooltip}
     />
   );
-}
+};
 
 export default UserAvatar;

@@ -51,7 +51,7 @@ function getSuspectSpanPayload(props: RequestProps) {
   };
 }
 
-function SuspectSpansQuery(props: Props) {
+const SuspectSpansQuery = (props: Props) => {
   return (
     <GenericDiscoverQuery<SuspectSpans, SuspectSpansProps>
       route="events-spans-performance"
@@ -63,6 +63,6 @@ function SuspectSpansQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default SuspectSpansQuery;

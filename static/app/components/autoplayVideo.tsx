@@ -13,7 +13,7 @@ interface AutoplayVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement>
  * Note, video needs `muted` for `autoplay` to work on Chrome
  * See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video
  */
-function AutoplayVideo(props: AutoplayVideoProps) {
+const AutoplayVideo = (props: AutoplayVideoProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const prefersReducedMotion = useReducedMotion();
@@ -36,6 +36,6 @@ function AutoplayVideo(props: AutoplayVideoProps) {
   }, [prefersReducedMotion]);
 
   return <video ref={videoRef} playsInline disablePictureInPicture loop {...props} />;
-}
+};
 
 export {AutoplayVideo};

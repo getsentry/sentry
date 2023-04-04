@@ -26,13 +26,13 @@ interface TraceNotFoundProps {
   traceSlug: string;
 }
 
-function TraceNotFound({
+const TraceNotFound = ({
   meta,
   traceEventView,
   traceSlug,
   organization,
   location,
-}: TraceNotFoundProps) {
+}: TraceNotFoundProps) => {
   const transactions = meta?.transactions ?? 0;
   const errors = meta?.errors ?? 0;
 
@@ -99,7 +99,7 @@ function TraceNotFound({
   }
 
   return <LoadingError message={t('The trace you are looking for was not found.')} />;
-}
+};
 
 const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};

@@ -15,13 +15,13 @@ type Props = {
   isSavedSearchesOpen?: boolean;
 };
 
-function Headers({
+const Headers = ({
   selection,
   statsPeriod,
   onSelectStatsPeriod,
   isReprocessingQuery,
   isSavedSearchesOpen,
-}: Props) {
+}: Props) => {
   return (
     <Fragment>
       {isReprocessingQuery ? (
@@ -60,7 +60,7 @@ function Headers({
       )}
     </Fragment>
   );
-}
+};
 
 export default Headers;
 

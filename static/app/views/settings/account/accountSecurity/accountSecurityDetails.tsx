@@ -34,14 +34,14 @@ type AuthenticatorDateProps = {
   label: string;
 };
 
-function AuthenticatorDate({label, date}: AuthenticatorDateProps) {
+const AuthenticatorDate = ({label, date}: AuthenticatorDateProps) => {
   return (
     <Fragment>
       <DateLabel>{label}</DateLabel>
       <div>{date ? <DateTime date={date} /> : t('never')}</div>
     </Fragment>
   );
-}
+};
 
 type Props = {
   deleteDisabled: boolean;

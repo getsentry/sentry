@@ -31,7 +31,7 @@ type Props = {
   projSlug: Project['slug'];
 };
 
-function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Props) {
+const ReprocessAlert = ({onReprocessEvent, api, orgSlug, projSlug, eventId}: Props) => {
   const [reprocessableEvent, setReprocessableEvent] = useState<
     undefined | ReprocessableEvent
   >();
@@ -87,7 +87,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
   }
 
   return <StyledAlert type="info">{getAlertInfoMessage()}</StyledAlert>;
-}
+};
 
 export default ReprocessAlert;
 

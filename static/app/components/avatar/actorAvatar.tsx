@@ -23,7 +23,7 @@ type Props = {
   tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, 'children' | 'title'>;
 };
 
-function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
+const ActorAvatar = ({size = 24, hasTooltip = true, actor, ...props}: Props) => {
   const otherProps = {
     size,
     hasTooltip,
@@ -55,6 +55,6 @@ function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
   });
 
   return null;
-}
+};
 
 export default ActorAvatar;

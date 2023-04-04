@@ -744,7 +744,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
   }
 }
 
-function ResultsContainer(props: Props) {
+const ResultsContainer = (props: Props) => {
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
    * requests being performed on mount.
@@ -765,6 +765,6 @@ function ResultsContainer(props: Props) {
       <SavedQueryAPI {...props} />
     </PageFiltersContainer>
   );
-}
+};
 
 export default withApi(withOrganization(withPageFilters(ResultsContainer)));

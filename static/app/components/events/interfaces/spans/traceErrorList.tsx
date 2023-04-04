@@ -16,7 +16,7 @@ interface TraceErrorListProps {
   trace: ParsedTraceType;
 }
 
-function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
+const TraceErrorList = ({trace, errors, onClickSpan}: TraceErrorListProps) => {
   return (
     <List symbol="bullet" data-test-id="trace-error-list">
       {flatten(
@@ -44,7 +44,7 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
       )}
     </List>
   );
-}
+};
 
 const ErrorLink = styled('a')`
   color: ${p => p.theme.textColor};

@@ -41,7 +41,12 @@ export interface LinkProps
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.ReactElement {
+const BaseLink = ({
+  disabled,
+  to,
+  forwardedRef,
+  ...props
+}: LinkProps): React.ReactElement => {
   const route = useContext(RouteContext);
   const location = route?.location;
   to = normalizeUrl(to, location);
@@ -51,7 +56,7 @@ function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.Reac
   }
 
   return <a href={typeof to === 'string' ? to : ''} ref={forwardedRef} {...props} />;
-}
+};
 
 // Re-assign to Link to make auto-importing smarter
 const Link = styled(

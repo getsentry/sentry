@@ -9,7 +9,7 @@ type Props = {
   status: ImageStatus;
 };
 
-function Status({status}: Props) {
+const Status = ({status}: Props) => {
   switch (status) {
     case ImageStatus.OTHER:
     case ImageStatus.FETCHING_FAILED:
@@ -34,7 +34,7 @@ function Status({status}: Props) {
       return <StyledTag>{t('Unknown')}</StyledTag>; // This shall not happen
     }
   }
-}
+};
 
 export default Status;
 

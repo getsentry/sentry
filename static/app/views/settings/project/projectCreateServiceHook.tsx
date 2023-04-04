@@ -12,7 +12,7 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
 };
 
-function ProjectCreateServiceHook({organization, params}: Props) {
+const ProjectCreateServiceHook = ({organization, params}: Props) => {
   const {projectId} = params;
   const title = t('Create Service Hook');
 
@@ -28,6 +28,6 @@ function ProjectCreateServiceHook({organization, params}: Props) {
       </Fragment>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default withOrganization(ProjectCreateServiceHook);

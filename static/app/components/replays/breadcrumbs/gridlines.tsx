@@ -11,7 +11,7 @@ const Line = styled(Timeline.Col)<{lineStyle: LineStyle}>`
   line-height: 14px;
 `;
 
-function Gridlines({
+const Gridlines = ({
   children,
   cols,
   lineStyle,
@@ -21,7 +21,7 @@ function Gridlines({
   lineStyle: LineStyle;
   remaining: number;
   children?: (i: number) => React.ReactNode;
-}) {
+}) => {
   return (
     <Timeline.Columns totalColumns={cols} remainder={remaining}>
       {[...Array(cols)].map((_, i) => (
@@ -31,7 +31,7 @@ function Gridlines({
       ))}
     </Timeline.Columns>
   );
-}
+};
 
 type Props = {
   durationMs: number;
@@ -39,7 +39,7 @@ type Props = {
   minWidth?: number;
 };
 
-export function MajorGridlines({durationMs, minWidth = 50, width}: Props) {
+export const MajorGridlines = ({durationMs, minWidth = 50, width}: Props) => {
   const {timespan, cols, remaining} = countColumns(durationMs, width, minWidth);
 
   return (
@@ -47,13 +47,13 @@ export function MajorGridlines({durationMs, minWidth = 50, width}: Props) {
       {i => <Label>{formatTime((i + 1) * timespan)}</Label>}
     </FullHeightGridLines>
   );
-}
+};
 
-export function MinorGridlines({durationMs, minWidth = 20, width}: Props) {
+export const MinorGridlines = ({durationMs, minWidth = 20, width}: Props) => {
   const {cols, remaining} = countColumns(durationMs, width, minWidth);
 
   return <FullHeightGridLines cols={cols} lineStyle="dotted" remaining={remaining} />;
-}
+};
 
 const FullHeightGridLines = styled(Gridlines)`
   height: 100%;

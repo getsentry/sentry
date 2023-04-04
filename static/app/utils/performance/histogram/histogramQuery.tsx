@@ -52,7 +52,7 @@ function getHistogramRequestPayload(props: RequestProps) {
   return apiPayload;
 }
 
-function HistogramQuery(props: Props) {
+const HistogramQuery = (props: Props) => {
   const {children, fields, didReceiveMultiAxis} = props;
 
   function didFetch(data: Histograms) {
@@ -93,6 +93,6 @@ function HistogramQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default HistogramQuery;

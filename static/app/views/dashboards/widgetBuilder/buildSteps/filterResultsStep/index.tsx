@@ -43,7 +43,7 @@ interface Props {
   queryErrors?: Record<string, any>[];
 }
 
-export function FilterResultsStep({
+export const FilterResultsStep = ({
   canAddSearchConditions,
   dashboardFilters,
   location,
@@ -57,7 +57,7 @@ export function FilterResultsStep({
   widgetType,
   selection,
   onQueryConditionChange,
-}: Props) {
+}: Props) => {
   const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>([]);
 
   const handleSearch = useCallback(
@@ -183,7 +183,7 @@ export function FilterResultsStep({
       </div>
     </BuildStep>
   );
-}
+};
 
 const LegendAliasInput = styled(Input)`
   width: 33%;

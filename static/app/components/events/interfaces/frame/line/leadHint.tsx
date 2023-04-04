@@ -9,7 +9,7 @@ type Props = {
   nextFrame?: Frame;
 };
 
-function LeadHint({leadsToApp, isExpanded, nextFrame, event}: Props) {
+const LeadHint = ({leadsToApp, isExpanded, nextFrame, event}: Props) => {
   if (isExpanded || !leadsToApp) {
     return null;
   }
@@ -20,6 +20,6 @@ function LeadHint({leadsToApp, isExpanded, nextFrame, event}: Props) {
       {': '}
     </div>
   );
-}
+};
 
 export default LeadHint;

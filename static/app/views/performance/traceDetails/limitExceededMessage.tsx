@@ -13,12 +13,12 @@ interface LimitExceededMessageProps {
   traceEventView: EventView;
   traceInfo: TraceInfo;
 }
-function LimitExceededMessage({
+const LimitExceededMessage = ({
   traceInfo,
   traceEventView,
   organization,
   meta,
-}: LimitExceededMessageProps) {
+}: LimitExceededMessageProps) => {
   const count = traceInfo.transactions.size;
   const totalTransactions = meta?.transactions ?? count;
 
@@ -47,6 +47,6 @@ function LimitExceededMessage({
       )}
     </MessageRow>
   );
-}
+};
 
 export default LimitExceededMessage;

@@ -21,13 +21,13 @@ type Props = {
   selectedPlatformToProjectIdMap: {[key in PlatformKey]?: string};
 };
 
-function ProjectSidebarSection({
+const ProjectSidebarSection = ({
   projects,
   activeProject,
   selectProject,
   checkProjectHasFirstEvent,
   selectedPlatformToProjectIdMap,
-}: Props) {
+}: Props) => {
   const oneProject = (platformOnCreate: string, projectSlug: string) => {
     const project = projects.find(p => p.slug === projectSlug);
     const platform = project ? project.platform || 'other' : platformOnCreate;
@@ -70,7 +70,7 @@ function ProjectSidebarSection({
       )}
     </Fragment>
   );
-}
+};
 
 export default ProjectSidebarSection;
 

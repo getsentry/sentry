@@ -28,7 +28,7 @@ type Props = {
   ) => void;
 };
 
-function UnmemoizedConsoleLogRow({
+const UnmemoizedConsoleLogRow = ({
   index,
   breadcrumb,
   isHovered,
@@ -37,7 +37,7 @@ function UnmemoizedConsoleLogRow({
   style,
   expandPaths,
   onDimensionChange,
-}: Props) {
+}: Props) => {
   const {currentTime} = useReplayContext();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
@@ -96,7 +96,7 @@ function UnmemoizedConsoleLogRow({
       />
     </ConsoleLog>
   );
-}
+};
 
 const IssueLinkWrapper = styled('div')`
   float: right;
@@ -144,9 +144,9 @@ const ICONS = {
   warning: <IconWarning size="xs" />,
 };
 
-function Icon({level}: {level: Extract<Crumb, BreadcrumbTypeDefault>['level']}) {
+const Icon = ({level}: {level: Extract<Crumb, BreadcrumbTypeDefault>['level']}) => {
   return <span>{ICONS[level]}</span>;
-}
+};
 
 const Message = styled('div')`
   font-family: ${p => p.theme.text.familyMono};

@@ -11,7 +11,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import ModalStore from 'sentry/stores/modalStore';
 import {RouteContext} from 'sentry/views/routeContext';
 
-function ComponentProviders({children}: {children: React.ReactNode}) {
+const ComponentProviders = ({children}: {children: React.ReactNode}) => {
   const {router} = initializeOrg();
   return (
     <RouteContext.Provider
@@ -26,7 +26,7 @@ function ComponentProviders({children}: {children: React.ReactNode}) {
       <GlobalModal />
     </RouteContext.Provider>
   );
-}
+};
 
 describe('FeatureFeedback', function () {
   beforeEach(() => {

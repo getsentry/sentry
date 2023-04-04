@@ -78,13 +78,13 @@ export type FeedbackModalProps<T extends Data> =
   | DefaultFeedbackModal
   | CustomFeedbackModal<T>;
 
-export function FeedbackModal<T extends Data>({
+export const FeedbackModal = <T extends Data>({
   Header,
   Body,
   Footer,
   closeModal,
   ...props
-}: FeedbackModalProps<T> & ModalRenderProps) {
+}: FeedbackModalProps<T> & ModalRenderProps) => {
   const {organization} = useLegacyStore(OrganizationStore);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
@@ -307,7 +307,7 @@ export function FeedbackModal<T extends Data>({
       })}
     </Fragment>
   );
-}
+};
 
 export const modalCss = css`
   width: 100%;

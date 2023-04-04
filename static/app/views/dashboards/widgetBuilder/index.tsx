@@ -9,7 +9,7 @@ import WidgetBuilder from './widgetBuilder';
 interface WidgetBuilderProps
   extends Omit<React.ComponentProps<typeof WidgetBuilder>, 'organization'> {}
 
-function WidgetBuilderContainer(props: WidgetBuilderProps) {
+const WidgetBuilderContainer = (props: WidgetBuilderProps) => {
   const organization = useOrganization();
 
   return (
@@ -25,7 +25,7 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
       <WidgetBuilder {...props} organization={organization} />
     </Feature>
   );
-}
+};
 
 export {WidgetBuilderProps};
 export default WidgetBuilderContainer;

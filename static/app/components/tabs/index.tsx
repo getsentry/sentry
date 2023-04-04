@@ -50,12 +50,12 @@ export const TabsContext = createContext<TabContext>({
  * child components (TabList and TabPanels) to work together. See example
  * usage in tabs.stories.js
  */
-export function Tabs<T extends React.Key>({
+export const Tabs = <T extends React.Key>({
   orientation = 'horizontal',
   className,
   children,
   ...props
-}: TabsProps<T>) {
+}: TabsProps<T>) => {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
 
   return (
@@ -67,7 +67,7 @@ export function Tabs<T extends React.Key>({
       </TabsWrap>
     </TabsContext.Provider>
   );
-}
+};
 
 const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
   orientation: Orientation;

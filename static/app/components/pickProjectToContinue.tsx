@@ -25,12 +25,12 @@ type Props = {
   router: InjectedRouter;
 };
 
-function PickProjectToContinue({
+const PickProjectToContinue = ({
   noProjectRedirectPath,
   nextPath,
   router,
   projects,
-}: Props) {
+}: Props) => {
   const nextPathQuery = nextPath.query;
   let navigating = false;
   let path = `${nextPath.pathname}?project=`;
@@ -77,7 +77,7 @@ function PickProjectToContinue({
   );
 
   return <ContextPickerBackground />;
-}
+};
 
 const ContextPickerBackground = styled('div')`
   height: 100vh;

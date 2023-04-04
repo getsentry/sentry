@@ -64,7 +64,7 @@ type Props = Omit<
     topLevelClasses?: string;
   };
 
-function DropdownLink({
+const DropdownLink = ({
   anchorMiddle,
   title,
   customTitle,
@@ -77,7 +77,7 @@ function DropdownLink({
   caret = true,
   alwaysRenderMenu = true,
   ...otherProps
-}: Props) {
+}: Props) => {
   const theme = useTheme();
 
   return (
@@ -132,6 +132,6 @@ function DropdownLink({
       }}
     </DeprecatedDropdownMenu>
   );
-}
+};
 
 export default DropdownLink;

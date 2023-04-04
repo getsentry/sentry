@@ -18,7 +18,7 @@ type Props = {
   renderNavigation?: (opts: {isMobileNavVisible: boolean}) => React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
-function SettingsLayout(props: Props) {
+const SettingsLayout = (props: Props) => {
   // This is used when the screen is small enough that the navigation should be
   // hidden. This state is only used when the media query matches.
   //
@@ -90,7 +90,7 @@ function SettingsLayout(props: Props) {
       </MaxWidthContainer>
     </SettingsColumn>
   );
-}
+};
 
 const SettingsColumn = styled('div')`
   display: flex;

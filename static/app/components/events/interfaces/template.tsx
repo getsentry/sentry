@@ -10,7 +10,7 @@ type Props = {
   event: Event;
 };
 
-export function Template({data, event}: Props) {
+export const Template = ({data, event}: Props) => {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.TEMPLATE);
   const meta = event._meta?.entries?.[entryIndex]?.data?.values;
   return (
@@ -29,4 +29,4 @@ export function Template({data, event}: Props) {
       </div>
     </EventDataSection>
   );
-}
+};

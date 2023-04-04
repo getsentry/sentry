@@ -16,7 +16,7 @@ type Props = {
   replayRecord: ReplayRecord | undefined;
 };
 
-function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
+const DetailsPageBreadcrumbs = ({orgSlug, replayRecord}: Props) => {
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
 
@@ -52,6 +52,6 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
       ]}
     />
   );
-}
+};
 
 export default DetailsPageBreadcrumbs;

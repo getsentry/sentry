@@ -45,7 +45,7 @@ type State = {
   error?: string;
 };
 
-function PerformanceContent({selection, location, demoMode, router}: Props) {
+const PerformanceContent = ({selection, location, demoMode, router}: Props) => {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -193,6 +193,6 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
       </PerformanceEventViewProvider>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default withPageFilters(PerformanceContent);

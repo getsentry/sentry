@@ -23,13 +23,13 @@ type Props = {
   organizations: OrganizationSummary[];
 };
 
-function NotificationSettingsByOrganization({
+const NotificationSettingsByOrganization = ({
   notificationType,
   notificationSettings,
   onChange,
   onSubmitSuccess,
   organizations,
-}: Props) {
+}: Props) => {
   return (
     <Form
       saveOnBlur
@@ -46,6 +46,6 @@ function NotificationSettingsByOrganization({
       />
     </Form>
   );
-}
+};
 
 export default withOrganizations(NotificationSettingsByOrganization);

@@ -17,7 +17,7 @@ type Props = {
   version: string;
 };
 
-function OtherProjects({projects, location, version, organization}: Props) {
+const OtherProjects = ({projects, location, version, organization}: Props) => {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>
@@ -63,7 +63,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-}
+};
 
 const Row = styled('div')`
   display: grid;

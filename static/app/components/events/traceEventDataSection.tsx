@@ -73,7 +73,7 @@ export const TraceEventDataSectionContext = createContext<ChildProps | undefined
   undefined
 );
 
-export function TraceEventDataSection({
+export const TraceEventDataSection = ({
   type,
   title,
   wrapTitle,
@@ -91,7 +91,7 @@ export function TraceEventDataSection({
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
   hasAppOnlyFrames,
-}: Props) {
+}: Props) => {
   const api = useApi();
   const organization = useOrganization();
 
@@ -472,7 +472,7 @@ export function TraceEventDataSection({
       </TraceEventDataSectionContext.Provider>
     </EventDataSection>
   );
-}
+};
 
 interface PermalinkTitleProps
   extends React.DetailedHTMLProps<
@@ -480,14 +480,14 @@ interface PermalinkTitleProps
     HTMLAnchorElement
   > {}
 
-export function PermalinkTitle(props: PermalinkTitleProps) {
+export const PermalinkTitle = (props: PermalinkTitleProps) => {
   return (
     <Permalink {...props} href={'#' + props.type} className="permalink">
       <StyledIconLink size="xs" color="subText" />
       <h3>{props.children}</h3>
     </Permalink>
   );
-}
+};
 
 const StyledIconLink = styled(IconLink)`
   display: none;

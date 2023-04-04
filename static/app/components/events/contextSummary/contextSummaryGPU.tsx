@@ -25,7 +25,7 @@ type VersionElement = {
 
 type Props = ContextItemProps<Data, 'gpu'>;
 
-export function ContextSummaryGPU({data, meta}: Props) {
+export const ContextSummaryGPU = ({data, meta}: Props) => {
   if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown GPU')} />;
   }
@@ -58,7 +58,7 @@ export function ContextSummaryGPU({data, meta}: Props) {
       </TextOverflow>
     </Item>
   );
-}
+};
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};

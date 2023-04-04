@@ -223,7 +223,7 @@ function handleFilterDuration(
   });
 }
 
-function ChangedTransactions(props: Props) {
+const ChangedTransactions = (props: Props) => {
   const {
     location,
     trendChangeType,
@@ -363,7 +363,7 @@ function ChangedTransactions(props: Props) {
       }}
     </TrendsDiscoverQuery>
   );
-}
+};
 
 type TrendsListItemProps = {
   api: Client;
@@ -381,7 +381,7 @@ type TrendsListItemProps = {
   trendView: TrendView;
 };
 
-function TrendsListItem(props: TrendsListItemProps) {
+const TrendsListItem = (props: TrendsListItemProps) => {
   const {
     transaction,
     transactions,
@@ -535,7 +535,7 @@ function TrendsListItem(props: TrendsListItemProps) {
       </ItemTransactionStatus>
     </ListItemContainer>
   );
-}
+};
 
 export const CompareDurations = ({
   transaction,

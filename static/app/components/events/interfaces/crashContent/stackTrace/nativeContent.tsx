@@ -26,7 +26,7 @@ type Props = {
   newestFirst?: boolean;
 };
 
-export function NativeContent({
+export const NativeContent = ({
   data,
   platform,
   event,
@@ -38,7 +38,7 @@ export function NativeContent({
   expandFirstFrame = true,
   maxDepth,
   meta,
-}: Props) {
+}: Props) => {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
 
@@ -243,7 +243,7 @@ export function NativeContent({
       </Frames>
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled(Panel)`
   && {

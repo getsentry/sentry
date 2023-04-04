@@ -26,11 +26,11 @@ describe('OrganizationContextContainer', function () {
   let getProjectsMock;
   let getTeamsMock;
 
-  function DisplayOrg() {
+  const DisplayOrg = () => {
     const contextOrg = useOrganization();
 
     return <div>{contextOrg.slug}</div>;
-  }
+  };
 
   function makeComponent(props) {
     return (

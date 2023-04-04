@@ -159,7 +159,7 @@ type ContentProps = {
   transactionName: string;
 };
 
-function SpanDetailsContent(props: ContentProps) {
+const SpanDetailsContent = (props: ContentProps) => {
   const {
     location,
     organization,
@@ -209,7 +209,7 @@ function SpanDetailsContent(props: ContentProps) {
       />
     </Fragment>
   );
-}
+};
 
 function getSpansEventView(eventView: EventView): EventView {
   // TODO: There is a bug where if the sort is not avg occurrence,

@@ -127,7 +127,7 @@ interface ButtonPropsWithAriaLabel extends BaseButtonProps {
 
 export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
-function BaseButton({
+const BaseButton = ({
   size = 'md',
   to,
   busy,
@@ -146,7 +146,7 @@ function BaseButton({
   analyticsEventKey,
   analyticsParams,
   ...buttonProps
-}: ButtonProps) {
+}: ButtonProps) => {
   // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
   // Leaving it here for a bunch of our tests that query by aria-label.
   const accessibleLabel =
@@ -228,7 +228,7 @@ function BaseButton({
   }
 
   return button;
-}
+};
 
 const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
   <BaseButton forwardRef={ref} {...props} />

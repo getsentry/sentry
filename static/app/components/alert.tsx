@@ -22,7 +22,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const DEFAULT_TYPE = 'info';
 
-function Alert({
+const Alert = ({
   type = DEFAULT_TYPE,
   showIcon = false,
   icon,
@@ -34,7 +34,7 @@ function Alert({
   className,
   children,
   ...props
-}: AlertProps) {
+}: AlertProps) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const showExpand = defined(expand);
   const showTrailingItems = defined(trailingItems);
@@ -115,7 +115,7 @@ function Alert({
       </PanelProvider>
     </Wrap>
   );
-}
+};
 
 const alertStyles = ({
   type = DEFAULT_TYPE,

@@ -32,7 +32,7 @@ type Props = {
   inline?: boolean;
 };
 
-function PullRequestLink({pullRequest, repository, inline}: Props) {
+const PullRequestLink = ({pullRequest, repository, inline}: Props) => {
   const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
 
   if (!pullRequest.externalUrl) {
@@ -54,7 +54,7 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
       {displayId}
     </ExternalPullLink>
   );
-}
+};
 
 const ExternalPullLink = styled(ExternalLink)`
   display: inline-flex;

@@ -32,7 +32,7 @@ const cellMeasurer = {
   minHeight: 82,
 };
 
-function DomMutations({replay, startTimestampMs}: Props) {
+const DomMutations = ({replay, startTimestampMs}: Props) => {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
   const {currentTime, currentHoverTime} = useReplayContext();
 
@@ -136,7 +136,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
       </MutationItemContainer>
     </FluidHeight>
   );
-}
+};
 
 const MutationItemContainer = styled('div')`
   position: relative;

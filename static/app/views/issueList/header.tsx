@@ -44,14 +44,14 @@ type IssueListHeaderTabProps = {
   tooltipTitle?: ReactNode;
 };
 
-function IssueListHeaderTabContent({
+const IssueListHeaderTabContent = ({
   count = 0,
   hasMore = false,
   name,
   query,
   tooltipHoverable,
   tooltipTitle,
-}: IssueListHeaderTabProps) {
+}: IssueListHeaderTabProps) => {
   return (
     <Tooltip
       title={tooltipTitle}
@@ -67,9 +67,9 @@ function IssueListHeaderTabContent({
       )}
     </Tooltip>
   );
-}
+};
 
-function IssueListHeader({
+const IssueListHeader = ({
   organization,
   query,
   sort,
@@ -79,7 +79,7 @@ function IssueListHeader({
   router,
   displayReprocessingTab,
   selectedProjectIds,
-}: IssueListHeaderProps) {
+}: IssueListHeaderProps) => {
   const {projects} = useProjects();
   const tabs = getTabs(organization);
   const visibleTabs = displayReprocessingTab
@@ -159,7 +159,7 @@ function IssueListHeader({
       </StyledTabs>
     </Layout.Header>
   );
-}
+};
 
 export default IssueListHeader;
 

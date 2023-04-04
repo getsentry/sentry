@@ -21,7 +21,7 @@ type Props = {
   isEmbedded?: boolean;
 };
 
-function TraceView(props: Props) {
+const TraceView = (props: Props) => {
   const traceViewRef = createRef<HTMLDivElement>();
   const traceViewHeaderRef = createRef<HTMLDivElement>();
   const virtualScrollBarContainerRef = createRef<HTMLDivElement>();
@@ -143,6 +143,6 @@ function TraceView(props: Props) {
       </SpanContext.Consumer>
     </SpanContext.Provider>
   );
-}
+};
 
 export default memo(TraceView);

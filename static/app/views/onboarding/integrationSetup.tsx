@@ -29,7 +29,7 @@ type Props = {
   onClickManualSetup?: () => void;
 };
 
-function IntegrationSetup(props: Props) {
+const IntegrationSetup = (props: Props) => {
   const [hasError, setHasError] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [provider, setProvider] = useState<IntegrationProvider | null>(null);
@@ -199,7 +199,7 @@ function IntegrationSetup(props: Props) {
       })}
     </Fragment>
   );
-}
+};
 
 const DocsWrapper = styled(motion.div)``;
 

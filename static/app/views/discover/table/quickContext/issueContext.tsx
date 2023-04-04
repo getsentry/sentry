@@ -29,7 +29,7 @@ import {
 } from './styles';
 import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
-function IssueContext(props: BaseContextProps) {
+const IssueContext = (props: BaseContextProps) => {
   const {dataRow, organization} = props;
 
   useEffect(() => {
@@ -179,7 +179,7 @@ function IssueContext(props: BaseContextProps) {
       {renderSuspectCommits()}
     </Wrapper>
   );
-}
+};
 
 const SuspectCommitsContainer = styled(ContextContainer)`
   ${SidebarSection.Wrap}, ${Panel}, h6 {

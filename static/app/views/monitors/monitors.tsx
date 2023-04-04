@@ -44,7 +44,7 @@ type State = AsyncView['state'] & {
   monitorList: Monitor[] | null;
 };
 
-function NewMonitorButton(props: ButtonProps) {
+const NewMonitorButton = (props: ButtonProps) => {
   const organization = useOrganization();
   return (
     <Button
@@ -55,7 +55,7 @@ function NewMonitorButton(props: ButtonProps) {
       {props.children}
     </Button>
   );
-}
+};
 
 class Monitors extends AsyncView<Props, State> {
   get orgSlug() {

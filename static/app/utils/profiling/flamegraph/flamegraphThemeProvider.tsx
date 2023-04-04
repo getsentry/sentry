@@ -24,9 +24,9 @@ interface FlamegraphThemeProviderProps {
   children: React.ReactNode;
 }
 
-function FlamegraphThemeProvider(
+const FlamegraphThemeProvider = (
   props: FlamegraphThemeProviderProps
-): React.ReactElement {
+): React.ReactElement => {
   const {theme: colorMode} = useLegacyStore(ConfigStore);
 
   const [mutation, setMutation] = useState<FlamegraphThemeMutationCallback | null>(null);
@@ -52,6 +52,6 @@ function FlamegraphThemeProvider(
       </FlamegraphThemeContext.Provider>
     </FlamegraphThemeMutationContext.Provider>
   );
-}
+};
 
 export {FlamegraphThemeProvider};

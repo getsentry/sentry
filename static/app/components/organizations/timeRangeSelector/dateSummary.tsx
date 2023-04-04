@@ -14,7 +14,7 @@ type Props = {
 /**
  * Displays and formats absolute DateTime ranges
  */
-function DateSummary({start, end}: Props) {
+const DateSummary = ({start, end}: Props) => {
   function getFormattedDate(date: moment.MomentInput, format: string) {
     return moment(date).local().format(format);
   }
@@ -55,7 +55,7 @@ function DateSummary({start, end}: Props) {
       </Fragment>
     </DateGroupWrapper>
   );
-}
+};
 
 const DateGroupWrapper = styled('div')<{hasTime: boolean}>`
   display: flex;

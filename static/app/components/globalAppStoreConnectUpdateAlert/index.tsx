@@ -8,12 +8,12 @@ type Props = Pick<React.ComponentProps<typeof UpdateAlert>, 'className' | 'Wrapp
   project?: Project;
 };
 
-function GlobalAppStoreConnectUpdateAlert({project, organization, ...rest}: Props) {
+const GlobalAppStoreConnectUpdateAlert = ({project, organization, ...rest}: Props) => {
   return (
     <AppStoreConnectContext.Provider project={project} organization={organization}>
       <UpdateAlert project={project} {...rest} />
     </AppStoreConnectContext.Provider>
   );
-}
+};
 
 export default GlobalAppStoreConnectUpdateAlert;

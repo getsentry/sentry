@@ -83,7 +83,7 @@ type Props = {
   selectedTeams?: Team[];
 };
 
-function TeamSelect({
+const TeamSelect = ({
   disabled,
   isOrgOwner,
   loadingTeams,
@@ -97,7 +97,7 @@ function TeamSelect({
   onAddTeam,
   onRemoveTeam,
   onChangeTeamRole,
-}: Props) {
+}: Props) => {
   const {teams, onSearch, fetching} = useTeams();
   const {orgRoleList, teamRoleList} = organization;
 
@@ -248,7 +248,7 @@ function TeamSelect({
       <PanelBody>{loadingTeams ? <LoadingIndicator /> : renderBody()}</PanelBody>
     </Panel>
   );
-}
+};
 
 type TeamRowProps = {
   confirmMessage: string | null;

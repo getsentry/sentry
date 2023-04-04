@@ -33,7 +33,7 @@ export interface FlamegraphSpanTooltipProps {
   spansView: CanvasView<SpanChart>;
 }
 
-export function FlamegraphSpanTooltip({
+export const FlamegraphSpanTooltip = ({
   canvasBounds,
   configSpaceCursor,
   spansCanvas,
@@ -41,7 +41,7 @@ export function FlamegraphSpanTooltip({
   spansView,
   spansRenderer,
   hoveredNode,
-}: FlamegraphSpanTooltipProps) {
+}: FlamegraphSpanTooltipProps) => {
   const spanInConfigSpace = useMemo<Rect>(() => {
     return new Rect(
       hoveredNode.start,
@@ -82,4 +82,4 @@ export function FlamegraphSpanTooltip({
       </FlamegraphTooltipTimelineInfo>
     </BoundTooltip>
   );
-}
+};

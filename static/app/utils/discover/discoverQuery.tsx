@@ -54,7 +54,7 @@ function shouldRefetchData(
   );
 }
 
-function DiscoverQuery(props: DiscoverQueryComponentProps) {
+const DiscoverQuery = (props: DiscoverQueryComponentProps) => {
   const afterFetch = (data, _) => {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
@@ -70,7 +70,7 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
       {...props}
     />
   );
-}
+};
 
 export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'children'>) {
   const afterFetch = (data, _) => {

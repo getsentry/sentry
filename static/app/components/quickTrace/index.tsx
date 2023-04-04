@@ -276,7 +276,7 @@ type EventNodeSelectorProps = {
   numEvents?: number;
 };
 
-function EventNodeSelector({
+const EventNodeSelector = ({
   location,
   organization,
   events = [],
@@ -287,7 +287,7 @@ function EventNodeSelector({
   errorDest,
   transactionDest,
   numEvents = 5,
-}: EventNodeSelectorProps) {
+}: EventNodeSelectorProps) => {
   let errors: TraceError[] = events.flatMap(event => event.errors ?? []);
   let perfIssues: TracePerformanceIssue[] = events.flatMap(
     event => event.performance_issues ?? []
@@ -447,7 +447,7 @@ function EventNodeSelector({
       </DropdownLink>
     </DropdownContainer>
   );
-}
+};
 
 type DropdownNodeProps = {
   anchor: 'left' | 'right';
@@ -459,7 +459,7 @@ type DropdownNodeProps = {
   to?: LocationDescriptor;
 };
 
-function DropdownNodeItem({
+const DropdownNodeItem = ({
   event,
   onSelect,
   to,
@@ -467,7 +467,7 @@ function DropdownNodeItem({
   organization,
   subtext,
   anchor,
-}: DropdownNodeProps) {
+}: DropdownNodeProps) => {
   return (
     <DropdownItem to={to} onSelect={onSelect} allowDefaultEvent={allowDefaultEvent}>
       <DropdownItemSubContainer>
@@ -505,7 +505,7 @@ function DropdownNodeItem({
       {subtext && <SectionSubtext>{subtext}</SectionSubtext>}
     </DropdownItem>
   );
-}
+};
 
 type EventNodeProps = {
   hoverText: React.ReactNode;
@@ -515,7 +515,13 @@ type EventNodeProps = {
   type?: keyof Theme['tag'];
 };
 
-function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {
+const StyledEventNode = ({
+  text,
+  hoverText,
+  to,
+  onClick,
+  type = 'white',
+}: EventNodeProps) => {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
       <EventNode
@@ -529,7 +535,7 @@ function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNo
       </EventNode>
     </Tooltip>
   );
-}
+};
 
 type MissingServiceProps = Pick<QuickTraceProps, 'anchor' | 'organization'> & {
   connectorSide: 'left' | 'right';

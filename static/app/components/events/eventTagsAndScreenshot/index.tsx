@@ -37,13 +37,13 @@ type Props = Omit<
   isShare?: boolean;
 };
 
-export function EventTagsAndScreenshot({
+export const EventTagsAndScreenshot = ({
   projectSlug,
   location,
   event,
   organization,
   isShare = false,
-}: Props) {
+}: Props) => {
   const {tags = []} = event;
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const {data: attachments} = useFetchEventAttachments(
@@ -171,7 +171,7 @@ export function EventTagsAndScreenshot({
       )}
     </Wrapper>
   );
-}
+};
 
 /**
  * Used to adjust padding based on which 3 elements are shown

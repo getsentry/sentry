@@ -10,7 +10,7 @@ type Props = {
   actions: React.ReactNode;
 };
 
-function Onboarding({actions}: Props) {
+const Onboarding = ({actions}: Props) => {
   return (
     <OnboardingPanel image={<AlertsImage src={emptyStateImg} />}>
       <h3>{t('More signal, less noise')}</h3>
@@ -22,7 +22,7 @@ function Onboarding({actions}: Props) {
       <ButtonList gap={1}>{actions}</ButtonList>
     </OnboardingPanel>
   );
-}
+};
 
 const AlertsImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {

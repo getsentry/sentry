@@ -27,7 +27,7 @@ type Props = {
 
 const EVENT_ROUND_LIMIT = 1000;
 
-function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
+const InboxReason = ({inbox, fontSize = 'sm', showDateAdded}: Props) => {
   const {reason, reason_details: reasonDetails, date_added: dateAdded} = inbox;
   const relativeDateAdded = getDynamicText({
     value: dateAdded && (
@@ -180,7 +180,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       )}
     </StyledTag>
   );
-}
+};
 
 export default InboxReason;
 

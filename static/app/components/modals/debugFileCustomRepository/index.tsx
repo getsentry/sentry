@@ -56,7 +56,7 @@ const HookedCustomSymbolSources = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-function DebugFileCustomRepository({
+const DebugFileCustomRepository = ({
   Header,
   Body,
   Footer,
@@ -68,7 +68,7 @@ function DebugFileCustomRepository({
   closeModal,
   organization,
   appStoreConnectSourcesQuantity,
-}: Props) {
+}: Props) => {
   const {projectId: projectSlug} = useParams<RouteParams>();
   function handleSave(data?: Record<string, any>) {
     if (!data) {
@@ -189,7 +189,7 @@ function DebugFileCustomRepository({
       }}
     </Feature>
   );
-}
+};
 
 export default DebugFileCustomRepository;
 

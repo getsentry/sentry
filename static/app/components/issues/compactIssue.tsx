@@ -24,7 +24,7 @@ type HeaderProps = {
   eventId?: string;
 };
 
-function CompactIssueHeader({data, organization, eventId}: HeaderProps) {
+const CompactIssueHeader = ({data, organization, eventId}: HeaderProps) => {
   const basePath = `/organizations/${organization.slug}/issues/`;
 
   const issueLink = eventId
@@ -64,7 +64,7 @@ function CompactIssueHeader({data, organization, eventId}: HeaderProps) {
       </div>
     </Fragment>
   );
-}
+};
 
 type GroupTypes = ReturnType<typeof GroupStore.get>;
 

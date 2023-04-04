@@ -21,7 +21,7 @@ type Props = {
   onAddWidget: () => void;
 };
 
-function AddWidget({onAddWidget}: Props) {
+const AddWidget = ({onAddWidget}: Props) => {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
@@ -58,7 +58,7 @@ function AddWidget({onAddWidget}: Props) {
       </InnerWrapper>
     </WidgetWrapper>
   );
-}
+};
 
 export default AddWidget;
 

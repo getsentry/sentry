@@ -11,7 +11,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 type OnSubmitSuccess = Parameters<NonNullable<FormProps['onSubmitSuccess']>>;
 
-function PasswordForm() {
+const PasswordForm = () => {
   function handleSubmitSuccess(_change: OnSubmitSuccess[0], model: OnSubmitSuccess[1]) {
     // Reset form on success
     model.resetForm();
@@ -51,7 +51,7 @@ function PasswordForm() {
       />
     </Form>
   );
-}
+};
 
 const Actions = styled(PanelItem)`
   justify-content: flex-end;

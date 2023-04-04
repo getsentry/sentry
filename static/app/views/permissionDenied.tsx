@@ -19,7 +19,7 @@ type Props = {
   project?: Project;
 };
 
-function PermissionDenied(props: Props) {
+const PermissionDenied = (props: Props) => {
   const {organization, project} = props;
   const routes = useRoutes();
   useEffect(() => {
@@ -52,6 +52,6 @@ function PermissionDenied(props: Props) {
       </Layout.Page>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default withOrganization(withProject(PermissionDenied));

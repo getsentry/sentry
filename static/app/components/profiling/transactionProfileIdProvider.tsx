@@ -14,12 +14,12 @@ interface TransactionToProfileIdProviderProps {
   projectId?: string | undefined;
 }
 
-export function TransactionProfileIdProvider({
+export const TransactionProfileIdProvider = ({
   projectId,
   timestamp,
   transactionId,
   children,
-}: TransactionToProfileIdProviderProps) {
+}: TransactionToProfileIdProviderProps) => {
   const organization = useOrganization();
   // create a 24h timeframe relative from the transaction timestamp to use for
   // the profile events query
@@ -80,7 +80,7 @@ export function TransactionProfileIdProvider({
       {children}
     </TransactionProfileContext.Provider>
   );
-}
+};
 TransactionProfileIdProvider.Context = TransactionProfileContext;
 
 export function useTransactionProfileId() {

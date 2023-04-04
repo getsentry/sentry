@@ -18,7 +18,7 @@ const TABS = {
 
 export type TabKey = keyof typeof TABS;
 
-function NetworkRequestTabs({className, underlined = true}: Props) {
+const NetworkRequestTabs = ({className, underlined = true}: Props) => {
   const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('n_detail_tab', 'request');
   const activeTab = getParamValue();
@@ -40,6 +40,6 @@ function NetworkRequestTabs({className, underlined = true}: Props) {
       ))}
     </ScrollableTabs>
   );
-}
+};
 
 export default NetworkRequestTabs;

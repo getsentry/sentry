@@ -26,7 +26,7 @@ type VitalLabel = {
   vital: Vital;
 };
 
-function MeasurementsPanel(props: Props) {
+const MeasurementsPanel = (props: Props) => {
   const {measurements, generateBounds, dividerPosition} = props;
 
   return (
@@ -72,7 +72,7 @@ function MeasurementsPanel(props: Props) {
       })}
     </Container>
   );
-}
+};
 
 const Container = styled('div')`
   position: relative;

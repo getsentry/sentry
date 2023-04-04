@@ -26,7 +26,7 @@ const LOADING_MESSAGES = [
   t('Summoning a demon'),
 ];
 
-export function AiLoaderMessage() {
+export const AiLoaderMessage = () => {
   const [messages] = useState(() => shuffle(LOADING_MESSAGES));
   const [messageIndex, setMessageIndex] = useState(0);
 
@@ -44,7 +44,7 @@ export function AiLoaderMessage() {
       <Message>{messages[messageIndex]}…</Message>
     </div>
   );
-}
+};
 
 // Hacky way until we have proper darkmode/lightmode ai loaders
 const Message = styled('strong')`

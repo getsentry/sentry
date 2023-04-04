@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {PageFilters} from 'sentry/types';
 import {ReleasesProvider, useReleases} from 'sentry/utils/releases/releasesProvider';
 
-function TestComponent({other}: {other: string}) {
+const TestComponent = ({other}: {other: string}) => {
   const {releases, loading} = useReleases();
   return (
     <div>
@@ -14,7 +14,7 @@ function TestComponent({other}: {other: string}) {
       {`loading: ${loading}`}
     </div>
   );
-}
+};
 
 describe('useReleases', function () {
   const {organization} = initializeOrg();

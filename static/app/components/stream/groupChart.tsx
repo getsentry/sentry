@@ -16,13 +16,13 @@ type Props = {
   showSecondaryPoints?: boolean;
 };
 
-function GroupChart({
+const GroupChart = ({
   data,
   statsPeriod,
   showSecondaryPoints = false,
   height = 24,
   showMarkLine = false,
-}: Props) {
+}: Props) => {
   const stats: TimeseriesValue[] = statsPeriod
     ? data.filtered
       ? data.filtered.stats[statsPeriod]
@@ -97,6 +97,6 @@ function GroupChart({
       />
     </LazyLoad>
   );
-}
+};
 
 export default GroupChart;

@@ -42,7 +42,7 @@ type Props = Omit<ViewProps, 'start' | 'end'> & {
   start: DateString | null;
 };
 
-function VitalChart({
+const VitalChart = ({
   project,
   environment,
   organization,
@@ -51,7 +51,7 @@ function VitalChart({
   start,
   end,
   interval,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const router = useRouter();
   const api = useApi();
@@ -180,7 +180,7 @@ function VitalChart({
       </ChartContainer>
     </Panel>
   );
-}
+};
 
 export default VitalChart;
 

@@ -53,7 +53,7 @@ export interface SegmentedControlProps<Value extends string>
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-export function SegmentedControl<Value extends string>({
+export const SegmentedControl = <Value extends string>({
   value,
   defaultValue,
   onChange,
@@ -61,7 +61,7 @@ export function SegmentedControl<Value extends string>({
   priority = 'default',
   disabled,
   ...props
-}: SegmentedControlProps<Value>) {
+}: SegmentedControlProps<Value>) => {
   const ref = useRef<HTMLDivElement>(null);
 
   const collection = useCollection(props, collectionFactory);
@@ -103,7 +103,7 @@ export function SegmentedControl<Value extends string>({
       </LayoutGroup>
     </GroupWrap>
   );
-}
+};
 
 SegmentedControl.Item = Item as <Value extends string>(
   props: SegmentedControlItemProps<Value>
@@ -121,7 +121,7 @@ interface SegmentProps<Value extends string>
   prevKey?: string;
 }
 
-function Segment<Value extends string>({
+const Segment = <Value extends string>({
   state,
   nextKey,
   prevKey,
@@ -132,7 +132,7 @@ function Segment<Value extends string>({
   tooltipOptions = {},
   icon,
   ...props
-}: SegmentProps<Value>) {
+}: SegmentProps<Value>) => {
   const ref = useRef<HTMLInputElement>(null);
 
   const {inputProps} = useRadio(props, state, ref);
@@ -205,7 +205,7 @@ function Segment<Value extends string>({
   }
 
   return content;
-}
+};
 
 const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
   position: relative;

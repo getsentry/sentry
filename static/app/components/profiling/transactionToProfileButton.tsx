@@ -16,12 +16,12 @@ interface Props {
   size?: ButtonProps['size'];
 }
 
-function TransactionToProfileButton({
+const TransactionToProfileButton = ({
   projectSlug,
   query,
   children = t('Go to Profile'),
   size = 'sm',
-}: Props) {
+}: Props) => {
   const profileId = useTransactionProfileId();
   const organization = useOrganization();
 
@@ -53,6 +53,6 @@ function TransactionToProfileButton({
       {children}
     </Button>
   );
-}
+};
 
 export {TransactionToProfileButton};

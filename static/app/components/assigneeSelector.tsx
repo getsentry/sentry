@@ -27,13 +27,13 @@ interface AssigneeSelectorProps
   noDropdown?: boolean;
 }
 
-function AssigneeAvatar({
+const AssigneeAvatar = ({
   assignedTo,
   suggestedActors = [],
 }: {
   assignedTo?: Actor;
   suggestedActors?: SuggestedAssignee[];
-}) {
+}) => {
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {
       commit: (
@@ -119,9 +119,9 @@ function AssigneeAvatar({
       <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
     </Tooltip>
   );
-}
+};
 
-function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
+const AssigneeSelector = ({noDropdown, ...props}: AssigneeSelectorProps) => {
   const organization = useOrganization();
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === props.id);
@@ -162,7 +162,7 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
       </AssigneeSelectorDropdown>
     </AssigneeWrapper>
   );
-}
+};
 
 export default AssigneeSelector;
 

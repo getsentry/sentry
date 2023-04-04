@@ -11,7 +11,7 @@ import {EditOwnershipRules} from 'sentry/views/settings/project/projectOwnership
 
 type Props = ModalRenderProps & EditOwnershipRulesModalOptions;
 
-function EditOwnershipRulesModal({Body, Header, onSave, closeModal, ...props}: Props) {
+const EditOwnershipRulesModal = ({Body, Header, onSave, closeModal, ...props}: Props) => {
   return (
     <Fragment>
       <Header closeButton>
@@ -22,7 +22,7 @@ function EditOwnershipRulesModal({Body, Header, onSave, closeModal, ...props}: P
       </Body>
     </Fragment>
   );
-}
+};
 
 export const modalCss = css`
   @media (min-width: ${theme.breakpoints.small}) {

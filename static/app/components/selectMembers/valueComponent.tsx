@@ -10,12 +10,12 @@ type Props = {
   value: Value;
 };
 
-function ValueComponent({value, onRemove}: Props) {
+const ValueComponent = ({value, onRemove}: Props) => {
   return (
     <a onClick={() => onRemove(value)}>
       <ActorAvatar actor={value.actor} size={28} />
     </a>
   );
-}
+};
 
 export default ValueComponent;

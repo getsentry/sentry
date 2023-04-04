@@ -11,7 +11,7 @@ interface Props {
   orgId: string;
 }
 
-function MonitorOnboarding({orgId, monitor}: Props) {
+const MonitorOnboarding = ({orgId, monitor}: Props) => {
   return (
     <OnboardingPanel noCenter>
       <h3>{t('Instrument your monitor')}</h3>
@@ -28,6 +28,6 @@ function MonitorOnboarding({orgId, monitor}: Props) {
       <MonitorQuickStartGuide orgId={orgId} monitor={monitor} />
     </OnboardingPanel>
   );
-}
+};
 
 export default MonitorOnboarding;

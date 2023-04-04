@@ -29,7 +29,7 @@ import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider'
 
 import {useProfiles} from './profilesProvider';
 
-function ProfileFlamegraph(): React.ReactElement {
+const ProfileFlamegraph = (): React.ReactElement => {
   const organization = useOrganization();
   const profiles = useProfiles();
   const params = useParams();
@@ -109,13 +109,13 @@ function ProfileFlamegraph(): React.ReactElement {
       </FlamegraphStateProvider>
     </SentryDocumentTitle>
   );
-}
+};
 
 // This only exists because we need to call useFlamegraphPreferences
 // to get the type of visualization that the user is looking at and
 // we cannot do it in the component above as it is not a child of the
 // FlamegraphStateProvider.
-function ProfileGroupTypeProvider({
+const ProfileGroupTypeProvider = ({
   children,
   input,
   traceID,
@@ -123,7 +123,7 @@ function ProfileGroupTypeProvider({
   children: React.ReactNode;
   input: Profiling.ProfileInput | null;
   traceID: string;
-}) {
+}) => {
   const preferences = useFlamegraphPreferences();
   return (
     <ProfileGroupProvider
@@ -134,7 +134,7 @@ function ProfileGroupTypeProvider({
       {children}
     </ProfileGroupProvider>
   );
-}
+};
 
 const LoadingIndicatorContainer = styled('div')`
   position: absolute;

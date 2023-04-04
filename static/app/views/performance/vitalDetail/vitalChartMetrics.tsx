@@ -36,7 +36,7 @@ type Props = Omit<ViewProps, 'query' | 'start' | 'end'> & {
   vital: WebVital;
 };
 
-function VitalChartMetrics({
+const VitalChartMetrics = ({
   reloading,
   loading,
   response,
@@ -48,7 +48,7 @@ function VitalChartMetrics({
   environment,
   field,
   vital,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
@@ -161,6 +161,6 @@ function VitalChartMetrics({
       </ChartContainer>
     </Panel>
   );
-}
+};
 
 export default VitalChartMetrics;

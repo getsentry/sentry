@@ -23,7 +23,7 @@ type Props = {
   replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, orgSlug, replayRecord}: Props) {
+const Page = ({children, crumbs, orgSlug, replayRecord}: Props) => {
   const title = replayRecord
     ? `${replayRecord.id} - Session Replay - ${orgSlug}`
     : `Session Replay - ${orgSlug}`;
@@ -76,7 +76,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
       </FullViewport>
     </SentryDocumentTitle>
   );
-}
+};
 
 const Header = styled(Layout.Header)`
   gap: ${space(1)};

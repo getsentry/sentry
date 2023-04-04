@@ -36,14 +36,14 @@ const labels = {
   experimental: t('experimental'),
 };
 
-function BaseFeatureBadge({
+const BaseFeatureBadge = ({
   type,
   variant = 'badge',
   title,
   noTooltip,
   expiresAt,
   ...props
-}: Props) {
+}: Props) => {
   const theme = useTheme();
   if (expiresAt && expiresAt.valueOf() < Date.now()) {
     // Only get 1% of events as we don't need many to know that a badge needs to be cleaned up.
@@ -70,7 +70,7 @@ function BaseFeatureBadge({
       </Tooltip>
     </div>
   );
-}
+};
 
 const StyledBadge = styled(Badge)`
   margin: 0;

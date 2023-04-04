@@ -28,7 +28,7 @@ type Props = ViewProps & {
   queryExtras?: Record<string, string>;
 };
 
-function VitalsChart({
+const VitalsChart = ({
   project,
   environment,
   organization,
@@ -39,7 +39,7 @@ function VitalsChart({
   start: propsStart,
   end: propsEnd,
   queryExtras,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const router = useRouter();
   const api = useApi();
@@ -154,6 +154,6 @@ function VitalsChart({
       </EventsRequest>
     </Fragment>
   );
-}
+};
 
 export default VitalsChart;

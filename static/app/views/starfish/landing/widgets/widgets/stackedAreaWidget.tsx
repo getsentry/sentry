@@ -26,7 +26,7 @@ type DataType = {
   overall: WidgetDataResult & ReturnType<typeof transformDiscoverToSingleValue>;
 };
 
-export function StackedAreaWidget(props: PerformanceWidgetProps) {
+export const StackedAreaWidget = (props: PerformanceWidgetProps) => {
   const location = useLocation();
   const {InteractiveTitle} = props;
   const pageError = usePageError();
@@ -104,7 +104,7 @@ export function StackedAreaWidget(props: PerformanceWidgetProps) {
       ]}
     />
   );
-}
+};
 
 const EventsRequest = withApi(_EventsRequest);
 export const Subtitle = styled('span')`

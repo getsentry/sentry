@@ -254,46 +254,56 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
     />
   );
 
-  renderCustomFilters = (disabled: boolean) => () =>
-    (
-      <Feature
-        features={['projects:custom-inbound-filters']}
-        hookName="feature-disabled:custom-inbound-filters"
-        project={this.props.project}
-        renderDisabled={({children, ...props}) => {
-          if (typeof children === 'function') {
-            return children({...props, renderDisabled: this.renderDisabledCustomFilters});
-          }
-          return null;
-        }}
-      >
-        {({hasFeature, organization, renderDisabled, ...featureProps}) => (
-          <Fragment>
-            {!hasFeature &&
-              typeof renderDisabled === 'function' &&
-              // XXX: children is set to null as we're doing tricksy things
-              // in the renderDisabled prop a few lines higher.
-              renderDisabled({organization, hasFeature, children: null, ...featureProps})}
+  renderCustomFilters = (disabled: boolean) =>
+    function () {
+      return (
+        <Feature
+          features={['projects:custom-inbound-filters']}
+          hookName="feature-disabled:custom-inbound-filters"
+          project={this.props.project}
+          renderDisabled={({children, ...props}) => {
+            if (typeof children === 'function') {
+              return children({
+                ...props,
+                renderDisabled: this.renderDisabledCustomFilters,
+              });
+            }
+            return null;
+          }}
+        >
+          {({hasFeature, organization, renderDisabled, ...featureProps}) => (
+            <Fragment>
+              {!hasFeature &&
+                typeof renderDisabled === 'function' &&
+                // XXX: children is set to null as we're doing tricksy things
+                // in the renderDisabled prop a few lines higher.
+                renderDisabled({
+                  organization,
+                  hasFeature,
+                  children: null,
+                  ...featureProps,
+                })}
 
-            {customFilterFields.map(field => (
-              <FieldFromConfig
-                key={field.name}
-                field={field}
-                disabled={disabled || !hasFeature}
-              />
-            ))}
+              {customFilterFields.map(field => (
+                <FieldFromConfig
+                  key={field.name}
+                  field={field}
+                  disabled={disabled || !hasFeature}
+                />
+              ))}
 
-            {hasFeature && this.props.project.options?.['filters:error_messages'] && (
-              <PanelAlert type="warning" data-test-id="error-message-disclaimer">
-                {t(
-                  "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
-                )}
-              </PanelAlert>
-            )}
-          </Fragment>
-        )}
-      </Feature>
-    );
+              {hasFeature && this.props.project.options?.['filters:error_messages'] && (
+                <PanelAlert type="warning" data-test-id="error-message-disclaimer">
+                  {t(
+                    "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+                  )}
+                </PanelAlert>
+              )}
+            </Fragment>
+          )}
+        </Feature>
+      );
+    };
 
   renderBody() {
     const {features, organization, params, project} = this.props;

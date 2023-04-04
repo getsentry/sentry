@@ -6,13 +6,13 @@ type TestProps = {
   testProp?: boolean;
 };
 
-function FooComponent({}: TestProps) {
+const FooComponent = ({}: TestProps) => {
   return <div>my foo component</div>;
-}
+};
 
-function BarComponent({}: TestProps) {
+const BarComponent = ({}: TestProps) => {
   return <div>my bar component</div>;
-}
+};
 
 type ResolvedComponent = {default: React.ComponentType<TestProps>};
 type GetComponent = () => Promise<ResolvedComponent>;

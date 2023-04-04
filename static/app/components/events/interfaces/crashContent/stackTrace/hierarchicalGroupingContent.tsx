@@ -32,7 +32,7 @@ type Props = {
   newestFirst?: boolean;
 };
 
-export function HierarchicalGroupingContent({
+export const HierarchicalGroupingContent = ({
   data,
   debugFrames,
   platform,
@@ -46,7 +46,7 @@ export function HierarchicalGroupingContent({
   hideIcon,
   includeSystemFrames = true,
   expandFirstFrame = true,
-}: Props) {
+}: Props) => {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
 
@@ -259,7 +259,7 @@ export function HierarchicalGroupingContent({
       <StyledList>{renderConvertedFrames()}</StyledList>
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled(Panel)`
   position: relative;

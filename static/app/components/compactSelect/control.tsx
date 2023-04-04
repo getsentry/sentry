@@ -150,7 +150,7 @@ export interface ControlProps
 /**
  * Controls Select's open state and exposes SelectContext to all chidlren.
  */
-export function Control({
+export const Control = ({
   // Control props
   trigger,
   triggerLabel: triggerLabelProp,
@@ -177,7 +177,7 @@ export function Control({
   grid = false,
   children,
   ...wrapperProps
-}: ControlProps) {
+}: ControlProps) => {
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
   const [listStates, setListStates] = useState<ListState<any>[]>([]);
@@ -441,7 +441,7 @@ export function Control({
       </ControlWrap>
     </SelectContext.Provider>
   );
-}
+};
 
 const ControlWrap = styled('div')`
   position: relative;

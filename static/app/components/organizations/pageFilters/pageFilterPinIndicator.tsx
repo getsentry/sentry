@@ -10,7 +10,7 @@ type Props = {
   filter: PinnedPageFilter;
 };
 
-function PageFilterPinIndicator({children, filter}: Props) {
+const PageFilterPinIndicator = ({children, filter}: Props) => {
   const {pinnedFilters} = usePageFilters();
   const pinned = pinnedFilters.has(filter);
 
@@ -24,7 +24,7 @@ function PageFilterPinIndicator({children, filter}: Props) {
       )}
     </Wrap>
   );
-}
+};
 
 export default PageFilterPinIndicator;
 

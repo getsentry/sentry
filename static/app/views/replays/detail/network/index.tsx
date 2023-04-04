@@ -36,7 +36,7 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList({networkSpans, startTimestampMs}: Props) {
+const NetworkList = ({networkSpans, startTimestampMs}: Props) => {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
 
@@ -193,7 +193,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       </NetworkTable>
     </FluidHeight>
   );
-}
+};
 
 const OverflowHidden = styled('div')`
   position: relative;

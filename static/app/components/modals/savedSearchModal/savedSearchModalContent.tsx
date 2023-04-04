@@ -30,7 +30,7 @@ function getSortOptions(organization: Organization) {
     : DEFAULT_SORT_OPTIONS;
 }
 
-export function SavedSearchModalContent({organization}: SavedSearchModalContentProps) {
+export const SavedSearchModalContent = ({organization}: SavedSearchModalContentProps) => {
   const canChangeVisibility = organization.access.includes('org:write');
 
   const selectFieldSortOptions = getSortOptions(organization).map(sortOption => ({
@@ -100,4 +100,4 @@ export function SavedSearchModalContent({organization}: SavedSearchModalContentP
       />
     </Fragment>
   );
-}
+};

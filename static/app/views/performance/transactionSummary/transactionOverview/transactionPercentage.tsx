@@ -18,13 +18,13 @@ interface TransactionPercentageProps {
   unfilteredTotals?: Record<string, number> | null;
 }
 
-export function TransactionPercentage({
+export const TransactionPercentage = ({
   organization,
   isLoading,
   error,
   totals,
   unfilteredTotals,
-}: TransactionPercentageProps) {
+}: TransactionPercentageProps) => {
   const showTPMAsPercentage = organization.features.includes(
     'performance-metrics-backed-transaction-summary'
   );
@@ -70,7 +70,7 @@ export function TransactionPercentage({
       <SidebarSpacer />
     </Fragment>
   );
-}
+};
 
 type SectionSummaryValueProps = {
   'data-test-id': string;
@@ -79,12 +79,12 @@ type SectionSummaryValueProps = {
   value: React.ReactNode;
 };
 
-function SectionSummaryValue({
+const SectionSummaryValue = ({
   error,
   isLoading,
   value,
   ...props
-}: SectionSummaryValueProps) {
+}: SectionSummaryValueProps) => {
   if (error) {
     return <div {...props}>{'\u2014'}</div>;
   }
@@ -94,7 +94,7 @@ function SectionSummaryValue({
   }
 
   return <SectionValue {...props}>{value}</SectionValue>;
-}
+};
 
 const SectionValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};

@@ -34,14 +34,14 @@ type Props = {
   projSlug: Project['slug'];
 };
 
-function Actions({
+const Actions = ({
   candidate,
   organization,
   isInternalSource,
   baseUrl,
   projSlug,
   onDelete,
-}: Props) {
+}: Props) => {
   const {download, location: debugFileId} = candidate;
   const {status} = download;
 
@@ -139,7 +139,7 @@ function Actions({
       {actions}
     </Tooltip>
   );
-}
+};
 
 export default Actions;
 

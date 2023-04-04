@@ -8,7 +8,7 @@ interface Props {
   onDelete: MouseEventHandler<Element>;
 }
 
-export function DeleteButton({onDelete}: Props) {
+export const DeleteButton = ({onDelete}: Props) => {
   return (
     <Button
       size="zero"
@@ -19,4 +19,4 @@ export function DeleteButton({onDelete}: Props) {
       aria-label={t('Remove this Y-Axis')}
     />
   );
-}
+};

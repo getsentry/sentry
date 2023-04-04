@@ -11,7 +11,7 @@ type Props = {
   onUpdate: (dashboard: DashboardDetails) => void;
 };
 
-function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
+const DashboardTitle = ({dashboard, isEditing, onUpdate}: Props) => {
   return (
     <Fragment>
       {!dashboard ? (
@@ -27,6 +27,6 @@ function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
       )}
     </Fragment>
   );
-}
+};
 
 export default DashboardTitle;

@@ -26,7 +26,7 @@ interface Props {
   columns?: QueryFieldValue[];
 }
 
-export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
+export const GroupBySelector = ({fieldOptions, columns = [], onChange}: Props) => {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   function handleAdd() {
@@ -171,7 +171,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
       )}
     </Fragment>
   );
-}
+};
 
 const StyledField = styled(FieldGroup)`
   padding-bottom: ${space(1)};

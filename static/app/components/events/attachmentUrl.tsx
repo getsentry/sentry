@@ -12,13 +12,13 @@ type Props = {
   projectSlug: string;
 };
 
-function AttachmentUrl({
+const AttachmentUrl = ({
   attachment,
   organization,
   eventId,
   projectSlug,
   children,
-}: Props) {
+}: Props) => {
   function getDownloadUrl() {
     return `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${attachment.id}/`;
   }
@@ -28,6 +28,6 @@ function AttachmentUrl({
       {({hasRole}) => children(hasRole ? getDownloadUrl() : null)}
     </Role>
   );
-}
+};
 
 export default withOrganization(memo(AttachmentUrl));

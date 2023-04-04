@@ -65,12 +65,12 @@ type SaveAsDropdownProps = {
   queryName: string;
 };
 
-function SaveAsDropdown({
+const SaveAsDropdown = ({
   queryName,
   disabled,
   onChangeInput,
   modifiedHandleCreateQuery,
-}: SaveAsDropdownProps) {
+}: SaveAsDropdownProps) => {
   const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay();
   const theme = useTheme();
 
@@ -112,7 +112,7 @@ function SaveAsDropdown({
       </AnimatePresence>
     </div>
   );
-}
+};
 
 type DefaultProps = {
   disabled: boolean;

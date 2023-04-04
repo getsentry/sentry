@@ -40,7 +40,7 @@ const debugIdBundleTypeLabels = {
   [DebugIdBundleArtifactType.INDEXED_RAM_BUNDLE]: t('Indexed RAM Bundle'),
 };
 
-function ArtifactsTableRow({
+const ArtifactsTableRow = ({
   name,
   downloadRole,
   downloadUrl,
@@ -54,7 +54,7 @@ function ArtifactsTableRow({
   name: string;
   orgSlug: string;
   size: number;
-}) {
+}) => {
   return (
     <Fragment>
       <ArtifactColumn>
@@ -95,7 +95,7 @@ function ArtifactsTableRow({
       </ActionsColumn>
     </Fragment>
   );
-}
+};
 
 type Props = RouteComponentProps<
   {bundleId: string; orgId: string; projectId: string},
@@ -104,7 +104,12 @@ type Props = RouteComponentProps<
   project: Project;
 };
 
-export function ProjectSourceMapsArtifacts({params, location, router, project}: Props) {
+export const ProjectSourceMapsArtifacts = ({
+  params,
+  location,
+  router,
+  project,
+}: Props) => {
   const api = useApi();
   const organization = useOrganization();
 
@@ -294,7 +299,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
       />
     </Fragment>
   );
-}
+};
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: minmax(220px, 1fr) minmax(120px, max-content) minmax(

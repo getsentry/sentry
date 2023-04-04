@@ -28,7 +28,7 @@ type Props = {
   v2: boolean;
 } & DefaultProps;
 
-function Empty() {
+const Empty = () => {
   return (
     <Panel>
       <PanelBody>
@@ -38,9 +38,9 @@ function Empty() {
       </PanelBody>
     </Panel>
   );
-}
+};
 
-function List({
+const List = ({
   orgId,
   groupId,
   project,
@@ -49,7 +49,7 @@ function List({
   pageLinks,
   onMerge,
   v2,
-}: Props) {
+}: Props) => {
   const [showAllItems, setShowAllItems] = useState(false);
 
   const hasHiddenItems = !!filteredItems.length;
@@ -93,7 +93,7 @@ function List({
       <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
-}
+};
 
 export default List;
 

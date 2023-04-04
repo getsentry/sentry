@@ -19,14 +19,14 @@ type QueryProps = Omit<TraceRequestProps, 'eventView'> & {
   children: (props: TraceMetaQueryChildrenProps) => React.ReactNode;
 };
 
-function TraceMetaQuery({
+const TraceMetaQuery = ({
   traceId,
   start,
   end,
   statsPeriod,
   children,
   ...props
-}: QueryProps) {
+}: QueryProps) => {
   if (!traceId) {
     return (
       <Fragment>
@@ -56,6 +56,6 @@ function TraceMetaQuery({
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default TraceMetaQuery;

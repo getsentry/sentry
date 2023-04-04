@@ -18,7 +18,7 @@ type Props = {
   type: BreadcrumbType;
 };
 
-function Icon({type}: Props) {
+const Icon = ({type}: Props) => {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
@@ -46,6 +46,6 @@ function Icon({type}: Props) {
     default:
       return <IconTerminal size="xs" />;
   }
-}
+};
 
 export default Icon;

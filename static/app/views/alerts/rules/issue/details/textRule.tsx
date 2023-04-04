@@ -10,11 +10,11 @@ import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/iss
 /**
  * Translate Issue Alert Conditions to text
  */
-export function TextCondition({
+export const TextCondition = ({
   condition,
 }: {
   condition: IssueAlertRule['conditions'][number];
-}) {
+}) => {
   if (CHANGE_ALERT_CONDITION_IDS.includes(condition.id)) {
     if (condition.comparisonType === AlertRuleComparisonType.PERCENT) {
       if (condition.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
@@ -56,10 +56,10 @@ export function TextCondition({
   }
 
   return <Fragment>{condition.name}</Fragment>;
-}
+};
 
 // TODO(scttcper): Remove the teams/memberList prop drilling
-export function TextAction({
+export const TextAction = ({
   action,
   memberList,
   teams,
@@ -67,7 +67,7 @@ export function TextAction({
   action: IssueAlertRule['actions'][number];
   memberList: Member[];
   teams: Team[];
-}) {
+}) => {
   if (action.targetType === 'Member') {
     const user = memberList.find(
       member => member.user.id === `${action.targetIdentifier}`
@@ -90,4 +90,4 @@ export function TextAction({
   }
 
   return <Fragment>{action.name}</Fragment>;
-}
+};

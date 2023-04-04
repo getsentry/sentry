@@ -35,7 +35,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
 
 const steps = [t('App Store Connect credentials'), t('Choose an application')];
 
-function AppStoreConnect({
+const AppStoreConnect = ({
   Header,
   Body,
   Footer,
@@ -45,7 +45,7 @@ function AppStoreConnect({
   projectSlug,
   onSubmit,
   appStoreConnectStatusData,
-}: Props) {
+}: Props) => {
   const {credentials} = appStoreConnectStatusData ?? {};
 
   const [isLoading, setIsLoading] = useState(false);
@@ -342,7 +342,7 @@ function AppStoreConnect({
       </Footer>
     </Fragment>
   );
-}
+};
 
 export default withApi(AppStoreConnect);
 

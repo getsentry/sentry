@@ -33,7 +33,7 @@ type WireframeProps = {
   selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframeProps) {
+const Wireframe = ({hierarchy, selectedNode, onNodeSelect, project}: WireframeProps) => {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -343,7 +343,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
       />
     </Stack>
   );
-}
+};
 
 export {Wireframe};
 

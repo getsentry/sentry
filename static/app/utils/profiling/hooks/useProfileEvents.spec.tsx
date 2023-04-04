@@ -14,7 +14,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 const {organization} = initializeOrg();
 const client = new QueryClient();
 
-function TestContext({children}: {children?: ReactNode}) {
+const TestContext = ({children}: {children?: ReactNode}) => {
   return (
     <QueryClientProvider client={client}>
       <OrganizationContext.Provider value={organization}>
@@ -22,7 +22,7 @@ function TestContext({children}: {children?: ReactNode}) {
       </OrganizationContext.Provider>
     </QueryClientProvider>
   );
-}
+};
 
 describe('useProfileEvents', function () {
   afterEach(function () {

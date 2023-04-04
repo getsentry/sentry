@@ -118,12 +118,12 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   }
 }
 
-function HomepageContainer(props: Props) {
+const HomepageContainer = (props: Props) => {
   return (
     <PageFiltersContainer skipInitializeUrlParams>
       <HomepageQueryAPI {...props} />
     </PageFiltersContainer>
   );
-}
+};
 
 export default withApi(withOrganization(withPageFilters(HomepageContainer)));

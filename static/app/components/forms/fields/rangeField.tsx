@@ -41,11 +41,11 @@ function defaultFormatMessageValue(value: number | '', {formatLabel}: RangeField
   return formatLabel?.(value) ?? value;
 }
 
-function RangeField({
+const RangeField = ({
   formatMessageValue = defaultFormatMessageValue,
   disabled,
   ...otherProps
-}: RangeFieldProps) {
+}: RangeFieldProps) => {
   const resolvedDisabled =
     typeof disabled === 'function' ? disabled(otherProps) : disabled;
 
@@ -67,6 +67,6 @@ function RangeField({
       )}
     </FormField>
   );
-}
+};
 
 export default RangeField;

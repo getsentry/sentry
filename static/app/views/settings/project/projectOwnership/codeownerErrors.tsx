@@ -9,7 +9,7 @@ import {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types';
 
 type CodeOwnerErrorKeys = keyof CodeOwner['errors'];
 
-function ErrorMessage({
+const ErrorMessage = ({
   message,
   values,
   link,
@@ -19,7 +19,7 @@ function ErrorMessage({
   linkValue: React.ReactNode;
   message: string;
   values: string[];
-}) {
+}) => {
   return (
     <Fragment>
       <ErrorMessageContainer>
@@ -31,9 +31,9 @@ function ErrorMessage({
       </ErrorCtaContainer>
     </Fragment>
   );
-}
+};
 
-function ErrorMessageList({
+const ErrorMessageList = ({
   message,
   values,
   linkFunction,
@@ -43,7 +43,7 @@ function ErrorMessageList({
   linkValueFunction: (s: string) => string;
   message: string;
   values: string[];
-}) {
+}) => {
   return (
     <Fragment>
       <ErrorMessageContainer>
@@ -63,7 +63,7 @@ function ErrorMessageList({
       </ErrorMessageListContainer>
     </Fragment>
   );
-}
+};
 
 interface CodeOwnerErrorsProps {
   codeowners: CodeOwner[];
@@ -71,11 +71,11 @@ interface CodeOwnerErrorsProps {
   projectSlug: string;
 }
 
-export function CodeOwnerErrors({
+export const CodeOwnerErrors = ({
   codeowners,
   orgSlug,
   projectSlug,
-}: CodeOwnerErrorsProps) {
+}: CodeOwnerErrorsProps) => {
   const filteredCodeowners = useMemo(() => {
     const owners = codeowners.filter(({errors}) => {
       // Remove codeowners files with no errors
@@ -178,7 +178,7 @@ export function CodeOwnerErrors({
       })}
     </Fragment>
   );
-}
+};
 
 const AlertContentContainer = styled('div')`
   overflow-y: auto;

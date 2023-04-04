@@ -15,13 +15,13 @@ interface Props {
   onDelete?: () => void;
 }
 
-export function Footer({
+export const Footer = ({
   goBackLocation,
   onSave,
   onDelete,
   invalidForm,
   isEditing,
-}: Props) {
+}: Props) => {
   return (
     <Wrapper>
       <Actions gap={1}>
@@ -50,7 +50,7 @@ export function Footer({
       </Actions>
     </Wrapper>
   );
-}
+};
 
 const Actions = styled(ButtonBar)`
   justify-content: flex-end;

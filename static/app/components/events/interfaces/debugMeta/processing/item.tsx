@@ -10,7 +10,7 @@ type Props = {
   className?: string;
 };
 
-function Item({type, icon, className}: Props) {
+const Item = ({type, icon, className}: Props) => {
   function getLabel() {
     switch (type) {
       case 'stack_unwinding':
@@ -30,7 +30,7 @@ function Item({type, icon, className}: Props) {
       {getLabel()}
     </Wrapper>
   );
-}
+};
 
 export default Item;
 

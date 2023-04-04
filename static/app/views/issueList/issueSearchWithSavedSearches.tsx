@@ -15,10 +15,10 @@ type IssueSearchWithSavedSearchesProps = {
   query: string;
 };
 
-export function IssueSearchWithSavedSearches({
+export const IssueSearchWithSavedSearches = ({
   query,
   onSearch,
-}: IssueSearchWithSavedSearchesProps) {
+}: IssueSearchWithSavedSearchesProps) => {
   const organization = useOrganization();
   const selectedSavedSearch = useSelectedSavedSearch();
   const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useSyncedLocalStorageState(
@@ -49,7 +49,7 @@ export function IssueSearchWithSavedSearches({
       />
     </SearchBarWithButtonContainer>
   );
-}
+};
 
 const SearchBarWithButtonContainer = styled('div')`
   flex: 1;

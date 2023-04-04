@@ -19,7 +19,7 @@ type Props = RouteComponentProps<{templateId?: string}, {}> & {
   organization: Organization;
 };
 
-function CreateDashboard(props: Props) {
+const CreateDashboard = (props: Props) => {
   const {location} = props;
   const {templateId} = props.params;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
@@ -62,6 +62,6 @@ function CreateDashboard(props: Props) {
       </ErrorBoundary>
     </Feature>
   );
-}
+};
 
 export default withOrganization(CreateDashboard);

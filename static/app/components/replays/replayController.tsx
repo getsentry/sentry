@@ -46,7 +46,7 @@ interface Props {
   toggleFullscreen?: () => void;
 }
 
-function ReplayPlayPauseBar() {
+const ReplayPlayPauseBar = () => {
   const {
     currentTime,
     isFinished,
@@ -106,9 +106,9 @@ function ReplayPlayPauseBar() {
       />
     </ButtonBar>
   );
-}
+};
 
-function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
+const ReplayOptionsMenu = ({speedOptions}: {speedOptions: number[]}) => {
   const {setSpeed, speed, isSkippingInactive, toggleSkipInactive} = useReplayContext();
   const SKIP_OPTION_VALUE = 'skip';
 
@@ -149,7 +149,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
       />
     </CompositeSelect>
   );
-}
+};
 
 const ReplayControls = ({
   toggleFullscreen,

@@ -20,13 +20,13 @@ type Props = {
   withStackTracePreview?: boolean;
 };
 
-function EventOrGroupTitle({
+const EventOrGroupTitle = ({
   organization,
   data,
   withStackTracePreview,
   grouping = false,
   className,
-}: Props) {
+}: Props) => {
   const event = data as Event;
   const groupingCurrentLevel = (data as BaseGroup).metadata?.current_level;
   const groupingIssueCategory = (data as BaseGroup)?.issueCategory;
@@ -62,7 +62,7 @@ function EventOrGroupTitle({
       )}
     </Wrapper>
   );
-}
+};
 
 export default withOrganization(EventOrGroupTitle);
 

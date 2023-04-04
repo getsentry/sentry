@@ -25,7 +25,7 @@ const USER_ACTIONS = [
   BreadcrumbType.USER,
 ];
 
-function ReplayTimeline({}: Props) {
+const ReplayTimeline = ({}: Props) => {
   const {replay} = useReplayContext();
 
   const elem = useRef<HTMLDivElement>(null);
@@ -69,7 +69,7 @@ function ReplayTimeline({}: Props) {
       </Resizeable>
     </Panel>
   );
-}
+};
 
 const UnderTimestamp = styled('div')<{paddingTop: string}>`
   /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */

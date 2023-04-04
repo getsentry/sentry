@@ -29,7 +29,7 @@ type Props = {
   tabs?: React.ReactNode;
 };
 
-function UnstyledSettingsPageHeader({
+const UnstyledSettingsPageHeader = ({
   icon,
   title,
   subtitle,
@@ -39,7 +39,7 @@ function UnstyledSettingsPageHeader({
   tabs,
   noTitleStyles = false,
   ...props
-}: Props) {
+}: Props) => {
   // If Header is narrow, use align-items to center <Action>.
   // Otherwise, use a fixed margin to prevent an odd alignment.
   // This is needed as Actions could be a button or a dropdown.
@@ -64,7 +64,7 @@ function UnstyledSettingsPageHeader({
       {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
     </div>
   );
-}
+};
 
 interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
   styled?: boolean;

@@ -17,13 +17,13 @@ export interface RenderFieldProps extends InputFieldProps {
   valueIsSlug?: boolean;
 }
 
-function SentryProjectSelectorField({
+const SentryProjectSelectorField = ({
   projects,
   avatarSize = 20,
   placeholder = t('Choose Sentry project'),
   valueIsSlug,
   ...props
-}: RenderFieldProps) {
+}: RenderFieldProps) => {
   const projectOptions = projects?.map(project => ({
     value: project[valueIsSlug ? 'slug' : 'id'],
     label: project.slug,
@@ -38,6 +38,6 @@ function SentryProjectSelectorField({
   }));
 
   return <SelectField placeholder={placeholder} options={projectOptions} {...props} />;
-}
+};
 
 export default SentryProjectSelectorField;

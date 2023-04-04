@@ -65,7 +65,7 @@ function computeAxisMax(data: Series[]) {
   return Math.round(Math.ceil(maxValue / step) * step);
 }
 
-function Chart({
+const Chart = ({
   data,
   previousData,
   statsPeriod,
@@ -80,7 +80,7 @@ function Chart({
   definedAxisTicks,
   chartColors,
   isLineChart,
-}: Props) {
+}: Props) => {
   const router = useRouter();
   const theme = useTheme();
 
@@ -278,6 +278,6 @@ function Chart({
       }}
     </ChartZoom>
   );
-}
+};
 
 export default Chart;

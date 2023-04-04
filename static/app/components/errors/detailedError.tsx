@@ -32,7 +32,13 @@ function openFeedback(e: React.MouseEvent) {
   Sentry.showReportDialog();
 }
 
-function DetailedError({className, heading, message, onRetry, hideSupportLinks}: Props) {
+const DetailedError = ({
+  className,
+  heading,
+  message,
+  onRetry,
+  hideSupportLinks,
+}: Props) => {
   const showFooter = !!onRetry || !hideSupportLinks;
   const hasLastEvent = !!Sentry.lastEventId();
 
@@ -68,7 +74,7 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
       )}
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled('div')`
   margin: ${space(2)} auto 0 auto;

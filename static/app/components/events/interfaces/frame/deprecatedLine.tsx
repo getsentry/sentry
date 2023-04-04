@@ -88,13 +88,13 @@ function makeFilter(
   return addr;
 }
 
-function SourceMapWarning({
+const SourceMapWarning = ({
   debugFrames,
   frame,
 }: {
   frame: Frame;
   debugFrames?: StacktraceFilenameQuery[];
-}) {
+}) => {
   const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
   const {data} = useSourceMapDebug(debugFrame?.query, {
     enabled: !!debugFrame,
@@ -107,7 +107,7 @@ function SourceMapWarning({
       </Tooltip>
     </IconWrapper>
   ) : null;
-}
+};
 
 export class DeprecatedLine extends Component<Props, State> {
   static defaultProps = {

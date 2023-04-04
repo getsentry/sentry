@@ -49,7 +49,7 @@ type Props = {
   text?: string;
 };
 
-function NoteInput({
+const NoteInput = ({
   text,
   onCreate,
   onChange,
@@ -60,7 +60,7 @@ function NoteInput({
   busy = false,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
   minHeight = 140,
-}: Props) {
+}: Props) => {
   const theme = useTheme();
 
   const members = useLegacyStore(MemberListStore).map(member => ({
@@ -227,7 +227,7 @@ function NoteInput({
       </Footer>
     </NoteInputForm>
   );
-}
+};
 
 export default NoteInput;
 

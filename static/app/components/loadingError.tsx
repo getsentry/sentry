@@ -15,11 +15,11 @@ type Props = {
  * Renders an Alert box of type "error". Renders a "Retry" button only if a
  * `onRetry` callback is defined.
  */
-function LoadingError({
+const LoadingError = ({
   className,
   onRetry,
   message = t('There was an error loading data.'),
-}: Props) {
+}: Props) => {
   return (
     <StyledAlert
       type="error"
@@ -37,7 +37,7 @@ function LoadingError({
       {message}
     </StyledAlert>
   );
-}
+};
 
 export default LoadingError;
 

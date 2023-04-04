@@ -11,7 +11,7 @@ type Props = {
   sdk?: Event['sdk'];
 };
 
-export function EventSdk({sdk, meta}: Props) {
+export const EventSdk = ({sdk, meta}: Props) => {
   if (!sdk || objectIsEmpty(sdk)) {
     return null;
   }
@@ -50,4 +50,4 @@ export function EventSdk({sdk, meta}: Props) {
       />
     </EventDataSection>
   );
-}
+};

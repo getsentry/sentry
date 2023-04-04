@@ -96,7 +96,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   unitStyle?: UnitStyle;
 }
 
-function TimeSince({
+const TimeSince = ({
   date,
   disabledAbsoluteTooltip,
   tooltipShowSeconds,
@@ -109,7 +109,7 @@ function TimeSince({
   suffix = t('ago'),
   liveUpdateInterval = 'minute',
   ...props
-}: Props) {
+}: Props) => {
   const tickerRef = useRef<number | undefined>();
 
   const computeRelativeDate = useCallback(
@@ -175,7 +175,7 @@ function TimeSince({
       </time>
     </Tooltip>
   );
-}
+};
 
 export default TimeSince;
 

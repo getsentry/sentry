@@ -34,7 +34,7 @@ describe('Checkbox', function () {
   });
 
   describe('behavior', function () {
-    function CheckboxWithLabel() {
+    const CheckboxWithLabel = () => {
       const [checked, setChecked] = useState(false);
 
       return (
@@ -48,7 +48,7 @@ describe('Checkbox', function () {
           Label text
         </label>
       );
-    }
+    };
 
     it('toggles on click', async function () {
       render(<CheckboxWithLabel />);

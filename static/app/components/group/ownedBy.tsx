@@ -22,7 +22,7 @@ interface OwnedByProps {
   event?: Event;
 }
 
-function OwnedBy({group, project, organization, event}: OwnedByProps) {
+const OwnedBy = ({group, project, organization, event}: OwnedByProps) => {
   const memberList = useLegacyStore(MemberListStore);
   const owner = group.owners?.find(({type}) =>
     ['codeowners', 'ownershipRule'].includes(type)
@@ -117,7 +117,7 @@ function OwnedBy({group, project, organization, event}: OwnedByProps) {
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-}
+};
 
 export default OwnedBy;
 

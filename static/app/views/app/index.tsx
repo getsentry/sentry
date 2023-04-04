@@ -36,7 +36,7 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App({children, params}: Props) {
+const App = ({children, params}: Props) => {
   useColorscheme();
 
   const api = useApi();
@@ -195,7 +195,7 @@ function App({children, params}: Props) {
       </MainContainer>
     </Profiler>
   );
-}
+};
 
 export default App;
 

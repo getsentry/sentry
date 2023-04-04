@@ -19,7 +19,7 @@ type Props = {
   selected: ReleasesDisplayOption;
 };
 
-function ReleasesDisplayOptions({selected, onSelect}: Props) {
+const ReleasesDisplayOptions = ({selected, onSelect}: Props) => {
   return (
     <StyledReleasesDropdown
       label={t('Display')}
@@ -28,7 +28,7 @@ function ReleasesDisplayOptions({selected, onSelect}: Props) {
       onSelect={onSelect}
     />
   );
-}
+};
 
 export default ReleasesDisplayOptions;
 

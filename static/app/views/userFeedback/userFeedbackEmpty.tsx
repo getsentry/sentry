@@ -17,7 +17,7 @@ type Props = {
   projectIds?: string[];
 };
 
-export function UserFeedbackEmpty({projectIds}: Props) {
+export const UserFeedbackEmpty = ({projectIds}: Props) => {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
@@ -117,7 +117,7 @@ export function UserFeedbackEmpty({projectIds}: Props) {
       </ButtonList>
     </OnboardingPanel>
   );
-}
+};
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));

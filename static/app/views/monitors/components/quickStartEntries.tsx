@@ -21,7 +21,7 @@ function withDefaultProps(props: QuickStartProps): Required<QuickStartProps> {
   return merge(VALUE_DEFAULTS, props);
 }
 
-export function PythonCronQuickStart(props: QuickStartProps) {
+export const PythonCronQuickStart = (props: QuickStartProps) => {
   const {slug} = withDefaultProps(props);
 
   const code = `import sentry_sdk
@@ -45,9 +45,9 @@ def tell_the_world(msg):
       <CodeSnippet language="python">{code}</CodeSnippet>
     </Fragment>
   );
-}
+};
 
-export function PythonCeleryCronQuickStart(props: QuickStartProps) {
+export const PythonCeleryCronQuickStart = (props: QuickStartProps) => {
   const {slug, dsnKey} = withDefaultProps(props);
 
   const setupCode = `import sentry_sdk
@@ -88,9 +88,9 @@ def tell_the_world(msg):
       <CodeSnippet language="python">{linkTaskCode}</CodeSnippet>
     </Fragment>
   );
-}
+};
 
-export function CLICronQuickStart(props: QuickStartProps) {
+export const CLICronQuickStart = (props: QuickStartProps) => {
   const {slug, dsnKey} = withDefaultProps(props);
 
   const script = `# Example for a Python script:
@@ -112,9 +112,9 @@ sentry-cli monitors run ${slug} -- python path/to/file`;
       <CodeSnippet language="bash">{script}</CodeSnippet>
     </Fragment>
   );
-}
+};
 
-export function CurlCronQuickStart(props: QuickStartProps) {
+export const CurlCronQuickStart = (props: QuickStartProps) => {
   const {slug, orgSlug, dsnKey} = withDefaultProps(props);
 
   const checkInSuccessCode = `# Notify Sentry your job is running:
@@ -147,9 +147,9 @@ curl -X PUT \\
       <CodeSnippet language="bash">{checkInFailCode}</CodeSnippet>
     </Fragment>
   );
-}
+};
 
-export function PHPCronQuickStart(props: QuickStartProps) {
+export const PHPCronQuickStart = (props: QuickStartProps) => {
   const {slug} = withDefaultProps(props);
 
   const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
@@ -196,9 +196,9 @@ SentrySdk::getCurrentHub()->captureEvent($event);`;
       <CodeSnippet language="php">{checkInFailCode}</CodeSnippet>
     </Fragment>
   );
-}
+};
 
-export function PHPLaravelCronQuickStart(props: QuickStartProps) {
+export const PHPLaravelCronQuickStart = (props: QuickStartProps) => {
   const {slug} = withDefaultProps(props);
 
   const code = `protected function schedule(Schedule $schedule)
@@ -225,4 +225,4 @@ export function PHPLaravelCronQuickStart(props: QuickStartProps) {
       <CodeSnippet language="php">{code}</CodeSnippet>
     </Fragment>
   );
-}
+};

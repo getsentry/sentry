@@ -51,7 +51,7 @@ function getRequestPayload(props: RequestProps) {
   };
 }
 
-function VitalsCardsDiscoverQuery(props: Props) {
+const VitalsCardsDiscoverQuery = (props: Props) => {
   return (
     <GenericDiscoverQuery<VitalsData, VitalsProps>
       getRequestPayload={getRequestPayload}
@@ -63,6 +63,6 @@ function VitalsCardsDiscoverQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default VitalsCardsDiscoverQuery;

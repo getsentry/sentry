@@ -18,7 +18,7 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function RegisterForm({authConfig}: Props) {
+const RegisterForm = ({authConfig}: Props) => {
   const {hasNewsletter} = authConfig;
 
   const [error, setError] = useState('');
@@ -89,7 +89,7 @@ function RegisterForm({authConfig}: Props) {
       )}
     </Form>
   );
-}
+};
 
 const PrivacyPolicyLink = styled(ExternalLink)`
   color: ${p => p.theme.gray300};

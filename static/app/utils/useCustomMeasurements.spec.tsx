@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 
-function TestComponent({other}: {other: string}) {
+const TestComponent = ({other}: {other: string}) => {
   const {customMeasurements} = useCustomMeasurements();
   return (
     <div>
@@ -15,7 +15,7 @@ function TestComponent({other}: {other: string}) {
         ))}
     </div>
   );
-}
+};
 
 function mockMeasurementsMeta() {
   return MockApiClient.addMockResponse({

@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 
 const BODY_CLASSES = ['narrow'];
 
-function Layout({children}) {
+const Layout = ({children}) => {
   useEffect(() => {
     document.body.classList.add(...BODY_CLASSES);
     return () => document.body.classList.remove(...BODY_CLASSES);
@@ -27,7 +27,7 @@ function Layout({children}) {
       </AuthContainer>
     </div>
   );
-}
+};
 
 const AuthContainer = styled('div')`
   display: flex;

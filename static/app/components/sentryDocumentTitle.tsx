@@ -29,13 +29,13 @@ const DocumentTitleContext = createContext(DEFAULT_PAGE_TITLE);
  * Assigns the document title. The deepest nested version of this title will be
  * the one which is assigned.
  */
-function SentryDocumentTitle({
+const SentryDocumentTitle = ({
   title = '',
   orgSlug,
   projectSlug,
   noSuffix,
   children,
-}: Props) {
+}: Props) => {
   const parentTitle = useContext(DocumentTitleContext);
 
   const pageTitle = useMemo(() => {
@@ -85,6 +85,6 @@ function SentryDocumentTitle({
       {children}
     </DocumentTitleContext.Provider>
   );
-}
+};
 
 export default SentryDocumentTitle;

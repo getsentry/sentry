@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-function Divider() {
+const Divider = () => {
   return <Wrapper>{'|'}</Wrapper>;
-}
+};
 
 export default Divider;
 

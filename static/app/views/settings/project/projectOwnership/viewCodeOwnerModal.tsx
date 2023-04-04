@@ -15,7 +15,7 @@ interface ViewCodeOwnerModalProps extends ModalRenderProps {
   codeowner: CodeOwner;
 }
 
-function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModalProps) {
+const ViewCodeOwnerModal = ({Body, Header, codeowner}: ViewCodeOwnerModalProps) => {
   return (
     <Fragment>
       <Header closeButton>
@@ -46,7 +46,7 @@ function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModalProps) 
       </Body>
     </Fragment>
   );
-}
+};
 
 const HeaderContainer = styled('div')`
   display: flex;

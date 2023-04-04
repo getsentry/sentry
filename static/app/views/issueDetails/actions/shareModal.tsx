@@ -27,7 +27,7 @@ interface ShareIssueModalProps extends ModalRenderProps {
 
 type UrlRef = React.ElementRef<typeof AutoSelectText>;
 
-function ShareIssueModal({
+const ShareIssueModal = ({
   Header,
   Body,
   Footer,
@@ -36,7 +36,7 @@ function ShareIssueModal({
   groupId,
   onToggle,
   closeModal,
-}: ShareIssueModalProps) {
+}: ShareIssueModalProps) => {
   const api = useApi({persistInFlight: true});
   const [loading, setLoading] = useState(false);
   const urlRef = useRef<UrlRef>(null);
@@ -184,7 +184,7 @@ function ShareIssueModal({
       </Footer>
     </Fragment>
   );
-}
+};
 
 export default ShareIssueModal;
 

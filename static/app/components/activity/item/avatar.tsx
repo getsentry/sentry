@@ -12,7 +12,7 @@ type Props = {
   user?: AvatarUser;
 };
 
-function ActivityAvatar({className, type, user, size = 38}: Props) {
+const ActivityAvatar = ({className, type, user, size = 38}: Props) => {
   if (user) {
     return <UserAvatar user={user} size={size} className={className} />;
   }
@@ -34,7 +34,7 @@ function ActivityAvatar({className, type, user, size = 38}: Props) {
       shape="circle"
     />
   );
-}
+};
 
 export default ActivityAvatar;
 

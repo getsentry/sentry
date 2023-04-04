@@ -27,7 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
 
-function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
+const PerformanceOnboardingSidebar = (props: CommonSidebarProps) => {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const isActive = currentPanel === SidebarPanelKey.PerformanceOnboarding;
   const organization = useOrganization();
@@ -164,9 +164,9 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       </TaskList>
     </TaskSidebarPanel>
   );
-}
+};
 
-function OnboardingContent({currentProject}: {currentProject: Project}) {
+const OnboardingContent = ({currentProject}: {currentProject: Project}) => {
   const api = useApi();
   const organization = useOrganization();
   const previousProject = usePrevious(currentProject);
@@ -277,7 +277,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       })}
     </Fragment>
   );
-}
+};
 
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;

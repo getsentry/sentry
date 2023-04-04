@@ -227,11 +227,11 @@ export type QueryBatching = {
 
 // Wraps api request components to collect at most one request per frame / render pass using symbol as a unique id.
 // Transforms these requests into an intermediate promise and adds a query definition that the batch function will use.
-export function QueryBatchNode(props: {
+export const QueryBatchNode = (props: {
   batchProperty: string;
   children(_: any): React.ReactNode;
   transform?: Transform;
-}) {
+}) => {
   const api = useApi();
   const {batchProperty, children, transform} = props;
   const id = useRef(Symbol());
@@ -277,4 +277,4 @@ export function QueryBatchNode(props: {
       {children({queryBatching})}
     </BatchNodeContext.Provider>
   );
-}
+};

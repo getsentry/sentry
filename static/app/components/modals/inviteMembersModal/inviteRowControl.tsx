@@ -44,7 +44,7 @@ function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
-function InviteRowControl({
+const InviteRowControl = ({
   className,
   disabled,
   emails,
@@ -58,7 +58,7 @@ function InviteRowControl({
   onChangeRole,
   onChangeTeams,
   disableRemove,
-}: Props) {
+}: Props) => {
   const [inputValue, setInputValue] = useState('');
 
   const theme = useTheme();
@@ -135,7 +135,7 @@ function InviteRowControl({
       />
     </li>
   );
-}
+};
 
 /**
  * The email select control has custom selected item states as items

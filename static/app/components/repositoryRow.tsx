@@ -44,14 +44,14 @@ function getStatusLabel(repo: Repository) {
   }
 }
 
-function RepositoryRow({
+const RepositoryRow = ({
   api,
   repository,
   onRepositoryChange,
   organization,
   orgId,
   showProvider = false,
-}: Props) {
+}: Props) => {
   const isCustomRepo =
     organization.features.includes('integrations-custom-scm') &&
     repository.provider.id === 'integrations:custom_scm';
@@ -176,7 +176,7 @@ function RepositoryRow({
       )}
     </Access>
   );
-}
+};
 
 const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   /* shorter top padding because of title lineheight */

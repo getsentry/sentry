@@ -36,7 +36,7 @@ const flattenSuggestions = (list: ProjectSdkUpdates[]) =>
     []
   );
 
-function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
+const BroadcastSdkUpdates = ({projects, sdkUpdates, organization}: Props) => {
   if (!sdkUpdates) {
     return null;
   }
@@ -144,7 +144,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
       </UpdatesList>
     </SidebarPanelItem>
   );
-}
+};
 
 export default withSdkUpdates(withProjects(withOrganization(BroadcastSdkUpdates)));
 

@@ -8,7 +8,7 @@ type Props = {
   event: Event;
 };
 
-export function EventSdkUpdates({event}: Props) {
+export const EventSdkUpdates = ({event}: Props) => {
   const eventDataSectionContent =
     event.sdkUpdates
       ?.map((sdkUpdate, index) => {
@@ -42,4 +42,4 @@ export function EventSdkUpdates({event}: Props) {
       {eventDataSectionContent}
     </EventDataSection>
   );
-}
+};

@@ -62,12 +62,12 @@ async function openChangeRouteModal({
   ));
 }
 
-export function FooterWithViewSampleErrorButton({
+export const FooterWithViewSampleErrorButton = ({
   projectSlug,
   projectId,
   router,
   newOrg,
-}: Props) {
+}: Props) => {
   const organization = useOrganization();
   const preferences = useLegacyStore(PreferencesStore);
   const [firstError, setFirstError] = useState<string | null>(null);
@@ -319,7 +319,7 @@ export function FooterWithViewSampleErrorButton({
       </ActionsColumn>
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled(GenericFooter, {
   shouldForwardProp: prop => isPropValid(prop),

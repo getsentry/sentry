@@ -9,7 +9,7 @@ type Props = {
   children: React.ReactChildren;
 };
 
-function ProfilingContainer({children}: Props) {
+const ProfilingContainer = ({children}: Props) => {
   const organization = useOrganization();
 
   return (
@@ -26,6 +26,6 @@ function ProfilingContainer({children}: Props) {
       <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
     </Feature>
   );
-}
+};
 
 export default ProfilingContainer;

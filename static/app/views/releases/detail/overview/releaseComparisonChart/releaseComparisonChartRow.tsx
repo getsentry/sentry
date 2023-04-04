@@ -25,7 +25,7 @@ type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
   withExpanders: boolean;
 };
 
-function ReleaseComparisonChartRow({
+const ReleaseComparisonChartRow = ({
   type,
   role,
   drilldown,
@@ -39,7 +39,7 @@ function ReleaseComparisonChartRow({
   onExpanderToggle,
   expanded,
   withExpanders,
-}: Props) {
+}: Props) => {
   return (
     <ChartTableRow
       htmlFor={type}
@@ -101,7 +101,7 @@ function ReleaseComparisonChartRow({
       )}
     </ChartTableRow>
   );
-}
+};
 
 const Cell = styled('div')`
   text-align: right;

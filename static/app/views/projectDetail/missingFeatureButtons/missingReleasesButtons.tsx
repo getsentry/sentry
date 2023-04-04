@@ -15,7 +15,7 @@ type Props = {
   projectId?: string;
 };
 
-function MissingReleasesButtons({organization, health, projectId}: Props) {
+const MissingReleasesButtons = ({organization, health, projectId}: Props) => {
   function handleTourAdvance(step: number, duration: number) {
     trackAdvancedAnalyticsEvent('project_detail.releases_tour.advance', {
       organization,
@@ -61,6 +61,6 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
       )}
     </ButtonBar>
   );
-}
+};
 
 export default MissingReleasesButtons;

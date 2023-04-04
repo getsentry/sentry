@@ -12,7 +12,7 @@ type Props = {
   image?: Image;
 };
 
-function GeneralInfo({image}: Props) {
+const GeneralInfo = ({image}: Props) => {
   const {debug_id, debug_file, code_id, code_file, arch, unwind_status, debug_status} =
     image ?? {};
 
@@ -48,7 +48,7 @@ function GeneralInfo({image}: Props) {
       </Value>
     </Wrapper>
   );
-}
+};
 
 export default GeneralInfo;
 

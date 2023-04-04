@@ -40,7 +40,7 @@ interface SettingsIndexProps extends RouteComponentProps<{}, {}> {
   organization: Organization;
 }
 
-function SettingsIndex({organization, ...props}: SettingsIndexProps) {
+const SettingsIndex = ({organization, ...props}: SettingsIndexProps) => {
   const api = useApi();
 
   useEffect(() => {
@@ -248,7 +248,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
       </SettingsLayout>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default withLatestContext(SettingsIndex);
 
@@ -339,12 +339,12 @@ interface SupportLinkProps extends Omit<LinkProps, 'ref' | 'to'> {
   icon?: boolean;
 }
 
-function SupportLink({
+const SupportLink = ({
   isSelfHosted,
   icon,
   organizationSettingsUrl,
   ...props
-}: SupportLinkProps) {
+}: SupportLinkProps) => {
   if (isSelfHosted) {
     const SelfHostedLink = icon ? ExternalHomeLinkIcon : ExternalHomeLink;
     return <SelfHostedLink href={LINKS.FORUM} {...props} />;
@@ -352,7 +352,7 @@ function SupportLink({
 
   const SelfHostedLink = icon ? HomeLinkIcon : HomeLink;
   return <SelfHostedLink to={`${organizationSettingsUrl}support`} {...props} />;
-}
+};
 
 const OrganizationName = styled('div')`
   line-height: 1.1em;

@@ -189,7 +189,7 @@ type DataType = {
   chart: AnomalyData;
 };
 
-function Anomalies(props: AnomaliesSectionProps) {
+const Anomalies = (props: AnomaliesSectionProps) => {
   const height = 250;
   const chartColor = theme.charts.colors[0];
 
@@ -247,9 +247,9 @@ function Anomalies(props: AnomaliesSectionProps) {
       ]}
     />
   );
-}
+};
 
-function AnomaliesContent(props: Props) {
+const AnomaliesContent = (props: Props) => {
   const {location, organization, eventView} = props;
   const query = decodeScalar(location.query.query, '');
 
@@ -309,7 +309,7 @@ function AnomaliesContent(props: Props) {
       </AnomaliesQuery>
     </Layout.Main>
   );
-}
+};
 
 const FilterActions = styled('div')`
   display: grid;

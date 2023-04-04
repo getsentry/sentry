@@ -70,7 +70,7 @@ type ViewHierarchyProps = {
   viewHierarchy: ViewHierarchyData;
 };
 
-function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
+const ViewHierarchy = ({viewHierarchy, project}: ViewHierarchyProps) => {
   const organization = useOrganization();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
@@ -216,7 +216,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       </Content>
     </Fragment>
   );
-}
+};
 
 export {ViewHierarchy};
 

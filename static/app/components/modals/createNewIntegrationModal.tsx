@@ -21,13 +21,13 @@ type CreateNewIntegrationModalProps = CreateNewIntegrationModalOptions & ModalRe
 
 const analyticsView = 'new_integration_modal' as const;
 
-function CreateNewIntegrationModal({
+const CreateNewIntegrationModal = ({
   Body,
   Header,
   Footer,
   closeModal,
   organization,
-}: CreateNewIntegrationModalProps) {
+}: CreateNewIntegrationModalProps) => {
   const [option, selectOption] = useState('internal');
   const choices = [
     [
@@ -147,7 +147,7 @@ function CreateNewIntegrationModal({
       </Footer>
     </Fragment>
   );
-}
+};
 
 const StyledRadioGroup = styled(RadioGroup)`
   grid-auto-columns: auto;

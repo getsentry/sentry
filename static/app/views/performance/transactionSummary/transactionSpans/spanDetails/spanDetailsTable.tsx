@@ -132,7 +132,7 @@ function renderBodyCellWithMeta(
   transactionName: string,
   suspectSpan?: SuspectSpan
 ) {
-  return (column: TableColumn, dataRow: TableDataRow): React.ReactNode => {
+  return function (column: TableColumn, dataRow: TableDataRow): React.ReactNode {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (
@@ -225,7 +225,7 @@ type SpanDurationBarProps = {
   transactionDuration: number;
 };
 
-function SpanDurationBar(props: SpanDurationBarProps) {
+const SpanDurationBar = (props: SpanDurationBarProps) => {
   const {spanOp, spanDuration, transactionDuration} = props;
   const widthPercentage = spanDuration / transactionDuration;
   const position = widthPercentage < 0.7 ? 'right' : 'inset';
@@ -248,4 +248,4 @@ function SpanDurationBar(props: SpanDurationBarProps) {
       </div>
     </DurationBar>
   );
-}
+};

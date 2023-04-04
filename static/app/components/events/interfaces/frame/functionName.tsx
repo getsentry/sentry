@@ -11,14 +11,14 @@ type Props = {
   showCompleteFunctionName?: boolean;
 };
 
-export function FunctionName({
+export const FunctionName = ({
   frame,
   showCompleteFunctionName,
   hasHiddenDetails,
   className,
   meta,
   ...props
-}: Props) {
+}: Props) => {
   const getValueOutput = ():
     | {meta: ReturnType<typeof getMeta>; value: Frame['function']}
     | undefined => {
@@ -57,4 +57,4 @@ export function FunctionName({
       )}
     </code>
   );
-}
+};

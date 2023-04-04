@@ -17,7 +17,7 @@ type Props = {
   teamList: Array<Team>;
 };
 
-function AllTeamsList({organization, openMembership, teamList, access}: Props) {
+const AllTeamsList = ({organization, openMembership, teamList, access}: Props) => {
   const teamNodes = teamList.map(team => (
     <AllTeamsRow
       team={team}
@@ -55,7 +55,7 @@ function AllTeamsList({organization, openMembership, teamList, access}: Props) {
   }
 
   return <Fragment>{teamNodes}</Fragment>;
-}
+};
 
 export default AllTeamsList;
 

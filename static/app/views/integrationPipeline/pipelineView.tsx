@@ -23,7 +23,7 @@ type Props = {
 /**
  * This component is a wrapper for specific pipeline views for integrations
  */
-function PipelineView({pipelineName, ...props}: Props) {
+const PipelineView = ({pipelineName, ...props}: Props) => {
   const mapping = pipelineMapper[pipelineName];
 
   if (!mapping) {
@@ -41,6 +41,6 @@ function PipelineView({pipelineName, ...props}: Props) {
       <Component {...props} />
     </ThemeAndStyleProvider>
   );
-}
+};
 
 export default PipelineView;

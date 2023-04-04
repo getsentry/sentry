@@ -2,7 +2,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 
-function ReplayCurrentUrl() {
+const ReplayCurrentUrl = () => {
   const {currentTime, replay} = useReplayContext();
   if (!replay) {
     return (
@@ -20,6 +20,6 @@ function ReplayCurrentUrl() {
       {getCurrentUrl(replayRecord, crumbs, currentTime)}
     </TextCopyInput>
   );
-}
+};
 
 export default ReplayCurrentUrl;

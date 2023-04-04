@@ -14,7 +14,7 @@ type Props = {
   stepOneData: StepOneData;
 };
 
-function StepOne({stepOneData, onSetStepOneData}: Props) {
+const StepOne = ({stepOneData, onSetStepOneData}: Props) => {
   return (
     <Fragment>
       <Alert type="info">
@@ -102,6 +102,6 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
       </FieldGroup>
     </Fragment>
   );
-}
+};
 
 export default StepOne;

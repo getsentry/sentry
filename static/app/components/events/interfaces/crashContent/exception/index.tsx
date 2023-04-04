@@ -18,7 +18,7 @@ type Props = {
   stackView?: STACK_VIEW;
 } & Pick<ExceptionType, 'values'>;
 
-export function ExceptionContent({
+export const ExceptionContent = ({
   stackView,
   stackType,
   projectSlug,
@@ -29,7 +29,7 @@ export function ExceptionContent({
   groupingCurrentLevel,
   platform = 'other',
   meta,
-}: Props) {
+}: Props) => {
   return (
     <ErrorBoundary mini>
       {stackView === STACK_VIEW.RAW ? (
@@ -56,4 +56,4 @@ export function ExceptionContent({
       )}
     </ErrorBoundary>
   );
-}
+};

@@ -31,7 +31,7 @@ type Props = {
  * This badge is a composition of DiamondStatus specifically used for incident
  * alerts.
  */
-function AlertBadge({status, withText, isIssue}: Props) {
+const AlertBadge = ({status, withText, isIssue}: Props) => {
   let statusText = t('Resolved');
   let Icon: React.ComponentType<SVGIconProps> = IconCheckmark;
   let color: ColorOrAlias = 'successText';
@@ -60,7 +60,7 @@ function AlertBadge({status, withText, isIssue}: Props) {
       {withText && <div>{statusText}</div>}
     </Wrapper>
   );
-}
+};
 
 export default AlertBadge;
 

@@ -23,7 +23,7 @@ type Props = {
   sampleIssueId?: string;
 };
 
-function ErrorRobot({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
+const ErrorRobot = ({org, project, sampleIssueId: sampleIssueIdProp}: Props) => {
   const api = useApi();
 
   const [loading, setLoading] = useState(false);
@@ -112,7 +112,7 @@ function ErrorRobot({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
       </MessageContainer>
     </ErrorRobotWrapper>
   );
-}
+};
 
 export default ErrorRobot;
 

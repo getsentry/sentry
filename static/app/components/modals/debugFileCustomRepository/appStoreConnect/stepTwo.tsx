@@ -11,7 +11,7 @@ type Props = {
   stepTwoData: StepTwoData;
 };
 
-function StepTwo({stepTwoData, onSetStepTwoData, appStoreApps}: Props) {
+const StepTwo = ({stepTwoData, onSetStepTwoData, appStoreApps}: Props) => {
   return (
     <StyledSelectField
       name="application"
@@ -34,7 +34,7 @@ function StepTwo({stepTwoData, onSetStepTwoData, appStoreApps}: Props) {
       required
     />
   );
-}
+};
 
 export default StepTwo;
 

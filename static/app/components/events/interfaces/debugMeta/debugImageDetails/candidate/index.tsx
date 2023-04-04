@@ -21,7 +21,7 @@ type Props = {
   eventDateReceived?: string;
 };
 
-function Candidate({
+const Candidate = ({
   candidate,
   organization,
   projSlug,
@@ -30,7 +30,7 @@ function Candidate({
   hasReprocessWarning,
   onDelete,
   eventDateReceived,
-}: Props) {
+}: Props) => {
   const {source} = candidate;
   const isInternalSource = source === INTERNAL_SOURCE;
 
@@ -63,7 +63,7 @@ function Candidate({
       )}
     </Fragment>
   );
-}
+};
 
 export default Candidate;
 

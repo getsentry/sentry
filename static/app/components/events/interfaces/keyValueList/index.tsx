@@ -16,7 +16,7 @@ interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   shouldSort?: boolean;
 }
 
-function KeyValueList({
+const KeyValueList = ({
   data,
   isContextData = false,
   shouldSort = true,
@@ -24,7 +24,7 @@ function KeyValueList({
   longKeys = false,
   onClick,
   ...props
-}: Props) {
+}: Props) => {
   if (!defined(data) || data.length === 0) {
     return null;
   }
@@ -88,7 +88,7 @@ function KeyValueList({
       </tbody>
     </Table>
   );
-}
+};
 
 const MultiValueContainer = ({values}: {values: string[]}): JSX.Element => {
   return (

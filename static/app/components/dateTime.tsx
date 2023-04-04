@@ -89,7 +89,7 @@ function getFormat({
   return year ? `${dateFormat} ${timeFormat}` : `${dateFormat}, ${timeFormat}`;
 }
 
-function DateTime({
+const DateTime = ({
   format,
   date,
   utc,
@@ -99,7 +99,7 @@ function DateTime({
   timeZone,
   seconds = false,
   ...props
-}: Props) {
+}: Props) => {
   const user = ConfigStore.get('user');
   const options = user?.options;
 
@@ -125,6 +125,6 @@ function DateTime({
         : momentTimezone.tz(date, options?.timezone ?? '').format(formatString)}
     </time>
   );
-}
+};
 
 export default DateTime;

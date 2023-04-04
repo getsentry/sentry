@@ -21,7 +21,7 @@ interface Props {
   organization: Organization;
 }
 
-export function SpanCountChart({issue, event, location, organization}: Props) {
+export const SpanCountChart = ({issue, event, location, organization}: Props) => {
   const transactionNameTag = event.tags.find(tag => tag.key === 'transaction');
   const transactionName = transactionNameTag ? transactionNameTag.value : '';
 
@@ -163,4 +163,4 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
       )}
     </SpanCountHistogramQuery>
   );
-}
+};

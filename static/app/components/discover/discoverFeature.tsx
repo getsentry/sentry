@@ -11,7 +11,7 @@ type Props = {
  * Provide a component that passes a prop to indicate if the current
  * organization doesn't have access to discover results.
  */
-function DiscoverFeature({children}: Props) {
+const DiscoverFeature = ({children}: Props) => {
   const noFeatureMessage = t('Requires discover feature.');
 
   const renderDisabled = p => (
@@ -38,6 +38,6 @@ function DiscoverFeature({children}: Props) {
       {({hasFeature}) => children({hasFeature})}
     </Feature>
   );
-}
+};
 
 export default DiscoverFeature;

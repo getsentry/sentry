@@ -9,7 +9,7 @@ interface Props extends RouteComponentProps<{projectId: string; ruleId: string},
   children?: React.ReactNode;
 }
 
-function RuleDetailsContainer({children, params}: Props) {
+const RuleDetailsContainer = ({children, params}: Props) => {
   const organization = useOrganization();
   const {projects, fetching} = useProjects();
   const project = projects.find(({slug}) => slug === params.projectId);
@@ -25,6 +25,6 @@ function RuleDetailsContainer({children, params}: Props) {
         project,
       })
     : null;
-}
+};
 
 export default RuleDetailsContainer;

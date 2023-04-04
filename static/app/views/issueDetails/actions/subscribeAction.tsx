@@ -18,7 +18,7 @@ type Props = {
   size?: 'xs' | 'sm';
 };
 
-function SubscribeAction({
+const SubscribeAction = ({
   className,
   disabled,
   group,
@@ -26,7 +26,7 @@ function SubscribeAction({
   onClick,
   disablePriority,
   size = 'xs',
-}: Props) {
+}: Props) => {
   const disabledNotifications = group.subscriptionDetails?.disabled ?? false;
 
   return (
@@ -42,6 +42,6 @@ function SubscribeAction({
       icon={icon ?? <IconSubscribed size={size} />}
     />
   );
-}
+};
 
 export default SubscribeAction;

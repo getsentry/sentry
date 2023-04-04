@@ -7,7 +7,7 @@ type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
 };
 
-function ViewIssueLink({breadcrumb}: Props) {
+const ViewIssueLink = ({breadcrumb}: Props) => {
   const organization = useOrganization();
 
   if (!breadcrumbHasIssue(breadcrumb)) {
@@ -19,6 +19,6 @@ function ViewIssueLink({breadcrumb}: Props) {
     pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/?referrer=replay-console`,
   };
   return <ShortId to={to} shortId={groupShortId} />;
-}
+};
 
 export default ViewIssueLink;

@@ -4,10 +4,10 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 import useDisableRouteAnalytics from './useDisableRouteAnalytics';
 
-function TestComponent() {
+const TestComponent = () => {
   useDisableRouteAnalytics();
   return <div>hi</div>;
-}
+};
 
 describe('useDisableRouteAnalytics', function () {
   it('disables analytics', function () {

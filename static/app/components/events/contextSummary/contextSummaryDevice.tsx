@@ -27,7 +27,7 @@ type SubTitle = {
 
 type Props = ContextItemProps<Data, 'device'>;
 
-export function ContextSummaryDevice({data, meta}: Props) {
+export const ContextSummaryDevice = ({data, meta}: Props) => {
   if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown Device')} />;
   }
@@ -84,7 +84,7 @@ export function ContextSummaryDevice({data, meta}: Props) {
       )}
     </Item>
   );
-}
+};
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};

@@ -23,7 +23,7 @@ type State = {
   sessionsData: SessionApiResponse;
 };
 
-function ProjectSessionsAnrRequest({
+const ProjectSessionsAnrRequest = ({
   children,
   organization,
   disablePrevious,
@@ -31,7 +31,7 @@ function ProjectSessionsAnrRequest({
   displayMode,
   query,
   onTotalValuesChange,
-}: Omit<ProjectSessionsChartRequestProps, 'theme'>) {
+}: Omit<ProjectSessionsChartRequestProps, 'theme'>) => {
   const {datetime, projects, environments: environment} = selection;
   const theme = useTheme();
   const yAxis =
@@ -225,6 +225,6 @@ function ProjectSessionsAnrRequest({
       })}
     </Fragment>
   );
-}
+};
 
 export default ProjectSessionsAnrRequest;

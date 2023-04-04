@@ -16,7 +16,7 @@ interface ExportProfileButtonProps extends Omit<ButtonProps, 'onClick' | 'childr
   variant?: 'xs' | 'default';
 }
 
-export function ExportProfileButton(props: ExportProfileButtonProps) {
+export const ExportProfileButton = (props: ExportProfileButtonProps) => {
   const api = useApi();
   const organization = useOrganization();
 
@@ -47,7 +47,7 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
       {props.children}
     </Button>
   );
-}
+};
 
 const StyledButtonSmall = styled(Button)`
   border: none;

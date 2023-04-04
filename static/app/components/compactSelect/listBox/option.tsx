@@ -20,7 +20,7 @@ interface ListBoxOptionProps extends AriaOptionProps {
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
+export const ListBoxOption = ({item, listState, size}: ListBoxOptionProps) => {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
@@ -101,4 +101,4 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
       data-test-id={item.key}
     />
   );
-}
+};

@@ -9,7 +9,7 @@ describe('withUserTeams HoC', function () {
   const organization = TestStubs.Organization();
   delete organization.projects;
 
-  function Output({error, teams}) {
+  const Output = ({error, teams}) => {
     if (error) {
       return <p>Error: {error.responseText}</p>;
     }
@@ -20,7 +20,7 @@ describe('withUserTeams HoC', function () {
         ))}
       </p>
     );
-  }
+  };
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

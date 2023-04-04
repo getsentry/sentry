@@ -17,13 +17,13 @@ type Props = {
   size?: 'xs' | 'sm';
 };
 
-export function OpenAIFixSuggestionButton({
+export const OpenAIFixSuggestionButton = ({
   className,
   disabled,
   size,
   onClick,
   groupId,
-}: Props) {
+}: Props) => {
   const organization = useOrganization();
   const router = useRouter();
   const groupLink = normalizeUrl(
@@ -54,4 +54,4 @@ export function OpenAIFixSuggestionButton({
       <FeatureBadge type="experimental" noTooltip />
     </ActionButton>
   );
-}
+};

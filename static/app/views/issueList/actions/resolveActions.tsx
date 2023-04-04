@@ -20,13 +20,13 @@ type Props = {
   };
 };
 
-function ResolveActionsContainer({
+const ResolveActionsContainer = ({
   params,
   orgSlug,
   anySelected,
   onShouldConfirm,
   onUpdate,
-}: Props) {
+}: Props) => {
   const {
     hasReleases,
     latestRelease,
@@ -59,6 +59,6 @@ function ResolveActionsContainer({
       projectFetchError={projectFetchError}
     />
   );
-}
+};
 
 export default ResolveActionsContainer;

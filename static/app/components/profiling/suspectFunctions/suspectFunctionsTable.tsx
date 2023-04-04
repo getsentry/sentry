@@ -21,11 +21,11 @@ interface SuspectFunctionsTableProps {
 
 const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
 
-export function SuspectFunctionsTable({
+export const SuspectFunctionsTable = ({
   analyticsPageSource,
   project,
   transaction,
-}: SuspectFunctionsTableProps) {
+}: SuspectFunctionsTableProps) => {
   const {selection} = usePageFilters();
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
     'application'
@@ -101,7 +101,7 @@ export function SuspectFunctionsTable({
       />
     </Fragment>
   );
-}
+};
 
 const TableHeader = styled('div')`
   display: flex;

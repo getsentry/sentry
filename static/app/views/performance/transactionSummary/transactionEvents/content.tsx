@@ -52,7 +52,7 @@ export const TRANSACTIONS_LIST_TITLES: Readonly<string[]> = [
   t('timestamp'),
 ];
 
-function EventsContent(props: Props) {
+const EventsContent = (props: Props) => {
   const {
     location,
     organization,
@@ -122,9 +122,9 @@ function EventsContent(props: Props) {
       />
     </Layout.Main>
   );
-}
+};
 
-function Search(props: Props) {
+const Search = (props: Props) => {
   const {
     eventView,
     location,
@@ -199,7 +199,7 @@ function Search(props: Props) {
       </Button>
     </FilterActions>
   );
-}
+};
 
 const FilterActions = styled('div')`
   display: grid;

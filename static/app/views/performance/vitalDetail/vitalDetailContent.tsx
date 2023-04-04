@@ -67,7 +67,7 @@ function getSummaryConditions(query: string) {
   return parsed.formatString();
 }
 
-function VitalDetailContent(props: Props) {
+const VitalDetailContent = (props: Props) => {
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSearch(query: string) {
@@ -294,7 +294,7 @@ function VitalDetailContent(props: Props) {
       </Layout.Body>
     </Fragment>
   );
-}
+};
 
 export default withProjects(VitalDetailContent);
 

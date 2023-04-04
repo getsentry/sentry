@@ -44,14 +44,14 @@ type DemoSandboxButtonProps = ButtonProps & {
  * which should include be a button. If the sandbox is hidden,
  * don't render the children
  */
-function DemoSandboxButton({
+const DemoSandboxButton = ({
   scenario,
   projectSlug,
   errorType,
   clientData,
   source,
   ...buttonProps
-}: DemoSandboxButtonProps): React.ReactElement {
+}: DemoSandboxButtonProps): React.ReactElement => {
   const organization: Organization = useOrganization();
   const url = new URL('https://try.sentry-demo.com/demo/start/');
 
@@ -87,6 +87,6 @@ function DemoSandboxButton({
       {...buttonProps}
     />
   );
-}
+};
 
 export default DemoSandboxButton;

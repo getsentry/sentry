@@ -30,7 +30,7 @@ type Props = {
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.
  */
-function MetricRulesCreate(props: Props) {
+const MetricRulesCreate = (props: Props) => {
   function handleSubmitSuccess(data: any) {
     const {organization, project, router} = props;
     const alertRuleId: string | undefined = data
@@ -72,6 +72,6 @@ function MetricRulesCreate(props: Props) {
       {...otherProps}
     />
   );
-}
+};
 
 export default MetricRulesCreate;

@@ -14,7 +14,7 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-function LoadingIndicator(props: Props) {
+const LoadingIndicator = (props: Props) => {
   const {
     hideMessage,
     mini,
@@ -53,7 +53,7 @@ function LoadingIndicator(props: Props) {
       {!hideMessage && <div className="loading-message">{children}</div>}
     </div>
   );
-}
+};
 
 export default withProfiler(LoadingIndicator, {
   includeUpdates: false,

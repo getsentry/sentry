@@ -13,7 +13,7 @@ type Props = {
 // consider that `meta` is not properly passed into this component in the
 // first place. It's much more likely that `withMeta` is buggy or improperly
 // used than that this component has a bug.
-export function ValueElement({value, meta}: Props) {
+export const ValueElement = ({value, meta}: Props) => {
   if (!!value && meta) {
     return <Redaction>{value}</Redaction>;
   }
@@ -45,4 +45,4 @@ export function ValueElement({value, meta}: Props) {
         : value}
     </Fragment>
   );
-}
+};

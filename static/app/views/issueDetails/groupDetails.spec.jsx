@@ -52,7 +52,7 @@ describe('groupDetails', () => {
     },
   });
 
-  function MockComponent({group: groupProp, environments, eventError}) {
+  const MockComponent = ({group: groupProp, environments, eventError}) => {
     return (
       <div>
         Group Details Mock
@@ -61,7 +61,7 @@ describe('groupDetails', () => {
         {eventError && <div>eventError</div>}
       </div>
     );
-  }
+  };
 
   const createWrapper = (props = {selection}) => {
     return render(

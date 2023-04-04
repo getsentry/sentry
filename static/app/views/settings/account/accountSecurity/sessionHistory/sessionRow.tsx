@@ -7,13 +7,13 @@ import {InternetProtocol} from 'sentry/types';
 
 import {tableLayout} from './utils';
 
-function SessionRow({
+const SessionRow = ({
   ipAddress,
   lastSeen,
   firstSeen,
   countryCode,
   regionCode,
-}: Omit<InternetProtocol, 'id'>) {
+}: Omit<InternetProtocol, 'id'>) => {
   return (
     <SessionPanelItem>
       <IpAndLocation>
@@ -30,7 +30,7 @@ function SessionRow({
       </div>
     </SessionPanelItem>
   );
-}
+};
 
 export default SessionRow;
 

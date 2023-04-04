@@ -16,7 +16,7 @@ type Props = {
   replayRecord: ReplayRecord | undefined;
 };
 
-function ReplayMetaData({replayRecord}: Props) {
+const ReplayMetaData = ({replayRecord}: Props) => {
   const {pathname, query} = useLocation();
 
   const errorsTabHref = {
@@ -70,7 +70,7 @@ function ReplayMetaData({replayRecord}: Props) {
       </KeyMetricData>
     </KeyMetrics>
   );
-}
+};
 
 const KeyMetrics = styled('dl')`
   display: grid;

@@ -10,7 +10,7 @@ import Body from './body';
 type Props = RouteComponentProps<{orgId: string}, {}> &
   Partial<React.ComponentProps<typeof OrganizationContextContainer>>;
 
-function OrganizationDetails({children, ...props}: Props) {
+const OrganizationDetails = ({children, ...props}: Props) => {
   // Switch organizations when the orgId changes
   const orgId = useRef(props.params.orgId);
   useRouteAnalyticsHookSetup();
@@ -32,6 +32,6 @@ function OrganizationDetails({children, ...props}: Props) {
       <Body>{children}</Body>
     </OrganizationContextContainer>
   );
-}
+};
 
 export default OrganizationDetails;

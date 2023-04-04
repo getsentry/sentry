@@ -21,7 +21,7 @@ interface Props {
   expandPaths?: string[];
 }
 
-function BreadcrumbRow({
+const BreadcrumbRow = ({
   breadcrumb,
   expandPaths,
   index,
@@ -30,7 +30,7 @@ function BreadcrumbRow({
   isHovered,
   startTimestampMs,
   style,
-}: Props) {
+}: Props) => {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
@@ -62,6 +62,6 @@ function BreadcrumbRow({
       onDimensionChange={onDimensionChange}
     />
   );
-}
+};
 
 export default memo(BreadcrumbRow);

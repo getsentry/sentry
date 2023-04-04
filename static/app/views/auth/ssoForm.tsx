@@ -11,7 +11,7 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function SsoForm({authConfig}: Props) {
+const SsoForm = ({authConfig}: Props) => {
   const [error, setError] = useState('');
 
   const {serverHostname} = authConfig;
@@ -50,7 +50,7 @@ function SsoForm({authConfig}: Props) {
       />
     </Form>
   );
-}
+};
 
 type SlugExampleProps = {
   hostname: string;

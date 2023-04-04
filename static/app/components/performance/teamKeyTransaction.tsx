@@ -271,7 +271,7 @@ type ItemProps = {
   onSelect?: () => void;
 };
 
-function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) {
+const TeamKeyTransactionItem = ({team, isKeyed, disabled, onSelect}: ItemProps) => {
   const id = `team_key_transaction_${team.slug}`;
 
   return (
@@ -298,7 +298,7 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
       </MenuItemContent>
     </DropdownMenuItem>
   );
-}
+};
 
 const StarWrapper = styled('div')`
   display: flex;

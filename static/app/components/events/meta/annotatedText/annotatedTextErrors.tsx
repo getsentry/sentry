@@ -13,7 +13,7 @@ function formatErrorKind(kind: string) {
   return capitalize(kind.replace(/_/g, ' '));
 }
 
-function ErrorMessage({error}: {error?: MetaError}) {
+const ErrorMessage = ({error}: {error?: MetaError}) => {
   if (Array.isArray(error)) {
     if (!error[0] && !error[1]?.reason) {
       return null;
@@ -37,9 +37,9 @@ function ErrorMessage({error}: {error?: MetaError}) {
   }
 
   return <Fragment>{formatErrorKind(error)}</Fragment>;
-}
+};
 
-export function AnnotatedTextErrors({errors = []}: {errors: Array<MetaError>}) {
+export const AnnotatedTextErrors = ({errors = []}: {errors: Array<MetaError>}) => {
   if (!errors.length) {
     return null;
   }
@@ -63,7 +63,7 @@ export function AnnotatedTextErrors({errors = []}: {errors: Array<MetaError>}) {
       <StyledIconWarning color="errorText" />
     </StyledTooltip>
   );
-}
+};
 
 const StyledTooltip = styled(Tooltip)`
   margin-left: ${space(0.75)};

@@ -24,7 +24,7 @@ type Props = {
   webhookDisabled?: boolean;
 };
 
-function SubscriptionBox({
+const SubscriptionBox = ({
   checked,
   disabledFromPermissions,
   isNew,
@@ -32,7 +32,7 @@ function SubscriptionBox({
   organization,
   resource,
   webhookDisabled = false,
-}: Props) {
+}: Props) => {
   const {features} = organization;
 
   let disabled = disabledFromPermissions || webhookDisabled;
@@ -83,7 +83,7 @@ function SubscriptionBox({
       </SubscriptionGridItem>
     </Tooltip>
   );
-}
+};
 
 export default withOrganization(SubscriptionBox);
 

@@ -7,13 +7,13 @@ type Props = {
   tooltip?: React.ReactNode;
 };
 
-function NotAvailable({tooltip, className}: Props) {
+const NotAvailable = ({tooltip, className}: Props) => {
   return (
     <Tooltip title={tooltip} skipWrapper disabled={tooltip === undefined}>
       <Wrapper className={className}>{'\u2014'}</Wrapper>
     </Tooltip>
   );
-}
+};
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.gray200};

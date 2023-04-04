@@ -9,7 +9,7 @@ interface Props extends React.ComponentProps<typeof Panel> {
   noCenter?: boolean;
 }
 
-function OnboardingPanel({image, noCenter, children, ...props}: Props) {
+const OnboardingPanel = ({image, noCenter, children, ...props}: Props) => {
   return (
     <Panel {...props}>
       <Container>
@@ -18,7 +18,7 @@ function OnboardingPanel({image, noCenter, children, ...props}: Props) {
       </Container>
     </Panel>
   );
-}
+};
 
 const Container = styled('div')`
   padding: ${space(3)};

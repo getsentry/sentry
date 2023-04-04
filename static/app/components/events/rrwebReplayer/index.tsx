@@ -14,7 +14,7 @@ interface Props {
  * Downloads a list of replay JSONs, merges the resulting events within the
  * JSON and passes it to the replayer.
  */
-function RRWebReplayer({urls}: Props) {
+const RRWebReplayer = ({urls}: Props) => {
   const [events, setEvents] = useState<RRWebEvents>();
 
   const loadEvents = async () => {
@@ -49,6 +49,6 @@ function RRWebReplayer({urls}: Props) {
   useEffect(() => void loadEvents(), [urls]);
 
   return <BaseRRWebReplayer events={events} />;
-}
+};
 
 export default RRWebReplayer;

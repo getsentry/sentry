@@ -16,7 +16,7 @@ type Props = {
   setClientState: ReturnType<typeof usePersistedOnboardingState>[1];
 } & ModalRenderProps;
 
-export function ChangeRouteModal({
+export const ChangeRouteModal = ({
   Header,
   Body,
   Footer,
@@ -25,7 +25,7 @@ export function ChangeRouteModal({
   closeModal,
   clientState,
   setClientState,
-}: Props) {
+}: Props) => {
   const handleSetUpLater = useCallback(() => {
     closeModal();
 
@@ -62,4 +62,4 @@ export function ChangeRouteModal({
       </Footer>
     </Fragment>
   );
-}
+};

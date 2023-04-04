@@ -17,11 +17,11 @@ type Props = {
   superuserNeedsToBeProjectMember?: boolean;
 };
 
-function NoProjectMessage({
+const NoProjectMessage = ({
   children,
   organization,
   superuserNeedsToBeProjectMember,
-}: Props) {
+}: Props) => {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const orgSlug = organization.slug;
@@ -90,7 +90,7 @@ function NoProjectMessage({
       </Content>
     </Wrapper>
   );
-}
+};
 
 export default NoProjectMessage;
 

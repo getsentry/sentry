@@ -41,7 +41,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   onClick: (stepIndex: number) => void;
 };
 
-function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
+const Stepper = ({currentStepIndex, numSteps, onClick, ...props}: Props) => {
   return (
     <StepperContainer {...props}>
       {Array(numSteps)
@@ -59,6 +59,6 @@ function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
         ))}
     </StepperContainer>
   );
-}
+};
 
 export default Stepper;

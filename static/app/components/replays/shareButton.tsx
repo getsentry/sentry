@@ -14,7 +14,7 @@ import {formatSecondsToClock, parseClockToSeconds} from 'sentry/utils/formatters
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
-function ShareModal({currentTimeSec, Header, Body}) {
+const ShareModal = ({currentTimeSec, Header, Body}) => {
   const routes = useRoutes();
   const [isCustom, setIsCustom] = useState(false);
   const [customSeconds, setSeconds] = useState(currentTimeSec);
@@ -59,9 +59,9 @@ function ShareModal({currentTimeSec, Header, Body}) {
       </Body>
     </div>
   );
-}
+};
 
-function ShareButton() {
+const ShareButton = () => {
   // Cannot use this hook inside the modal because context will not be wired up
   const {currentTime} = useReplayContext();
 
@@ -79,7 +79,7 @@ function ShareButton() {
       {t('Share')}
     </Button>
   );
-}
+};
 
 const StyledTextCopyInput = styled(TextCopyInput)`
   /* Keep height consistent with the other input in the modal */

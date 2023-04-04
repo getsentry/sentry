@@ -28,7 +28,7 @@ type Props = {
   project?: Project;
 };
 
-function RouteError({error, disableLogSentry, disableReport, project}: Props) {
+const RouteError = ({error, disableLogSentry, disableReport, project}: Props) => {
   const routes = useRoutes();
   const {organization} = useLegacyStore(OrganizationStore);
 
@@ -128,7 +128,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
       </List>
     </Alert>
   );
-}
+};
 
 const Heading = styled('h1')`
   font-size: ${p => p.theme.fontSizeLarge};

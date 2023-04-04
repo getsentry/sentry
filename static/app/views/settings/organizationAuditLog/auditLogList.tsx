@@ -55,13 +55,13 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   return null;
 };
 
-function AuditNote({
+const AuditNote = ({
   entry,
   orgSlug,
 }: {
   entry: NonNullable<AuditLog>;
   orgSlug: Organization['slug'];
-}) {
+}) => {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(entry.data.id));
 
@@ -150,7 +150,7 @@ function AuditNote({
   }
 
   return <Note>{entry.note}</Note>;
-}
+};
 
 type Props = {
   entries: AuditLog[] | null;

@@ -17,7 +17,7 @@ type Props = {
   projects: Project[];
 };
 
-function TransactionSpans(props: Props) {
+const TransactionSpans = (props: Props) => {
   const {location, organization, projects} = props;
 
   return (
@@ -31,7 +31,7 @@ function TransactionSpans(props: Props) {
       childComponent={SpansContent}
     />
   );
-}
+};
 
 function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =

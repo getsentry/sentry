@@ -53,7 +53,7 @@ interface FlamegraphSpansProps {
   spansView: CanvasView<SpanChart> | null;
 }
 
-export function FlamegraphSpans({
+export const FlamegraphSpans = ({
   spanChart,
   canvasPoolManager,
   canvasBounds,
@@ -61,7 +61,7 @@ export function FlamegraphSpans({
   spansCanvas,
   spansCanvasRef,
   setSpansCanvasRef,
-}: FlamegraphSpansProps) {
+}: FlamegraphSpansProps) => {
   const flamegraphTheme = useFlamegraphTheme();
   const flamegraphSearch = useFlamegraphSearch();
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -404,7 +404,7 @@ export function FlamegraphSpans({
       ) : null}
     </Fragment>
   );
-}
+};
 
 const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
   width: 100%;

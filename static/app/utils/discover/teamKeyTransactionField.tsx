@@ -10,7 +10,7 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withProjects from 'sentry/utils/withProjects';
 
-function TitleStar({isOpen, keyedTeams, initialValue, ...props}: TitleProps) {
+const TitleStar = ({isOpen, keyedTeams, initialValue, ...props}: TitleProps) => {
   const keyedTeamsCount = keyedTeams?.length ?? initialValue ?? 0;
   const star = (
     <IconStar
@@ -36,7 +36,7 @@ function TitleStar({isOpen, keyedTeams, initialValue, ...props}: TitleProps) {
   }
 
   return button;
-}
+};
 
 type BaseProps = {
   isKeyTransaction: boolean;
@@ -49,14 +49,14 @@ type Props = BaseProps &
     transactionName: string;
   };
 
-function TeamKeyTransactionField({
+const TeamKeyTransactionField = ({
   isKeyTransaction,
   counts,
   getKeyedTeams,
   project,
   transactionName,
   ...props
-}: Props) {
+}: Props) => {
   const keyedTeams = getKeyedTeams(project.id, transactionName);
 
   return (
@@ -70,7 +70,7 @@ function TeamKeyTransactionField({
       {...props}
     />
   );
-}
+};
 
 type WrapperProps = BaseProps & {
   projectSlug: string | undefined;
@@ -78,13 +78,13 @@ type WrapperProps = BaseProps & {
   transactionName: string | undefined;
 };
 
-function TeamKeyTransactionFieldWrapper({
+const TeamKeyTransactionFieldWrapper = ({
   isKeyTransaction,
   projects,
   projectSlug,
   transactionName,
   ...props
-}: WrapperProps) {
+}: WrapperProps) => {
   const project = projects.find(proj => proj.slug === projectSlug);
 
   // All these fields need to be defined in order to toggle a team key
@@ -114,6 +114,6 @@ function TeamKeyTransactionFieldWrapper({
       )}
     </TeamKeyTransactionManager.Consumer>
   );
-}
+};
 
 export default withProjects(TeamKeyTransactionFieldWrapper);

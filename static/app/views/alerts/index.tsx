@@ -7,7 +7,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-function AlertsContainer({children}: Props) {
+const AlertsContainer = ({children}: Props) => {
   const organization = useOrganization();
   const hasMetricAlerts = organization.features.includes('incidents');
 
@@ -20,6 +20,6 @@ function AlertsContainer({children}: Props) {
       : children;
 
   return <NoProjectMessage organization={organization}>{content}</NoProjectMessage>;
-}
+};
 
 export default AlertsContainer;

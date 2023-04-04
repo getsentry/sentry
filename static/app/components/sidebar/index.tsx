@@ -66,7 +66,7 @@ function hidePanel() {
   SidebarPanelStore.hidePanel();
 }
 
-function Sidebar({location, organization}: Props) {
+const Sidebar = ({location, organization}: Props) => {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
@@ -445,7 +445,7 @@ function Sidebar({location, organization}: Props) {
       )}
     </SidebarWrapper>
   );
-}
+};
 
 export default Sidebar;
 

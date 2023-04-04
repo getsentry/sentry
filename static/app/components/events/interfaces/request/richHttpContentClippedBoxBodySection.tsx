@@ -14,11 +14,11 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-export function RichHttpContentClippedBoxBodySection({
+export const RichHttpContentClippedBoxBodySection = ({
   data,
   meta,
   inferredContentType,
-}: Props) {
+}: Props) => {
   if (!defined(data)) {
     return null;
   }
@@ -78,4 +78,4 @@ export function RichHttpContentClippedBoxBodySection({
       <ErrorBoundary mini>{content}</ErrorBoundary>
     </ClippedBox>
   );
-}
+};

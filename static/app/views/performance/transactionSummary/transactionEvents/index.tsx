@@ -47,7 +47,7 @@ type Props = {
   projects: Project[];
 };
 
-function TransactionEvents(props: Props) {
+const TransactionEvents = (props: Props) => {
   const {location, organization, projects} = props;
 
   return (
@@ -61,9 +61,9 @@ function TransactionEvents(props: Props) {
       childComponent={EventsContentWrapper}
     />
   );
-}
+};
 
-function EventsContentWrapper(props: ChildProps) {
+const EventsContentWrapper = (props: ChildProps) => {
   const {
     location,
     organization,
@@ -196,7 +196,7 @@ function EventsContentWrapper(props: ChildProps) {
       }}
     </DiscoverQuery>
   );
-}
+};
 
 function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =

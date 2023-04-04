@@ -16,7 +16,7 @@ type Props = {
   projectSlug: Project['slug'];
 };
 
-function Tags({event, organization, projectSlug, location, hasEventContext}: Props) {
+const Tags = ({event, organization, projectSlug, location, hasEventContext}: Props) => {
   return (
     <EventDataSection
       title={t('Tags')}
@@ -34,6 +34,6 @@ function Tags({event, organization, projectSlug, location, hasEventContext}: Pro
       />
     </EventDataSection>
   );
-}
+};
 
 export default Tags;

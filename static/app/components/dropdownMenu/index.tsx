@@ -123,7 +123,7 @@ interface DropdownMenuProps
  * A menu component that renders both the trigger button and the dropdown
  * menu. See: https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
  */
-function DropdownMenu({
+const DropdownMenu = ({
   items,
   disabledKeys,
   trigger,
@@ -145,7 +145,7 @@ function DropdownMenu({
   shouldCloseOnInteractOutside,
   preventOverflowOptions,
   ...props
-}: DropdownMenuProps) {
+}: DropdownMenuProps) => {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   const {rootOverlayState} = useContext(DropdownMenuContext);
@@ -275,7 +275,7 @@ function DropdownMenu({
       {renderMenu()}
     </DropdownMenuWrap>
   );
-}
+};
 
 export {DropdownMenu};
 

@@ -22,7 +22,7 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
+const DebugImage = ({image, onOpenImageDetailsModal, style}: Props) => {
   const {unwind_status, debug_status, debug_file, debug_id, code_file, code_id, status} =
     image;
 
@@ -62,7 +62,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
       </DebugFilesColumn>
     </Wrapper>
   );
-}
+};
 
 export default DebugImage;
 

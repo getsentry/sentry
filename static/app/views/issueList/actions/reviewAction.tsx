@@ -13,7 +13,7 @@ type Props = {
   >;
 };
 
-function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {
+const ReviewAction = ({disabled, onUpdate, tooltipProps, tooltip}: Props) => {
   return (
     <ActionLink
       type="button"
@@ -26,6 +26,6 @@ function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {
       {t('Mark Reviewed')}
     </ActionLink>
   );
-}
+};
 
 export default ReviewAction;

@@ -19,7 +19,7 @@ type Props = RequestProps & {
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
-function SpanOpsQuery(props: Props) {
+const SpanOpsQuery = (props: Props) => {
   return (
     <GenericDiscoverQuery<SpanOps, SpanOpsProps>
       route="events-span-ops"
@@ -31,6 +31,6 @@ function SpanOpsQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default SpanOpsQuery;

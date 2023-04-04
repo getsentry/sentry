@@ -27,7 +27,7 @@ type Props = {
   rightAxis: AxisOption;
 };
 
-function DoubleAxisDisplay(props: Props) {
+const DoubleAxisDisplay = (props: Props) => {
   const {eventView, location, organization, axisOptions, leftAxis, rightAxis} = props;
 
   const [usingBackupAxis, setUsingBackupAxis] = useState(false);
@@ -96,7 +96,7 @@ function DoubleAxisDisplay(props: Props) {
       />
     </Panel>
   );
-}
+};
 
 const DoubleChartContainer = styled('div')`
   display: grid;

@@ -15,12 +15,12 @@ interface Props {
   selectedTeams: string[];
 }
 
-export function OwnershipOwnerFilter({
+export const OwnershipOwnerFilter = ({
   selectedTeams,
   handleChangeFilter,
   actors,
   isMyTeams,
-}: Props) {
+}: Props) => {
   const actorOptions = useMemo(
     () =>
       actors.map(actor => ({
@@ -74,7 +74,7 @@ export function OwnershipOwnerFilter({
       triggerProps={{icon: <IconUser />}}
     />
   );
-}
+};
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;

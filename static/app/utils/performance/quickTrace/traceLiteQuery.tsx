@@ -36,7 +36,7 @@ function getTraceLiteRequestPayload({
   return Object.assign({event_id: eventId}, additionalApiPayload);
 }
 
-function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
+const EmptyTrace = ({children}: Pick<QueryProps, 'children'>) => {
   return (
     <Fragment>
       {children({
@@ -47,16 +47,16 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
       })}
     </Fragment>
   );
-}
+};
 
-function TraceLiteQuery({
+const TraceLiteQuery = ({
   traceId,
   start,
   end,
   statsPeriod,
   children,
   ...props
-}: QueryProps) {
+}: QueryProps) => {
   if (!traceId) {
     return <EmptyTrace>{children}</EmptyTrace>;
   }
@@ -83,6 +83,6 @@ function TraceLiteQuery({
       }
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default TraceLiteQuery;

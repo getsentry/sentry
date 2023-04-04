@@ -17,13 +17,13 @@ interface Props {
   tags: TagCollection;
 }
 
-export function GroupByStep({
+export const GroupByStep = ({
   dataSet,
   columns,
   onGroupByChange,
   organization,
   tags,
-}: Props) {
+}: Props) => {
   const datasetConfig = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet]);
   return (
     <BuildStep
@@ -41,4 +41,4 @@ export function GroupByStep({
       />
     </BuildStep>
   );
-}
+};

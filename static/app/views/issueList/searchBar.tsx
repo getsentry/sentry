@@ -34,7 +34,7 @@ interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTa
 
 const EXCLUDED_TAGS = ['environment'];
 
-function IssueListSearchBar({organization, tags, ...props}: Props) {
+const IssueListSearchBar = ({organization, tags, ...props}: Props) => {
   const api = useApi();
   const {selection: pageFilters} = usePageFilters();
 
@@ -92,6 +92,6 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       {...props}
     />
   );
-}
+};
 
 export default withIssueTags(IssueListSearchBar);

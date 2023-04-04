@@ -68,7 +68,7 @@ function getUrlPath(maybeUrl?: string) {
   }
 }
 
-function OwnershipSuggestions({
+const OwnershipSuggestions = ({
   paths,
   urls,
   eventData,
@@ -76,7 +76,7 @@ function OwnershipSuggestions({
   paths: string[];
   urls: string[];
   eventData?: Event;
-}) {
+}) => {
   const email = ConfigStore.get('user')?.email;
   if (!email) {
     return null;
@@ -104,7 +104,7 @@ function OwnershipSuggestions({
         ))}
     </StyledPre>
   );
-}
+};
 
 class ProjectOwnershipModal extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

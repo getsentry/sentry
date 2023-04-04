@@ -89,12 +89,12 @@ interface BaseTabListProps extends TabListProps {
   items: TabListItemProps[];
 }
 
-function BaseTabList({
+const BaseTabList = ({
   hideBorder = false,
   className,
   outerWrapStyles,
   ...props
-}: BaseTabListProps) {
+}: BaseTabListProps) => {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -207,7 +207,7 @@ function BaseTabList({
       )}
     </TabListOuterWrap>
   );
-}
+};
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
@@ -215,7 +215,7 @@ const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nod
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function TabList({items, ...props}: TabListProps) {
+export const TabList = ({items, ...props}: TabListProps) => {
   /**
    * Initial, unfiltered list of tab items.
    */
@@ -240,7 +240,7 @@ export function TabList({items, ...props}: TabListProps) {
       {item => <Item {...item} />}
     </BaseTabList>
   );
-}
+};
 
 TabList.Item = Item;
 

@@ -14,13 +14,13 @@ type Props = ModalRenderProps & {
   placeholder?: string;
 };
 
-function HelpSearchModal({
+const HelpSearchModal = ({
   Body,
   closeModal,
   organization,
   placeholder = t('Search for documentation, FAQs, blog posts...'),
   ...props
-}: Props) {
+}: Props) => {
   const theme = useTheme();
 
   return (
@@ -52,7 +52,7 @@ function HelpSearchModal({
       </ClassNames>
     </Body>
   );
-}
+};
 
 const InputWrapper = styled('div')`
   padding: ${space(0.25)};

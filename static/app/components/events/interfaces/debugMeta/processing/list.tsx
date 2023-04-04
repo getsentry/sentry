@@ -5,13 +5,13 @@ type Props = {
   className?: string;
 };
 
-function List({items, className}: Props) {
+const List = ({items, className}: Props) => {
   if (!items.length) {
     return null;
   }
 
   return <Wrapper className={className}>{items}</Wrapper>;
-}
+};
 
 export default List;
 

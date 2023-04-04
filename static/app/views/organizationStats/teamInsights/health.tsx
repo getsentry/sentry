@@ -25,7 +25,7 @@ import {dataDatetime} from './utils';
 
 type Props = RouteComponentProps<{}, {}>;
 
-function TeamStatsHealth({location, router}: Props) {
+const TeamStatsHealth = ({location, router}: Props) => {
   const organization = useOrganization();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
@@ -135,7 +135,7 @@ function TeamStatsHealth({location, router}: Props) {
       </Body>
     </Fragment>
   );
-}
+};
 
 export default TeamStatsHealth;
 

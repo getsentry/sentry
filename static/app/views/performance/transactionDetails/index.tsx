@@ -13,7 +13,7 @@ type Props = RouteComponentProps<{eventSlug: string}, {}> & {
   organization: Organization;
 };
 
-function EventDetails(props: Props) {
+const EventDetails = (props: Props) => {
   const {projects} = useProjects();
 
   const getEventSlug = (): string => {
@@ -43,6 +43,6 @@ function EventDetails(props: Props) {
       </Layout.Page>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default withOrganization(EventDetails);

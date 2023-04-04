@@ -57,7 +57,7 @@ type Props = {
   registersMeta?: Record<any, any>;
 };
 
-function NativeFrame({
+const NativeFrame = ({
   frame,
   nextFrame,
   prevFrame,
@@ -78,7 +78,7 @@ function NativeFrame({
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed = false,
-}: Props) {
+}: Props) => {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
   const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
@@ -341,7 +341,7 @@ function NativeFrame({
       )}
     </StackTraceFrame>
   );
-}
+};
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 

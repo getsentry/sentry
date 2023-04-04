@@ -7,7 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-function OrganizationCreate() {
+const OrganizationCreate = () => {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
 
@@ -77,6 +77,6 @@ function OrganizationCreate() {
       </NarrowLayout>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default OrganizationCreate;

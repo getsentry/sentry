@@ -53,7 +53,7 @@ type Props = {
   selection: PageFilters;
 };
 
-function TransactionOverview(props: Props) {
+const TransactionOverview = (props: Props) => {
   const api = useApi();
 
   const {location, selection, organization, projects} = props;
@@ -79,9 +79,9 @@ function TransactionOverview(props: Props) {
       />
     </MEPSettingProvider>
   );
-}
+};
 
-function OverviewContentWrapper(props: ChildProps) {
+const OverviewContentWrapper = (props: ChildProps) => {
   const {
     location,
     organization,
@@ -195,7 +195,7 @@ function OverviewContentWrapper(props: ChildProps) {
       unfilteredTotalValues={unfilteredTotals}
     />
   );
-}
+};
 
 function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =

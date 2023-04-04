@@ -16,7 +16,7 @@ interface AddIntegrationButtonProps
   reinstall?: boolean;
 }
 
-export function AddIntegrationButton({
+export const AddIntegrationButton = ({
   provider,
   buttonText,
   onAddIntegration,
@@ -25,7 +25,7 @@ export function AddIntegrationButton({
   analyticsParams,
   modalParams,
   ...buttonProps
-}: AddIntegrationButtonProps) {
+}: AddIntegrationButtonProps) => {
   const label =
     buttonText ?? (reinstall ? t('Enable') : t('Add %s', provider.metadata.noun));
 
@@ -54,4 +54,4 @@ export function AddIntegrationButton({
       </AddIntegration>
     </Tooltip>
   );
-}
+};

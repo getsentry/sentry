@@ -34,7 +34,7 @@ type Props = React.ComponentProps<typeof Expander> &
     prevFrame?: Frame;
   };
 
-export function Native({
+export const Native = ({
   frame,
   isFrameAfterLastNonApp,
   isExpanded,
@@ -51,7 +51,7 @@ export function Native({
   onClick,
   event,
   ...props
-}: Props) {
+}: Props) => {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
   if (!traceEventDataSectionContext) {
@@ -167,7 +167,7 @@ export function Native({
       />
     </Wrapper>
   );
-}
+};
 
 const PackageInfo = styled('span')`
   display: grid;

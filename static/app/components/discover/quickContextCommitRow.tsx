@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 
-function QuickContextCommitRow({commit}: CommitRowProps) {
+const QuickContextCommitRow = ({commit}: CommitRowProps) => {
   const user = ConfigStore.get('user');
   const isUser = user?.id === commit.author?.id;
   const hasPullRequestURL = commit.pullRequest && commit.pullRequest.externalUrl;
@@ -49,7 +49,7 @@ function QuickContextCommitRow({commit}: CommitRowProps) {
       </CommitLinks>
     </StyledPanelItem>
   );
-}
+};
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;

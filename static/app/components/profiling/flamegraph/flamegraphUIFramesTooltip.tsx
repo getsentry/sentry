@@ -27,7 +27,7 @@ export interface FlamegraphUIFramesTooltipProps {
   uiFramesView: CanvasView<UIFrames>;
 }
 
-export function FlamegraphUIFramesTooltip({
+export const FlamegraphUIFramesTooltip = ({
   canvasBounds,
   configSpaceCursor,
   uiFramesCanvas,
@@ -35,7 +35,7 @@ export function FlamegraphUIFramesTooltip({
   uiFramesView,
   uiFramesRenderer,
   hoveredNode,
-}: FlamegraphUIFramesTooltipProps) {
+}: FlamegraphUIFramesTooltipProps) => {
   const uiFramesInConfigSpace = useMemo<
     {rect: Rect; type: UIFrames['frames'][0]['type']}[]
   >(() => {
@@ -78,4 +78,4 @@ export function FlamegraphUIFramesTooltip({
       })}
     </BoundTooltip>
   );
-}
+};

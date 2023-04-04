@@ -50,7 +50,7 @@ function getHistogramRequestPayload(props: RequestProps) {
   return apiPayload;
 }
 
-function SpanHistogramQuery(props: Props) {
+const SpanHistogramQuery = (props: Props) => {
   return (
     <GenericDiscoverQuery<HistogramData, HistogramProps>
       route="events-spans-histogram"
@@ -62,6 +62,6 @@ function SpanHistogramQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default SpanHistogramQuery;

@@ -10,7 +10,7 @@ type Props = {
   toggleFullscreen: () => void;
 };
 
-function ReplayView({toggleFullscreen}: Props) {
+const ReplayView = ({toggleFullscreen}: Props) => {
   return (
     <Fragment>
       <ReplayCurrentUrl />
@@ -20,7 +20,7 @@ function ReplayView({toggleFullscreen}: Props) {
       <ReplayController toggleFullscreen={toggleFullscreen} />
     </Fragment>
   );
-}
+};
 
 const Panel = styled(FluidHeight)`
   background: ${p => p.theme.background};

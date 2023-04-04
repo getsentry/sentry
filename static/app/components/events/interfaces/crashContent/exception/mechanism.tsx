@@ -20,7 +20,7 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
+export const Mechanism = ({data: mechanism, meta: mechanismMeta}: Props) => {
   const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
 
   const {errno, signal, mach_exception} = meta;
@@ -101,7 +101,7 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
       <StyledPills>{pills}</StyledPills>
     </Wrapper>
   );
-}
+};
 
 const Wrapper = styled('div')`
   margin: ${space(2)} 0;

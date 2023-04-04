@@ -48,7 +48,7 @@ export type CreateAlertFromViewButtonProps = ButtonProps & {
  * Provide a button that can create an alert from an event view.
  * Emits incompatible query issues on click
  */
-function CreateAlertFromViewButton({
+const CreateAlertFromViewButton = ({
   projects,
   eventView,
   organization,
@@ -57,7 +57,7 @@ function CreateAlertFromViewButton({
   alertType,
   disableMetricDataset,
   ...buttonProps
-}: CreateAlertFromViewButtonProps) {
+}: CreateAlertFromViewButtonProps) => {
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
   const queryParams = eventView.generateQueryStringObject();
   if (queryParams.query?.includes(`project:${project?.slug}`)) {
@@ -97,7 +97,7 @@ function CreateAlertFromViewButton({
       {...buttonProps}
     />
   );
-}
+};
 
 type CreateAlertButtonProps = {
   organization: Organization;

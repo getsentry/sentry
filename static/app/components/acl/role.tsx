@@ -55,7 +55,7 @@ interface RoleProps {
   role: string;
 }
 
-function Role({role, organization, children}: RoleProps): React.ReactElement | null {
+const Role = ({role, organization, children}: RoleProps): React.ReactElement | null => {
   const user = ConfigStore.get('user');
 
   const hasRole = useMemo(
@@ -69,7 +69,7 @@ function Role({role, organization, children}: RoleProps): React.ReactElement | n
   }
 
   return hasRole ? children : null;
-}
+};
 
 const withOrganizationRole = withOrganization(Role);
 

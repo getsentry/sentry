@@ -24,7 +24,7 @@ type Props = {
   project?: Project;
 };
 
-function ProjectQuickLinks({organization, project, location}: Props) {
+const ProjectQuickLinks = ({organization, project, location}: Props) => {
   function getTrendsLink() {
     const queryString = decodeScalar(location.query.query);
     const conditions = new MutableSearch(queryString || '');
@@ -88,7 +88,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
         ))}
     </SidebarSection>
   );
-}
+};
 
 const QuickLink = styled(p =>
   p.disabled ? (

@@ -15,7 +15,7 @@ type Props = {
  * It will display the installation ID after installation so users can copy it and paste it in Split's website.
  * We also have a link for users to click so they can go to Split's website.
  */
-export function SplitInstallationIdModal(props: Props) {
+export const SplitInstallationIdModal = (props: Props) => {
   const openAdminIntegrationTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export function SplitInstallationIdModal(props: Props) {
       </ButtonHolder>
     </div>
   );
-}
+};
 
 const ItemHolder = styled('div')`
   margin: 10px;

@@ -11,14 +11,14 @@ type Props = React.ComponentPropsWithoutRef<typeof Alert> & {
   organization?: Organization;
 };
 
-function PermissionAlert({
+const PermissionAlert = ({
   access = ['org:write'],
   message = t(
     'These settings can only be edited by users with the organization owner or manager role.'
   ),
   organization,
   ...props
-}: Props) {
+}: Props) => {
   return (
     <Access access={access} organization={organization}>
       {({hasAccess}) =>
@@ -30,6 +30,6 @@ function PermissionAlert({
       }
     </Access>
   );
-}
+};
 
 export default PermissionAlert;

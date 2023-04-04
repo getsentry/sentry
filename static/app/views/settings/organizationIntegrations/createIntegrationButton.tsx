@@ -16,10 +16,10 @@ type CreateIntegrationButtonProps = {
 /**
  * Button to open the modal to create a new public/internal integration (Sentry App)
  */
-function CreateIntegrationButton({
+const CreateIntegrationButton = ({
   organization,
   analyticsView,
-}: CreateIntegrationButtonProps) {
+}: CreateIntegrationButtonProps) => {
   const permissionTooltipText = t(
     'Manager or Owner permissions are required to create a new integration'
   );
@@ -45,6 +45,6 @@ function CreateIntegrationButton({
       )}
     </Access>
   );
-}
+};
 
 export default withOrganization(CreateIntegrationButton);

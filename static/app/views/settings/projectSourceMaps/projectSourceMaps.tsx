@@ -43,7 +43,7 @@ enum SourceMapsBundleType {
   DebugId,
 }
 
-function SourceMapsTableRow({
+const SourceMapsTableRow = ({
   bundleType,
   onDelete,
   name,
@@ -59,7 +59,7 @@ function SourceMapsTableRow({
   name: string;
   onDelete: (name: string) => void;
   idColumnDetails?: React.ReactNode;
-}) {
+}) => {
   const isEmptyReleaseBundle =
     bundleType === SourceMapsBundleType.Release && fileCount === -1;
 
@@ -119,13 +119,13 @@ function SourceMapsTableRow({
       </ActionsColumn>
     </Fragment>
   );
-}
+};
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-export function ProjectSourceMaps({location, router, project}: Props) {
+export const ProjectSourceMaps = ({location, router, project}: Props) => {
   const api = useApi();
   const organization = useOrganization();
 
@@ -357,7 +357,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       />
     </Fragment>
   );
-}
+};
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns:

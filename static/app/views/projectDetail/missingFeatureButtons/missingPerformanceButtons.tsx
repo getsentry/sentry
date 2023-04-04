@@ -15,7 +15,7 @@ type Props = {
   organization: Organization;
 };
 
-function MissingPerformanceButtons({organization}: Props) {
+const MissingPerformanceButtons = ({organization}: Props) => {
   const router = useRouter();
 
   function handleTourAdvance(step: number, duration: number) {
@@ -72,6 +72,6 @@ function MissingPerformanceButtons({organization}: Props) {
       </ButtonBar>
     </Feature>
   );
-}
+};
 
 export default MissingPerformanceButtons;

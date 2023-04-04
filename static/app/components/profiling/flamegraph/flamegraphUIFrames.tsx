@@ -39,7 +39,7 @@ interface FlamegraphUIFramesProps {
   uiFramesView: CanvasView<UIFrames> | null;
 }
 
-export function FlamegraphUIFrames({
+export const FlamegraphUIFrames = ({
   canvasBounds,
   uiFrames,
   canvasPoolManager,
@@ -47,7 +47,7 @@ export function FlamegraphUIFrames({
   uiFramesCanvasRef,
   uiFramesCanvas,
   setUIFramesCanvasRef,
-}: FlamegraphUIFramesProps) {
+}: FlamegraphUIFramesProps) => {
   const profiles = useProfiles();
   const flamegraphTheme = useFlamegraphTheme();
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -285,7 +285,7 @@ export function FlamegraphUIFrames({
       ) : null}
     </Fragment>
   );
-}
+};
 
 const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
   width: 100%;

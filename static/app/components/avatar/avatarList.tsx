@@ -17,7 +17,7 @@ type Props = {
   typeMembers?: string;
 };
 
-function AvatarList({
+const AvatarList = ({
   avatarSize = 28,
   maxVisibleAvatars = 5,
   typeMembers = 'users',
@@ -25,7 +25,7 @@ function AvatarList({
   className,
   users,
   renderTooltip,
-}: Props) {
+}: Props) => {
   const visibleUsers = users.slice(0, maxVisibleAvatars);
   const numCollapsedUsers = users.length - visibleUsers.length;
 
@@ -55,7 +55,7 @@ function AvatarList({
       ))}
     </AvatarListWrapper>
   );
-}
+};
 
 export default AvatarList;
 

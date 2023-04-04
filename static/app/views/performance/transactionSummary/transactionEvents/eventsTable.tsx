@@ -48,7 +48,7 @@ import {
 
 import OperationSort, {TitleProps} from './operationSort';
 
-function OperationTitle({onClick}: TitleProps) {
+const OperationTitle = ({onClick}: TitleProps) => {
   return (
     <div onClick={onClick}>
       <span>{t('operation duration')}</span>
@@ -61,7 +61,7 @@ function OperationTitle({onClick}: TitleProps) {
       />
     </div>
   );
-}
+};
 
 type Props = {
   eventView: EventView;

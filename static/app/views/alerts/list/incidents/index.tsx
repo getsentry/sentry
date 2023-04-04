@@ -286,7 +286,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 }
 
-function IncidentsListContainer(props: Props) {
+const IncidentsListContainer = (props: Props) => {
   useEffect(() => {
     trackAdvancedAnalyticsEvent('alert_stream.viewed', {
       organization: props.organization,
@@ -311,7 +311,7 @@ function IncidentsListContainer(props: Props) {
       <IncidentsList {...props} />
     </Feature>
   );
-}
+};
 
 const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};

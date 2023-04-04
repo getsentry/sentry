@@ -23,7 +23,7 @@ type Props = {
   projectId: string;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
 
-function KeyRow({data, onRemove, onToggle, access, routes, location, params}: Props) {
+const KeyRow = ({data, onRemove, onToggle, access, routes, location, params}: Props) => {
   const handleEnable = () => onToggle(true, data);
   const handleDisable = () => onToggle(false, data);
 
@@ -84,7 +84,7 @@ function KeyRow({data, onRemove, onToggle, access, routes, location, params}: Pr
       </StyledClippedBox>
     </Panel>
   );
-}
+};
 
 export default KeyRow;
 

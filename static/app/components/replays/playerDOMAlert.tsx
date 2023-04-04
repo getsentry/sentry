@@ -8,7 +8,7 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'replay-player-dom-alert-dismissed';
 
-function PlayerDOMAlert() {
+const PlayerDOMAlert = () => {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
 
   if (isDismissed) {
@@ -30,7 +30,7 @@ function PlayerDOMAlert() {
       </DOMAlert>
     </DOMAlertContainer>
   );
-}
+};
 
 export default PlayerDOMAlert;
 

@@ -9,7 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
 
-function ReplaysListContainer() {
+const ReplaysListContainer = () => {
   useReplayPageview('replay.list-time-spent');
   const {slug: orgSlug} = useOrganization();
 
@@ -39,6 +39,6 @@ function ReplaysListContainer() {
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default ReplaysListContainer;

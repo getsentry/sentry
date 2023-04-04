@@ -8,7 +8,7 @@ type Props = {
   organizations: OrganizationSummary[];
 };
 
-function UnlinkedAlert({organizations}: Props) {
+const UnlinkedAlert = ({organizations}: Props) => {
   return (
     <StyledAlert type="warning" showIcon>
       {t(
@@ -21,7 +21,7 @@ function UnlinkedAlert({organizations}: Props) {
       </ul>
     </StyledAlert>
   );
-}
+};
 
 const StyledAlert = styled(Alert)`
   margin: 20px 0px;

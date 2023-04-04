@@ -10,7 +10,7 @@ type Props = {
   details?: AppStoreConnectStatusData;
 };
 
-function Details({details}: Props) {
+const Details = ({details}: Props) => {
   const {latestBuildVersion, latestBuildNumber, lastCheckedBuilds} = details ?? {};
   return (
     <Wrapper>
@@ -36,7 +36,7 @@ function Details({details}: Props) {
       </Value>
     </Wrapper>
   );
-}
+};
 
 export default Details;
 

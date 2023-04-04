@@ -124,7 +124,7 @@ type Props = {
   event: Event;
 };
 
-export function SetupSourceMapsAlert({event}: Props) {
+export const SetupSourceMapsAlert = ({event}: Props) => {
   const organization = useOrganization();
   const router = useRouter();
   const projectId = router.location.query.project;
@@ -180,4 +180,4 @@ export function SetupSourceMapsAlert({event}: Props) {
         : t('Sentry can un-minify your code to show you more readable stack traces')}
     </Alert>
   );
-}
+};

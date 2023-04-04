@@ -105,7 +105,7 @@ interface IncompatibleAlertQueryProps {
 /**
  * Displays messages to the user on what needs to change in their query
  */
-export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
+export const IncompatibleAlertQuery = (props: IncompatibleAlertQueryProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const incompatibleQuery = checkMetricAlertCompatiablity(props.eventView);
   const totalErrors = Object.values(incompatibleQuery).filter(val => val).length;
@@ -163,7 +163,7 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
       </StyledUnorderedList>
     </StyledAlert>
   );
-}
+};
 
 const StyledAlert = styled(Alert)`
   color: ${p => p.theme.textColor};

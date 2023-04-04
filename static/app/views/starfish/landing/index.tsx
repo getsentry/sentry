@@ -38,7 +38,7 @@ type Props = {
   withStaticFilters: boolean;
 };
 
-export function StarfishLanding(props: Props) {
+export const StarfishLanding = (props: Props) => {
   const {organization, location, eventView, projects, onboardingProject} = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -146,7 +146,7 @@ export function StarfishLanding(props: Props) {
       </PageErrorProvider>
     </Layout.Page>
   );
-}
+};
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;

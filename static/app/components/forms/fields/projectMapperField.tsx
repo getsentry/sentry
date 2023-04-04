@@ -304,7 +304,7 @@ export class RenderField extends Component<RenderProps, State> {
   }
 }
 
-function ProjectMapperField(props: InputFieldProps) {
+const ProjectMapperField = (props: InputFieldProps) => {
   return (
     <StyledFormField
       {...props}
@@ -316,7 +316,7 @@ function ProjectMapperField(props: InputFieldProps) {
       {(renderProps: RenderProps) => <RenderField {...renderProps} />}
     </StyledFormField>
   );
-}
+};
 
 export default ProjectMapperField;
 

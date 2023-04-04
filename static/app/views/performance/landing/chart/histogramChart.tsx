@@ -44,7 +44,7 @@ type Props = {
   didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
 };
 
-export function HistogramChart(props: Props) {
+export const HistogramChart = (props: Props) => {
   const {
     location,
     onFilterChange,
@@ -110,7 +110,7 @@ export function HistogramChart(props: Props) {
       </HistogramQuery>
     </div>
   );
-}
+};
 
 type ChartProps = {
   field: string;
@@ -127,7 +127,7 @@ type ChartProps = {
   height?: number;
 };
 
-export function Chart(props: ChartProps) {
+export const Chart = (props: ChartProps) => {
   const {
     isLoading,
     isErrored,
@@ -220,7 +220,7 @@ export function Chart(props: ChartProps) {
       </BarChartZoom>
     </Fragment>
   );
-}
+};
 
 const BarChartContainer = styled('div')<{hasPadding?: boolean}>`
   padding-top: ${p => (p.hasPadding ? space(1) : 0)};

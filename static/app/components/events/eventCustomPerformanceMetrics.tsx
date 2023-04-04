@@ -97,14 +97,14 @@ export function getFieldTypeFromUnit(unit) {
   return 'number';
 }
 
-function EventCustomPerformanceMetric({
+const EventCustomPerformanceMetric = ({
   event,
   name,
   location,
   organization,
   source,
   isHomepage,
-}: EventCustomPerformanceMetricProps) {
+}: EventCustomPerformanceMetricProps) => {
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
     return null;
@@ -189,7 +189,7 @@ function EventCustomPerformanceMetric({
       />
     </StyledPanel>
   );
-}
+};
 
 const Measurements = styled('div')`
   display: grid;

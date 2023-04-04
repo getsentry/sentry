@@ -31,7 +31,7 @@ type Props = {
   projects: Project[];
 } & RouteComponentProps<{}, {}>;
 
-function OrganizationGeneralSettings(props: Props) {
+const OrganizationGeneralSettings = (props: Props) => {
   const api = useApi();
 
   const {organization, projects} = props;
@@ -141,6 +141,6 @@ function OrganizationGeneralSettings(props: Props) {
       </div>
     </Fragment>
   );
-}
+};
 
 export default withProjects(withOrganization(OrganizationGeneralSettings));

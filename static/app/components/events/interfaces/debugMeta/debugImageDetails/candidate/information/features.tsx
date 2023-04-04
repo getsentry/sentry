@@ -14,7 +14,7 @@ type Props = {
   download: CandidateDownload;
 };
 
-function Features({download}: Props) {
+const Features = ({download}: Props) => {
   let features: string[] = [];
 
   if (
@@ -48,7 +48,7 @@ function Features({download}: Props) {
       })}
     </Fragment>
   );
-}
+};
 
 export default Features;
 

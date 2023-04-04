@@ -41,7 +41,7 @@ const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue>({
   disabled: false,
 });
 
-function MultipleCheckbox({children, value, disabled, onChange, name}: Props) {
+const MultipleCheckbox = ({children, value, disabled, onChange, name}: Props) => {
   const handleChange = useCallback(
     (itemValue: CheckboxValue, e: React.ChangeEvent<HTMLInputElement>) => {
       if (typeof onChange !== 'function') {
@@ -72,14 +72,14 @@ function MultipleCheckbox({children, value, disabled, onChange, name}: Props) {
       <MultipleCheckboxWrapper>{children}</MultipleCheckboxWrapper>
     </MultipleCheckboxContext.Provider>
   );
-}
+};
 
-function Item({
+const Item = ({
   value: itemValue,
   children,
   disabled: itemDisabled,
   onChange,
-}: CheckboxItemProps) {
+}: CheckboxItemProps) => {
   const {disabled, value, handleChange, name} = useContext(MultipleCheckboxContext);
 
   return (
@@ -99,7 +99,7 @@ function Item({
       </Label>
     </LabelContainer>
   );
-}
+};
 
 MultipleCheckbox.Item = Item;
 

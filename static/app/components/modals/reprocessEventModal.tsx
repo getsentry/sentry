@@ -18,13 +18,13 @@ export type ReprocessEventModalOptions = {
   organization: Organization;
 };
 
-export function ReprocessingEventModal({
+export const ReprocessingEventModal = ({
   Header,
   Body,
   organization,
   closeModal,
   groupId,
-}: ModalRenderProps & ReprocessEventModalOptions) {
+}: ModalRenderProps & ReprocessEventModalOptions) => {
   const [maxEvents, setMaxEvents] = useState<number | undefined>(undefined);
 
   function handleSuccess() {
@@ -110,7 +110,7 @@ export function ReprocessingEventModal({
       </Body>
     </Fragment>
   );
-}
+};
 
 const Introduction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};

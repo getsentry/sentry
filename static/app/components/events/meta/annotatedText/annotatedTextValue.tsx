@@ -14,7 +14,7 @@ type Props = {
   project?: Project;
 };
 
-export function AnnotatedTextValue({value, meta, organization, project}: Props) {
+export const AnnotatedTextValue = ({value, meta, organization, project}: Props) => {
   if (meta?.chunks?.length && meta.chunks.length > 1) {
     return (
       <ChunksSpan>
@@ -54,7 +54,7 @@ export function AnnotatedTextValue({value, meta, organization, project}: Props) 
   }
 
   return <ValueElement value={value} meta={meta} />;
-}
+};
 
 const ChunksSpan = styled('span')`
   word-break: break-word;

@@ -27,12 +27,12 @@ const ALIASED_RELEASES = [
   },
 ];
 
-function ReleasesSelectControl({
+const ReleasesSelectControl = ({
   handleChangeFilter,
   selectedReleases,
   className,
   isDisabled,
-}: Props) {
+}: Props) => {
   const {releases, loading, onSearch} = useReleases();
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
 
@@ -104,7 +104,7 @@ function ReleasesSelectControl({
       triggerProps={{icon: <IconReleases />}}
     />
   );
-}
+};
 
 export default ReleasesSelectControl;
 

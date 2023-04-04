@@ -37,7 +37,7 @@ type Props = RouteComponentProps<
   organization: Organization;
 };
 
-function ViewEditDashboard(props: Props) {
+const ViewEditDashboard = (props: Props) => {
   const api = useApi();
 
   const {organization, params, location} = props;
@@ -95,7 +95,7 @@ function ViewEditDashboard(props: Props) {
       </OrgDashboards>
     </DashboardBasicFeature>
   );
-}
+};
 
 export default withOrganization(ViewEditDashboard);
 

@@ -23,7 +23,7 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
 
-export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
+export const SpanEvidenceSection = ({event, organization, projectSlug}: Props) => {
   if (!event) {
     return null;
   }
@@ -92,7 +92,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
       )}
     </EventDataSection>
   );
-}
+};
 
 const TraceViewWrapper = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};

@@ -30,7 +30,7 @@ type Props = {
   hasUnsavedFilters?: boolean;
 };
 
-function Controls({
+const Controls = ({
   organization,
   dashboardState,
   dashboards,
@@ -41,7 +41,7 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
-}: Props) {
+}: Props) => {
   function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
@@ -175,7 +175,7 @@ function Controls({
       </DashboardEditFeature>
     </StyledButtonBar>
   );
-}
+};
 
 const DashboardEditFeature = ({
   children,

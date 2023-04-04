@@ -63,7 +63,11 @@ interface StacktraceLinkSetupProps {
   project?: Project;
 }
 
-function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetupProps) {
+const StacktraceLinkSetup = ({
+  organization,
+  project,
+  event,
+}: StacktraceLinkSetupProps) => {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -110,7 +114,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       </CloseButton>
     </StacktraceLinkWrapper>
   );
-}
+};
 
 function shouldShowCodecovFeatures(
   organization: Organization,
@@ -141,12 +145,12 @@ interface CodecovLinkProps {
   status?: CodecovStatusCode;
 }
 
-function CodecovLink({
+const CodecovLink = ({
   coverageUrl,
   status = CodecovStatusCode.COVERAGE_EXISTS,
   organization,
   event,
-}: CodecovLinkProps) {
+}: CodecovLinkProps) => {
   if (status === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
@@ -175,7 +179,7 @@ function CodecovLink({
       {t('Open in Codecov')}
     </OpenInLink>
   );
-}
+};
 
 interface StacktraceLinkProps {
   event: Event;
@@ -186,7 +190,7 @@ interface StacktraceLinkProps {
   line: string;
 }
 
-export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
+export const StacktraceLink = ({frame, event, line}: StacktraceLinkProps) => {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = useMemo(
@@ -359,7 +363,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   return (
     <StacktraceLinkSetup event={event} project={project} organization={organization} />
   );
-}
+};
 
 const StacktraceLinkWrapper = styled('div')`
   display: flex;

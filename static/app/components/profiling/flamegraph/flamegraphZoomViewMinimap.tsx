@@ -40,7 +40,7 @@ interface FlamegraphZoomViewMinimapProps {
   >;
 }
 
-function FlamegraphZoomViewMinimap({
+const FlamegraphZoomViewMinimap = ({
   canvasPoolManager,
   flamegraph,
   flamegraphMiniMapCanvas,
@@ -49,7 +49,7 @@ function FlamegraphZoomViewMinimap({
   flamegraphMiniMapView,
   setFlamegraphMiniMapCanvasRef,
   setFlamegraphMiniMapOverlayCanvasRef,
-}: FlamegraphZoomViewMinimapProps): React.ReactElement {
+}: FlamegraphZoomViewMinimapProps): React.ReactElement => {
   const flamegraphTheme = useFlamegraphTheme();
   const {colorCoding} = useFlamegraphPreferences();
   const [lastInteraction, setLastInteraction] = useState<
@@ -402,7 +402,7 @@ function FlamegraphZoomViewMinimap({
       <OverlayCanvas ref={setFlamegraphMiniMapOverlayCanvasRef} />
     </Fragment>
   );
-}
+};
 
 const Canvas = styled('canvas')<{cursor?: React.CSSProperties['cursor']}>`
   width: 100%;

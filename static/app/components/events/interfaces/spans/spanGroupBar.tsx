@@ -159,7 +159,7 @@ function renderMeasurements(
   );
 }
 
-export function SpanGroupBar(props: Props) {
+export const SpanGroupBar = (props: Props) => {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
   const spanContentRef: MutableRefObject<HTMLDivElement | null> = useRef(null);
 
@@ -331,4 +331,4 @@ export function SpanGroupBar(props: Props) {
       }}
     </DividerHandlerManager.Consumer>
   );
-}
+};

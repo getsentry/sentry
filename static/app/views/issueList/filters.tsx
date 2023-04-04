@@ -13,7 +13,7 @@ interface Props {
   query: string;
 }
 
-function IssueListFilters({query, onSearch}: Props) {
+const IssueListFilters = ({query, onSearch}: Props) => {
   return (
     <SearchContainer>
       <StyledPageFilterBar>
@@ -26,7 +26,7 @@ function IssueListFilters({query, onSearch}: Props) {
       <IssueSearchWithSavedSearches {...{query, onSearch}} />
     </SearchContainer>
   );
-}
+};
 
 const SearchContainer = styled('div')`
   display: flex;

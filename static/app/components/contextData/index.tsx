@@ -173,7 +173,7 @@ function walk({
   );
 }
 
-function ContextData({
+const ContextData = ({
   children,
   meta,
   jsonConsts,
@@ -182,7 +182,7 @@ function ContextData({
   preserveQuotes = false,
   withAnnotatedText = false,
   ...props
-}: Props) {
+}: Props) => {
   return (
     <pre {...props}>
       {walk({
@@ -197,7 +197,7 @@ function ContextData({
       {children}
     </pre>
   );
-}
+};
 
 export default ContextData;
 

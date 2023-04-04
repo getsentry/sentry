@@ -47,7 +47,7 @@ function renderParams(params: Props['data']['params'], meta: any) {
   return <KeyValueList data={objectData} shouldSort={false} isContextData />;
 }
 
-export function Message({data, event}: Props) {
+export const Message = ({data, event}: Props) => {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.MESSAGE);
   const meta = event?._meta?.entries?.[entryIndex] ?? {};
 
@@ -61,4 +61,4 @@ export function Message({data, event}: Props) {
       {renderParams(data.params, meta)}
     </EventDataSection>
   );
-}
+};

@@ -38,7 +38,7 @@ type Props = {
   router: InjectedRouter;
 };
 
-function CustomRepositories({
+const CustomRepositories = ({
   api,
   organization,
   customRepositories: repositories,
@@ -46,7 +46,7 @@ function CustomRepositories({
   router,
   location,
   isLoading,
-}: Props) {
+}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
   useEffect(() => {
@@ -281,7 +281,7 @@ function CustomRepositories({
       )}
     </Feature>
   );
-}
+};
 
 export default CustomRepositories;
 

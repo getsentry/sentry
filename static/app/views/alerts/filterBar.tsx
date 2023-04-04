@@ -19,13 +19,13 @@ interface Props {
   onChangeStatus?: (status: string) => void;
 }
 
-function FilterBar({
+const FilterBar = ({
   location,
   onChangeSearch,
   onChangeFilter,
   onChangeStatus,
   hasStatusFilters,
-}: Props) {
+}: Props) => {
   const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
 
@@ -65,7 +65,7 @@ function FilterBar({
       />
     </Wrapper>
   );
-}
+};
 
 export default FilterBar;
 

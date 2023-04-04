@@ -13,7 +13,7 @@ type Props = {
   hasReprocessWarning: boolean;
 };
 
-function StatusTooltip({candidate, hasReprocessWarning}: Props) {
+const StatusTooltip = ({candidate, hasReprocessWarning}: Props) => {
   const {download} = candidate;
   const {label, description, disabled} = getStatusTooltipDescription(
     candidate,
@@ -35,7 +35,7 @@ function StatusTooltip({candidate, hasReprocessWarning}: Props) {
       <Status data-test-id="status" status={download.status} />
     </Tooltip>
   );
-}
+};
 
 export default StatusTooltip;
 

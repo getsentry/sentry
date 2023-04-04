@@ -24,7 +24,7 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-function LastCommit({commit, className}: Props) {
+const LastCommit = ({commit, className}: Props) => {
   function renderMessage(message: Commit['message']) {
     if (!message) {
       return t('No message provided');
@@ -61,7 +61,7 @@ function LastCommit({commit, className}: Props) {
       </InnerWrap>
     </div>
   );
-}
+};
 
 export default LastCommit;
 

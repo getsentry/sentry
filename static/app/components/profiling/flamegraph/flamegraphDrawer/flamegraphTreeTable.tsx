@@ -92,7 +92,7 @@ interface FlamegraphTreeTableProps {
   expanded?: boolean;
 }
 
-export function FlamegraphTreeTable({
+export const FlamegraphTreeTable = ({
   tree,
   expanded,
   referenceNode,
@@ -102,7 +102,7 @@ export function FlamegraphTreeTable({
   formatDuration,
   recursion,
   flamegraph,
-}: FlamegraphTreeTableProps) {
+}: FlamegraphTreeTableProps) => {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -345,7 +345,7 @@ export function FlamegraphTreeTable({
       </FrameCallersTable>
     </FrameBar>
   );
-}
+};
 
 const TableItemsContainer = styled('div')`
   position: relative;

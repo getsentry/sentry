@@ -16,13 +16,13 @@ type Props = {
 /**
  * <Confirm> is a more generic version of this component
  */
-function LinkWithConfirmation({
+const LinkWithConfirmation = ({
   className,
   disabled,
   title,
   children,
   ...otherProps
-}: Props) {
+}: Props) => {
   return (
     <Confirm {...otherProps} disabled={disabled}>
       <Anchor href="#" className={className} disabled={disabled} title={title}>
@@ -30,6 +30,6 @@ function LinkWithConfirmation({
       </Anchor>
     </Confirm>
   );
-}
+};
 
 export default LinkWithConfirmation;

@@ -66,7 +66,7 @@ interface ActivityItemProps {
   showTime?: boolean;
 }
 
-function ActivityItem({
+const ActivityItem = ({
   author,
   avatarSize,
   bubbleProps,
@@ -79,7 +79,7 @@ function ActivityItem({
   header,
   hideDate = false,
   showTime = false,
-}: ActivityItemProps) {
+}: ActivityItemProps) => {
   const showDate = !hideDate && date && !interval;
   const showRange = !hideDate && date && interval;
   const dateEnded = showRange
@@ -127,7 +127,7 @@ function ActivityItem({
       </StyledActivityBubble>
     </ActivityItemWrapper>
   );
-}
+};
 
 const ActivityItemWrapper = styled('div')`
   display: flex;

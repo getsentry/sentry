@@ -67,9 +67,9 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
   };
 }
 
-export function FlamegraphStateProvider(
+export const FlamegraphStateProvider = (
   props: FlamegraphStateProviderProps
-): React.ReactElement {
+): React.ReactElement => {
   const [state, dispatch, {nextState, previousState}] = useUndoableReducer(
     flamegraphStateReducer,
     getDefaultState(props.initialState)
@@ -86,4 +86,4 @@ export function FlamegraphStateProvider(
       </FlamegraphStateDispatchContext.Provider>
     </FlamegraphStateValueContext.Provider>
   );
-}
+};

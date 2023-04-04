@@ -9,10 +9,10 @@ describe('useRouter', () => {
   it('returns the current router object', function () {
     let expectedRouter;
     let actualRouter;
-    function HomePage() {
+    const HomePage = () => {
       actualRouter = useRouter();
       return null;
-    }
+    };
 
     const memoryHistory = createMemoryHistory();
     memoryHistory.push('/');

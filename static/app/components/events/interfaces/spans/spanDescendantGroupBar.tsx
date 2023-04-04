@@ -50,7 +50,7 @@ export type SpanDescendantGroupBarProps = {
   spanBarType?: SpanBarType;
 };
 
-export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
+export const SpanDescendantGroupBar = (props: SpanDescendantGroupBarProps) => {
   const {
     continuingTreeDepths,
     event,
@@ -186,4 +186,4 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
       spanBarType={spanBarType}
     />
   );
-}
+};

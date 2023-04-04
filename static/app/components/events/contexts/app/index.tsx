@@ -25,7 +25,7 @@ export const appKnownDataValues = [
 
 const appIgnoredDataValues = [];
 
-export function AppEventContext({data, event}: Props) {
+export const AppEventContext = ({data, event}: Props) => {
   const meta = event._meta?.contexts?.app ?? {};
   return (
     <Fragment>
@@ -46,4 +46,4 @@ export function AppEventContext({data, event}: Props) {
       />
     </Fragment>
   );
-}
+};

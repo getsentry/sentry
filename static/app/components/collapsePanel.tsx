@@ -63,13 +63,13 @@ type ShowMoreButtonProps = {
   disableBorder?: boolean;
 };
 
-function ShowMoreButton({
+const ShowMoreButton = ({
   items,
   buttonTitle = 'More',
   collapseCount = COLLAPSE_COUNT,
   disableBorder = true,
   onClick,
-}: ShowMoreButtonProps) {
+}: ShowMoreButtonProps) => {
   return (
     <ShowMore
       onClick={onClick}
@@ -85,7 +85,7 @@ function ShowMoreButton({
       <IconChevron color="gray300" direction="down" />
     </ShowMore>
   );
-}
+};
 
 export default CollapsePanel;
 

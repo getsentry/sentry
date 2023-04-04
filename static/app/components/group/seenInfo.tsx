@@ -26,7 +26,7 @@ type Props = {
   release?: Release;
 };
 
-function SeenInfo({
+const SeenInfo = ({
   date,
   dateGlobal,
   environment,
@@ -34,7 +34,7 @@ function SeenInfo({
   organization,
   projectSlug,
   projectId,
-}: Props) {
+}: Props) => {
   return (
     <HovercardWrapper>
       <StyledHovercard
@@ -99,7 +99,7 @@ function SeenInfo({
       </DateWrapper>
     </HovercardWrapper>
   );
-}
+};
 
 const dateTimeCss = p => css`
   color: ${p.theme.gray300};

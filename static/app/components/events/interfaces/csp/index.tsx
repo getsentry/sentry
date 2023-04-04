@@ -40,7 +40,7 @@ type Props = {
   event: Event;
 };
 
-export function Csp({data, event}: Props) {
+export const Csp = ({data, event}: Props) => {
   const [view, setView] = useState<View>('report');
 
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.CSP);
@@ -68,4 +68,4 @@ export function Csp({data, event}: Props) {
       {getView(view, cleanData, meta)}
     </EventDataSection>
   );
-}
+};

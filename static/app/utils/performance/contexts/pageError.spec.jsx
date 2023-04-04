@@ -6,7 +6,7 @@ import {
   usePageError,
 } from 'sentry/utils/performance/contexts/pageError';
 
-function SimpleErrorButton() {
+const SimpleErrorButton = () => {
   const context = usePageError();
   return (
     <button
@@ -14,7 +14,7 @@ function SimpleErrorButton() {
       onClick={() => context.setPageError('Fresh new error')}
     />
   );
-}
+};
 
 describe('Performance > Contexts > pageError', function () {
   it('Check that pageError context will render error alert', async function () {

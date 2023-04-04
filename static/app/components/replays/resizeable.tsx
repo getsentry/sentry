@@ -14,7 +14,7 @@ type Props = {
  * WARNING: be careful not to update the dimensions of child elements based on
  * this parent size as that could cause infinite render loops
  */
-export function Resizeable({children, className}: Props) {
+export const Resizeable = ({children, className}: Props) => {
   const el = useRef<HTMLDivElement>(null);
 
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
@@ -33,4 +33,4 @@ export function Resizeable({children, className}: Props) {
       {children(dimensions)}
     </div>
   );
-}
+};

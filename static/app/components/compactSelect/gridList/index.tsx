@@ -53,14 +53,14 @@ interface GridListProps
  * inside. Grid lists allow users to focus on those child elements (using the Arrow
  * Left/Right keys) and interact with them, which isn't possible with list boxes.
  */
-function GridList({
+const GridList = ({
   listState,
   size = 'md',
   label,
   sizeLimitMessage,
   keyDownHandler,
   ...props
-}: GridListProps) {
+}: GridListProps) => {
   const ref = useRef<HTMLUListElement>(null);
   const labelId = domId('grid-label-');
   const {gridProps} = useGridList(
@@ -130,6 +130,6 @@ function GridList({
       </ListWrap>
     </Fragment>
   );
-}
+};
 
 export {GridList};

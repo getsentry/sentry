@@ -60,7 +60,7 @@ const _debounceTrackHover = debounce(
   300
 );
 
-function TagFacetsDistributionMeter({
+const TagFacetsDistributionMeter = ({
   colors = COLORS,
   segments,
   title,
@@ -69,7 +69,7 @@ function TagFacetsDistributionMeter({
   project,
   expandByDefault,
   otherUrl,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const organization = useOrganization();
   const [expanded, setExpanded] = useState<boolean>(!!expandByDefault);
@@ -262,7 +262,7 @@ function TagFacetsDistributionMeter({
       </details>
     </TagSummary>
   );
-}
+};
 
 export default TagFacetsDistributionMeter;
 

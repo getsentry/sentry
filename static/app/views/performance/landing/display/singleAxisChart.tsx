@@ -21,7 +21,7 @@ type DisplayProps = {
   didReceiveMultiAxis?: (useBackup: boolean) => void;
 };
 
-export function SingleAxisChart(props: DisplayProps) {
+export const SingleAxisChart = (props: DisplayProps) => {
   const {
     axis,
     onFilterChange,
@@ -74,4 +74,4 @@ export function SingleAxisChart(props: DisplayProps) {
       backupField={backupField}
     />
   );
-}
+};

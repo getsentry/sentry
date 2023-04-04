@@ -7,9 +7,9 @@ describe('withConfig HoC', function () {
     jest.clearAllMocks();
   });
 
-  function MyComponent(props) {
+  const MyComponent = props => {
     return <span>{props.experimentAssignment}</span>;
-  }
+  };
 
   it('injects experiment assignment', function () {
     const Container = withExperiment(MyComponent, {experiment: 'orgExperiment'});

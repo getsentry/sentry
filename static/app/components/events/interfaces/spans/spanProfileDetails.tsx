@@ -34,7 +34,7 @@ interface SpanProfileDetailsProps {
   span: Readonly<SpanType>;
 }
 
-export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
+export const SpanProfileDetails = ({event, span}: SpanProfileDetailsProps) => {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
@@ -206,7 +206,7 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
       />
     </Fragment>
   );
-}
+};
 
 function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeNode[] {
   let duration = profile.startedAt;

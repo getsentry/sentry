@@ -25,7 +25,7 @@ type Props = {
   showHoverCard?: boolean;
 };
 
-function IssueSyncListElement({
+const IssueSyncListElement = ({
   children,
   disabled,
   externalIssueDisplayName,
@@ -38,7 +38,7 @@ function IssueSyncListElement({
   onClose,
   onOpen,
   showHoverCard,
-}: Props) {
+}: Props) => {
   const isLinked = !!(externalIssueLink && externalIssueId);
 
   const handleIconClick = () => {
@@ -116,7 +116,7 @@ function IssueSyncListElement({
       )}
     </IssueSyncListElementContainer>
   );
-}
+};
 
 export const IssueSyncListElementContainer = styled('div')`
   line-height: 0;

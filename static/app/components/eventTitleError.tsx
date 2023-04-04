@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-function EventTitleError() {
+const EventTitleError = () => {
   return (
     <Wrapper>
       <Title>{t('<unknown>')}</Title>
       <ErrorMessage>{t('There was an error rendering the title')}</ErrorMessage>
     </Wrapper>
   );
-}
+};
 
 export default EventTitleError;
 

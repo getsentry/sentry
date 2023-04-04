@@ -37,7 +37,7 @@ type Props = RouteComponentProps<{}, {}> & {
   routes: PlainRoute[];
 };
 
-function OrganizationApiKeysList({
+const OrganizationApiKeysList = ({
   organization,
   params,
   routes,
@@ -46,7 +46,7 @@ function OrganizationApiKeysList({
   loading,
   onAddApiKey,
   onRemove,
-}: Props) {
+}: Props) => {
   const hasKeys = keys && keys.length;
 
   const action = (
@@ -126,7 +126,7 @@ function OrganizationApiKeysList({
       </PanelTable>
     </div>
   );
-}
+};
 
 const Cell = styled('div')`
   display: flex;

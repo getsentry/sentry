@@ -11,7 +11,7 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-function Summary({kvData, children, meta}: Props) {
+const Summary = ({kvData, children, meta}: Props) => {
   if (meta?.data?.[''] && !defined(kvData)) {
     return (
       <Wrapper>
@@ -43,7 +43,7 @@ function Summary({kvData, children, meta}: Props) {
       </ContextDataWrapper>
     </Wrapper>
   );
-}
+};
 
 export default Summary;
 

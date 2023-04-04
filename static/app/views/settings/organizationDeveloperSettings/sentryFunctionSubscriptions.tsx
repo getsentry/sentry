@@ -10,7 +10,7 @@ type Props = {
   setEvents: (events: string[]) => void;
 };
 
-function SentryFunctionSubscriptions(props: Props) {
+const SentryFunctionSubscriptions = (props: Props) => {
   const {events, setEvents} = props;
 
   function onChange(resource: Resource, checked: boolean) {
@@ -36,7 +36,7 @@ function SentryFunctionSubscriptions(props: Props) {
       ))}
     </SentryFunctionsSubscriptionGrid>
   );
-}
+};
 
 export default SentryFunctionSubscriptions;
 const SentryFunctionsSubscriptionGrid = styled('div')`

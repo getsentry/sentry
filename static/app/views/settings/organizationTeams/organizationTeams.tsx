@@ -30,13 +30,13 @@ type Props = {
   requestList: AccessRequest[];
 } & RouteComponentProps<{}, {}>;
 
-function OrganizationTeams({
+const OrganizationTeams = ({
   organization,
   access,
   features,
   requestList,
   onRemoveAccessRequest,
-}: Props) {
+}: Props) => {
   const [teamQuery, setTeamQuery] = useState('');
   const {initiallyLoaded} = useTeams({provideUserTeams: true});
   const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
@@ -138,7 +138,7 @@ function OrganizationTeams({
       )}
     </div>
   );
-}
+};
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};

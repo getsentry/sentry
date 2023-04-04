@@ -17,7 +17,7 @@ type Props = {
   className?: string;
 };
 
-export function EventUserFeedback({className, report, orgId, issueId}: Props) {
+export const EventUserFeedback = ({className, report, orgId, issueId}: Props) => {
   const user = report.user || {
     name: report.name,
     email: report.email,
@@ -58,7 +58,7 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
       </StyledActivityItem>
     </div>
   );
-}
+};
 
 const StyledActivityItem = styled(ActivityItem)`
   margin-bottom: 0;

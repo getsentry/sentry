@@ -9,7 +9,7 @@ type Props = {
   title?: ReactChild;
 };
 
-function FluidPanel({className, children, bottom, title, bodyRef}: Props) {
+const FluidPanel = ({className, children, bottom, title, bodyRef}: Props) => {
   return (
     <FluidContainer className={className}>
       {title}
@@ -17,7 +17,7 @@ function FluidPanel({className, children, bottom, title, bodyRef}: Props) {
       {bottom}
     </FluidContainer>
   );
-}
+};
 
 const FluidContainer = styled('section')`
   display: grid;

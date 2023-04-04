@@ -12,7 +12,7 @@ type Props = {
   event: Event;
 };
 
-export function UnityEventContext({data, event}: Props) {
+export const UnityEventContext = ({data, event}: Props) => {
   if (!data) {
     return null;
   }
@@ -38,4 +38,4 @@ export function UnityEventContext({data, event}: Props) {
       />
     </Fragment>
   );
-}
+};

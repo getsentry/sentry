@@ -13,7 +13,7 @@ type Props = {
   title: string;
 };
 
-function TemplateCard({title, description, onPreview, onAdd}: Props) {
+const TemplateCard = ({title, description, onPreview, onAdd}: Props) => {
   return (
     <StyledCard>
       <Header>
@@ -33,7 +33,7 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
       </ButtonContainer>
     </StyledCard>
   );
-}
+};
 
 const StyledCard = styled(Card)`
   gap: ${space(1)};

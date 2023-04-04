@@ -54,13 +54,13 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   traceInfo?: TraceInfo;
 };
 
-function TraceHiddenMessage({
+const TraceHiddenMessage = ({
   isVisible,
   numberOfHiddenTransactionsAbove,
 }: {
   isVisible: boolean;
   numberOfHiddenTransactionsAbove: number;
-}) {
+}) => {
   if (!isVisible || numberOfHiddenTransactionsAbove < 1) {
     return null;
   }
@@ -78,7 +78,7 @@ function TraceHiddenMessage({
       </span>
     </MessageRow>
   );
-}
+};
 
 function isTransactionVisible(
   transaction: TraceFullDetailed,

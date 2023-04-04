@@ -17,7 +17,7 @@ export type ScoreCardProps = {
   trendStatus?: 'good' | 'bad';
 };
 
-function ScoreCard({
+const ScoreCard = ({
   title,
   score,
   help,
@@ -25,7 +25,7 @@ function ScoreCard({
   trendStatus,
   className,
   renderOpenButton,
-}: ScoreCardProps) {
+}: ScoreCardProps) => {
   return (
     <ScorePanel className={className}>
       <HeaderWrapper>
@@ -46,7 +46,7 @@ function ScoreCard({
       </ScoreWrapper>
     </ScorePanel>
   );
-}
+};
 
 function getTrendColor(p: TrendProps & {theme: Theme}) {
   switch (p.trendStatus) {

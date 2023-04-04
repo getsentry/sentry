@@ -8,14 +8,14 @@ type TextOverflowProps<T extends ElementType> = ComponentProps<T> & {
   as?: T;
 };
 
-function TextOverflow<T extends ElementType>(props: TextOverflowProps<T>) {
+const TextOverflow = <T extends ElementType>(props: TextOverflowProps<T>) => {
   const {children, as: Element = 'div', ...rest} = props;
   return (
     <Element {...rest} title={children}>
       {children}
     </Element>
   );
-}
+};
 
 // TextTruncateOverflow is strictly a css based text truncate component
 export const TextTruncateOverflow = styled(TextOverflow)`

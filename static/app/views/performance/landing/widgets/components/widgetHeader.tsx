@@ -12,9 +12,9 @@ import {
   WidgetDataProps,
 } from '../types';
 
-export function WidgetHeader<T extends WidgetDataConstraint>(
+export const WidgetHeader = <T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>
-) {
+) => {
   const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle} = props;
   return (
     <WidgetHeaderContainer>
@@ -37,7 +37,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
       </HeaderActionsContainer>
     </WidgetHeaderContainer>
   );
-}
+};
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   position: relative;

@@ -53,9 +53,9 @@ const UNSUPPORTED_TRANSACTION_NAME_DOCS = [
   'native.minidumps',
 ];
 
-export function MetricsDataSwitcherAlert(
+export const MetricsDataSwitcherAlert = (
   props: MetricEnhancedDataAlertProps
-): React.ReactElement | null {
+): React.ReactElement | null => {
   const isOnFallbackThresolds = props.organization.features.includes(
     'performance-mep-bannerless-ui'
   );
@@ -196,4 +196,4 @@ export function MetricsDataSwitcherAlert(
   }
 
   return null;
-}
+};

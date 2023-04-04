@@ -53,7 +53,7 @@ type Props = {
   windowWidth?: number;
 };
 
-export function WidgetCardChartContainer({
+export const WidgetCardChartContainer = ({
   api,
   organization,
   selection,
@@ -71,7 +71,7 @@ export function WidgetCardChartContainer({
   showSlider,
   noPadding,
   chartZoomOptions,
-}: Props) {
+}: Props) => {
   const location = useLocation();
   const router = useRouter();
   if (widget.widgetType === WidgetType.ISSUE) {
@@ -198,7 +198,7 @@ export function WidgetCardChartContainer({
       }}
     </WidgetQueries>
   );
-}
+};
 
 export default WidgetCardChartContainer;
 

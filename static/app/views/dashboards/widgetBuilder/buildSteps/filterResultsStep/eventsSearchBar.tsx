@@ -19,12 +19,12 @@ interface Props {
   widgetQuery: WidgetQuery;
 }
 
-export function EventsSearchBar({
+export const EventsSearchBar = ({
   organization,
   pageFilters,
   onClose,
   widgetQuery,
-}: Props) {
+}: Props) => {
   const {customMeasurements} = useCustomMeasurements();
   const projectIds = pageFilters.projects;
   const eventView = eventViewFromWidget('', widgetQuery, pageFilters);
@@ -48,7 +48,7 @@ export function EventsSearchBar({
       customMeasurements={customMeasurements}
     />
   );
-}
+};
 
 const Search = styled(SearchBar)`
   flex-grow: 1;

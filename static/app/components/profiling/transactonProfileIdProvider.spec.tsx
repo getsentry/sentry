@@ -18,10 +18,10 @@ const {TransactionProfileIdProvider, useTransactionProfileId} =
 
 const useProfileEventsSpy = jest.spyOn(useProfileEventsModule, 'useProfileEvents');
 
-function MockComponent() {
+const MockComponent = () => {
   const profileId = useTransactionProfileId();
   return <div data-test-id={profileId} />;
-}
+};
 
 const MOCK_TRX_ID = '123';
 const MOCK_PROFILE_ID = '456';

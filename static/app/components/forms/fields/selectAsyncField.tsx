@@ -21,7 +21,7 @@ export interface SelectAsyncFieldProps
   onChangeOption?: (option: GeneralSelectValue, event: any) => void;
 }
 
-function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
+const SelectAsyncField = ({onChangeOption, ...props}: SelectAsyncFieldProps) => {
   const [results, setResults] = useState<Result[]>([]);
   const [latestSelection, setLatestSelection] = useState<
     GeneralSelectValue | undefined
@@ -91,6 +91,6 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
       }}
     </FormField>
   );
-}
+};
 
 export default SelectAsyncField;

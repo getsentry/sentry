@@ -33,7 +33,7 @@ type HookState<H extends HookName> = {
  *     ))}
  *   </Hook>
  */
-function Hook<H extends HookName>({name, ...props}: Props<H>) {
+const Hook = <H extends HookName>({name, ...props}: Props<H>) => {
   class HookComponent extends Component<{}, HookState<H>> {
     static displayName = `Hook(${name})`;
 
@@ -75,6 +75,6 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
   }
 
   return <HookComponent />;
-}
+};
 
 export default Hook;

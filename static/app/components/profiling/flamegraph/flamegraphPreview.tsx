@@ -27,13 +27,13 @@ interface FlamegraphPreviewProps {
   updateFlamegraphView?: (canvasView: CanvasView<FlamegraphModel> | null) => void;
 }
 
-export function FlamegraphPreview({
+export const FlamegraphPreview = ({
   flamegraph,
   relativeStartTimestamp,
   relativeStopTimestamp,
   renderText = true,
   updateFlamegraphView,
-}: FlamegraphPreviewProps) {
+}: FlamegraphPreviewProps) => {
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -217,7 +217,7 @@ export function FlamegraphPreview({
       ) : null}
     </CanvasContainer>
   );
-}
+};
 
 /**
  * When generating a preview, a relative start/stop timestamp is used to specify

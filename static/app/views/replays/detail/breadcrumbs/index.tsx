@@ -30,7 +30,7 @@ const cellMeasurer = {
   minHeight: 53,
 };
 
-function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
+const Breadcrumbs = ({breadcrumbs, startTimestampMs}: Props) => {
   const {currentTime, currentHoverTime} = useReplayContext();
   const expandPaths = useRef(new Map<number, Set<string>>());
   const items = useMemo(
@@ -164,7 +164,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
       </BreadcrumbContainer>
     </FluidHeight>
   );
-}
+};
 
 const BreadcrumbContainer = styled('div')`
   position: relative;

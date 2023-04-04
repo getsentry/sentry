@@ -35,7 +35,7 @@ type ItemState = {
   similar: SimilarItem[];
 };
 
-function SimilarStackTrace({params, location, project}: Props) {
+const SimilarStackTrace = ({params, location, project}: Props) => {
   const {orgId, groupId} = params;
 
   const [isUsingSimilarityViewV2, setIsUsingSimilarityViewV2] = useState<boolean>(false);
@@ -193,7 +193,7 @@ function SimilarStackTrace({params, location, project}: Props) {
       </Layout.Main>
     </Layout.Body>
   );
-}
+};
 
 export default SimilarStackTrace;
 

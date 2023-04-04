@@ -17,7 +17,7 @@ interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   width?: string;
 }
 
-function SearchBar({
+const SearchBar = ({
   query: queryProp,
   defaultQuery = '',
   onChange,
@@ -27,7 +27,7 @@ function SearchBar({
   className,
   trailing,
   ...inputProps
-}: SearchBarProps) {
+}: SearchBarProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState(queryProp ?? defaultQuery);
@@ -96,7 +96,7 @@ function SearchBar({
       </InputGroup>
     </FormWrap>
   );
-}
+};
 
 const FormWrap = styled('form')`
   display: block;

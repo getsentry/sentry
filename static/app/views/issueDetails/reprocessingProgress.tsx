@@ -10,7 +10,7 @@ type Props = {
   totalEvents: number;
 };
 
-function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
+const ReprocessingProgress = ({totalEvents, pendingEvents}: Props) => {
   const remainingEventsToReprocess = totalEvents - pendingEvents;
   const remainingEventsToReprocessPercent = percent(
     remainingEventsToReprocess,
@@ -37,7 +37,7 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
       </Inner>
     </Wrapper>
   );
-}
+};
 export default ReprocessingProgress;
 
 const Wrapper = styled('div')`

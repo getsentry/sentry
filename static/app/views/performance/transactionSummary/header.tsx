@@ -42,7 +42,7 @@ type Props = {
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
-function TransactionHeader({
+const TransactionHeader = ({
   eventView,
   organization,
   projects,
@@ -53,7 +53,7 @@ function TransactionHeader({
   onChangeThreshold,
   currentTab,
   hasWebVitals,
-}: Props) {
+}: Props) => {
   function handleCreateAlertSuccess() {
     trackAdvancedAnalyticsEvent('performance_views.summary.create_alert_clicked', {
       organization,
@@ -235,6 +235,6 @@ function TransactionHeader({
       </HasMeasurementsQuery>
     </Layout.Header>
   );
-}
+};
 
 export default TransactionHeader;

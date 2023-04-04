@@ -32,7 +32,7 @@ export type SegmentValue = {
   to: LocationDescriptor;
 };
 
-function TagDistributionMeter({
+const TagDistributionMeter = ({
   colors = COLORS,
   isLoading = false,
   hasError = false,
@@ -45,7 +45,7 @@ function TagDistributionMeter({
   title,
   totalValues,
   onTagClick,
-}: Props) {
+}: Props) => {
   function renderTitle() {
     if (!Array.isArray(segments) || segments.length <= 0) {
       return (
@@ -180,7 +180,7 @@ function TagDistributionMeter({
       {renderSegments()}
     </TagSummary>
   );
-}
+};
 
 export default TagDistributionMeter;
 

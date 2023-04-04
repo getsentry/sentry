@@ -15,7 +15,7 @@ type Props = {
   setEnvVariables: (envVariables) => void;
 };
 
-function SentryFunctionEnvironmentVariables(props: Props) {
+const SentryFunctionEnvironmentVariables = (props: Props) => {
   const {envVariables, setEnvVariables} = props;
 
   const addEnvVar = () => {
@@ -97,7 +97,7 @@ function SentryFunctionEnvironmentVariables(props: Props) {
       </StyledPanelBody>
     </div>
   );
-}
+};
 
 export default SentryFunctionEnvironmentVariables;
 

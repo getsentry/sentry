@@ -10,7 +10,7 @@ type Props = {
   event: Event;
 };
 
-export function EventPackageData({event}: Props) {
+export const EventPackageData = ({event}: Props) => {
   let longKeys: boolean, title: string;
 
   const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
@@ -47,4 +47,4 @@ export function EventPackageData({event}: Props) {
       </ClippedBox>
     </EventDataSection>
   );
-}
+};

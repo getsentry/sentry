@@ -33,7 +33,7 @@ type Props = {
   pageLinks?: string | null | undefined;
 };
 
-export function ScreenshotCard({
+export const ScreenshotCard = ({
   eventAttachment,
   projectSlug,
   eventId,
@@ -42,7 +42,7 @@ export function ScreenshotCard({
   pageLinks,
   attachmentIndex,
   attachments,
-}: Props) {
+}: Props) => {
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
 
@@ -163,7 +163,7 @@ export function ScreenshotCard({
       </CardFooter>
     </Card>
   );
-}
+};
 
 const Title = styled(Link)`
   ${p => p.theme.overflowEllipsis};

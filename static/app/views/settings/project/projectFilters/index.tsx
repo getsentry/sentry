@@ -19,7 +19,7 @@ type Props = {
   project: Project;
 } & RouteComponentProps<{filterType: string; projectId: string}, {}>;
 
-function ProjectFilters(props: Props) {
+const ProjectFilters = (props: Props) => {
   const {organization, project, params, location} = props;
   const {projectId, filterType} = params;
   if (!project) {
@@ -75,6 +75,6 @@ function ProjectFilters(props: Props) {
       </div>
     </Fragment>
   );
-}
+};
 
 export default ProjectFilters;

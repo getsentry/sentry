@@ -6,12 +6,12 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 import withRouteAnalytics from './withRouteAnalytics';
 
-function TestComponent({setRouteAnalyticsParams}) {
+const TestComponent = ({setRouteAnalyticsParams}) => {
   useEffect(() => {
     setRouteAnalyticsParams({foo: 'bar'});
   }, [setRouteAnalyticsParams]);
   return <div>hi</div>;
-}
+};
 
 const WrappedComponent = withRouteAnalytics(TestComponent);
 

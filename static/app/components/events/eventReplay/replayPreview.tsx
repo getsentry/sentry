@@ -26,7 +26,7 @@ type Props = {
   replaySlug: string;
 };
 
-function ReplayPreview({orgSlug, replaySlug, event}: Props) {
+const ReplayPreview = ({orgSlug, replaySlug, event}: Props) => {
   const routes = useRoutes();
   const {fetching, replay, fetchError} = useReplayData({
     orgSlug,
@@ -117,7 +117,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
       </PlayerContainer>
     </ReplayContextProvider>
   );
-}
+};
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;

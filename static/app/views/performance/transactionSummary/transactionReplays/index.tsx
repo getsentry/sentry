@@ -14,7 +14,7 @@ function renderNoAccess() {
   );
 }
 
-function TransactionReplaysContainer() {
+const TransactionReplaysContainer = () => {
   const organization = useOrganization();
 
   return (
@@ -26,6 +26,6 @@ function TransactionReplaysContainer() {
       <TransactionReplays />
     </Feature>
   );
-}
+};
 
 export default TransactionReplaysContainer;

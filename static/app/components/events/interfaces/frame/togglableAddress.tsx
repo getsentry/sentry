@@ -24,7 +24,7 @@ type Props = {
   relativeAddressMaxlength?: number;
 };
 
-function TogglableAddress({
+const TogglableAddress = ({
   startingAddress,
   address,
   relativeAddressMaxlength,
@@ -34,7 +34,7 @@ function TogglableAddress({
   onToggle,
   isHoverPreviewed,
   className,
-}: Props) {
+}: Props) => {
   const convertAbsoluteAddressToRelative = () => {
     if (!startingAddress) {
       return '';
@@ -97,7 +97,7 @@ function TogglableAddress({
       </Tooltip>
     </Wrapper>
   );
-}
+};
 
 const AddressIconTooltip = styled(Tooltip)`
   align-items: center;

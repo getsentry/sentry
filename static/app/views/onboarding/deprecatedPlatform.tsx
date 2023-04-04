@@ -14,7 +14,7 @@ import CreateProjectsFooter from './components/createProjectsFooter';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
-function OnboardingPlatform(props: StepProps) {
+const OnboardingPlatform = (props: StepProps) => {
   const organization = useOrganization();
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
   const addPlatform = (platform: PlatformKey) => {
@@ -71,7 +71,7 @@ function OnboardingPlatform(props: StepProps) {
       />
     </Wrapper>
   );
-}
+};
 
 export default OnboardingPlatform;
 

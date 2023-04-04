@@ -25,12 +25,12 @@ type Props = {
   showInboxTime?: boolean;
 };
 
-function EventOrGroupExtraDetails({
+const EventOrGroupExtraDetails = ({
   data,
   showAssignee,
   showInboxTime,
   organization,
-}: Props) {
+}: Props) => {
   const {
     id,
     lastSeen,
@@ -115,7 +115,7 @@ function EventOrGroupExtraDetails({
       )}
     </GroupExtra>
   );
-}
+};
 
 const GroupExtra = styled('div')`
   display: inline-grid;

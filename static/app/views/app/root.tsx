@@ -17,7 +17,7 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
  * TODO: There might be an edge case where user does not have `lastOrganization` set,
  * in which case we should load their list of organizations and make a decision
  */
-function AppRoot() {
+const AppRoot = () => {
   const {lastOrganization} = useLegacyStore(ConfigStore);
 
   useEffect(() => {
@@ -32,6 +32,6 @@ function AppRoot() {
   }, [lastOrganization]);
 
   return null;
-}
+};
 
 export default AppRoot;

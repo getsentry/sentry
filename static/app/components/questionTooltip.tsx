@@ -24,7 +24,7 @@ interface QuestionProps
   className?: string;
 }
 
-function QuestionTooltip({title, size, className, ...tooltipProps}: QuestionProps) {
+const QuestionTooltip = ({title, size, className, ...tooltipProps}: QuestionProps) => {
   return (
     <QuestionIconContainer size={size} className={className}>
       <Tooltip title={title} {...tooltipProps}>
@@ -32,7 +32,7 @@ function QuestionTooltip({title, size, className, ...tooltipProps}: QuestionProp
       </Tooltip>
     </QuestionIconContainer>
   );
-}
+};
 
 const QuestionIconContainer = styled('span')<Pick<QuestionProps, 'size' | 'className'>>`
   display: inline-block;

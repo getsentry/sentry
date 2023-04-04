@@ -17,7 +17,7 @@ type Props = {
   onToggle?: (isBookmarked: boolean) => void;
 };
 
-function BookmarkStar({className, organization, project, onToggle}: Props) {
+const BookmarkStar = ({className, organization, project, onToggle}: Props) => {
   const api = useApi();
   const [isBookmarked, setIsBookmarked] = useState(project.isBookmarked);
 
@@ -48,7 +48,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
       }
     />
   );
-}
+};
 
 const BookmarkStarButton = styled(Button)`
   border-radius: 50%;

@@ -15,7 +15,7 @@ interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   projectSlug?: string;
 }
 
-function CustomCommitsResolutionModal({
+const CustomCommitsResolutionModal = ({
   onSelected,
   orgSlug,
   projectSlug,
@@ -23,7 +23,7 @@ function CustomCommitsResolutionModal({
   Header,
   Body,
   Footer,
-}: CustomCommitsResolutionModalProps) {
+}: CustomCommitsResolutionModalProps) => {
   const [commit, setCommit] = useState<Commit | undefined>();
   const [commits, setCommits] = useState<Commit[] | undefined>();
 
@@ -83,6 +83,6 @@ function CustomCommitsResolutionModal({
       </Footer>
     </form>
   );
-}
+};
 
 export default CustomCommitsResolutionModal;

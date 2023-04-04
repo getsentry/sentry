@@ -10,7 +10,7 @@ type Props = {
   organization: Organization;
 };
 
-function StatsHeader({organization, activeTab}: Props) {
+const StatsHeader = ({organization, activeTab}: Props) => {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -46,6 +46,6 @@ function StatsHeader({organization, activeTab}: Props) {
       </Layout.HeaderNavTabs>
     </Layout.Header>
   );
-}
+};
 
 export default StatsHeader;

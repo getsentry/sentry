@@ -28,13 +28,13 @@ export interface InternalTooltipProps extends UseHoverOverlayProps {
 }
 
 // Warning: This component is conditionally exported end-of-file based on IS_ACCEPTANCE_TEST env variable
-export function DO_NOT_USE_TOOLTIP({
+export const DO_NOT_USE_TOOLTIP = ({
   children,
   overlayStyle,
   title,
   disabled = false,
   ...hoverOverlayProps
-}: InternalTooltipProps) {
+}: InternalTooltipProps) => {
   const theme = useTheme();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps} =
     useHoverOverlay('tooltip', hoverOverlayProps);
@@ -63,7 +63,7 @@ export function DO_NOT_USE_TOOLTIP({
       {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, document.body)}
     </Fragment>
   );
-}
+};
 
 const TooltipContent = styled(Overlay)`
   padding: ${space(1)} ${space(1.5)};
@@ -87,7 +87,7 @@ interface TooltipProps extends InternalTooltipProps {
 // used in src/sentry/utils/pytest/selenium.py so that tooltips can be opened
 // and closed for specific snapshots.
 
-function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
+const Tooltip = ({disableForVisualTest, ...props}: TooltipProps) => {
   if (IS_ACCEPTANCE_TEST) {
     return disableForVisualTest ? (
       <Fragment>{props.children}</Fragment>
@@ -97,6 +97,6 @@ function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   }
 
   return <DO_NOT_USE_TOOLTIP {...props} />;
-}
+};
 
 export {Tooltip};

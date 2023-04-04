@@ -18,12 +18,12 @@ type Data = {
 
 type Props = ContextItemProps<Data, any>;
 
-export function ContextSummaryGeneric({
+export const ContextSummaryGeneric = ({
   data,
   unknownTitle,
   omitUnknownVersion = false,
   meta,
-}: Props) {
+}: Props) => {
   if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={unknownTitle ?? t('Unknown')} />;
   }
@@ -45,7 +45,7 @@ export function ContextSummaryGeneric({
       )}
     </Item>
   );
-}
+};
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};

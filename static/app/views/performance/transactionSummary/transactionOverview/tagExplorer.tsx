@@ -168,9 +168,9 @@ type TagValueProps = {
   row: TableDataRow;
 };
 
-export function TagValue(props: TagValueProps) {
+export const TagValue = (props: TagValueProps) => {
   return <div className="truncate">{props.row.tags_value}</div>;
-}
+};
 
 type Props = {
   currentFilter: SpanOperationBreakdownFilter;
@@ -480,7 +480,7 @@ type HeaderProps = {
   transactionName: string;
 };
 
-function TagsHeader(props: HeaderProps) {
+const TagsHeader = (props: HeaderProps) => {
   const {pageLinks, organization, location, transactionName} = props;
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
@@ -522,7 +522,7 @@ function TagsHeader(props: HeaderProps) {
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );
-}
+};
 
 const AlignRight = styled('div')`
   text-align: right;

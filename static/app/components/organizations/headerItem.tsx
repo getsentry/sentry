@@ -29,7 +29,7 @@ type Props = {
 } & Partial<DefaultProps> &
   React.HTMLAttributes<HTMLDivElement>;
 
-function HeaderItem({
+const HeaderItem = ({
   children,
   isOpen,
   hasSelected,
@@ -43,7 +43,7 @@ function HeaderItem({
   onClear,
   allowClear = true,
   ...props
-}: Props) {
+}: Props) => {
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClear?.();
@@ -94,7 +94,7 @@ function HeaderItem({
       )}
     </StyledHeaderItem>
   );
-}
+};
 
 // Infer props here because of styled/theme
 const getColor = (p: ColorProps & {theme: Theme}) => {

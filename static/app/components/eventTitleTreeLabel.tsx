@@ -9,7 +9,7 @@ type Props = {
   treeLabel: TreeLabelPart[];
 };
 
-function EventTitleTreeLabel({treeLabel}: Props) {
+const EventTitleTreeLabel = ({treeLabel}: Props) => {
   const firstFourParts = treeLabel.slice(0, 4);
   const remainingParts = treeLabel.slice(firstFourParts.length);
 
@@ -44,7 +44,7 @@ function EventTitleTreeLabel({treeLabel}: Props) {
       )}
     </Wrapper>
   );
-}
+};
 
 export default EventTitleTreeLabel;
 

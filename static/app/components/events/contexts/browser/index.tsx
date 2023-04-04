@@ -18,7 +18,7 @@ export const browserKnownDataValues = [
   BrowserKnownDataType.VERSION,
 ];
 
-export function BrowserEventContext({data, event}: Props) {
+export const BrowserEventContext = ({data, event}: Props) => {
   const meta = event._meta?.contexts?.browser ?? {};
   return (
     <Fragment>
@@ -39,4 +39,4 @@ export function BrowserEventContext({data, event}: Props) {
       />
     </Fragment>
   );
-}
+};

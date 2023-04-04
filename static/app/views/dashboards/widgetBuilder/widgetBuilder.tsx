@@ -134,7 +134,7 @@ interface State {
   widgetToBeUpdated?: Widget;
 }
 
-function WidgetBuilder({
+const WidgetBuilder = ({
   dashboard,
   params,
   location,
@@ -147,7 +147,7 @@ function WidgetBuilder({
   route,
   router,
   tags,
-}: Props) {
+}: Props) => {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
@@ -1134,7 +1134,7 @@ function WidgetBuilder({
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default withPageFilters(withTags(WidgetBuilder));
 

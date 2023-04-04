@@ -29,11 +29,11 @@ interface GapSpanDetailsProps {
   span: Readonly<GapSpanType>;
 }
 
-export function GapSpanDetails({
+export const GapSpanDetails = ({
   event,
   resetCellMeasureCache,
   span,
-}: GapSpanDetailsProps) {
+}: GapSpanDetailsProps) => {
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -134,13 +134,13 @@ export function GapSpanDetails({
       </FlamegraphContainer>
     </Container>
   );
-}
+};
 
 interface SetupProfilingInstructionsProps {
   docsLink: string;
 }
 
-function SetupProfilingInstructions({docsLink}: SetupProfilingInstructionsProps) {
+const SetupProfilingInstructions = ({docsLink}: SetupProfilingInstructionsProps) => {
   return (
     <InstructionsContainer>
       <Heading>{t('Requires Manual Instrumentation')}</Heading>
@@ -171,7 +171,7 @@ function SetupProfilingInstructions({docsLink}: SetupProfilingInstructionsProps)
       </Button>
     </InstructionsContainer>
   );
-}
+};
 
 interface ProfilePreviewProps {
   canvasView: CanvasView<FlamegraphModel> | null;
@@ -179,7 +179,7 @@ interface ProfilePreviewProps {
   organization: Organization;
 }
 
-function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) {
+const ProfilePreview = ({canvasView, event, organization}: ProfilePreviewProps) => {
   const profileId = event.contexts.profile?.profile_id || '';
 
   // we want to try to go straight to the same config view as the preview
@@ -232,7 +232,7 @@ function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) 
       </Button>
     </InstructionsContainer>
   );
-}
+};
 
 const Container = styled('div')`
   display: flex;

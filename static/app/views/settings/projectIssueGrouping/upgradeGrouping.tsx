@@ -29,7 +29,7 @@ type Props = {
   projectId: string;
 };
 
-function UpgradeGrouping({
+const UpgradeGrouping = ({
   groupingConfigs,
   organization,
   projectId,
@@ -37,7 +37,7 @@ function UpgradeGrouping({
   onUpgrade,
   api,
   location,
-}: Props) {
+}: Props) => {
   const hasProjectWriteAccess = organization.access.includes('project:write');
   const {updateNotes, riskLevel, latestGroupingConfig} = getGroupingChanges(
     project,
@@ -164,6 +164,6 @@ function UpgradeGrouping({
       </PanelBody>
     </Panel>
   );
-}
+};
 
 export default UpgradeGrouping;

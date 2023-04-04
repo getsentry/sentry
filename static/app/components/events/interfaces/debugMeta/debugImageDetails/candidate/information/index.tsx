@@ -34,12 +34,12 @@ type Props = {
   eventDateReceived?: string;
 };
 
-function Information({
+const Information = ({
   candidate,
   isInternalSource,
   hasReprocessWarning,
   eventDateReceived,
-}: Props) {
+}: Props) => {
   const {source_name, source, location, download} = candidate;
 
   function getFilenameOrLocation() {
@@ -247,7 +247,7 @@ function Information({
       </Details>
     </Wrapper>
   );
-}
+};
 
 export default Information;
 

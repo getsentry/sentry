@@ -33,7 +33,7 @@ type Props = {
   transactionName: string;
 };
 
-function UserStats({
+const UserStats = ({
   isLoading,
   hasWebVitals,
   error,
@@ -42,7 +42,7 @@ function UserStats({
   organization,
   transactionName,
   eventView,
-}: Props) {
+}: Props) => {
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
@@ -129,7 +129,7 @@ function UserStats({
       <SidebarSpacer />
     </Fragment>
   );
-}
+};
 
 const VitalsHeading = styled('div')`
   display: flex;

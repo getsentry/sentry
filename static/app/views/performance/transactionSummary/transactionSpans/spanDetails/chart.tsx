@@ -35,7 +35,7 @@ enum DisplayModes {
   HISTOGRAM = 'histogram',
 }
 
-function Chart(props: Props) {
+const Chart = (props: Props) => {
   const location = useLocation();
 
   const display = decodeScalar(location.query.display, DisplayModes.TIMESERIES);
@@ -97,6 +97,6 @@ function Chart(props: Props) {
       </Feature>
     </Panel>
   );
-}
+};
 
 export default Chart;

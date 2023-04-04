@@ -9,9 +9,9 @@ import {PerformanceWidgetSetting} from '../widgetDefinitions';
 /*
   Component to handle switching component-style queries over to state. This should be temporary to make it easier to switch away from waterfall style api components.
 */
-export function QueryHandler<T extends WidgetDataConstraint>(
+export const QueryHandler = <T extends WidgetDataConstraint>(
   props: QueryHandlerProps<T>
-) {
+) => {
   const children = props.children ?? <Fragment />;
 
   if (!props.queries.length) {
@@ -27,15 +27,15 @@ export function QueryHandler<T extends WidgetDataConstraint>(
         ))}
     </Fragment>
   );
-}
+};
 
 function genericQueryReferrer(setting: PerformanceWidgetSetting) {
   return `api.performance.generic-widget-chart.${setting.replace(/_/g, '-')}`;
 }
 
-function SingleQueryHandler<T extends WidgetDataConstraint>(
+const SingleQueryHandler = <T extends WidgetDataConstraint>(
   props: QueryHandlerProps<T> & {query: QueryDefinitionWithKey<T>}
-) {
+) => {
   const query = props.query;
   const globalSelection = props.queryProps.eventView.getPageFilters();
   const start = globalSelection.datetime.start
@@ -80,15 +80,15 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
       }}
     </query.component>
   );
-}
+};
 
-function QueryResultSaver<T extends WidgetDataConstraint>(
+const QueryResultSaver = <T extends WidgetDataConstraint>(
   props: {
     // TODO(k-fish): Fix this any.
     query: QueryDefinitionWithKey<T>;
     results: any;
   } & QueryHandlerProps<T>
-) {
+) => {
   const mepContext = useMEPDataContext();
   const {results, query} = props;
 
@@ -103,4 +103,4 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
     props.setWidgetDataForKey(query.queryKey, transformed);
   }, [transformed?.hasData, transformed?.isLoading, transformed?.isErrored]);
   return <Fragment />;
-}
+};

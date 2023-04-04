@@ -8,7 +8,7 @@ interface SortableItemProps extends QueryFieldProps {
   dragId: string;
 }
 
-export function SortableQueryField({dragId, ...props}: SortableItemProps) {
+export const SortableQueryField = ({dragId, ...props}: SortableItemProps) => {
   const theme = useTheme();
   const {listeners, setNodeRef, transform, transition, attributes, isDragging} =
     useSortable({
@@ -42,4 +42,4 @@ export function SortableQueryField({dragId, ...props}: SortableItemProps) {
       {...props}
     />
   );
-}
+};

@@ -68,7 +68,7 @@ function transformPayload(payload: AnomalyPayload): AnomalyPayload {
   return newPayload;
 }
 
-function AnomaliesSeriesQuery(props: Props) {
+const AnomaliesSeriesQuery = (props: Props) => {
   if (!props.organization.features.includes(ANOMALY_FLAG)) {
     return (
       <div>
@@ -90,6 +90,6 @@ function AnomaliesSeriesQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default AnomaliesSeriesQuery;

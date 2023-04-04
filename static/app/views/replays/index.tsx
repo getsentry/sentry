@@ -15,7 +15,7 @@ const BetaGracePeriodAlertHook = HookOrDefault({
   hookName: 'component:replay-beta-grace-period-alert',
 });
 
-function ReplaysContainer({organization, children}: Props) {
+const ReplaysContainer = ({organization, children}: Props) => {
   return (
     <NoProjectMessage organization={organization}>
       <Feature
@@ -29,6 +29,6 @@ function ReplaysContainer({organization, children}: Props) {
       {children}
     </NoProjectMessage>
   );
-}
+};
 
 export default withOrganization(ReplaysContainer);

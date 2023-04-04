@@ -37,7 +37,7 @@ interface StacktraceLinkModalProps extends ModalRenderProps {
   project: Project;
 }
 
-function StacktraceLinkModal({
+const StacktraceLinkModal = ({
   closeModal,
   onSubmit,
   organization,
@@ -47,7 +47,7 @@ function StacktraceLinkModal({
   Header,
   Body,
   Footer,
-}: StacktraceLinkModalProps) {
+}: StacktraceLinkModalProps) => {
   const api = useApi();
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
@@ -262,7 +262,7 @@ function StacktraceLinkModal({
       </Footer>
     </Fragment>
   );
-}
+};
 
 const StyledList = styled(List)`
   gap: ${space(2)};

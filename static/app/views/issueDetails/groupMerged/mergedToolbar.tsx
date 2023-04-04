@@ -18,13 +18,13 @@ type Props = {
   project: Project;
 };
 
-export function MergedToolbar({
+export const MergedToolbar = ({
   groupId,
   project,
   orgId,
   onUnmerge,
   onToggleCollapse,
-}: Props) {
+}: Props) => {
   const {
     unmergeList,
     mergedItems,
@@ -106,7 +106,7 @@ export function MergedToolbar({
       </Button>
     </PanelHeader>
   );
-}
+};
 
 const CompareButton = styled(Button)`
   margin-left: ${space(1)};

@@ -28,7 +28,7 @@ interface GridListSectionProps {
  * A <li /> element that functions as a grid list section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListSection({node, listState, size}: GridListSectionProps) {
+export const GridListSection = ({node, listState, size}: GridListSectionProps) => {
   const titleId = domId('grid-section-title-');
   const {separatorProps} = useSeparator({elementType: 'li'});
 
@@ -74,4 +74,4 @@ export function GridListSection({node, listState, size}: GridListSectionProps) {
       </SectionWrap>
     </Fragment>
   );
-}
+};

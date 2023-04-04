@@ -47,7 +47,7 @@ function usePersistedStore(): PersistedStoreContextValue {
 }
 
 // Client-only state with TTL persisted on the server side in a redis store.
-export function PersistedStoreProvider(props: {children: React.ReactNode}) {
+export const PersistedStoreProvider = (props: {children: React.ReactNode}) => {
   const [state, setState] = useState<PersistedStore>(DefaultPersistedStore);
 
   const api = useApi();
@@ -81,7 +81,7 @@ export function PersistedStoreProvider(props: {children: React.ReactNode}) {
       {props.children}
     </PersistedStoreContext.Provider>
   );
-}
+};
 
 type UsePersistedCategory<T> = [T | null, (nextState: T | null) => void];
 

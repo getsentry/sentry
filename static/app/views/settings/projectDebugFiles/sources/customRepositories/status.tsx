@@ -16,7 +16,7 @@ type Props = {
   details?: AppStoreConnectStatusData;
 };
 
-function Status({details, onEditRepository}: Props) {
+const Status = ({details, onEditRepository}: Props) => {
   const theme = useTheme();
 
   if (!details) {
@@ -62,7 +62,7 @@ function Status({details, onEditRepository}: Props) {
   }
 
   return null;
-}
+};
 
 export default Status;
 

@@ -18,7 +18,7 @@ type Props = {
   repoName?: string;
 };
 
-function RulesPanel({
+const RulesPanel = ({
   raw,
   dateUpdated,
   provider,
@@ -27,7 +27,7 @@ function RulesPanel({
   placeholder,
   controls,
   ['data-test-id']: dataTestId,
-}: Props) {
+}: Props) => {
   function renderIcon() {
     switch (provider ?? '') {
       case 'github':
@@ -85,7 +85,7 @@ function RulesPanel({
       </PanelBody>
     </Panel>
   );
-}
+};
 
 export default RulesPanel;
 

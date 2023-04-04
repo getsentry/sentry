@@ -22,12 +22,12 @@ interface Props {
   onChange: (dataSet: DataSet) => void;
 }
 
-export function DataSetStep({
+export const DataSetStep = ({
   dataSet,
   onChange,
   hasReleaseHealthFeature,
   displayType,
-}: Props) {
+}: Props) => {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
 
   if (displayType !== DisplayType.TABLE) {
@@ -77,7 +77,7 @@ export function DataSetStep({
       />
     </BuildStep>
   );
-}
+};
 
 const DataSetChoices = styled(RadioGroup)`
   display: flex;

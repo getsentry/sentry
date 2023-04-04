@@ -115,7 +115,7 @@ type TeamOption = GeneralSelectValue & {
   searchKey: string;
 };
 
-function TeamSelector(props: Props) {
+const TeamSelector = (props: Props) => {
   const {includeUnassigned, styles, ...extraProps} = props;
   const {teamFilter, organization, project, multiple, value, useId, onChange} = props;
 
@@ -256,7 +256,7 @@ function TeamSelector(props: Props) {
       {...extraProps}
     />
   );
-}
+};
 
 const AddToProjectButton = styled(Button)`
   flex-shrink: 0;

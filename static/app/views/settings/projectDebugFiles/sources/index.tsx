@@ -21,7 +21,7 @@ type Props = {
   router: InjectedRouter;
 };
 
-function Sources({
+const Sources = ({
   api,
   organization,
   customRepositories,
@@ -31,7 +31,7 @@ function Sources({
   location,
   router,
   isLoading,
-}: Props) {
+}: Props) => {
   return (
     <Fragment>
       <BuiltInRepositories
@@ -53,6 +53,6 @@ function Sources({
       />
     </Fragment>
   );
-}
+};
 
 export default Sources;

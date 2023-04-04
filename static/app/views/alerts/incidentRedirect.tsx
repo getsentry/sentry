@@ -18,7 +18,7 @@ type Props = {
 /**
  * Reirects from an incident to the incident's metric alert details page
  */
-function IncidentRedirect({organization, params}: Props) {
+const IncidentRedirect = ({organization, params}: Props) => {
   const api = useApi();
   const [hasError, setHasError] = useState(false);
 
@@ -55,6 +55,6 @@ function IncidentRedirect({organization, params}: Props) {
   }
 
   return <LoadingIndicator />;
-}
+};
 
 export default IncidentRedirect;

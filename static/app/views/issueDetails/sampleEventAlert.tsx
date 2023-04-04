@@ -8,13 +8,13 @@ import {space} from 'sentry/styles/space';
 import {AvatarProject, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-function SampleEventAlert({
+const SampleEventAlert = ({
   organization,
   project,
 }: {
   organization: Organization;
   project: AvatarProject;
-}) {
+}) => {
   return (
     <PageAlertBar>
       <IconLightning />
@@ -41,7 +41,7 @@ function SampleEventAlert({
       </Button>
     </PageAlertBar>
   );
-}
+};
 
 export default SampleEventAlert;
 

@@ -3,7 +3,7 @@ import useUrlParams from 'sentry/utils/useUrlParams';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
-function SidebarArea() {
+const SidebarArea = () => {
   const {getParamValue} = useUrlParams('t_side', 'crumbs');
   const {replay} = useReplayContext();
 
@@ -19,6 +19,6 @@ function SidebarArea() {
         />
       );
   }
-}
+};
 
 export default SidebarArea;

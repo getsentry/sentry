@@ -15,13 +15,13 @@ type Props = {
   onClick?: (event: MouseEvent) => void;
 };
 
-function TimestampButton({
+const TimestampButton = ({
   className,
   format = 'mm:ss',
   onClick,
   startTimestampMs,
   timestampMs,
-}: Props) {
+}: Props) => {
   return (
     <Tooltip title={<DateTime date={timestampMs} />}>
       <StyledButton
@@ -34,7 +34,7 @@ function TimestampButton({
       </StyledButton>
     </Tooltip>
   );
-}
+};
 
 const StyledButton = styled('button')`
   background: transparent;

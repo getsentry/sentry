@@ -84,7 +84,7 @@ export function getYAxisMaxFn(height: number) {
   };
 }
 
-function MiniBarChart({
+const MiniBarChart = ({
   emphasisColors,
   series,
   hideDelay,
@@ -96,7 +96,7 @@ function MiniBarChart({
   height,
   grid,
   ...props
-}: Props) {
+}: Props) => {
   const {ref: _ref, ...barChartProps} = props;
   const theme = useTheme();
   const colorList = Array.isArray(colors)
@@ -204,6 +204,6 @@ function MiniBarChart({
   return (
     <BarChart series={chartSeries} height={height} {...chartOptions} {...barChartProps} />
   );
-}
+};
 
 export default MiniBarChart;

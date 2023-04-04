@@ -1,5 +1,5 @@
-function SeparatorField() {
+const SeparatorField = () => {
   return <hr />;
-}
+};
 
 export default SeparatorField;

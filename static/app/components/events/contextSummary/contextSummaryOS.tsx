@@ -26,7 +26,7 @@ type VersionElement = {
 
 type Props = ContextItemProps<Data, 'os' | 'client_os'>;
 
-export function ContextSummaryOS({data, meta}: Props) {
+export const ContextSummaryOS = ({data, meta}: Props) => {
   if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown OS')} />;
   }
@@ -67,7 +67,7 @@ export function ContextSummaryOS({data, meta}: Props) {
       </TextOverflow>
     </Item>
   );
-}
+};
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};

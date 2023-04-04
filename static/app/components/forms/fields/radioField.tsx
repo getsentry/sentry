@@ -19,7 +19,7 @@ function handleChange(
   onBlur(id, e);
 }
 
-function RadioField(props: RadioFieldProps) {
+const RadioField = (props: RadioFieldProps) => {
   return (
     <FormField {...props}>
       {({id, onChange, onBlur, value, disabled, orientInline, ...fieldProps}) => (
@@ -37,6 +37,6 @@ function RadioField(props: RadioFieldProps) {
       )}
     </FormField>
   );
-}
+};
 
 export default RadioField;

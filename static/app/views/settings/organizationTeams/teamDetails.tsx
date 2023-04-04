@@ -21,7 +21,7 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{teamId: string}, {}>;
 
-function TeamDetails({children}: Props) {
+const TeamDetails = ({children}: Props) => {
   const api = useApi();
   const params = useParams();
   const orgSlug = useOrganization().slug;
@@ -118,7 +118,7 @@ function TeamDetails({children}: Props) {
       )}
     </div>
   );
-}
+};
 
 export default TeamDetails;
 

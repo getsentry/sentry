@@ -95,7 +95,7 @@ export interface MultipleListProps<Value extends React.Key> extends BaseListProp
  * In composite selectors, there may be multiple self-contained lists, each
  * representing a select "region".
  */
-function List<Value extends React.Key>({
+const List = <Value extends React.Key>({
   items,
   value,
   defaultValue,
@@ -111,7 +111,7 @@ function List<Value extends React.Key>({
   sizeLimitMessage,
   closeOnSelect,
   ...props
-}: SingleListProps<Value> | MultipleListProps<Value>) {
+}: SingleListProps<Value> | MultipleListProps<Value>) => {
   const {overlayState, registerListState, saveSelectedOptions, search} =
     useContext(SelectContext);
 
@@ -340,6 +340,6 @@ function List<Value extends React.Key>({
         ))}
     </SelectFilterContext.Provider>
   );
-}
+};
 
 export {List};

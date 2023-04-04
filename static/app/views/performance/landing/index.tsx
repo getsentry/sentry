@@ -74,7 +74,7 @@ const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
   [LandingDisplayField.MOBILE]: MobileView,
 };
 
-export function PerformanceLanding(props: Props) {
+export const PerformanceLanding = (props: Props) => {
   const {
     organization,
     location,
@@ -279,7 +279,7 @@ export function PerformanceLanding(props: Props) {
       </PageErrorProvider>
     </Layout.Page>
   );
-}
+};
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;

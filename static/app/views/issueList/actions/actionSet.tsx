@@ -33,7 +33,7 @@ type Props = {
   selectedProjectSlug?: string;
 };
 
-function ActionSet({
+const ActionSet = ({
   queryCount,
   query,
   allInQuerySelected,
@@ -45,7 +45,7 @@ function ActionSet({
   onDelete,
   onMerge,
   selectedProjectSlug,
-}: Props) {
+}: Props) => {
   const organization = useOrganization();
   const numIssues = issues.size;
   const confirm = getConfirm({
@@ -264,7 +264,7 @@ function ActionSet({
       />
     </Fragment>
   );
-}
+};
 
 function isActionSupported(
   selectedIssues: BaseGroup[],

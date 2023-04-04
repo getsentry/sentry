@@ -19,7 +19,7 @@ type Props = {
   onFilterChange?: (options: SelectOption<string>[]) => void;
 };
 
-function SearchBarAction({
+const SearchBarAction = ({
   onChange,
   query,
   placeholder,
@@ -27,7 +27,7 @@ function SearchBarAction({
   filterSelections,
   onFilterChange,
   className,
-}: Props) {
+}: Props) => {
   const trigger: React.ComponentProps<typeof CompactSelect>['trigger'] = props => (
     <StyledTrigger
       size="sm"
@@ -62,7 +62,7 @@ function SearchBarAction({
       />
     </Wrapper>
   );
-}
+};
 
 export default SearchBarAction;
 

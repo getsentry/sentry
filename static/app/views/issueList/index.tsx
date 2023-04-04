@@ -11,7 +11,7 @@ type Props = {
   projects: Project[];
 };
 
-function IssueListContainer({children}: Props) {
+const IssueListContainer = ({children}: Props) => {
   const organization = useOrganization();
   useRouteAnalyticsHookSetup();
 
@@ -22,6 +22,6 @@ function IssueListContainer({children}: Props) {
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
-}
+};
 
 export default IssueListContainer;

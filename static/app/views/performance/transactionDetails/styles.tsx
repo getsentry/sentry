@@ -13,13 +13,13 @@ type MetaDataProps = {
   badge?: 'alpha' | 'beta' | 'new';
 };
 
-export function MetaData({
+export const MetaData = ({
   headingText,
   tooltipText,
   bodyText,
   subtext,
   badge,
-}: MetaDataProps) {
+}: MetaDataProps) => {
   return (
     <HeaderInfo>
       <StyledSectionHeading>
@@ -36,7 +36,7 @@ export function MetaData({
       <SectionSubtext>{subtext}</SectionSubtext>
     </HeaderInfo>
   );
-}
+};
 
 const HeaderInfo = styled('div')`
   min-height: 78px;

@@ -19,7 +19,7 @@ interface Props {
   meta?: Record<any, any>;
 }
 
-function TagsTableRow({tag, query, generateUrl, meta}: Props) {
+const TagsTableRow = ({tag, query, generateUrl, meta}: Props) => {
   const tagInQuery = query.includes(`${tag.key}:`);
   const target = tagInQuery ? undefined : generateUrl(tag);
   const keyMetaData = meta?.key?.[''];
@@ -73,7 +73,7 @@ function TagsTableRow({tag, query, generateUrl, meta}: Props) {
       }
     />
   );
-}
+};
 
 export default TagsTableRow;
 

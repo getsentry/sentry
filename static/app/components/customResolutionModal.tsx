@@ -16,7 +16,7 @@ interface CustomResolutionModalProps extends ModalRenderProps {
   projectSlug?: string;
 }
 
-function CustomResolutionModal(props: CustomResolutionModalProps) {
+const CustomResolutionModal = (props: CustomResolutionModalProps) => {
   const [version, setVersion] = useState('');
   const currentUser = configStore.get('user');
 
@@ -83,6 +83,6 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
       </Footer>
     </form>
   );
-}
+};
 
 export default CustomResolutionModal;

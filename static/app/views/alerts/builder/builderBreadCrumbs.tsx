@@ -16,7 +16,7 @@ interface Props {
   canChangeProject?: boolean;
 }
 
-function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props) {
+const BuilderBreadCrumbs = ({title, alertName, projectSlug, organization}: Props) => {
   const crumbs: (Crumb | CrumbDropdown)[] = [
     {
       to: `/organizations/${organization.slug}/alerts/rules/`,
@@ -38,6 +38,6 @@ function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props
   }
 
   return <Breadcrumbs crumbs={crumbs} />;
-}
+};
 
 export default BuilderBreadCrumbs;

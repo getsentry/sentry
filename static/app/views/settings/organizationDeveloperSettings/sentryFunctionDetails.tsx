@@ -90,7 +90,7 @@ const formFields: Field[] = [
   },
 ];
 
-function SentryFunctionDetails(props: Props) {
+const SentryFunctionDetails = (props: Props) => {
   const [form] = useState(() => new FormModel({transformData}));
 
   const {functionSlug} = props.params;
@@ -204,7 +204,7 @@ function SentryFunctionDetails(props: Props) {
       </Feature>
     </div>
   );
-}
+};
 
 type WrapperState = {
   sentryFunction?: SentryFunction;

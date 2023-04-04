@@ -74,7 +74,7 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   pageFilters: PageFilters;
 };
 
-function ReplaySearchBar(props: Props) {
+const ReplaySearchBar = (props: Props) => {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIdStrings = pageFilters.projects?.map(String);
@@ -123,6 +123,6 @@ function ReplaySearchBar(props: Props) {
       fieldDefinitionGetter={getReplayFieldDefinition}
     />
   );
-}
+};
 
 export default ReplaySearchBar;

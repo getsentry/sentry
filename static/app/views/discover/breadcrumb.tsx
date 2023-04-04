@@ -16,13 +16,13 @@ type Props = {
   isHomepage?: boolean;
 };
 
-function DiscoverBreadcrumb({
+const DiscoverBreadcrumb = ({
   eventView,
   event,
   organization,
   location,
   isHomepage,
-}: Props) {
+}: Props) => {
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
     ? {
@@ -61,6 +61,6 @@ function DiscoverBreadcrumb({
   }
 
   return <Breadcrumbs crumbs={crumbs} />;
-}
+};
 
 export default DiscoverBreadcrumb;

@@ -133,11 +133,11 @@ const SavedSearchItem = ({
   );
 };
 
-function CreateNewSavedSearchButton({
+const CreateNewSavedSearchButton = ({
   organization,
   query,
   sort,
-}: CreateNewSavedSearchButtonProps) {
+}: CreateNewSavedSearchButtonProps) => {
   const onClick = () => {
     trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
       organization,
@@ -152,7 +152,7 @@ function CreateNewSavedSearchButton({
       {t('Add saved search')}
     </Button>
   );
-}
+};
 
 const SavedIssueSearches = ({
   organization,

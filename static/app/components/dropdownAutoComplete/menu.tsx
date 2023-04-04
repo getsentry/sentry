@@ -205,7 +205,7 @@ type Props = {
   'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
 >;
 
-function Menu({
+const Menu = ({
   autoCompleteFilter = defaultAutoCompleteFilter,
   maxHeight = 300,
   emptyMessage = t('No items'),
@@ -245,7 +245,7 @@ function Menu({
   closeOnSelect,
   'data-test-id': dataTestId,
   ...props
-}: Props) {
+}: Props) => {
   // Can't search if there are no items
   const hasItems = !!items?.length;
 
@@ -411,7 +411,7 @@ function Menu({
       }}
     </AutoComplete>
   );
-}
+};
 
 export default Menu;
 

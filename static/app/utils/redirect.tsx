@@ -12,7 +12,7 @@ type Props = {
  * Like react-router v4+'s <Redirect to="path/" />, this component allows
  * redirects to be declarative.
  */
-function Redirect({to, router}: Props) {
+const Redirect = ({to, router}: Props) => {
   const navigate = useNavigate();
 
   // Redirect on mount.
@@ -25,6 +25,6 @@ function Redirect({to, router}: Props) {
   }, [navigate, router, to]);
 
   return null;
-}
+};
 
 export default Redirect;

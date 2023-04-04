@@ -30,7 +30,7 @@ type Props = {
   affectedSpanIds?: string[];
 };
 
-function TraceErrorAlerts({
+const TraceErrorAlerts = ({
   isLoading,
   errors,
   parsedTrace,
@@ -38,7 +38,7 @@ function TraceErrorAlerts({
   errors: TraceError[] | undefined;
   isLoading: boolean;
   parsedTrace: ParsedTraceType;
-}) {
+}) => {
   if (isLoading) {
     return null;
   }
@@ -66,9 +66,9 @@ function TraceErrorAlerts({
       </Alert>
     </AlertContainer>
   );
-}
+};
 
-function SpansInterface({event, affectedSpanIds, organization}: Props) {
+const SpansInterface = ({event, affectedSpanIds, organization}: Props) => {
   const parsedTrace = useMemo(() => parseTrace(event), [event]);
 
   const waterfallModel = useMemo(
@@ -133,7 +133,7 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
       </QuickTraceContext.Consumer>
     </Container>
   );
-}
+};
 
 const GuideAnchorWrapper = styled('div')`
   height: 0;

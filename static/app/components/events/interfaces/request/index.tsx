@@ -24,7 +24,7 @@ type Props = {
 
 type View = 'formatted' | 'curl';
 
-export function Request({data, event}: Props) {
+export const Request = ({data, event}: Props) => {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.REQUEST);
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
@@ -140,7 +140,7 @@ export function Request({data, event}: Props) {
       )}
     </EventDataSection>
   );
-}
+};
 
 const Monospace = styled('span')`
   font-family: ${p => p.theme.text.familyMono};

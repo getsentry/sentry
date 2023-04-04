@@ -17,13 +17,13 @@ interface Props {
   title: string;
 }
 
-export function Header({
+export const Header = ({
   title,
   orgSlug,
   goBackLocation,
   dashboardTitle,
   onChangeTitle,
-}: Props) {
+}: Props) => {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -65,4 +65,4 @@ export function Header({
       </Layout.HeaderActions>
     </Layout.Header>
   );
-}
+};

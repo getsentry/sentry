@@ -121,7 +121,7 @@ type FeatureWrapperProps = Props & {
   children: (hasFeature: boolean, props: Props) => React.ReactNode;
 };
 
-function FeatureWrapper(props: FeatureWrapperProps) {
+const FeatureWrapper = (props: FeatureWrapperProps) => {
   const noEditMessage = t('Requires discover query feature.');
   const editFeatures = ['organizations:discover-query'];
 
@@ -148,9 +148,9 @@ function FeatureWrapper(props: FeatureWrapperProps) {
       {({hasFeature}) => props.children(hasFeature, props)}
     </Feature>
   );
-}
+};
 
-function HeaderActions(props: Props) {
+const HeaderActions = (props: Props) => {
   return (
     <Fragment>
       <FeatureWrapper {...props} key="edit">
@@ -162,6 +162,6 @@ function HeaderActions(props: Props) {
       {renderSummaryButton(props)}
     </Fragment>
   );
-}
+};
 
 export default HeaderActions;

@@ -32,14 +32,14 @@ type Props = {
   isShare?: boolean;
 };
 
-function EventEntryContent({
+const EventEntryContent = ({
   entry,
   projectSlug,
   event,
   organization,
   group,
   isShare,
-}: Props) {
+}: Props) => {
   const hasHierarchicalGrouping =
     !!organization.features?.includes('grouping-stacktrace-ui') &&
     !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
@@ -154,9 +154,9 @@ function EventEntryContent({
       }
       return null;
   }
-}
+};
 
-export function EventEntry(props: Props) {
+export const EventEntry = (props: Props) => {
   return (
     <ErrorBoundary
       customComponent={
@@ -168,4 +168,4 @@ export function EventEntry(props: Props) {
       <EventEntryContent {...props} />
     </ErrorBoundary>
   );
-}
+};

@@ -28,12 +28,12 @@ type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
-export function ReplayCell({
+export const ReplayCell = ({
   eventView,
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+}: Props & {eventView: EventView; organization: Organization; referrer: string}) => {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
@@ -99,7 +99,7 @@ export function ReplayCell({
       />
     </Item>
   );
-}
+};
 
 // Need to be full width for StringWalker to take up full width and truncate properly
 const UserBadgeFullWidth = styled(UserBadge)`
@@ -124,10 +124,10 @@ const MainLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-export function TransactionCell({
+export const TransactionCell = ({
   organization,
   replay,
-}: Props & {organization: Organization}) {
+}: Props & {organization: Organization}) => {
   const location = useLocation();
 
   const hasTxEvent = 'txEvent' in replay;
@@ -142,9 +142,9 @@ export function TransactionCell({
       )}
     </SpanOperationBreakdown>
   ) : null;
-}
+};
 
-export function OSCell({replay}: Props) {
+export const OSCell = ({replay}: Props) => {
   const {name, version} = replay.os ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
@@ -157,9 +157,9 @@ export function OSCell({replay}: Props) {
       />
     </Item>
   );
-}
+};
 
-export function BrowserCell({replay}: Props) {
+export const BrowserCell = ({replay}: Props) => {
   const {name, version} = replay.browser ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
@@ -172,25 +172,25 @@ export function BrowserCell({replay}: Props) {
       />
     </Item>
   );
-}
+};
 
-export function DurationCell({replay}: Props) {
+export const DurationCell = ({replay}: Props) => {
   return (
     <Item>
       <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
     </Item>
   );
-}
+};
 
-export function ErrorCountCell({replay}: Props) {
+export const ErrorCountCell = ({replay}: Props) => {
   return (
     <Item data-test-id="replay-table-count-errors">
       <ErrorCount countErrors={replay.count_errors} />
     </Item>
   );
-}
+};
 
-export function ActivityCell({replay}: Props) {
+export const ActivityCell = ({replay}: Props) => {
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
     <Item>
@@ -202,7 +202,7 @@ export function ActivityCell({replay}: Props) {
       />
     </Item>
   );
-}
+};
 
 const Item = styled('div')`
   display: flex;

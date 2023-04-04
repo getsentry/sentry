@@ -44,7 +44,7 @@ interface WithDimensionChangeProps extends BaseProps {
 
 type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
-function BreadcrumbItem({
+const BreadcrumbItem = ({
   crumb,
   expandPaths,
   index,
@@ -56,7 +56,7 @@ function BreadcrumbItem({
   onMouseLeave,
   startTimestampMs,
   style,
-}: Props) {
+}: Props) => {
   const {title, description} = getDetails(crumb);
 
   const handleMouseEnter = useCallback(
@@ -124,7 +124,7 @@ function BreadcrumbItem({
       </CrumbDetails>
     </CrumbItem>
   );
-}
+};
 
 const InspectorWrapper = styled('div')`
   font-family: ${p => p.theme.text.familyMono};

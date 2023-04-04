@@ -31,13 +31,13 @@ export type Owner = {
   disabled?: boolean;
 };
 
-function ValueComponent({data, removeProps}: MultiValueProps<Owner>) {
+const ValueComponent = ({data, removeProps}: MultiValueProps<Owner>) => {
   return (
     <ValueWrapper onClick={removeProps.onClick}>
       <ActorAvatar actor={data.actor} size={28} />
     </ValueWrapper>
   );
-}
+};
 
 const getSearchKeyForUser = (user: User) =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;

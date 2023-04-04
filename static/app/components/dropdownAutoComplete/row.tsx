@@ -31,7 +31,7 @@ type Props<T extends Item> = Pick<
     style?: React.CSSProperties;
   };
 
-function Row<T extends Item>({
+const Row = <T extends Item>({
   item,
   style,
   itemSize,
@@ -39,7 +39,7 @@ function Row<T extends Item>({
   inputValue,
   getItemProps,
   registerVisibleItem,
-}: Props<T>) {
+}: Props<T>) => {
   const {index} = item;
 
   useEffect(() => registerVisibleItem(item.index, item), [registerVisibleItem, item]);
@@ -69,7 +69,7 @@ function Row<T extends Item>({
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
     </AutoCompleteItem>
   );
-}
+};
 
 // XXX(epurkhiser): We memoize the row component since there will be many of
 // them, we do not want them re-rendering every time we change the

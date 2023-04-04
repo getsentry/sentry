@@ -71,7 +71,7 @@ type Props = {
   withChart?: boolean;
 };
 
-function BaseGroupRow({
+const BaseGroupRow = ({
   id,
   organization,
   customStatsPeriod,
@@ -90,7 +90,7 @@ function BaseGroupRow({
   useTintRow = true,
   narrowGroups = false,
   showLastTriggered = false,
-}: Props) {
+}: Props) => {
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
 
@@ -476,7 +476,7 @@ function BaseGroupRow({
       )}
     </Wrapper>
   );
-}
+};
 
 const StreamGroup = withOrganization(BaseGroupRow);
 

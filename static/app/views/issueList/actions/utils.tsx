@@ -41,14 +41,14 @@ function getBulkConfirmMessage(action: string, queryCount: number) {
   );
 }
 
-function PerformanceIssueAlert({
+const PerformanceIssueAlert = ({
   allInQuerySelected,
   children,
 }: {
   allInQuerySelected: boolean;
   children: string;
   organization: Organization;
-}) {
+}) => {
   if (!allInQuerySelected) {
     return null;
   }
@@ -58,7 +58,7 @@ function PerformanceIssueAlert({
       {children}
     </Alert>
   );
-}
+};
 
 export function getConfirm({
   numIssues,

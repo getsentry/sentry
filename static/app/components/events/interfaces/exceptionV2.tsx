@@ -18,13 +18,13 @@ type Props = {
   hideGuide?: boolean;
 };
 
-export function ExceptionV2({
+export const ExceptionV2 = ({
   event,
   data,
   projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-}: Props) {
+}: Props) => {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
 
   /* in case there are threads in the event data, we don't render the
@@ -130,4 +130,4 @@ export function ExceptionV2({
       }
     </TraceEventDataSection>
   );
-}
+};

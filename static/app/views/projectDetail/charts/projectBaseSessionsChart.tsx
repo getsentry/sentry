@@ -49,7 +49,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectBaseSessionsChart({
+const ProjectBaseSessionsChart = ({
   title,
   organization,
   router,
@@ -60,7 +60,7 @@ function ProjectBaseSessionsChart({
   help,
   disablePrevious,
   query,
-}: Props) {
+}: Props) => {
   const theme = useTheme();
 
   const {projects, environments, datetime} = selection;
@@ -151,7 +151,7 @@ function ProjectBaseSessionsChart({
       })}
     </Fragment>
   );
-}
+};
 
 type ChartProps = {
   displayMode:

@@ -16,7 +16,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import Divider from './divider.styled';
 
-function OrganizationMenuItem({organization}: {organization: OrganizationSummary}) {
+const OrganizationMenuItem = ({organization}: {organization: OrganizationSummary}) => {
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
 
   const route = useResolveRoute(
@@ -35,9 +35,13 @@ function OrganizationMenuItem({organization}: {organization: OrganizationSummary
       <SidebarOrgSummary organization={organization} />
     </SidebarMenuItem>
   );
-}
+};
 
-function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boolean}) {
+const CreateOrganization = ({
+  canCreateOrganization,
+}: {
+  canCreateOrganization: boolean;
+}) => {
   const currentOrganization = useContext(OrganizationContext);
   const route = useResolveRoute('/organizations/new/');
 
@@ -66,7 +70,7 @@ function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boo
       </MenuItemLabelWithIcon>
     </SidebarMenuItem>
   );
-}
+};
 
 type Props = {
   canCreateOrganization: boolean;

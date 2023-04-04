@@ -41,7 +41,7 @@ type Props = Omit<
     registersMeta?: Record<string, any>;
   };
 
-function Line({
+const Line = ({
   frame,
   debugFrames,
   nextFrame,
@@ -64,7 +64,7 @@ function Line({
    */
   isHoverPreviewed = false,
   ...props
-}: Props) {
+}: Props) => {
   /* Prioritize the frame platform but fall back to the platform
    of the stack trace / exception */
   const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
@@ -167,7 +167,7 @@ function Line({
       />
     </StyleListItem>
   );
-}
+};
 
 export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
 

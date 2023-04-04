@@ -38,7 +38,7 @@ function getSuspectSpanPayload(props: RequestProps) {
   return {...payload, ...additionalPayload};
 }
 
-function SuspectSpansQuery(props: Props) {
+const SuspectSpansQuery = (props: Props) => {
   return (
     <GenericDiscoverQuery<SpanExample[], SpanExamplesProps>
       route="events-spans"
@@ -53,6 +53,6 @@ function SuspectSpansQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default SuspectSpansQuery;

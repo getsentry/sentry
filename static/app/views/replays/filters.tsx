@@ -12,7 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaySearchBar from 'sentry/views/replays/replaySearchBar';
 
-function ReplaysFilters() {
+const ReplaysFilters = () => {
   const {selection} = usePageFilters();
   const {pathname, query} = useLocation();
   const organization = useOrganization();
@@ -42,7 +42,7 @@ function ReplaysFilters() {
       />
     </FilterContainer>
   );
-}
+};
 
 const FilterContainer = styled('div')`
   display: inline-grid;

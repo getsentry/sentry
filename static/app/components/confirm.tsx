@@ -161,12 +161,12 @@ export const openConfirmModal = ({
  *
  * This is the declarative alternative to using openConfirmModal
  */
-function Confirm({
+const Confirm = ({
   disabled,
   children,
   stopPropagation = false,
   ...openConfirmOptions
-}: Props) {
+}: Props) => {
   const triggerModal = (e?: React.MouseEvent) => {
     if (stopPropagation) {
       e?.stopPropagation();
@@ -189,7 +189,7 @@ function Confirm({
 
   // TODO(ts): Understand why the return type of `cloneElement` is strange
   return cloneElement(children, {disabled, onClick: triggerModal}) as any;
-}
+};
 
 type ModalProps = ModalRenderProps &
   Pick<

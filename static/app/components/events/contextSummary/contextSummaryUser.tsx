@@ -27,7 +27,7 @@ type UserDetails = {
 
 type Props = ContextItemProps<EventUser, 'user'>;
 
-export function ContextSummaryUser({data, meta}: Props) {
+export const ContextSummaryUser = ({data, meta}: Props) => {
   const user = removeFilterMaskedEntries(data);
 
   if (Object.keys(user).length === 0) {
@@ -113,7 +113,7 @@ export function ContextSummaryUser({data, meta}: Props) {
           renderUserDetails('username')}
     </Item>
   );
-}
+};
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};

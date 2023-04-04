@@ -40,7 +40,7 @@ type Props = ModalRenderProps & {
   pageLinks?: string | null | undefined;
 };
 
-function Modal({
+const Modal = ({
   eventAttachment,
   orgSlug,
   projectSlug,
@@ -56,7 +56,7 @@ function Modal({
   attachments,
   enablePagination,
   groupId,
-}: Props) {
+}: Props) => {
   const api = useApi();
   const location = useLocation();
 
@@ -230,7 +230,7 @@ function Modal({
       </Footer>
     </Fragment>
   );
-}
+};
 
 export default Modal;
 

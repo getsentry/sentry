@@ -44,7 +44,7 @@ interface ProfileSummaryPageProps {
   selection: PageFilters;
 }
 
-function ProfileSummaryPage(props: ProfileSummaryPageProps) {
+const ProfileSummaryPage = (props: ProfileSummaryPageProps) => {
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
 
@@ -269,7 +269,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
-}
+};
 
 const ActionBar = styled('div')`
   display: grid;

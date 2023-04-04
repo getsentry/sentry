@@ -114,7 +114,7 @@ function renderReason(
   return t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
+const ResolutionBox = ({statusDetails, projectId, activities = []}: Props) => {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
@@ -123,7 +123,7 @@ function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
       </BannerSummary>
     </BannerContainer>
   );
-}
+};
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.gray300};

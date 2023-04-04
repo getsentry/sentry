@@ -28,7 +28,7 @@ interface Props {
   organization: Organization;
 }
 
-export function DurationChart({issue, event, organization}: Props) {
+export const DurationChart = ({issue, event, organization}: Props) => {
   const transactionNameTag = event.tags.find(tag => tag.key === 'transaction');
   const transactionName = transactionNameTag ? transactionNameTag.value : '';
 
@@ -103,7 +103,7 @@ export function DurationChart({issue, event, organization}: Props) {
       )}
     </EventsRequest>
   );
-}
+};
 
 interface ContentProps {
   affectedEvents: LineChartSeries[] | undefined;
@@ -112,7 +112,7 @@ interface ContentProps {
   loading: boolean;
 }
 
-function Content({affectedEvents, allEvents, errored, loading}: ContentProps) {
+const Content = ({affectedEvents, allEvents, errored, loading}: ContentProps) => {
   const theme = useTheme();
 
   if (!affectedEvents || affectedEvents.length === 0) {
@@ -172,4 +172,4 @@ function Content({affectedEvents, allEvents, errored, loading}: ContentProps) {
       }}
     />
   );
-}
+};

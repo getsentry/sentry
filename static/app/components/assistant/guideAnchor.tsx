@@ -253,12 +253,12 @@ type WrapperProps = Props & {
  * register with the GuideStore, which uses registrations from one or more
  * anchors on the page to determine which guides can be shown on the page.
  */
-function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
+const GuideAnchor = ({disabled, children, ...rest}: WrapperProps) => {
   if (disabled) {
     return <Fragment>{children}</Fragment>;
   }
   return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
-}
+};
 
 export default GuideAnchor;
 

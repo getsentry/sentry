@@ -61,7 +61,7 @@ type FrontendCardsProps = {
   frontendOnly?: boolean;
 };
 
-export function FrontendCards(props: FrontendCardsProps) {
+export const FrontendCards = (props: FrontendCardsProps) => {
   const {eventView, location, organization, projects, frontendOnly = false} = props;
 
   if (frontendOnly) {
@@ -123,7 +123,7 @@ export function FrontendCards(props: FrontendCardsProps) {
       }}
     </VitalsCardsDiscoverQuery>
   );
-}
+};
 
 const VitalBarContainer = styled('div')`
   margin-top: ${space(1.5)};
@@ -139,7 +139,7 @@ type GenericCardsProps = BaseCardsProps & {
   functions: Column[];
 };
 
-function GenericCards(props: GenericCardsProps) {
+const GenericCards = (props: GenericCardsProps) => {
   const api = useApi();
 
   const {eventView: baseEventView, location, organization, functions} = props;
@@ -244,7 +244,7 @@ function GenericCards(props: GenericCardsProps) {
       )}
     </DiscoverQuery>
   );
-}
+};
 
 function _BackendCards(props: BaseCardsProps) {
   const functions: Column[] = [
@@ -302,7 +302,7 @@ type SparklineChartProps = {
   data: number[];
 };
 
-function SparklineChart(props: SparklineChartProps) {
+const SparklineChart = (props: SparklineChartProps) => {
   const {data} = props;
   const width = 150;
   const height = 24;
@@ -314,7 +314,7 @@ function SparklineChart(props: SparklineChartProps) {
       </Sparklines>
     </SparklineContainer>
   );
-}
+};
 
 type SparklineContainerProps = {
   height: number;
@@ -357,7 +357,7 @@ type VitalBarProps = {
   value?: string;
 };
 
-export function VitalBar(props: VitalBarProps) {
+export const VitalBar = (props: VitalBarProps) => {
   const {
     isLoading,
     data,
@@ -445,7 +445,7 @@ export function VitalBar(props: VitalBarProps) {
       )}
     </Fragment>
   );
-}
+};
 
 const EmptyVitalBar = styled(EmptyStateWarning)`
   height: 48px;
@@ -462,7 +462,7 @@ type VitalCardProps = {
   minHeight?: number;
 };
 
-function VitalCard(props: VitalCardProps) {
+const VitalCard = (props: VitalCardProps) => {
   const {chart, minHeight, horizontal, title, tooltip, value, isNotInteractive} = props;
   return (
     <StyledCard interactive={!isNotInteractive} minHeight={minHeight}>
@@ -476,7 +476,7 @@ function VitalCard(props: VitalCardProps) {
       </CardContent>
     </StyledCard>
   );
-}
+};
 
 const CardContent = styled('div')<{horizontal?: boolean}>`
   width: 100%;

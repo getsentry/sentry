@@ -54,7 +54,7 @@ function useVideoSizeLogger({
   }, [organization, windowDimensions, videoDimensions, didLog]);
 }
 
-function BasePlayerRoot({className, isPreview = false}: Props) {
+const BasePlayerRoot = ({className, isPreview = false}: Props) => {
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
@@ -122,7 +122,7 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
       {isFetching ? <PositionedLoadingIndicator /> : null}
     </SizingWindow>
   );
-}
+};
 
 // Center the viewEl inside the windowEl.
 // This is useful when the window is inside a container that has large fixed

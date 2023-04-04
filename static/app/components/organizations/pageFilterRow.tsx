@@ -26,14 +26,14 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   renderCheckbox?: (options: CheckboxRenderOptions) => React.ReactNode;
 }
 
-function PageFilterRow({
+const PageFilterRow = ({
   checked,
   onSelectedChange,
   children,
   multi = true,
   renderCheckbox = defaultRenderCheckbox,
   ...props
-}: Props) {
+}: Props) => {
   const rowId = useMemo(() => domId('page_filter_row'), []);
 
   const checkbox = (
@@ -55,7 +55,7 @@ function PageFilterRow({
       <CheckboxContainer>{renderCheckbox({checkbox, checked})}</CheckboxContainer>
     </Container>
   );
-}
+};
 
 const checkboxInputStyles = css`
   /* Make the hitbox of the checkbox a bit larger */

@@ -15,7 +15,12 @@ type Props = {
   isHoverPreviewed?: boolean;
 };
 
-function Expander({isExpandable, isHoverPreviewed, isExpanded, onToggleContext}: Props) {
+const Expander = ({
+  isExpandable,
+  isHoverPreviewed,
+  isExpanded,
+  onToggleContext,
+}: Props) => {
   if (!isExpandable) {
     return null;
   }
@@ -31,7 +36,7 @@ function Expander({isExpandable, isHoverPreviewed, isExpanded, onToggleContext}:
       <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
     </StyledButton>
   );
-}
+};
 
 export default Expander;
 

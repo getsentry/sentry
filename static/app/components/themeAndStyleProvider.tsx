@@ -27,7 +27,7 @@ cache.compat = true;
  *
  * Also injects the sentry GlobalStyles .
  */
-function ThemeAndStyleProvider({children}: Props) {
+const ThemeAndStyleProvider = ({children}: Props) => {
   useEffect(() => void loadPreferencesState(), []);
 
   const config = useLegacyStore(ConfigStore);
@@ -46,6 +46,6 @@ function ThemeAndStyleProvider({children}: Props) {
       )}
     </ThemeProvider>
   );
-}
+};
 
 export default ThemeAndStyleProvider;

@@ -9,7 +9,7 @@ interface CardProps {
   widget: WidgetTemplate;
 }
 
-export function Card({widget, iconColor}: CardProps) {
+export const Card = ({widget, iconColor}: CardProps) => {
   const {title, description, displayType} = widget;
   const Icon = getWidgetIcon(displayType);
 
@@ -24,7 +24,7 @@ export function Card({widget, iconColor}: CardProps) {
       </Information>
     </Container>
   );
-}
+};
 
 const Container = styled('div')`
   display: flex;

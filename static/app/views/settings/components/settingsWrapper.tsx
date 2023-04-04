@@ -13,7 +13,7 @@ function scrollDisable(newLocation: Location, prevLocation: Location) {
   return newLocation.pathname === prevLocation.pathname;
 }
 
-function SettingsWrapper({location, children}: Props) {
+const SettingsWrapper = ({location, children}: Props) => {
   useScrollToTop({location, disable: scrollDisable});
 
   return (
@@ -21,7 +21,7 @@ function SettingsWrapper({location, children}: Props) {
       <BreadcrumbProvider>{children}</BreadcrumbProvider>
     </StyledSettingsWrapper>
   );
-}
+};
 
 export default SettingsWrapper;
 

@@ -54,7 +54,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   initialData?: InitialData;
 };
 
-function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
+const Http = ({Header, Body, Footer, onSubmit, ...props}: Props) => {
   const initialData: Data = {
     id: props.initialData?.id ?? uniqueId(),
     name: props.initialData?.name,
@@ -252,7 +252,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
       </Footer>
     </Fragment>
   );
-}
+};
 
 export default Http;
 

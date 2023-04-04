@@ -30,7 +30,7 @@ type Props = {
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
-function ColumnEditModal(props: Props) {
+const ColumnEditModal = (props: Props) => {
   const {
     Header,
     Body,
@@ -117,7 +117,7 @@ function ColumnEditModal(props: Props) {
       </Footer>
     </Fragment>
   );
-}
+};
 
 const Instruction = styled('div')`
   margin-bottom: ${space(4)};

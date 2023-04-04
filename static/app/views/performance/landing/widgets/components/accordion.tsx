@@ -33,7 +33,7 @@ export default function Accordion({expandedIndex, setExpandedIndex, items}: Prop
   );
 }
 
-function AccordionItem({
+const AccordionItem = ({
   isExpanded,
   currentIndex: index,
   children,
@@ -45,7 +45,7 @@ function AccordionItem({
   currentIndex: number;
   isExpanded: boolean;
   setExpandedIndex: (index: number) => void;
-}) {
+}) => {
   return (
     <StyledLineItem>
       <ListItemContainer>
@@ -60,7 +60,7 @@ function AccordionItem({
       <StyledContentContainer>{isExpanded && content}</StyledContentContainer>
     </StyledLineItem>
   );
-}
+};
 
 const StyledLineItem = styled('li')`
   line-height: ${p => p.theme.text.lineHeightBody};

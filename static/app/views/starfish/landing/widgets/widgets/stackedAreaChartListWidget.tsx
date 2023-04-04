@@ -29,7 +29,7 @@ type DataType = {
   overall: WidgetDataResult & ReturnType<typeof transformDiscoverToSingleValue>;
 };
 
-export function StackedAreaWidget(props: PerformanceWidgetProps) {
+export const StackedAreaWidget = (props: PerformanceWidgetProps) => {
   const location = useLocation();
   const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
@@ -168,7 +168,7 @@ export function StackedAreaWidget(props: PerformanceWidgetProps) {
       ]}
     />
   );
-}
+};
 
 const EventsRequest = withApi(_EventsRequest);
 export const Subtitle = styled('span')`

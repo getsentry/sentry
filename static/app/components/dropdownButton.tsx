@@ -24,7 +24,7 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
   showChevron?: boolean;
 }
 
-function DropdownButton({
+const DropdownButton = ({
   children,
   prefix,
   isOpen = false,
@@ -32,7 +32,7 @@ function DropdownButton({
   disabled = false,
   forwardedRef,
   ...props
-}: DropdownButtonProps) {
+}: DropdownButtonProps) => {
   return (
     <StyledButton
       aria-haspopup="true"
@@ -52,7 +52,7 @@ function DropdownButton({
       )}
     </StyledButton>
   );
-}
+};
 
 const ChevronWrap = styled('div')`
   display: flex;

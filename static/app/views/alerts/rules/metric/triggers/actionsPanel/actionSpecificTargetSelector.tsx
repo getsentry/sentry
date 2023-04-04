@@ -8,7 +8,7 @@ type Props = {
   onChange: (value: string) => void;
 };
 
-function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
+const ActionSpecificTargetSelector = ({action, disabled, onChange}: Props) => {
   const handleChangeSpecificTargetIdentifier = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -29,6 +29,6 @@ function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
       placeholder={t('optional: channel ID or user ID')}
     />
   );
-}
+};
 
 export default ActionSpecificTargetSelector;

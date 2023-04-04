@@ -2,9 +2,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PipelineView from 'sentry/views/integrationPipeline/pipelineView';
 
-function MockAwsLambdaProjectSelect() {
+const MockAwsLambdaProjectSelect = () => {
   return <div>mock_AwsLambdaProjectSelect</div>;
-}
+};
 
 jest.mock(
   'sentry/views/integrationPipeline/awsLambdaProjectSelect',

@@ -36,7 +36,7 @@ type PerformanceCardTableProps = {
   thisReleaseTableData: TableData | null;
 };
 
-function PerformanceCardTable({
+const PerformanceCardTable = ({
   organization,
   location,
   project,
@@ -45,7 +45,7 @@ function PerformanceCardTable({
   thisReleaseTableData,
   performanceType,
   isLoading,
-}: PerformanceCardTableProps) {
+}: PerformanceCardTableProps) => {
   const miseryRenderer =
     allReleasesTableData?.meta &&
     getFieldRenderer('user_misery()', allReleasesTableData.meta, false);
@@ -676,7 +676,7 @@ function PerformanceCardTable({
       </StyledPanelTable>
     </Fragment>
   );
-}
+};
 
 interface Props extends AsyncComponentProps {
   allReleasesEventView: EventView;
@@ -687,14 +687,14 @@ interface Props extends AsyncComponentProps {
   releaseEventView: EventView;
 }
 
-function PerformanceCardTableWrapper({
+const PerformanceCardTableWrapper = ({
   organization,
   project,
   allReleasesEventView,
   releaseEventView,
   performanceType,
   location,
-}: Props) {
+}: Props) => {
   return (
     <DiscoverQuery
       eventView={allReleasesEventView}
@@ -724,7 +724,7 @@ function PerformanceCardTableWrapper({
       )}
     </DiscoverQuery>
   );
-}
+};
 
 export default PerformanceCardTableWrapper;
 

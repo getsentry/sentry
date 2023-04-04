@@ -19,7 +19,7 @@ import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
-function ReplaysList() {
+const ReplaysList = () => {
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
 
@@ -53,9 +53,9 @@ function ReplaysList() {
   ) : (
     <ReplayOnboardingPanel />
   );
-}
+};
 
-function ReplaysListTable({
+const ReplaysListTable = ({
   eventView,
   location,
   organization,
@@ -63,7 +63,7 @@ function ReplaysListTable({
   eventView: EventView;
   location: Location;
   organization: Organization;
-}) {
+}) => {
   const {replays, pageLinks, isFetching, fetchError} = useReplayList({
     eventView,
     location,
@@ -101,6 +101,6 @@ function ReplaysListTable({
       />
     </Fragment>
   );
-}
+};
 
 export default ReplaysList;

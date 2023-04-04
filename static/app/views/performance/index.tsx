@@ -19,7 +19,7 @@ type Props = {
 
 const queryClient = new QueryClient();
 
-function PerformanceContainer({organization, location, children}: Props) {
+const PerformanceContainer = ({organization, location, children}: Props) => {
   function renderNoAccess() {
     return (
       <Layout.Page withPadding>
@@ -44,6 +44,6 @@ function PerformanceContainer({organization, location, children}: Props) {
       </NoProjectMessage>
     </Feature>
   );
-}
+};
 
 export default withOrganization(PerformanceContainer);

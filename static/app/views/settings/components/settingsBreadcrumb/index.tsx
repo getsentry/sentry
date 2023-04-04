@@ -26,7 +26,7 @@ type Props = {
   className?: string;
 };
 
-function SettingsBreadcrumb({className, routes, params}: Props) {
+const SettingsBreadcrumb = ({className, routes, params}: Props) => {
   const pathMap = useBreadcrumbsPathmap();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
@@ -66,7 +66,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
       })}
     </Breadcrumbs>
   );
-}
+};
 
 export default SettingsBreadcrumb;
 

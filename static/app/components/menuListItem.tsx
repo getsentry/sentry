@@ -96,7 +96,7 @@ interface Props extends MenuListItemProps, OtherProps {
   forwardRef: React.ForwardedRef<HTMLLIElement>;
 }
 
-function BaseMenuListItem({
+const BaseMenuListItem = ({
   label,
   details,
   as = 'li',
@@ -118,7 +118,7 @@ function BaseMenuListItem({
   tooltipOptions = {delay: 500},
   forwardRef,
   ...props
-}: Props) {
+}: Props) => {
   const labelId = useMemo(() => domId('menuitem-label-'), []);
   const detailId = useMemo(() => domId('menuitem-details-'), []);
 
@@ -192,7 +192,7 @@ function BaseMenuListItem({
       </Tooltip>
     </MenuItemWrap>
   );
-}
+};
 
 const MenuListItem = memo(
   reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>((props, ref) => (

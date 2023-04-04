@@ -32,7 +32,7 @@ type StyledLinkProps = DefaultProps &
   Partial<Pick<LinkProps, 'to'>> &
   Omit<LinkProps, 'to' | 'size'>;
 
-function AlertLink({
+const AlertLink = ({
   size = 'normal',
   priority = 'warning',
   icon,
@@ -43,7 +43,7 @@ function AlertLink({
   to,
   href,
   ['data-test-id']: dataTestId,
-}: Props) {
+}: Props) => {
   return (
     <StyledLink
       data-test-id={dataTestId}
@@ -62,7 +62,7 @@ function AlertLink({
       </IconLink>
     </StyledLink>
   );
-}
+};
 
 export default AlertLink;
 

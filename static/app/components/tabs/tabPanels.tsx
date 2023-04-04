@@ -20,7 +20,7 @@ interface TabPanelsProps extends AriaTabPanelProps, CollectionBase<any> {
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function TabPanels(props: TabPanelsProps) {
+export const TabPanels = (props: TabPanelsProps) => {
   const {
     rootProps: {orientation, items},
     tabListState,
@@ -48,7 +48,7 @@ export function TabPanels(props: TabPanelsProps) {
       {selectedPanel?.props.children}
     </TabPanel>
   );
-}
+};
 
 TabPanels.Item = Item;
 
@@ -59,7 +59,7 @@ interface TabPanelProps extends AriaTabPanelProps {
   className?: string;
 }
 
-function TabPanel({state, orientation, className, children, ...props}: TabPanelProps) {
+const TabPanel = ({state, orientation, className, children, ...props}: TabPanelProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const {tabPanelProps} = useTabPanel(props, state, ref);
 
@@ -73,7 +73,7 @@ function TabPanel({state, orientation, className, children, ...props}: TabPanelP
       {children}
     </TabPanelWrap>
   );
-}
+};
 
 const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
   orientation: Orientation;

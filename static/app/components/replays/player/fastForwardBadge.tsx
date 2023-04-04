@@ -10,7 +10,7 @@ type Props = {
   className?: string;
 };
 
-function FastForwardBadge({speed, className}: Props) {
+const FastForwardBadge = ({speed, className}: Props) => {
   return (
     <Badge className={className}>
       <FastForwardTooltip title={t('Fast forwarding at %sx', speed)}>
@@ -19,7 +19,7 @@ function FastForwardBadge({speed, className}: Props) {
       </FastForwardTooltip>
     </Badge>
   );
-}
+};
 
 /* Position the badge in the corner */
 const Badge = styled('div')`

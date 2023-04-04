@@ -34,7 +34,7 @@ interface ProfileHeaderProps {
   transaction: Event | null;
 }
 
-function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
+const ProfileHeader = ({transaction, projectId, eventId}: ProfileHeaderProps) => {
   const location = useLocation();
   const organization = useOrganization();
   const profiles = useProfiles();
@@ -94,7 +94,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
       </Layout.HeaderActions>
     </SmallerLayoutHeader>
   );
-}
+};
 
 const SmallerHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: ${space(1.5)};

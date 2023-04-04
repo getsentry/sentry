@@ -19,14 +19,14 @@ interface Props {
   queryErrors?: Record<string, any>[];
 }
 
-export function YAxisStep({
+export const YAxisStep = ({
   displayType,
   queryErrors,
   aggregates,
   onYAxisChange,
   tags,
   widgetType,
-}: Props) {
+}: Props) => {
   return (
     <BuildStep
       title={
@@ -52,4 +52,4 @@ export function YAxisStep({
       />
     </BuildStep>
   );
-}
+};

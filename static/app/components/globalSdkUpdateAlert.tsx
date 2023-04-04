@@ -22,9 +22,9 @@ interface InnerGlobalSdkSuggestionsProps extends AlertProps {
   sdkUpdates?: ProjectSdkUpdates[] | null;
 }
 
-function InnerGlobalSdkUpdateAlert(
+const InnerGlobalSdkUpdateAlert = (
   props: InnerGlobalSdkSuggestionsProps
-): React.ReactElement | null {
+): React.ReactElement | null => {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -113,7 +113,7 @@ function InnerGlobalSdkUpdateAlert(
       )}
     </Alert>
   );
-}
+};
 
 const GlobalSdkUpdateAlert = withSdkUpdates(InnerGlobalSdkUpdateAlert);
 

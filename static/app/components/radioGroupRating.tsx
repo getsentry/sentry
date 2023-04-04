@@ -34,13 +34,13 @@ export type RadioGroupRatingProps = Omit<FieldGroupProps, 'children'> & {
 
 // Used to provide insights regarding opinions and experiences.
 // Currently limited to numeric options only, but can be updated to meet other needs.
-export function RadioGroupRating({
+export const RadioGroupRating = ({
   options,
   name,
   onChange,
   defaultValue,
   ...fieldProps
-}: RadioGroupRatingProps) {
+}: RadioGroupRatingProps) => {
   const [selectedOption, setSelectedOption] = useState(defaultValue);
 
   const handleClickedOption = useCallback(
@@ -71,7 +71,7 @@ export function RadioGroupRating({
       </Wrapper>
     </FieldGroup>
   );
-}
+};
 
 const HiddenInput = styled('input')`
   display: none;

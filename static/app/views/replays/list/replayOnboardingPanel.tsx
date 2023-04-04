@@ -136,11 +136,11 @@ interface SetupReplaysCTAProps {
   disabled?: boolean;
 }
 
-export function SetupReplaysCTA({
+export const SetupReplaysCTA = ({
   disabled,
   primaryAction = 'setup',
   orgSlug,
-}: SetupReplaysCTAProps) {
+}: SetupReplaysCTAProps) => {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   function renderCTA() {
@@ -206,7 +206,7 @@ export function SetupReplaysCTA({
       </ButtonList>
     </Fragment>
   );
-}
+};
 
 const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
   @media (min-width: ${p => p.breakpoints.small}) {

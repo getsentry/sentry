@@ -13,9 +13,9 @@ interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;
 }
 
-function FlamegraphOptionsMenu({
+const FlamegraphOptionsMenu = ({
   canvasPoolManager,
-}: FlamegraphOptionsMenuProps): React.ReactElement {
+}: FlamegraphOptionsMenuProps): React.ReactElement => {
   const {colorCoding} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
@@ -45,7 +45,7 @@ function FlamegraphOptionsMenu({
       />
     </Fragment>
   );
-}
+};
 
 const colorCodingOptions: SelectOption<FlamegraphPreferences['colorCoding']>[] = [
   {value: 'by system vs application frame', label: t('By System vs Application Frame')},

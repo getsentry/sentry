@@ -35,7 +35,7 @@ const {
   },
 });
 
-function TestComponent(props: {router?: InjectedRouter} = {}) {
+const TestComponent = (props: {router?: InjectedRouter} = {}) => {
   return (
     <VitalDetail
       api={api}
@@ -47,7 +47,7 @@ function TestComponent(props: {router?: InjectedRouter} = {}) {
       routeParams={{}}
     />
   );
-}
+};
 
 const testSupportedBrowserRendering = (webVital: WebVital) => {
   Object.values(Browser).forEach(browser => {

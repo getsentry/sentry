@@ -141,13 +141,13 @@ export function getAssignedToDisplayName(group: Group) {
   return group.assignedTo?.name ?? t('No one');
 }
 
-function AssignedTo({
+const AssignedTo = ({
   group,
   project,
   event,
   onAssign,
   disableDropdown = false,
-}: AssignedToProps) {
+}: AssignedToProps) => {
   const organization = useOrganization();
   const api = useApi();
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
@@ -261,7 +261,7 @@ function AssignedTo({
       </StyledSidebarSectionContent>
     </SidebarSection.Wrap>
   );
-}
+};
 
 export default AssignedTo;
 

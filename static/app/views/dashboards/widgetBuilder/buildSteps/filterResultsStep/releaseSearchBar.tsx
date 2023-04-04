@@ -28,12 +28,12 @@ interface Props {
   widgetQuery: WidgetQuery;
 }
 
-export function ReleaseSearchBar({
+export const ReleaseSearchBar = ({
   organization,
   pageFilters,
   widgetQuery,
   onClose,
-}: Props) {
+}: Props) => {
   const orgSlug = organization.slug;
   const projectIds = pageFilters.projects;
 
@@ -98,7 +98,7 @@ export function ReleaseSearchBar({
       )}
     </ClassNames>
   );
-}
+};
 
 const SearchBar = styled(SmartSearchBar)`
   flex-grow: 1;

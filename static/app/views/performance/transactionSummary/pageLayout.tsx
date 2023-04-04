@@ -76,7 +76,7 @@ type Props = {
   features?: string[];
 };
 
-function PageLayout(props: Props) {
+const PageLayout = (props: Props) => {
   const {
     location,
     organization,
@@ -226,11 +226,11 @@ function PageLayout(props: Props) {
       </Feature>
     </SentryDocumentTitle>
   );
-}
+};
 
-export function NoAccess() {
+export const NoAccess = () => {
   return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
-}
+};
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;

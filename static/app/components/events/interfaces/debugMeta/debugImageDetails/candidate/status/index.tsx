@@ -8,7 +8,7 @@ type Props = {
   status: CandidateDownloadStatus;
 };
 
-function Status({status, ...props}: Props) {
+const Status = ({status, ...props}: Props) => {
   switch (status) {
     case CandidateDownloadStatus.OK: {
       return (
@@ -57,6 +57,6 @@ function Status({status, ...props}: Props) {
       return <Tag {...props}>{t('Unknown')}</Tag>; // This shall not happen
     }
   }
-}
+};
 
 export default Status;

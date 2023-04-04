@@ -39,7 +39,7 @@ function getHasMeasurementsRequestPayload(props: RequestProps) {
   return Object.assign(baseApiPayload, additionalApiPayload);
 }
 
-function HasMeasurementsQuery(props: Props) {
+const HasMeasurementsQuery = (props: Props) => {
   return (
     <GenericDiscoverQuery<HasMeasurements, HasMeasurementsProps>
       route="events-has-measurements"
@@ -54,6 +54,6 @@ function HasMeasurementsQuery(props: Props) {
       }}
     </GenericDiscoverQuery>
   );
-}
+};
 
 export default HasMeasurementsQuery;

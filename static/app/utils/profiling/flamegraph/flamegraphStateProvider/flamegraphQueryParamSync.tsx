@@ -169,7 +169,7 @@ function maybeOmitHighlightedFrame(query: Query, state: FlamegraphState) {
   return query;
 }
 
-export function FlamegraphStateQueryParamSync() {
+export const FlamegraphStateQueryParamSync = () => {
   const location = useLocation();
   const [state] = useFlamegraphState();
 
@@ -186,10 +186,10 @@ export function FlamegraphStateQueryParamSync() {
   }, [state]);
 
   return null;
-}
+};
 
 export const FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY = 'flamegraph-preferences';
-export function FlamegraphStateLocalStorageSync() {
+export const FlamegraphStateLocalStorageSync = () => {
   const [state] = useFlamegraphState();
   const [_, setState] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
@@ -224,4 +224,4 @@ export function FlamegraphStateLocalStorageSync() {
   ]);
 
   return null;
-}
+};

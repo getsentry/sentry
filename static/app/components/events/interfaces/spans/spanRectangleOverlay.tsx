@@ -9,7 +9,7 @@ import {
 import {EnhancedSpan} from './types';
 import {getSpanGroupTimestamps, SpanViewBoundsType} from './utils';
 
-export function SpanRectangleOverlay({
+export const SpanRectangleOverlay = ({
   bounds,
   spanGrouping,
   spanBarType,
@@ -17,7 +17,7 @@ export function SpanRectangleOverlay({
   bounds: SpanViewBoundsType;
   spanGrouping: EnhancedSpan[];
   spanBarType?: SpanBarType;
-}) {
+}) => {
   const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGrouping);
   const duration = Math.abs(endTimestamp - startTimestamp);
   const durationDisplay = getDurationDisplay(bounds);
@@ -39,4 +39,4 @@ export function SpanRectangleOverlay({
       </DurationPill>
     </RowRectangle>
   );
-}
+};

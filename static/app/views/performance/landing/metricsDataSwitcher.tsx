@@ -30,7 +30,7 @@ interface MetricDataSwitchProps {
  * It is primarily needed for the rollout during which time users, despite having the flag enabled,
  * may or may not have sampling rules, compatible sdk's etc. This can be simplified post rollout.
  */
-export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
+export const MetricsDataSwitcher = (props: MetricDataSwitchProps) => {
   const isUsingMetrics = canUseMetricsData(props.organization);
   const metricsCardinality = useMetricsCardinalityContext();
 
@@ -74,7 +74,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
       />
     </Fragment>
   );
-}
+};
 
 interface SwitcherHandlerProps {
   eventView: EventView;
@@ -83,12 +83,12 @@ interface SwitcherHandlerProps {
   switcherChildren: MetricDataSwitchProps['children'];
 }
 
-function MetricsSwitchHandler({
+const MetricsSwitchHandler = ({
   switcherChildren,
   outcome,
   location,
   eventView,
-}: SwitcherHandlerProps) {
+}: SwitcherHandlerProps) => {
   const {query} = location;
   const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
   const hasQuery = decodeScalar(query.query, '');
@@ -116,7 +116,7 @@ function MetricsSwitchHandler({
   }
 
   return <Fragment>{switcherChildren(outcome)}</Fragment>;
-}
+};
 
 const LoadingContainer = styled('div')`
   display: flex;

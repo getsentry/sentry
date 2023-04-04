@@ -8,7 +8,7 @@ type DiscoverButtonProps = Omit<ButtonProps, 'aria-label'>;
  * Provide a button that turns itself off if the current organization
  * doesn't have access to discover results.
  */
-function DiscoverButton({children, ...buttonProps}: DiscoverButtonProps) {
+const DiscoverButton = ({children, ...buttonProps}: DiscoverButtonProps) => {
   return (
     <DiscoverFeature>
       {({hasFeature}) => (
@@ -22,6 +22,6 @@ function DiscoverButton({children, ...buttonProps}: DiscoverButtonProps) {
       )}
     </DiscoverFeature>
   );
-}
+};
 
 export default DiscoverButton;

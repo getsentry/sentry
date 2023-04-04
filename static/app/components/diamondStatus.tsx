@@ -18,14 +18,14 @@ interface DiamondStatusProps extends React.HTMLAttributes<HTMLDivElement> {
 /**
  * A status indicator that renders a icon within a diamond
  */
-function DiamondStatus({color, icon: Icon, ...props}: DiamondStatusProps) {
+const DiamondStatus = ({color, icon: Icon, ...props}: DiamondStatusProps) => {
   return (
     <StatusWrapper role="presentation" color={color} {...props}>
       <DiamondBackground color={color} />
       <Icon color="white" />
     </StatusWrapper>
   );
-}
+};
 
 export {DiamondStatus};
 

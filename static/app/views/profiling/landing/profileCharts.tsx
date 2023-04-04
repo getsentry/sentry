@@ -27,12 +27,12 @@ interface ProfileChartsProps {
 // cover it up.
 const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
-export function ProfileCharts({
+export const ProfileCharts = ({
   query,
   selection,
   hideCount,
   compact = false,
-}: ProfileChartsProps) {
+}: ProfileChartsProps) => {
   const router = useRouter();
   const theme = useTheme();
 
@@ -186,7 +186,7 @@ export function ProfileCharts({
       )}
     </ChartZoom>
   );
-}
+};
 
 const StyledPanel = styled(Panel)`
   padding-top: ${space(2)};

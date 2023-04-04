@@ -24,7 +24,7 @@ type Props = {
   projectsLoaded: boolean;
 };
 
-function AlertListRow({incident, projectsLoaded, projects, organization}: Props) {
+const AlertListRow = ({incident, projectsLoaded, projects, organization}: Props) => {
   const slug = incident.projects[0];
   const started = moment(incident.dateStarted);
   const duration = moment
@@ -85,7 +85,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
       </FlexCenter>
     </ErrorBoundary>
   );
-}
+};
 
 const Title = styled('div')`
   ${p => p.theme.overflowEllipsis}

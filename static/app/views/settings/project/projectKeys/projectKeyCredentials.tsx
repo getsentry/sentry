@@ -23,7 +23,7 @@ type Props = {
   showUnreal?: boolean;
 };
 
-function ProjectKeyCredentials({
+const ProjectKeyCredentials = ({
   data,
   projectId,
   showDsn = true,
@@ -34,7 +34,7 @@ function ProjectKeyCredentials({
   showSecretKey = false,
   showSecurityEndpoint = true,
   showUnreal = true,
-}: Props) {
+}: Props) => {
   const [showDeprecatedDsn, setShowDeprecatedDsn] = useState(false);
 
   return (
@@ -190,7 +190,7 @@ function ProjectKeyCredentials({
       )}
     </Fragment>
   );
-}
+};
 
 const StyledField = styled(FieldGroup)`
   padding: ${space(0.5)} 0 0 0;

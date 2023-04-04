@@ -154,7 +154,7 @@ const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
 
 const noopFormatDuration = () => '';
 
-function Flamegraph(): ReactElement {
+const Flamegraph = (): ReactElement => {
   const organization = useOrganization();
   const devicePixelRatio = useDevicePixelRatio();
   const profiledTransaction = useProfileTransaction();
@@ -917,6 +917,6 @@ function Flamegraph(): ReactElement {
       />
     </Fragment>
   );
-}
+};
 
 export {Flamegraph};

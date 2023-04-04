@@ -16,7 +16,7 @@ type Props = React.ComponentProps<typeof selectComponents.Option>;
 // "Option".
 MenuListItem.displayName = 'Option';
 
-function SelectOption(props: Props) {
+const SelectOption = (props: Props) => {
   const {
     label,
     data,
@@ -79,7 +79,7 @@ function SelectOption(props: Props) {
       )}
     </ClassNames>
   );
-}
+};
 
 export default SelectOption;
 

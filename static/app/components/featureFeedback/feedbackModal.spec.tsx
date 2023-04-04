@@ -22,7 +22,7 @@ import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {TextField} from 'sentry/components/forms';
 import {RouteContext} from 'sentry/views/routeContext';
 
-function ComponentProviders({children}: {children: React.ReactNode}) {
+const ComponentProviders = ({children}: {children: React.ReactNode}) => {
   const {router} = initializeOrg();
 
   return (
@@ -37,7 +37,7 @@ function ComponentProviders({children}: {children: React.ReactNode}) {
       {children}
     </RouteContext.Provider>
   );
-}
+};
 
 describe('FeatureFeedback', function () {
   describe('default', function () {

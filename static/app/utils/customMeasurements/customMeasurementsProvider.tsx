@@ -47,11 +47,11 @@ type CustomMeasurementsProviderProps = {
   selection?: PageFilters;
 };
 
-export function CustomMeasurementsProvider({
+export const CustomMeasurementsProvider = ({
   children,
   organization,
   selection,
-}: CustomMeasurementsProviderProps) {
+}: CustomMeasurementsProviderProps) => {
   const api = useApi();
   const [state, setState] = useState({customMeasurements: {}});
 
@@ -105,4 +105,4 @@ export function CustomMeasurementsProvider({
       {typeof children === 'function' ? children(state) : children}
     </CustomMeasurementsContext.Provider>
   );
-}
+};

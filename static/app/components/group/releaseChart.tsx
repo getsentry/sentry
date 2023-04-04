@@ -120,7 +120,7 @@ export function getGroupReleaseChartMarkers(
   };
 }
 
-function GroupReleaseChart(props: Props) {
+const GroupReleaseChart = (props: Props) => {
   const {
     group,
     lastSeen,
@@ -198,7 +198,7 @@ function GroupReleaseChart(props: Props) {
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-}
+};
 
 const EventNumber = styled('div')`
   line-height: 1;

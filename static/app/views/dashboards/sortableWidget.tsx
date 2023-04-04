@@ -22,7 +22,7 @@ type Props = {
   windowWidth?: number;
 };
 
-function SortableWidget(props: Props) {
+const SortableWidget = (props: Props) => {
   const {
     widget,
     isEditing,
@@ -65,7 +65,7 @@ function SortableWidget(props: Props) {
       <WidgetCard {...widgetProps} />
     </GridWidgetWrapper>
   );
-}
+};
 
 export default SortableWidget;
 
