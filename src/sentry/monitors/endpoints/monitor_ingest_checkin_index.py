@@ -29,6 +29,7 @@ from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.utils import signal_first_checkin
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.signals import first_cron_monitor_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
@@ -145,6 +146,10 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                         "config": monitor_data["config"],
                     },
                 )
+                if not project.flags.has_cron_monitors:
+                    first_cron_monitor_created.send_robust(
+                        project=project, user=request.user, sender=Project
+                    )
 
             # Monitor does not exist and we have not created one
             if not monitor:
