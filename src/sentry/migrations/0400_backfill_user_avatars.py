@@ -9,16 +9,16 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def backfill_user_avatar(apps, schema_editor):
     User = apps.get_model("sentry", "User")
-    # UserAvatar = apps.get_model("sentry", "UserAvagtar")
 
-    for user in RangeQuerySetWrapperWithProgressBar(User.objects.all()):
+    for user in RangeQuerySetWrapperWithProgressBar(User.objects.prefetch_related("avatar").all()):
         avatar = user.avatar.first()
         if avatar is None:
             continue
         user.avatar_type = avatar.avatar_type
+        # type 1 = uploaded file.
         if avatar.avatar_type == 1:
             user.avatar_url = f"{generate_region_url()}/avatar/{avatar.ident}/"
-        user.save()
+        user.save(update_fields=["avatar_url", "avatar_type"])
 
 
 class Migration(CheckedMigration):
