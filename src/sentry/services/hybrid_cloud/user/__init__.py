@@ -50,7 +50,7 @@ class RpcUser(RpcModel):
     email: str = ""
     emails: FrozenSet[str] = frozenset()
     username: str = ""
-    actor_id: int = -1
+    actor_id: Optional[int] = None
     display_name: str = ""
     label: str = ""
     is_superuser: bool = False
