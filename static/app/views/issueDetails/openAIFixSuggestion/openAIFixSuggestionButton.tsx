@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import {Group} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 type Props = {
@@ -25,14 +26,17 @@ export function OpenAIFixSuggestionButton({
 }: Props) {
   const organization = useOrganization();
   const router = useRouter();
+  const groupLink = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${groupId}/`
+  );
 
   const handleShowAISuggestion = useCallback(() => {
     onClick();
     router.push({
-      pathname: `/issues/${groupId}/`,
+      pathname: groupLink,
       query: {...router.location.query, showSuggestedFix: true},
     });
-  }, [router, groupId, onClick]);
+  }, [router, groupLink, onClick]);
 
   if (!organization.features.includes('open-ai-suggestion')) {
     return null;

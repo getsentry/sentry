@@ -6,9 +6,10 @@
 import abc
 import datetime
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict, cast
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, cast
 
 from pydantic.fields import Field
+from typing_extensions import TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import SentryApp, SentryAppInstallation

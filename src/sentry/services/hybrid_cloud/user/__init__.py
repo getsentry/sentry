@@ -6,9 +6,10 @@
 import datetime
 from abc import abstractmethod
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, cast
 
 from pydantic.fields import Field
+from typing_extensions import TypedDict
 
 from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
@@ -118,6 +119,7 @@ class UserFilterArgs(TypedDict, total=False):
 class UserUpdateArgs(TypedDict, total=False):
     avatar_url: str
     avatar_type: int
+    actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
 
 
 class UserService(RpcService):
