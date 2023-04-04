@@ -7,13 +7,12 @@ import sentry_sdk
 from django.conf import settings
 from requests.exceptions import RequestException
 
-from sentry import options
 from sentry.cache import default_cache
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
     sources_for_symbolication,
 )
-from sentry.models import Organization
+from sentry.models import Project
 from sentry.net.http import Session
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, metrics
@@ -29,17 +28,7 @@ def _task_id_cache_key_for_event(project_id, event_id):
 
 
 class Symbolicator:
-    def __init__(self, project, event_id):
-        symbolicator_options = options.get("symbolicator.options")
-        base_url = symbolicator_options["url"].rstrip("/")
-        assert base_url
-
-        # needed for efficient featureflag checks in getsentry
-        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
+    def __init__(self, base_url: str, project: Project, event_id: str):
         self.project = project
         self.sess = SymbolicatorSession(
             url=base_url,

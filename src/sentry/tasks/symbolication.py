@@ -10,6 +10,8 @@ from sentry import options
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
+from sentry.lang.native.symbolicator import Symbolicator
+from sentry.models import Organization, Project
 from sentry.processing import realtime_metrics
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
@@ -136,20 +138,20 @@ def _do_symbolicate_event(
 
     event_id = data["event_id"]
 
-    from_reprocessing = (
-        symbolicate_task is symbolicate_event_from_reprocessing
-        or symbolicate_task is symbolicate_event_from_reprocessing_low_priority
-    )
+    from_reprocessing = symbolicate_task in [
+        symbolicate_event_from_reprocessing,
+        symbolicate_event_from_reprocessing_low_priority,
+    ]
+    is_low_priority = symbolicate_task in [
+        symbolicate_event_low_priority,
+        symbolicate_event_from_reprocessing_low_priority,
+    ]
 
     # check whether the event is in the wrong queue and if so, move it to the other one.
     # we do this at most SYMBOLICATOR_MAX_QUEUE_SWITCHES times.
     if queue_switches >= SYMBOLICATOR_MAX_QUEUE_SWITCHES:
         metrics.incr("tasks.store.symbolicate_event.low_priority.max_queue_switches", sample_rate=1)
     else:
-        is_low_priority = symbolicate_task in [
-            symbolicate_event_low_priority,
-            symbolicate_event_from_reprocessing_low_priority,
-        ]
         should_be_low_priority = should_demote_symbolication(project_id)
 
         if is_low_priority != should_be_low_priority:
@@ -224,6 +226,22 @@ def _do_symbolicate_event(
                     sentry_sdk.capture_exception(e)
         return symbolication_duration
 
+    # TODO: we should pick a different url / option, so we route symbolication request to
+    # different pools of symbolicators depending on `symbolication_function` and `is_low_priority`
+    symbolicator_options = options.get("symbolicator.options")
+    base_url = symbolicator_options["url"].rstrip("/")
+    assert base_url
+
+    project = Project.objects.get_from_cache(id=project_id)
+    # needed for efficient featureflag checks in getsentry
+    # NOTE: The `organization` is used for constructing the symbol sources.
+    with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+        project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=project.organization_id)
+        )
+
+    symbolicator = Symbolicator(base_url, project, data["event_id"])
+
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
         with metrics.timer(
@@ -235,7 +253,7 @@ def _do_symbolicate_event(
                     with sentry_sdk.start_span(
                         op="tasks.store.symbolicate_event.%s" % symbolication_function_name
                     ) as span:
-                        symbolicated_data = symbolication_function(data)
+                        symbolicated_data = symbolication_function(symbolicator, data)
                         span.set_data("symbolicated_data", bool(symbolicated_data))
 
                     if symbolicated_data:
