@@ -793,11 +793,13 @@ class EventSubjectTemplateData:
         elif name == "orgID":
             return cast(str, self.event.organization.slug)
         elif name == "title":
-            return (
-                self.event.occurrence.issue_title
-                if getattr(self.event, "occurrence", None)
-                else self.event.title
-            )
+            if getattr(self.event, "occurrence", None):
+                return self.event.occurrence.issue_title
+            elif self.event.group and self.event.group.issue_category == GroupCategory.PERFORMANCE:
+                return self.event.group.issue_type.description
+            else:
+                return self.event.title
+
         elif name == "issueType":
             return self.event.group.issue_type.description
         raise KeyError
