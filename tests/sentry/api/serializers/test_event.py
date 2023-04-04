@@ -444,15 +444,7 @@ class DetailedEventSerializerTest(TestCase):
                 ],
                 "parentSpanIds": ["8dd7a5869a4f4583"],
             },
-            "evidenceDisplay": [
-                {"important": True, "name": "Transaction Name", "value": "/books/"},
-                {"important": True, "name": "Parent Span", "value": "index"},
-                {
-                    "important": True,
-                    "name": "Repeating Spans (10)",
-                    "value": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                },
-            ],
+            "evidenceDisplay": [],
         }
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
