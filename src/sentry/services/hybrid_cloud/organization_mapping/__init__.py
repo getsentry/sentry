@@ -12,7 +12,6 @@ from pydantic.fields import Field
 from typing_extensions import TypedDict
 
 from sentry.models import Organization
-from sentry.models.user import User
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -67,13 +66,13 @@ class OrganizationMappingService(RpcService):
     def create(
         self,
         *,
-        user: User,
         organization_id: int,
         slug: str,
         name: str,
         region_name: str,
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
+        user: Optional[int] = None,
     ) -> RpcOrganizationMapping:
         """
         This method returns a new or recreated OrganizationMapping object.

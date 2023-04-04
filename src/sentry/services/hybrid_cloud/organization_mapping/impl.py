@@ -3,7 +3,6 @@ from typing import Optional, cast
 from django.db import transaction
 
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
     RpcOrganizationMapping,
@@ -15,7 +14,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
     def create(
         self,
         *,
-        user: User,
         organization_id: int,
         slug: str,
         name: str,
@@ -23,6 +21,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         idempotency_key: Optional[str] = "",
         # There's only a customer_id when updating an org slug
         customer_id: Optional[str] = None,
+        user: Optional[int] = None,
     ) -> RpcOrganizationMapping:
 
         if idempotency_key:

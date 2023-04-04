@@ -208,7 +208,6 @@ class OrganizationIndexEndpoint(Endpoint):
                     org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
 
                     organization_mapping_service.create(
-                        user=request.user,
                         organization_id=org.id,
                         slug=org.slug,
                         name=org.name,
