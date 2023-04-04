@@ -72,6 +72,13 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
   ) : null;
 
+  const extraEnvironmentsWarning =
+    monitor.environments.length > 1
+      ? ` This monitor has checkin data associated with these environments which will be affected: ${monitor.environments
+          .map(e => `'${e.name}'`)
+          .join(', ')}`
+      : '';
+
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
@@ -89,9 +96,13 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
             onDelete();
           },
           header: t('Delete Monitor?'),
-          message: tct('Are you sure you want to permanently delete [name]?', {
-            name: monitor.name,
-          }),
+          message: tct(
+            'Are you sure you want to permanently delete [name]?[extraEnvironmentsWarning]',
+            {
+              name: monitor.name,
+              extraEnvironmentsWarning,
+            }
+          ),
           confirmText: t('Delete Monitor'),
           priority: 'danger',
         });
