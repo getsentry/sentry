@@ -79,11 +79,11 @@ def _get_channel_and_integration_by_team(
             ExternalActor.objects.filter(
                 provider=provider.value,
                 actor_id=team_actor_id,
-                organization=organization,
+                organization_id=organization.id,
                 integration__status=ObjectStatus.ACTIVE,
                 integration__organizationintegration__status=ObjectStatus.ACTIVE,
                 # limit to org here to prevent multiple query results
-                integration__organizationintegration__organization=organization,
+                integration__organizationintegration__organization_id=organization.id,
             )
             .select_related("integration")
             .get()
