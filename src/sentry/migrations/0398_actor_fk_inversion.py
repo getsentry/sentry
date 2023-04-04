@@ -36,13 +36,14 @@ class Migration(CheckedMigration):
                 to="sentry.Team",
                 unique=False,
                 db_index=False,
+                db_constraint=False,
             ),
         ),
         migrations.AddField(
             model_name="actor",
             name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=False, null=True, on_delete="CASCADE", unique=False
+                "sentry.User", on_delete="CASCADE", db_index=False, null=True, unique=False
             ),
         ),
         migrations.SeparateDatabaseAndState(
