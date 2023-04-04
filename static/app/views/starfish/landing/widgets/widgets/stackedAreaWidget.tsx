@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
 import {
   QueryBatchNode,
   Transform,
@@ -44,7 +45,7 @@ export function StackedAreaWidget(props: PerformanceWidgetProps) {
               {...pick(provided, eventsRequestQueryProps)}
               limit={1}
               queryBatching={queryBatching}
-              includePrevious
+              includePrevious={false}
               includeTransformedData
               partial
               currentSeriesNames={props.fields}
@@ -79,7 +80,7 @@ export function StackedAreaWidget(props: PerformanceWidgetProps) {
     <GenericPerformanceWidget<DataType>
       {...props}
       location={location}
-      Subtitle={() => <Subtitle>p95 db vs http</Subtitle>}
+      Subtitle={() => <Subtitle>{t('p95 of span breakdowns')}</Subtitle>}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />
@@ -93,10 +94,10 @@ export function StackedAreaWidget(props: PerformanceWidgetProps) {
               {...provided.widgetData.chart}
               {...provided}
               disableMultiAxis
-              disableXAxis
               definedAxisTicks={4}
-              chartColors={props.chartColor ? [props.chartColor] : CHART_PALETTE[5]}
-              isLineChart
+              stacked
+              log
+              chartColors={CHART_PALETTE[5]}
             />
           ),
           height: props.chartHeight,
