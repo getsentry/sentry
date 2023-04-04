@@ -119,6 +119,7 @@ class UserFilterArgs(TypedDict, total=False):
 class UserUpdateArgs(TypedDict, total=False):
     avatar_url: str
     avatar_type: int
+    actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
 
 
 class UserService(RpcService):

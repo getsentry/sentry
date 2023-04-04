@@ -109,6 +109,18 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def send_message(
+        self,
+        *,
+        integration_id: int,
+        organization_id: int,
+        channel: str,
+        message: str,
+    ) -> bool:
+        pass
+
+    @rpc_method
+    @abstractmethod
     def page_organization_integrations_ids(
         self,
         *,
@@ -152,24 +164,13 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def send_message(
-        self,
-        *,
-        integration_id: int,
-        organization_id: int,
-        channel: str,
-        message: str,
-    ) -> bool:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def get_organization_integrations(
         self,
         *,
         org_integration_ids: Optional[List[int]] = None,
         integration_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        organization_ids: Optional[List[int]] = None,
         status: Optional[int] = None,
         providers: Optional[List[str]] = None,
         has_grace_period: Optional[bool] = None,
@@ -205,6 +206,22 @@ class IntegrationService(RpcService):
     ) -> Tuple[Optional[RpcIntegration], Optional[RpcOrganizationIntegration]]:
         """
         Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
+        by either integration_id, or a combination of provider and external_id.
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_organization_contexts(
+        self,
+        *,
+        organization_id: Optional[int] = None,
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+    ) -> Tuple[Optional[RpcIntegration], List[RpcOrganizationIntegration]]:
+        """
+        Returns a tuple of RpcIntegration and RpcOrganizationIntegrations. The integrations are selected
         by either integration_id, or a combination of provider and external_id.
         """
         pass

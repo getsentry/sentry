@@ -1,14 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {ThreadsV2} from 'sentry/components/events/interfaces/threadsV2';
+import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
 import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
-describe('ThreadsV2', function () {
+describe('Threads', function () {
   const {project, organization} = initializeOrg();
-  const org = {...organization, features: ['native-stack-trace-v2']};
 
   describe('non native platform', function () {
     describe('other platform', function () {
@@ -195,8 +194,8 @@ describe('ThreadsV2', function () {
         occurrence: null,
       };
 
-      const props: React.ComponentProps<typeof ThreadsV2> = {
-        data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
+      const props: React.ComponentProps<typeof Threads> = {
+        data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
@@ -205,8 +204,8 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<ThreadsV2 {...props} />, {
-          organization: org,
+        const {container} = render(<Threads {...props} />, {
+          organization,
         });
 
         // Title
@@ -230,7 +229,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle full stack trace button', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<Threads {...props} />, {organization});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
@@ -244,7 +243,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by display option', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<Threads {...props} />, {organization});
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
@@ -284,7 +283,7 @@ describe('ThreadsV2', function () {
       });
 
       it('check display options', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<Threads {...props} />, {organization});
 
         await userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
@@ -852,8 +851,8 @@ describe('ThreadsV2', function () {
         occurrence: null,
       };
 
-      const props: React.ComponentProps<typeof ThreadsV2> = {
-        data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
+      const props: React.ComponentProps<typeof Threads> = {
+        data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
@@ -862,7 +861,7 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<ThreadsV2 {...props} />, {organization: org});
+        const {container} = render(<Threads {...props} />, {organization});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -892,10 +891,10 @@ describe('ThreadsV2', function () {
       it('renders thread state and lock reason', function () {
         const newOrg = {
           ...organization,
-          features: ['native-stack-trace-v2', 'anr-improvements'],
+          features: ['anr-improvements'],
         };
         const newProps = {...props, organization: newOrg};
-        const {container} = render(<ThreadsV2 {...newProps} />, {organization: newOrg});
+        const {container} = render(<Threads {...newProps} />, {organization: newOrg});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -927,7 +926,7 @@ describe('ThreadsV2', function () {
       it('maps android vm states to java vm states', function () {
         const newEvent = {...event};
         const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
-          typeof ThreadsV2
+          typeof Threads
         >['data'];
         const thread = {
           id: 0,
@@ -975,10 +974,10 @@ describe('ThreadsV2', function () {
 
         const newOrg = {
           ...organization,
-          features: ['native-stack-trace-v2', 'anr-improvements'],
+          features: ['anr-improvements'],
         };
         const newProps = {...props, event: newEvent, organization: newOrg};
-        render(<ThreadsV2 {...newProps} />, {organization: newOrg});
+        render(<Threads {...newProps} />, {organization: newOrg});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -989,7 +988,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle full stack trace button', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<Threads {...props} />, {organization});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
@@ -1003,7 +1002,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by option', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<Threads {...props} />, {organization});
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
@@ -1048,7 +1047,7 @@ describe('ThreadsV2', function () {
       });
 
       it('check display options', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<Threads {...props} />, {organization});
 
         await userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
