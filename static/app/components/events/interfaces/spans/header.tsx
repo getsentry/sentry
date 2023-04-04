@@ -524,7 +524,10 @@ class TraceViewHeader extends Component<PropType, State> {
                         )}
                       </CursorGuideHandler.Consumer>
                       {hasProfileMeasurementsChart && (
-                        <ProfilingMeasurements profileData={profiles.data} />
+                        <ProfilingMeasurements
+                          profileData={profiles.data}
+                          renderCursorGuide={this.renderCursorGuide}
+                        />
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
                     </Fragment>
