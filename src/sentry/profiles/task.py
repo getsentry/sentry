@@ -10,15 +10,14 @@ from django.conf import settings
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.constants import DataCategory
-from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator
 from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -272,7 +271,11 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 def _symbolicate(
     project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
 ) -> Tuple[List[Any], List[Any], bool]:
-    symbolicator = Symbolicator(project=project, event_id=profile_id)
+    symbolicator_options = options.get("symbolicator.options")
+    base_url = symbolicator_options["url"].rstrip("/")
+    assert base_url
+
+    symbolicator = Symbolicator(base_url, project, profile_id)
     symbolication_start_time = time()
 
     while True:
