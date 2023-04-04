@@ -96,11 +96,7 @@ function Line({
       case 'cocoa':
       case 'native':
         return (
-<<<<<<< HEAD:static/app/components/events/interfaces/frame/line/index.tsx
           <Native
-=======
-          <NativeV2
->>>>>>> master:static/app/components/events/interfaces/frame/lineV2/index.tsx
             event={event}
             leadsToApp={leadsToApp}
             frame={frame}
