@@ -779,6 +779,9 @@ class EventSubjectTemplateData:
             name = name[4:]
             value = self.event.get_tag(self.tag_aliases.get(name, name))
             if value is None:
+                value = self.event.get_tag(name)
+
+            if value is None:
                 raise KeyError
             return str(value)
         elif name == "project":
