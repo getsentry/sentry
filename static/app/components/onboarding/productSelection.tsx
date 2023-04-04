@@ -149,13 +149,11 @@ export function ProductSelection({
       </Products>
       {lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
-          {tct('Prefer to set up Sentry using [npm] or [yarn]? [goHere].', {
-            npm: <strong>npm</strong>,
-            yarn: <strong>yarn</strong>,
+          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere:Go here].', {
+            npm: <strong />,
+            yarn: <strong />,
             goHere: (
-              <Button onClick={skipLazyLoader} priority="link">
-                {t('Go here')}
-              </Button>
+              <Button onClick={skipLazyLoader} priority="link" />
             ),
           })}
         </AlternativeInstallationAlert>
