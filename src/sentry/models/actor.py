@@ -9,10 +9,10 @@ from rest_framework import serializers
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
     from sentry.models import Team, User
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
@@ -35,7 +35,6 @@ def fetch_actor_by_actor_id(cls, actor_id: int) -> Union["Team", "RpcUser"]:
 
 def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], List["RpcUser"]]:
     from sentry.models import Team, User
-    from sentry.services.hybrid_cloud.user import user_service
 
     if cls is User:
         return user_service.get_by_actor_ids(actor_ids=actor_ids)
@@ -47,7 +46,6 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
 
 def fetch_actor_by_id(cls, id: int) -> Union["Team", "RpcUser"]:
     from sentry.models import Team, User
-    from sentry.services.hybrid_cloud.user import user_service
 
     if cls is Team:
         return Team.objects.get(id=id)
@@ -111,8 +109,6 @@ class Actor(Model):
 
 
 def get_actor_id_for_user(user: Union["User", RpcUser]):
-    from sentry.services.hybrid_cloud.user import user_service
-
     # Handy for JIT creation of user actors
     if user.actor_id:
         return user.actor_id
@@ -202,7 +198,6 @@ class ActorTuple(namedtuple("Actor", "id type")):
         :return:
         """
         from sentry.models import User
-        from sentry.services.hybrid_cloud.user import user_service
 
         if not actors:
             return []
