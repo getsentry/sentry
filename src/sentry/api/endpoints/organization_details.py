@@ -9,7 +9,7 @@ from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, roles
+from sentry import audit_log, features, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -228,7 +228,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_trustedRelays(self, value):
-        from sentry import features
 
         organization = self.context["organization"]
         request = self.context["request"]
@@ -280,7 +279,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
-        if ("providerName" in attrs) != ("providerConfig" in attrs):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        has_auth_provider_config = features.has(
+            "organizations:auth-provider-config", organization, actor=request.user
+        )
+        if has_auth_provider_config and (("providerName" in attrs) != ("providerConfig" in attrs)):
             raise serializers.ValidationError(
                 "Both providerName and providerConfig are required to configure an auth provider"
             )
@@ -338,7 +342,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return incoming
 
     def save(self):
-        from sentry import features
 
         org = self.context["organization"]
         changed_data = {}
@@ -393,7 +396,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        if "providerName" in data and "providerConfig" in data:
+        if (
+            features.has("organizations:auth-provider-config", org)
+            and "providerName" in data
+            and "providerConfig" in data
+        ):
             provider_name = data["providerName"]
             provider_config = data["providerConfig"]
             auth_provider = AuthProvider.objects.update_or_create(

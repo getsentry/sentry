@@ -330,8 +330,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "providerName": "github",
-            "providerConfig": {"option": "test"},
+            "providerName": "google",
+            "providerConfig": {"domain": "foo.bar"},
         }
 
         # needed to set require2FA
