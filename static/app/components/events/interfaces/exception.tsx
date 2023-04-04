@@ -18,7 +18,7 @@ type Props = {
   hideGuide?: boolean;
 };
 
-export function ExceptionV2({
+export function Exception({
   event,
   data,
   projectSlug,
