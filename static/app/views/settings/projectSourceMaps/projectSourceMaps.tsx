@@ -20,7 +20,7 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconDelete} from 'sentry/icons';
+import {IconArrow, IconDelete, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
@@ -38,7 +38,13 @@ enum SORT_BY {
   DESC = '-date_added',
 }
 
+enum SourceMapsBundleType {
+  Release,
+  DebugId,
+}
+
 function SourceMapsTableRow({
+  bundleType,
   onDelete,
   name,
   fileCount,
@@ -46,6 +52,7 @@ function SourceMapsTableRow({
   date,
   idColumnDetails,
 }: {
+  bundleType: SourceMapsBundleType;
   date: string;
   fileCount: number;
   link: string;
@@ -53,43 +60,62 @@ function SourceMapsTableRow({
   onDelete: (name: string) => void;
   idColumnDetails?: React.ReactNode;
 }) {
+  const isEmptyReleaseBundle =
+    bundleType === SourceMapsBundleType.Release && fileCount === -1;
+
   return (
     <Fragment>
       <IDColumn>
-        <Link to={link}>{name}</Link>
+        {isEmptyReleaseBundle ? name : <Link to={link}>{name}</Link>}
         {idColumnDetails}
       </IDColumn>
       <ArtifactsTotalColumn>
-        <Count value={fileCount} />
+        {isEmptyReleaseBundle ? (
+          <Tooltip title={t('No bundle connected to this release')}>
+            <IconWarning color="warning" size="sm" />
+          </Tooltip>
+        ) : (
+          <Count value={fileCount} />
+        )}
       </ArtifactsTotalColumn>
       <Column>
-        <DateTime date={date} timeZone />
+        {isEmptyReleaseBundle ? t('(no value)') : <DateTime date={date} timeZone />}
       </Column>
       <ActionsColumn>
-        <Access access={['project:releases']}>
-          {({hasAccess}) => (
-            <Tooltip
-              disabled={hasAccess}
-              title={t('You do not have permission to delete artifacts.')}
-            >
-              <Confirm
-                onConfirm={() => onDelete(name)}
-                message={t(
-                  'Are you sure you want to remove all artifacts in this archive?'
-                )}
-                disabled={!hasAccess}
+        {isEmptyReleaseBundle ? (
+          <Button
+            size="sm"
+            icon={<IconDelete size="sm" />}
+            title={t('No bundle to delete')}
+            aria-label={t('No bundle to delete')}
+            disabled
+          />
+        ) : (
+          <Access access={['project:releases']}>
+            {({hasAccess}) => (
+              <Tooltip
+                disabled={hasAccess}
+                title={t('You do not have permission to delete artifacts.')}
               >
-                <Button
-                  size="sm"
-                  icon={<IconDelete size="sm" />}
-                  title={t('Remove All Artifacts')}
-                  aria-label={t('Remove All Artifacts')}
+                <Confirm
+                  onConfirm={() => onDelete(name)}
+                  message={t(
+                    'Are you sure you want to remove all artifacts in this archive?'
+                  )}
                   disabled={!hasAccess}
-                />
-              </Confirm>
-            </Tooltip>
-          )}
-        </Access>
+                >
+                  <Button
+                    size="sm"
+                    icon={<IconDelete size="sm" />}
+                    title={t('Remove All Artifacts')}
+                    aria-label={t('Remove All Artifacts')}
+                    disabled={!hasAccess}
+                  />
+                </Confirm>
+              </Tooltip>
+            )}
+          </Access>
+        )}
       </ActionsColumn>
     </Fragment>
   );
@@ -117,7 +143,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     `/settings/${organization.slug}/projects/${project.slug}/source-maps/release-bundles/`
   );
   const debugIdsUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/debug-id-bundles/`
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
   );
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
@@ -236,7 +262,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           {t('Release Bundles')}
         </ListLink>
         <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
-          {t('Debug ID Bundles')}
+          {t('Artifact Bundles')}
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom
@@ -295,13 +321,14 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           ? debugIdBundlesData?.[0].map(data => (
               <SourceMapsTableRow
                 key={data.bundleId}
+                bundleType={SourceMapsBundleType.DebugId}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.bundleId}
                 onDelete={handleDelete}
                 link={`/settings/${organization.slug}/projects/${
                   project.slug
-                }/source-maps/debug-id-bundles/${encodeURIComponent(data.bundleId)}`}
+                }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
                   <DebugIdBundlesTags dist={data.dist} release={data.release} />
                 }
@@ -310,6 +337,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           : archivesData?.[0].map(data => (
               <SourceMapsTableRow
                 key={data.name}
+                bundleType={SourceMapsBundleType.Release}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.name}

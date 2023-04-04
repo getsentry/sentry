@@ -11,6 +11,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
 
@@ -108,7 +109,7 @@ class RuleActivity(Model):
     __include_in_export__ = True
 
     rule = FlexibleForeignKey("sentry.Rule")
-    user = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 
