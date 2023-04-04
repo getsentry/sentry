@@ -73,8 +73,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                         "hasSessions": True,
                         "hasProfiles": True,
                         "hasReplays": True,
-                        "latestRelease": None,
+                        "hasMonitors": True,
                         "hasUserReports": False,
+                        "latestRelease": None,
                     }
                 ],
             )
