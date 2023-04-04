@@ -1,5 +1,5 @@
 from sentry import eventstore
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, Incident
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -82,6 +82,12 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         metric_alert_rule = self.create_alert_rule(
             organization=project.organization, projects=[project]
         )
+        incident = self.create_incident(
+            organization=project.organization,
+            projects=[project],
+            alert_rule=metric_alert_rule,
+            title="Something bad happened",
+        )
 
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
@@ -102,7 +108,11 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
         assert not File.objects.filter(id=file.id).exists()
         assert not ServiceHook.objects.filter(id=hook.id).exists()
-        assert not AlertRule.objects.filter(id=metric_alert_rule.id).exists()
+
+        incident.refresh_from_db()
+        assert len(incident.projects.all()) == 0, "Project relation should be removed"
+        assert Incident.objects.filter(id=incident.id).exists()
+        assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
 
     def test_delete_error_events(self):
         keeper = self.create_project(name="keeper")
