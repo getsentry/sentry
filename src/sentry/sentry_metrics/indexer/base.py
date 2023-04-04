@@ -290,20 +290,23 @@ class UseCaseResults:
             )
 
     def get_mapped_results(self) -> Mapping[str, Mapping[int, Mapping[str, Optional[int]]]]:
-        results = {}
-        for use_case_id, key_results in self.results.items():
-            mapped_result = key_results.get_mapped_results()
-            if mapped_result:
-                results[use_case_id] = mapped_result
-        return results
+        return {
+            use_case_id: mapped_result
+            for use_case_id, key_results in self.results.items()
+            if (mapped_result := key_results.get_mapped_results())
+        }
 
     def get_unmapped_use_cases(self, use_cases: UseCaseCollection) -> UseCaseCollection:
-        results = {}
-        for use_case_id, key_collection in use_cases.mapping.items():
-            unmapped_result = self.results[use_case_id].get_unmapped_keys(key_collection)
-            if unmapped_result.size > 0:
-                results[use_case_id] = unmapped_result
-        return UseCaseCollection(results)
+        return UseCaseCollection(
+            {
+                use_case_id: unmapped_result
+                for use_case_id, key_collection in use_cases.mapping.items()
+                if (
+                    unmapped_result := self.results[use_case_id].get_unmapped_keys(key_collection)
+                ).size
+                > 0
+            }
+        )
 
     def get_mapped_strings_to_ints(self) -> MutableMapping[str, int]:
         return {
