@@ -35,26 +35,12 @@ export function TraceLink({event}: TraceLinkProps) {
     return null;
   }
   return (
-    <LinkContainer>
-      <Link to={generateTraceTarget(event, organization)} onClick={handleTraceLink}>
-        {t('View Full Trace')}
-      </Link>
-    </LinkContainer>
+    <StyledLink to={generateTraceTarget(event, organization)} onClick={handleTraceLink}>
+      {t('View Full Trace')}
+    </StyledLink>
   );
 }
 
-const LinkContainer = styled('span')`
+const StyledLink = styled(Link)`
   margin-left: ${space(1)};
-  padding-left: ${space(1)};
-  position: relative;
-
-  &:before {
-    display: block;
-    position: absolute;
-    content: '';
-    left: 0;
-    top: 2px;
-    height: 14px;
-    border-left: 1px solid ${p => p.theme.border};
-  }
 `;

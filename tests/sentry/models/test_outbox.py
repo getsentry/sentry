@@ -28,7 +28,7 @@ from sentry.types.region import MONOLITH_REGION_NAME
 @region_silo_test(stable=True)
 def test_creating_org_outboxes():
     Organization.outbox_for_update(10).save()
-    OrganizationMember.outbox_for_update(12, 15).save()
+    OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
     assert RegionOutbox.objects.count() == 2
 
     with exempt_from_silo_limits(), outbox_runner():
@@ -61,13 +61,13 @@ def test_creating_user_outboxes():
 @patch("sentry.models.outbox.metrics")
 def test_concurrent_coalesced_object_processing(mock_metrics):
     # Two objects coalesced
-    outbox = OrganizationMember.outbox_for_update(org_id=1, org_member_id=1)
+    outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
     outbox.save()
-    OrganizationMember.outbox_for_update(org_id=1, org_member_id=1).save()
+    OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
 
     # Unrelated
-    OrganizationMember.outbox_for_update(org_id=1, org_member_id=2).save()
-    OrganizationMember.outbox_for_update(org_id=2, org_member_id=2).save()
+    OrganizationMember(organization_id=1, id=2).outbox_for_update().save()
+    OrganizationMember(organization_id=2, id=2).outbox_for_update().save()
 
     assert len(list(RegionOutbox.find_scheduled_shards())) == 2
 
@@ -78,7 +78,7 @@ def test_concurrent_coalesced_object_processing(mock_metrics):
         assert outbox.select_coalesced_messages().count() == 2
 
         # concurrent write of coalesced object update.
-        OrganizationMember.outbox_for_update(org_id=1, org_member_id=1).save()
+        OrganizationMember(organization_id=1, id=1).outbox_for_update().save()
         assert RegionOutbox.objects.count() == 5
         assert outbox.select_coalesced_messages().count() == 3
 
@@ -112,8 +112,8 @@ def test_region_sharding_keys():
     Organization.outbox_for_update(org1.id).save()
     Organization.outbox_for_update(org2.id).save()
 
-    OrganizationMember.outbox_for_update(org_id=org1.id, org_member_id=1).save()
-    OrganizationMember.outbox_for_update(org_id=org2.id, org_member_id=2).save()
+    OrganizationMember(organization_id=org1.id, id=1).outbox_for_update().save()
+    OrganizationMember(organization_id=org2.id, id=2).outbox_for_update().save()
 
     shards = {
         (row["shard_scope"], row["shard_identifier"])
@@ -197,6 +197,7 @@ def test_outbox_rescheduling(task_runner):
                 sender=OutboxCategory.ORGANIZATION_UPDATE,
                 payload=None,
                 object_identifier=org,
+                shard_identifier=org,
             )
 
         Organization.outbox_for_update(org_id=10001).save()
