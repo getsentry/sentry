@@ -310,20 +310,12 @@ function ProfileIdsSubMenu(props: {
         return {};
       }
 
-      if (props.framePackage) {
-        return generateProfileFlamechartRouteWithHighlightFrame({
-          orgSlug: props.organizationSlug,
-          projectSlug: props.projectSlug,
-          profileId,
-          frameName: props.frameName,
-          framePackage: props.framePackage,
-        });
-      }
-
-      return generateProfileFlamechartRoute({
+      return generateProfileFlamechartRouteWithHighlightFrame({
         orgSlug: props.organizationSlug,
         projectSlug: props.projectSlug,
         profileId,
+        frameName: props.frameName,
+        framePackage: props.framePackage,
       });
     },
     [props.frameName, props.framePackage, props.organizationSlug, props.projectSlug]

@@ -4,12 +4,15 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Iterable, List, Mapping, Optional
+from typing import Any, Iterable, List, Mapping, Optional, cast
+
+from pydantic import Field
 
 from sentry.models.organization import OrganizationStatus
+from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
@@ -20,27 +23,29 @@ def team_status_visible() -> int:
     return int(TeamStatus.VISIBLE)
 
 
-@dataclass
-class RpcTeam:
+class RpcTeam(RpcModel):
     id: int = -1
-    status: int = field(default_factory=team_status_visible)
+    status: int = Field(default_factory=team_status_visible)
     organization_id: int = -1
     slug: str = ""
     actor_id: Optional[int] = None
-    org_role: str = ""
+    org_role: Optional[str] = None
 
     def class_name(self) -> str:
         return "Team"
 
 
-@dataclass
-class RpcTeamMember:
+class RpcTeamMember(RpcModel):
     id: int = -1
     is_active: bool = False
-    role: Optional[TeamRole] = None
-    project_ids: List[int] = field(default_factory=list)
-    scopes: List[str] = field(default_factory=list)
+    role_id: str = ""
+    project_ids: List[int] = Field(default_factory=list)
+    scopes: List[str] = Field(default_factory=list)
     team_id: int = -1
+
+    @property
+    def role(self) -> Optional[TeamRole]:
+        return team_roles.get(self.role_id) if self.role_id else None
 
 
 def project_status_visible() -> int:
@@ -49,17 +54,15 @@ def project_status_visible() -> int:
     return int(ProjectStatus.VISIBLE)
 
 
-@dataclass
-class RpcProject:
+class RpcProject(RpcModel):
     id: int = -1
     slug: str = ""
     name: str = ""
     organization_id: int = -1
-    status: int = field(default_factory=project_status_visible)
+    status: int = Field(default_factory=project_status_visible)
 
 
-@dataclass
-class RpcOrganizationMemberFlags:
+class RpcOrganizationMemberFlags(RpcModel):
     sso__linked: bool = False
     sso__invalid: bool = False
     member_limit__restricted: bool = False
@@ -74,21 +77,19 @@ class RpcOrganizationMemberFlags:
         return bool(getattr(self, item))
 
 
-@dataclass
-class RpcOrganizationMemberSummary:
+class RpcOrganizationMemberSummary(RpcModel):
     id: int = -1
     organization_id: int = -1
     user_id: Optional[int] = None  # This can be null when the user is deleted.
-    flags: RpcOrganizationMemberFlags = field(default_factory=lambda: RpcOrganizationMemberFlags())
+    flags: RpcOrganizationMemberFlags = Field(default_factory=lambda: RpcOrganizationMemberFlags())
 
 
-@dataclass
 class RpcOrganizationMember(RpcOrganizationMemberSummary):
-    member_teams: List[RpcTeamMember] = field(default_factory=list)
+    member_teams: List[RpcTeamMember] = Field(default_factory=list)
     role: str = ""
     has_global_access: bool = False
-    project_ids: List[int] = field(default_factory=list)
-    scopes: List[str] = field(default_factory=list)
+    project_ids: List[int] = Field(default_factory=list)
+    scopes: List[str] = Field(default_factory=list)
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
@@ -102,8 +103,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
         }
 
 
-@dataclass
-class RpcOrganizationFlags:
+class RpcOrganizationFlags(RpcModel):
     allow_joinleave: bool = False
     enhanced_privacy: bool = False
     disable_shared_issues: bool = False
@@ -113,15 +113,13 @@ class RpcOrganizationFlags:
     require_email_verification: bool = False
 
 
-@dataclass
-class RpcOrganizationInvite:
+class RpcOrganizationInvite(RpcModel):
     id: int = -1
     token: str = ""
     email: str = ""
 
 
-@dataclass
-class RpcOrganizationSummary:
+class RpcOrganizationSummary(RpcModel):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -130,22 +128,25 @@ class RpcOrganizationSummary:
     id: int = -1
     name: str = ""
 
+    def __hash__(self) -> int:
+        # Mimic the behavior of hashing a Django ORM entity, for compatibility with
+        # serializers, as this organization summary object is often used for that.
+        return hash((self.id, self.slug))
 
-@dataclass
+
 class RpcOrganization(RpcOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.
-    teams: List[RpcTeam] = field(default_factory=list)
-    projects: List[RpcProject] = field(default_factory=list)
+    teams: List[RpcTeam] = Field(default_factory=list)
+    projects: List[RpcProject] = Field(default_factory=list)
 
-    flags: RpcOrganizationFlags = field(default_factory=lambda: RpcOrganizationFlags())
+    flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
     status: OrganizationStatus = OrganizationStatus.VISIBLE
 
     default_role: str = ""
 
 
-@dataclass
-class RpcUserOrganizationContext:
+class RpcUserOrganizationContext(RpcModel):
     """
     This object wraps an organization result inside of its membership context in terms of an (optional) user id.
     This is due to the large number of callsites that require an organization and a user's membership at the
@@ -157,7 +158,7 @@ class RpcUserOrganizationContext:
     user_id: Optional[int] = None
     # The organization is always non-null because the null wrapping is around this object instead.
     # A None organization => a None RpcUserOrganizationContext
-    organization: RpcOrganization = field(default_factory=lambda: RpcOrganization())
+    organization: RpcOrganization = Field(default_factory=lambda: RpcOrganization())
     # member can be None when the given user_id does not have membership with the given organization.
     # Note that all related fields of this organization member are filtered by visibility and is_active=True.
     member: Optional[RpcOrganizationMember] = None
@@ -168,7 +169,17 @@ class RpcUserOrganizationContext:
             assert self.user_id == self.member.user_id
 
 
-class OrganizationService(InterfaceWithLifecycle):
+class OrganizationService(RpcService):
+    key = "organization"
+    local_mode = SiloMode.REGION
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+
+        return DatabaseBackedOrganizationService()
+
+    @rpc_method
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
@@ -182,9 +193,11 @@ class OrganizationService(InterfaceWithLifecycle):
 
     # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
     #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
+    @rpc_method
     @abstractmethod
     def get_organizations(
         self,
+        *,
         user_id: Optional[int],
         scope: Optional[str],
         only_visible: bool,
@@ -204,24 +217,27 @@ class OrganizationService(InterfaceWithLifecycle):
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def check_membership_by_email(
-        self, organization_id: int, email: str
+        self, *, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
         """
         Used to look up an organization membership by an email
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def check_membership_by_id(
-        self, organization_id: int, user_id: int
+        self, *, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
         """
         Used to look up an organization membership by a user id
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
@@ -241,6 +257,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
+    @rpc_method
     @abstractmethod
     def add_organization_member(
         self,
@@ -252,41 +269,35 @@ class OrganizationService(InterfaceWithLifecycle):
     ) -> RpcOrganizationMember:
         pass
 
+    @rpc_method
     @abstractmethod
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         pass
 
+    @rpc_method
     @abstractmethod
     def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
 
+    @rpc_method
     @abstractmethod
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         pass
 
+    @rpc_method
     @abstractmethod
     def get_all_org_roles(
         self,
+        *,
         organization_member: Optional[RpcOrganizationMember] = None,
         member_id: Optional[int] = None,
     ) -> List[str]:
         pass
 
+    @rpc_method
     @abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+    def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
         pass
 
 
-def impl_with_db() -> OrganizationService:
-    from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
-
-    return DatabaseBackedOrganizationService()
-
-
-organization_service: OrganizationService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: impl_with_db,
-        SiloMode.CONTROL: stubbed(impl_with_db, SiloMode.REGION),
-    }
-)
+organization_service = cast(OrganizationService, OrganizationService.create_delegation())

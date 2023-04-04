@@ -26,9 +26,9 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)
 
-        self.get_success_response(self.organization.slug, monitor.guid, environment="production")
+        self.get_success_response(self.organization.slug, monitor.slug, environment="production")
         self.get_error_response(
-            self.organization.slug, monitor.guid, environment="jungle", status_code=404
+            self.organization.slug, monitor.slug, environment="jungle", status_code=404
         )
 
 
@@ -66,6 +66,27 @@ class UpdateMonitorTest(MonitorTestCase):
         )
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
+        )
+
+    def test_slug_exists(self):
+        self._create_monitor(slug="my-test-monitor")
+        other_monitor = self._create_monitor(slug="another-monitor")
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            other_monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"slug": "my-test-monitor"},
+        )
+
+        assert resp.data["slug"][0] == 'The slug "my-test-monitor" is already in use.', resp.content
+
+    def test_slug_same(self):
+        monitor = self._create_monitor(slug="my-test-monitor")
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-test-monitor"}
         )
 
     def test_can_disable(self):

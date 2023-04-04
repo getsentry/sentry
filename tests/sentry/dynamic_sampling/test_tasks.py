@@ -36,6 +36,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
                 {"id": "ignoreHealthChecks", "active": False},
                 {"id": "boostLatestRelease", "active": False},
                 {"id": "boostKeyTransactions", "active": False},
+                {"id": "boostLowVolumeTransactions", "active": False},
             ],
         )
         # Store performance metrics for proj A
@@ -137,9 +138,8 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
         get_blended_sample_rate.return_value = 0.25
 
         with self.options({"dynamic-sampling.prioritise_transactions.load_rate": 1.0}):
-            with self.feature({"organizations:ds-prioritise-by-transaction-bias": True}):
-                with self.tasks():
-                    prioritise_transactions()
+            with self.tasks():
+                prioritise_transactions()
 
         # now redis should contain rebalancing data for our projects
         for org in self.orgs_info:
@@ -172,9 +172,8 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
                 "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions": 1,
             }
         ):
-            with self.feature({"organizations:ds-prioritise-by-transaction-bias": True}):
-                with self.tasks():
-                    prioritise_transactions()
+            with self.tasks():
+                prioritise_transactions()
 
         # now redis should contain rebalancing data for our projects
         for org in self.orgs_info:

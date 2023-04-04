@@ -149,7 +149,7 @@ class GroupDetails extends Component<Props, State> {
   trackView(project: Project) {
     const {group, event} = this.state;
     const {location, organization, router} = this.props;
-    const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index} =
+    const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
       location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
@@ -158,6 +158,7 @@ class GroupDetails extends Component<Props, State> {
       ...getAnalyticsDataForEvent(event),
       ...getAnalyicsDataForProject(project),
       stream_index: typeof stream_index === 'string' ? Number(stream_index) : undefined,
+      query: typeof query === 'string' ? query : undefined,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -171,6 +172,8 @@ class GroupDetails extends Component<Props, State> {
       ref_fallback,
       // Will be updated by StacktraceLink if there is a stacktrace link
       stacktrace_link_viewed: false,
+      // Will be updated by IssueQuickTrace if there is a trace
+      trace_status: 'none',
     });
   }
 

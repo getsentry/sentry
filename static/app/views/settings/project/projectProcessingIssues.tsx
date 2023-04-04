@@ -13,16 +13,11 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {
-  Panel,
-  PanelAlert,
-  PanelBody,
-  PanelHeader,
-  PanelTable,
-} from 'sentry/components/panels';
+import {Panel, PanelAlert, PanelTable} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
 import formGroups from 'sentry/data/forms/processingIssues';
 import {IconQuestion} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -299,6 +294,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
   }
 
   renderDetails(item: ProcessingIssueItem) {
+    const {release, dist} = item.data;
     let dsymUUID: React.ReactNode = null;
     let dsymName: React.ReactNode = null;
     let dsymArch: React.ReactNode = null;
@@ -320,6 +316,16 @@ class ProjectProcessingIssues extends Component<Props, State> {
         {dsymUUID && <span> {dsymUUID}</span>}
         {dsymArch && <span> {dsymArch}</span>}
         {dsymName && <span> (for {dsymName})</span>}
+        {(release || dist) && (
+          <div>
+            <Tag tooltipText={t('Latest Release Observed with Issue')}>
+              {release ? <Version version={release} /> : t('none')}
+            </Tag>{' '}
+            <Tag tooltipText={t('Latest Distribution Observed with Issue')}>
+              {dist || t('none')}
+            </Tag>
+          </div>
+        )}
       </span>
     );
   }
@@ -349,27 +355,6 @@ class ProjectProcessingIssues extends Component<Props, State> {
 
   renderResults() {
     const {processingIssues} = this.state;
-    const fixLink = processingIssues ? processingIssues.signedLink : false;
-
-    let fixLinkBlock: React.ReactNode = null;
-
-    if (fixLink) {
-      fixLinkBlock = (
-        <Panel>
-          <PanelHeader>
-            {t('Having trouble uploading debug informations? We can help!')}
-          </PanelHeader>
-          <PanelBody withPadding>
-            <label>
-              {t(
-                "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
-              )}
-            </label>
-            <TextCopyInput monospace>{`curl -sL "${fixLink}" | bash`}</TextCopyInput>
-          </PanelBody>
-        </Panel>
-      );
-    }
 
     let processingRow: React.ReactNode = null;
     if (processingIssues && processingIssues.issuesProcessing > 0) {
@@ -386,7 +371,6 @@ class ProjectProcessingIssues extends Component<Props, State> {
 
     return (
       <Fragment>
-        {fixLinkBlock}
         <h3>
           {t('Pending Issues')}
           <Access access={['project:write']}>

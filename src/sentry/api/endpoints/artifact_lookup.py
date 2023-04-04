@@ -12,6 +12,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
+from sentry.auth.system import is_system_auth
+from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
 from sentry.models import DebugIdArtifactBundle, Distribution, File, Release, ReleaseFile
 from sentry.models.artifactbundle import ArtifactBundleArchive, ReleaseArtifactBundle
 from sentry.models.project import Project
@@ -60,6 +62,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
             response["Content-Length"] = file.size
+            response["Content-Disposition"] = f'attachment; filename="{file.name}"'
             return response
         except OSError:
             raise Http404
@@ -116,7 +119,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         individual_files = try_resolve_urls(urls, project, release_name, dist_name, bundle_file_ids)
 
         # Then: Construct our response
-        url_constructor = UrlConstructor(request)
+        url_constructor = UrlConstructor(request, project)
 
         found_artifacts = []
         for file_id in bundle_file_ids:
@@ -206,6 +209,10 @@ def try_resolve_urls(
             dist = Distribution.objects.get(release=release, name=dist_name)
     except Exception as exc:
         logger.error("Failed to read", exc_info=exc)
+
+    # TODO: should we rather return an error from the API in case the release is not found?
+    if release is None:
+        return list()
 
     remaining_urls = collect_legacy_artifact_bundles_containing_urls(
         remaining_urls, release, dist, bundle_file_ids
@@ -325,9 +332,11 @@ def find_file_in_archive_index(archive_index: dict, url: str) -> Optional[File]:
 
 
 class UrlConstructor:
-    def __init__(self, request: Request):
-        # TODO: is there a better way to construct a url to this same route?
-        self.base_url = request.build_absolute_uri(request.path)
+    def __init__(self, request: Request, project: Project):
+        if is_system_auth(request.auth):
+            self.base_url = get_internal_artifact_lookup_source_url(project)
+        else:
+            self.base_url = request.build_absolute_uri(request.path)
 
     def url_for_file_id(self, file_id: int) -> str:
         # NOTE: Returning a self-route that requires authentication (via Bearer token)
