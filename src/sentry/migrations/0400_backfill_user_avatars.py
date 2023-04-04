@@ -35,7 +35,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0396_add_usecase_to_indexer"),
+        ("sentry", "0399_enable_indexes_for_actor_fks"),
     ]
 
     operations = [

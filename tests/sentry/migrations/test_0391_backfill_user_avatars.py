@@ -6,8 +6,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestBackfillUserAvatarsMigration(TestMigrations):
-    migrate_from = "0390_remove_field_in_bundle_model"
-    migrate_to = "0391_backfill_user_avatars"
+    migrate_from = "0399_enable_indexes_for_actor_fks"
+    migrate_to = "0400_backfill_user_avatars"
 
     def setup_before_migration(self, apps):
         self.user_letter = self.create_user(email="a@example.com")
@@ -19,7 +19,6 @@ class TestBackfillUserAvatarsMigration(TestMigrations):
         )
 
     def test(self):
-
         self.user_letter.refresh_from_db()
         self.user_upload.refresh_from_db()
 
