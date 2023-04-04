@@ -1,4 +1,6 @@
 import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
+import {InjectedRouter} from 'react-router';
+import {Location} from 'history';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
@@ -83,6 +85,13 @@ type ReplayGracePeriodAlertProps = {organization: Organization};
 
 type ReplayOnboardinCTAProps = {children: React.ReactNode; organization: Organization};
 
+type SetUpSdkDocProps = {
+  location: Location;
+  organization: Organization;
+  project: Project;
+  router: InjectedRouter;
+};
+
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   hideCTA?: boolean;
@@ -133,6 +142,7 @@ export type ComponentHooks = {
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
   'component:replay-feedback-button': () => React.ComponentType<{}>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardinCTAProps>;
+  'component:set-up-sdk-doc': () => React.ComponentType<SetUpSdkDocProps>;
   'component:superuser-access-category': React.FC<any>;
 };
 
