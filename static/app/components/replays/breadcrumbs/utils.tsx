@@ -49,7 +49,7 @@ export function getDescription(crumb: Crumb) {
     case BreadcrumbType.NAVIGATION:
       return `${crumbData?.to ?? ''}`;
     case BreadcrumbType.DEFAULT:
-      return JSON.stringify(crumbData);
+      return crumbData;
     default:
       return crumb.message || '';
   }
