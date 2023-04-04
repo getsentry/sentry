@@ -85,6 +85,10 @@ type ReplayGracePeriodAlertProps = {organization: Organization};
 
 type ReplayOnboardinCTAProps = {children: React.ReactNode; organization: Organization};
 
+type ProfilingBetaAlertBannerProps = {
+  organization: Organization;
+};
+
 type SetUpSdkDocProps = {
   location: Location;
   organization: Organization;
@@ -139,6 +143,7 @@ export type ComponentHooks = {
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
   'component:replay-feedback-button': () => React.ComponentType<{}>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardinCTAProps>;
