@@ -35,13 +35,13 @@ class ConsecutiveDbDetectorTest(TestCase):
     def create_issue_spans(self, span_duration=2000) -> List[Span]:
         spans = [
             create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1?query=1", "hash1"
             ),
             create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2?query=2", "hash2"
             ),
             create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3?query=3", "hash3"
             ),
         ]
         spans = [
@@ -62,7 +62,7 @@ class ConsecutiveDbDetectorTest(TestCase):
             PerformanceProblem(
                 fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
                 op="http",
-                desc="GET /api/0/organizations/endpoint1",
+                desc="GET /api/0/organizations/endpoint1?query=1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=[],
@@ -97,7 +97,7 @@ class ConsecutiveDbDetectorTest(TestCase):
             PerformanceProblem(
                 fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
                 op="http",
-                desc="GET /api/0/organizations/endpoint1",
+                desc="GET /api/0/organizations/endpoint1?query=1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=[],
@@ -126,13 +126,13 @@ class ConsecutiveDbDetectorTest(TestCase):
         span_duration = 2000
         spans = [
             create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1?query=1", "hash1"
             ),
             create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2?query=2", "hash2"
             ),
             create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3?query=3", "hash3"
             ),
         ]
 
@@ -145,9 +145,9 @@ class ConsecutiveDbDetectorTest(TestCase):
     def test_fingerprints_match_with_duplicate_http(self):
         span_duration = 2000
         spans = [
-            create_span("http.client", span_duration, "GET /api/endpoint1", "hash1"),
-            create_span("http.client", span_duration, "GET /api/endpoint2", "hash2"),
-            create_span("http.client", span_duration, "GET /api/endpoint3", "hash3"),
+            create_span("http.client", span_duration, "GET /api/endpoint1?query=1", "hash1"),
+            create_span("http.client", span_duration, "GET /api/endpoint2?query=2", "hash2"),
+            create_span("http.client", span_duration, "GET /api/endpoint3?query=3", "hash3"),
         ]
 
         spans = [
@@ -158,7 +158,8 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         spans.append(
             modify_span_start(
-                create_span("http.client", span_duration, "GET /api/endpoint3", "hash3"), 6000
+                create_span("http.client", span_duration, "GET /api/endpoint3?query=3", "hash3"),
+                6000,
             )
         )
 
@@ -166,3 +167,12 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problem_2.fingerprint == "1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64"
         assert problem_1.fingerprint == problem_2.fingerprint
+
+    def test_does_not_detect_unparametrized_url(self):
+        spans = self.create_issue_spans()
+
+        spans[1] = create_span("http.client", 2000, "GET /api/0/organizations/endpoint2", "hash2")
+
+        event = create_event(spans)
+
+        assert self.find_problems(event) == []

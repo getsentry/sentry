@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from datetime import timedelta
+from urllib.parse import parse_qs, urlparse
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
@@ -12,9 +14,31 @@ from ..base import (
     fingerprint_spans,
     get_duration_between_spans,
     get_span_duration,
+    get_url_from_span,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+URL_PARAMETER_REGEX = re.compile(
+    r"""(?x)
+    (?P<uuid>
+        \b
+            [0-9a-fA-F]{8}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{12}
+        \b
+    ) |
+    (?P<hashlike>
+        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
+    ) |
+    (?P<int>
+        -\d+\b |
+        \b\d+\b
+    )
+"""
+)
 
 
 class ConsecutiveHTTPSpanDetector(PerformanceDetector):
@@ -33,11 +57,14 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if not span_id or not self._is_eligible_http_span(span):
             return
 
-        if self._overlaps_last_span(span):
+        url_contains_params = self._contains_params(span)
+
+        if self._overlaps_last_span(span) or not url_contains_params:
             self._validate_and_store_performance_problem()
             self._reset_variables()
 
-        self._add_problem_span(span)
+        if url_contains_params:
+            self._add_problem_span(span)
 
     def _add_problem_span(self, span: Span) -> None:
         self.consecutive_http_spans.append(span)
@@ -125,6 +152,45 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         return True
 
+    def _contains_params(self, span: Span) -> bool:
+        url = get_url_from_span(span)
+        parametrized_url = self.parameterize_url(url)
+        if without_query_params(parametrized_url) != parametrized_url:
+            return True
+        return False
+
+    @staticmethod
+    def parameterize_url(url: str) -> str:
+        parsed_url = urlparse(str(url))
+
+        protocol_fragments = []
+        if parsed_url.scheme:
+            protocol_fragments.append(parsed_url.scheme)
+            protocol_fragments.append("://")
+
+        host_fragments = []
+        for fragment in parsed_url.netloc.split("."):
+            host_fragments.append(str(fragment))
+
+        path_fragments = []
+        for fragment in parsed_url.path.split("/"):
+            if URL_PARAMETER_REGEX.search(fragment):
+                path_fragments.append("*")
+            else:
+                path_fragments.append(str(fragment))
+
+        query = parse_qs(parsed_url.query)
+
+        return "".join(
+            [
+                "".join(protocol_fragments),
+                ".".join(host_fragments),
+                "/".join(path_fragments),
+                "?",
+                "&".join(sorted([f"{key}=*" for key in query.keys()])),
+            ]
+        ).rstrip("?")
+
     def _fingerprint(self) -> str:
         hashed_spans = fingerprint_spans(self.consecutive_http_spans, True)
         return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_spans}"
@@ -139,3 +205,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True
+
+
+def without_query_params(url: str) -> str:
+    return urlparse(url)._replace(query="").geturl()
