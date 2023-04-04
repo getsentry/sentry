@@ -787,46 +787,85 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
     def test_configure_auth_provider(self):
-        old_config = {"domain": "foo.com"}
-        new_config = {"domain": "bar.com"}
-        provider = "google"
+        with self.feature("organizations:auth-provider-config"):
+            old_config = {"domain": "foo.com"}
+            new_config = {"domain": "bar.com"}
+            provider = "google"
+
+            self.get_success_response(
+                self.organization.slug,
+                method="put",
+                providerName=provider,
+                providerConfig=old_config,
+            )
+            auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
+            assert auth_provider.provider == provider
+            assert auth_provider.config == {"domains": ["foo.com"], "version": DATA_VERSION}
+
+            self.get_success_response(
+                self.organization.slug,
+                method="put",
+                providerName=provider,
+                providerConfig=new_config,
+            )
+            auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
+            assert auth_provider.provider == provider
+            assert auth_provider.config == {"domains": ["bar.com"], "version": DATA_VERSION}
+
         self.get_success_response(
             self.organization.slug,
             method="put",
             providerName=provider,
             providerConfig=old_config,
         )
-        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-        assert auth_provider.provider == provider
-        assert auth_provider.config == {"domains": ["foo.com"], "version": DATA_VERSION}
 
-        self.get_success_response(
-            self.organization.slug,
-            method="put",
-            providerName=provider,
-            providerConfig=new_config,
-        )
         auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
         assert auth_provider.provider == provider
         assert auth_provider.config == {"domains": ["bar.com"], "version": DATA_VERSION}
 
     def test_invalid_auth_provider_configuration(self):
-        self.get_error_response(
-            self.organization.slug, method="put", providerName="google", status_code=400
-        )
-        self.get_error_response(
+        with self.feature("organizations:auth-provider-config"):
+            self.get_error_response(
+                self.organization.slug, method="put", providerName="google", status_code=400
+            )
+            self.get_error_response(
+                self.organization.slug,
+                method="put",
+                providerConfig={"option": "test"},
+                status_code=400,
+            )
+            self.get_error_response(
+                self.organization.slug,
+                method="put",
+                providerName="not_valid",
+                providerConfig={"option": "test"},
+                status_code=400,
+            )
+
+        # succeed if feature is not enabled and passing in anyways
+        self.get_success_response(self.organization.slug, method="put", providerName="google")
+        self.get_success_response(
             self.organization.slug,
             method="put",
             providerConfig={"option": "test"},
-            status_code=400,
         )
-        self.get_error_response(
+        self.get_success_response(
             self.organization.slug,
             method="put",
             providerName="not_valid",
             providerConfig={"option": "test"},
-            status_code=400,
         )
+        self.get_success_response(
+            self.organization.slug,
+            method="put",
+            providerName="google",
+            providerConfig={"domain": "foo.com"},
+        )
+        with pytest.raises(AuthProvider.DoesNotExist) as exc_info:
+            AuthProvider.objects.get(organization_id=self.organization.id)
+
+        exception_raised = str(exc_info.value)
+        assert exception_raised == "AuthProvider matching query does not exist."
 
 
 @region_silo_test
