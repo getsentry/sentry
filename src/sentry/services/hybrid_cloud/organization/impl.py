@@ -280,7 +280,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def add_organization_member(
         self,
         *,
-        organization: RpcOrganization | Organization,
+        organization_id: int,
+        default_org_role: str,
         user: RpcUser | None = None,
         email: str | None = None,
         flags: RpcOrganizationMemberFlags | None = None,
@@ -291,11 +292,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         assert (user is None and email) or (user and email is None), "Must set either user or email"
         with transaction.atomic():
             org_member: OrganizationMember = OrganizationMember.objects.create(
-                organization_id=organization.id,
+                organization_id=organization_id,
                 user_id=user.id if user else None,
                 email=email,
                 flags=self._deserialize_member_flags(flags) if flags else 0,
-                role=role or organization.default_role,
+                role=role or default_org_role,
                 inviter_id=inviter_id,
                 invite_status=invite_status,
             )

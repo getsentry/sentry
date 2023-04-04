@@ -76,7 +76,8 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         result = serializer.validated_data
 
         rpc_org_member = organization_service.add_organization_member(
-            organization=organization,
+            organization_id=organization.id,
+            default_org_role=organization.default_role,
             email=result["email"],
             role=result["role"],
             inviter_id=request.user.id,

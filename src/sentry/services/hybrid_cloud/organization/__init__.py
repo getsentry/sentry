@@ -16,7 +16,6 @@ from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByOrganizationObject,
     ByOrganizationSlug,
     UnimplementedRegionResolution,
 )
@@ -266,12 +265,13 @@ class OrganizationService(RpcService):
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
-    @regional_rpc_method(resolve=ByOrganizationObject())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def add_organization_member(
         self,
         *,
-        organization: RpcOrganization,
+        organization_id: int,
+        default_org_role: str,
         user: Optional[RpcUser] = None,
         email: Optional[str] = None,
         flags: Optional[RpcOrganizationMemberFlags] = None,
