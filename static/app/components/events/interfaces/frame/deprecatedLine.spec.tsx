@@ -1,6 +1,6 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import Line from 'sentry/components/events/interfaces/frame/line';
+import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import {Frame} from 'sentry/types';
 
 describe('Frame - Line', function () {
@@ -29,7 +29,7 @@ describe('Frame - Line', function () {
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
       const {container} = render(
-        <Line
+        <DeprecatedLine
           data={{
             origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
             mapUrl: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js.map',
@@ -48,7 +48,7 @@ describe('Frame - Line', function () {
   describe('renderContext()', () => {
     it('should render context lines', () => {
       render(
-        <Line
+        <DeprecatedLine
           data={{
             ...data,
             context: [
@@ -71,7 +71,7 @@ describe('Frame - Line', function () {
 
     it('should render register values', () => {
       render(
-        <Line
+        <DeprecatedLine
           data={data}
           registers={{
             r10: '0x00007fff9300bf70',
@@ -102,7 +102,13 @@ describe('Frame - Line', function () {
 
     it('should not render empty registers', () => {
       render(
-        <Line data={data} registers={{}} components={[]} event={event} isExpanded />
+        <DeprecatedLine
+          data={data}
+          registers={{}}
+          components={[]}
+          event={event}
+          isExpanded
+        />
       );
 
       expect(screen.queryByText('Registers')).not.toBeInTheDocument();
@@ -121,7 +127,7 @@ describe('Frame - Line', function () {
       };
 
       render(
-        <Line
+        <DeprecatedLine
           data={{...data, vars}}
           registers={{}}
           components={[]}
@@ -160,7 +166,7 @@ describe('Frame - Line', function () {
         },
       });
       const {container} = render(
-        <Line
+        <DeprecatedLine
           data={{...data, filename}}
           registers={{}}
           components={[]}
