@@ -142,9 +142,7 @@ class ReceiverTest(TransactionTestCase):
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
         org_member = OrganizationMember.objects.create(**fields)
-        region_outbox = OrganizationMember.outbox_for_update(
-            org_id=self.organization.id, org_member_id=org_member.id
-        )
+        region_outbox = org_member.outbox_for_update()
         region_outbox.save()
         region_outbox.drain_shard()
 
