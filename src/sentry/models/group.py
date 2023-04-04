@@ -144,7 +144,6 @@ class GroupStatus:
     REPROCESSING = 6
 
     ESCALATING = 7
-    ARCHIVED_UNTIL_ESCALATING = 8
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
@@ -174,7 +173,6 @@ STATUS_UPDATE_CHOICES = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
-    "archivedUntilEscalating": GroupStatus.ARCHIVED_UNTIL_ESCALATING,
     "resolvedInNextRelease": GroupStatus.UNRESOLVED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
@@ -417,7 +415,6 @@ class Group(Model):
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
-            (GroupStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived Until Escalating")),
             (GroupStatus.ESCALATING, _("Escalating")),
         ),
         db_index=True,
