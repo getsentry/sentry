@@ -3,10 +3,11 @@ from __future__ import annotations
 import random
 import re
 from datetime import timedelta
-from typing import Optional, Sequence
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils.event_frames import get_sdk_name
 
@@ -100,6 +101,61 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         ):
             self._store_performance_problem()
 
+    def get_span_duration(self, span: Dict[str, Any] | None) -> timedelta:
+        if span:
+            return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
+        return timedelta(0)
+
+    def _sum_span_duration(self, spans: list[Dict[str, Any] | None]) -> float:
+        "Given non-overlapping spans, find the sum of the span durations in milliseconds"
+        sum: float = 0.0
+        for span in spans:
+            if span:
+                sum += self.get_span_duration(span).total_seconds() * 1000
+        return sum
+
+    @property
+    def time_saved(self) -> float:
+        """
+        Calculates the cost saved by running spans in parallel,
+        this is the maximum time saved of running all independent queries in parallel
+        note, maximum means it does not account for db connection times and overhead associated with parallelization,
+        this is where thresholds come in
+        """
+        total_duration = self._sum_span_duration(self.consecutive_db_spans)
+
+        max_independent_span_duration = max(
+            [
+                self.get_span_duration(span).total_seconds() * 1000
+                for span in self.independent_db_spans
+            ]
+        )
+
+        sum_of_dependent_span_durations = 0.0
+        for span in self.consecutive_db_spans:
+            if span not in self.independent_db_spans:
+                sum_of_dependent_span_durations += (
+                    self.get_span_duration(span).total_seconds() * 1000
+                )
+
+        return total_duration - max(max_independent_span_duration, sum_of_dependent_span_durations)
+
+    @property
+    def transaction_duration(self) -> float:
+        if not self._event:
+            return 0
+
+        return self.duration(self.event.data)
+
+    def duration(self, item: Mapping[str, Any] | None) -> float:
+        if not item:
+            return 0
+
+        start = float(item.get("start_timestamp", 0) or 0)
+        end = float(item.get("timestamp", 0) or 0)
+
+        return (end - start) * 1000
+
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
         offender_span_ids = [span.get("span_id", None) for span in self.independent_db_spans]
@@ -118,27 +174,30 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 "cause_span_ids": cause_span_ids,
                 "parent_span_ids": None,
                 "offender_span_ids": offender_span_ids,
+                "transaction_duration": self.transaction_duration,
+                "slow_span_duration": self.time_saved,
             },
             evidence_display=[
-                # IssueEvidence(
-                #     name='Transaction Name',
-                #     value=self._event.get("transaction", ""),
-                #     important=True,
-                # ),
-                # IssueEvidence(
-                #     name=""
-                # )
+                IssueEvidence(
+                    name="Transaction Name",
+                    value=self._event.get("transaction", ""),
+                    important=True,
+                ),
+                IssueEvidence(
+                    name="Starting Span",
+                    value=self.consecutive_db_spans[0].get("description", ""),
+                    important=True,
+                ),
+                IssueEvidence(
+                    name="Parallelizable Spans",
+                    # TODO figure out how to handle multiple values
+                    value=[span.get("description", "") for span in self.independent_db_spans],
+                    important=True,
+                ),
             ],
         )
 
         self._reset_variables()
-
-    def _sum_span_duration(self, spans: list[Span]) -> int:
-        "Given a list of spans, find the sum of the span durations in milliseconds"
-        sum = 0
-        for span in spans:
-            sum += get_span_duration(span).total_seconds() * 1000
-        return sum
 
     def _set_independent_spans(self, spans: list[Span]):
         """
