@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import query_groups_past_counts
+from sentry.issues.escalating import query_groups_past_counts, _start_and_end_dates
 from sentry.models import Group
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
@@ -84,3 +84,13 @@ class HistoricGroupCounts(TestCase):  # type: ignore
     def test_query_no_groups(self) -> None:
         with pytest.raises(SnubaError):
             assert query_groups_past_counts([]) == []
+
+
+def test_datetime_number_of_hours():
+    start, end = _start_and_end_dates(5)
+    assert (end - start).seconds / 3600 == 5
+
+
+def test_datetime_number_of_days():
+    start, end = _start_and_end_dates()
+    assert (end - start).days == 7

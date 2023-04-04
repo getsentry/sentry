@@ -21,6 +21,8 @@ from sentry.utils.snuba import raw_snql_query
 
 # This gets modified in tests to force a smaller limit
 QUERY_LIMIT = 10000  # This is the maximum value for Snuba
+# The amount of data needed to generate a group forecast
+SEVEN_DAYS_IN_HOURS = 7 * 24
 
 
 def query_groups_past_counts(groups: List[Group]) -> JSONData:
@@ -63,8 +65,6 @@ def _generate_query(groups: List[Group], offset: int) -> Query:
         limit=Limit(QUERY_LIMIT),
         offset=Offset(offset),
         orderby=[
-            # Make sure all the groups related to same project are returned first
-            # IIUC this will help Snuba with performance
             OrderBy(proj_id_col, Direction.ASC),
             OrderBy(group_id_col, Direction.ASC),
             OrderBy(Column("hourBucket"), Direction.ASC),
@@ -72,13 +72,10 @@ def _generate_query(groups: List[Group], offset: int) -> Query:
     )
 
 
-# XXX: Add unit tests
-def _start_and_end_dates(hours: int = 168) -> Tuple[datetime, datetime]:
-    """Return start and end date based on the last hour.
-    This will ensure that when we query Snuba we will have N buckets of an hour
-    without missing any minutes of it."""
-    datetime_to_minute_zero = datetime.now().replace(minute=0, second=0, microsecond=0)
-    return datetime_to_minute_zero - timedelta(hours=hours), datetime_to_minute_zero
+def _start_and_end_dates(hours: int = SEVEN_DAYS_IN_HOURS) -> Tuple[datetime, datetime]:
+    """Return the start and end date of N hours time range."""
+    end_datetime = datetime.now()
+    return end_datetime - timedelta(hours=hours), end_datetime
 
 
 def _extract_project_and_group_ids(groups: List[Group]) -> Tuple[List[int], List[int]]:
