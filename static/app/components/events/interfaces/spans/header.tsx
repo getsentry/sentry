@@ -117,15 +117,18 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderViewHandles({
-    isDragging,
-    onLeftHandleDragStart,
-    leftHandlePosition,
-    onRightHandleDragStart,
-    rightHandlePosition,
-    viewWindowStart,
-    viewWindowEnd,
-  }: DragManagerChildrenProps) {
+  renderViewHandles(
+    {
+      isDragging,
+      onLeftHandleDragStart,
+      leftHandlePosition,
+      onRightHandleDragStart,
+      rightHandlePosition,
+      viewWindowStart,
+      viewWindowEnd,
+    }: DragManagerChildrenProps,
+    isChart: boolean = false
+  ) {
     const leftHandleGhost = isDragging ? (
       <Handle
         left={viewWindowStart}
@@ -133,6 +136,7 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
+        isChart={isChart}
       />
     ) : null;
 
@@ -141,6 +145,7 @@ class TraceViewHeader extends Component<PropType, State> {
         left={leftHandlePosition}
         onMouseDown={onLeftHandleDragStart}
         isDragging={isDragging}
+        isChart={isChart}
       />
     );
 
@@ -149,6 +154,7 @@ class TraceViewHeader extends Component<PropType, State> {
         left={rightHandlePosition}
         onMouseDown={onRightHandleDragStart}
         isDragging={isDragging}
+        isChart={isChart}
       />
     );
 
@@ -159,6 +165,7 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
+        isChart={isChart}
       />
     ) : null;
 
@@ -527,6 +534,27 @@ class TraceViewHeader extends Component<PropType, State> {
                         <ProfilingMeasurements
                           profileData={profiles.data}
                           renderCursorGuide={this.renderCursorGuide}
+                          renderFog={() => this.renderFog(this.props.dragProps)}
+                          renderViewHandles={() =>
+                            this.renderViewHandles(this.props.dragProps, true)
+                          }
+                          renderWindowSelection={() =>
+                            this.renderWindowSelection(this.props.dragProps)
+                          }
+                          onChartMouseDown={event => {
+                            const target = event.target;
+
+                            if (
+                              target instanceof Element &&
+                              target.getAttribute &&
+                              target.getAttribute('data-ignore')
+                            ) {
+                              // ignore this event if we need to
+                              return;
+                            }
+
+                            this.props.dragProps.onWindowSelectionDragStart(event);
+                          }}
                         />
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
@@ -792,14 +820,16 @@ const MinimapContainer = styled('div')`
   left: 0;
 `;
 
-const ViewHandleContainer = styled('div')`
+const ViewHandleContainer = styled('div')<{isChart: boolean}>`
   position: absolute;
   top: 0;
-  height: ${MINIMAP_HEIGHT}px;
+  height: ${p => (p.isChart ? PROFILE_MEASUREMENTS_CHART_HEIGHT : MINIMAP_HEIGHT)}px;
 `;
 
-const ViewHandleLine = styled('div')`
-  height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
+const ViewHandleLine = styled('div')<{isChart: boolean}>`
+  height: ${p =>
+    (p.isChart ? PROFILE_MEASUREMENTS_CHART_HEIGHT : MINIMAP_HEIGHT) -
+    VIEW_HANDLE_HEIGHT}px;
   width: 2px;
   background-color: ${p => p.theme.textColor};
 `;
@@ -857,7 +887,9 @@ const Handle = ({
   left,
   onMouseDown,
   isDragging,
+  isChart,
 }: {
+  isChart: boolean;
   isDragging: boolean;
   left: number;
   onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
@@ -866,8 +898,9 @@ const Handle = ({
     style={{
       left: toPercent(left),
     }}
+    isChart={isChart}
   >
-    <ViewHandleLine />
+    <ViewHandleLine isChart={isChart} />
     <ViewHandle
       data-ignore="true"
       onMouseDown={onMouseDown}
