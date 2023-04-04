@@ -29,8 +29,8 @@ import {
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
-import Exception from './crashContent/exception';
-import StackTrace from './crashContent/stackTrace';
+import {ExceptionContent} from './crashContent/exception';
+import {StackTrace} from './crashContent/stackTrace';
 import ThreadSelector from './threads/threadSelector';
 import findBestThread from './threads/threadSelector/findBestThread';
 import getThreadException from './threads/threadSelector/getThreadException';
@@ -38,7 +38,7 @@ import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
-type ExceptionProps = React.ComponentProps<typeof Exception>;
+type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 
 type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGrouping'> & {
   data: {
@@ -184,7 +184,7 @@ export function ThreadsV2({
 
     if (exception) {
       return (
-        <Exception
+        <ExceptionContent
           stackType={stackType}
           stackView={
             display.includes('raw-stack-trace')
@@ -227,7 +227,6 @@ export function ThreadsV2({
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           meta={meta}
-          nativeV2
         />
       );
     }

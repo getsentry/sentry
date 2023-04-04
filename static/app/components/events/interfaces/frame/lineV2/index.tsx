@@ -22,11 +22,10 @@ import {
 } from '../utils';
 
 import Default from './default';
-import Native from './native';
 import NativeV2 from './nativeV2';
 
 type Props = Omit<
-  React.ComponentProps<typeof Native>,
+  React.ComponentProps<typeof NativeV2>,
   'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
 > &
   Omit<
@@ -39,7 +38,6 @@ type Props = Omit<
     emptySourceNotation?: boolean;
     frameMeta?: Record<string, any>;
     isOnlyFrame?: boolean;
-    nativeV2?: boolean;
     registersMeta?: Record<string, any>;
   };
 
@@ -50,10 +48,6 @@ function Line({
   prevFrame,
   timesRepeated,
   includeSystemFrames,
-  onAddressToggle,
-  onFunctionNameToggle,
-  showingAbsoluteAddress,
-  showCompleteFunctionName,
   isFrameAfterLastNonApp,
   isUsedForGrouping,
   maxLengthOfRelativeAddress,
@@ -69,7 +63,6 @@ function Line({
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed = false,
-  nativeV2 = false,
   ...props
 }: Props) {
   /* Prioritize the frame platform but fall back to the platform
@@ -102,7 +95,7 @@ function Line({
       case 'objc':
       case 'cocoa':
       case 'native':
-        return nativeV2 ? (
+        return (
           <NativeV2
             event={event}
             leadsToApp={leadsToApp}
@@ -114,28 +107,6 @@ function Line({
             isExpanded={isExpanded}
             isExpandable={expandable}
             includeSystemFrames={includeSystemFrames}
-            isFrameAfterLastNonApp={isFrameAfterLastNonApp}
-            onToggleContext={toggleContext}
-            image={image}
-            maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
-            isUsedForGrouping={isUsedForGrouping}
-          />
-        ) : (
-          <Native
-            event={event}
-            leadsToApp={leadsToApp}
-            frame={frame}
-            prevFrame={prevFrame}
-            nextFrame={nextFrame}
-            isHoverPreviewed={isHoverPreviewed}
-            platform={platform}
-            isExpanded={isExpanded}
-            isExpandable={expandable}
-            onAddressToggle={onAddressToggle}
-            onFunctionNameToggle={onFunctionNameToggle}
-            includeSystemFrames={includeSystemFrames}
-            showingAbsoluteAddress={showingAbsoluteAddress}
-            showCompleteFunctionName={showCompleteFunctionName}
             isFrameAfterLastNonApp={isFrameAfterLastNonApp}
             onToggleContext={toggleContext}
             image={image}

@@ -337,7 +337,7 @@ export function TraceEventDataSection({
     }
 
     // This logic might be incomplete, but according to the SDK folks, this is 99.9% of the cases
-    if (platform.startsWith('javascript')) {
+    if (platform.startsWith('javascript') || platform.startsWith('node')) {
       return [
         {
           label: t('Minified'),

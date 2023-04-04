@@ -8,7 +8,6 @@ import {EntryType, Event} from 'sentry/types/event';
 
 describe('ThreadsV2', function () {
   const {project, organization} = initializeOrg();
-  const org = {...organization, features: ['native-stack-trace-v2']};
 
   describe('non native platform', function () {
     describe('other platform', function () {
@@ -206,7 +205,7 @@ describe('ThreadsV2', function () {
 
       it('renders', function () {
         const {container} = render(<ThreadsV2 {...props} />, {
-          organization: org,
+          organization,
         });
 
         // Title
@@ -230,7 +229,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle full stack trace button', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
@@ -244,7 +243,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by display option', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization});
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
@@ -284,7 +283,7 @@ describe('ThreadsV2', function () {
       });
 
       it('check display options', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization});
 
         await userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
@@ -862,7 +861,7 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<ThreadsV2 {...props} />, {organization: org});
+        const {container} = render(<ThreadsV2 {...props} />, {organization});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -892,7 +891,7 @@ describe('ThreadsV2', function () {
       it('renders thread state and lock reason', function () {
         const newOrg = {
           ...organization,
-          features: ['native-stack-trace-v2', 'anr-improvements'],
+          features: ['anr-improvements'],
         };
         const newProps = {...props, organization: newOrg};
         const {container} = render(<ThreadsV2 {...newProps} />, {organization: newOrg});
@@ -989,7 +988,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle full stack trace button', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
@@ -1003,7 +1002,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by option', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization});
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
@@ -1048,7 +1047,7 @@ describe('ThreadsV2', function () {
       });
 
       it('check display options', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization});
 
         await userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
