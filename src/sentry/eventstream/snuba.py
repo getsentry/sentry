@@ -16,7 +16,9 @@ from typing import (
 from uuid import uuid4
 
 import pytz
+import sentry_kafka_schemas
 import urllib3
+from arroyo.strategies.decoder.json import JsonCodec
 
 from sentry import quotas
 from sentry.eventstore.models import GroupEvent
@@ -419,11 +421,22 @@ class SnubaEventStream(SnubaProtocolEventStream):
             entity = "transactions"
         if event_type == EventStreamEventType.Generic:
             entity = "search_issues"
+
+        schema = sentry_kafka_schemas.get_schema(
+            {
+                "events": "events",
+                "transactions": None,
+                "search_issues": "generic-events",
+            }["schema"]
+        )
+
+        encoded_data = JsonCodec(schema).encode(data, validate=True)
+
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
                 f"/tests/{entity}/eventstream",
-                body=json.dumps(data),
+                body=json.dumps(encoded_data),
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
             if resp.status != 200:

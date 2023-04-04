@@ -50,7 +50,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
-        self.assign_transaction_partitions_randomly = True
         self.__producers: MutableMapping[str, Producer] = {}
 
     def get_transactions_topic(self, project_id: int) -> str:
@@ -146,10 +145,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         assign_partitions_randomly = (
             (event_type == EventStreamEventType.Generic)
-            or (
-                event_type == EventStreamEventType.Transaction
-                and self.assign_transaction_partitions_randomly
-            )
+            or (event_type == EventStreamEventType.Transaction)
             or killswitch_matches_context(
                 "kafka.send-project-events-to-random-partitions",
                 {"project_id": event.project_id, "message_type": event_type.value},
