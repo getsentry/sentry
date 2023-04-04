@@ -4,8 +4,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillActorsTest(TestMigrations):
-    migrate_from = "0398_actor_fk_inversion"
-    migrate_to = "0399_backfill_actors"
+    migrate_from = "0402_add_organizationmembermapping_table"
+    migrate_to = "0403_backfill_actors"
 
     def setup_initial_state(self):
         self.new_user = self.create_user("b@example.com")
