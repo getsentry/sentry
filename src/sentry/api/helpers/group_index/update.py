@@ -550,7 +550,9 @@ def update_groups(
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
                 if features.has("organizations:escalating-issues", group_list[0].organization):
-                    handle_archived_until_escalating(group_ids, statusDetails, acting_user, user)
+                    result["statusDetails"] = handle_archived_until_escalating(
+                        group_ids, group_list, statusDetails, acting_user, user
+                    )
                 else:
                     result["statusDetails"] = handle_ignored(
                         group_ids, group_list, statusDetails, acting_user, user
@@ -911,6 +913,7 @@ def handle_ignored(
 
 def handle_archived_until_escalating(
     group_ids: Sequence[int],
+    group_list: Sequence[Group],
     status_details: dict[str, int | str],
     acting_user: User | None,
     user: User,
@@ -922,11 +925,13 @@ def handle_archived_until_escalating(
     in the statusDetail are treated as `archived_until_escalating`.
     """
     if status_details.get("archiveDuration") != "escalating":
+        # TODO(snigdha): this condition needs to be updated as we switch from ignored to archived.
         return {}
 
     metrics.incr("group.archived_until_escalating", skip_internal=True)
     for group in group_ids:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
+    for group in group_list:
         GroupSnooze.objects.create_or_update(
             group=group,
             values={

@@ -10,7 +10,9 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.issue_search import parse_search_query
 from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -170,3 +172,28 @@ class UpdateGroupsTest(TestCase):
 
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
+
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.signals.issue_ignored.send_robust")
+    def test_ignore_until_escalating(self, send_robust):
+        group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "ignored", "statusDetails": {"archiveDuration": "escalating"}}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        search_fn = Mock()
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.IGNORED
+        assert send_robust.called
+        assert not GroupInbox.objects.filter(group=group).exists()
+
+        snooze = GroupSnooze.objects.filter(group=group, until_escalating=True)
+        assert snooze.exists()
