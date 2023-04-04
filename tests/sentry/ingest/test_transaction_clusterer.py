@@ -350,3 +350,20 @@ def test_transaction_clusterer_bumps_rules(_m, default_organization):
             )
 
         assert _get_rules(project1) == {"/user/*/**": 2}
+
+
+@pytest.mark.django_db
+def test_stale_rules_arent_saved(default_project):
+    assert len(get_sorted_rules(default_project)) == 0
+
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(default_project, [ReplacementRule("foo/foo")])
+    assert get_sorted_rules(default_project) == [("foo/foo", 946688400)]
+
+    with freeze_time("2000-02-02 02:00:00"):
+        update_rules(default_project, [ReplacementRule("bar/bar")])
+    assert get_sorted_rules(default_project) == [("bar/bar", 949456800), ("foo/foo", 946688400)]
+
+    with freeze_time("2001-01-01 01:00:00"):
+        update_rules(default_project, [ReplacementRule("baz/baz")])
+    assert get_sorted_rules(default_project) == [("baz/baz", 978310800)]
