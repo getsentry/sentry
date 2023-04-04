@@ -212,11 +212,6 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
     name: t('Package'),
     width: COL_WIDTH_UNDEFINED,
   },
-  path: {
-    key: 'path',
-    name: t('Path'),
-    width: COL_WIDTH_UNDEFINED,
-  },
   p75: {
     key: 'p75',
     name: t('P75 Duration'),
