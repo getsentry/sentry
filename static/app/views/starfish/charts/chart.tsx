@@ -231,7 +231,7 @@ function Chart({
         return value === 'epm()' ? 'tpm()' : value;
       },
     },
-  };
+  } as Omit<AreaChartProps, 'series'>;
 
   if (loading) {
     if (isLineChart) {
@@ -271,7 +271,7 @@ function Chart({
               series={series}
               previousPeriod={previousData}
               xAxis={xAxis}
-              yAxis={areaChartProps.yAxes[0]}
+              yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
               tooltip={areaChartProps.tooltip}
             />
           );

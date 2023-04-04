@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
 import {
   QueryBatchNode,
   Transform,
@@ -79,7 +80,7 @@ export function StackedAreaWidget(props: PerformanceWidgetProps) {
     <GenericPerformanceWidget<DataType>
       {...props}
       location={location}
-      Subtitle={() => <Subtitle>p95 of span breakdowns</Subtitle>}
+      Subtitle={() => <Subtitle>{t('p95 of span breakdowns')}</Subtitle>}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />
