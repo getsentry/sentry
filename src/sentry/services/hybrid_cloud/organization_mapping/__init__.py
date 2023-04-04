@@ -72,6 +72,7 @@ class OrganizationMappingService(RpcService):
         region_name: str,
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
+        user: Optional[int] = None,
     ) -> RpcOrganizationMapping:
         """
         This method returns a new or recreated OrganizationMapping object.

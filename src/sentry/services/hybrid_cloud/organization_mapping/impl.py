@@ -21,6 +21,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         idempotency_key: Optional[str] = "",
         # There's only a customer_id when updating an org slug
         customer_id: Optional[str] = None,
+        user: Optional[int] = None,
     ) -> RpcOrganizationMapping:
 
         if idempotency_key:
