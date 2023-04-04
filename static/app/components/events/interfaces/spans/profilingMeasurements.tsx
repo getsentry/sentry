@@ -104,7 +104,6 @@ const MemoizedChart = React.memo(Chart);
 
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
-  onChartMouseDown?: (event: React.MouseEvent<HTMLDivElement>) => void;
   renderCursorGuide?: ({
     cursorGuideHeight,
     mouseLeft,
@@ -115,7 +114,6 @@ type ProfilingMeasurementsProps = {
     showCursorGuide: boolean;
   }) => void;
   renderFog?: () => void;
-  renderViewHandles?: () => void;
   renderWindowSelection?: () => void;
 };
 
@@ -123,9 +121,7 @@ function ProfilingMeasurements({
   profileData,
   renderCursorGuide,
   renderFog,
-  renderViewHandles,
   renderWindowSelection,
-  onChartMouseDown,
 }: ProfilingMeasurementsProps) {
   const theme = useTheme();
 
@@ -160,7 +156,6 @@ function ProfilingMeasurements({
                 onMouseMove={event => {
                   displayCursorGuide(event.pageX);
                 }}
-                onMouseDown={onChartMouseDown}
               >
                 <MemoizedChart data={cpuUsageData} />
                 {renderFog?.()}
@@ -169,7 +164,6 @@ function ProfilingMeasurements({
                   mouseLeft,
                   cursorGuideHeight: PROFILE_MEASUREMENTS_CHART_HEIGHT,
                 })}
-                {/* {renderViewHandles?.()} */}
                 {renderWindowSelection?.()}
               </ChartContainer>
             </MeasurementContainer>

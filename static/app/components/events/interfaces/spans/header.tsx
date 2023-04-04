@@ -535,26 +535,9 @@ class TraceViewHeader extends Component<PropType, State> {
                           profileData={profiles.data}
                           renderCursorGuide={this.renderCursorGuide}
                           renderFog={() => this.renderFog(this.props.dragProps)}
-                          renderViewHandles={() =>
-                            this.renderViewHandles(this.props.dragProps, true)
-                          }
                           renderWindowSelection={() =>
                             this.renderWindowSelection(this.props.dragProps)
                           }
-                          onChartMouseDown={event => {
-                            const target = event.target;
-
-                            if (
-                              target instanceof Element &&
-                              target.getAttribute &&
-                              target.getAttribute('data-ignore')
-                            ) {
-                              // ignore this event if we need to
-                              return;
-                            }
-
-                            this.props.dragProps.onWindowSelectionDragStart(event);
-                          }}
                         />
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
