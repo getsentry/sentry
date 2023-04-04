@@ -4,44 +4,42 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function () {
-  describe('render()', function () {
-    it('should render NotFound if no matching integration/platform', async function () {
-      const routeParams = {
-        projectId: TestStubs.Project().slug,
-        platform: 'lua',
-      };
-      const {organization, router, route, project, routerContext} = initializeOrg({
-        ...initializeOrg(),
-        router: {
-          location: {
-            query: {},
-          },
-          params: routeParams,
+  it('should render NotFound if no matching integration/platform', async function () {
+    const routeParams = {
+      projectId: TestStubs.Project().slug,
+      platform: 'lua',
+    };
+    const {organization, router, route, project, routerContext} = initializeOrg({
+      ...initializeOrg(),
+      router: {
+        location: {
+          query: {},
         },
-      });
-
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/projects/',
-        body: [project],
-      });
-
-      render(
-        <ProjectInstallPlatform
-          router={router}
-          route={route}
-          location={router.location}
-          routeParams={routeParams}
-          routes={router.routes}
-          params={routeParams}
-        />,
-        {
-          organization,
-          context: routerContext,
-        }
-      );
-
-      expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
+        params: routeParams,
+      },
     });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
+
+    render(
+      <ProjectInstallPlatform
+        router={router}
+        route={route}
+        location={router.location}
+        routeParams={routeParams}
+        routes={router.routes}
+        params={routeParams}
+      />,
+      {
+        organization,
+        context: routerContext,
+      }
+    );
+
+    expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 });
