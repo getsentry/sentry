@@ -467,6 +467,7 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
             ignore_window=activity_data.get("ignoreWindow"),
             ignore_user_count=activity_data.get("ignoreUserCount"),
             ignore_user_window=activity_data.get("ignoreUserWindow"),
+            archive_duration=activity_data.get("archiveDuration"),
         )
 
 

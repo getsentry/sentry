@@ -590,6 +590,8 @@ def update_groups(
                     "ignoreUserWindow": ignore_user_window,
                     "ignoreWindow": ignore_window,
                 }
+                if features.has("organizations:escalating-issues", group_list[0].organization):
+                    activity_data["archiveDuration"] = statusDetails.get("archiveDuration")
 
                 groups_by_project_id = defaultdict(list)
                 for group in group_list:
