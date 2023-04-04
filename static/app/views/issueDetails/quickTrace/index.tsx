@@ -26,7 +26,7 @@ function QuickTrace({group, event, organization, location}: Props) {
   }
 
   if (quickTrace?.isLoading) {
-    return <GrowingPlaceholder height="20px" />;
+    return <TracePlaceholder height="20px" />;
   }
 
   return (
@@ -40,9 +40,9 @@ function QuickTrace({group, event, organization, location}: Props) {
   );
 }
 
-const GrowingPlaceholder = styled(Placeholder)`
-  flex-grow: 1;
+const TracePlaceholder = styled(Placeholder)`
   width: auto;
+  max-width: 300px;
 `;
 
 export default QuickTrace;

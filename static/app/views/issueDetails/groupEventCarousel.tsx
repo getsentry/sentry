@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button, ButtonProps} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -20,7 +19,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group} from 'sentry/types';
+import {Event, Group, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
@@ -42,6 +41,16 @@ type GroupEventCarouselProps = {
   projectSlug: string;
 };
 
+type EventNavigationButtonProps = {
+  disabled: boolean;
+  group: Group;
+  icon: ButtonProps['icon'];
+  referrer: string;
+  size: ButtonProps['size'];
+  title: string;
+  eventId?: string | null;
+};
+
 const copyToClipboard = (value: string) => {
   navigator.clipboard
     .writeText(value)
@@ -53,6 +62,47 @@ const copyToClipboard = (value: string) => {
     });
 };
 
+const makeBaseEventsPath = ({
+  organization,
+  group,
+}: {
+  group: Group;
+  organization: Organization;
+}) => `/organizations/${organization.slug}/issues/${group.id}/events/`;
+
+const EventNavigationButton = ({
+  disabled,
+  eventId,
+  group,
+  icon,
+  size,
+  title,
+  referrer,
+}: EventNavigationButtonProps) => {
+  const organization = useOrganization();
+  const location = useLocation();
+  const baseEventsPath = makeBaseEventsPath({organization, group});
+
+  // Need to wrap with Tooltip because our version of React Router doesn't allow access
+  // to the anchor ref which is needed by Tooltip to position correctly.
+  return (
+    <Tooltip title={title} disabled={disabled} skipWrapper>
+      <div>
+        <StyledNavButton
+          size={size}
+          icon={icon}
+          aria-label={title}
+          to={{
+            pathname: `${baseEventsPath}${eventId}/`,
+            query: {...location.query, referrer},
+          }}
+          disabled={disabled}
+        />
+      </div>
+    </Tooltip>
+  );
+};
+
 export const GroupEventCarousel = ({
   event,
   group,
@@ -60,17 +110,14 @@ export const GroupEventCarousel = ({
 }: GroupEventCarouselProps) => {
   const theme = useTheme();
   const organization = useOrganization();
-  const location = useLocation();
   const smallViewport = useMedia(`(max-width: ${theme.breakpoints.small})`);
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
 
   const buttonSize = smallViewport ? 'sm' : 'md';
   const buttonIconSize = smallViewport ? 'xs' : 'sm';
 
-  const groupId = group.id;
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
   const isReplayEnabled = organization.features.includes('session-replay');
-  const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -91,7 +138,8 @@ export const GroupEventCarousel = ({
 
   const copyLink = () => {
     copyToClipboard(
-      window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`)
+      window.location.origin +
+        normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`)
     );
     trackAdvancedAnalyticsEvent('issue_details.copy_event_link_clicked', {
       organization,
@@ -194,6 +242,11 @@ export const GroupEventCarousel = ({
           ]}
         />
         {xlargeViewport && (
+          <Button size={buttonSize} onClick={copyLink}>
+            Copy Link
+          </Button>
+        )}
+        {xlargeViewport && (
           <Button
             size={buttonSize}
             icon={<IconOpen size={buttonIconSize} />}
@@ -202,53 +255,44 @@ export const GroupEventCarousel = ({
             JSON
           </Button>
         )}
-        {xlargeViewport && (
-          <Button size={buttonSize} onClick={copyLink}>
-            Copy Link
-          </Button>
-        )}
-        <StyledButtonBar merged>
+        <NavButtons>
           <EventNavigationButton
-            size={buttonSize}
+            group={group}
             icon={<IconPrevious size={buttonIconSize} />}
-            aria-label="Oldest"
-            to={{
-              pathname: `${baseEventsPath}oldest/`,
-              query: {...location.query, referrer: 'oldest-event'},
-            }}
+            size={buttonSize}
             disabled={!hasPreviousEvent}
+            title={t('First Event')}
+            eventId="oldest"
+            referrer="oldest-event"
           />
           <EventNavigationButton
-            size={buttonSize}
+            group={group}
             icon={<IconChevron direction="left" size={buttonIconSize} />}
-            aria-label="Older"
-            to={{
-              pathname: `${baseEventsPath}${event.previousEventID}/`,
-              query: {...location.query, referrer: 'previous-event'},
-            }}
+            size={buttonSize}
             disabled={!hasPreviousEvent}
+            title={t('Previous Event')}
+            eventId={event.previousEventID}
+            referrer="previous-event"
           />
           <EventNavigationButton
-            size={buttonSize}
+            group={group}
             icon={<IconChevron direction="right" size={buttonIconSize} />}
-            aria-label="Newer"
-            to={{
-              pathname: `${baseEventsPath}${event.nextEventID}/`,
-              query: {...location.query, referrer: 'next-event'},
-            }}
+            size={buttonSize}
             disabled={!hasNextEvent}
+            title={t('Next Event')}
+            eventId={event.nextEventID}
+            referrer="next-event"
           />
           <EventNavigationButton
-            size={buttonSize}
+            group={group}
             icon={<IconNext size={buttonIconSize} />}
-            aria-label="Newest"
-            to={{
-              pathname: `${baseEventsPath}latest/`,
-              query: {...location.query, referrer: 'latest-event'},
-            }}
+            size={buttonSize}
             disabled={!hasNextEvent}
+            title={t('Latest Event')}
+            eventId="latest"
+            referrer="latest-event"
           />
-        </StyledButtonBar>
+        </NavButtons>
       </ActionsWrapper>
     </CarouselAndButtonsWrapper>
   );
@@ -276,13 +320,33 @@ const ActionsWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: auto auto 1fr auto auto;
-  flex: 1;
+const StyledNavButton = styled(Button)`
+  width: 42px;
+  border-radius: 0;
 `;
 
-const EventNavigationButton = styled(Button)`
-  width: 42px;
+const NavButtons = styled('div')`
+  display: flex;
+
+  > * {
+    &:not(:last-child) {
+      ${StyledNavButton} {
+        border-right: none;
+      }
+    }
+
+    &:first-child {
+      ${StyledNavButton} {
+        border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+      }
+    }
+
+    &:last-child {
+      ${StyledNavButton} {
+        border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+      }
+    }
+  }
 `;
 
 const EventIdLabel = styled('span')`
