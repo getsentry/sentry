@@ -46,6 +46,9 @@ class RedisRuleStore:
         return {rule: int(timestamp) for rule, timestamp in data.items()}
 
     def write(self, project: Project, rules: RuleSet) -> None:
+        if len(rules) == 0:
+            return
+
         client = get_redis_client()
         key = self._get_rules_key(project)
 
@@ -158,6 +161,22 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
 
 
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
+    # Run the updates even if there aren't any new rules, to get all the stores
+    # up-to-date.
+
+    last_seen = _now()
+    new_rule_set = {rule: last_seen for rule in new_rules}
+    rule_store = CompositeRuleStore(
+        [
+            RedisRuleStore(),
+            ProjectOptionRuleStore(),
+            LocalRuleStore(new_rule_set),
+        ]
+    )
+    rule_store.merge(project)
+
+
+def update_redis_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
     if not new_rules:
         return
 
@@ -166,7 +185,6 @@ def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None
     rule_store = CompositeRuleStore(
         [
             RedisRuleStore(),
-            ProjectOptionRuleStore(),
             LocalRuleStore(new_rule_set),
         ]
     )

@@ -13,6 +13,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 )
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
+    RuleSet,
     _get_rules,
     get_sorted_rules,
     update_rules,
@@ -250,6 +251,7 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
 
 @mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
 @pytest.mark.django_db
 def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_organization):
@@ -259,14 +261,17 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
     _store_transaction_name(project, "/transaction/number/1")
     with Feature({"organizations:transaction-name-clusterer": True}):
         cluster_projects([project])
-    assert mock_update_rules.call_count == 0
+    # Clusterer didn't create rules. Still, it updates the stores.
+    assert mock_update_rules.call_count == 1
+    assert mock_update_rules.call_args == mock.call(project, [])
     assert _get_rules(project) == {}  # Transaction names are deleted if there aren't enough
 
     _store_transaction_name(project, "/transaction/number/1")
     _store_transaction_name(project, "/transaction/number/2")
     with Feature({"organizations:transaction-name-clusterer": True}):
         cluster_projects([project])
-    assert mock_update_rules.call_count == 1
+    assert mock_update_rules.call_count == 2
+    assert mock_update_rules.call_args == mock.call(project, ["/transaction/number/*/**"])
 
 
 @pytest.mark.django_db
@@ -320,8 +325,19 @@ def test_transaction_clusterer_generates_rules(default_project):
     wraps=cluster_projects,  # call immediately
 )
 @pytest.mark.django_db
-def test_transaction_clusterer_bumps_rules(_m, default_organization):
-    with Feature({"organizations:transaction-name-clusterer": True}):
+def test_transaction_clusterer_bumps_rules(_, default_organization):
+    tmp_redis_storage = {}
+
+    class MockRedisRuleStore:
+        def read(self, project: Project) -> RuleSet:
+            return tmp_redis_storage.get(project, {})
+
+        def write(self, project: Project, rules) -> None:
+            tmp_redis_storage[project] = rules
+
+    with mock.patch(
+        "sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore
+    ), Feature({"organizations:transaction-name-clusterer": True}):
         project1 = Project(id=123, name="project1", organization_id=default_organization.id)
         project1.save()
         for i in range(10):
@@ -349,6 +365,11 @@ def test_transaction_clusterer_bumps_rules(_m, default_organization):
                 },
             )
 
+        # _get_rules fetches from project options, which arent updated yet.
+        assert _get_rules(project1) == {"/user/*/**": 1}
+        # Update rules to update the project option storage.
+        update_rules(project1, [])
+        # After project options are updated, the last_seen should also be updated.
         assert _get_rules(project1) == {"/user/*/**": 2}
 
 
