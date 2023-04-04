@@ -136,4 +136,6 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
         if len(applied_rule) == 2:
             pattern = applied_rule[0]
             if pattern in stored_rules:
+                # Only one clustering rule is applied per project
                 clusterer_rules.update_rules(project, [pattern])
+                return
