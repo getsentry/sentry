@@ -408,9 +408,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             and "providerName" in data
             and "providerConfig" in data
         ):
+            provider_name = data["providerName"]
+            provider_config = data["providerConfig"]
             with transaction.atomic():
-                provider_name = data["providerName"]
-                provider_config = data["providerConfig"]
                 auth_provider = AuthProvider.objects.update_or_create(
                     organization_id=org.id,
                     defaults={"provider": provider_name},
