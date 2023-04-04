@@ -41,7 +41,8 @@ class RpcServiceTest(TestCase):
         service = OrganizationService.create_delegation()
         with override_regions(regions), override_settings(SILO_MODE=SiloMode.CONTROL):
             service.add_organization_member(
-                organization=serial_org,
+                organization_id=serial_org.id,
+                default_org_role=serial_org.default_role,
                 user=serial_user,
                 flags=RpcOrganizationMemberFlags(),
                 role=None,
@@ -57,8 +58,17 @@ class RpcServiceTest(TestCase):
         assert region == target_region
         assert service_name == OrganizationService.key
         assert method_name == "add_organization_member"
-        assert serial_arguments.keys() == {"flags", "organization", "role", "user"}
-        assert serial_arguments["organization"]["id"] == organization.id
+        assert serial_arguments.keys() == {
+            "organization_id",
+            "default_org_role",
+            "user",
+            "email",
+            "flags",
+            "role",
+            "inviter_id",
+            "invite_status",
+        }
+        assert serial_arguments["organization_id"] == organization.id
 
     @mock.patch("sentry.services.hybrid_cloud.report_pydantic_type_validation_error")
     def test_models_tolerate_invalid_types(self, mock_report):
@@ -83,7 +93,8 @@ class RpcServiceTest(TestCase):
         serial_user = RpcUser(id=user.id)
         serial_org = DatabaseBackedOrganizationService.serialize_organization(organization)
         serial_arguments = dict(
-            organization=serial_org.dict(),
+            organization_id=serial_org.id,
+            default_org_role=serial_org.default_role,
             user=serial_user.dict(),
             flags=RpcOrganizationMemberFlags().dict(),
             role=None,
