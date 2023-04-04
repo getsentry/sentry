@@ -203,6 +203,8 @@ class OutboxBase(Model):
         pass
 
     def drain_shard(self, max_updates_to_drain: int | None = None):
+        if not transaction.get_autocommit():
+            raise RuntimeError("drain_shard() should not be called within an atomic transaction.")
         runs = 0
         next_row: OutboxBase | None = self.selected_messages_in_shard().first()
         while next_row is not None and (

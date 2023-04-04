@@ -3,6 +3,7 @@ from typing import ContextManager
 from unittest.mock import call, patch
 
 import pytest
+from django.db import transaction
 from freezegun import freeze_time
 from pytest import raises
 
@@ -247,3 +248,18 @@ def test_outbox_converges(task_runner):
                 last_call_count = mock_process_region_outbox.call_count
 
         assert last_call_count == 2
+
+
+@pytest.mark.django_db(transaction=True)
+@region_silo_test(stable=True)
+def test_drain_shard_atomic_transaction():
+    region_outbox = OrganizationMember(organization_id=12, id=15).outbox_for_update()
+
+    with transaction.atomic():
+        region_outbox.save()
+        assert RegionOutbox.objects.count() == 1
+        with pytest.raises(RuntimeError):
+            # We cannot run drain_shard() in an atomic transaction
+            region_outbox.drain_shard()
+    region_outbox.drain_shard()
+    assert RegionOutbox.objects.count() == 0
