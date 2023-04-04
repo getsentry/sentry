@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.spans.grouping.strategy.wildcard_replacement import glob_replace
+from sentry.spans.grouping.strategy.glob_replace import glob_replace
 
 
 @pytest.mark.parametrize(
