@@ -247,7 +247,7 @@ def record_first_replay(project, **kwargs):
 
 
 @first_cron_monitor_created.connect(weak=False)
-def record_first_cron_monitor(project, user, **kwargs):
+def record_first_cron_monitor(project, user, from_upsert, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
 
     analytics.record(
@@ -255,6 +255,7 @@ def record_first_cron_monitor(project, user, **kwargs):
         user_id=user.id if user else project.organization.default_owner_id,
         organization_id=project.organization_id,
         project_id=project.id,
+        from_upsert=from_upsert,
     )
 
 
