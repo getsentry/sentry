@@ -11,6 +11,9 @@ from .base import ReplacementRule
 #: Map from rule string to last_seen timestamp
 RuleSet = Mapping[ReplacementRule, int]
 
+#: How long a transaction name rule lasts, in seconds.
+TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
+
 
 class RuleStore(Protocol):
     def read(self, project: Project) -> RuleSet:
@@ -103,6 +106,9 @@ class CompositeRuleStore:
 
     def _trim_rules(self, rules: RuleSet) -> RuleSet:
         sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
+        last_seen_deadline = _now() - TRANSACTION_NAME_RULE_TTL_SECS
+        sorted_rules = list(filter(lambda rule: rule[1] >= last_seen_deadline, sorted_rules))
+
         if self.MERGE_MAX_RULES < len(rules):
             with sentry_sdk.configure_scope() as scope:
                 scope.set_tag("discarded", len(rules) - self.MERGE_MAX_RULES)
