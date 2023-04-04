@@ -39,7 +39,12 @@ class DBMainThreadDetectorTest(TestCase):
                 parent_span_ids=["b93d2be92cd64fd5"],
                 cause_span_ids=[],
                 offender_span_ids=["054ba3a374d543eb"],
-                evidence_data={},
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": ["b93d2be92cd64fd5"],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["054ba3a374d543eb"],
+                },
                 evidence_display=[],
             )
         ]

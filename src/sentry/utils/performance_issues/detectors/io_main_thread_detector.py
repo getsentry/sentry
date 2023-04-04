@@ -58,7 +58,14 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                     type=self.group_type,
                     cause_span_ids=[],
                     offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
-                    evidence_data={},
+                    evidence_data={
+                        "op": span_list[0].get("op"),
+                        "parent_span_ids": [parent_span_id],
+                        "cause_span_ids": [],
+                        "offender_span_ids": [
+                            span["span_id"] for span in span_list if "span_id" in span
+                        ],
+                    },
                     evidence_display=[],
                 )
 
