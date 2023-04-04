@@ -33,19 +33,19 @@ describe('GroupEventCarousel', () => {
   it('can navigate next/previous events', () => {
     render(<GroupEventCarousel {...defaultProps} />);
 
-    expect(screen.getByLabelText(/Oldest/)).toHaveAttribute(
+    expect(screen.getByLabelText(/First Event/)).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/group-id/events/oldest/?referrer=oldest-event`
     );
-    expect(screen.getByLabelText(/Older/)).toHaveAttribute(
+    expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/group-id/events/prev-event-id/?referrer=previous-event`
     );
-    expect(screen.getByLabelText(/Newer/)).toHaveAttribute(
+    expect(screen.getByLabelText(/Next Event/)).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event`
     );
-    expect(screen.getByLabelText(/Newest/)).toHaveAttribute(
+    expect(screen.getByLabelText(/Latest Event/)).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/group-id/events/latest/?referrer=latest-event`
     );
