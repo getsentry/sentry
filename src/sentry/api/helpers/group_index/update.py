@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Sequence
 from uuid import uuid4
 
 import rest_framework
@@ -845,9 +845,13 @@ def update_groups(
     return Response(result)
 
 
-def handle_ignored(group_ids, group_list, status_details, acting_user, user):
-    # Issues that are marked as ignored with archiveDuration: until_escalating
-    # in the statusDetail are treated as `archived_until_escalating`.
+def handle_ignored(
+    group_ids: Sequence[Group],
+    group_list: Sequence[Group],
+    status_details: Dict[str, Any],
+    acting_user: User | None,
+    user: User,
+) -> dict[str, str]:
     result_status_details = {}
     metrics.incr("group.ignored", skip_internal=True)
     for group in group_ids:
@@ -903,9 +907,21 @@ def handle_ignored(group_ids, group_list, status_details, acting_user, user):
     return result_status_details
 
 
-def handle_archived_until_escalating(group_ids, status_details, acting_user, user):
+def handle_archived_until_escalating(
+    group_ids: Sequence[int],
+    status_details: dict[str, int | str],
+    acting_user: User | None,
+    user: User,
+) -> dict[str, str]:
+    """
+    Handle issues that are archived until escalating and create a forecast for them.
+
+    Issues that are marked as ignored with `archiveDuration: until_escalating`
+    in the statusDetail are treated as `archived_until_escalating`.
+    """
     if status_details.get("archiveDuration") != "escalating":
-        return
+        return {}
+
     metrics.incr("group.archived_until_escalating", skip_internal=True)
     for group in group_ids:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
