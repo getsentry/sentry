@@ -46,13 +46,13 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
    */
   to?: LinkProps['to'];
   /**
-   * Additional properites for the Tooltip when `title` is set.
+   * Additional properites for the Tooltip when `tooltipText` is set.
    */
   tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
   /**
    * Text to show up on a hover.
    */
-  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
+  tooltipText?: TooltipProps['title'];
   /**
    * Dictates color scheme of the tag.
    */
