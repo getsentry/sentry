@@ -116,7 +116,7 @@ def get_actor_id_for_user(user: Union["User", RpcUser]):
     # Until we have indexes back online, we have to account for potential race condition on user creation
     with transaction.atomic():
         actors_for_user = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).all()
-        if actors_for_user == 1:
+        if len(actors_for_user) > 0:
             actor = actors_for_user[0]
         else:
             actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
