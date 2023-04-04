@@ -4,7 +4,6 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
-from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -82,24 +81,7 @@ class ConsecutiveDbDetectorTest(TestCase):
                     ],
                     "op": "http",
                 },
-                evidence_display=[
-                    IssueEvidence(name="Transaction Name", value="", important=True),
-                    IssueEvidence(
-                        name="Consecutive Span",
-                        value="GET /api/0/organizations/endpoint1",
-                        important=True,
-                    ),
-                    IssueEvidence(
-                        name="Consecutive Span",
-                        value="GET /api/0/organizations/endpoint2",
-                        important=True,
-                    ),
-                    IssueEvidence(
-                        name="Consecutive Span",
-                        value="GET /api/0/organizations/endpoint3",
-                        important=True,
-                    ),
-                ],
+                evidence_display=[],
             )
         ]
 
@@ -143,24 +125,7 @@ class ConsecutiveDbDetectorTest(TestCase):
                     ],
                     "op": "http",
                 },
-                evidence_display=[
-                    IssueEvidence(name="Transaction Name", value="", important=True),
-                    IssueEvidence(
-                        name="Consecutive Span",
-                        value="GET /api/0/organizations/endpoint1",
-                        important=True,
-                    ),
-                    IssueEvidence(
-                        name="Consecutive Span",
-                        value="GET /api/0/organizations/endpoint2",
-                        important=True,
-                    ),
-                    IssueEvidence(
-                        name="Consecutive Span",
-                        value="GET /api/0/organizations/endpoint3",
-                        important=True,
-                    ),
-                ],
+                evidence_display=[],
             )
         ]
 
