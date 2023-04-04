@@ -3,6 +3,7 @@ from typing import Union
 from sentry import options
 from sentry.issues.grouptype import (
     GroupCategory,
+    PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceNPlusOneGroupType,
     get_group_type_by_type_id,
 )
@@ -24,8 +25,12 @@ def can_create_group(
     return bool(
         group_type.category != GroupCategory.PERFORMANCE.value
         or (
-            # create N+1 db query issues first
-            group_type.type_id == PerformanceNPlusOneGroupType.type_id
+            # create N+1 db query and consecutive http issues first
+            group_type.type_id
+            in [
+                PerformanceNPlusOneGroupType.type_id,
+                PerformanceConsecutiveHTTPQueriesGroupType.type_id,
+            ]
             # system-wide option
             and options.get("performance.issues.create_issues_through_platform", False)
             # more-granular per-project option
@@ -36,8 +41,12 @@ def can_create_group(
 
 def write_occurrence_to_platform(performance_problem: PerformanceProblem, project: Project) -> bool:
     return bool(
-        # handle only N+1 db query detector first
-        performance_problem.type.type_id == PerformanceNPlusOneGroupType.type_id
+        # handle only N+1 db query and consecutive http detector first
+        performance_problem.type.type_id
+        in [
+            PerformanceNPlusOneGroupType.type_id,
+            PerformanceConsecutiveHTTPQueriesGroupType.type_id,
+        ]
         # system-wide option
         and options.get("performance.issues.send_to_issues_platform", False)
         # more-granular per-project option

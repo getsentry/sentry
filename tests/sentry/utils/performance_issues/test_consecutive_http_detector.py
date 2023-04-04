@@ -4,6 +4,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -71,8 +72,33 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
-                evidence_display=[],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                },
+                evidence_display=[
+                    IssueEvidence(name="Transaction Name", value="", important=True),
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="GET /api/0/organizations/endpoint1",
+                        important=True,
+                    ),
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="GET /api/0/organizations/endpoint2",
+                        important=True,
+                    ),
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="GET /api/0/organizations/endpoint3",
+                        important=True,
+                    ),
+                ],
             )
         ]
 
@@ -99,15 +125,40 @@ class ConsecutiveDbDetectorTest(TestCase):
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
-                parent_span_ids=None,
+                parent_span_ids="None",
                 cause_span_ids=[],
                 offender_span_ids=[
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
-                evidence_display=[],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                },
+                evidence_display=[
+                    IssueEvidence(name="Transaction Name", value="", important=True),
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="GET /api/0/organizations/endpoint1",
+                        important=True,
+                    ),
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="GET /api/0/organizations/endpoint2",
+                        important=True,
+                    ),
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="GET /api/0/organizations/endpoint3",
+                        important=True,
+                    ),
+                ],
             )
         ]
 
