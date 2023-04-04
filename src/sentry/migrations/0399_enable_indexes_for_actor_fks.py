@@ -32,6 +32,7 @@ class Migration(CheckedMigration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
+                db_constraint=False,
                 related_name="actor_from_team",
                 to="sentry.Team",
                 unique=False,
