@@ -13,6 +13,7 @@ from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
+from sentry.auth.providers.google.constants import DATA_VERSION
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
