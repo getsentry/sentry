@@ -396,8 +396,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if "slug" in data:
             org.slug = data["slug"]
         if (
+<<<<<<< HEAD
             features.has("organizations:auth-provider-config", org)
             and "providerKey" in data
+=======
+            features.has("organizations:api-auth-provider", org)
+            and "providerName" in data
+>>>>>>> 6676b09719 (fix(api): Rename feature flag for clarity)
             and "providerConfig" in data
         ):
             provider_key = data["providerName"]

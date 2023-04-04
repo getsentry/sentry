@@ -787,7 +787,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
     def test_configure_auth_provider(self):
-        with self.feature("organizations:auth-provider-config"):
+        with self.feature("organizations:api-auth-provider"):
             old_config = {"domain": "foo.com"}
             new_config = {"domain": "bar.com"}
             provider = "google"
@@ -841,7 +841,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         }
 
     def test_invalid_auth_provider_configuration(self):
-        with self.feature("organizations:auth-provider-config"):
+        with self.feature("organizations:api-auth-provider"):
             self.get_error_response(
                 self.organization.slug, method="put", providerName="google", status_code=400
             )
