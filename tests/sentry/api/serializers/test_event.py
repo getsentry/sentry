@@ -238,31 +238,6 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
             occurrence.to_dict(), snake_to_camel_case
         )
 
-    def test_event_breadcrumb_formatting(self):
-        with self.feature("organizations:issue-breadcrumbs-sql-format"):
-            event = self.store_event(
-                data={
-                    "breadcrumbs": [
-                        {"category": "generic", "message": "should not format this"},
-                        {
-                            "category": "query",
-                            "message": "select * from table where something = $1",
-                        },
-                    ]
-                },
-                project_id=self.project.id,
-            )
-            result = serialize(event)
-
-            assert result["entries"][0]["type"] == "breadcrumbs"
-            # First breadcrumb should not have a message_formatted property
-            assert result["entries"][0]["data"]["values"][0]["message"] == "should not format this"
-            # Second breadcrumb should have whitespace added in message_formatted
-            assert (
-                result["entries"][0]["data"]["values"][1]["message"]
-                == "select *\n  from table\n where something = $1"
-            )
-
 
 @region_silo_test
 class SharedEventSerializerTest(TestCase):
