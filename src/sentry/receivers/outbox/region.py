@@ -19,6 +19,9 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     organization_mapping_service,
     update_organization_mapping_from_instance,
 )
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    organizationmember_mapping_service,
+)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
@@ -55,7 +58,7 @@ def process_organization_member_updates(
             )
         return
 
-    org_member  # TODO: When we get the org member mapping table in place, here is where we'll sync it.
+    organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_UPDATE)
