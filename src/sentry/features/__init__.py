@@ -200,8 +200,8 @@ default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, Fea
 # also be listed in SubscriptionPlanFeatureHandler in getsentry so that sentry.io
 # behaves correctly.
 default_manager.add("organizations:advanced-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:auth-provider-config", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:change-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add('organizations:commit-context', OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
