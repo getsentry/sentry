@@ -310,7 +310,7 @@ const StyledBreakdownNoHeader = styled('div')`
   margin: ${space(2)} ${space(3)};
 `;
 
-const OpsLine = styled('div')`
+export const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
@@ -320,7 +320,7 @@ const OpsLine = styled('div')`
   }
 `;
 
-const OpsDot = styled('div')`
+export const OpsDot = styled('div')`
   content: '';
   display: block;
   width: 8px;
@@ -335,11 +335,11 @@ const OpsContent = styled('div')`
   align-items: center;
 `;
 
-const OpsNameContainer = styled(OpsContent)`
+export const OpsNameContainer = styled(OpsContent)`
   overflow: hidden;
 `;
 
-const OpsName = styled('div')`
+export const OpsName = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
