@@ -28,9 +28,9 @@ import {MonitorBadge} from './monitorBadge';
 
 interface MonitorRowProps {
   monitor: Monitor;
-  monitorEnv: MonitorEnvironment;
   onDelete: () => void;
   organization: Organization;
+  monitorEnv?: MonitorEnvironment;
 }
 
 function scheduleAsText(config: MonitorConfig) {
@@ -68,7 +68,9 @@ function scheduleAsText(config: MonitorConfig) {
 
 function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowProps) {
   const api = useApi();
-  const lastCheckin = <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />;
+  const lastCheckin = monitorEnv?.lastCheckIn ? (
+    <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
+  ) : null;
 
   const actions: MenuItemProps[] = [
     {
@@ -97,37 +99,40 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     },
   ];
 
+  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/${
+    monitorEnv && `?environment=${monitorEnv.name}`
+  }`;
+
+  // TODO(davidenwang): Change accordingly when we have ObjectStatus on monitor
+  const monitorStatus = monitorEnv ? monitorEnv.status : monitor.status;
+
   return (
     <Fragment>
       <MonitorName>
-        <MonitorBadge status={monitorEnv.status} />
+        <MonitorBadge status={monitorEnv?.status ?? monitor.status} />
         <NameAndSlug>
-          <Link
-            to={`/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${monitorEnv.name}`}
-          >
-            {monitor.name}
-          </Link>
+          <Link to={monitorDetailUrl}>{monitor.name}</Link>
           <MonitorSlug>{monitor.slug}</MonitorSlug>
         </NameAndSlug>
       </MonitorName>
       <MonitorColumn>
         <TextOverflow>
-          {monitorEnv.status === MonitorStatus.DISABLED
+          {monitorStatus === MonitorStatus.DISABLED
             ? t('Paused')
-            : monitorEnv.status === MonitorStatus.ACTIVE
+            : monitorStatus === MonitorStatus.ACTIVE || !lastCheckin
             ? t('Waiting for first check-in')
-            : monitorEnv.status === MonitorStatus.OK
+            : monitorStatus === MonitorStatus.OK
             ? tct('Check-in [lastCheckin]', {lastCheckin})
-            : monitorEnv.status === MonitorStatus.MISSED_CHECKIN
+            : monitorStatus === MonitorStatus.MISSED_CHECKIN
             ? tct('Missed [lastCheckin]', {lastCheckin})
-            : monitorEnv.status === MonitorStatus.ERROR
+            : monitorStatus === MonitorStatus.ERROR
             ? tct('Failed [lastCheckin]', {lastCheckin})
             : null}
         </TextOverflow>
       </MonitorColumn>
       <MonitorColumn>{scheduleAsText(monitor.config)}</MonitorColumn>
       <MonitorColumn>
-        {monitorEnv.nextCheckIn &&
+        {monitorEnv?.nextCheckIn &&
         monitorEnv.status !== MonitorStatus.DISABLED &&
         monitorEnv.status !== MonitorStatus.ACTIVE ? (
           <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
@@ -142,7 +147,7 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
           avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
         />
       </MonitorColumn>
-      <MonitorColumn>{monitorEnv.name}</MonitorColumn>
+      <MonitorColumn>{monitorEnv?.name ?? '\u2014'}</MonitorColumn>
       <ActionsColumn>
         <DropdownMenu
           items={actions}

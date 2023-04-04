@@ -34,7 +34,7 @@ import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
 import {MonitorRow} from './components/row';
-import {Monitor} from './types';
+import {Monitor, MonitorEnvironment} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
@@ -69,7 +69,7 @@ class Monitors extends AsyncView<Props, State> {
     return [
       [
         'monitorList',
-        `/organizations/${this.orgSlug}/monitors/`,
+        `/organizations/${this.orgSlug}/monitors/?includeNew`,
         {
           query: location.query,
         },
@@ -102,6 +102,22 @@ class Monitors extends AsyncView<Props, State> {
   renderBody() {
     const {monitorList, monitorListPageLinks} = this.state;
     const {organization} = this.props;
+
+    const renderMonitorRow = (monitor: Monitor, monitorEnv?: MonitorEnvironment) => (
+      <MonitorRow
+        key={monitor.slug}
+        monitor={monitor}
+        monitorEnv={monitorEnv}
+        onDelete={() => {
+          if (monitorList) {
+            this.setState({
+              monitorList: monitorList.filter(m => m.slug !== monitor.slug),
+            });
+          }
+        }}
+        organization={organization}
+      />
+    );
 
     return (
       <Layout.Page>
@@ -155,21 +171,11 @@ class Monitors extends AsyncView<Props, State> {
                 >
                   {monitorList
                     ?.map(monitor =>
-                      monitor.environments.map(monitorEnv => (
-                        <MonitorRow
-                          key={monitor.slug}
-                          monitor={monitor}
-                          monitorEnv={monitorEnv}
-                          onDelete={() => {
-                            this.setState({
-                              monitorList: monitorList.filter(
-                                m => m.slug !== monitor.slug
-                              ),
-                            });
-                          }}
-                          organization={organization}
-                        />
-                      ))
+                      monitor.environments.length > 0
+                        ? monitor.environments.map(monitorEnv =>
+                            renderMonitorRow(monitor, monitorEnv)
+                          )
+                        : renderMonitorRow(monitor)
                     )
                     .flat()}
                 </StyledPanelTable>
