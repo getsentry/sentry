@@ -1,4 +1,4 @@
-import CrashContent from 'sentry/components/events/interfaces/crashContent';
+import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {t} from 'sentry/locale';
 import {Group, PlatformType, Project} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
@@ -6,7 +6,7 @@ import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
-import CrashContentStackTrace from './crashContent/stackTrace';
+import {StackTrace} from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
@@ -74,7 +74,7 @@ export function StackTraceV2({
         stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
-          <CrashContentStackTrace
+          <StackTrace
             meta={meta}
             event={event}
             platform={platform}
@@ -89,7 +89,6 @@ export function StackTraceV2({
             stacktrace={data}
             groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}
-            nativeV2
           />
         )
       }
