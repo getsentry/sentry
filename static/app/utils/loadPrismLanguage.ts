@@ -40,7 +40,7 @@ export async function loadPrismLanguage(
   }
 ) {
   try {
-    const language = prismLanguageMap[lang.toLowerCase()];
+    const language: string | undefined = prismLanguageMap[lang.toLowerCase()];
 
     // If Prism doesn't have any grammar file available for the language
     if (!language) {
@@ -54,7 +54,16 @@ export async function loadPrismLanguage(
       return;
     }
 
+    // Check for dependencies (e.g. `php` requires `markup-templating`) & download them
+    const deps: string[] | string | undefined =
+      prismComponents.languages[language].require;
+    (Array.isArray(deps) ? deps : [deps]).forEach(
+      async dep => dep && (await import(`prismjs/components/prism-${dep}.min`))
+    );
+
+    // Download language grammar file
     await import(`prismjs/components/prism-${language}.min`);
+
     onLoad?.();
   } catch (error) {
     // eslint-disable-next-line no-console
