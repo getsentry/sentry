@@ -227,6 +227,11 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                         important=True,
                     ),
                     IssueEvidence(
+                        name="Preceding Span",
+                        value=self.source_span.get("description", ""),
+                        important=True,
+                    ),
+                    IssueEvidence(
                         name=f"Repeating Spans ({len(self.n_spans)})",
                         value=f"{n_span_op} - {n_span_desc}",
                         important=True,
