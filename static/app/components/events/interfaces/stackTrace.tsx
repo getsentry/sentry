@@ -6,7 +6,7 @@ import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
-import {StackTrace} from './crashContent/stackTrace';
+import {StackTraceContent} from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
@@ -23,7 +23,7 @@ type Props = Pick<
   hideGuide?: boolean;
 };
 
-export function StackTraceV2({
+export function StackTrace({
   projectSlug,
   event,
   data,
@@ -74,7 +74,7 @@ export function StackTraceV2({
         stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
-          <StackTrace
+          <StackTraceContent
             meta={meta}
             event={event}
             platform={platform}
