@@ -324,7 +324,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
-    def _get_use_case_key(self):
+    def _get_use_case_key(self) -> UseCaseKey:
         if self.dataset == Dataset.PerformanceMetrics:
             return UseCaseKey.PERFORMANCE
         else:
