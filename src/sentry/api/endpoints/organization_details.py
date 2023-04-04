@@ -560,7 +560,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
                     if "slug" in changed_data:
                         organization_mapping_service.create(
-                            user=request.user,
                             organization_id=organization.id,
                             slug=organization.slug,
                             name=organization.name,
