@@ -12,6 +12,7 @@ from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneGroupType,
 )
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import DetectorType, PerformanceDetector, total_span_time
@@ -178,8 +179,26 @@ class ContinuingMNPlusOne(MNPlusOneState):
             parent_span_ids=[parent_span["span_id"]],
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],
-            evidence_data={},
-            evidence_display=[],
+            evidence_data={
+                "parent_span_ids": [parent_span["span_id"]],
+                "cause_span_ids": [],
+                "offender_span_ids": [span["span_id"] for span in offender_spans],
+            },
+            evidence_display=[
+                IssueEvidence(
+                    name="Transaction Name",
+                    value=self.event.get("transaction", ""),
+                    important=True,
+                ),
+                IssueEvidence(
+                    name="Parent Span", value=parent_span.get("description", ""), important=True
+                ),
+                IssueEvidence(
+                    name=f"Repeating Spans ({len(offender_spans)})",
+                    value=f"""{offender_spans[0].get("op", "")} - {offender_spans[0].get("description", "")}""",
+                    important=True,
+                ),
+            ],
         )
 
     def _first_db_span(self) -> Optional[Span]:
