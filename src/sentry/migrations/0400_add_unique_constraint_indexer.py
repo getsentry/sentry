@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0397_break_some_more_fks"),
+        ("sentry", "0399_enable_indexes_for_actor_fks"),
     ]
 
     operations = [
