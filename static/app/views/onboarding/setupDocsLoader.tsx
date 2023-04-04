@@ -156,14 +156,23 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
 
   const loaderLink = projectKey.dsn.cdn;
 
-  const configCodeSnippet = beautify.js(
-    `Sentry.onLoad(function() {
+  const configCodeSnippet = beautify.html(
+    `<script>
+Sentry.onLoad(function() {
   Sentry.init({
     // No need to configure DSN here, it is already configured in the loader script
     // You can add any additional configuration here
     sampleRate: 0.5,
-  })
-})`,
+  });
+});
+</script>`,
+    {indent_size: 2}
+  );
+
+  const verifyCodeSnippet = beautify.html(
+    `<script>
+  myUndefinedFunction();
+</script>`,
     {indent_size: 2}
   );
 
@@ -200,7 +209,7 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
                 "Initialise Sentry as early as possible in your application's lifecycle."
               )}
             </p>
-            <CodeSnippet dark language="js">
+            <CodeSnippet dark language="html">
               {configCodeSnippet}
             </CodeSnippet>
           </div>
@@ -212,8 +221,8 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
             "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
           )}
         </p>
-        <CodeSnippet dark language="js">
-          myUndefinedFunction();
+        <CodeSnippet dark language="html">
+          {verifyCodeSnippet}
         </CodeSnippet>
 
         <hr />
