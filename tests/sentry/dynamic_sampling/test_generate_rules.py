@@ -24,6 +24,13 @@ from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.utils import json
 
+DEFAULT_FACTOR_RULE = lambda factor: {
+    "condition": {"inner": [], "op": "and"},
+    "id": 1004,
+    "samplingValue": {"type": "factor", "value": factor},
+    "type": "trace",
+}
+
 
 @pytest.fixture
 def latest_release_only(default_project):
@@ -89,12 +96,7 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
     )
 
     assert generate_rules(default_project) == [
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1004,
-            "samplingValue": {"type": "factor", "value": 1.0},
-            "type": "trace",
-        },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -116,12 +118,13 @@ def test_generate_rules_return_uniform_rules_with_rate(
     get_enabled_user_biases.return_value = {}
     get_blended_sample_rate.return_value = 0.1
     assert generate_rules(default_project) == [
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
             "type": "trace",
-        }
+        },
     ]
     get_enabled_user_biases.assert_called_with(
         default_project.get_option("sentry:dynamic_sampling_biases", None)
@@ -166,6 +169,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             },
             "id": 1001,
         },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -219,6 +223,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
             "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -281,6 +286,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
             "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -337,6 +343,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
             "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -364,6 +371,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
         ],
     )
     assert generate_rules(default_project) == [
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -435,6 +443,7 @@ def test_generate_rules_with_different_project_platforms(
             },
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -514,6 +523,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -568,6 +578,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -588,6 +599,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
     default_project.update(platform="python")
 
     assert generate_rules(default_project) == [
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -610,6 +622,7 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
     redis_client.hset(f"ds::p:{default_project.id}:boosted_releases", f"ds::r:{1234}", time.time())
 
     assert generate_rules(default_project) == [
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -635,6 +648,7 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
     )
 
     assert generate_rules(default_project) == [
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -705,6 +719,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "samplingValue": {"type": "factor", "value": implicit_rate / project_sample_rate},
             "type": "transaction",
         },
+        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": uniform_id,
@@ -729,6 +744,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
         "t1": 0.7,
     }, 0.037
     uniform_id = RESERVED_IDS[RuleType.UNIFORM_RULE]
+    adj_factor_id = RESERVED_IDS[RuleType.ADJUSTMENT_FACTOR_RULE]
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -750,5 +766,6 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     rules = generate_rules(default_project)
 
     # we should have only the uniform rule
-    assert len(rules) == 1
-    assert rules[0]["id"] == uniform_id
+    assert len(rules) == 2
+    assert rules[0]["id"] == adj_factor_id
+    assert rules[1]["id"] == uniform_id

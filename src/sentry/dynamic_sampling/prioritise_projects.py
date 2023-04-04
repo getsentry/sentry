@@ -2,7 +2,7 @@ import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import List, Mapping, Sequence, Tuple
+from typing import List, Mapping, Optional, Sequence, Tuple
 
 from snuba_sdk import (
     Column,
@@ -38,7 +38,7 @@ CHUNK_SIZE = 9998  # Snuba's limit is 10000, and we fetch CHUNK_SIZE+1
 
 
 def fetch_projects_with_total_volumes(
-    org_ids: List[int], query_interval=None
+    org_ids: List[int], query_interval: Optional[timedelta] = None
 ) -> Mapping[OrganizationId, Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
     """
     This function fetch with pagination orgs and projects with count per root project
