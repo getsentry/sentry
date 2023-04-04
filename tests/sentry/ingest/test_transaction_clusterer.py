@@ -160,13 +160,13 @@ def test_max_rule_threshold_merge_composite_store(default_project):
 
     assert get_sorted_rules(default_project) == [("foo/foo", 946688400), ("bar/bar", 946688400)]
 
-    with freeze_time("2002-02-02 02:00:00"):
+    with freeze_time("2000-01-01 02:00:00"):
         update_rules(default_project, [ReplacementRule("baz/baz")])
         assert len(get_sorted_rules(default_project)) == 2
         update_rules(default_project, [ReplacementRule("qux/qux")])
         assert len(get_sorted_rules(default_project)) == 2
 
-    assert get_sorted_rules(default_project) == [("baz/baz", 1012615200), ("qux/qux", 1012615200)]
+    assert get_sorted_rules(default_project) == [("baz/baz", 946692000), ("qux/qux", 946692000)]
 
 
 @pytest.mark.django_db
