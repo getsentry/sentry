@@ -133,20 +133,20 @@ class UseCaseCollection:
         )
 
     def _size(self) -> int:
-        return sum(keyCollection.size for keyCollection in self.mapping.values())
+        return sum(key_collection.size for key_collection in self.mapping.values())
 
     def as_tuples(self) -> Sequence[Tuple[str, int, str]]:
         return [
             (use_case_id, org_id, s)
-            for use_case_id, keyCollection in self.mapping.items()
-            for org_id, s in keyCollection.as_tuples()
+            for use_case_id, key_collection in self.mapping.items()
+            for org_id, s in key_collection.as_tuples()
         ]
 
     def as_strings(self) -> Sequence[str]:
         return [
             f"{use_case_id}:{s}"
-            for use_case_id, keyCollection in self.mapping.items()
-            for s in keyCollection.as_strings()
+            for use_case_id, key_collection in self.mapping.items()
+            for s in key_collection.as_strings()
         ]
 
 
