@@ -429,6 +429,7 @@ class DetailedEventSerializerTest(TestCase):
             "issueType": "performance_n_plus_one_db_queries",
             "type": 1006,
             "evidenceData": {
+                "op": "db",
                 "causeSpanIds": ["9179e43ae844b174"],
                 "offenderSpanIds": [
                     "b8be6138369491dd",
