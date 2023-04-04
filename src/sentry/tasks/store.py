@@ -109,7 +109,7 @@ def _do_preprocess_event(
     project: Optional[Project],
     has_attachments: bool = False,
 ) -> None:
-    from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
+    from sentry.tasks.symbolication import TaskKind, should_demote_symbolication, submit_symbolicate
 
     if cache_key and data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -136,8 +136,11 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
+    is_js = False
     if data["platform"] in ("javascript", "node"):
         from sentry.lang.javascript.processing import get_symbolication_function
+
+        is_js = True
     else:
         from sentry.lang.native.processing import get_symbolication_function
 
@@ -157,9 +160,9 @@ def _do_preprocess_event(
             reprocessing2.backup_unprocessed_event(project=project, data=original_data)
 
             is_low_priority = should_demote_symbolication(project_id)
+            task_kind = TaskKind(is_low_priority, from_reprocessing, is_js)
             submit_symbolicate(
-                is_low_priority=is_low_priority,
-                from_reprocessing=from_reprocessing,
+                task_kind,
                 cache_key=cache_key,
                 event_id=event_id,
                 start_time=start_time,

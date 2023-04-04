@@ -1,7 +1,7 @@
 import logging
 import random
 from time import sleep, time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, NamedTuple, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -80,33 +80,6 @@ def should_demote_symbolication(project_id: int) -> bool:
             return False
 
 
-def submit_symbolicate(
-    is_low_priority: bool,
-    from_reprocessing: bool,
-    cache_key: str,
-    event_id: Optional[str],
-    start_time: Optional[int],
-    queue_switches: int = 0,
-    has_attachments: bool = False,
-) -> None:
-    if is_low_priority:
-        task = (
-            symbolicate_event_from_reprocessing_low_priority
-            if from_reprocessing
-            else symbolicate_event_low_priority
-        )
-    else:
-        task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
-
-    task.delay(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        queue_switches=queue_switches,
-        has_attachments=has_attachments,
-    )
-
-
 def _do_symbolicate_event(
     cache_key: str,
     start_time: Optional[int],
@@ -133,14 +106,7 @@ def _do_symbolicate_event(
 
     event_id = data["event_id"]
 
-    from_reprocessing = symbolicate_task in [
-        symbolicate_event_from_reprocessing,
-        symbolicate_event_from_reprocessing_low_priority,
-    ]
-    is_low_priority = symbolicate_task in [
-        symbolicate_event_low_priority,
-        symbolicate_event_from_reprocessing_low_priority,
-    ]
+    task_kind = get_kind_from_task(symbolicate_task)
 
     # check whether the event is in the wrong queue and if so, move it to the other one.
     # we do this at most SYMBOLICATOR_MAX_QUEUE_SWITCHES times.
@@ -149,11 +115,11 @@ def _do_symbolicate_event(
     else:
         should_be_low_priority = should_demote_symbolication(project_id)
 
-        if is_low_priority != should_be_low_priority:
+        if task_kind.is_low_priority != should_be_low_priority:
             metrics.incr("tasks.store.symbolicate_event.low_priority.wrong_queue", sample_rate=1)
+            task_kind.is_low_priority = should_be_low_priority
             submit_symbolicate(
-                should_be_low_priority,
-                from_reprocessing,
+                task_kind,
                 cache_key,
                 event_id,
                 start_time,
@@ -164,7 +130,9 @@ def _do_symbolicate_event(
 
     def _continue_to_process_event() -> None:
         process_task = (
-            store.process_event_from_reprocessing if from_reprocessing else store.process_event
+            store.process_event_from_reprocessing
+            if task_kind.is_reprocessing
+            else store.process_event
         )
         store.do_process_event(
             cache_key=cache_key,
@@ -322,7 +290,45 @@ def _do_symbolicate_event(
     return _continue_to_process_event()
 
 
-@instrumented_task(  # type: ignore
+# ============ Parameterized tasks below ============
+# We have different *tasks* and associated *queues* for the following permutations:
+# - Event Type (JS vs Native)
+# - Queue Type (LPQ vs normal)
+# - Reprocessing (currently not available for JS events)
+
+
+class TaskKind(NamedTuple):
+    is_low_priority: bool
+    is_reprocessing: bool
+    is_js: bool
+
+
+def get_kind_from_task(task: Any) -> TaskKind:
+    for task_kind, task_v in TASK_KIND_MAP:
+        if task_v == task:
+            return task_kind
+    raise KeyError
+
+
+def submit_symbolicate(
+    task_kind: TaskKind,
+    cache_key: str,
+    event_id: Optional[str],
+    start_time: Optional[int],
+    queue_switches: int = 0,
+    has_attachments: bool = False,
+) -> None:
+    task = TASK_KIND_MAP[task_kind]
+    task.delay(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        queue_switches=queue_switches,
+        has_attachments=has_attachments,
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -356,7 +362,41 @@ def symbolicate_event(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
+    name="sentry.tasks.symbolicate_js_event",
+    queue="events.symbolicate_js_event",
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
+)
+def symbolicate_js_event(
+    cache_key: str,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    data: Optional[Event] = None,
+    queue_switches: int = 0,
+    has_attachments: bool = False,
+    **kwargs: Any,
+) -> None:
+    """
+    Handles event symbolication using the external service: symbolicator.
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
+    """
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_js_event,
+        data=data,
+        queue_switches=queue_switches,
+        has_attachments=has_attachments,
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.store.symbolicate_event_low_priority",
     queue="events.symbolicate_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -393,7 +433,44 @@ def symbolicate_event_low_priority(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
+    name="sentry.tasks.symbolicate_js_event_low_priority",
+    queue="events.symbolicate_js_event_low_priority",
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
+)
+def symbolicate_js_event_low_priority(
+    cache_key: str,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    data: Optional[Event] = None,
+    queue_switches: int = 0,
+    has_attachments: bool = False,
+    **kwargs: Any,
+) -> None:
+    """
+    Handles event symbolication using the external service: symbolicator.
+
+    This puts the task on the low priority queue. Projects whose symbolication
+    events misbehave get sent there to protect the main queue.
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
+    """
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_js_event_low_priority,
+        data=data,
+        queue_switches=queue_switches,
+        has_attachments=has_attachments,
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -420,7 +497,7 @@ def symbolicate_event_from_reprocessing(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing_low_priority",
     queue="events.reprocessing.symbolicate_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -445,3 +522,17 @@ def symbolicate_event_from_reprocessing_low_priority(
         queue_switches=queue_switches,
         has_attachments=has_attachments,
     )
+
+
+TASK_KIND_MAP = {
+    # is_low_priority, is_reprocessing, is_js
+    TaskKind(False, False, False): symbolicate_event,
+    TaskKind(False, False, True): symbolicate_js_event,
+    TaskKind(True, False, False): symbolicate_event_low_priority,
+    TaskKind(True, False, True): symbolicate_js_event_low_priority,
+    # reprocessing tasks below have no `is_js` variant:
+    TaskKind(False, True, False): symbolicate_event_from_reprocessing,
+    TaskKind(False, True, True): symbolicate_event_from_reprocessing,
+    TaskKind(True, True, True): symbolicate_event_from_reprocessing_low_priority,
+    TaskKind(True, True, False): symbolicate_event_from_reprocessing_low_priority,
+}
