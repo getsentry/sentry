@@ -38,6 +38,7 @@ class GroupHistoryStatus:
     DELETED_AND_DISCARDED = 9
     REVIEWED = 10
     ESCALATING = 14
+    ARCHIVED_UNTIL_ESCALATING = 15
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
