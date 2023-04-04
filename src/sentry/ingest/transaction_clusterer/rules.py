@@ -152,8 +152,8 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
 
 
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
-    if not new_rules:
-        return
+    # Run the updates even if there aren't any new rules, to get all the stores
+    # up-to-date.
 
     last_seen = _now()
     new_rule_set = {rule: last_seen for rule in new_rules}
@@ -177,17 +177,6 @@ def update_redis_rules(project: Project, new_rules: Sequence[ReplacementRule]) -
         [
             RedisRuleStore(),
             LocalRuleStore(new_rule_set),
-        ]
-    )
-    rule_store.merge(project)
-
-
-def update_stores(project: Project) -> None:
-    rule_store = CompositeRuleStore(
-        [
-            RedisRuleStore(),
-            ProjectOptionRuleStore(),
-            LocalRuleStore({}),
         ]
     )
     rule_store.merge(project)
