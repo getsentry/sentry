@@ -140,6 +140,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
+                "environment": monitor_environment.environment.name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -149,7 +150,6 @@ class MonitorEnvironmentTestCase(TestCase):
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
-                        "environment": monitor_environment.environment.name,
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
@@ -187,6 +187,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
+                "environment": monitor_environment.environment.name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -196,7 +197,6 @@ class MonitorEnvironmentTestCase(TestCase):
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
-                        "environment": monitor_environment.environment.name,
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
@@ -239,6 +239,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
+                "environment": monitor_environment.environment.name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -248,7 +249,6 @@ class MonitorEnvironmentTestCase(TestCase):
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
-                        "environment": monitor_environment.environment.name,
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (missed_checkin)"},
