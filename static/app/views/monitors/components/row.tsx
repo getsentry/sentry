@@ -16,19 +16,12 @@ import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {crontabAsText} from 'sentry/views/monitors/utils';
 
-import {
-  Monitor,
-  MonitorConfig,
-  MonitorEnvironment,
-  MonitorStatus,
-  ScheduleType,
-} from '../types';
+import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from '../types';
 
 import {MonitorBadge} from './monitorBadge';
 
 interface MonitorRowProps {
   monitor: Monitor;
-  monitorEnv: MonitorEnvironment;
   onDelete: () => void;
   organization: Organization;
 }
@@ -66,9 +59,9 @@ function scheduleAsText(config: MonitorConfig) {
   return t('Unknown schedule');
 }
 
-function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowProps) {
+function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
   const api = useApi();
-  const lastCheckin = <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />;
+  const lastCheckin = <TimeSince unitStyle="regular" date={monitor.lastCheckIn} />;
 
   const actions: MenuItemProps[] = [
     {
@@ -100,49 +93,46 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
   return (
     <Fragment>
       <MonitorName>
-        <MonitorBadge status={monitorEnv.status} />
+        <MonitorBadge status={monitor.status} />
         <NameAndSlug>
-          <Link
-            to={`/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${monitorEnv.name}`}
-          >
+          <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
             {monitor.name}
           </Link>
           <MonitorSlug>{monitor.slug}</MonitorSlug>
         </NameAndSlug>
       </MonitorName>
-      <MonitorColumn>
+      <StatusColumn>
         <TextOverflow>
-          {monitorEnv.status === MonitorStatus.DISABLED
+          {monitor.status === MonitorStatus.DISABLED
             ? t('Paused')
-            : monitorEnv.status === MonitorStatus.ACTIVE
+            : monitor.status === MonitorStatus.ACTIVE
             ? t('Waiting for first check-in')
-            : monitorEnv.status === MonitorStatus.OK
+            : monitor.status === MonitorStatus.OK
             ? tct('Check-in [lastCheckin]', {lastCheckin})
-            : monitorEnv.status === MonitorStatus.MISSED_CHECKIN
+            : monitor.status === MonitorStatus.MISSED_CHECKIN
             ? tct('Missed [lastCheckin]', {lastCheckin})
-            : monitorEnv.status === MonitorStatus.ERROR
+            : monitor.status === MonitorStatus.ERROR
             ? tct('Failed [lastCheckin]', {lastCheckin})
             : null}
         </TextOverflow>
-      </MonitorColumn>
-      <MonitorColumn>{scheduleAsText(monitor.config)}</MonitorColumn>
-      <MonitorColumn>
-        {monitorEnv.nextCheckIn &&
-        monitorEnv.status !== MonitorStatus.DISABLED &&
-        monitorEnv.status !== MonitorStatus.ACTIVE ? (
-          <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
+      </StatusColumn>
+      <ScheduleColumn>{scheduleAsText(monitor.config)}</ScheduleColumn>
+      <NextCheckin>
+        {monitor.nextCheckIn &&
+        monitor.status !== MonitorStatus.DISABLED &&
+        monitor.status !== MonitorStatus.ACTIVE ? (
+          <TimeSince unitStyle="regular" date={monitor.nextCheckIn} />
         ) : (
           '\u2014'
         )}
-      </MonitorColumn>
-      <MonitorColumn>
+      </NextCheckin>
+      <ProjectColumn>
         <IdBadge
           project={monitor.project}
           avatarSize={18}
           avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
         />
-      </MonitorColumn>
-      <MonitorColumn>{monitorEnv.name}</MonitorColumn>
+      </ProjectColumn>
       <ActionsColumn>
         <DropdownMenu
           items={actions}
@@ -179,7 +169,22 @@ const MonitorSlug = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const MonitorColumn = styled('div')`
+const StatusColumn = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const ScheduleColumn = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const NextCheckin = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const ProjectColumn = styled('div')`
   display: flex;
   align-items: center;
 `;
