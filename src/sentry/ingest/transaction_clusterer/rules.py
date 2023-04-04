@@ -165,3 +165,29 @@ def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None
         ]
     )
     rule_store.merge(project)
+
+
+def update_redis_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
+    if not new_rules:
+        return
+
+    last_seen = _now()
+    new_rule_set = {rule: last_seen for rule in new_rules}
+    rule_store = CompositeRuleStore(
+        [
+            RedisRuleStore(),
+            LocalRuleStore(new_rule_set),
+        ]
+    )
+    rule_store.merge(project)
+
+
+def update_stores(project: Project) -> None:
+    rule_store = CompositeRuleStore(
+        [
+            RedisRuleStore(),
+            ProjectOptionRuleStore(),
+            LocalRuleStore({}),
+        ]
+    )
+    rule_store.merge(project)
