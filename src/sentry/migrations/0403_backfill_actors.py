@@ -47,7 +47,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0401_create_rulesnooze_table"),
+        ("sentry", "0402_add_organizationmembermapping_table"),
     ]
 
     operations = [
