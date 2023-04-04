@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Un
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud import RpcModel, RpcPaginationArgs, RpcPaginationResult
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
