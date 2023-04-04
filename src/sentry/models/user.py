@@ -184,7 +184,12 @@ class User(BaseModel, AbstractBaseUser):
 
     session_nonce = models.CharField(max_length=12, null=True)
     actor = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+        "sentry.Actor",
+        related_name="user_from_actor",
+        db_index=True,
+        unique=True,
+        null=True,
+        on_delete=models.PROTECT,
     )
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
@@ -271,6 +276,9 @@ class User(BaseModel, AbstractBaseUser):
 
     def get_avatar_type(self):
         return self.get_avatar_type_display()
+
+    def get_actor_identifier(self):
+        return f"user:{self.id}"
 
     def send_confirm_email_singular(self, email, is_new_user=False):
         from sentry import options

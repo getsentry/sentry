@@ -1,14 +1,13 @@
-from unittest import TestCase
-
-from sentry.models import Project, User
+from sentry.models import Project
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.testutils import TestCase
 
 
 class GetFallbackSettingsTest(TestCase):
     def setUp(self) -> None:
-        self.user = RpcActor.from_orm_user(User(id=1))
+        self.user = RpcActor.from_orm_user(self.create_user())
         self.project = Project(id=123)
 
     def test_get_fallback_settings_minimal(self):

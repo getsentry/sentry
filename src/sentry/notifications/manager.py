@@ -17,6 +17,7 @@ from django.db.models import Q, QuerySet
 
 from sentry import analytics
 from sentry.db.models.manager import BaseManager
+from sentry.models.actor import get_actor_id_for_user
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.helpers import (
     get_scope,
@@ -433,7 +434,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     type=type.value,
                     scope_type=NotificationScopeType.USER.value,
                     scope_identifier=user.id,
-                    target_id=user.actor_id,
+                    target_id=get_actor_id_for_user(user),
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
 

@@ -91,4 +91,6 @@ class HybridCloudForeignKey(models.BigIntegerField):  # type: ignore
 
     def deconstruct(self) -> Tuple[Any, Any, Any, Any]:
         (name, path, args, kwds) = super().deconstruct()
+        # This seems wrong, but due to the way django scrubs defaults, this will inevitably be wrong.
+        kwds.setdefault("db_index", False)
         return name, path, [self.foreign_model_name], dict(on_delete=self.on_delete, **kwds)

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.models.actor import get_actor_id_for_user
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -295,6 +296,18 @@ def get_scope(
             return NotificationScopeType.USER, extract_id_from(actor)
 
     raise Exception("scope must be either user, team, organization, or project")
+
+
+def get_target_id(user: User | None = None, team: Team | None = None) -> int:
+    """:returns the actor ID from a User or Team."""
+    if user:
+        if user.actor_id is None:
+            user.actor_id = get_actor_id_for_user(user)
+        return int(user.actor_id)
+    if team:
+        return int(team.actor_id)
+
+    raise Exception("target must be either a user or a team")
 
 
 def get_subscription_from_attributes(

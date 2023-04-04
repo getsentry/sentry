@@ -67,6 +67,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import ActorTuple, Integration, PagerDutyService
+from sentry.models.actor import get_actor_id_for_user
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -559,7 +560,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule_1.owner.id == self.user.actor.id
+        assert alert_rule_1.owner.id == get_actor_id_for_user(self.user)
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -856,7 +857,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
@@ -866,17 +867,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
 
         update_alert_rule(
             alert_rule=alert_rule,
