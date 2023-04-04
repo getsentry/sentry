@@ -63,8 +63,7 @@ def visit_selector_tree(query: QueryType, selector: SelectorType) -> None:
     elif isinstance(selector, CombinedSelector):
         raise ParseError("Nested selectors are not supported.")
     else:
-        # We ignore unhandled selector types rather than erroring.
-        visit_selector_tree(query, selector.selector)
+        raise ParseError("Only attribute, class, id, and tag name selectors are supported.")
 
 
 def visit_attribute(query: QueryType, attribute: Attrib) -> None:
