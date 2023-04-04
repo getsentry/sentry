@@ -43,6 +43,9 @@ class RedisRuleStore:
         return {rule: int(timestamp) for rule, timestamp in data.items()}
 
     def write(self, project: Project, rules: RuleSet) -> None:
+        if len(rules) == 0:
+            return
+
         client = get_redis_client()
         key = self._get_rules_key(project)
 
