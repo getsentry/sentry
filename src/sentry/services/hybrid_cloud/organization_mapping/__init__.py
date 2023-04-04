@@ -5,10 +5,11 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Optional, TypedDict, cast
+from typing import Optional, cast
 
 from django.utils import timezone
 from pydantic.fields import Field
+from typing_extensions import TypedDict
 
 from sentry.models import Organization
 from sentry.models.user import User

@@ -323,7 +323,7 @@ def silo_mode_delegation(
 
 @dataclasses.dataclass
 class RpcPaginationArgs:
-    encoded_cursor: str | None = None
+    encoded_cursor: Optional[str] = None
     per_page: int = -1
 
     @classmethod
