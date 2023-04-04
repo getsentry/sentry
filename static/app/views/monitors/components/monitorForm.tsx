@@ -40,6 +40,7 @@ const SCHEDULE_OPTIONS: RadioOption<string>[] = [
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
+const DEFAULT_CRONTAB = '* * * * *';
 
 const getIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
@@ -107,7 +108,7 @@ function MonitorForm({
   const [crontabInput, setCrontabInput] = useState(
     monitor?.config.schedule_type === ScheduleType.CRONTAB
       ? monitor?.config.schedule
-      : null
+      : DEFAULT_CRONTAB
   );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
@@ -245,7 +246,8 @@ function MonitorForm({
                   <ScheduleGroupInputs>
                     <StyledTextField
                       name="config.schedule"
-                      placeholder="*/5 * * * *"
+                      placeholder="* * * * *"
+                      defaultValue={DEFAULT_CRONTAB}
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
                       required
                       stacked
@@ -271,6 +273,7 @@ function MonitorForm({
                     <StyledNumberField
                       name="config.schedule.frequency"
                       placeholder="e.g. 1"
+                      defaultValue="1"
                       required
                       stacked
                       inline={false}
@@ -280,7 +283,7 @@ function MonitorForm({
                       options={getIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
-                      placeholder="minute"
+                      defaultValue="minute"
                       required
                       stacked
                       inline={false}
