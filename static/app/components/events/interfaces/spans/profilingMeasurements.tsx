@@ -158,7 +158,7 @@ function ProfilingMeasurements({
                 }}
               >
                 <MemoizedChart data={cpuUsageData} />
-                <Overlays dividerPosition={dividerPosition}>
+                <Overlays>
                   {renderFog?.()}
                   {renderCursorGuide?.({
                     showCursorGuide,
@@ -178,7 +178,7 @@ function ProfilingMeasurements({
 
 export {ProfilingMeasurements};
 
-const Overlays = styled('div')<{dividerPosition: number}>`
+const Overlays = styled('div')`
   pointer-events: none;
   position: absolute;
   top: 0;
