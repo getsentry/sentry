@@ -26,7 +26,7 @@ type Props = {
   newestFirst?: boolean;
 };
 
-function Content({
+export function NativeContent({
   data,
   platform,
   event,
@@ -244,8 +244,6 @@ function Content({
     </Wrapper>
   );
 }
-
-export default Content;
 
 const Wrapper = styled(Panel)`
   && {

@@ -8,7 +8,7 @@ import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';
 import ContentV2 from './contentV2';
-import ContentV3 from './contentV3';
+import {NativeContent} from './nativeContent';
 import rawStacktraceContent from './rawContent';
 
 type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'> & {
@@ -20,11 +20,10 @@ type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'
   inlined?: boolean;
   maxDepth?: number;
   meta?: Record<any, any>;
-  nativeV2?: boolean;
   stackView?: STACK_VIEW;
 };
 
-function StackTrace({
+export function StackTrace({
   stackView,
   stacktrace,
   event,
@@ -32,7 +31,6 @@ function StackTrace({
   platform,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-  nativeV2,
   maxDepth,
   meta,
   inlined,
@@ -47,10 +45,10 @@ function StackTrace({
     );
   }
 
-  if (nativeV2 && isNativePlatform(platform)) {
+  if (isNativePlatform(platform)) {
     return (
       <ErrorBoundary mini>
-        <StyledContentV3
+        <StyledNativeContent
           data={stacktrace}
           includeSystemFrames={stackView === STACK_VIEW.FULL}
           platform={platform}
@@ -109,7 +107,7 @@ const inlinedStyles = `
   border-right: 0;
 `;
 
-const StyledContentV3 = styled(ContentV3)<{inlined?: boolean}>`
+const StyledNativeContent = styled(NativeContent)<{inlined?: boolean}>`
   ${p => p.inlined && inlinedStyles}
 `;
 
@@ -120,5 +118,3 @@ const StyledContentV2 = styled(ContentV2)<{inlined?: boolean}>`
 const StyledContent = styled(Content)<{inlined?: boolean}>`
   ${p => p.inlined && inlinedStyles}
 `;
-
-export default StackTrace;
