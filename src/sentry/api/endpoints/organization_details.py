@@ -9,12 +9,7 @@ from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
 
-<<<<<<< HEAD
-from bitfield.types import BitHandler
 from sentry import audit_log, features, roles
-=======
-from sentry import audit_log, roles
->>>>>>> 8c23fbeae2 (fix(api): Wrap update_or_create and save in one transaction)
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -285,7 +280,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
-
         organization = self.context["organization"]
         has_api_auth_provider = features.has("organizations:api-auth-provider", organization)
         # Both providerKey and providerConfig are required to configure an auth provider
@@ -726,4 +720,5 @@ def old_value(model, field_name):
     value = model.__data.get(field_name)
     if value is DEFERRED:
         return None
+    return model.__data.get(field_name)
     return model.__data.get(field_name)
