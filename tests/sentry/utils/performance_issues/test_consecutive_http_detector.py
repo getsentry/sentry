@@ -80,6 +80,7 @@ class ConsecutiveDbDetectorTest(TestCase):
                         "bbbbbbbbbbbbbbbb",
                         "bbbbbbbbbbbbbbbb",
                     ],
+                    "op": "http",
                 },
                 evidence_display=[
                     IssueEvidence(name="Transaction Name", value="", important=True),
@@ -140,6 +141,7 @@ class ConsecutiveDbDetectorTest(TestCase):
                         "bbbbbbbbbbbbbbbb",
                         "bbbbbbbbbbbbbbbb",
                     ],
+                    "op": "http",
                 },
                 evidence_display=[
                     IssueEvidence(name="Transaction Name", value="", important=True),
