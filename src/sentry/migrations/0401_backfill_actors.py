@@ -56,7 +56,7 @@ class Migration(CheckedMigration):
             reverse_code=migrations.RunPython.noop,
             hints={"tables": ["auth_user", "sentry_team", "sentry_actor"]},
         ),
-        migrations.AddField(
+        migrations.AlterField(
             model_name="actor",
             name="team",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -69,7 +69,7 @@ class Migration(CheckedMigration):
                 db_constraint=True,
             ),
         ),
-        migrations.AddField(
+        migrations.AlterField(
             model_name="actor",
             name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
