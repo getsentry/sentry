@@ -9,6 +9,7 @@ import {loadDocs} from 'sentry/actionCreators/projects';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
@@ -73,18 +74,21 @@ const MissingExampleWarning = ({
   );
 };
 
-function ProjectDocsReact({
+export function ProjectDocsReact({
   organization,
   location,
   project,
+  newOrg,
 }: {
   location: Location;
   organization: Organization;
   project: Project;
+  newOrg?: boolean;
 }) {
   const api = useApi();
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [hasError, setHasError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const {
     experimentAssignment: productSelectionAssignment,
@@ -94,17 +98,20 @@ function ProjectDocsReact({
   });
 
   useEffect(() => {
-    productSelectionLogExperiment();
-  }, [productSelectionLogExperiment]);
+    if (newOrg) {
+      productSelectionLogExperiment();
+    }
+  }, [productSelectionLogExperiment, newOrg]);
 
   const fetchData = useCallback(async () => {
+    setLoading(true);
     // This is an experiment we are doing with react.
     // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
     // and the docs will reflect that.
     const products = location.query.product ?? [];
 
     const loadPlatform =
-      productSelectionAssignment === 'baseline'
+      newOrg && productSelectionAssignment === 'baseline'
         ? 'javascript-react'
         : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
           products.includes(PRODUCT.SESSION_REPLAY)
@@ -124,8 +131,10 @@ function ProjectDocsReact({
       });
       setPlatformDocs(loadedDocs);
       setHasError(false);
+      setLoading(false);
     } catch (error) {
       setHasError(error);
+      setLoading(false);
       throw error;
     }
   }, [
@@ -134,6 +143,7 @@ function ProjectDocsReact({
     organization.slug,
     location.query.product,
     productSelectionAssignment,
+    newOrg,
   ]);
 
   useEffect(() => {
@@ -142,27 +152,45 @@ function ProjectDocsReact({
 
   return (
     <Fragment>
-      <SetupIntroduction
-        stepHeaderText={t(
-          'Configure %s SDK',
-          platforms.find(p => p.id === 'javascript-react')?.name ?? ''
-        )}
-        platform="javascript-react"
-      />
-      {productSelectionAssignment === 'variant1' ? (
+      {newOrg ? (
+        <Fragment>
+          <SetupIntroduction
+            stepHeaderText={t(
+              'Configure %s SDK',
+              platforms.find(p => p.id === 'javascript-react')?.name ?? ''
+            )}
+            platform="javascript-react"
+          />
+          {productSelectionAssignment === 'variant1' ? (
+            <ProductSelection
+              defaultSelectedProducts={[
+                PRODUCT.PERFORMANCE_MONITORING,
+                PRODUCT.SESSION_REPLAY,
+              ]}
+            />
+          ) : productSelectionAssignment === 'variant2' ? (
+            <ProductSelection />
+          ) : null}
+        </Fragment>
+      ) : (
         <ProductSelection
           defaultSelectedProducts={[
             PRODUCT.PERFORMANCE_MONITORING,
             PRODUCT.SESSION_REPLAY,
           ]}
         />
-      ) : productSelectionAssignment === 'variant2' ? (
-        <ProductSelection />
-      ) : null}
-      {getDynamicText({
-        value: !hasError ? (
-          platformDocs !== null && (
-            <DocsWrapper key={platformDocs.html}>
+      )}
+      {loading ? (
+        <LoadingIndicator />
+      ) : hasError ? (
+        <LoadingError
+          message={t('Failed to load documentation for the React platform.')}
+          onRetry={fetchData}
+        />
+      ) : (
+        getDynamicText({
+          value: platformDocs !== null && (
+            <DocsWrapper>
               <DocumentationWrapper
                 dangerouslySetInnerHTML={{__html: platformDocs.html}}
               />
@@ -171,19 +199,14 @@ function ProjectDocsReact({
                 platformDocs={platformDocs}
               />
             </DocsWrapper>
-          )
-        ) : (
-          <LoadingError
-            message={t('Failed to load documentation for the React platform.')}
-            onRetry={() => fetchData()}
-          />
-        ),
-        fixed: (
-          <Alert type="warning">
-            Platform documentation is not rendered in for tests in CI
-          </Alert>
-        ),
-      })}
+          ),
+          fixed: (
+            <Alert type="warning">
+              Platform documentation is not rendered in for tests in CI
+            </Alert>
+          ),
+        })
+      )}
     </Fragment>
   );
 }
@@ -431,6 +454,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
               organization={organization}
               project={project}
               location={location}
+              newOrg
             />
           ) : (
             <ProjectDocs
