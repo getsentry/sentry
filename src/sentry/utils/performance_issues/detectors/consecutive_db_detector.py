@@ -114,8 +114,21 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
-            evidence_data={},
-            evidence_display=[],
+            evidence_data={
+                "cause_span_ids": cause_span_ids,
+                "parent_span_ids": None,
+                "offender_span_ids": offender_span_ids,
+            },
+            evidence_display=[
+                # IssueEvidence(
+                #     name='Transaction Name',
+                #     value=self._event.get("transaction", ""),
+                #     important=True,
+                # ),
+                # IssueEvidence(
+                #     name=""
+                # )
+            ],
         )
 
         self._reset_variables()
