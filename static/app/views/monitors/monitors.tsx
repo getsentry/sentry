@@ -7,11 +7,9 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
@@ -130,10 +128,7 @@ class Monitors extends AsyncView<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Filters>
-              <PageFilterBar>
-                <ProjectPageFilter resetParamsOnChange={['cursor']} />
-                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-              </PageFilterBar>
+              <ProjectPageFilter resetParamsOnChange={['cursor']} />
               <SearchBar
                 query={decodeScalar(qs.parse(location.search)?.query, '')}
                 placeholder={t('Search by name')}
@@ -149,29 +144,21 @@ class Monitors extends AsyncView<Props, State> {
                     t('Schedule'),
                     t('Next Checkin'),
                     t('Project'),
-                    t('Environment'),
                     t('Actions'),
                   ]}
                 >
-                  {monitorList
-                    ?.map(monitor =>
-                      monitor.environments.map(monitorEnv => (
-                        <MonitorRow
-                          key={monitor.slug}
-                          monitor={monitor}
-                          monitorEnv={monitorEnv}
-                          onDelete={() => {
-                            this.setState({
-                              monitorList: monitorList.filter(
-                                m => m.slug !== monitor.slug
-                              ),
-                            });
-                          }}
-                          organization={organization}
-                        />
-                      ))
-                    )
-                    .flat()}
+                  {monitorList?.map(monitor => (
+                    <MonitorRow
+                      key={monitor.slug}
+                      monitor={monitor}
+                      onDelete={() => {
+                        this.setState({
+                          monitorList: monitorList.filter(m => m.slug !== monitor.slug),
+                        });
+                      }}
+                      organization={organization}
+                    />
+                  ))}
                 </StyledPanelTable>
                 {monitorListPageLinks && (
                   <Pagination pageLinks={monitorListPageLinks} {...this.props} />
@@ -208,7 +195,7 @@ const Filters = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content 1fr max-content max-content max-content max-content;
+  grid-template-columns: 1fr max-content max-content max-content max-content max-content;
 `;
 
 const ButtonList = styled(ButtonBar)`
