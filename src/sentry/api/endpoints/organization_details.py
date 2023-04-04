@@ -2,14 +2,14 @@ import logging
 from copy import copy
 from datetime import datetime
 
+from bitfield.types import BitHandler
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
 
-from bitfield.types import BitHandler
-from sentry import audit_log, roles
+from sentry import audit_log, features, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -228,7 +228,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_trustedRelays(self, value):
-        from sentry import features
 
         organization = self.context["organization"]
         request = self.context["request"]
@@ -342,7 +341,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return incoming
 
     def save(self):
-        from sentry import features
 
         org = self.context["organization"]
         changed_data = {}
@@ -397,8 +395,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        if "providerKey" in data and "providerConfig" in data:
-            provider_key = data["providerKey"]
+        if (
+            features.has("organizations:auth-provider-config", org)
+            and "providerKey" in data
+            and "providerConfig" in data
+        ):
+            provider_key = data["providerName"]
             provider_config = data["providerConfig"]
             with transaction.atomic():
                 auth_provider = AuthProvider.objects.update_or_create(
