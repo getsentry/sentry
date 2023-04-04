@@ -38,17 +38,25 @@ def check_monitors(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
 
-    qs = MonitorEnvironment.objects.filter(
-        monitor__type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
-    ).exclude(
-        status__in=[
-            MonitorStatus.DISABLED,
-            MonitorStatus.PENDING_DELETION,
-            MonitorStatus.DELETION_IN_PROGRESS,
-        ]
-    )[
-        :MONITOR_LIMIT
-    ]
+    qs = (
+        MonitorEnvironment.objects.filter(
+            monitor__type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
+        )
+        .exclude(
+            status__in=[
+                MonitorStatus.DISABLED,
+                MonitorStatus.PENDING_DELETION,
+                MonitorStatus.DELETION_IN_PROGRESS,
+            ]
+        )
+        .exclude(
+            monitor__status__in=[
+                MonitorStatus.DISABLED,
+                MonitorStatus.PENDING_DELETION,
+                MonitorStatus.DELETION_IN_PROGRESS,
+            ]
+        )[:MONITOR_LIMIT]
+    )
     metrics.gauge("sentry.monitors.tasks.check_monitors.missing_count", qs.count())
     for monitor_environment in qs:
         logger.info(
