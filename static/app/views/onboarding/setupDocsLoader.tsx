@@ -180,7 +180,6 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
           )}
         </CodeSnippet>
 
-        <hr />
         <OptionalConfigWrapper>
           <ToggleButton
             priority="link"
@@ -196,22 +195,27 @@ function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
         </OptionalConfigWrapper>
         {showOptionalConfig && (
           <div>
+            <p>
+              {t(
+                "Initialise Sentry as early as possible in your application's lifecycle."
+              )}
+            </p>
             <CodeSnippet dark language="js">
               {configCodeSnippet}
             </CodeSnippet>
           </div>
         )}
-        <hr />
 
+        <h2>{t('Verify')}</h2>
         <p>
           {t(
-            'Then create an intentional error, so you can test that everything is working:'
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
           )}
         </p>
-
         <CodeSnippet dark language="js">
           myUndefinedFunction();
         </CodeSnippet>
+
         <hr />
 
         <h2>{t('Next Steps')}</h2>
