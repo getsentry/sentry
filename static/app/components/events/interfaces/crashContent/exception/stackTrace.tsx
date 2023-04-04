@@ -1,5 +1,3 @@
-import {useContext} from 'react';
-
 import EmptyMessage from 'sentry/components/emptyMessage';
 import type {StacktraceFilenameQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import {Panel} from 'sentry/components/panels';
@@ -10,11 +8,10 @@ import {Event} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import StackTraceContent from '../stackTrace/content';
 import StacktraceContentV2 from '../stackTrace/contentV2';
-import StacktraceContentV3 from '../stackTrace/contentV3';
+import {NativeContent} from '../stackTrace/nativeContent';
 
 type Props = {
   chainedException: boolean;
@@ -45,11 +42,6 @@ function StackTrace({
   event,
   meta,
 }: Props) {
-  // Organization context may be unavailable for the shared event view, so we
-  // avoid using the `useOrganization` hook here and directly useContext
-  // instead.
-  const organization = useContext(OrganizationContext);
-
   if (!defined(stacktrace)) {
     return null;
   }
@@ -90,12 +82,9 @@ function StackTrace({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (
-    !!organization?.features?.includes('native-stack-trace-v2') &&
-    isNativePlatform(platform)
-  ) {
+  if (isNativePlatform(platform)) {
     return (
-      <StacktraceContentV3
+      <NativeContent
         data={data}
         expandFirstFrame={expandFirstFrame}
         includeSystemFrames={includeSystemFrames}

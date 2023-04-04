@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import StackTrace from 'sentry/components/events/interfaces/crashContent/stackTrace';
+import {StackTrace} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -201,7 +201,6 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
           frames,
         }}
         stackView={STACK_VIEW.APP}
-        nativeV2
         inlined
         maxDepth={MAX_STACK_DEPTH}
       />
