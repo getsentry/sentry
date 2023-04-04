@@ -75,14 +75,14 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
+        rpc_org_member = organization_service.add_organization_member(
+            organization=organization,
+            email=result["email"],
+            role=result["role"],
+            inviter_id=request.user.id,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
         with transaction.atomic():
-            rpc_org_member = organization_service.add_organization_member(
-                organization=organization,
-                email=result["email"],
-                role=result["role"],
-                inviter_id=request.user.id,
-                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-            )
             om = OrganizationMember.objects.get(id=rpc_org_member.id)
 
             # Do not set team-roles when inviting a member
