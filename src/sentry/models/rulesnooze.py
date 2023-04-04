@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import CheckConstraint, Q
 
-from sentry.db.models import Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
@@ -13,9 +13,9 @@ class RuleSnooze(Model):
 
     __include_in_export__ = True
 
-    user = HybridCloudForeignKey("sentry.User", unique=True, on_delete="CASCADE")
-    rule = HybridCloudForeignKey("sentry.Rule", null=True, unique=True, on_delete="CASCADE")
-    alert_rule = HybridCloudForeignKey("sentry.AlertRule", null=True, on_delete="CASCADE")
+    user_id = HybridCloudForeignKey("sentry.User", unique=True, on_delete="CASCADE")
+    rule = FlexibleForeignKey("sentry.Rule", null=True, unique=True)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
     until = models.DateTimeField(null=True)
 
     class Meta:

@@ -83,7 +83,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         metric_alert_rule = self.create_alert_rule(
             organization=project.organization, projects=[project]
         )
-        rule_snooze = RuleSnooze.objects.create(user=self.user.id, alert_rule=metric_alert_rule.id)
+        rule_snooze = RuleSnooze.objects.create(user_id=self.user.id, alert_rule=metric_alert_rule)
 
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
