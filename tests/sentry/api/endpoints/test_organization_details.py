@@ -8,7 +8,6 @@ from django.core import mail
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
-
 from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
