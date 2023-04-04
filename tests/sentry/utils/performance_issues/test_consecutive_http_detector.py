@@ -84,17 +84,17 @@ class ConsecutiveDbDetectorTest(TestCase):
                 evidence_display=[
                     IssueEvidence(name="Transaction Name", value="", important=True),
                     IssueEvidence(
-                        name="Offending Spans",
+                        name="Consecutive Span",
                         value="GET /api/0/organizations/endpoint1",
                         important=True,
                     ),
                     IssueEvidence(
-                        name="Offending Spans",
+                        name="Consecutive Span",
                         value="GET /api/0/organizations/endpoint2",
                         important=True,
                     ),
                     IssueEvidence(
-                        name="Offending Spans",
+                        name="Consecutive Span",
                         value="GET /api/0/organizations/endpoint3",
                         important=True,
                     ),
@@ -144,17 +144,17 @@ class ConsecutiveDbDetectorTest(TestCase):
                 evidence_display=[
                     IssueEvidence(name="Transaction Name", value="", important=True),
                     IssueEvidence(
-                        name="Offending Spans",
+                        name="Consecutive Span",
                         value="GET /api/0/organizations/endpoint1",
                         important=True,
                     ),
                     IssueEvidence(
-                        name="Offending Spans",
+                        name="Consecutive Span",
                         value="GET /api/0/organizations/endpoint2",
                         important=True,
                     ),
                     IssueEvidence(
-                        name="Offending Spans",
+                        name="Consecutive Span",
                         value="GET /api/0/organizations/endpoint3",
                         important=True,
                     ),

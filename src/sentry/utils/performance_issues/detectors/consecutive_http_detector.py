@@ -73,7 +73,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         offender_span_ids = [span.get("span_id", None) for span in self.consecutive_http_spans]
         offender_span_evidence_display = [
             IssueEvidence(
-                name="Offending Spans",
+                name="Consecutive Span",
                 value=span.get("description", None),
                 important=True,
             )
