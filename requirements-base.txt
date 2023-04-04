@@ -47,9 +47,8 @@ python-u2flib-server>=5.0.0
 fido2>=0.9.2
 python3-saml>=1.15.0
 PyYAML>=5.4
-rb>=1.9.0
-redis-py-cluster>=2.1.0
-redis>=3.4.1
+rb>=1.10.0
+redis>=4
 requests-oauthlib>=1.2.0
 requests>=2.25.1
 # [start] jsonschema format validators

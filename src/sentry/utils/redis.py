@@ -9,12 +9,12 @@ from threading import Lock
 import rb
 from django.utils.functional import SimpleLazyObject
 from pkg_resources import resource_string
-from redis.client import Script, StrictRedis
+from redis.client import StrictRedis
+from redis.cluster import RedisCluster
+from redis.commands.core import Script
 from redis.connection import ConnectionPool, Encoder
-from redis.exceptions import BusyLoadingError, ConnectionError, ReadOnlyError
+from redis.exceptions import BusyLoadingError, ClusterError, ConnectionError, ReadOnlyError
 from redis.exceptions import TimeoutError as RedisTimeoutError
-from rediscluster import RedisCluster
-from rediscluster.exceptions import ClusterError
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
