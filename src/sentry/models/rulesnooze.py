@@ -16,11 +16,12 @@ class RuleSnooze(Model):
     user_id = HybridCloudForeignKey("sentry.User", unique=True, on_delete="CASCADE")
     rule = FlexibleForeignKey("sentry.Rule", null=True, unique=True)
     alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
-    until = models.DateTimeField(null=True)
+    until = models.DateTimeField(null=True, db_index=True)
 
     class Meta:
         db_table = "sentry_rulesnooze"
         app_label = "sentry"
+        unique_together = (("user_id", "rule"), ("user_id", "alert_rule"))
         constraints = [
             CheckConstraint(
                 check=Q(rule__isnull=False, alert_rule__isnull=True)
