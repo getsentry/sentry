@@ -186,7 +186,7 @@ integration_added = BetterSignal(providing_args=["integration", "organization", 
 integration_issue_created = BetterSignal(providing_args=["integration", "organization", "user"])
 integration_issue_linked = BetterSignal(providing_args=["integration", "organization", "user"])
 
-monitor_failed = BetterSignal(providing_args=["monitor"])
+monitor_environment_failed = BetterSignal(providing_args=["monitor"])
 
 # experiments
 join_request_created = BetterSignal(providing_args=["member"])
