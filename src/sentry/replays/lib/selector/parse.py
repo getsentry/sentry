@@ -29,6 +29,9 @@ def parse_selector(css_selector: str) -> List[QueryType]:
 
     queries: List[QueryType] = []
     for selector in selectors:
+        if selector.pseudo_element is not None:
+            raise ParseError("Pseudo-elements are not supported.")
+
         query = QueryType()
         visit_selector_tree(query, selector.parsed_tree)
         queries.append(query)
@@ -68,6 +71,9 @@ def visit_selector_tree(query: QueryType, selector: SelectorType) -> None:
 
 def visit_attribute(query: QueryType, attribute: Attrib) -> None:
     """Visit attribute selector types."""
+    if attribute.operator != "=":
+        raise ParseError("Only the '=' operator is supported.")
+
     attrib = attribute.attrib
     if attrib == "alt":
         query.alt = attribute.value

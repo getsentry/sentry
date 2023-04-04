@@ -968,9 +968,30 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
 
         with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url + '?field=id&query=replay_click.selector:".a .b"')
-            assert response.status_code == 400
-            assert response.content == b'{"detail":"Nested selectors are not supported."}'
+            queries = [
+                'replay_click.selector:"div button"',
+                'replay_click.selector:"div + button"',
+                'replay_click.selector:"div ~ button"',
+                'replay_click.selector:"div > button"',
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400
+                assert response.content == b'{"detail":"Nested selectors are not supported."}'
+
+    def test_get_replays_filter_clicks_pseudo_element(self):
+        """Assert replays only supports a subset of selector syntax."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                "replay_click.selector:a::visited",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400, query
+                assert response.content == b'{"detail":"Pseudo-elements are not supported."}', query
 
     def test_get_replays_filter_clicks_unsupported_selector(self):
         """Assert replays only supports a subset of selector syntax."""
@@ -978,11 +999,33 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
 
         with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(
-                self.url + '?field=id&query=replay_click.selector:"div:is(2)"'
-            )
-            assert response.status_code == 400
-            assert (
-                response.content
-                == b'{"detail":"Only attribute, class, id, and tag name selectors are supported."}'
-            )
+            queries = [
+                "replay_click.selector:div:is(2)",
+                "replay_click.selector:p:active",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400, query
+                assert (
+                    response.content
+                    == b'{"detail":"Only attribute, class, id, and tag name selectors are supported."}'
+                ), query
+
+    def test_get_replays_filter_clicks_unsupported_operators(self):
+        """Assert replays only supports a subset of selector syntax."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                'replay_click.selector:"[aria-label~=button]"',
+                'replay_click.selector:"[aria-label|=button]"',
+                'replay_click.selector:"[aria-label^=button]"',
+                'replay_click.selector:"[aria-label$=button]"',
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400, query
+                assert (
+                    response.content == b'{"detail":"Only the \'=\' operator is supported."}'
+                ), query
