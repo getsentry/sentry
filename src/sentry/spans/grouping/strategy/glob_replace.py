@@ -43,7 +43,7 @@ def glob_replace(source: str, glob: str) -> str:
     return new_source
 
 
-def replace_glob_with_regex_group(match: Match) -> str:
+def replace_glob_with_regex_group(match: Match[str]) -> str:
     if match.group() == "**":
         return DOUBLE_STAR
 
