@@ -101,6 +101,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "cause_span_ids": [],
                 "offender_span_ids": offender_span_ids,
+                "op": "http",
             },
         )
 
