@@ -35,6 +35,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
+import QuickTrace from './quickTrace';
+
 type GroupEventCarouselProps = {
   event: Event;
   group: Group;
@@ -111,6 +113,7 @@ export const GroupEventCarousel = ({
 }: GroupEventCarouselProps) => {
   const theme = useTheme();
   const organization = useOrganization();
+  const location = useLocation();
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
 
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
@@ -176,6 +179,12 @@ export const GroupEventCarousel = ({
             )}
           </EventTimeLabel>
         )}
+        <QuickTrace
+          event={event}
+          group={group}
+          organization={organization}
+          location={location}
+        />
       </EventHeading>
       <ActionsWrapper>
         <DropdownMenu
@@ -294,7 +303,7 @@ export const GroupEventCarousel = ({
 const CarouselAndButtonsWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: ${space(1)};
   margin-bottom: ${space(0.5)};
 `;
