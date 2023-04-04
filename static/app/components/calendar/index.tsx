@@ -23,18 +23,18 @@ const CalendarSuspenseWrapper: React.FC = ({children}) => {
   );
 };
 
-export const DatePicker = (props: DatePickerProps) => {
+export function DatePicker(props: DatePickerProps) {
   return (
     <CalendarSuspenseWrapper>
       <LazyDatePicker {...props} />
     </CalendarSuspenseWrapper>
   );
-};
+}
 
-export const DateRangePicker = (props: DateRangePickerProps) => {
+export function DateRangePicker(props: DateRangePickerProps) {
   return (
     <CalendarSuspenseWrapper>
       <LazyDateRangePicker {...props} />
     </CalendarSuspenseWrapper>
   );
-};
+}

@@ -24,7 +24,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
     jest.resetAllMocks();
   });
 
-  const TestComponent = () => {
+  function TestComponent() {
     const [currentSelected, setCurrentSelected] = useState([...yAxisValue]);
 
     return (
@@ -40,7 +40,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
         }}
       />
     );
-  };
+  }
 
   const renderComponent = () => {
     // Start off with an invalid view (empty is invalid)

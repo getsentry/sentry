@@ -100,9 +100,11 @@ const makeClosableHeader = (closeModal: () => void) => {
 /**
  * Creates a CloseButton component that is connected to the provided closeModal trigger
  */
-const makeCloseButton =
-  (closeModal: () => void): React.FC<Omit<ButtonProps, 'aria-label'>> =>
-  props =>
-    <CloseButton {...props} onClick={closeModal} />;
+const makeCloseButton = (
+  closeModal: () => void
+): React.FC<Omit<ButtonProps, 'aria-label'>> =>
+  function (props) {
+    return <CloseButton {...props} onClick={closeModal} />;
+  };
 
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter};

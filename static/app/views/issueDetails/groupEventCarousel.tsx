@@ -56,11 +56,7 @@ const copyToClipboard = (value: string) => {
     });
 };
 
-export const GroupEventCarousel = ({
-  event,
-  group,
-  projectSlug,
-}: GroupEventCarouselProps) => {
+export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -251,7 +247,7 @@ export const GroupEventCarousel = ({
       />
     </CarouselAndButtonsWrapper>
   );
-};
+}
 
 const CarouselAndButtonsWrapper = styled('div')`
   display: flex;

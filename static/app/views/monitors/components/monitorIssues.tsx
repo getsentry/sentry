@@ -12,17 +12,19 @@ type Props = {
   orgId: string;
 };
 
-const MonitorIssuesEmptyMessage = () => (
-  <Panel>
-    <PanelBody>
-      <EmptyStateWarning>
-        <p>{t('No issues relating to this cron monitor have been found.')}</p>
-      </EmptyStateWarning>
-    </PanelBody>
-  </Panel>
-);
+function MonitorIssuesEmptyMessage() {
+  return (
+    <Panel>
+      <PanelBody>
+        <EmptyStateWarning>
+          <p>{t('No issues relating to this cron monitor have been found.')}</p>
+        </EmptyStateWarning>
+      </PanelBody>
+    </Panel>
+  );
+}
 
-const MonitorIssues = ({orgId, monitor}: Props) => {
+function MonitorIssues({orgId, monitor}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
   const timeProps =
@@ -54,6 +56,6 @@ const MonitorIssues = ({orgId, monitor}: Props) => {
       source="monitors"
     />
   );
-};
+}
 
 export default MonitorIssues;

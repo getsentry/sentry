@@ -47,9 +47,11 @@ function SearchResult({item, matches, highlighted}: Props) {
 
     if (matches) {
       // TODO(ts) Type this better.
-      const HighlightedMarker = (p: any) => (
-        <HighlightMarker data-test-id="highlight" highlighted={highlighted} {...p} />
-      );
+      function HighlightedMarker(p: any) {
+        return (
+          <HighlightMarker data-test-id="highlight" highlighted={highlighted} {...p} />
+        );
+      }
 
       const matchedTitle = matches && matches.find(({key}) => key === 'title');
       const matchedDescription =

@@ -45,13 +45,13 @@ type Props = {
   search: string;
 } & StepProps;
 
-const MissingExampleWarning = ({
+function MissingExampleWarning({
   platformDocs,
   platform,
 }: {
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
-}) => {
+}) {
   const missingExample = platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
 
   if (!missingExample) {
@@ -72,7 +72,7 @@ const MissingExampleWarning = ({
       )}
     </Alert>
   );
-};
+}
 
 export function ProjectDocsReact({
   organization,

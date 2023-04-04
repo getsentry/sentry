@@ -24,7 +24,7 @@ type LinkedIssues = {
   unlinked: GroupIntegration[];
 };
 
-const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
+function ExternalIssueActions({configurations, group, onChange}: Props) {
   const api = useApi();
   const {linked, unlinked} = configurations
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
@@ -113,7 +113,7 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
       )}
     </Fragment>
   );
-};
+}
 
 const IssueTitle = styled('div')`
   font-size: 1.1em;
