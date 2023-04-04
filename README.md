@@ -42,7 +42,7 @@ Sentry is a developer-first error tracking and performance monitoring platform t
   - [Clojure](https://github.com/getsentry/sentry-clj/)
   - [Elixir](https://github.com/getsentry/sentry-elixir)
   - [Unity](https://github.com/getsentry/sentry-unity)
-  - [Unreal](https://github.com/getsentry/sentry-unreal)
+  - [Unreal Engine](https://github.com/getsentry/sentry-unreal)
 
 # Resources
 
