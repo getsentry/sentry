@@ -2,13 +2,13 @@ import logging
 from copy import copy
 from datetime import datetime
 
-from bitfield.types import BitHandler
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
 
+from bitfield.types import BitHandler
 from sentry import audit_log, features, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -400,7 +400,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             and "providerKey" in data
             and "providerConfig" in data
         ):
-            provider_key = data["providerName"]
+            provider_key = data["providerKey"]
             provider_config = data["providerConfig"]
             with transaction.atomic():
                 auth_provider = AuthProvider.objects.update_or_create(
