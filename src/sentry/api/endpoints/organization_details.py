@@ -280,9 +280,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
-        if ("providerName" in attrs) != ("providerConfig" in attrs):
+        # Both providerName and providerConfig are required to configure an auth provider
+        if attrs.get("providerName") and not attrs.get("providerConfig"):
             raise serializers.ValidationError(
-                "Both providerName and providerConfig are required to configure an auth provider"
+                {"providerConfig": "providerConfig is required to configure an auth provider"}
+            )
+        if attrs.get("providerConfig") and not attrs.get("providerName"):
+            raise serializers.ValidationError(
+                {"providerName": "providerName is required to configure an auth provider"}
             )
         return attrs
 
