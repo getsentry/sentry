@@ -98,6 +98,7 @@ from .repository import *  # NOQA
 from .reprocessingreport import *  # NOQA
 from .rule import *  # NOQA
 from .rulefirehistory import RuleFireHistory  # NOQA
+from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .scheduledjob import *  # NOQA

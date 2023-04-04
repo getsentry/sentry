@@ -17,6 +17,7 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     Repository,
+    RuleSnooze,
     ScheduledDeletion,
     ServiceHook,
 )
@@ -82,6 +83,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         metric_alert_rule = self.create_alert_rule(
             organization=project.organization, projects=[project]
         )
+        rule_snooze = RuleSnooze.objects.create(user_id=self.user.id, alert_rule=metric_alert_rule)
 
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
@@ -103,6 +105,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert not File.objects.filter(id=file.id).exists()
         assert not ServiceHook.objects.filter(id=hook.id).exists()
         assert not AlertRule.objects.filter(id=metric_alert_rule.id).exists()
+        assert not RuleSnooze.objects.filter(id=rule_snooze.id).exists()
 
     def test_delete_error_events(self):
         keeper = self.create_project(name="keeper")
