@@ -238,6 +238,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                     ),
                 ],
                 evidence_data={
+                    "op": "db",
                     "parent_span_ids": [parent_span_id],
                     "cause_span_ids": [self.source_span.get("span_id", None)],
                     "offender_span_ids": [span.get("span_id", None) for span in self.n_spans],

@@ -180,6 +180,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],
             evidence_data={
+                "op": "db",
                 "parent_span_ids": [parent_span["span_id"]],
                 "cause_span_ids": [],
                 "offender_span_ids": [span["span_id"] for span in offender_spans],

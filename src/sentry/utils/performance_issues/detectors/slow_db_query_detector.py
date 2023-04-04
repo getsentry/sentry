@@ -6,6 +6,7 @@ from typing import Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, fingerprint_span
@@ -60,8 +61,22 @@ class SlowDBQueryDetector(PerformanceDetector):
                 cause_span_ids=[],
                 parent_span_ids=[],
                 offender_span_ids=spans_involved,
-                evidence_data={},
-                evidence_display=[],
+                evidence_data={
+                    "op": op,
+                    "cause_span_ids": [],
+                    "parent_span_ids": [],
+                    "offender_span_ids": spans_involved,
+                },
+                evidence_display=[
+                    IssueEvidence(
+                        name="Transaction Name",
+                        value=self._event.get("transaction", ""),
+                        important=True,
+                    ),
+                    IssueEvidence(
+                        name="Slow DB Query", value=span.get("description", ""), important=True
+                    ),
+                ],
             )
 
     def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
