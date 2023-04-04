@@ -36,6 +36,7 @@ class ActivatableBias(TypedDict):
 # experience. These can be overridden by the project details endpoint
 class RuleType(Enum):
     UNIFORM_RULE = "uniformRule"
+    ADJUSTMENT_FACTOR_RULE = "adjustmentFactorRule"
     BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
     IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
@@ -58,6 +59,7 @@ RESERVED_IDS = {
     RuleType.BOOST_ENVIRONMENTS_RULE: 1001,
     RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
+    RuleType.ADJUSTMENT_FACTOR_RULE: 1004,
     RuleType.BOOST_LOW_VOLUME_TRANSACTIONS: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }
@@ -208,3 +210,7 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
 def get_redis_client_for_ds() -> Any:
     cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
     return redis.redis_clusters.get(cluster_key)
+
+
+def generate_cache_key_adj_factor(org_id: int) -> str:
+    return f"ds::o:{org_id}:prioritise_projects:adj_factor"

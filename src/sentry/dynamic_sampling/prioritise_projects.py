@@ -38,12 +38,14 @@ CHUNK_SIZE = 9998  # Snuba's limit is 10000, and we fetch CHUNK_SIZE+1
 
 
 def fetch_projects_with_total_volumes(
-    org_ids: List[int],
+    org_ids: List[int], query_interval=None
 ) -> Mapping[OrganizationId, Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
     """
     This function fetch with pagination orgs and projects with count per root project
     and also calculates decision count keep/drop per project
     """
+    if query_interval is None:
+        query_interval = timedelta(hours=1)
     aggregated_projects = defaultdict(list)
     start_time = time.time()
     offset = 0
@@ -53,7 +55,7 @@ def fetch_projects_with_total_volumes(
     sample_rate = int(options.get("dynamic-sampling.prioritise_projects.sample_rate") * 100)
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     where = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=1)),
+        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
         Condition(Column("metric_id"), Op.EQ, metric_id),
         Condition(Column("org_id"), Op.IN, org_ids),

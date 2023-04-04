@@ -1,5 +1,6 @@
 import logging
 from collections import namedtuple
+from datetime import timedelta
 from typing import Sequence, Tuple
 
 from sentry import options, quotas
@@ -16,7 +17,7 @@ from sentry.dynamic_sampling.prioritise_transactions import (
 )
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
     _generate_cache_key,
-    _generate_cache_key_actual_rate,
+    _generate_cache_key_adj_factor,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
@@ -61,6 +62,11 @@ def prioritise_projects() -> None:
                 org_ids=orgs
             ).items():
                 process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
+            #
+            for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
+                org_ids=orgs, query_interval=timedelta(minutes=5)
+            ).items():
+                process_projects_sample_factors.delay(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(
@@ -130,17 +136,61 @@ def adjust_sample_rates(
                 ds_project.new_sample_rate,  # redis stores is as string
             )
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
-
-            counter = project_ids_with_counts[int(ds_project.id)]
-            if (rate := actual_sample_rate(counter.count_keep, counter.count_drop)) != 0:
-                actual_rate_cache_key = _generate_cache_key_actual_rate(org_id)
-                pipeline.hset(actual_rate_cache_key, ds_project.id, rate)
-                pipeline.pexpire(actual_rate_cache_key, CACHE_KEY_TTL)
-
             schedule_invalidate_project_config(
                 project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
             )
         pipeline.execute()
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.process_projects_factors",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,  # 25 mins
+    time_limit=2 * 60 + 5,
+)  # type: ignore
+def process_projects_sample_factors(
+    org_id: OrganizationId,
+    projects_with_tx_count_and_rates: Sequence[
+        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+    ],
+) -> None:
+    """
+    Takes a single org id and a list of project ids
+    """
+    with metrics.timer("sentry.tasks.dynamic_sampling.process_projects_factors.core"):
+        redis_client = get_redis_client_for_ds()
+        Counter = namedtuple("Counter", ["count", "count_keep", "count_drop"])
+        project_ids_with_counts = {}
+        for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count_and_rates:
+            project_ids_with_counts[project_id] = Counter(count_per_root, count_keep, count_drop)
+
+        with redis_client.pipeline(transaction=False) as pipeline:
+            for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
+                desired_sample_rate = quotas.get_blended_sample_rate(project)
+
+                if not desired_sample_rate:
+                    continue
+
+                counter = project_ids_with_counts[project.id]
+                if (actual_rate := actual_sample_rate(counter.count_keep, counter.count_drop)) != 0:
+                    adj_factor_cache_key = _generate_cache_key_adj_factor(org_id)
+
+                    try:
+                        prev_factor = float(pipeline.hget(adj_factor_cache_key, project.id))
+                    except (TypeError, ValueError):
+                        prev_factor = 1.0
+
+                    new_factor = prev_factor * (actual_rate / desired_sample_rate)
+
+                    pipeline.hset(adj_factor_cache_key, project.id, new_factor)
+                    pipeline.pexpire(adj_factor_cache_key, CACHE_KEY_TTL)
+
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="dynamic_sampling_process_projects_factors"
+                )
+            pipeline.execute()
 
 
 @instrumented_task(
