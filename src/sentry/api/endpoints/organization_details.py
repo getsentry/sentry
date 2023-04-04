@@ -265,12 +265,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_providerName(self, value):
         from sentry.auth import manager
 
-        has_auth_provider_config = features.has(
+        has_api_auth_provider = features.has(
             "organizations:api-auth-provider",
             self.context["organization"],
             actor=self.context["request"].user,
         )
-        if has_auth_provider_config and not manager.exists(value):
+        if not has_api_auth_provider:
+            return
+        if not manager.exists(value):
             raise serializers.ValidationError("Invalid providerName")
         return value
 
@@ -284,12 +286,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
-        has_auth_provider_config = features.has(
+        has_api_auth_provider = features.has(
             "organizations:api-auth-provider",
             self.context["organization"],
             actor=self.context["request"].user,
         )
-        if has_auth_provider_config and (("providerName" in attrs) != ("providerConfig" in attrs)):
+        if has_api_auth_provider and (("providerName" in attrs) != ("providerConfig" in attrs)):
             raise serializers.ValidationError(
                 "Both providerName and providerConfig are required to configure an auth provider"
             )
