@@ -111,7 +111,6 @@ default_manager.add("organizations:anr-rate", OrganizationFeature, FeatureHandle
 default_manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:monitors", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:notification-actions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
