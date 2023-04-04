@@ -100,9 +100,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         user = auth_identity.user
 
         assert user.email == self.email
-        org_member = OrganizationMember.objects.filter(organization=self.organization, user=user)
-        assert org_member.exists()
-        org_member = org_member.get()
+        org_member = OrganizationMember.objects.get(organization=self.organization, user=user)
         self.assert_org_member_mapping(org_member=org_member)
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
@@ -139,13 +137,11 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         auth_identity = self.handler.handle_new_user()
 
-        org_member = OrganizationMember.objects.filter(
+        org_member = OrganizationMember.objects.get(
             organization=self.organization,
             user=auth_identity.user,
             invite_status=InviteStatus.APPROVED.value,
         )
-        assert org_member.exists()
-        org_member = org_member.get()
 
         self.assert_org_member_mapping(org_member=org_member)
         self.assert_org_member_mapping_not_exists(org_member=member)
@@ -288,12 +284,10 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert returned_identity == existing_identity
         assert not mock_messages.add_message.called
 
-        org_member = OrganizationMember.objects.filter(
+        org_member = OrganizationMember.objects.get(
             organization=self.organization,
             user=user,
         )
-        assert org_member.exists()
-        org_member = org_member.get()
         self.assert_org_member_mapping(org_member=org_member)
 
     def _test_with_identity_belonging_to_another_user(self, request_user):
