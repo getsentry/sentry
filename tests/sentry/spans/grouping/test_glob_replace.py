@@ -17,6 +17,11 @@ from sentry.spans.grouping.strategy.glob_replace import glob_replace
             "/api/0/organizations/sentry/issues/",
         ),
         (
+            "hello there world friends",
+            "hello * world**",
+            "hello * world friends",
+        ),
+        (
             "/api/0/organizations/sentry/projects/javascript/info",
             "/api/0/organizations/*/projects/*/**",
             "/api/0/organizations/*/projects/*/info",

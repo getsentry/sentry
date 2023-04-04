@@ -9,10 +9,19 @@ DOUBLE_STAR = "(?:.*?)"
 WILDCARD_CHARACTER = "*"
 
 
-def glob_replace(source: str, rule: str) -> str:
-    """ """
+def glob_replace(source: str, glob: str) -> str:
+    """
+    Given a source string and a glob, replaces all globbed chunks of the source
+    string with the replacement character.
 
-    regex_pattern_equivalent_to_glob = re.sub(GLOB_REGEX, replace_glob_with_regex_group, rule)
+    Matches to an asterisk are replaces with an asterisk. Matches to a double
+    asterisk are kept as-is.
+
+    e.g., given the string `"hello there world friends"` and the glob `"hello *
+    world**"` returns the string `"hello * world friends"`
+    """
+
+    regex_pattern_equivalent_to_glob = re.sub(GLOB_REGEX, replace_glob_with_regex_group, glob)
     regex_equivalent_to_glob = re.compile(f"^{regex_pattern_equivalent_to_glob}$")
 
     match = re.search(regex_equivalent_to_glob, source)
