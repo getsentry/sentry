@@ -82,6 +82,7 @@ class Actor(Model):
     team = FlexibleForeignKey(
         "sentry.Team",
         related_name="actor_from_team",
+        db_constraint=False,
         db_index=True,
         unique=False,
         null=True,
