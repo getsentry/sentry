@@ -30,6 +30,7 @@ __all__ = (
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
     "MonitorTestCase",
+    "MonitorIngestTestCase",
 )
 import hashlib
 import inspect
@@ -94,6 +95,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DeletedOrganization,
     Deploy,
+    Environment,
     File,
     GroupMeta,
     Identity,
@@ -108,7 +110,7 @@ from sentry.models import (
     UserEmail,
     UserOption,
 )
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.models import ReplayRecordingSegment
@@ -136,6 +138,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
+from ..services.hybrid_cloud.actor import RpcActor
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -1509,6 +1512,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
         "measurements.frames_frozen_rate": "metrics_distributions",
+        "measurements.time_to_initial_display": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -2008,7 +2012,9 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
+        self.auth_provider = AuthProviderModel(
+            organization_id=self.organization.id, provider=provider
+        )
         self.auth_provider.enable_scim(self.user)
         self.auth_provider.save()
         self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
@@ -2083,19 +2089,19 @@ class SlackActivityNotificationTest(ActivityTestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         self.integration = install_slack(self.organization)
@@ -2147,19 +2153,19 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
@@ -2297,9 +2303,62 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
 
 
 class MonitorTestCase(APITestCase):
+    def _create_monitor(self, **kwargs):
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            **kwargs,
+        )
+
+    def _create_monitor_environment(self, monitor, name="production"):
+        environment = Environment.get_or_create(project=self.project, name=name)
+
+        monitorenvironment_defaults = {
+            "status": monitor.status,
+            "next_checkin": monitor.next_checkin,
+            "last_checkin": monitor.last_checkin,
+        }
+
+        return MonitorEnvironment.objects.create(
+            monitor=monitor, environment=environment, **monitorenvironment_defaults
+        )
+
+
+class MonitorIngestTestCase(MonitorTestCase):
+    """
+    Base test case which provides support for both styles of legacy ingestion
+    endpoints, as well as sets up token and DSN authentication helpers
+    """
+
     @property
     def endpoint_with_org(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    @property
+    def dsn_auth_headers(self):
+        return {"HTTP_AUTHORIZATION": f"DSN {self.project_key.dsn_public}"}
+
+    @property
+    def token_auth_headers(self):
+        return {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
+
+    def setUp(self):
+        super().setUp()
+        # DSN based auth
+        self.project_key = self.create_project_key()
+
+        # Token based auth
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            scopes=["project:write"],
+        )
+        app = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+        self.token = self.create_internal_integration_token(app, user=self.user)
 
     def _get_path_functions(self):
         # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
@@ -2310,14 +2369,4 @@ class MonitorTestCase(APITestCase):
             lambda monitor_id: reverse(
                 self.endpoint_with_org, args=[self.organization.slug, monitor_id]
             ),
-        )
-
-    def _create_monitor(self, **kwargs):
-        return Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
-            **kwargs,
         )

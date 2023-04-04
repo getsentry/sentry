@@ -24,7 +24,7 @@ class ReplayDetailsPermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectReplayDetailsEndpoint(ProjectEndpoint):
-    private = True
+
     permission_classes = (ReplayDetailsPermission,)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
@@ -36,7 +36,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         filter_params = self.get_filter_params(request, project)
 
         try:
-            uuid.UUID(replay_id)
+            replay_id = str(uuid.UUID(replay_id))
         except ValueError:
             return Response(status=404)
 
@@ -45,6 +45,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],
+            tenant_ids={"organization_id": project.organization_id},
         )
 
         response = process_raw_response(

@@ -100,6 +100,8 @@ class NPlusOneAPICallsDetectorTest(TestCase):
                     "a34089b08b6d0646",
                     "950801c0d7576650",
                 ],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
         assert problems[0].title == "N+1 API Call"
@@ -343,7 +345,7 @@ def test_allows_eligible_spans(span):
         {
             "span_id": "a",
             "op": "http.client",
-            "description": "GET http://service.io/resource",
+            "description": "GET /resource.js",
             "hash": "a",
             "data": {"url": "/resource.js"},
         },
@@ -352,6 +354,16 @@ def test_allows_eligible_spans(span):
             "op": "http.client",
             "description": "GET http://service.io/resource?graphql=somequery",
             "hash": "a",
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource",  # New JS SDK removes query string from description
+            "hash": "a",
+            "data": {
+                "http.query": "graphql=somequery",
+                "url": "http://service.io/resource",
+            },
         },
         {
             "span_id": "a",

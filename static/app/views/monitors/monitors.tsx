@@ -31,7 +31,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {MonitorRow} from './row';
+import {MonitorRow} from './components/row';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
@@ -120,7 +120,7 @@ class Monitors extends AsyncView<Props, State> {
             <ButtonBar gap={1}>
               <CronsFeedbackButton />
               <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
-                {t('Add monitor')}
+                {t('Add Monitor')}
               </NewMonitorButton>
             </ButtonBar>
           </Layout.HeaderActions>

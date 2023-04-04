@@ -18,11 +18,7 @@ import {DEFAULT_EVENT_VIEW} from './data';
 import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
-  const features = [
-    'global-views',
-    'discover-query',
-    'discover-query-builder-as-landing-page',
-  ];
+  const features = ['global-views', 'discover-query'];
   let initialData, organization, mockHomepage;
 
   beforeEach(() => {
@@ -102,7 +98,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('Build a new query')).not.toBeInTheDocument();
   });
 
-  it('fetches from the homepage URL and renders fields, page filters, and chart information', async () => {
+  it('fetches from the homepage URL and renders fields, async page filters, async and chart information', async () => {
     render(
       <Homepage
         organization={organization}
@@ -170,11 +166,11 @@ describe('Discover > Homepage', () => {
     await act(tick);
     renderGlobalModal();
 
-    userEvent.click(screen.getByText('Columns'));
+    await userEvent.click(screen.getByText('Columns'));
 
-    userEvent.click(screen.getByTestId('label'));
-    userEvent.click(screen.getByText('event.type'));
-    userEvent.click(screen.getByText('Apply'));
+    await userEvent.click(screen.getByTestId('label'));
+    await userEvent.click(screen.getByText('event.type'));
+    await userEvent.click(screen.getByText('Apply'));
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -310,9 +306,9 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    userEvent.click(await screen.findByText('24H'));
-    userEvent.click(await screen.findByText('Absolute date'));
-    userEvent.click(screen.getByText('Apply'));
+    await userEvent.click(await screen.findByText('24H'));
+    await userEvent.click(await screen.findByText('Absolute date'));
+    await userEvent.click(screen.getByText('Apply'));
 
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });

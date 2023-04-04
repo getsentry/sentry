@@ -16,8 +16,6 @@ from sentry.replays.validators import ReplayValidator
 
 @region_silo_endpoint
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
-    private = True
-
     def get_replay_filter_params(self, request, organization):
         filter_params = self.get_filter_params(request, organization)
 
@@ -63,6 +61,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
+                tenant_ids={"organization_id": organization.id},
             )
 
         return self.paginate(

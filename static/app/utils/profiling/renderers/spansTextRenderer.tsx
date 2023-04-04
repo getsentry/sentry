@@ -4,18 +4,16 @@ import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStat
 import {
   computeHighlightedBounds,
   ELLIPSIS,
-  findRangeBinarySearch,
   getContext,
   lowerBound,
-  Rect,
   resizeCanvasToDisplaySize,
-  trimTextCenter,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 class SpansTextRenderer extends TextRenderer {
   spanChart: SpanChart;

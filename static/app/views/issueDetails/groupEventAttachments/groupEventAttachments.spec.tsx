@@ -40,10 +40,10 @@ describe('GroupEventAttachments > Screenshots', function () {
     });
   }
 
-  it('calls attachments api with screenshot filter', function () {
+  it('calls attachments api with screenshot filter', async function () {
     renderGroupEventAttachments();
     expect(screen.getByRole('radio', {name: 'Screenshots'})).toBeInTheDocument();
-    userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/issues/group-id/attachments/',
       expect.objectContaining({
@@ -58,9 +58,9 @@ describe('GroupEventAttachments > Screenshots', function () {
     expect(screen.queryByText('Screenshots')).not.toBeInTheDocument();
   });
 
-  it('calls opens modal when clicking on panel body', function () {
+  it('calls opens modal when clicking on panel body', async function () {
     renderGroupEventAttachments();
-    userEvent.click(screen.getByTestId('screenshot-1'));
+    await userEvent.click(screen.getByTestId('screenshot-1'));
     expect(openModal).toHaveBeenCalled();
   });
 
@@ -74,9 +74,9 @@ describe('GroupEventAttachments > Screenshots', function () {
     );
   });
 
-  it('links to the download URL', function () {
+  it('links to the download URL', async function () {
     renderGroupEventAttachments();
-    userEvent.click(screen.getByLabelText('Actions'));
+    await userEvent.click(screen.getByLabelText('Actions'));
     expect(screen.getByText('Download').closest('a')).toHaveAttribute(
       'href',
       '/api/0/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/?download=1'

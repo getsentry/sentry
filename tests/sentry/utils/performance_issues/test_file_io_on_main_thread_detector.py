@@ -62,12 +62,20 @@ class FileIOMainThreadDetectorTest(TestCase):
                 parent_span_ids=["b93d2be92cd64fd5"],
                 cause_span_ids=[],
                 offender_span_ids=["054ba3a374d543eb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
     def test_does_not_detect_file_io_main_thread(self):
         event = get_event("file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = False
+
+        assert self.find_problems(event) == []
+
+    def test_ignores_nib_files(self):
+        event = get_event("file-io-on-main-thread")
+        event["spans"][0]["data"]["file.path"] = "somethins/stuff.txt/blah/yup/ios.nib"
 
         assert self.find_problems(event) == []
 

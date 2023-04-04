@@ -109,7 +109,7 @@ function EventOrGroupHeader({
 
     if (includeLink) {
       return (
-        <GlobalSelectionLink
+        <TitleWithLink
           {...commonEleProps}
           to={{
             pathname: `/organizations/${orgId}/issues/${eventID ? groupID : id}/${
@@ -117,6 +117,7 @@ function EventOrGroupHeader({
             }`,
             query: {
               referrer: source || 'event-or-group-header',
+              stream_index: index,
               query,
               // This adds sort to the query if one was selected from the
               // issues list page
@@ -133,11 +134,11 @@ function EventOrGroupHeader({
           onClick={onClick}
         >
           {getTitleChildren()}
-        </GlobalSelectionLink>
+        </TitleWithLink>
       );
     }
 
-    return <span {...commonEleProps}>{getTitleChildren()}</span>;
+    return <TitleWithoutLink {...commonEleProps}>{getTitleChildren()}</TitleWithoutLink>;
   }
 
   const eventLocation = getLocation(data);
@@ -182,17 +183,6 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
     font-weight: 300;
     color: ${p => p.theme.subText};
   }
-  ${p =>
-    !p.hasGroupingTreeUI
-      ? css`
-          ${truncateStyles}
-        `
-      : css`
-          > a:first-child {
-            display: inline-flex;
-            min-height: ${space(3)};
-          }
-        `}
 `;
 
 const LocationWrapper = styled('div')`
@@ -230,7 +220,6 @@ const Message = styled('div')`
 
 const IconWrapper = styled('span')`
   position: relative;
-  display: flex;
   margin-right: 5px;
 `;
 
@@ -242,6 +231,13 @@ const GroupLevel = styled('div')<{level: Level}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
+`;
+
+const TitleWithLink = styled(GlobalSelectionLink)`
+  display: flex;
+`;
+const TitleWithoutLink = styled('span')`
+  display: flex;
 `;
 
 export default withOrganization(EventOrGroupHeader);

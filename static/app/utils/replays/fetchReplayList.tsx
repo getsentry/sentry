@@ -10,18 +10,6 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export const DEFAULT_SORT = '-started_at';
 
-export const REPLAY_LIST_FIELDS = [
-  'activity',
-  'count_errors',
-  'duration',
-  'finished_at',
-  'id',
-  'project_id',
-  'started_at',
-  'urls',
-  'user',
-];
-
 type State = {
   fetchError: undefined | RequestError;
   pageLinks: null | string;
@@ -46,10 +34,28 @@ async function fetchReplayList({
   try {
     const path = `/organizations/${organization.slug}/replays/`;
 
+    const payload = eventView.getEventsAPIPayload(location);
+
+    // HACK!!! Because the sort field needs to be in the eventView, but I cannot
+    // ask the server for compound fields like `os.name`.
+    payload.field = payload.field.map(field => field.split('.')[0]);
+
+    const hasFullTable = !organization.features.includes('session-replay-slim-table');
+    if (!hasFullTable) {
+      const fieldsToRemove = ['browser', 'os', 'urls'];
+      payload.field = payload.field.filter(field => !fieldsToRemove.includes(field));
+      payload.field.push('count_urls');
+    } else {
+      payload.field = payload.field.filter(field => field !== 'count_urls');
+    }
+
+    // unique list
+    payload.field = Array.from(new Set(payload.field));
+
     const [{data}, _textStatus, resp] = await api.requestPromise(path, {
       includeAllArgs: true,
       query: {
-        ...eventView.getEventsAPIPayload(location),
+        ...payload,
         cursor: location.query.cursor,
       },
     });

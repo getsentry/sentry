@@ -1,6 +1,4 @@
 ---
-created: '2023-02-28T14:42:11.608258Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 breakdownsV2:
@@ -56,7 +54,7 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 12229.0
+      value: 16123.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -72,7 +70,23 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 5285.000324249268
+      value: 7941.899538040161
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: javascript
+    - name: event.duration
+      op: gte
+      value: 5897.500002294778
     op: and
   tagValue: outlier
   targetMetrics:
@@ -88,7 +102,7 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 2929.0
+      value: 4032.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -104,7 +118,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 435.0
+      value: 383.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -120,7 +134,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 358.0
+      value: 506.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -136,7 +150,23 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 749.0
+      value: 891.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: ui.load
+    - name: event.platform
+      op: eq
+      value: javascript
+    - name: event.duration
+      op: gte
+      value: 199379.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -152,7 +182,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 1159.0
+      value: 1516.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -168,7 +198,7 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 399.0
+      value: 407.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -178,13 +208,29 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: ui.load
+      value: queue.task.celery
     - name: event.platform
       op: eq
-      value: javascript
+      value: python
     - name: event.duration
       op: gte
-      value: 17204061.0
+      value: 2637.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: function.nextjs
+    - name: event.platform
+      op: eq
+      value: node
+    - name: event.duration
+      op: gte
+      value: 505.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -200,23 +246,7 @@ metricConditionalTagging:
       value: cocoa
     - name: event.duration
       op: gte
-      value: 2218.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: awslambda.handler
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 1155.0
+      value: 2387.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -232,7 +262,7 @@ metricConditionalTagging:
       value: csharp
     - name: event.duration
       op: gte
-      value: 236.0
+      value: 325.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -245,26 +275,10 @@ metricConditionalTagging:
       value: http.server
     - name: event.platform
       op: eq
-      value: java
+      value: ruby
     - name: event.duration
       op: gte
-      value: 264.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: serverless.function
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 1473.0
+      value: 347.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -280,7 +294,7 @@ metricConditionalTagging:
       value: java
     - name: event.duration
       op: gte
-      value: 2110.0
+      value: 2889.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -290,13 +304,13 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: active_job
+      value: http.server
     - name: event.platform
       op: eq
-      value: ruby
+      value: java
     - name: event.duration
       op: gte
-      value: 829.0
+      value: 246.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -306,13 +320,45 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: sidekiq
+      value: awslambda.handler
     - name: event.platform
       op: eq
-      value: ruby
+      value: node
     - name: event.duration
       op: gte
-      value: 804.0
+      value: 1747.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: serverless.function
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 393.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: function.aws.lambda
+    - name: event.platform
+      op: eq
+      value: node
+    - name: event.duration
+      op: gte
+      value: 1633.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -328,7 +374,7 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 3749.75
+      value: 3216.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -338,13 +384,29 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: asgi.server
+      value: function.aws
     - name: event.platform
       op: eq
       value: python
     - name: event.duration
       op: gte
-      value: 2905.0
+      value: 1464.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: active_job
+    - name: event.platform
+      op: eq
+      value: ruby
+    - name: event.duration
+      op: gte
+      value: 1059.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -360,7 +422,7 @@ metricConditionalTagging:
       value: other
     - name: event.duration
       op: gte
-      value: 9005.0
+      value: 8706.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -370,77 +432,13 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: console.command
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 6164.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: default
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 1082.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: transaction
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 197.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: http.server
-    - name: event.platform
-      op: eq
-      value: go
-    - name: event.duration
-      op: gte
-      value: 164.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: rails.action_cable
+      value: queue.active_job
     - name: event.platform
       op: eq
       value: ruby
     - name: event.duration
       op: gte
-      value: 24.0
+      value: 4789.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -450,13 +448,13 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: rq.task
+      value: sidekiq
     - name: event.platform
       op: eq
-      value: python
+      value: ruby
     - name: event.duration
       op: gte
-      value: 2319.0
+      value: 942.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -514,13 +512,13 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: gql
+      value: console.command
     - name: event.platform
       op: eq
-      value: node
+      value: php
     - name: event.duration
       op: gte
-      value: 838.0
+      value: 1485.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -530,13 +528,13 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: rack.request
+      value: queue.sidekiq
     - name: event.platform
       op: eq
       value: ruby
     - name: event.duration
       op: gte
-      value: 298.0
+      value: 2262.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -546,285 +544,13 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: test
+      value: transaction
     - name: event.platform
       op: eq
       value: node
     - name: event.duration
       op: gte
-      value: 7943.75
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: gcp.function.http
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 1690.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: default
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 1837.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: queue.process
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 1216.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: task
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 1187.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: http.server
-    - name: event.platform
-      op: eq
-      value: other
-    - name: event.duration
-      op: gte
-      value: 68.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: websocket.server
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 493.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: sentry.test
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 702.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: delayed_job
-    - name: event.platform
-      op: eq
-      value: ruby
-    - name: event.duration
-      op: gte
-      value: 198.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: request
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 944.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: query
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 1024.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: navigation
-    - name: event.platform
-      op: eq
-      value: java
-    - name: event.duration
-      op: gte
-      value: 7819.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: mutation
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 216.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: task
-    - name: event.platform
-      op: eq
-      value: java
-    - name: event.duration
-      op: gte
-      value: 2458.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: task
-    - name: event.platform
-      op: eq
-      value: other
-    - name: event.duration
-      op: gte
-      value: 2805.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: http.request
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 1180.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: execute
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 791.0
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: gcp.function.event
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 1576.0
+      value: 333.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -840,7 +566,7 @@ metricConditionalTagging:
       value: cocoa
     - name: event.duration
       op: gte
-      value: 8525.0
+      value: 10400.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -853,10 +579,10 @@ metricConditionalTagging:
       value: default
     - name: event.platform
       op: eq
-      value: php
+      value: node
     - name: event.duration
       op: gte
-      value: 254.0
+      value: 1686.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -872,7 +598,7 @@ metricConditionalTagging:
       value: cocoa
     - name: event.duration
       op: gte
-      value: 10326.75
+      value: 14519.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -882,13 +608,285 @@ metricConditionalTagging:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: functions.https.onCall
+      value: asgi.server
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 4690.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: http.server
+    - name: event.platform
+      op: eq
+      value: go
+    - name: event.duration
+      op: gte
+      value: 16.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: sentry.test
+    - name: event.platform
+      op: eq
+      value: php
+    - name: event.duration
+      op: gte
+      value: 4.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: websocket.server
+    - name: event.platform
+      op: eq
+      value: ruby
+    - name: event.duration
+      op: gte
+      value: 16.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: ui.action.click
+    - name: event.platform
+      op: eq
+      value: java
+    - name: event.duration
+      op: gte
+      value: 13211.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: http.server
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 228.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: test
     - name: event.platform
       op: eq
       value: node
     - name: event.duration
       op: gte
-      value: 1200.0
+      value: 4284.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: gql
+    - name: event.platform
+      op: eq
+      value: node
+    - name: event.duration
+      op: gte
+      value: 492.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: default
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 253.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: rails.action_cable
+    - name: event.platform
+      op: eq
+      value: ruby
+    - name: event.duration
+      op: gte
+      value: 20.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: queue.process
+    - name: event.platform
+      op: eq
+      value: php
+    - name: event.duration
+      op: gte
+      value: 850.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: websocket.server
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 24901.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: rq.task
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 1435.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: task
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 1317.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: ui.action.swipe
+    - name: event.platform
+      op: eq
+      value: java
+    - name: event.duration
+      op: gte
+      value: 18818.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: queue.task.rq
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 3313.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: navigation
+    - name: event.platform
+      op: eq
+      value: java
+    - name: event.duration
+      op: gte
+      value: 9647.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: ui.action.scroll
+    - name: event.platform
+      op: eq
+      value: java
+    - name: event.duration
+      op: gte
+      value: 7432.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -944,6 +942,8 @@ transactionMetrics:
   - d:transactions/measurements.stall_longest_time@millisecond
   - d:transactions/measurements.stall_percentage@ratio
   - d:transactions/measurements.stall_total_time@millisecond
+  - d:transactions/measurements.time_to_full_display@millisecond
+  - d:transactions/measurements.time_to_initial_display@millisecond
   - d:transactions/measurements.ttfb.requesttime@millisecond
   - d:transactions/measurements.ttfb@millisecond
   - s:transactions/user@none

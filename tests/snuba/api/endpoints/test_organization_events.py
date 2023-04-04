@@ -108,7 +108,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        api_key = ApiKey.objects.create(
+            organization_id=self.organization.id, scope_list=["org:read"]
+        )
         query = {"field": ["project.name", "environment"], "project": [self.project.id]}
 
         url = self.reverse_url()
@@ -4301,7 +4303,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        api_key = ApiKey.objects.create(
+            organization_id=self.organization.id, scope_list=["org:read"]
+        )
 
         query = {
             "field": ["project.name", "environment"],
@@ -6006,3 +6010,25 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count()"] == 1
+
+    def test_group_id_as_custom_tag(self):
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "poof",
+                "timestamp": self.ten_mins_ago_iso,
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "this should just get returned"},
+            },
+            project_id=project1.id,
+        )
+        query = {
+            "field": ["group_id"],
+            "query": "",
+            "orderby": "group_id",
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["group_id"] == "this should just get returned"

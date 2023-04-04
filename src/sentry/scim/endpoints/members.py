@@ -18,8 +18,8 @@ from rest_framework.fields import Field
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features, roles
-from sentry.api.base import region_silo_endpoint
+from sentry import audit_log, roles
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -117,7 +117,7 @@ def _scim_member_serializer_with_expansion(organization):
     care about this and rely on the behavior of setting "active" to false
     to delete a member.
     """
-    auth_provider = AuthProvider.objects.get(organization=organization)
+    auth_provider = AuthProvider.objects.get(organization_id=organization.id)
     expand = ["active"]
 
     if auth_provider.provider == ACTIVE_DIRECTORY_PROVIDER_NAME:
@@ -138,7 +138,7 @@ def resolve_maybe_bool_value(value):
     return None
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "DELETE", "PATCH"}
@@ -168,7 +168,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
-                user=member.user, auth_provider__organization=organization
+                user=member.user, auth_provider__organization_id=organization.id
             ).delete()
             member.delete()
             self.create_audit_entry(
@@ -337,47 +337,43 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
         Currently only updates organization role
         """
-        if features.has("organizations:scim-orgmember-roles", organization, actor=None):
-            if request.data.get("sentryOrgRole"):
-                # Don't update if the org role is the same
-                if (
-                    member.flags["idp:role-restricted"]
-                    and member.role.lower() == request.data["sentryOrgRole"].lower()
-                ):
-                    context = serialize(
-                        member, serializer=_scim_member_serializer_with_expansion(organization)
-                    )
-                    return Response(context, status=200)
+        if request.data.get("sentryOrgRole"):
+            # Don't update if the org role is the same
+            if (
+                member.flags["idp:role-restricted"]
+                and member.role.lower() == request.data["sentryOrgRole"].lower()
+            ):
+                context = serialize(
+                    member, serializer=_scim_member_serializer_with_expansion(organization)
+                )
+                return Response(context, status=200)
 
-                # Update if the org role is changing and lock the role
-                requested_role = request.data["sentryOrgRole"].lower()
-                idp_role_restricted = True
+            # Update if the org role is changing and lock the role
+            requested_role = request.data["sentryOrgRole"].lower()
+            idp_role_restricted = True
 
-            # if sentryOrgRole is blank
-            else:
-                # Don't change the role if the user isn't idp:role-restricted,
-                # and they don't have the default role.
-                if (
-                    member.role != organization.default_role
-                    and not member.flags["idp:role-restricted"]
-                ):
-                    context = serialize(
-                        member, serializer=_scim_member_serializer_with_expansion(organization)
-                    )
-                    return Response(context, status=200)
+        # if sentryOrgRole is blank
+        else:
+            # Don't change the role if the user isn't idp:role-restricted,
+            # and they don't have the default role.
+            if member.role != organization.default_role and not member.flags["idp:role-restricted"]:
+                context = serialize(
+                    member, serializer=_scim_member_serializer_with_expansion(organization)
+                )
+                return Response(context, status=200)
 
-                # Remove role-restricted flag since org role is blank
-                idp_role_restricted = False
-                requested_role = organization.default_role
+            # Remove role-restricted flag since org role is blank
+            idp_role_restricted = False
+            requested_role = organization.default_role
 
-            # Allow any role as long as it doesn't have `org:admin` permissions
-            allowed_roles = {role.id for role in roles.get_all() if not role.has_scope("org:admin")}
-            if requested_role not in allowed_roles:
-                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+        # Allow any role as long as it doesn't have `org:admin` permissions
+        allowed_roles = {role.id for role in roles.get_all() if not role.has_scope("org:admin")}
+        if requested_role not in allowed_roles:
+            raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
-            member.role = requested_role
-            member.flags["idp:role-restricted"] = idp_role_restricted
-            member.save()
+        member.role = requested_role
+        member.flags["idp:role-restricted"] = idp_role_restricted
+        member.save()
 
         context = serialize(
             member,
@@ -386,7 +382,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context, status=200)
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "POST"}
@@ -520,11 +516,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         with sentry_sdk.start_transaction(
             name="scim.provision_member", op="scim", sampled=True
         ) as txn:
-            if (
-                features.has("organizations:scim-orgmember-roles", organization, actor=None)
-                and "sentryOrgRole" in request.data
-                and request.data["sentryOrgRole"]
-            ):
+            if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
                 role = request.data["sentryOrgRole"].lower()
                 idp_role_restricted = True
             else:

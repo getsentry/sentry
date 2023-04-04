@@ -15,6 +15,7 @@ export type EventLite = {
   generation: number | null;
   parent_event_id: string | null;
   parent_span_id: string | null;
+  performance_issues: TracePerformanceIssue[];
   project_id: number;
   project_slug: string;
   span_id: string;
@@ -31,6 +32,16 @@ export type TraceError = {
   project_slug: string;
   span: string;
   title: string;
+};
+
+export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
+  culprit: string;
+  end: number;
+  span: string[];
+  start: number;
+  suspect_spans: string[];
+  type: number;
+  issue_short_id?: string;
 };
 
 export type TraceLite = EventLite[];

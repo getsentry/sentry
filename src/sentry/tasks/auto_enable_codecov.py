@@ -7,75 +7,85 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
 
-logger = logging.getLogger("sentry.tasks.auto_enable_codecov")
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+    name="sentry.tasks.auto_enable_codecov.enable_for_org",
     queue="auto_enable_codecov",
     max_retries=0,
 )  # type: ignore
-def auto_enable_codecov(dry_run=False) -> None:
+def enable_for_org(dry_run=False) -> None:
     """
-    Queue tasks to enable codecov for each organization.
-
-    Note that this is not gated by the V2 flag so we can enable the V2
-    features independently of the auto-enablement.
+    Set the codecov_access flag to True for organizations with a valid Codecov integration.
     """
-    organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
-    for _, organization in enumerate(
-        RangeQuerySetWrapper(organizations, step=1000, result_value_getter=lambda item: item.id)
+    logger.info("Starting task for sentry.tasks.auto_enable_codecov.enable_for_org")
+    for organization in RangeQuerySetWrapper(
+        Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):
-
-        if not features.has("organizations:codecov-stacktrace-integration", organization):
-            continue
+        if not features.has("organizations:codecov-integration", organization):
+            if organization.flags.codecov_access.is_set:
+                disable_codecov_access(organization)
 
         if not features.has("organizations:auto-enable-codecov", organization):
             continue
 
-        # Create a celery task per organization
-        enable_for_organization.delay(organization.id)
+        logger.info("Processing organization", extra={"organization_id": organization.id})
+        try:
+            if organization.flags.codecov_access.is_set:
+                logger.info(
+                    "Codecov Access flag already set",
+                    extra={
+                        "organization_id": organization.id,
+                        "codecov_access": organization.flags.codecov_access,
+                    },
+                )
+                continue
+
+            has_integration, error = has_codecov_integration(organization)
+            if not has_integration:
+                logger.info(
+                    "No codecov integration exists for organization",
+                    extra={"organization_id": organization.id, "error": error},
+                )
+                continue
+
+            organization.flags.codecov_access = True
+            organization.save()
+            logger.info(
+                "Enabled Codecov Access flag for organization",
+                extra={
+                    "organization_id": organization.id,
+                    "codecov_access": organization.flags.codecov_access,
+                },
+            )
+
+            create_system_audit_entry(
+                organization=organization,
+                target_object=organization.id,
+                event=audit_log.get_event_id("ORG_EDIT"),
+                data={"codecov_access": "to True"},
+            )
+        except Exception:
+            logger.exception(
+                "Error checking for Codecov integration",
+                extra={"organization_id": organization.id},
+            )
 
 
-@instrumented_task(  # type: ignore
-    name="sentry.tasks.auto_enable_codecov.enable_for_organization",
-    queue="auto_enable_codecov",
-    max_retries=0,
-)
-def enable_for_organization(organization_id: int, dry_run=False) -> None:
-    """
-    Set the codecov_access flag to True for organizations with a valid Codecov integration.
-    """
-    try:
-        logger.debug(f"Attempting to enable codecov for organization {organization_id}")
-        organization = Organization.objects.get(id=organization_id)
-        has_integration, _ = has_codecov_integration(organization)
-        if not has_integration:
-            logger.debug(f"No codecov integration exists for organization {organization_id}")
-            return
-
-        if organization.flags.codecov_access.is_set:
-            logger.debug(f"Codecov Access flag already set to {organization.flags.codecov_access}")
-            return
-
-        organization.flags.codecov_access = True
-        logger.debug(f"Setting Codecov Access flag for organization {organization_id}")
-        organization.save()
-
-        create_system_audit_entry(
-            organization=organization,
-            target_object=organization.id,
-            event=audit_log.get_event_id("ORG_EDIT"),
-            data={"codecov_access": "to True"},
-        )
-
-    except Organization.DoesNotExist:
-        logger.exception(
-            "Organization does not exist.",
-            extra={"organization_id": organization_id},
-        )
-    except Exception:
-        logger.exception(
-            "Error checking for codecov integration.",
-            extra={"organization_id": organization_id},
-        )
+def disable_codecov_access(organization):
+    organization.flags.codecov_access = False
+    organization.save()
+    logger.info(
+        "Disabled Codecov Access flag for dev organization",
+        extra={
+            "organization_id": organization.id,
+            "codecov_access": organization.flags.codecov_access,
+        },
+    )
+    create_system_audit_entry(
+        organization=organization,
+        target_object=organization.id,
+        event=audit_log.get_event_id("ORG_EDIT"),
+        data={"codecov_access": "to False"},
+    )

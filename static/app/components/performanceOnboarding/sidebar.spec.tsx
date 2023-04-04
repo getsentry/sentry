@@ -86,7 +86,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Level Up')).toBeInTheDocument();
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
 
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
     expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -122,7 +122,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
     const performanceCard = screen.getByTestId('setup_transactions');
 
-    userEvent.click(performanceCard);
+    await userEvent.click(performanceCard);
     expect(window.open).toHaveBeenCalledWith(
       'https://docs.sentry.io/product/performance/getting-started/',
       '_blank'
@@ -145,7 +145,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -155,7 +155,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
     const performanceCard = screen.getByTestId('setup_transactions');
 
-    userEvent.click(performanceCard);
+    await userEvent.click(performanceCard);
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/performance/?project=2#performance-sidequest'
@@ -178,7 +178,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -188,7 +188,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
     const performanceCard = screen.getByTestId('setup_transactions');
 
-    userEvent.click(performanceCard);
+    await userEvent.click(performanceCard);
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/performance/?project=2#performance-sidequest'
@@ -211,7 +211,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -221,7 +221,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
     const performanceCard = screen.getByTestId('setup_transactions');
 
-    userEvent.click(performanceCard);
+    await userEvent.click(performanceCard);
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/performance/');
   });

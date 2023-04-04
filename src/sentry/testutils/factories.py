@@ -40,16 +40,11 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.mediators import (
-    sentry_app_installation_tokens,
-    sentry_app_installations,
-    sentry_apps,
-    service_hooks,
-    token_exchange,
-)
+from sentry.mediators import token_exchange
 from sentry.models import (
     Activity,
     Actor,
+    ArtifactBundle,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -88,15 +83,26 @@ from sentry.models import (
     SavedSearch,
     SentryAppInstallation,
     SentryFunction,
+    ServiceHook,
     Team,
     User,
     UserEmail,
     UserPermission,
     UserReport,
 )
+from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+)
 from sentry.models.releasefile import update_artifact_index
+from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
+from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -302,7 +308,9 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(organization=organization, scope_list=scope_list)
+        return ApiKey.objects.create(
+            organization_id=organization.id if organization else None, scope_list=scope_list
+        )
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -355,7 +363,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_project_bookmark(project, user):
-        return ProjectBookmark.objects.create(project_id=project.id, user=user)
+        return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -502,7 +510,7 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_artifact_bundle(
+    def create_artifact_bundle_zip(
         org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
     ):
         import zipfile
@@ -529,11 +537,33 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_release_archive(cls, org, release: str, project=None, dist=None):
-        bundle = cls.create_artifact_bundle(org, release, project)
+        bundle = cls.create_artifact_bundle_zip(org, release, project)
         file_ = File.objects.create(name="release-artifacts.zip")
         file_.putfile(ContentFile(bundle))
         release = Release.objects.get(organization__slug=org, version=release)
         return update_artifact_index(release, dist, file_)
+
+    @classmethod
+    @exempt_from_silo_limits()
+    def create_artifact_bundle(
+        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids", date_uploaded=None
+    ):
+        if date_uploaded is None:
+            date_uploaded = timezone.now()
+
+        bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
+        file_ = File.objects.create(name="artifact-bundle.zip")
+        file_.putfile(ContentFile(bundle))
+        # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
+        # mock it with an arbitrary value.
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=org.id,
+            bundle_id=uuid4(),
+            file=file_,
+            artifact_count=artifact_count,
+            date_uploaded=date_uploaded,
+        )
+        return artifact_bundle
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -673,6 +703,8 @@ class Factories:
                         parent_span_ids=None,
                         cause_span_ids=None,
                         offender_span_ids=None,
+                        evidence_data={},
+                        evidence_display=[],
                     )
                 )
 
@@ -820,9 +852,12 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_sentry_app(**kwargs):
-        app = sentry_apps.Creator.run(is_internal=False, **Factories._sentry_app_kwargs(**kwargs))
+        published = kwargs.pop("published", False)
+        args = Factories._sentry_app_kwargs(**kwargs)
+        user = args.pop("user", None)
+        app = SentryAppCreator(is_internal=False, **args).run(user=user, request=None)
 
-        if kwargs.get("published"):
+        if published:
             app.update(status=SentryAppStatus.PUBLISHED)
 
         return app
@@ -830,21 +865,29 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_internal_integration(**kwargs):
-        return sentry_apps.InternalCreator.run(
-            is_internal=True, **Factories._sentry_app_kwargs(**kwargs)
-        )
+        args = Factories._sentry_app_kwargs(**kwargs)
+        args["verify_install"] = False
+        user = args.pop("user", None)
+        app = SentryAppCreator(is_internal=True, **args).run(user=user, request=None)
+        return app
 
     @staticmethod
     @exempt_from_silo_limits()
     def create_internal_integration_token(install, **kwargs):
-        return sentry_app_installation_tokens.Creator.run(sentry_app_installation=install, **kwargs)
+        user = kwargs.pop("user")
+        request = kwargs.pop("request", None)
+        return SentryAppInstallationTokenCreator(sentry_app_installation=install, **kwargs).run(
+            user=user, request=request
+        )
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):
         _kwargs = {
             "user": kwargs.get("user", Factories.create_user()),
             "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
-            "organization": kwargs.get("organization", Factories.create_organization()),
+            "organization_id": kwargs.get(
+                "organization_id", kwargs.pop("organization", Factories.create_organization()).id
+            ),
             "author": kwargs.get("author", "A Company"),
             "scopes": kwargs.get("scopes", ()),
             "verify_install": kwargs.get("verify_install", True),
@@ -866,10 +909,12 @@ class Factories:
 
         Factories.create_project(organization=organization)
 
-        install = sentry_app_installations.Creator.run(
+        install = SentryAppInstallationCreator(
             slug=(slug or Factories.create_sentry_app(organization=organization).slug),
-            organization=organization,
+            organization_id=organization.id,
+        ).run(
             user=(user or Factories.create_user()),
+            request=None,
         )
 
         install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
@@ -965,25 +1010,33 @@ class Factories:
         if not actor:
             actor = Factories.create_user()
         if not org:
-            org = Factories.create_organization(owner=actor)
+            if project:
+                org = project.organization
+            else:
+                org = Factories.create_organization(owner=actor)
         if not project:
             project = Factories.create_project(organization=org)
         if events is None:
-            events = ("event.created",)
+            events = ["event.created"]
         if not url:
             url = "https://example.com/sentry/webhook"
 
-        _kwargs = {
-            "actor": actor,
-            "projects": [project],
-            "organization": org,
-            "events": events,
-            "url": url,
-        }
-
-        _kwargs.update(kwargs)
-
-        return service_hooks.Creator.run(**_kwargs)
+        app_id = kwargs.pop("application_id", None)
+        if app_id is None and "application" in kwargs:
+            app_id = kwargs["application"].id
+        installation_id = kwargs.pop("installation_id", None)
+        if installation_id is None and "installation" in kwargs:
+            installation_id = kwargs["installation"].id
+        hook_id = hook_service.create_service_hook(
+            application_id=app_id,
+            actor_id=actor.id,
+            installation_id=installation_id,
+            organization_id=org.id,
+            project_ids=[project.id],
+            events=events,
+            url=url,
+        ).id
+        return ServiceHook.objects.get(id=hook_id)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -1259,7 +1312,8 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        return ExternalActor.objects.create(actor=user.actor, **kwargs)
+        actor_id = get_actor_id_for_user(user)
+        return ExternalActor.objects.create(actor_id=actor_id, **kwargs)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -1390,3 +1444,30 @@ class Factories:
             owner = kwargs.pop("owner")
             kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
         return SavedSearch.objects.create(name=name, **kwargs)
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def create_notification_action(
+        organization: Organization = None, projects: List[Project] = None, **kwargs
+    ):
+        if not organization:
+            organization = Factories.create_organization()
+
+        if not projects:
+            projects = []
+
+        action_kwargs = {
+            "organization": organization,
+            "type": ActionService.SENTRY_NOTIFICATION,
+            "target_type": ActionTarget.USER,
+            "target_identifier": "1",
+            "target_display": "Sentry User",
+            "trigger_type": ActionTrigger.AUDIT_LOG,
+            **kwargs,
+        }
+
+        action = NotificationAction.objects.create(**action_kwargs)
+        action.projects.add(*projects)
+        action.save()
+
+        return action

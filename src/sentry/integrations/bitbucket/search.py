@@ -16,7 +16,9 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = Integration.objects.get(
-                organizations=organization, id=integration_id, provider="bitbucket"
+                organizationintegration__organization_id=organization.id,
+                id=integration_id,
+                provider="bitbucket",
             )
         except Integration.DoesNotExist:
             return Response(status=404)

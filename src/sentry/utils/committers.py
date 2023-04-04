@@ -311,12 +311,8 @@ def get_serialized_event_file_committers(
     integrations = integration_service.get_integrations(
         organization_id=project.organization_id, providers=["github", "gitlab"]
     )
-    use_fallback = (
-        features.has("organizations:commit-context-fallback", event.project.organization)
-        and not integrations
-    )
 
-    if features.has("organizations:commit-context", project.organization) and not use_fallback:
+    if features.has("organizations:commit-context", project.organization) and integrations:
         group_owners = GroupOwner.objects.filter(
             group_id=event.group_id,
             project=project,

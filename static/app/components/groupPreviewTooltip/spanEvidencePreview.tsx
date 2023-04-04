@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SpanEvidencePreviewProps = {
@@ -23,6 +23,7 @@ type SpanEvidencePreviewBodyProps = {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
+  projectSlug?: string;
 };
 
 const makeGroupPreviewRequestUrl = ({
@@ -52,8 +53,9 @@ const SpanEvidencePreviewBody = ({
   onRequestBegin,
   onRequestEnd,
   onUnmount,
+  projectSlug,
 }: SpanEvidencePreviewBodyProps) => {
-  const {data, isLoading, isError} = useQuery<EventTransaction>(
+  const {data, isLoading, isError} = useApiQuery<EventTransaction>(
     [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
     {staleTime: 60000}
   );
@@ -83,7 +85,7 @@ const SpanEvidencePreviewBody = ({
   if (data) {
     return (
       <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
-        <SpanEvidenceKeyValueList event={data} />
+        <SpanEvidenceKeyValueList event={data} projectSlug={projectSlug} />
       </SpanEvidencePreviewWrapper>
     );
   }
@@ -124,6 +126,7 @@ export const SpanEvidencePreview = ({
           onRequestEnd={onRequestEnd}
           onUnmount={reset}
           endpointUrl={endpointUrl}
+          projectSlug={projectSlug}
         />
       }
     >

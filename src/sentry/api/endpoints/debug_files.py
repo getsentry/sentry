@@ -439,14 +439,22 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         def serialize_results(results):
             file_count_map = get_artifact_counts([r["id"] for r in results])
+            # In case we didn't find a file count for a specific release, we will return -1, signaling to the
+            # frontend that this release doesn't have one or more ReleaseFile.
             return serialize(
-                [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
+                [expose_release(r, file_count_map.get(r["id"], -1)) for r in results], request.user
+            )
+
+        sort_by = request.GET.get("sortBy", "-date_added")
+        if sort_by not in {"-date_added", "date_added"}:
+            return Response(
+                {"error": "You can either sort via 'date_added' or '-date_added'"}, status=400
             )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="-date_added",
+            order_by=sort_by,
             paginator_cls=OffsetPaginator,
             default_per_page=10,
             on_results=serialize_results,

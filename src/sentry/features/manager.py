@@ -22,7 +22,7 @@ from typing import (
 import sentry_sdk
 from django.conf import settings
 
-from .base import Feature
+from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
 
 if TYPE_CHECKING:
@@ -144,7 +144,12 @@ class FeatureManager(RegisteredFeatureManager):
         """
         return {k: v for k, v in self._feature_registry.items() if v == feature_type}
 
-    def add(self, name: str, cls: Type[Feature] = Feature, entity_feature: bool = False) -> None:
+    def add(
+        self,
+        name: str,
+        cls: Type[Feature] = Feature,
+        entity_feature_strategy: bool | FeatureHandlerStrategy = False,
+    ) -> None:
         """
         Register a feature.
 
@@ -153,7 +158,9 @@ class FeatureManager(RegisteredFeatureManager):
 
         >>> FeatureManager.has('my:feature', actor=request.user)
         """
-        if entity_feature:
+        entity_feature_strategy = self._shim_feature_strategy(entity_feature_strategy)
+
+        if entity_feature_strategy == FeatureHandlerStrategy.REMOTE:
             if name.startswith("users:"):
                 raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
@@ -256,7 +263,47 @@ class FeatureManager(RegisteredFeatureManager):
                 feature_names, actor, projects=projects, organization=organization
             )
         else:
+            # Fall back to default handler if no entity handler available.
+            project_features = filter(lambda name: name.startswith("projects:"), feature_names)
+            if projects and project_features:
+                results: MutableMapping[str, Mapping[str, bool]] = {}
+                for project in projects:
+                    proj_results = results[f"project:{project.id}"] = {}
+                    for feature_name in project_features:
+                        proj_results[feature_name] = self.has(feature_name, project, actor=actor)
+                return results
+
+            org_features = filter(lambda name: name.startswith("organizations:"), feature_names)
+            if organization and org_features:
+                org_results = {}
+                for feature_name in org_features:
+                    org_results[feature_name] = self.has(feature_name, organization, actor=actor)
+                return {f"organization:{organization.id}": org_results}
+
+            unscoped_features = filter(
+                lambda name: not name.startswith("organizations:")
+                and not name.startswith("projects:"),
+                feature_names,
+            )
+            if unscoped_features:
+                unscoped_results = {}
+                for feature_name in unscoped_features:
+                    unscoped_results[feature_name] = self.has(feature_name, actor=actor)
+                return {"unscoped": unscoped_results}
             return None
+
+    @staticmethod
+    def _shim_feature_strategy(
+        entity_feature_strategy: bool | FeatureHandlerStrategy,
+    ) -> FeatureHandlerStrategy:
+        """
+        Shim layer for old API to register a feature until all the features have been converted
+        """
+        if entity_feature_strategy is True:
+            return FeatureHandlerStrategy.REMOTE
+        elif entity_feature_strategy is False:
+            return FeatureHandlerStrategy.INTERNAL
+        return entity_feature_strategy
 
 
 class FeatureCheckBatch:

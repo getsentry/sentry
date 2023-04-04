@@ -4,31 +4,33 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
-from sentry.testutils import APITestCase
+from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-class OrganizationMonitorsTestBase(APITestCase):
+@region_silo_test(stable=True)
+class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitors"
 
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
 
-
-@region_silo_test(stable=True)
-class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
     def check_valid_response(self, response, expected_monitors):
-        assert [str(monitor.guid) for monitor in expected_monitors] == [
-            str(monitor_resp["id"]) for monitor_resp in response.data
+        assert [monitor.slug for monitor in expected_monitors] == [
+            monitor_resp["slug"] for monitor_resp in response.data
         ]
 
+    def check_valid_environments_response(self, response, monitor, expected_environments):
+        assert {
+            monitor_environment.environment.name for monitor_environment in expected_environments
+        } == {
+            monitor_environment_resp["name"]
+            for monitor_environment_resp in monitor.get("environments", [])
+        }
+
     def test_simple(self):
-        monitor = Monitor.objects.create(
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            name="My Monitor",
-        )
+        monitor = self._create_monitor()
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
@@ -37,9 +39,7 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
         def add_status_monitor(status_key: str, date: datetime | None = None):
-            return Monitor.objects.create(
-                project_id=self.project.id,
-                organization_id=self.organization.id,
+            return self._create_monitor(
                 status=getattr(MonitorStatus, status_key),
                 last_checkin=date or last_checkin,
                 name=status_key,
@@ -66,10 +66,49 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
             ],
         )
 
+    def test_all_monitor_environments(self):
+        monitor = self._create_monitor(status=MonitorStatus.OK)
+        monitor_environment = self._create_monitor_environment(monitor, name="test")
+
+        monitor_empty = self._create_monitor(name="empty")
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor, monitor_empty])
+        self.check_valid_environments_response(response, response.data[0], [monitor_environment])
+        self.check_valid_environments_response(response, response.data[1], [])
+
+    def test_monitor_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor)
+
+        monitor_hidden = self._create_monitor(name="hidden")
+        self._create_monitor_environment(monitor_hidden, name="hidden")
+
+        response = self.get_success_response(self.organization.slug, environment="production")
+        self.check_valid_response(response, [monitor])
+
+    def test_monitor_environment_include_new(self):
+        monitor = self._create_monitor(
+            status=MonitorStatus.OK, last_checkin=datetime.now() - timedelta(minutes=1)
+        )
+        self._create_monitor_environment(monitor)
+
+        monitor_visible = self._create_monitor(name="visible")
+
+        response = self.get_success_response(
+            self.organization.slug, environment="production", includeNew=True
+        )
+        self.check_valid_response(response, [monitor, monitor_visible])
+
 
 @region_silo_test(stable=True)
-class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
+class CreateOrganizationMonitorTest(MonitorTestCase):
+    endpoint = "sentry-api-0-organization-monitors"
     method = "post"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
 
     @patch("sentry.analytics.record")
     def test_simple(self, mock_record):
@@ -81,9 +120,7 @@ class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
         }
         response = self.get_success_response(self.organization.slug, **data)
 
-        assert response.data["id"]
-
-        monitor = Monitor.objects.get(guid=response.data["id"])
+        monitor = Monitor.objects.get(slug=response.data["slug"])
         assert monitor.organization_id == self.organization.id
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
@@ -116,5 +153,4 @@ class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
         }
         response = self.get_success_response(self.organization.slug, **data)
 
-        assert response.data["id"]
         assert response.data["slug"] == "my-monitor"

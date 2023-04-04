@@ -11,8 +11,11 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
+from sentry.integrations.utils.cleanup import clear_tags_and_context
+from sentry.models import Commit, CommitAuthor, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
@@ -194,6 +197,7 @@ class GitlabWebhookEndpoint(View):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request) -> Response:
+        clear_tags_and_context()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
             "user-agent": request.META.get("HTTP_USER_AGENT"),
@@ -226,35 +230,29 @@ class GitlabWebhookEndpoint(View):
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
-        try:
-            integration = (
-                Integration.objects.filter(
-                    provider=self.provider,
-                    external_id=external_id,  # e.g. example.gitlab.com:group-x
-                )
-                .prefetch_related("organizations")
-                .get()
-            )
-            extra = {
-                **extra,
-                **{
-                    "integration": {
-                        # The metadata could be useful to debug
-                        # domain_name -> gitlab.com/getsentry-ecosystem/foo'
-                        # scopes -> ['api']
-                        "metadata": integration.metadata,
-                        "id": integration.id,  # This is useful to query via Redash
-                        "status": integration.status,  # 0 seems to be active
-                    },
-                    # I do not know how we could have multiple integration installation to many organizations
-                    "slugs": ",".join(map(lambda x: x.slug, integration.organizations.all())),
-                },
-            }
-        except Integration.DoesNotExist:
+        integration, installs = integration_service.get_organization_contexts(
+            provider=self.provider, external_id=external_id
+        )
+        if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
+
+        extra = {
+            **extra,
+            **{
+                "integration": {
+                    # The metadata could be useful to debug
+                    # domain_name -> gitlab.com/getsentry-ecosystem/foo'
+                    # scopes -> ['api']
+                    "metadata": integration.metadata,
+                    "id": integration.id,  # This is useful to query via Redash
+                    "status": integration.status,  # 0 seems to be active
+                },
+                "org_ids": [install.organization_id for install in installs],
+            },
+        }
 
         try:
             if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
@@ -290,6 +288,9 @@ class GitlabWebhookEndpoint(View):
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
-        for organization in integration.organizations.all():
-            handler()(integration, organization, event)
+        for install in installs:
+            org_context = organization_service.get_organization_by_id(id=install.organization_id)
+            if org_context:
+                organization = org_context.organization
+                handler()(integration, organization, event)
         return HttpResponse(status=204)

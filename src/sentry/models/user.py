@@ -24,17 +24,19 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import LostPasswordHash
 from sentry.models.authenticator import Authenticator
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
+from sentry.models.avatars import UserAvatar
+from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Team
+    from sentry.models import Team
 
 
 class UserManager(BaseManager, DjangoUserManager):
@@ -81,27 +83,33 @@ class UserManager(BaseManager, DjangoUserManager):
         )
 
     def get_users_with_only_one_integration_for_provider(
-        self, provider: ExternalProviders, organization: "Organization"
+        self, provider: ExternalProviders, organization_id: int
     ) -> QuerySet:
         """
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        return (
-            self.filter(
-                sentry_orgmember_set__organization__organizationintegration__integration__provider=EXTERNAL_PROVIDERS[
-                    provider
-                ],
-                id__in=Subquery(
-                    self.filter(
-                        is_active=True,
-                        sentry_orgmember_set__organization=organization,
-                    ).values("id")
-                ),
-            )
-            .annotate(row_count=Count("id"))
-            .filter(row_count=1)
+        from sentry.models import OrganizationMember
+        from sentry.models.integrations.organization_integration import OrganizationIntegration
+
+        org_user_ids = OrganizationMember.objects.filter(organization_id=organization_id).values(
+            "user_id"
         )
+        org_members_with_provider = (
+            OrganizationMember.objects.values("user_id")
+            .annotate(org_counts=Count("organization_id"))
+            .filter(
+                user_id__in=Subquery(org_user_ids),
+                organization_id__in=Subquery(
+                    OrganizationIntegration.objects.filter(
+                        integration__provider=EXTERNAL_PROVIDERS[provider]
+                    ).values("organization_id")
+                ),
+                org_counts=1,
+            )
+            .values("user_id")
+        )
+        return self.filter(id__in=Subquery(org_members_with_provider))
 
 
 @control_silo_only_model
@@ -176,10 +184,18 @@ class User(BaseModel, AbstractBaseUser):
 
     session_nonce = models.CharField(max_length=12, null=True)
     actor = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+        "sentry.Actor",
+        related_name="user_from_actor",
+        db_index=True,
+        unique=True,
+        null=True,
+        on_delete=models.PROTECT,
     )
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
+
+    avatar_type = models.PositiveSmallIntegerField(default=0, choices=UserAvatar.AVATAR_TYPES)
+    avatar_url = models.CharField(_("avatar url"), max_length=120, null=True)
 
     objects = UserManager(cache_fields=["pk"])
 
@@ -253,19 +269,16 @@ class User(BaseModel, AbstractBaseUser):
     def get_full_name(self):
         return self.name
 
-    def get_short_name(self):
-        return self.username
-
     def get_salutation_name(self):
         name = self.name or self.username.split("@", 1)[0].split(".", 1)[0]
         first_name = name.split(" ", 1)[0]
         return first_name.capitalize()
 
     def get_avatar_type(self):
-        avatar = self.avatar.first()
-        if avatar:
-            return avatar.get_avatar_type_display()
-        return "letter_avatar"
+        return self.get_avatar_type_display()
+
+    def get_actor_identifier(self):
+        return f"user:{self.id}"
 
     def send_confirm_email_singular(self, email, is_new_user=False):
         from sentry import options
@@ -335,10 +348,10 @@ class User(BaseModel, AbstractBaseUser):
             "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
         )
 
-        for obj in OrganizationMember.objects.filter(user=from_user):
+        for obj in OrganizationMember.objects.filter(user_id=from_user.id):
             try:
                 with transaction.atomic():
-                    obj.update(user=to_user)
+                    obj.update(user_id=to_user.id)
             # this will error if both users are members of obj.org
             except IntegrityError:
                 pass
@@ -392,10 +405,11 @@ class User(BaseModel, AbstractBaseUser):
         # remove any SSO identities that exist on from_user that might conflict
         # with to_user's existing identities (only applies if both users have
         # SSO identities in the same org), then pass the rest on to to_user
+        # NOTE: This could, become calls to identity_service.delete_ide
         AuthIdentity.objects.filter(
             user=from_user,
-            auth_provider__organization__in=AuthIdentity.objects.filter(user=to_user).values(
-                "auth_provider__organization"
+            auth_provider__organization_id__in=AuthIdentity.objects.filter(user=to_user).values(
+                "auth_provider__organization_id"
             ),
         ).delete()
         AuthIdentity.objects.filter(user=from_user).update(user=to_user)

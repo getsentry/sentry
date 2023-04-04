@@ -58,6 +58,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   get platformList() {
     const {category} = this.state;
+
     const currentCategory = categoryList.find(({id}) => id === category);
 
     const filter = this.state.filter.toLowerCase();
@@ -139,26 +140,28 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
           />
         </NavContainer>
         <PlatformList className={listClassName} {...listProps}>
-          {platformList.map(platform => (
-            <PlatformCard
-              data-test-id={`platform-${platform.id}`}
-              key={platform.id}
-              platform={platform}
-              selected={this.props.platform === platform.id}
-              onClear={(e: React.MouseEvent) => {
-                setPlatform(null);
-                e.stopPropagation();
-              }}
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('growth.select_platform', {
-                  platform_id: platform.id,
-                  source: this.props.source,
-                  organization: this.props.organization ?? null,
-                });
-                setPlatform(platform.id as PlatformKey);
-              }}
-            />
-          ))}
+          {platformList.map(platform => {
+            return (
+              <PlatformCard
+                data-test-id={`platform-${platform.id}`}
+                key={platform.id}
+                platform={platform}
+                selected={this.props.platform === platform.id}
+                onClear={(e: React.MouseEvent) => {
+                  setPlatform(null);
+                  e.stopPropagation();
+                }}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent('growth.select_platform', {
+                    platform_id: platform.id,
+                    source: this.props.source,
+                    organization: this.props.organization ?? null,
+                  });
+                  setPlatform(platform.id as PlatformKey);
+                }}
+              />
+            );
+          })}
         </PlatformList>
         {platformList.length === 0 && (
           <EmptyMessage
@@ -248,7 +251,6 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
       withLanguageIcon
       format="lg"
     />
-
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
   </div>
@@ -259,8 +261,8 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   align-items: center;
   padding: 0 0 14px;
   border-radius: 4px;
-  cursor: pointer;
   background: ${p => p.selected && p.theme.alert.info.backgroundLight};
+  cursor: pointer;
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};

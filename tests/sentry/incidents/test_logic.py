@@ -67,6 +67,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import ActorTuple, Integration, PagerDutyService
+from sentry.models.actor import get_actor_id_for_user
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -559,7 +560,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule_1.owner.id == self.user.actor.id
+        assert alert_rule_1.owner.id == get_actor_id_for_user(self.user)
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -856,7 +857,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
@@ -866,17 +867,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
 
         update_alert_rule(
             alert_rule=alert_rule,
@@ -1157,6 +1158,18 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
+
+    def test_exempt_service(self):
+        service_type = AlertRuleTriggerAction.Type.SENTRY_NOTIFICATION
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+
+        with pytest.raises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                trigger=self.trigger,
+                type=service_type,
+                target_type=target_type,
+                target_identifier=1,
+            )
 
     @responses.activate
     def test_slack(self):

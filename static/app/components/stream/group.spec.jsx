@@ -83,7 +83,7 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
   });
 
-  it('tracks clicks from issues stream', function () {
+  it('tracks clicks from issues stream', async function () {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
@@ -94,7 +94,8 @@ describe('StreamGroup', function () {
       {context: routerContext, organization}
     );
 
-    userEvent.click(screen.getByText('RequestError'));
+    // skipHover - Prevent stacktrace preview from being rendered
+    await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(2);
   });
 });

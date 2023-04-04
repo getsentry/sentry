@@ -71,6 +71,8 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -104,6 +106,8 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -137,3 +141,28 @@ class ConsecutiveDbDetectorTest(TestCase):
         ]  # ensure spans don't overlap
 
         assert self.find_problems(create_event(spans)) == []
+
+    def test_fingerprints_match_with_duplicate_http(self):
+        span_duration = 2000
+        spans = [
+            create_span("http.client", span_duration, "GET /api/endpoint1", "hash1"),
+            create_span("http.client", span_duration, "GET /api/endpoint2", "hash2"),
+            create_span("http.client", span_duration, "GET /api/endpoint3", "hash3"),
+        ]
+
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        problem_1 = self.find_problems(create_event(spans))[0]
+
+        spans.append(
+            modify_span_start(
+                create_span("http.client", span_duration, "GET /api/endpoint3", "hash3"), 6000
+            )
+        )
+
+        problem_2 = self.find_problems(create_event(spans))[0]
+
+        assert problem_2.fingerprint == "1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64"
+        assert problem_1.fingerprint == problem_2.fingerprint

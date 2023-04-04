@@ -14,6 +14,8 @@ import {
 } from './spanEvidenceKeyValueList';
 
 describe('SpanEvidenceKeyValueList', () => {
+  const projectSlug = 'project';
+
   describe('N+1 Database Queries', () => {
     const builder = new TransactionEventBuilder('a1', '/');
     builder.getEvent().projectID = '123';
@@ -46,7 +48,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -58,6 +62,11 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
       );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
@@ -111,7 +120,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -123,6 +134,11 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
       );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
@@ -186,7 +202,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -198,6 +216,11 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
       );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
 
       expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
       expect(
@@ -221,6 +244,60 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.duration-impact')
       ).toHaveTextContent('46% (300ms/650ms)');
+    });
+  });
+
+  describe('Consecutive HTTP', () => {
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_CONSECUTIVE_HTTP
+    );
+    builder.getEvent().projectID = '123';
+
+    const parentSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 0.65,
+      op: 'http.client',
+      problemSpan: ProblemSpan.PARENT,
+    });
+
+    parentSpan.addChild({
+      startTimestamp: 0.1,
+      endTimestamp: 0.2,
+      op: 'http.client',
+      description: 'GET /endpoint1',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+    parentSpan.addChild({
+      startTimestamp: 0.2,
+      endTimestamp: 0.3,
+      op: 'http.client',
+      description: 'GET /endpoint2',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+    parentSpan.addChild({
+      startTimestamp: 0.3,
+      endTimestamp: 0.4,
+      op: 'http.client',
+      description: 'GET /endpoint3',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(parentSpan);
+
+    it('Renders relevant fields', () => {
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
+
+      const parallelizableSpanKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.offending-spans'
+      );
+
+      expect(parallelizableSpanKeyValue).toHaveTextContent('GET /endpoint1');
+      expect(parallelizableSpanKeyValue).toHaveTextContent('GET /endpoint2');
+      expect(parallelizableSpanKeyValue).toHaveTextContent('GET /endpoint3');
     });
   });
 
@@ -267,7 +344,9 @@ describe('SpanEvidenceKeyValueList', () => {
     );
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -279,6 +358,11 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
       );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
 
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
@@ -301,10 +385,10 @@ describe('SpanEvidenceKeyValueList', () => {
           extractSpanURLString({
             span_id: 'a',
             data: {
-              url: 'http://service.io',
+              url: 'http://service.io?id=2543',
             },
           })?.toString()
-        ).toEqual('http://service.io/');
+        ).toEqual('http://service.io/?id=2543');
       });
 
       it('Pulls out a relative URL if a base is provided', () => {
@@ -319,6 +403,19 @@ describe('SpanEvidenceKeyValueList', () => {
             'http://service.io'
           )?.toString()
         ).toEqual('http://service.io/item');
+      });
+
+      it('Fetches the query string from the span data if available', () => {
+        expect(
+          extractSpanURLString({
+            span_id: 'a',
+            description: 'GET http://service.io/item',
+            data: {
+              url: 'http://service.io/item',
+              'http.query': 'id=153',
+            },
+          })?.toString()
+        ).toEqual('http://service.io/item?id=153');
       });
 
       it('Falls back to span description if URL is faulty', () => {
@@ -398,7 +495,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -410,6 +509,11 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
       );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
 
       expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
       expect(
@@ -442,7 +546,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(offenderSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -454,6 +560,11 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
       );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
       expect(
@@ -497,7 +608,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(offenderSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -509,6 +622,11 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
       );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
       expect(

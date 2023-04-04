@@ -11,6 +11,7 @@ import NotFound from 'sentry/components/errors/notFound';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
+import {Footer} from 'sentry/components/onboarding/footer';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   performance as performancePlatforms,
@@ -24,7 +25,6 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {Footer} from 'sentry/views/onboarding/components/footer';
 
 type Props = RouteComponentProps<{platform: string; projectId: string}, {}>;
 
@@ -48,12 +48,12 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     setLoading(true);
 
     try {
-      const {html: reponse} = await loadDocs(
+      const {html: reponse} = await loadDocs({
         api,
-        organization.slug,
-        params.projectId,
-        params.platform as PlatformKey
-      );
+        orgSlug: organization.slug,
+        projectSlug: params.projectId,
+        platform: params.platform as PlatformKey,
+      });
       setHtml(reponse);
     } catch (err) {
       setError(err);
@@ -99,7 +99,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   return (
     <Fragment>
       <StyledPageHeader>
-        <h2>{t('Configure %(platform)s', {platform: platform.name})}</h2>
+        <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
         <ButtonBar gap={1}>
           <Button
             icon={<IconChevron direction="left" size="sm" />}
