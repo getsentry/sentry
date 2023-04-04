@@ -46,10 +46,12 @@ type EventNavigationButtonProps = {
   group: Group;
   icon: ButtonProps['icon'];
   referrer: string;
-  size: ButtonProps['size'];
   title: string;
   eventId?: string | null;
 };
+
+const BUTTON_SIZE = 'sm';
+const BUTTON_ICON_SIZE = 'sm';
 
 const copyToClipboard = (value: string) => {
   navigator.clipboard
@@ -75,7 +77,6 @@ const EventNavigationButton = ({
   eventId,
   group,
   icon,
-  size,
   title,
   referrer,
 }: EventNavigationButtonProps) => {
@@ -89,7 +90,7 @@ const EventNavigationButton = ({
     <Tooltip title={title} disabled={disabled} skipWrapper>
       <div>
         <StyledNavButton
-          size={size}
+          size={BUTTON_SIZE}
           icon={icon}
           aria-label={title}
           to={{
@@ -110,11 +111,7 @@ export const GroupEventCarousel = ({
 }: GroupEventCarouselProps) => {
   const theme = useTheme();
   const organization = useOrganization();
-  const smallViewport = useMedia(`(max-width: ${theme.breakpoints.small})`);
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
-
-  const buttonSize = smallViewport ? 'sm' : 'md';
-  const buttonIconSize = smallViewport ? 'xs' : 'sm';
 
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
   const isReplayEnabled = organization.features.includes('session-replay');
@@ -185,9 +182,9 @@ export const GroupEventCarousel = ({
           position="bottom-end"
           triggerProps={{
             'aria-label': t('Event Actions Menu'),
-            icon: <IconEllipsis size={buttonIconSize} />,
+            icon: <IconEllipsis size="xs" />,
             showChevron: false,
-            size: buttonSize,
+            size: BUTTON_SIZE,
           }}
           items={[
             {
@@ -242,14 +239,14 @@ export const GroupEventCarousel = ({
           ]}
         />
         {xlargeViewport && (
-          <Button size={buttonSize} onClick={copyLink}>
+          <Button size={BUTTON_SIZE} onClick={copyLink}>
             Copy Link
           </Button>
         )}
         {xlargeViewport && (
           <Button
-            size={buttonSize}
-            icon={<IconOpen size={buttonIconSize} />}
+            size={BUTTON_SIZE}
+            icon={<IconOpen size={BUTTON_ICON_SIZE} />}
             onClick={downloadJson}
           >
             JSON
@@ -258,8 +255,7 @@ export const GroupEventCarousel = ({
         <NavButtons>
           <EventNavigationButton
             group={group}
-            icon={<IconPrevious size={buttonIconSize} />}
-            size={buttonSize}
+            icon={<IconPrevious size={BUTTON_ICON_SIZE} />}
             disabled={!hasPreviousEvent}
             title={t('First Event')}
             eventId="oldest"
@@ -267,8 +263,7 @@ export const GroupEventCarousel = ({
           />
           <EventNavigationButton
             group={group}
-            icon={<IconChevron direction="left" size={buttonIconSize} />}
-            size={buttonSize}
+            icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
             disabled={!hasPreviousEvent}
             title={t('Previous Event')}
             eventId={event.previousEventID}
@@ -276,8 +271,7 @@ export const GroupEventCarousel = ({
           />
           <EventNavigationButton
             group={group}
-            icon={<IconChevron direction="right" size={buttonIconSize} />}
-            size={buttonSize}
+            icon={<IconChevron direction="right" size={BUTTON_ICON_SIZE} />}
             disabled={!hasNextEvent}
             title={t('Next Event')}
             eventId={event.nextEventID}
@@ -285,8 +279,7 @@ export const GroupEventCarousel = ({
           />
           <EventNavigationButton
             group={group}
-            icon={<IconNext size={buttonIconSize} />}
-            size={buttonSize}
+            icon={<IconNext size={BUTTON_ICON_SIZE} />}
             disabled={!hasNextEvent}
             title={t('Latest Event')}
             eventId="latest"
@@ -317,11 +310,10 @@ const EventHeading = styled('div')`
 const ActionsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const StyledNavButton = styled(Button)`
-  width: 42px;
   border-radius: 0;
 `;
 
