@@ -2,7 +2,7 @@ from collections import defaultdict, namedtuple
 from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models.signals import post_save
 from rest_framework import serializers
 
@@ -113,8 +113,18 @@ def get_actor_id_for_user(user: Union["User", RpcUser]):
     if user.actor_id:
         return user.actor_id
     # Temporary Dual write
-    actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
-    # TODO(hybrid-cloud): remove this after actor migration is complete
+    # Until we have indexes back online, we have to account for potential race condition on user creation
+    with transaction.atomic():
+        actors_for_user = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).all()
+        if len(actors_for_user) > 0:
+            actor = actors_for_user[0]
+        else:
+            actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
+        # Just clear other actors without allowing orm interaction, these won't be important after the following update.
+        Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).exclude(id=actor.id).update(
+            user_id=None
+        )
+
     user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
     return actor.id
 
