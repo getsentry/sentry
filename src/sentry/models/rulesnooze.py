@@ -34,10 +34,14 @@ class RuleSnooze(Model):
                 name="rule_or_alert_rule",
             ),
             UniqueConstraint(
-                fields=["user_id", "rule", "alert_rule"],
-                condition=Q(user_id__isnull=True, alert_rule__isnull=False)
-                | Q(user_id__isnull=True, rule__isnull=False),
+                fields=["rule"],
+                condition=Q(user_id__isnull=True),
                 name="unique_rule_user",
+            ),
+            UniqueConstraint(
+                fields=["alert_rule"],
+                condition=Q(user_id__isnull=True),
+                name="unique_alert_rule_user",
             ),
         ]
 
