@@ -1,10 +1,11 @@
+from typing import Optional
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import query_groups_past_counts, _start_and_end_dates
+from sentry.issues.escalating import _start_and_end_dates, query_groups_past_counts
 from sentry.models import Group
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
@@ -18,14 +19,16 @@ class HistoricGroupCounts(TestCase):  # type: ignore
 
     def _load_event_for_group(
         self,
+        project_id: Optional[int] = None,
         minutes_ago: int = 2,
         fingerprint: str = "foo-1",
     ) -> Event:
         """Creates a new event for a group. It creates one if missing.
         Use fingerprint to create different groups.
         """
+        proj_id = project_id or self.project.id
         return Factories.store_event(
-            project_id=self.project.id,
+            project_id=proj_id,
             data={
                 "event_id": uuid4().hex,
                 "message": "some message",
@@ -80,6 +83,67 @@ class HistoricGroupCounts(TestCase):  # type: ignore
                     "project_id": self.project.id,
                 },
             ]
+
+    def test_query_multiple_projects(self) -> None:
+        proj_x = Factories.create_project(self.project.organization)
+        proj_y = Factories.create_project(self.project.organization)
+
+        event1 = self._load_event_for_group(project_id=proj_x.id, minutes_ago=60)
+        # This event has the same fingerprint as event1 but
+        # should be different group IDs since they belong to different projects
+        event_y_1 = self._load_event_for_group(project_id=proj_y.id, minutes_ago=180)
+        assert event1.group_id != event_y_1.group_id
+
+        event_y_2 = self._load_event_for_group(
+            project_id=proj_y.id, fingerprint="group-1", minutes_ago=120
+        )
+        # Increases the count of group-1
+        self._load_event_for_group(project_id=proj_y.id, fingerprint="group-1", minutes_ago=120)
+
+        assert query_groups_past_counts(Group.objects.all()) == [
+            {
+                "count()": 1,
+                "group_id": event1.group_id,
+                "hourBucket": to_start_of_hour(event1.datetime),
+                "project_id": proj_x.id,
+            },
+            {
+                "count()": 1,
+                "group_id": event_y_1.group_id,
+                "hourBucket": to_start_of_hour(event_y_1.datetime),
+                "project_id": proj_y.id,
+            },
+            {
+                "count()": 2,
+                "group_id": event_y_2.group_id,
+                "hourBucket": to_start_of_hour(event_y_2.datetime),
+                "project_id": proj_y.id,
+            },
+        ]
+
+    def test_query_different_orgs(self) -> None:
+        proj_a = Factories.create_project(self.project.organization)
+        org_b = Factories.create_organization()
+        proj_b = Factories.create_project(org_b)
+
+        event1 = self._load_event_for_group(project_id=proj_a, minutes_ago=60)
+        event_proj_org_b_1 = self._load_event_for_group(project_id=proj_b, minutes_ago=60)
+
+        # Since proj_org_b is created
+        assert query_groups_past_counts(Group.objects.all()) == [
+            {
+                "count()": 1,
+                "group_id": event1.group_id,
+                "hourBucket": to_start_of_hour(event1.datetime),
+                "project_id": proj_a.id,
+            },
+            {
+                "count()": 1,
+                "group_id": event_proj_org_b_1.group_id,
+                "hourBucket": to_start_of_hour(event_proj_org_b_1.datetime),
+                "project_id": proj_b.id,
+            },
+        ]
 
     def test_query_no_groups(self) -> None:
         with pytest.raises(SnubaError):
