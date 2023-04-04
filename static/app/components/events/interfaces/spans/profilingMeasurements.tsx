@@ -39,7 +39,7 @@ function Chart({data}: ChartProps) {
   const theme = useTheme();
   const series: LineChartSeries[] = [
     {
-      seriesName: 'CPU Usage',
+      seriesName: t('CPU Usage'),
       // Use uniqBy since we can't guarantee the interval between recordings and
       // we're converting to lower fidelity (ns -> ms). This can result in duplicate entries
       data: uniqBy<SeriesDataUnit>(
