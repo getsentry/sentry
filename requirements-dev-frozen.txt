@@ -165,7 +165,7 @@ s3transfer==0.5.2
 selenium==4.3.0
 sentry-arroyo==2.7.1
 sentry-cli==2.16.0
-sentry-kafka-schemas==0.0.19
+sentry-kafka-schemas==0.0.25
 sentry-relay==0.8.19
 sentry-sdk==1.17.0
 simplejson==3.17.6
@@ -187,6 +187,7 @@ tqdm==4.64.1
 trio==0.21.0
 trio-websocket==0.9.2
 types-beautifulsoup4==4.11.6
+types-cachetools==5.3.0.5
 types-freezegun==1.1.10
 types-jsonschema==4.16.1
 types-psycopg2==2.9.21

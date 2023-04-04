@@ -4,6 +4,7 @@ from .base import (  # NOQA
     OrganizationFeature,
     ProjectFeature,
     ProjectPluginFeature,
+    SystemFeature,
     UserFeature,
 )
 from .handler import *  # NOQA
@@ -56,9 +57,9 @@ default_manager = FeatureManager()  # NOQA
 # No formatting so that we can keep them as single lines
 # fmt: off
 
-# Unscoped features
-default_manager.add("auth:register")
-default_manager.add("organizations:create")
+# Features that don't use resource scoping
+default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -168,7 +169,7 @@ default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, Fe
 default_manager.add("organizations:sentry-functions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:session-replay-dom-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:session-replay-dom-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-beta-grace", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-ga", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-network-details", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

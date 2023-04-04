@@ -351,8 +351,6 @@ class Actions extends Component<Props> {
     const {group, project, organization, disabled, event} = this.props;
     const {status, isBookmarked} = group;
 
-    const orgFeatures = new Set(organization.features);
-
     const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
@@ -429,7 +427,7 @@ class Actions extends Component<Props> {
                   },
                 });
               },
-              hidden: !orgFeatures.has('open-ai-suggestion'),
+              hidden: !organization.features.includes('open-ai-suggestion'),
             },
             {
               key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
@@ -450,7 +448,7 @@ class Actions extends Component<Props> {
               key: 'share',
               label: t('Share'),
               disabled: disabled || !shareCap.enabled,
-              hidden: !orgFeatures.has('shared-issues'),
+              hidden: !organization.features.includes('shared-issues'),
               onAction: this.openShareModal,
             },
             {

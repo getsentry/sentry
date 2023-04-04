@@ -133,6 +133,47 @@ describe('CompactSelect', function () {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('can limit the number of options', async function () {
+      render(
+        <CompactSelect
+          sizeLimit={2}
+          sizeLimitMessage="Use search for more options…"
+          searchable
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // only the first two options should be visible due to `sizeLimit`
+      expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Option Three'})
+      ).not.toBeInTheDocument();
+
+      // there's a message prompting the user to use search to find more options
+      expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
+
+      // Option Three is not reachable via keyboard, focus wraps back to Option One
+      await userEvent.keyboard(`{ArrowDown}`);
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      await userEvent.keyboard(`{ArrowDown>2}`);
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+
+      // Option Three is still available via search
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
+      expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
+
+      // the size limit message is gone during search
+      expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
+    });
+
     it('can toggle sections', async function () {
       render(
         <CompactSelect
@@ -314,6 +355,46 @@ describe('CompactSelect', function () {
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('can limit the number of options', async function () {
+      render(
+        <CompactSelect
+          grid
+          sizeLimit={2}
+          sizeLimitMessage="Use search for more options…"
+          searchable
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // only the first two options should be visible due to `sizeLimit`
+      expect(screen.getByRole('row', {name: 'Option One'})).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: 'Option Three'})).not.toBeInTheDocument();
+
+      // there's a message prompting the user to use search to find more options
+      expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
+
+      // Option Three is not reachable via keyboard, focus wraps back to Option One
+      await userEvent.keyboard(`{ArrowDown}`);
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
+      await userEvent.keyboard(`{ArrowDown>2}`);
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
+
+      // Option Three is still available via search
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
+      expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
+
+      // the size limit message is gone during search
+      expect(screen.queryByText('Use search for more options…')).not.toBeInTheDocument();
     });
 
     it('can toggle sections', async function () {
