@@ -38,11 +38,6 @@ class RuleSnooze(Model):
                 condition=Q(user_id__isnull=True) | Q(user_id__isnull=True),
                 name="unique_rule_user",
             ),
-            # UniqueConstraint(
-            #     fields=["user_id", "alert_rule"],
-            #     condition=Q(user_id__isnull=True),
-            #     name="unique_alert_rule_user",
-            # )
         ]
 
     __repr__ = sane_repr("user_id", "rule_id", "alert_rule_id", "until")
