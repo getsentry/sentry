@@ -162,6 +162,7 @@ def process_commit_context(
                     extra={
                         **basic_logging_details,
                         "reason": "could_not_fetch_commit_context",
+                        "code_mappings_count": len(code_mappings),
                     },
                 )
                 return

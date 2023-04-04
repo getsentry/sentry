@@ -77,7 +77,7 @@ def query_sso_state(
         return _SSO_NONMEMBER
 
     try:
-        auth_provider = AuthProvider.objects.get(organization=member.organization_id)
+        auth_provider = AuthProvider.objects.get(organization_id=member.organization_id)
     except AuthProvider.DoesNotExist:
         return _SSO_BYPASS
 
@@ -304,7 +304,8 @@ class DatabaseBackedAuthService(AuthService):
 
         # Otherwise create a new membership
         om = organization_service.add_organization_member(
-            organization=organization,
+            organization_id=organization.id,
+            default_org_role=organization.default_role,
             role=organization.default_role,
             user=serial_user,
             flags=flags,

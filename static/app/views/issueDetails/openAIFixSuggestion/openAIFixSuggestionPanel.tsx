@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import marked from 'sentry/utils/marked';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {AiLoaderMessage} from 'sentry/views/issueDetails/openAIFixSuggestion/aiLoaderMessage';
@@ -78,7 +78,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
     isError: dataIsError,
     refetch: dataRefetch,
     error,
-  } = useQuery<{suggestion: string}>(
+  } = useApiQuery<{suggestion: string}>(
     [
       `/projects/${organization.slug}/${projectSlug}/events/${eventID}/ai-fix-suggest/`,
       {query: {consent: individualConsent ? 'yes' : undefined}},

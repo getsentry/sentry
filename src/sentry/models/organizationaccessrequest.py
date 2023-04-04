@@ -4,6 +4,8 @@ from django.urls import reverse
 
 from sentry import roles
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.user import user_service
 
 
 @region_silo_only_model
@@ -13,7 +15,7 @@ class OrganizationAccessRequest(Model):
     team = FlexibleForeignKey("sentry.Team")
     member = FlexibleForeignKey("sentry.OrganizationMember")
     # access request from a different user than the member
-    requester = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    requester_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
 
     class Meta:
         app_label = "sentry"
@@ -43,8 +45,9 @@ class OrganizationAccessRequest(Model):
             ),
         }
 
-        if self.requester:
-            context.update({"requester": self.requester.get_display_name()})
+        if self.requester_id:
+            requester = user_service.get_user(user_id=self.requester_id)
+            context.update({"requester": requester.get_display_name()})
 
         msg = MessageBuilder(
             subject="Sentry Access Request",

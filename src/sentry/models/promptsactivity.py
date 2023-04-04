@@ -4,12 +4,12 @@ from django.utils import timezone
 
 from sentry.db.models import (
     BoundedBigIntegerField,
-    FlexibleForeignKey,
     JSONField,
     Model,
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 @region_silo_only_model
@@ -21,7 +21,7 @@ class PromptsActivity(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     # Not a Foreign Key because it's no longer safe to take out lock on Project table in Prod
     project_id = BoundedBigIntegerField(db_index=True)
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     feature = models.CharField(max_length=64, null=False)
     # typically will include a dismissed/snoozed timestamp or something similar
     data = JSONField(default={})
@@ -31,6 +31,6 @@ class PromptsActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_promptsactivity"
-        unique_together = (("user", "feature", "organization_id", "project_id"),)
+        unique_together = (("user_id", "feature", "organization_id", "project_id"),)
 
     __repr__ = sane_repr("user_id", "feature")

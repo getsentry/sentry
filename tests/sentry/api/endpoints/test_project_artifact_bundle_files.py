@@ -289,3 +289,53 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
                 },
             ],
         }
+
+        query = "eb6e60f165ff4f6fadfff1bbeded627b"
+        response = self.client.get(url + f"?query={query}")
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "bundleId": str(artifact_bundle.bundle_id),
+            "release": None,
+            "dist": None,
+            "files": [
+                {
+                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                    "filePath": "~/index.js.map",
+                    "id": "ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
+                    "fileSize": 1804,
+                    "fileType": 3,
+                },
+                {
+                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                    "filePath": "~/index.min.js",
+                    "id": "ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
+                    "fileSize": 1676,
+                    "fileType": 2,
+                },
+            ],
+        }
+
+        query = "EB6e60f165ff4f6fadfff1BBEded627b"
+        response = self.client.get(url + f"?query={query}")
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "bundleId": str(artifact_bundle.bundle_id),
+            "release": None,
+            "dist": None,
+            "files": [
+                {
+                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                    "filePath": "~/index.js.map",
+                    "id": "ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
+                    "fileSize": 1804,
+                    "fileType": 3,
+                },
+                {
+                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                    "filePath": "~/index.min.js",
+                    "id": "ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
+                    "fileSize": 1676,
+                    "fileType": 2,
+                },
+            ],
+        }
