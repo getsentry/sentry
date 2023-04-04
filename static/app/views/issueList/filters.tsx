@@ -48,6 +48,10 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   max-width: 43rem;
   align-self: flex-start;
 
+  > div > button {
+    width: 100%;
+  }
+
   & > * {
     /* Prevent date filter from shrinking below 6.5rem */
     &:nth-last-child(2) {
