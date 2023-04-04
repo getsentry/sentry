@@ -2,7 +2,8 @@ from typing import List, Optional, Union
 
 from cssselect import Selector, SelectorSyntaxError
 from cssselect import parse as cssselect_parse
-from cssselect.parser import Attrib, Class, Element, Hash
+from cssselect.parser import Attrib, Class, CombinedSelector, Element, Hash
+from rest_framework.exceptions import ParseError
 
 SelectorType = Union[Attrib, Class, Element, Hash]
 
@@ -59,6 +60,8 @@ def visit_selector_tree(query: QueryType, selector: SelectorType) -> None:
     elif isinstance(selector, Hash):
         visit_hash(query, selector)
         visit_selector_tree(query, selector.selector)
+    elif isinstance(selector, CombinedSelector):
+        raise ParseError("Nested selectors are not supported.")
     else:
         # We ignore unhandled selector types rather than erroring.
         visit_selector_tree(query, selector.selector)

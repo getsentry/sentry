@@ -961,3 +961,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
+
+    def test_get_replays_filter_clicks_nested_selector(self):
+        """Test replays do not support nested selectors."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + '?field=id&query=replay_click.selector:".a .b"')
+            assert response.status_code == 400
+            assert response.content == b'{"detail":"Nested selectors are not supported."}'
