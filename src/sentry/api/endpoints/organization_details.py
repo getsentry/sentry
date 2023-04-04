@@ -265,7 +265,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_providerName(self, value):
         from sentry.auth import manager
 
-        if not manager.exists(value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        has_auth_provider_config = features.has(
+            "organizations:auth-provider-config", organization, actor=request.user
+        )
+        if has_auth_provider_config and not manager.exists(value):
             raise serializers.ValidationError("Invalid providerName")
         return value
 
