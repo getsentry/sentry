@@ -148,7 +148,12 @@ class InstallationEventWebhook(Webhook):
                 logger.exception("Installation is missing.")
 
     def _handle_delete(self, event: Mapping[str, Any], integration: Integration) -> None:
-        organizations = integration.organizations.all()
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
+        organizations = Organization.objects.filter(
+            id__in=[oi.organization_id for oi in org_integrations]
+        )
 
         logger.info(
             "InstallationEventWebhook._handle_delete",
