@@ -221,7 +221,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=[span["span_id"] for span in self.spans],
-            evidence_data={},
+            evidence_data={
+                "op": last_span["op"],
+                "cause_span_ids": [],
+                "parent_span_ids": [last_span.get("parent_span_id", None)],
+                "offender_span_ids": [span["span_id"] for span in self.spans],
+            },
             evidence_display=[],
         )
 
