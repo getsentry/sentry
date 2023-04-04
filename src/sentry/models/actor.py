@@ -77,14 +77,13 @@ class Actor(Model):
         )
     )
     user_id = HybridCloudForeignKey(
-        settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False, unique=False, null=True
+        settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=True, unique=True, null=True
     )
     team = FlexibleForeignKey(
         "sentry.Team",
         related_name="actor_from_team",
-        db_index=False,
-        db_constraint=False,
-        unique=False,
+        db_index=True,
+        unique=True,
         null=True,
         on_delete=models.CASCADE,
     )
