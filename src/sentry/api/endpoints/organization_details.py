@@ -291,10 +291,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             self.context["organization"],
             actor=self.context["request"].user,
         )
-        if has_api_auth_provider and (("providerName" in attrs) != ("providerConfig" in attrs)):
-            raise serializers.ValidationError(
-                "Both providerName and providerConfig are required to configure an auth provider"
-            )
+        if has_api_auth_provider:
+            # Both providerName and providerConfig are required to configure an auth provider
+            if attrs.get("providerName") and not attrs.get("providerConfig"):
+                raise serializers.ValidationError(
+                    {"providerConfig": "providerConfig is required to configure an auth provider"}
+                )
+            if attrs.get("providerConfig") and not attrs.get("providerName"):
+                raise serializers.ValidationError(
+                    {"providerName": "providerName is required to configure an auth provider"}
+                )
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
