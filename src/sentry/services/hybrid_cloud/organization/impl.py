@@ -299,9 +299,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 inviter_id=inviter_id,
                 invite_status=invite_status,
             )
-            region_outbox = org_member.outbox_for_update(
-                org_id=organization.id, org_member_id=org_member.id
-            )
+            region_outbox = org_member.outbox_for_update()
             region_outbox.save()
         region_outbox.drain_shard(max_updates_to_drain=1000)
         return self.serialize_member(org_member)
