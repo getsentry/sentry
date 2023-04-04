@@ -64,6 +64,7 @@ This document is structured by resource with each resource having actions that c
     | replay_click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
     | replay_click.textContent | string        | The text-content of an HTML element.                           |
     | replay_click.title       | string        | The title attribute of an HTML element.                        |
+    | replay_click.selector    | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 

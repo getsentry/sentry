@@ -81,7 +81,8 @@ def generate_normalized_output(
 
         item.pop("click_alt", None)
         item.pop("click_aria_label", None)
-        item.pop("click_class", None)
+        item.pop("clickClass", None)
+        item.pop("click_classes", None)
         item.pop("click_id", None)
         item.pop("click_role", None)
         item.pop("click_tag", None)

@@ -9,6 +9,8 @@ from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.replays.lib.selector.parse import QueryType, parse_selector
+from sentry.replays.lib.selector.query import union_find
 
 OPERATOR_MAP = {
     "=": Op.EQ,
@@ -134,6 +136,62 @@ class String(Field):
             )
 
         return super().as_condition(field_alias, operator, value, is_wildcard)
+
+
+class Selector(Field):
+    _operators = [Op.EQ, Op.NEQ]
+    _python_type = str
+
+    def as_condition(
+        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+    ) -> Condition:
+        # This list of queries implies an `OR` operation between each item in the set. To `AND`
+        # selector queries apply them separately.
+        queries: List[QueryType] = parse_selector(value)
+
+        # A valid selector will always return at least one query condition. If this did not occur
+        # then the selector was not well-formed. We return an empty resultset.
+        if len(queries) == 0:
+            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+        # Conditions are pre-made and intended for application in the HAVING clause.
+        conditions: List[Condition] = []
+
+        for query in queries:
+            columns, values = [], []
+
+            if query.alt:
+                columns.append(Column("click_alt"))
+                values.append(query.alt)
+            if query.aria_label:
+                columns.append(Column("click_aria_label"))
+                values.append(query.aria_label)
+            if query.classes:
+                columns.append(Column("click_classes"))
+                values.append(query.classes)
+            if query.id:
+                columns.append(Column("click_id"))
+                values.append(query.id)
+            if query.role:
+                columns.append(Column("click_role"))
+                values.append(query.role)
+            if query.tag:
+                columns.append(Column("click_tag"))
+                values.append(query.tag)
+            if query.testid:
+                columns.append(Column("click_testid"))
+                values.append(query.testid)
+            if query.title:
+                columns.append(Column("click_title"))
+                values.append(query.title)
+
+            if columns and values:
+                conditions.append(Condition(union_find(columns, values), operator, 1))
+
+        if len(conditions) == 1:
+            return conditions[0]
+        else:
+            return Or(conditions)
 
 
 class Number(Field):

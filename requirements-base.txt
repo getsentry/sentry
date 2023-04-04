@@ -8,6 +8,7 @@ celery>=4.4.7
 click>=8.0.4
 confluent-kafka>=1.9.2
 croniter>=0.3.37
+cssselect>=1.0.3
 datadog>=0.29.3
 django-crispy-forms>=1.14.0
 django-pg-zero-downtime-migrations>=0.11
@@ -96,7 +97,6 @@ cffi>=1.15.0
 
 # not directly used, but pinned for toronado because it doesn't pin these
 cssutils>=2.4.0
-cssselect>=1.0.3
 
 # sentry-plugins specific dependencies
 phabricator>=0.7.0
