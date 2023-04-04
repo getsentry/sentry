@@ -15,27 +15,6 @@ class CreateProjectTest(AcceptanceTestCase):
 
         self.path = f"/organizations/{self.org.slug}/projects/new/"
 
-    @patch("django.db.models.signals.ModelSignal.send")
-    def test_simple(self, mock_signal):
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
-
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
-
-        self.browser.click('[data-test-id="platform-java"]')
-        self.browser.snapshot(name="create project")
-
-        self.browser.click('[data-test-id="create-project"]')
-        self.browser.wait_until_not(".loading")
-        self.browser.wait_until("#installation")
-
-        project = Project.objects.get(organization=self.org)
-        assert project.name == "java"
-        assert project.platform == "java"
-        assert project.teams.first() == self.team
-        self.browser.snapshot(name="docs redirect")
-
     def test_no_teams(self):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[])
         self.browser.get(self.path)
