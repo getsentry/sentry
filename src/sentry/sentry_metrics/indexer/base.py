@@ -318,6 +318,7 @@ class UseCaseResults:
         return {
             use_case_id: key_results.get_fetch_metadata()
             for use_case_id, key_results in self.results.items()
+            if key_results.get_fetch_metadata()
         }
 
     def merge(self, other: "UseCaseResults") -> "UseCaseResults":
