@@ -10,7 +10,7 @@ from sentry import options
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
-from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator
 from sentry.models import Organization, Project
 from sentry.processing import realtime_metrics
 from sentry.tasks import store
@@ -39,11 +39,6 @@ SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 #
 # New tasks and metrics are welcome to use the correct naming scheme as they are not
 # burdened by aforementioned legacy concerns.
-
-
-class RetrySymbolication(Exception):
-    def __init__(self, retry_after: Optional[int] = None) -> None:
-        self.retry_after = retry_after
 
 
 def should_demote_symbolication(project_id: int) -> bool:

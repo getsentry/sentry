@@ -1,6 +1,7 @@
 import logging
 import time
 import uuid
+from typing import Optional
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -14,7 +15,6 @@ from sentry.lang.native.sources import (
 )
 from sentry.models import Project
 from sentry.net.http import Session
-from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, metrics
 
 MAX_ATTEMPTS = 3
@@ -150,6 +150,11 @@ class TaskIdNotFound(Exception):
 
 class ServiceUnavailable(Exception):
     pass
+
+
+class RetrySymbolication(Exception):
+    def __init__(self, retry_after: Optional[int] = None) -> None:
+        self.retry_after = retry_after
 
 
 class SymbolicatorSession:
