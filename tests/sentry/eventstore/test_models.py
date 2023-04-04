@@ -7,6 +7,7 @@ from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.enhancer import Enhancements
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Environment
@@ -104,6 +105,34 @@ class EventTest(TestCase):
         )
 
         assert event1.get_email_subject() == "BAR-1 - production@0 $ baz ${tag:invalid} $invalid"
+
+    def test_transaction_email_subject(self):
+        min_ago = iso_format(before_now(minutes=1))
+        group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
+
+        self.project.update_option(
+            "mail:subject_template",
+            "$shortID - ${tag:environment}@${tag:release} $title",
+        )
+
+        mock_event = Event(
+            event_id="a" * 32,
+            data={
+                "type": "transaction",
+                "timestamp": min_ago,
+                "start_timestamp": min_ago,
+                "tags": {
+                    "environment": "production",
+                    "release": "0.1",
+                },
+                "culprit": "",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+
+        event = GroupEvent.from_event(mock_event, group=group)
+        assert event.get_email_subject() == "BAR-1 - production@0.1 Slow DB Query"
 
     def test_as_dict_hides_client_ip(self):
         event = self.store_event(
