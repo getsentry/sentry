@@ -212,6 +212,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasSessions: bool
     hasProfiles: bool
     hasReplays: bool
+    hasMonitors: bool
     platform: Optional[str]
     firstEvent: Optional[datetime]
 
@@ -470,6 +471,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             "hasSessions": bool(obj.flags.has_sessions),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
+            "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "features": attrs["features"],
             "status": status_label,
@@ -702,6 +704,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasSessions=bool(obj.flags.has_sessions),
             hasProfiles=bool(obj.flags.has_profiles),
             hasReplays=bool(obj.flags.has_replays),
+            hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             platform=obj.platform,
             platforms=attrs["platforms"],

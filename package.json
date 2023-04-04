@@ -197,7 +197,7 @@
     "stylelint-config-prettier": "^9.0.3",
     "stylelint-config-recommended": "^8.0.0",
     "tocbot": "^4.20.0",
-    "tsconfig-paths": "^4.1.1",
+    "tsconfig-paths": "^4.2.0",
     "typescript-styled-plugin": "^0.18.2",
     "webpack-dev-server": "^4.11.1"
   },
