@@ -3,49 +3,16 @@ from typing import Any, Dict, List, Tuple
 
 from django.db import transaction
 
-from sentry.issues.escalating_issues_alg import issue_spike
+from sentry.issues.escalating import query_groups_past_counts
+from sentry.issues.escalating_issues_alg import generate_issue_forecast
 from sentry.models import Group, GroupStatus
 from sentry.models.groupforecast import GroupForecast
-from sentry.models.groupsnooze import GroupSnooze
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
 
-BATCH_SIZE = 200
+BATCH_SIZE = 1000
 GroupForecastTuple = Tuple[Group, List[int]]
-
-
-def query_groups_past_counts(groups: List[Group]) -> JSONData:
-    return {}
-
-
-def get_forecast_per_group(
-    group_forecast_list: List[GroupForecastTuple],
-    archived_groups: List[Group],
-    response: JSONData,
-) -> None:
-    """
-    Modifies `group_forecast_list` to contain a list of forecasted values for each group.
-
-    `group_forecast_list`: List of GroupForecastTuple to be modified
-    `archived_groups`: List of archived groups to be forecasted
-    `archived_groups`: Snuba response for group event counts
-    """
-    data_index = 0
-    time = datetime.now()
-    for group in archived_groups:
-        group_data: Dict[str, List[Any]] = {"intervals": [], "data": []}
-        while (
-            data_index < len(response["data"])
-            and group.id == response["data"][data_index]["group_id"]
-        ):
-            # Flatten data into lists to be used in issue_spike
-            group_data["intervals"].append(response["data"][data_index]["hourBucket"])
-            group_data["data"].append(response["data"][data_index]["count()"])
-            data_index += 1
-
-        forecasts = issue_spike(group_data, time)
-        forecasts_list = [int(forecast["forecasted_value"]) for forecast in forecasts]
-        group_forecast_list.append((group, forecasts_list))
+ParsedGroupCount = Dict[int, Dict[str, Any]]
 
 
 @instrumented_task(
@@ -54,18 +21,15 @@ def get_forecast_per_group(
     max_retries=5,
 )  # type: ignore
 def run_escalating_forecast() -> None:
-    until_escalating_groups = [gs.group for gs in GroupSnooze.objects.filter(until_escalating=True)]
-    ignored_groups_ids = [
-        group["id"] for group in Group.objects.filter(status=GroupStatus.IGNORED).values()
-    ]
-    archived_groups = [group for group in until_escalating_groups if group.id in ignored_groups_ids]
+    archived_groups = list(
+        Group.objects.filter(groupsnooze__until_escalating=True, status=GroupStatus.IGNORED)
+    )
     if not archived_groups:
         return
-    archived_groups.sort(key=lambda x: int(x.id), reverse=True)
-    response = query_groups_past_counts(archived_groups)
 
-    group_forecast_list: List[GroupForecastTuple] = []
-    get_forecast_per_group(group_forecast_list, archived_groups, response)
+    response = query_groups_past_counts(archived_groups)
+    group_counts = parse_groups_past_counts(response)
+    group_forecast_list = get_forecast_per_group(archived_groups, group_counts)
 
     with transaction.atomic():
         # Delete old forecasts
@@ -77,5 +41,45 @@ def run_escalating_forecast() -> None:
                 GroupForecast(group=group, forecast=forecast)
                 for group, forecast in group_forecast_list
             ],
-            batch_size=BATCH_SIZE,  # Is this a good batch size?
+            batch_size=BATCH_SIZE,
         )
+
+
+def parse_groups_past_counts(response: JSONData) -> ParsedGroupCount:
+    """
+    Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
+    ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
+
+    `response`: Snuba response for group event counts
+    """
+    group_counts: ParsedGroupCount = {}
+    for data in response:
+        group_id = data["group_id"]
+        if group_id not in group_counts.keys():
+            group_counts[group_id] = {
+                "intervals": [data["hourBucket"]],
+                "data": [data["count()"]],
+            }
+        else:
+            group_counts[group_id]["intervals"].append(data["hourBucket"])
+            group_counts[group_id]["data"].append(data["count()"])
+    return group_counts
+
+
+def get_forecast_per_group(
+    archived_groups: List[Group], group_counts: ParsedGroupCount
+) -> List[GroupForecastTuple]:
+    """
+    Returns a list of forecasted values for each group.
+
+    `archived_groups`: List of archived groups to be forecasted
+    `group_counts`: Parsed snuba response of group counts
+    """
+    time = datetime.now()
+    group_forecast_list: List[GroupForecastTuple] = []
+    group_dict = {group.id: group for group in archived_groups}
+    for group_id in group_counts.keys():
+        forecasts = generate_issue_forecast(group_counts[group_id], time)
+        forecasts_list = [int(forecast["forecasted_value"]) for forecast in forecasts]
+        group_forecast_list.append((group_dict[group_id], forecasts_list))
+    return group_forecast_list

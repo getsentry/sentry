@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 
-from sentry.issues.escalating_issues_alg import issue_spike
+from sentry.issues.escalating_issues_alg import generate_issue_forecast
 
 START_TIME = datetime.strptime("2022-07-27T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%f%z")
 
@@ -499,7 +499,7 @@ def test_spike_case() -> None:
     start_time = datetime.strptime("2022-07-27T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%f%z")
     data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": SEVEN_DAY_ERROR_EVENTS}
 
-    ceilings_list = issue_spike(data, start_time)
+    ceilings_list = generate_issue_forecast(data, start_time)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
 
     assert ceilings == [6987] * 14, "Ceilings are incorrect"
@@ -584,7 +584,7 @@ def test_bursty_case() -> None:
 
     data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
 
-    ceilings_list = issue_spike(data, START_TIME)
+    ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
 
     assert ceilings == [16580] * 14, "Ceilings are incorrect"
@@ -595,7 +595,7 @@ def test_empty_input() -> None:
 
     data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
 
-    ceilings_list = issue_spike(data, START_TIME)
+    ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
 
     assert ceilings == [], "Empty Input"
@@ -656,7 +656,7 @@ def test_less_than_week_data() -> None:
 
     data = {"intervals": SIX_DAY_INPUT_INTERVALS, "data": error_events}
 
-    ceilings_list = issue_spike(data, START_TIME)
+    ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
 
     assert ceilings == [82900] * 14, "Ceilings are incorrect"
@@ -665,9 +665,9 @@ def test_less_than_week_data() -> None:
 def test_low_freq_events() -> None:
     error_events = [6] * 168
 
-    data = {"intervals": SIX_DAY_INPUT_INTERVALS, "data": error_events}
+    data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
 
-    ceilings_list = issue_spike(data, START_TIME)
+    ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
 
     assert ceilings == [200] * 14, "Ceilings are incorrect"
@@ -676,7 +676,7 @@ def test_low_freq_events() -> None:
 def test_output() -> None:
     data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": SEVEN_DAY_ERROR_EVENTS}
 
-    ceilings_list = issue_spike(data, START_TIME)
+    ceilings_list = generate_issue_forecast(data, START_TIME)
 
     assert ceilings_list == [
         {"forecasted_date": "2022-07-27", "forecasted_value": 6987},

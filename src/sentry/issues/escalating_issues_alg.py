@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Union
 ForecastObject = Dict[str, Union[int, str]]
 
 
-def issue_spike(data: Dict[str, Any], start_time: datetime) -> List[ForecastObject]:
+def generate_issue_forecast(data: Dict[str, Any], start_time: datetime) -> List[ForecastObject]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 

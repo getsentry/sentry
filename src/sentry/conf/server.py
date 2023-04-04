@@ -901,7 +901,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
-        "schedule": crontab(minute=0, hour=0, day_of_week="saturday"),
+        # TODO: Change this to run weekly once we verify the results
+        "schedule": timedelta(hours=6),
         "options": {"expires": 60 * 60 * 3 * 4},
     },
 }
