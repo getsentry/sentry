@@ -9,6 +9,8 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResults,
     Metadata,
     UseCaseCollection,
+    UseCaseResult,
+    UseCaseResults,
 )
 
 
@@ -202,3 +204,47 @@ class KeyResultsTest(TestCase):
         assert_fetch_type_for_tag_string_set(
             meta[org_id], FetchType.RATE_LIMITED, set(rate_limited_mappings.keys())
         )
+
+
+class UseCaseResultsTest(TestCase):
+    def test_basic(self) -> None:
+        use_case_results = UseCaseResults()
+
+        assert use_case_results.results == {}
+        assert use_case_results.get_mapped_results() == {}
+        assert use_case_results.get_mapped_strings_to_ints() == {}
+
+        use_case_collection = UseCaseCollection(
+            {
+                "uc_1": {1: {"a", "b", "c"}, 2: {"e", "f"}},
+                "uc_2": {1: {"a", "j"}},
+                "uc_3": {5: {"a", "c"}},
+            }
+        )
+        assert use_case_results.get_unmapped_use_cases(use_case_collection) == use_case_collection
+        results = [
+            UseCaseResult(use_case_id="uc_1", org_id=1, string="a", id=1),
+            UseCaseResult(use_case_id="uc_1", org_id=1, string="c", id=2),
+            UseCaseResult(use_case_id="uc_2", org_id=1, string="a", id=3),
+            UseCaseResult(use_case_id="uc_2", org_id=1, string="j", id=4),
+            UseCaseResult(use_case_id="uc_4", org_id=2, string="j", id=5),
+        ]
+        use_case_results.add_use_case_results(results)
+        assert use_case_results.get_mapped_results() == {
+            "uc_1": {1: {"a": 1, "c": 2}},
+            "uc_2": {1: {"a": 3, "j": 4}},
+            "uc_4": {2: {"j": 5}},
+        }
+        assert use_case_results.get_unmapped_use_cases(use_case_collection) == UseCaseCollection(
+            {
+                "uc_1": {1: {"b"}, 2: {"e", "f"}},
+                "uc_3": {5: {"a", "c"}},
+            }
+        )
+        assert use_case_results.get_mapped_strings_to_ints() == {
+            "uc_1:1:a": 1,
+            "uc_1:1:c": 2,
+            "uc_2:1:a": 3,
+            "uc_2:1:j": 4,
+            "uc_4:2:j": 5,
+        }

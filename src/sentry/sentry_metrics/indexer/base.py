@@ -1,6 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
+from itertools import groupby
 from typing import (
     Mapping,
     MutableMapping,
@@ -12,6 +13,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    Union,
 )
 
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -81,6 +83,13 @@ class KeyCollection:
         self.mapping = mapping
         self.size = self._size()
 
+    def __eq__(self, __value: object) -> bool:
+        return (
+            isinstance(__value, self.__class__)
+            and self.size == __value.size
+            and self.mapping == __value.mapping
+        )
+
     def _size(self) -> int:
         total_size = 0
         for org_id in self.mapping.keys():
@@ -109,12 +118,19 @@ class KeyCollection:
 
 
 class UseCaseCollection:
-    def __init__(self, mapping: Mapping[str, Mapping[int, Set[str]]]):
+    def __init__(self, mapping: Mapping[str, Union[Mapping[int, Set[str]], KeyCollection]]):
         self.mapping = {
-            use_case_id: KeyCollection(keyCollection)
-            for use_case_id, keyCollection in mapping.items()
+            use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
+            for use_case_id, keys in mapping.items()
         }
         self.size = self._size()
+
+    def __eq__(self, __value: object) -> bool:
+        return (
+            isinstance(__value, self.__class__)
+            and self.size == __value.size
+            and self.mapping == __value.mapping
+        )
 
     def _size(self) -> int:
         return sum(keyCollection.size for keyCollection in self.mapping.values())
@@ -138,6 +154,13 @@ class KeyResults:
     def __init__(self) -> None:
         self.results: MutableMapping[int, MutableMapping[str, Optional[int]]] = defaultdict(dict)
         self.meta: MutableMapping[int, MutableMapping[str, Metadata]] = defaultdict(dict)
+
+    def __eq__(self, __value: object) -> bool:
+        return (
+            isinstance(__value, self.__class__)
+            and self.results == __value.results
+            and self.meta == __value.meta
+        )
 
     def add_key_result(
         self,
@@ -227,6 +250,95 @@ class KeyResults:
     # For brevity, allow callers to address the mapping directly
     def __getitem__(self, org_id: int) -> Mapping[str, Optional[int]]:
         return self.results[org_id]
+
+
+class UseCaseResults:
+    def __init__(self) -> None:
+        self.results: MutableMapping[str, KeyResults] = defaultdict(lambda: KeyResults())
+
+    def __eq__(self, __value: object) -> bool:
+        return isinstance(__value, self.__class__) and self.results == __value.results
+
+    def add_use_case_result(
+        self,
+        use_case_result: UseCaseResult,
+        fetch_type: Optional[FetchType] = None,
+        fetch_type_ext: Optional[FetchTypeExt] = None,
+    ) -> None:
+        self.results[use_case_result.use_case_id].add_key_result(
+            KeyResult(use_case_result.org_id, use_case_result.string, use_case_result.id),
+            fetch_type,
+            fetch_type_ext,
+        )
+
+    def add_use_case_results(
+        self,
+        use_case_results: Sequence[UseCaseResult],
+        fetch_type: Optional[FetchType] = None,
+        fetch_type_ext: Optional[FetchTypeExt] = None,
+    ) -> None:
+        for use_case, use_case_results in groupby(
+            use_case_results, lambda use_case_result: use_case_result.use_case_id
+        ):
+            self.results[use_case].add_key_results(
+                [
+                    KeyResult(use_case_result.org_id, use_case_result.string, use_case_result.id)
+                    for use_case_result in use_case_results
+                ],
+                fetch_type,
+                fetch_type_ext,
+            )
+
+    def get_mapped_results(self) -> Mapping[str, Mapping[int, Mapping[str, Optional[int]]]]:
+        results = {}
+        for use_case_id, key_results in self.results.items():
+            mapped_result = key_results.get_mapped_results()
+            if mapped_result:
+                results[use_case_id] = mapped_result
+        return results
+
+    def get_unmapped_use_cases(self, use_cases: UseCaseCollection) -> UseCaseCollection:
+        results = {}
+        for use_case_id, key_collection in use_cases.mapping.items():
+            unmapped_result = self.results[use_case_id].get_unmapped_keys(key_collection)
+            if unmapped_result.size > 0:
+                results[use_case_id] = unmapped_result
+        return UseCaseCollection(results)
+
+    def get_mapped_strings_to_ints(self) -> MutableMapping[str, int]:
+        return {
+            f"{use_case_id}:{string}": id
+            for use_case_id, key_results in self.results.items()
+            for string, id in key_results.get_mapped_key_strings_to_ints().items()
+        }
+
+    def get_fetch_metadata(
+        self,
+    ) -> Mapping[str, Mapping[int, Mapping[str, Metadata]]]:
+        return {
+            use_case_id: key_results.get_fetch_metadata()
+            for use_case_id, key_results in self.results.items()
+        }
+
+    def merge(self, other: "UseCaseResults") -> "UseCaseResults":
+        def merge_use_case(use_case_id):
+            if use_case_id in self.results and use_case_id in other.results:
+                return self.results[use_case_id].merge(other.results[use_case_id])
+            if use_case_id in self.results:
+                return self.results[use_case_id]
+            return other.results[use_case_id]
+
+        new_results = KeyResults()
+
+        new_results.results = {
+            use_case_id: merge_use_case(use_case_id)
+            for use_case_id in set(self.results.keys()) | set(other.results.keys())
+        }
+
+        return new_results
+
+    def __getitem__(self, use_case_id: str) -> KeyResults:
+        return self.results[use_case_id]
 
 
 class StringIndexer(Service):
