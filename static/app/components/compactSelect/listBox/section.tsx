@@ -6,7 +6,7 @@ import {Node} from '@react-types/shared';
 
 import {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from '../control';
+import {SelectFilterContext} from '../list';
 import {
   SectionGroup,
   SectionHeader,
@@ -36,16 +36,15 @@ export function ListBoxSection({item, listState, size}: ListBoxSectionProps) {
 
   const {separatorProps} = useSeparator({elementType: 'li'});
 
-  const {filterOption} = useContext(SelectContext);
-  const filteredOptions = useMemo(() => {
-    return [...item.childNodes].filter(child => {
-      return filterOption(child.props);
-    });
-  }, [item.childNodes, filterOption]);
-
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&
     item.value.showToggleAllButton;
+
+  const hiddenOptions = useContext(SelectFilterContext);
+  const childItems = useMemo(
+    () => [...item.childNodes].filter(child => !hiddenOptions.has(child.props.value)),
+    [item.childNodes, hiddenOptions]
+  );
 
   return (
     <Fragment>
@@ -60,7 +59,7 @@ export function ListBoxSection({item, listState, size}: ListBoxSectionProps) {
           </SectionHeader>
         )}
         <SectionGroup {...groupProps}>
-          {filteredOptions.map(child => (
+          {childItems.map(child => (
             <ListBoxOption
               key={child.key}
               item={child}

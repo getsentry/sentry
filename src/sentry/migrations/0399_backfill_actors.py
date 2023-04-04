@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0397_actor_fk_inversion"),
+        ("sentry", "0398_actor_fk_inversion"),
     ]
 
     operations = [

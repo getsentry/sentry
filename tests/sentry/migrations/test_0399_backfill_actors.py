@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillActorsTest(TestMigrations):
-    migrate_from = "0397_actor_fk_inversion"
+    migrate_from = "0398_actor_fk_inversion"
     migrate_to = "0398_backfill_actors"
 
     def setup_initial_state(self):
