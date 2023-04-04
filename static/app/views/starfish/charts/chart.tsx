@@ -29,7 +29,9 @@ type Props = {
   grid?: AreaChartProps['grid'];
   height?: number;
   isLineChart?: boolean;
+  log?: boolean;
   previousData?: Series[];
+  stacked?: boolean;
 };
 
 function computeMax(data: Series[]) {
@@ -41,7 +43,14 @@ function computeMax(data: Series[]) {
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
 function computeAxisMax(data: Series[]) {
   // assumes min is 0
-  const maxValue = computeMax(data);
+  let maxValue = 0;
+  if (data.length > 2) {
+    for (let i = 0; i < data.length; i++) {
+      maxValue += max(data[i].data.map(point => point.value)) as number;
+    }
+  } else {
+    maxValue = computeMax(data);
+  }
 
   if (maxValue <= 1) {
     return 1;
@@ -80,6 +89,8 @@ function Chart({
   definedAxisTicks,
   chartColors,
   isLineChart,
+  stacked,
+  log,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -124,6 +135,7 @@ function Chart({
           minInterval: durationUnit,
           splitNumber: definedAxisTicks,
           max: dataMax,
+          type: log ? 'log' : 'value',
           axisLabel: {
             color: theme.chartLabel,
             formatter(value: number) {
@@ -207,7 +219,7 @@ function Chart({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1]] as string[],
+    colors,
     tooltip: {
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
@@ -219,7 +231,7 @@ function Chart({
         return value === 'epm()' ? 'tpm()' : value;
       },
     },
-  };
+  } as Omit<AreaChartProps, 'series'>;
 
   if (loading) {
     if (isLineChart) {
@@ -259,7 +271,7 @@ function Chart({
               series={series}
               previousPeriod={previousData}
               xAxis={xAxis}
-              yAxis={areaChartProps.yAxes[0]}
+              yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
               tooltip={areaChartProps.tooltip}
             />
           );
@@ -272,6 +284,7 @@ function Chart({
             series={series}
             previousPeriod={previousData}
             xAxis={xAxis}
+            stacked={stacked}
             {...areaChartProps}
           />
         );
