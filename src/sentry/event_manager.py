@@ -1582,7 +1582,7 @@ def _save_aggregate(
     # all group hashes
     if migrate_off_hierarchical:
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-        if root_hierarchical_grouphash:
+        if root_hierarchical_grouphash and root_hierarchical_grouphash.group_id is None:
             new_hashes.append(root_hierarchical_grouphash)
     elif root_hierarchical_grouphash is None:
         # No hierarchical grouping was run, only consider flat hashes

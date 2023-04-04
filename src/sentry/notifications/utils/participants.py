@@ -361,7 +361,7 @@ def determine_eligible_recipients(
                 "outcome": outcome
                 if outcome == "match" or fallthrough_choice is None
                 else fallthrough_choice.value,
-                "hasSuspectCommitters": bool(suspect_commit_users),
+                "hasSuspectCommitters": str(bool(suspect_commit_users)),
             },
         )
 

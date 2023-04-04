@@ -92,7 +92,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 "tenant_id": tenant_id,
             }
             assert OrganizationIntegration.objects.get(
-                integration=integration, organization=self.organization
+                integration=integration, organization_id=self.organization.id
             )
 
             if "team" == installation_type:

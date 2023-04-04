@@ -1166,6 +1166,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             }
         )
         team.delete()
+        # Pick up here. Deleting the team apparently deletes the alert rule as well now
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10"}
             response = self.client.get(
