@@ -126,8 +126,6 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    const orgFeatures = new Set(organization.features);
-
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
       end: trace.traceEndTimestamp,
@@ -145,7 +143,7 @@ function SpanDetail(props: Props) {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
-      projects: orgFeatures.has('global-views')
+      projects: organization.features.includes('global-views')
         ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
       version: 2,

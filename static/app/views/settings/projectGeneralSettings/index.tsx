@@ -109,7 +109,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     }
   };
 
-  isProjectAdmin = () => new Set(this.props.organization.access).has('project:admin');
+  isProjectAdmin = () => this.props.organization.access.includes('project:admin');
 
   renderRemoveProject() {
     const project = this.state.data;

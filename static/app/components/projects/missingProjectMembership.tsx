@@ -66,14 +66,14 @@ class MissingProjectMembership extends Component<Props, State> {
     );
   }
 
-  renderJoinTeam(teamSlug: string, features: Set<string>) {
+  renderJoinTeam(teamSlug: string, features: string[]) {
     const team = TeamStore.getBySlug(teamSlug);
 
     if (!team) {
       return null;
     }
     if (this.state.loading) {
-      if (features.has('open-membership')) {
+      if (features.includes('open-membership')) {
         return <Button busy>{t('Join Team')}</Button>;
       }
       return <Button busy>{t('Request Access')}</Button>;
@@ -81,7 +81,7 @@ class MissingProjectMembership extends Component<Props, State> {
     if (team?.isPending) {
       return <Button disabled>{t('Request Pending')}</Button>;
     }
-    if (features.has('open-membership')) {
+    if (features.includes('open-membership')) {
       return (
         <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
           {t('Join Team')}
@@ -121,7 +121,6 @@ class MissingProjectMembership extends Component<Props, State> {
     const {organization} = this.props;
     const teamSlug = this.state.team;
     const teams = this.state.project?.teams ?? [];
-    const features = new Set(organization.features);
 
     const teamAccess = [
       {
@@ -166,7 +165,7 @@ class MissingProjectMembership extends Component<Props, State> {
                   }}
                 />
                 {teamSlug ? (
-                  this.renderJoinTeam(teamSlug, features)
+                  this.renderJoinTeam(teamSlug, organization.features)
                 ) : (
                   <Button disabled>{t('Select a Team')}</Button>
                 )}
