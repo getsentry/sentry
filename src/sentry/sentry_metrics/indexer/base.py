@@ -56,10 +56,10 @@ class KeyResult:
 
 @dataclass(frozen=True)
 class UseCaseResult:
+    use_case_id: str
     org_id: int
     string: str
     id: Optional[int]
-    use_case_id: str
 
     @classmethod
     def from_string(cls: Type[UR], key: str, id: int) -> UR:
@@ -277,13 +277,13 @@ class UseCaseResults:
         fetch_type: Optional[FetchType] = None,
         fetch_type_ext: Optional[FetchTypeExt] = None,
     ) -> None:
-        for use_case, use_case_results in groupby(
+        for use_case, grouped_use_case_results in groupby(
             use_case_results, lambda use_case_result: use_case_result.use_case_id
         ):
             self.results[use_case].add_key_results(
                 [
                     KeyResult(use_case_result.org_id, use_case_result.string, use_case_result.id)
-                    for use_case_result in use_case_results
+                    for use_case_result in grouped_use_case_results
                 ],
                 fetch_type,
                 fetch_type_ext,
@@ -321,14 +321,14 @@ class UseCaseResults:
         }
 
     def merge(self, other: "UseCaseResults") -> "UseCaseResults":
-        def merge_use_case(use_case_id):
+        def merge_use_case(use_case_id: str) -> KeyResults:
             if use_case_id in self.results and use_case_id in other.results:
                 return self.results[use_case_id].merge(other.results[use_case_id])
             if use_case_id in self.results:
                 return self.results[use_case_id]
             return other.results[use_case_id]
 
-        new_results = KeyResults()
+        new_results = UseCaseResults()
 
         new_results.results = {
             use_case_id: merge_use_case(use_case_id)
