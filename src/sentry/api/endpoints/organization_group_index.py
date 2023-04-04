@@ -403,8 +403,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :param map statusDetails: additional details about the resolution.
                                   Valid values are ``"inRelease"``, ``"inNextRelease"``,
                                   ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
-                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
-                                  ``"ignoreUserWindow"``. Status detail
+                                  ``"ignoreWindow"``, ``"ignoreUserCount"``,
+                                  ``"ignoreUserWindow"``, and ``"archiveDuration"``. Status detail
                                   updates that include release data are only allowed
                                   for groups within a single project.
         :param int ignoreDuration: the number of minutes to ignore this issue.

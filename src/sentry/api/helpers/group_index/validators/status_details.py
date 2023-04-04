@@ -16,6 +16,12 @@ class StatusDetailsValidator(serializers.Serializer):  # type: ignore
     ignoreUserCount = serializers.IntegerField()
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
+    archiveDuration = serializers.CharField()
+
+    def validate_archiveDuration(self, value: str) -> str:
+        if value != "escalating":
+            raise serializers.ValidationError("Invalid archive duration")
+        return value
 
     def validate_inRelease(self, value: str) -> Release:
         project = self.context["project"]
