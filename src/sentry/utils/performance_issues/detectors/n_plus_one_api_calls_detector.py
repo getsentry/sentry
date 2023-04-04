@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlparse
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -221,8 +222,20 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=[span["span_id"] for span in self.spans],
-            evidence_data={},
-            evidence_display=[],
+            evidence_data={
+                "op": last_span["op"],
+                "cause_span_ids": [],
+                "parent_span_ids": [last_span.get("parent_span_id", None)],
+                "offender_span_ids": [span["span_id"] for span in self.spans],
+            },
+            evidence_display=[
+                IssueEvidence(
+                    name="Transaction Name",
+                    value=self._event.get("transaction", ""),
+                    important=True,
+                ),
+                # TODO figure out whether we need to add anything else
+            ],
         )
 
     def _fingerprint(self) -> Optional[str]:
