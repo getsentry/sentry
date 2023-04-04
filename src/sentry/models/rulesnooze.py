@@ -7,7 +7,7 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, 
 @region_silo_only_model
 class RuleSnooze(Model):
     """
-    Whether or not an issue alert or metric alert is snoozed for a user and optionally for how long. Null `until` means snoozed forever.
+    Duration an issue alert or metric alert is snoozed for a user. Null `until` value means snoozed forever.
     """
 
     __include_in_export__ = True
