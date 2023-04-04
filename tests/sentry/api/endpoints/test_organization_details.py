@@ -331,7 +331,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "require2FA": True,
             "allowJoinRequests": False,
             "providerName": "google",
-            "providerConfig": {"domain": "foo.bar"},
+            "providerConfig": {"domain": "foo.com"},
         }
 
         # needed to set require2FA
