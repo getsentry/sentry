@@ -19,18 +19,20 @@ from sentry.models import Group
 from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
 
-# This gets modified in tests to force a smaller limit
 QUERY_LIMIT = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
 SEVEN_DAYS_IN_HOURS = 7 * 24
 
 
 def query_groups_past_counts(groups: List[Group]) -> JSONData:
+    """Query Snuba for the counts for every group bucketed into hours"""
     offset = 0
     all_results = []
+    start_date, end_date = _start_and_end_dates()
+    project_ids, group_ids = _extract_project_and_group_ids(groups)
 
     while True:
-        query = _generate_query(groups, offset)
+        query = _generate_query(group_ids, project_ids, offset, start_date, end_date)
         request = Request(dataset="events", app_id="sentry.issues.escalating", query=query)
         results = raw_snql_query(request, referrer="sentry.issues.escalating")["data"]
         if not results:
@@ -42,11 +44,16 @@ def query_groups_past_counts(groups: List[Group]) -> JSONData:
     return all_results
 
 
-def _generate_query(groups: List[Group], offset: int) -> Query:
-    project_ids, group_ids = _extract_project_and_group_ids(groups)
+def _generate_query(
+    group_ids: List[int],
+    project_ids: List[int],
+    offset: int,
+    start_date: datetime,
+    end_date: datetime,
+) -> Query:
+    """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
-    start_date, end_date = _start_and_end_dates()
     return Query(
         match=Entity("events"),
         select=[
