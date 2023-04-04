@@ -26,6 +26,12 @@ class _UseCaseID(type):
 
 class UseCaseID(metaclass=_UseCaseID):
     def __init__(self, value: str):
+        if (
+            value not in _HARDCODED_USE_CASES.values()
+            and value not in _REGISTERED_USE_CASES.values()
+        ):
+            raise ValueError("Passed use case has not been registered")
+
         self.value = value
 
     def __hash__(self) -> int:
