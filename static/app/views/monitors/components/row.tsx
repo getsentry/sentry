@@ -86,7 +86,7 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
         <AdditionalEnvironmentWarning>
           <Text>
             {t(
-              `This monitor has checkin data associated with these environments which will also be affected:`
+              `This will delete check-in data for this monitor associated with these environments:`
             )}
           </Text>
           <List symbol="bullet">
