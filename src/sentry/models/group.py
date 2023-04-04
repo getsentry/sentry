@@ -417,7 +417,7 @@ class Group(Model):
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
-            (GroupStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived until Escalating")),
+            (GroupStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived Until Escalating")),
             (GroupStatus.ESCALATING, _("Escalating")),
         ),
         db_index=True,
