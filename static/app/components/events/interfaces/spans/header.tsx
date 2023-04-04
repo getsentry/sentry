@@ -117,18 +117,15 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderViewHandles(
-    {
-      isDragging,
-      onLeftHandleDragStart,
-      leftHandlePosition,
-      onRightHandleDragStart,
-      rightHandlePosition,
-      viewWindowStart,
-      viewWindowEnd,
-    }: DragManagerChildrenProps,
-    isChart: boolean = false
-  ) {
+  renderViewHandles({
+    isDragging,
+    onLeftHandleDragStart,
+    leftHandlePosition,
+    onRightHandleDragStart,
+    rightHandlePosition,
+    viewWindowStart,
+    viewWindowEnd,
+  }: DragManagerChildrenProps) {
     const leftHandleGhost = isDragging ? (
       <Handle
         left={viewWindowStart}
@@ -136,7 +133,6 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
-        isChart={isChart}
       />
     ) : null;
 
@@ -145,7 +141,6 @@ class TraceViewHeader extends Component<PropType, State> {
         left={leftHandlePosition}
         onMouseDown={onLeftHandleDragStart}
         isDragging={isDragging}
-        isChart={isChart}
       />
     );
 
@@ -154,7 +149,6 @@ class TraceViewHeader extends Component<PropType, State> {
         left={rightHandlePosition}
         onMouseDown={onRightHandleDragStart}
         isDragging={isDragging}
-        isChart={isChart}
       />
     );
 
@@ -165,7 +159,6 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
-        isChart={isChart}
       />
     ) : null;
 
@@ -803,16 +796,14 @@ const MinimapContainer = styled('div')`
   left: 0;
 `;
 
-const ViewHandleContainer = styled('div')<{isChart: boolean}>`
+const ViewHandleContainer = styled('div')`
   position: absolute;
   top: 0;
-  height: ${p => (p.isChart ? PROFILE_MEASUREMENTS_CHART_HEIGHT : MINIMAP_HEIGHT)}px;
+  height: 100%;
 `;
 
-const ViewHandleLine = styled('div')<{isChart: boolean}>`
-  height: ${p =>
-    (p.isChart ? PROFILE_MEASUREMENTS_CHART_HEIGHT : MINIMAP_HEIGHT) -
-    VIEW_HANDLE_HEIGHT}px;
+const ViewHandleLine = styled('div')`
+  height: calc(100% - ${VIEW_HANDLE_HEIGHT}px);
   width: 2px;
   background-color: ${p => p.theme.textColor};
 `;
@@ -870,9 +861,7 @@ const Handle = ({
   left,
   onMouseDown,
   isDragging,
-  isChart,
 }: {
-  isChart: boolean;
   isDragging: boolean;
   left: number;
   onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
@@ -881,9 +870,8 @@ const Handle = ({
     style={{
       left: toPercent(left),
     }}
-    isChart={isChart}
   >
-    <ViewHandleLine isChart={isChart} />
+    <ViewHandleLine />
     <ViewHandle
       data-ignore="true"
       onMouseDown={onMouseDown}
