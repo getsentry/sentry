@@ -34,7 +34,7 @@ type Props = React.ComponentProps<typeof Expander> &
     prevFrame?: Frame;
   };
 
-function Native({
+export function Native({
   frame,
   isFrameAfterLastNonApp,
   isExpanded,
@@ -157,7 +157,6 @@ function Native({
           )}
           isHoverPreviewed={isHoverPreviewed}
           isUsedForGrouping={isUsedForGrouping}
-          nativeStackTraceV2
         />
       </NativeLineContent>
       <Expander
@@ -169,8 +168,6 @@ function Native({
     </Wrapper>
   );
 }
-
-export default Native;
 
 const PackageInfo = styled('span')`
   display: grid;

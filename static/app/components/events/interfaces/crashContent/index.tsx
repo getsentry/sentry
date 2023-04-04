@@ -1,7 +1,7 @@
 import {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
 
 import {ExceptionContent} from './exception';
-import {StackTrace} from './stackTrace';
+import {StackTraceContent} from './stackTrace';
 
 type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 type Props = Pick<
@@ -49,7 +49,7 @@ export function CrashContent({
 
   if (stacktrace) {
     return (
-      <StackTrace
+      <StackTraceContent
         stacktrace={stacktrace}
         stackView={stackView}
         newestFirst={newestFirst}

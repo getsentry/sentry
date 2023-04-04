@@ -22,10 +22,10 @@ import {
 } from '../utils';
 
 import Default from './default';
-import NativeV2 from './nativeV2';
+import {Native} from './native';
 
 type Props = Omit<
-  React.ComponentProps<typeof NativeV2>,
+  React.ComponentProps<typeof Native>,
   'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
 > &
   Omit<
@@ -96,7 +96,7 @@ function Line({
       case 'cocoa':
       case 'native':
         return (
-          <NativeV2
+          <Native
             event={event}
             leadsToApp={leadsToApp}
             frame={frame}

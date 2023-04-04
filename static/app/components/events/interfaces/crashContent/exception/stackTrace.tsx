@@ -10,7 +10,7 @@ import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import StackTraceContent from '../stackTrace/content';
-import StacktraceContentV2 from '../stackTrace/contentV2';
+import {HierarchicalGroupingContent} from '../stackTrace/hierarchicalGroupingContent';
 import {NativeContent} from '../stackTrace/nativeContent';
 
 type Props = {
@@ -99,7 +99,7 @@ function StackTrace({
 
   if (hasHierarchicalGrouping) {
     return (
-      <StacktraceContentV2
+      <HierarchicalGroupingContent
         data={data}
         expandFirstFrame={expandFirstFrame}
         includeSystemFrames={includeSystemFrames}

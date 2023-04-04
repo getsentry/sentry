@@ -8,7 +8,7 @@ import {
   StacktraceFilenameQuery,
   useSourceMapDebug,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
-import LeadHint from 'sentry/components/events/interfaces/frame/lineV2/leadHint';
+import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -109,7 +109,7 @@ function SourceMapWarning({
   ) : null;
 }
 
-export class Line extends Component<Props, State> {
+export class DeprecatedLine extends Component<Props, State> {
   static defaultProps = {
     isExpanded: false,
     emptySourceNotation: false,
@@ -405,7 +405,7 @@ export class Line extends Component<Props, State> {
 }
 
 export default withOrganization(
-  withSentryAppComponents(Line, {componentType: 'stacktrace-link'})
+  withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
 );
 
 const PackageInfo = styled('div')`

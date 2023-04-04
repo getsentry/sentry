@@ -10,7 +10,7 @@ import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
-import Line from '../../frame/lineV2';
+import Line from '../../frame/line';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 import {StacktraceFilenameQuery} from '../exception/useSourceMapDebug';
 
@@ -32,7 +32,7 @@ type Props = {
   newestFirst?: boolean;
 };
 
-function Content({
+export function HierarchicalGroupingContent({
   data,
   debugFrames,
   platform,
@@ -260,8 +260,6 @@ function Content({
     </Wrapper>
   );
 }
-
-export default Content;
 
 const Wrapper = styled(Panel)`
   position: relative;

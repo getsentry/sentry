@@ -30,7 +30,7 @@ import {
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
-import {StackTrace} from './crashContent/stackTrace';
+import {StackTraceContent} from './crashContent/stackTrace';
 import ThreadSelector from './threads/threadSelector';
 import findBestThread from './threads/threadSelector/findBestThread';
 import getThreadException from './threads/threadSelector/getThreadException';
@@ -86,7 +86,7 @@ export function getThreadStateIcon(state: ThreadStates | undefined) {
   }
 }
 
-export function ThreadsV2({
+export function Threads({
   data,
   event,
   projectSlug,
@@ -212,7 +212,7 @@ export function ThreadsV2({
 
     if (stackTrace) {
       return (
-        <StackTrace
+        <StackTraceContent
           stacktrace={stackTrace}
           stackView={
             display.includes('raw-stack-trace')

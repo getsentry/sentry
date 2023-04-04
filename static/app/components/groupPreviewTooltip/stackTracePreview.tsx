@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
+import {HierarchicalGroupingContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/hierarchicalGroupingContent';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
@@ -87,7 +87,10 @@ export function StackTracePreviewContent({
 
   if (orgFeatures.includes('grouping-stacktrace-ui')) {
     return (
-      <StackTraceContentV2 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
+      <HierarchicalGroupingContent
+        {...commonProps}
+        groupingCurrentLevel={groupingCurrentLevel}
+      />
     );
   }
 

@@ -13,15 +13,15 @@ import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';
 import {DebugMeta} from './interfaces/debugMeta';
-import {ExceptionV2} from './interfaces/exceptionV2';
+import {Exception} from './interfaces/exception';
 import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {Request} from './interfaces/request';
 import {Spans} from './interfaces/spans';
-import {StackTraceV2} from './interfaces/stackTraceV2';
+import {StackTrace} from './interfaces/stackTrace';
 import {Template} from './interfaces/template';
-import {ThreadsV2} from './interfaces/threadsV2';
+import {Threads} from './interfaces/threads';
 
 type Props = {
   entry: Entry;
@@ -49,7 +49,7 @@ function EventEntryContent({
   switch (entry.type) {
     case EntryType.EXCEPTION:
       return (
-        <ExceptionV2
+        <Exception
           event={event}
           data={entry.data}
           projectSlug={projectSlug}
@@ -66,7 +66,7 @@ function EventEntryContent({
 
     case EntryType.STACKTRACE:
       return (
-        <StackTraceV2
+        <StackTrace
           event={event}
           data={entry.data}
           projectSlug={projectSlug}
@@ -104,7 +104,7 @@ function EventEntryContent({
 
     case EntryType.THREADS:
       return (
-        <ThreadsV2
+        <Threads
           event={event}
           data={entry.data}
           projectSlug={projectSlug}
