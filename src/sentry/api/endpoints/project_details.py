@@ -621,10 +621,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "performanceIssueSendToPlatform" in result:
             if project.update_option(
                 "sentry:performance_issue_send_to_issues_platform",
-                result["performanceIssueCreationThroughPlatform"],
+                result["performanceIssueSendToPlatform"],
             ):
                 changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
-                    "performanceIssueCreationThroughPlatform"
+                    "performanceIssueSendToPlatform"
                 ]
         if "performanceIssueCreationThroughPlatform" in result:
             if project.update_option(
