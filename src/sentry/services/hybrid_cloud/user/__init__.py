@@ -50,7 +50,7 @@ class RpcUser(RpcModel):
     email: str = ""
     emails: FrozenSet[str] = frozenset()
     username: str = ""
-    actor_id: int = -1
+    actor_id: Optional[int] = None
     display_name: str = ""
     label: str = ""
     is_superuser: bool = False
@@ -202,6 +202,7 @@ class UserService(RpcService):
         # Returns a serialized user
         pass
 
+    @rpc_method
     def get_user(self, user_id: int) -> Optional[RpcUser]:
         """
         This method returns a User object given an ID
