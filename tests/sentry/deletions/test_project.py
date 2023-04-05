@@ -116,7 +116,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert Incident.objects.filter(id=incident.id).exists()
 
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
-        assert not RuleSnooze.objects.filter(id=rule_snooze.id).exists()
+        assert RuleSnooze.objects.filter(id=rule_snooze.id).exists()
 
     def test_delete_error_events(self):
         keeper = self.create_project(name="keeper")
