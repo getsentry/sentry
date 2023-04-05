@@ -211,7 +211,10 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             assert getattr(persisted_om.flags, "sso:linked")
             assert getattr(persisted_om.flags, "member-limit:restricted")
             assert not getattr(persisted_om.flags, "sso:invalid")
-            features_has.assert_any_call("organizations:invite-members", self.organization)
+            expected_rpc_org = DatabaseBackedOrganizationService.serialize_organization(
+                self.organization
+            )
+            features_has.assert_any_call("organizations:invite-members", expected_rpc_org)
             self.assert_org_member_mapping(org_member=persisted_om)
 
 
