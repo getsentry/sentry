@@ -17,6 +17,7 @@ export function MobileView(props: BasePerformanceViewProps) {
   const {organization} = props;
   const allowedCharts = [
     PerformanceWidgetSetting.TPM_AREA,
+    PerformanceWidgetSetting.USER_MISERY_AREA,
     PerformanceWidgetSetting.COLD_STARTUP_AREA,
     PerformanceWidgetSetting.WARM_STARTUP_AREA,
     PerformanceWidgetSetting.SLOW_FRAMES_AREA,
