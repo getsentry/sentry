@@ -1,3 +1,4 @@
+import math
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
@@ -214,3 +215,25 @@ def get_redis_client_for_ds() -> Any:
 
 def generate_cache_key_adj_factor(org_id: int) -> str:
     return f"ds::o:{org_id}:prioritise_projects:adj_factor"
+
+
+def actual_sample_rate(count_keep: int, count_drop: int) -> float:
+    """
+    Calculate actual sample rate based on relay `decision` tag values
+    """
+    try:
+        return count_keep / (count_drop + count_keep)
+    except ZeroDivisionError:
+        return 0.0
+
+
+def adjusted_factor(prev_factor: float, actual_rate: float, desired_sample_rate: float):
+    """
+    Calculate adjusted factor based on blended_sample rate (desired_sample_rate) and actual sample rate
+    """
+    assert prev_factor != 0.0
+
+    if math.isclose(desired_sample_rate, actual_rate, abs_tol=1e-9):
+        return 1.0
+
+    return prev_factor * (desired_sample_rate / actual_rate)

@@ -12,16 +12,6 @@ class DSElement:
     new_sample_rate: float = 0.0
 
 
-def actual_sample_rate(count_keep: int, count_drop: int) -> float:
-    """
-    Calculate actual sample rate based on relay `decision` tag values
-    """
-    try:
-        return count_keep / (count_drop + count_keep)
-    except ZeroDivisionError:
-        return 0.0
-
-
 def total_elements(ds_elements: List[DSElement]) -> float:
     ret_val = 0.0
     for element in ds_elements:

@@ -81,6 +81,13 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
     "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
 }
 
+DEFAULT_FACTOR_RULE = lambda factor: {
+    "condition": {"inner": [], "op": "and"},
+    "id": 1004,
+    "samplingValue": {"type": "factor", "value": factor},
+    "type": "trace",
+}
+
 
 def _validate_project_config(config):
     # Relay keeps BTreeSets for these, so sort here as well:
@@ -393,6 +400,7 @@ def test_project_config_with_all_biases_enabled(
                 },
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
+            DEFAULT_FACTOR_RULE(1.0),
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.1},
                 "type": "trace",

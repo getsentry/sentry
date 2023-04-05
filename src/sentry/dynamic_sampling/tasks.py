@@ -24,6 +24,7 @@ from sentry.dynamic_sampling.rules.utils import (
     DecisionKeepCount,
     OrganizationId,
     ProjectId,
+    adjusted_factor,
     generate_cache_key_adj_factor,
     get_redis_client_for_ds,
 )
@@ -180,7 +181,7 @@ def process_projects_sample_factors(
                     except (TypeError, ValueError):
                         prev_factor = 1.0
 
-                    new_factor = prev_factor * (actual_rate / desired_sample_rate)
+                    new_factor = adjusted_factor(prev_factor, actual_rate, desired_sample_rate)
 
                     pipeline.hset(adj_factor_cache_key, project.id, new_factor)
                     pipeline.pexpire(adj_factor_cache_key, CACHE_KEY_TTL)
