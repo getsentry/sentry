@@ -1,4 +1,4 @@
-{% load sentry_helpers %}(function sentryLoader(
+(function sentryLoader(
   _window,
   _document,
   _script,
@@ -190,9 +190,9 @@
     'configureScope',
     'withScope',
     'showReportDialog',
-  ].forEach(function (f) {
+  ].forEach(function (func) {
     _window[_namespace][f] = function () {
-      queue({f, a: arguments});
+      queue({f: func, a: arguments});
     };
   });
 
@@ -238,8 +238,8 @@
   'onerror',
   'onunhandledrejection',
   'Sentry',
-  '{{ publicKey|safe }}',
-  '{{ jsSdkUrl|safe }}',
-  {{ config|to_json|safe }},
-  {{ isLazy|safe|lower }}
+  __LOADER__PUBLIC_KEY__,
+  __LOADER_SDK_URL__,
+  __LOADER__CONFIG__,
+  __LOADER__IS_LAZY__
 );
