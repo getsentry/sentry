@@ -105,7 +105,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       window.location.assign('/');
     } catch (err) {
       if (err.status >= 500) {
-        addErrorMessage(t('Unable to transfer project'))
+        addErrorMessage(t('Unable to transfer project'));
         Sentry.captureException(err);
       }
     }
