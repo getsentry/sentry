@@ -144,6 +144,7 @@ class GroupStatus:
     REPROCESSING = 6
 
     ESCALATING = 7
+    ONGOING = 8
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
@@ -416,6 +417,7 @@ class Group(Model):
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
             (GroupStatus.ESCALATING, _("Escalating")),
+            (GroupStatus.ONGOING, _("Ongoing")),
         ),
         db_index=True,
     )
