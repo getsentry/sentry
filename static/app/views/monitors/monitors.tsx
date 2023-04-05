@@ -208,7 +208,7 @@ class Monitors extends AsyncView<Props, State> {
 
 const Filters = styled('div')`
   display: grid;
-  grid-template-columns: minmax(auto, 300px) 1fr;
+  grid-template-columns: max-content 1fr;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 `;
