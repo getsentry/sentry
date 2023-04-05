@@ -9,6 +9,7 @@
     ["device", "Mac"],
     ["device.family", "Mac"],
     ["environment", "production"],
+    ["sentry:release", "0.1"],
     ["http.status_code", "200"],
     ["level", "info"],
     ["runtime", "CPython 3.8.9"],
