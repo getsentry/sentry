@@ -49,10 +49,14 @@ export function OpenAIFixSuggestionButton({
       className={className}
       disabled={activeSuperUser || disabled}
       title={
-        <div>
-          {experimentalFeatureTooltipDesc}
-          <FeatureBadge type="experimental" noTooltip />
-        </div>
+        activeSuperUser ? (
+          t("Superusers can't consent to policies")
+        ) : (
+          <div>
+            {experimentalFeatureTooltipDesc}
+            <FeatureBadge type="experimental" noTooltip />
+          </div>
+        )
       }
       size={size}
       onClick={handleShowAISuggestion}
