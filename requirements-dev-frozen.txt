@@ -104,7 +104,7 @@ openapi-schema-validator==0.2.3
 openapi-spec-validator==0.4.0
 outcome==1.2.0
 packaging==21.3
-parse==1.19.0
+parse==1.19.1
 parsimonious==0.8.0
 pathspec==0.9.0
 pep517==0.12.0
@@ -167,7 +167,7 @@ sentry-arroyo==2.7.1
 sentry-cli==2.16.0
 sentry-kafka-schemas==0.0.25
 sentry-relay==0.8.19
-sentry-sdk==1.19.0
+sentry-sdk==1.19.1
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
