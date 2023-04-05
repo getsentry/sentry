@@ -304,7 +304,8 @@ class DatabaseBackedAuthService(AuthService):
 
         # Otherwise create a new membership
         om = organization_service.add_organization_member(
-            organization=organization,
+            organization_id=organization.id,
+            default_org_role=organization.default_role,
             role=organization.default_role,
             user=serial_user,
             flags=flags,

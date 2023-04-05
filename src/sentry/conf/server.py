@@ -684,6 +684,11 @@ CELERY_QUEUES = [
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
     ),
+    Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
+    Queue(
+        "events.symbolicate_js_event_low_priority",
+        routing_key="events.symbolicate_js_event_low_priority",
+    ),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
@@ -1298,8 +1303,6 @@ SENTRY_FEATURES = {
     "organizations:notification-actions": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
-    # Enable the new native stack trace design
-    "organizations:native-stack-trace-v2": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue

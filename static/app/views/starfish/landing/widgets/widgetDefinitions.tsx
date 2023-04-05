@@ -93,7 +93,13 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.DB_HTTP_BREAKDOWN]: {
     title: t('Operation Breakdown'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
-    fields: ['p95(spans.db)', 'p95(spans.http)'],
+    fields: [
+      'p95(spans.db)',
+      'p95(spans.http)',
+      'p95(spans.browser)',
+      'p95(spans.resource)',
+      'p95(spans.ui)',
+    ],
     dataType: GenericPerformanceWidgetDataType.stacked_area,
     allowsOpenInDiscover: true,
   },
