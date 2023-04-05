@@ -6,6 +6,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
 
+from sentry.models.actor import get_actor_id_for_user
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -50,18 +51,20 @@ class RpcActor(RpcModel):
 
     @classmethod
     def from_orm_user(cls, user: "User") -> "RpcActor":
+        actor_id = get_actor_id_for_user(user)
         return cls(
             id=user.id,
-            actor_id=user.actor_id,
+            actor_id=actor_id,
             actor_type=ActorType.USER,
             is_superuser=user.is_superuser,
         )
 
     @classmethod
     def from_rpc_user(cls, user: RpcUser) -> "RpcActor":
+        actor_id = get_actor_id_for_user(user)
         return cls(
             id=user.id,
-            actor_id=user.actor_id,
+            actor_id=actor_id,
             actor_type=ActorType.USER,
             is_superuser=user.is_superuser,
         )

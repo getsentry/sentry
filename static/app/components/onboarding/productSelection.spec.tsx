@@ -28,8 +28,11 @@ describe('Onboarding Product Selection', function () {
 
     // Introduction
     expect(
-      screen.getByText(textWithMarkupMatcher(/In this quick guide you’ll use/))
+      screen.getByText(
+        textWithMarkupMatcher(/In this quick guide you’ll use npm or yarn/)
+      )
     ).toBeInTheDocument();
+    expect(screen.queryByText('Prefer to set up Sentry using')).not.toBeInTheDocument();
 
     // Error monitoring shall be checked and disabled by default
     const errorMonitoring = screen.getByTestId(
@@ -80,5 +83,39 @@ describe('Onboarding Product Selection', function () {
     // Tooltip with explanation shall be displayed on hover
     await userEvent.hover(within(sessionReplay).getByTestId('more-information'));
     expect(await screen.findByRole('link', {name: 'Read the Docs'})).toBeInTheDocument();
+  });
+
+  it('renders for Loader Script', async function () {
+    const {routerContext} = initializeOrg({
+      ...initializeOrg(),
+      router: {
+        location: {
+          query: {product: ['performance-monitoring', 'session-replay']},
+        },
+        params: {},
+      },
+    });
+
+    const skipLazyLoader = jest.fn();
+
+    render(<ProductSelection lazyLoader skipLazyLoader={skipLazyLoader} />, {
+      context: routerContext,
+    });
+
+    // Introduction
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/In this quick guide you’ll use our Loader Script/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Prefer to set up Sentry using npm or yarn\?/)
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Go here'));
+
+    expect(skipLazyLoader).toHaveBeenCalledTimes(1);
   });
 });
