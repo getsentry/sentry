@@ -7,7 +7,7 @@ export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
-  REPROCESSING = 'is:reprocessing',
+  REPROCESSING = 'is:reprocessing' + '',
 }
 
 type OverviewTab = {
