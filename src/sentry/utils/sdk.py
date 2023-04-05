@@ -404,7 +404,7 @@ def configure_sdk():
         integrations=[
             DjangoAtomicIntegration(),
             DjangoIntegration(),
-            CeleryIntegration(),
+            CeleryIntegration(monitor_beat_tasks=True),
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
             RedisIntegration(),
