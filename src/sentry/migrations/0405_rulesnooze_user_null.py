@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_rulesnooze" ADD COLUMN "date_added" timestamp NOT NULL DEFAULT 0;
+                    ALTER TABLE "sentry_rulesnooze" ADD COLUMN "date_added" timestamp NOT NULL;
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_rulesnooze" DROP COLUMN "date_added";
