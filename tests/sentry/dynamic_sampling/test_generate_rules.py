@@ -22,6 +22,7 @@ from sentry.dynamic_sampling.rules.utils import (
 )
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import Feature
 from sentry.utils import json
 
 DEFAULT_FACTOR_RULE = lambda factor: {
@@ -96,7 +97,6 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
     )
 
     assert generate_rules(default_project) == [
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -118,7 +118,6 @@ def test_generate_rules_return_uniform_rules_with_rate(
     get_enabled_user_biases.return_value = {}
     get_blended_sample_rate.return_value = 0.1
     assert generate_rules(default_project) == [
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -169,7 +168,6 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             },
             "id": 1001,
         },
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -223,7 +221,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
             "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -286,7 +283,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
             "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -343,7 +339,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
             "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
             "type": "transaction",
         },
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -371,7 +366,6 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
         ],
     )
     assert generate_rules(default_project) == [
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -443,7 +437,6 @@ def test_generate_rules_with_different_project_platforms(
             },
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -523,7 +516,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -769,3 +761,43 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     assert len(rules) == 2
     assert rules[0]["id"] == adj_factor_id
     assert rules[1]["id"] == uniform_id
+
+
+@pytest.mark.django_db
+@freeze_time("2022-10-21T18:50:25Z")
+@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
+    get_blended_sample_rate, default_project
+):
+    get_blended_sample_rate.return_value = 0.1
+    redis_client = get_redis_client_for_ds()
+
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": False},
+            {"id": "ignoreHealthChecks", "active": False},
+            {"id": "boostLatestRelease", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+        ],
+    )
+
+    # Set factor
+    default_factor = 0.5
+    redis_client.hset(
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
+        f"{default_project.id}",
+        default_factor,
+    )
+    with Feature({"organizations:ds-apply-actual-sample-rate-to-biases": True}):
+        assert generate_rules(default_project) == [
+            DEFAULT_FACTOR_RULE(default_factor),
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1000,
+                "samplingValue": {"type": "sampleRate", "value": 0.1},
+                "type": "trace",
+            },
+        ]
+    _validate_rules(default_project)
