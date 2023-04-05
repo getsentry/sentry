@@ -9,6 +9,7 @@ class KafkaGenericMetricsBackend(GenericMetricsBackend):
         super().__init__()
 
     def counter(
+        self,
         use_case_id: UseCaseID,
         org_id: int,
         project_id: int,
@@ -19,6 +20,7 @@ class KafkaGenericMetricsBackend(GenericMetricsBackend):
         pass
 
     def set(
+        self,
         use_case_id: UseCaseID,
         org_id: int,
         project_id: int,
@@ -29,6 +31,7 @@ class KafkaGenericMetricsBackend(GenericMetricsBackend):
         pass
 
     def distribution(
+        self,
         use_case_id: UseCaseID,
         org_id: int,
         project_id: int,
