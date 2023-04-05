@@ -53,7 +53,6 @@ class ArtifactBundleFilesSerializer(Serializer):
         debug_id = self.archive.normalize_debug_id(headers.get("debug-id"))
 
         return {
-            # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
             "file_type": SourceFileType.from_lowercase_key(info.get("type")),
             "file_path": file_path,
             "file_url": self.archive.get_file_url_by_file_path(file_path),
