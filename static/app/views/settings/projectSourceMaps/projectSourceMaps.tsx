@@ -72,7 +72,9 @@ function SourceMapsTableRow({
       <ArtifactsTotalColumn>
         {isEmptyReleaseBundle ? (
           <Tooltip title={t('No bundle connected to this release')}>
-            <IconWarning color="warning" size="sm" />
+            <IconWrapper>
+              <IconWarning color="warning" size="sm" />
+            </IconWrapper>
           </Tooltip>
         ) : (
           <Count value={fileCount} />
@@ -407,4 +409,8 @@ const ActionsColumn = styled(Column)`
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
 `;
