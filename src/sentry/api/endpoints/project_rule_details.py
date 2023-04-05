@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -88,8 +89,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             serialized_rule["errors"] = errors
 
         try:
-            rule_snooze = RuleSnooze.objects.get(user_id=request.user.id, rule=rule)
-            serialized_rule["snoozeDetails"] = {"snooze": True, "ownerId": rule_snooze.owner_id}
+            rule_snooze = RuleSnooze.objects.get(
+                Q(user_id=request.user.id) | Q(user_id=None), rule=rule
+            )
+            serialized_rule["snoozeDetails"] = {"snooze": True, "ownerId": rule_snooze.user_id}
+            # serialized_rule["snoozeDetails"] = {"snooze": True, "ownerId": rule_snooze.owner_id}
+
         except RuleSnooze.DoesNotExist:
             pass
 
