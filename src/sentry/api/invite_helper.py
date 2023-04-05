@@ -7,14 +7,7 @@ from django.utils.crypto import constant_time_compare
 from rest_framework.request import Request
 
 from sentry import audit_log, features
-from sentry.models import (
-    AuthIdentity,
-    AuthProvider,
-    Organization,
-    OrganizationMember,
-    User,
-    UserEmail,
-)
+from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, User, UserEmail
 from sentry.signals import member_joined
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
@@ -42,7 +35,7 @@ class ApiInviteHelper:
     def from_session_or_email(
         cls,
         request: Request,
-        organization: Organization,
+        organization_id: int,
         email: str,
         instance: Any | None = None,
         logger: Logger | None = None,
@@ -59,7 +52,7 @@ class ApiInviteHelper:
                 om = OrganizationMember.objects.get(token=invite_token, id=invite_member_id)
             else:
                 om = OrganizationMember.objects.get(
-                    email=email, organization=organization, user=None
+                    email=email, organization_id=organization_id, user=None
                 )
         except OrganizationMember.DoesNotExist:
             # Unable to locate the pending organization member. Cannot setup
