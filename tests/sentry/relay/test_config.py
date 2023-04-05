@@ -81,13 +81,6 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
     "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
 }
 
-DEFAULT_FACTOR_RULE = lambda factor: {
-    "condition": {"inner": [], "op": "and"},
-    "id": 1004,
-    "samplingValue": {"type": "factor", "value": factor},
-    "type": "trace",
-}
-
 
 def _validate_project_config(config):
     # Relay keeps BTreeSets for these, so sort here as well:
@@ -295,9 +288,18 @@ def test_project_config_with_all_biases_enabled(
             timestamp,
         )
 
+    # Set factor
+    default_factor = 0.5
+    redis_client.hset(
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
+        f"{default_project.id}",
+        default_factor,
+    )
+
     with Feature(
         {
             "organizations:dynamic-sampling": True,
+            "organizations:ds-apply-actual-sample-rate-to-biases": True,
         }
     ):
         with patch(
@@ -400,7 +402,12 @@ def test_project_config_with_all_biases_enabled(
                 },
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
-            DEFAULT_FACTOR_RULE(1.0),
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1004,
+                "samplingValue": {"type": "factor", "value": default_factor},
+                "type": "trace",
+            },
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.1},
                 "type": "trace",

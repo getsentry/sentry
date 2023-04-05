@@ -27,16 +27,18 @@ class AdjustmentFactorBias(Bias):
             try:
                 prev_factor = float(redis_client.hget(adj_factor_cache_key, project.id))
             except (TypeError, ValueError):
-                # no point creating a rule that doesn't do anything.
-                return []
-        return [
-            {
-                "samplingValue": {"type": "factor", "value": prev_factor},
-                "type": "trace",
-                "condition": {
-                    "op": "and",
-                    "inner": [],
-                },
-                "id": RESERVED_IDS[RuleType.ADJUSTMENT_FACTOR_RULE],
-            }
-        ]
+                pass
+
+        if prev_factor != 1.0:
+            return [
+                {
+                    "samplingValue": {"type": "factor", "value": prev_factor},
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": RESERVED_IDS[RuleType.ADJUSTMENT_FACTOR_RULE],
+                }
+            ]
+        return []
