@@ -138,11 +138,9 @@ class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
 def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
     """Decorate methods to be exposed as part of the RPC interface.
 
-    May be applied only to an abstract method of an RpcService subclass.
+    Should be applied only to methods of an RpcService subclass.
     """
 
-    if not getattr(method, "__isabstractmethod__", False):
-        raise RpcServiceSetupException("`@rpc_method` may only decorate abstract methods")
     setattr(method, _IS_RPC_METHOD_ATTR, True)
     return method
 
@@ -178,7 +176,7 @@ class RpcService(InterfaceWithLifecycle):
     _signatures: Mapping[str, RpcMethodSignature]
 
     def __init_subclass__(cls) -> None:
-        if cls._declares_service_interface():
+        if cls._has_rpc_methods():
             # These class attributes are required on any RpcService subclass that has
             # at least one method decorated by `@rpc_method`. (They can be left off
             # if and when we make an intermediate abstract class.)
@@ -191,33 +189,15 @@ class RpcService(InterfaceWithLifecycle):
         cls._signatures = cls._create_signatures()
 
     @classmethod
-    def _get_all_abstract_methods(cls) -> Iterator[Callable[..., Any]]:
+    def _get_all_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name, None)
-            if callable(attr) and getattr(attr, "__isabstractmethod__", False):
+            if callable(attr) and getattr(attr, _IS_RPC_METHOD_ATTR, False):
                 yield attr
 
     @classmethod
-    def _get_all_abstract_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
-        return (
-            m for m in cls._get_all_abstract_methods() if getattr(m, _IS_RPC_METHOD_ATTR, False)
-        )
-
-    @classmethod
-    def _declares_service_interface(cls) -> bool:
-        """Check whether a subclass declares the service interface.
-
-        By "service interface", we mean the set of RPC methods that are offered.
-        Those methods are decorated by `@rpc_method`, so we return true for any
-        service class that declares (but does not implement) at least one such method.
-
-        This method would return false, for example, for the local, database-backed
-        implementation that inherits from the base service. It also would return
-        false on an intermediate, abstract subclass that is meant to be extended to
-        declare other base services.
-        """
-
-        for _ in cls._get_all_abstract_rpc_methods():
+    def _has_rpc_methods(cls) -> bool:
+        for _ in cls._get_all_rpc_methods():
             return True
         else:
             return False
@@ -240,7 +220,7 @@ class RpcService(InterfaceWithLifecycle):
     @classmethod
     def _create_signatures(cls) -> Mapping[str, RpcMethodSignature]:
         model_table = {}
-        for base_method in cls._get_all_abstract_rpc_methods():
+        for base_method in cls._get_all_rpc_methods():
             try:
                 signature = RpcMethodSignature(cls, base_method)
             except Exception as e:
@@ -258,7 +238,13 @@ class RpcService(InterfaceWithLifecycle):
 
     @classmethod
     def _create_remote_implementation(cls) -> RpcService:
-        """Create a service object that makes remote calls to another silo."""
+        """Create a service object that makes remote calls to another silo.
+
+        The service object will implement each abstract method with an RPC method
+        decorator by making a remote call to another silo. Non-abstract methods with
+        an RPC method decorator are not overridden and are executed locally as normal
+        (but are still available as part of the RPC interface for external clients).
+        """
 
         def create_remote_method(method_name: str) -> Callable[..., Any]:
             signature = cls._signatures.get(method_name)
@@ -300,7 +286,8 @@ class RpcService(InterfaceWithLifecycle):
 
         overrides = {
             service_method.__name__: create_remote_method(service_method.__name__)
-            for service_method in cls._get_all_abstract_rpc_methods()
+            for service_method in cls._get_all_rpc_methods()
+            if getattr(service_method, "__isabstractmethod__", False)
         }
         remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (cls,), overrides)
         return cast(RpcService, remote_service_class())
