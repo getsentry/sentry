@@ -1,6 +1,6 @@
 from typing import Mapping
 
-from sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 class GenericMetricsBackend:
