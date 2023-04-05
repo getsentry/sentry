@@ -831,15 +831,23 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.get_error_response(
                 self.organization.slug,
                 method="put",
-                providerConfig={"option": "test"},
+                providerConfig={"domain": "foo.com"},
                 status_code=400,
             )
             self.get_error_response(
                 self.organization.slug,
                 method="put",
                 providerName="not_valid",
-                providerConfig={"option": "test"},
+                providerConfig={"domain": "foo.com"},
                 status_code=400,
+            )
+
+            self.get_error_response(
+                self.organization.slug,
+                method="put",
+                providerName="google",
+                providerConfig={"invalid_domain": "foo.com"},
+                status_code=500,
             )
 
         # succeed if feature is not enabled and passing in anyways
