@@ -17,6 +17,7 @@ import EventView, {
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import withApi from 'sentry/utils/withApi';
 
 import TableView from './tableView';
@@ -216,17 +217,22 @@ class Table extends PureComponent<TableProps, TableState> {
             return (
               <CustomMeasurementsContext.Consumer>
                 {contextValue => (
-                  <TableView
-                    {...this.props}
-                    isLoading={isLoading}
-                    isFirstPage={isFirstPage}
-                    error={error}
-                    eventView={eventView}
-                    tableData={tableData}
-                    measurementKeys={measurementKeys}
-                    spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
-                    customMeasurements={contextValue?.customMeasurements ?? undefined}
-                  />
+                  <VisuallyCompleteWithData
+                    id="Discover-Table"
+                    hasData={(tableData?.data?.length ?? 0) > 0}
+                  >
+                    <TableView
+                      {...this.props}
+                      isLoading={isLoading}
+                      isFirstPage={isFirstPage}
+                      error={error}
+                      eventView={eventView}
+                      tableData={tableData}
+                      measurementKeys={measurementKeys}
+                      spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
+                      customMeasurements={contextValue?.customMeasurements ?? undefined}
+                    />
+                  </VisuallyCompleteWithData>
                 )}
               </CustomMeasurementsContext.Consumer>
             );
