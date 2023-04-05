@@ -46,7 +46,6 @@ module.exports = {
       files: ['**/js-sdk-loader.ts'],
       rules: {
         'no-console': 'off',
-        'no-var': 'off',
       },
     },
   ],
