@@ -47,7 +47,7 @@ class MonitorEndpoint(Endpoint):
         self,
         request: Request,
         organization_slug: str,
-        monitor_id: str,
+        monitor_slug: str,
         checkin_id: str | None = None,
         *args,
         **kwargs,
@@ -58,7 +58,7 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_id)
+            monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_slug)
         except Monitor.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -109,7 +109,7 @@ class MonitorIngestEndpoint(Endpoint):
 
     allow_auto_create_monitors = False
     """
-    Loosens the base endpoint such that a monitor with the provided monitor_id
+    Loosens the base endpoint such that a monitor with the provided monitor_slug
     does not need to exist. This is used for initial checkin creation with
     monitor upsert.
 
@@ -121,7 +121,7 @@ class MonitorIngestEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        monitor_id: str,
+        monitor_slug: str,
         checkin_id: str | None = None,
         organization_slug: str | None = None,
         *args,
@@ -130,9 +130,9 @@ class MonitorIngestEndpoint(Endpoint):
         organization = None
         monitor = None
 
-        # Include monitor_id in kwargs when upsert is enabled
+        # Include monitor_slug in kwargs when upsert is enabled
         if self.allow_auto_create_monitors:
-            kwargs["monitor_id"] = monitor_id
+            kwargs["monitor_slug"] = monitor_slug
 
         using_dsn_auth = isinstance(request.auth, ProjectKey)
 
@@ -147,7 +147,7 @@ class MonitorIngestEndpoint(Endpoint):
                 organization = Organization.objects.get_from_cache(slug=organization_slug)
                 # Try lookup by slug first. This requires organization context since
                 # slugs are unique only to the organization
-                monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_id)
+                monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_slug)
             except (Organization.DoesNotExist, Monitor.DoesNotExist):
                 pass
 
@@ -155,12 +155,12 @@ class MonitorIngestEndpoint(Endpoint):
         if not monitor:
             # Validate GUIDs
             try:
-                UUID(monitor_id)
+                UUID(monitor_slug)
                 # When looking up by guid we don't include the org conditional
                 # (since GUID lookup allows orgless routes), we will validate
                 # permissions later in this function
                 try:
-                    monitor = Monitor.objects.get(guid=monitor_id)
+                    monitor = Monitor.objects.get(guid=monitor_slug)
                 except Monitor.DoesNotExist:
                     monitor = None
             except ValueError:
