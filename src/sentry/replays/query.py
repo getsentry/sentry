@@ -153,7 +153,7 @@ def query_replays_dataset(
                 # Make sure we're not too old.
                 Condition(Column("finished_at"), Op.LT, end),
                 # Require non-archived replays.
-                Condition(Column("isArchived"), Op.EQ, 0),
+                Condition(Column("isArchived"), Op.IS_NULL),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
                 # Other conditions.
@@ -674,7 +674,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "is_archived": Function(
         "any",
-        parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
+        parameters=[Column("is_archived")],
         alias="isArchived",
     ),
     "activity": _activity_score(),
