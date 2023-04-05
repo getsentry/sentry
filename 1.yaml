@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: strict-options
+data:
+  # the yaml options file that gets passed from k8 job to senty runner
+  options-strict.yaml: |
+    sentry:test_key.1: value.1
+    sentry:test_key.2: value.2
+    sentry:test_key.3: value.3
+    sentry:test_key.4: value.4
