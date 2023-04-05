@@ -15,7 +15,7 @@ def get_identity_or_404(
     integration_id: int,
     organization_id: Optional[int] = None,
 ) -> Tuple[RpcOrganization, Integration, IdentityProvider]:
-    """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
+    """For endpoints, short-circuit with a 404 if we cannot find everything we need. CONTROL/MONOLITH silo modes only."""
     if provider not in EXTERNAL_PROVIDERS:
         raise Http404
 

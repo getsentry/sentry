@@ -16,35 +16,43 @@ from .base import BaseRequestParser
 
 logger = logging.getLogger(__name__)
 
+WEBHOOK_ENDPOINTS = ["SlackCommandsEndpoint", "SlackActionEndpoint", "SlackEventEndpoint"]
+"""
+Endpoints which provide integration information in the request headers.
+See: `src/sentry/integrations/slack/webhooks`
+"""
+
+DJANGO_VIEW_ENDPOINTS = [
+    "SlackLinkTeamView",
+    "SlackUnlinkTeamView",
+    "SlackLinkIdentityView",
+    "SlackUnlinkIdentityView",
+]
+"""
+Views served directly from the control silo without React.
+See: `src/sentry/integrations/slack/views`
+"""
+
 
 class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
 
-    endpoint_classes = ["SlackCommandsEndpoint", "SlackActionEndpoint", "SlackEventEndpoint"]
-    """
-    Endpoints which provide integration information in the request headers.
-    See: `src/sentry/integrations/slack/webhooks`
-    """
-
-    django_view_classes = [
+    control_classes = [
         "SlackLinkIdentityView",
         "SlackUnlinkIdentityView",
+    ]
+
+    region_classes = [
         "SlackLinkTeamView",
         "SlackUnlinkTeamView",
+        "SlackCommandsEndpoint",
+        "SlackActionEndpoint",
+        "SlackEventEndpoint",
     ]
-    """
-    Views served directly from the control silo without React.
-    See: `src/sentry/integrations/slack/views`
-    """
-
-    installation_view_classes = ["PipelineAdvancerView"]
-    """
-    Django views which will not map to an existing integration
-    """
 
     def get_integration_from_request(self) -> RpcIntegration | None:
         view_class_name = self.match.func.view_class.__name__
-        if view_class_name in self.endpoint_classes:
+        if view_class_name in WEBHOOK_ENDPOINTS:
             # We need convert the raw Django request to a Django Rest Framework request
             # since that's the type the SlackRequest expects
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
@@ -58,18 +66,17 @@ class SlackRequestParser(BaseRequestParser):
                 return None
             return slack_request.integration
 
-        elif view_class_name in self.django_view_classes:
+        elif view_class_name in DJANGO_VIEW_ENDPOINTS:
             # Parse the signed params and ensure the organization is associated with the
             params = unsign(self.match.kwargs.get("signed_params"))
             return integration_service.get_integration(integration_id=params.get("integration_id"))
-
-        elif view_class_name in self.installation_view_classes:
-            return None
 
     def get_response(self):
         """
         Slack Webhook Requests all require synchronous responses.
         """
+        # TODO(Leander): Handle installation pipeline requests
+
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
             logger.error("no_regions", extra={"path": self.request.path})
@@ -77,7 +84,7 @@ class SlackRequestParser(BaseRequestParser):
 
         # Django views are returned from the control silo no matter what.
         view_class_name = self.match.func.view_class.__name__
-        if view_class_name in self.django_view_classes:
+        if view_class_name in self.control_classes:
             return self.get_response_from_control_silo()
 
         # Slack only requires one synchronous response.

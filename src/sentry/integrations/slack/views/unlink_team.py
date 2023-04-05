@@ -1,12 +1,14 @@
 from django.core.signing import BadSignature, SignatureExpired
+from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
-from sentry.integrations.utils import get_identity_or_404
 from sentry.models import ExternalActor, Integration
+from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.types.integrations import ExternalProviders
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
@@ -36,6 +38,10 @@ def build_team_unlinking_url(
 
 
 class SlackUnlinkTeamView(BaseView):
+    """
+    Django view for unlinking team from slack channel. Deletes from ExternalActor table.
+    """
+
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> Response:
@@ -47,12 +53,19 @@ class SlackUnlinkTeamView(BaseView):
                 request=request,
             )
 
-        organization, integration, idp = get_identity_or_404(
-            ExternalProviders.SLACK,
-            request.user,
-            integration_id=params["integration_id"],
-            organization_id=params["organization_id"],
+        integration = integration_service.get_integration(integration_id=params["integration_id"])
+        idp = identity_service.get_provider(
+            provider_ext_id=integration.external_id,
+            provider_type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
         )
+
+        qs = OrganizationMember.objects.get_for_integration(
+            integration, request.user, organization_id=params["organization_id"]
+        )
+        organization = qs.first().organization if qs else None
+        if organization is None:
+            raise Http404
+
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
 

@@ -33,6 +33,10 @@ def build_linking_url(
 
 
 class SlackLinkIdentityView(BaseView):
+    """
+    Django view for linking user to slack account. Creates an entry on Identity table.
+    """
+
     @transaction_start("SlackLinkIdentityView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> Response:
