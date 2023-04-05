@@ -6,8 +6,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestBackfillUserAvatarsMigration(TestMigrations):
-    migrate_from = "0400_add_unique_constraint_indexer"
-    migrate_to = "0401_backfill_user_avatars"
+    migrate_from = "403_backfill_actors"
+    migrate_to = "404_backfill_user_avatars"
 
     def setup_before_migration(self, apps):
         self.user_letter = self.create_user(email="a@example.com")
