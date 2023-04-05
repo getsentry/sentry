@@ -676,14 +676,8 @@ QUERY_ALIAS_COLUMN_MAP = {
         "ifNull",
         parameters=[
             Function(
-                "greater",
-                parameters=[
-                    Function(
-                        "max",
-                        parameters=[Column("is_archived")],
-                    ),
-                    0,
-                ],
+                "max",
+                parameters=[Column("is_archived")],
             ),
             0,
         ],
