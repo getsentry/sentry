@@ -70,6 +70,7 @@ export function EditOwnershipRules({ownership, ...props}: EditOwnershipRulesModa
           {...props}
           dateUpdated={ownership.lastUpdated}
           initialText={ownership.raw || ''}
+          page="project_settings"
         />
       )}
     </Fragment>

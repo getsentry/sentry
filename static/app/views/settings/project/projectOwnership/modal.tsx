@@ -170,6 +170,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
           paths={paths}
           dateUpdated={ownership.lastUpdated}
           onCancel={onCancel}
+          page="issue_details"
         />
       </Fragment>
     );
