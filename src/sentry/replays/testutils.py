@@ -138,7 +138,7 @@ def mock_replay(
                         "segment_id": kwargs.pop("segment_id", 0),
                         "tags": tags,
                         "urls": kwargs.pop("urls", []),
-                        "is_archived": kwargs.pop("is_archived", False),
+                        "is_archived": kwargs.pop("is_archived", None),
                         "error_ids": kwargs.pop(
                             "error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]
                         ),
