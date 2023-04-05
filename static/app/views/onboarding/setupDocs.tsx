@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -22,6 +22,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -53,7 +54,7 @@ const MissingExampleWarning = ({
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
 }) => {
-  const missingExample = platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
+  const missingExample = platformDocs?.html.includes(INCOMPLETE_DOC_FLAG);
 
   if (!missingExample) {
     return null;
@@ -86,11 +87,6 @@ export function ProjectDocsReact({
   project: Project;
   newOrg?: boolean;
 }) {
-  const api = useApi();
-  const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
-  const [hasError, setHasError] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   const {
     experimentAssignment: productSelectionAssignment,
     logExperiment: productSelectionLogExperiment,
@@ -98,58 +94,37 @@ export function ProjectDocsReact({
     logExperimentOnMount: false,
   });
 
+  // This is an experiment we are doing with react.
+  // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
+  // and the docs will reflect that.
+  const loadPlatform = useMemo(() => {
+    const products = location.query.product ?? [];
+    return newOrg && productSelectionAssignment === 'baseline'
+      ? 'javascript-react'
+      : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
+        products.includes(PRODUCT.SESSION_REPLAY)
+      ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
+      : products.includes(PRODUCT.PERFORMANCE_MONITORING)
+      ? ReactDocVariant.ErrorMonitoringAndPerformance
+      : products.includes(PRODUCT.SESSION_REPLAY)
+      ? ReactDocVariant.ErrorMonitoringAndSessionReplay
+      : ReactDocVariant.ErrorMonitoring;
+  }, [location.query.product, productSelectionAssignment, newOrg]);
+
   useEffect(() => {
-    if (newOrg) {
-      productSelectionLogExperiment();
+    if (!newOrg) {
+      return;
     }
+    productSelectionLogExperiment();
   }, [productSelectionLogExperiment, newOrg]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    // This is an experiment we are doing with react.
-    // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
-    // and the docs will reflect that.
-    const products = location.query.product ?? [];
-
-    const loadPlatform =
-      newOrg && productSelectionAssignment === 'baseline'
-        ? 'javascript-react'
-        : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-          products.includes(PRODUCT.SESSION_REPLAY)
-        ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
-        : products.includes(PRODUCT.PERFORMANCE_MONITORING)
-        ? ReactDocVariant.ErrorMonitoringAndPerformance
-        : products.includes(PRODUCT.SESSION_REPLAY)
-        ? ReactDocVariant.ErrorMonitoringAndSessionReplay
-        : ReactDocVariant.ErrorMonitoring;
-
-    try {
-      const loadedDocs = await loadDocs({
-        api,
-        orgSlug: organization.slug,
-        projectSlug: project.slug,
-        platform: loadPlatform as unknown as PlatformKey,
-      });
-      setPlatformDocs(loadedDocs);
-      setHasError(false);
-      setLoading(false);
-    } catch (error) {
-      setHasError(error);
-      setLoading(false);
-      throw error;
+  const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
+    [`/projects/${organization.slug}/${project.slug}/docs/${loadPlatform}/`],
+    {
+      staleTime: Infinity,
+      enabled: !!project.slug && !!organization.slug && !!loadPlatform,
     }
-  }, [
-    project?.slug,
-    api,
-    organization.slug,
-    location.query.product,
-    productSelectionAssignment,
-    newOrg,
-  ]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData, location.query.product]);
+  );
 
   return (
     <Fragment>
@@ -181,23 +156,26 @@ export function ProjectDocsReact({
           ]}
         />
       )}
-      {loading ? (
+      {isLoading ? (
         <LoadingIndicator />
-      ) : hasError ? (
+      ) : isError ? (
         <LoadingError
           message={t('Failed to load documentation for the React platform.')}
-          onRetry={fetchData}
+          onRetry={refetch}
         />
       ) : (
         getDynamicText({
-          value: platformDocs !== null && (
+          value: (
             <DocsWrapper>
               <DocumentationWrapper
-                dangerouslySetInnerHTML={{__html: platformDocs.html}}
+                dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
               />
               <MissingExampleWarning
                 platform="javascript-react"
-                platformDocs={platformDocs}
+                platformDocs={{
+                  html: data?.html ?? '',
+                  link: data?.link ?? '',
+                }}
               />
             </DocsWrapper>
           ),
