@@ -193,6 +193,7 @@
     "postcss-syntax": "0.36.2",
     "react-refresh": "0.14.0",
     "react-test-renderer": "17.0.2",
+    "sane": "^5.0.1",
     "stylelint": "14.8.2",
     "stylelint-config-prettier": "^9.0.3",
     "stylelint-config-recommended": "^8.0.0",
