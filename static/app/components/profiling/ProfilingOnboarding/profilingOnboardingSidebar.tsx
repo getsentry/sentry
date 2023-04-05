@@ -193,6 +193,7 @@ function OnboardingContent({
   const organization = useOrganization();
   const [received, setReceived] = useState(false);
   const previousProject = usePrevious(currentProject);
+
   useEffect(() => {
     if (!currentProject || !previousProject) {
       return;
