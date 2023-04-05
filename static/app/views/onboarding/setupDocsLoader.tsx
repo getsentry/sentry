@@ -1,10 +1,11 @@
-import * as Sentry from '@sentry/react';
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {motion} from 'framer-motion';
 import {Location} from 'history';
 import beautify from 'js-beautify';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -20,7 +21,6 @@ import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
-import { addErrorMessage } from 'sentry/actionCreators/indicator';
 
 export function SetupDocsLoader({
   organization,
