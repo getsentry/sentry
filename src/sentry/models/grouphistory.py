@@ -38,6 +38,7 @@ class GroupHistoryStatus:
     DELETED_AND_DISCARDED = 9
     REVIEWED = 10
     ESCALATING = 14
+    ONGOING = 15
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
@@ -74,7 +75,11 @@ ACTIONED_STATUSES = [
     GroupHistoryStatus.DELETED_AND_DISCARDED,
 ]
 
-UNRESOLVED_STATUSES = (GroupHistoryStatus.UNRESOLVED, GroupHistoryStatus.REGRESSED)
+UNRESOLVED_STATUSES = (
+    GroupHistoryStatus.UNRESOLVED,
+    GroupHistoryStatus.REGRESSED,
+    GroupHistoryStatus.ONGOING,
+)
 RESOLVED_STATUSES = (
     GroupHistoryStatus.RESOLVED,
     GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
@@ -159,6 +164,7 @@ class GroupHistory(Model):
             (GroupHistoryStatus.SET_RESOLVED_IN_COMMIT, _("Resolved in Commit")),
             (GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, _("Resolved in Pull Request")),
             (GroupHistoryStatus.ESCALATING, _("Escalating")),
+            (GroupHistoryStatus.ONGOING, _("Ongoing")),
         ),
     )
     prev_history = FlexibleForeignKey(
