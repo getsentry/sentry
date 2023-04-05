@@ -91,7 +91,7 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
         and _should_store_transaction_name(event_data)
     ):
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
-        _bump_rule_lifetime(project, event_data)
+        safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 
 
 def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
