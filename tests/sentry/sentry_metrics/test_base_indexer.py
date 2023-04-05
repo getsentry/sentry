@@ -223,7 +223,8 @@ class UseCaseResultsTest(TestCase):
             }
         )
         assert (
-            use_case_key_results.get_unmapped_use_cases(use_case_collection) == use_case_collection
+            use_case_key_results.get_unmapped_use_case_keys(use_case_collection)
+            == use_case_collection
         )
         results_with_meta = [
             (
@@ -268,7 +269,7 @@ class UseCaseResultsTest(TestCase):
             ),
             "uc_4": defaultdict(dict, {2: {"j": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)}}),
         }
-        assert use_case_key_results.get_unmapped_use_cases(
+        assert use_case_key_results.get_unmapped_use_case_keys(
             use_case_collection
         ) == UseCaseKeyCollection(
             {

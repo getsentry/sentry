@@ -302,11 +302,13 @@ class UseCaseKeyResults:
             if (mapped_result := key_results.get_mapped_results())
         }
 
-    def get_unmapped_use_cases(self, use_cases: UseCaseKeyCollection) -> UseCaseKeyCollection:
+    def get_unmapped_use_case_keys(
+        self, use_case_key_collection: UseCaseKeyCollection
+    ) -> UseCaseKeyCollection:
         return UseCaseKeyCollection(
             {
                 use_case_id: unmapped_result
-                for use_case_id, key_collection in use_cases.mapping.items()
+                for use_case_id, key_collection in use_case_key_collection.mapping.items()
                 if (
                     unmapped_result := self.results[use_case_id].get_unmapped_keys(key_collection)
                 ).size
