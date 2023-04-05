@@ -47,3 +47,8 @@ class UseCaseID(metaclass=_UseCaseID):
 def register_use_case(key: str) -> UseCaseID:
     _REGISTERED_USE_CASES[key.upper()] = key.lower()
     return UseCaseID(key)
+
+
+register_use_case("riya")
+
+r = UseCaseID.RIYA

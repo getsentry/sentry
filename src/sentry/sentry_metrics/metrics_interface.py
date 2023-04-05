@@ -1,9 +1,11 @@
+import abc
 from typing import Mapping
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
-class GenericMetricsBackend:
+class GenericMetricsBackend(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
     def counter(
         self,
         use_case_id: UseCaseID,
@@ -15,6 +17,7 @@ class GenericMetricsBackend:
     ) -> None:
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def set(
         self,
         use_case_id: UseCaseID,
@@ -26,6 +29,7 @@ class GenericMetricsBackend:
     ) -> None:
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def distribution(
         self,
         use_case_id: UseCaseID,
