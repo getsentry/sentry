@@ -25,6 +25,7 @@ from sentry.models.integrations.sentry_app_installation import (
     prepare_ui_component,
 )
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
@@ -92,8 +93,14 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             rule_snooze = RuleSnooze.objects.get(
                 Q(user_id=request.user.id) | Q(user_id=None), rule=rule
             )
-            serialized_rule["snoozeDetails"] = {"snooze": True, "ownerId": rule_snooze.user_id}
-            # serialized_rule["snoozeDetails"] = {"snooze": True, "ownerId": rule_snooze.owner_id}
+
+            serialized_rule["snooze"] = True
+
+            if request.user.id == rule_snooze.owner_id:
+                serialized_rule["snoozeCreatedBy"] = "You"
+            else:
+                creator_name = user_service.get_user(rule_snooze.owner_id).get_display_name()
+                serialized_rule["snoozeCreatedBy"] = creator_name
 
         except RuleSnooze.DoesNotExist:
             pass

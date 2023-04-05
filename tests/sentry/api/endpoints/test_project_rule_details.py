@@ -158,13 +158,14 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
         )
 
-        assert response.data["snoozeDetails"]
-        assert response.data["snoozeDetails"]["snooze"]
-        assert response.data["snoozeDetails"]["ownerId"] == self.user.id
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == "You"
 
     def test_with_snooze_rule_everyone(self):
+        user2 = self.create_user("user2@example.com")
+
         RuleSnooze.objects.create(
-            owner_id=self.user.id,
+            owner_id=user2.id,
             rule=self.rule,
             until=None,
         )
@@ -173,9 +174,8 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
         )
 
-        assert response.data["snoozeDetails"]
-        assert response.data["snoozeDetails"]["snooze"]
-        assert response.data["snoozeDetails"]["ownerId"] == self.user.id
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
