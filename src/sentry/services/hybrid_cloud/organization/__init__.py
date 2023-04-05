@@ -9,13 +9,13 @@ from typing import Any, Iterable, List, Mapping, Optional, cast
 from pydantic import Field
 
 from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmember import InviteStatus
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByOrganizationObject,
     ByOrganizationSlug,
     UnimplementedRegionResolution,
 )
@@ -97,6 +97,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     has_global_access: bool = False
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
+    invite_status: int = InviteStatus.APPROVED.value
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
@@ -106,7 +107,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
             "teams": team_ids,
             "has_global_access": self.has_global_access,
             "role": self.role,
-            "invite_status": None,
+            "invite_status": self.invite_status,
         }
 
 
@@ -264,15 +265,19 @@ class OrganizationService(RpcService):
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
-    @regional_rpc_method(resolve=ByOrganizationObject())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def add_organization_member(
         self,
         *,
-        organization: RpcOrganization,
-        user: RpcUser,
-        flags: Optional[RpcOrganizationMemberFlags],
-        role: Optional[str],
+        organization_id: int,
+        default_org_role: str,
+        user: Optional[RpcUser] = None,
+        email: Optional[str] = None,
+        flags: Optional[RpcOrganizationMemberFlags] = None,
+        role: Optional[str] = None,
+        inviter_id: Optional[int] = None,
+        invite_status: Optional[int] = InviteStatus.APPROVED.value,
     ) -> RpcOrganizationMember:
         pass
 
