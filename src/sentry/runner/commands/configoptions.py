@@ -21,14 +21,6 @@ def configoptions():
 
 
 @configoptions.command()
-@click.option("--key", "-k", required=True, help="The key of the option to fetch.")
-@configuration
-def fetch(key: str):
-    "Fetches the option for the given key."
-    click.echo(_get(key))
-
-
-@configoptions.command()
 @configuration
 def list():
     "Fetches all options."
@@ -36,6 +28,7 @@ def list():
 
     for opt in options.all():
         # click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
+        # click.echo(type(opt))
         if can_change(opt.name):
             click.echo(f"{opt.name}: {options.get(opt.name)}")
 
@@ -140,7 +133,7 @@ def strict(filename: str, dryrun: bool) -> bool:
 
 
 @configoptions.command()
-@click.argument("key", required=True)
+@click.argument("key", required=True, help="the key to fetch.")
 @click.option(
     "--dryrun",
     is_flag=True,
@@ -150,16 +143,17 @@ def strict(filename: str, dryrun: bool) -> bool:
 )
 @configuration
 def get(key: str, dryrun: bool = False) -> str:
+    "Get a configuration option."
     return _get(key, dryrun)
 
 
 def _get(key: str, dryrun: bool = False) -> str:
-    from sentry import options
+    from sentry.options import default_manager as manager
     from sentry.options.manager import UnknownOption
 
     try:
-        opt = options.lookup_key(key)
-        click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
+        opt = manager.lookup_key(key)
+        click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {manager.get(opt.name)}")
         return opt
     except UnknownOption:
         click.echo("unknown option: %s" % key)
@@ -249,11 +243,13 @@ def _delete(key: str, dryrun: bool = False) -> bool:
 
 
 def can_change(key: str) -> bool:
-    from sentry.options import manager
+    # from sentry.options import manager
+    # from sentry import options
 
-    opt = get(key)
-    # if opt.flags
-    changable = not ((opt.flags & manager.FLAG_NOSTORE) and (opt.flags & manager.FLAG_IMMUTABLE))
+    # opt = options.lookup_key(key)
+    # return not ((opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE))
+    # changable = not ((opt.flags & manager.FLAG_NOSTORE) and (opt.flags & manager.FLAG_IMMUTABLE))
+    changable = False
     # TODO: Figure out how to look this up
     for i in tracked:
         is_match = i.match(key)
