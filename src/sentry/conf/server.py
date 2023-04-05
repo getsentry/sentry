@@ -753,7 +753,7 @@ for queue in CELERY_QUEUES:
 
 from celery.schedules import crontab
 
-# XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
+# XXX: Make sure to register the monitor_slug for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
 CELERYBEAT_SCHEDULE = {
     "check-auth": {

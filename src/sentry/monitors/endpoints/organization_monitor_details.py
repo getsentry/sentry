@@ -36,7 +36,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         operation_id="Retrieve a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
@@ -60,7 +60,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         operation_id="Update a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -125,7 +125,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         operation_id="Delete a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
