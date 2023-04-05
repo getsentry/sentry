@@ -110,11 +110,11 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
         assert not File.objects.filter(id=file.id).exists()
         assert not ServiceHook.objects.filter(id=hook.id).exists()
-        
+
         incident.refresh_from_db()
         assert len(incident.projects.all()) == 0, "Project relation should be removed"
         assert Incident.objects.filter(id=incident.id).exists()
-        
+
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
         assert not RuleSnooze.objects.filter(id=rule_snooze.id).exists()
 
