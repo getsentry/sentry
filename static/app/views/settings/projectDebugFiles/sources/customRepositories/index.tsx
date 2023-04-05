@@ -1,7 +1,7 @@
-import * as Sentry from '@sentry/react';
 import {useContext, useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
