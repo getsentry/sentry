@@ -12,7 +12,7 @@ class DebugOrganizationOnboardingContinuationEmail(View):
     def get(self, request: Request) -> Response:
         platforms = request.GET.getlist("platforms", ["javascript", "python", "flutter"])
         org = Organization(id=1, name="My Company")
-        user = User(name="Ben")
+        user = User(name="Ben", actor_id=1)
         preview = MailPreviewAdapter(**get_request_builder_args(user, org, platforms))
 
         return render_to_response("sentry/debug/mail/preview.html", {"preview": preview})
