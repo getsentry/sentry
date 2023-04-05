@@ -26,6 +26,7 @@ from sentry.replays.lib.query import (
     ListField,
     Number,
     QueryConfig,
+    Selector,
     String,
     Tag,
     UUIDField,
@@ -428,7 +429,9 @@ class ReplayQueryConfig(QueryConfig):
 
     # Click
     click_alt = ListField(field_alias="replay_click.alt", is_sortable=False)
-    click_class = ListField(field_alias="replay_click.class", is_sortable=False)
+    click_class = ListField(
+        field_alias="replay_click.class", query_alias="clickClass", is_sortable=False
+    )
     click_id = ListField(field_alias="replay_click.id", is_sortable=False)
     click_aria_label = ListField(field_alias="replay_click.label", is_sortable=False)
     click_role = ListField(field_alias="replay_click.role", is_sortable=False)
@@ -436,6 +439,7 @@ class ReplayQueryConfig(QueryConfig):
     click_testid = ListField(field_alias="replay_click.testid", is_sortable=False)
     click_text = ListField(field_alias="replay_click.textContent", is_sortable=False)
     click_title = ListField(field_alias="replay_click.title", is_sortable=False)
+    click_selector = Selector(field_alias="replay_click.selector", is_sortable=False)
 
     # Tag
     tags = Tag(field_alias="*")
@@ -596,6 +600,17 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "replay_click.testid": ["click.testid"],
     "replay_click.textContent": ["click.text"],
     "replay_click.title": ["click.title"],
+    "replay_click.selector": [
+        "click.alt",
+        "click.aria_label",
+        "click.classes",
+        "click.id",
+        "click.role",
+        "click.tag",
+        "click.testid",
+        "click.text",
+        "click.title",
+    ],
 }
 
 
@@ -695,7 +710,10 @@ QUERY_ALIAS_COLUMN_MAP = {
         "groupArray", parameters=[Column("click_aria_label")], alias="click_aria_label"
     ),
     "click.class": Function(
-        "groupArrayArray", parameters=[Column("click_class")], alias="click_class"
+        "groupArrayArray", parameters=[Column("click_class")], alias="clickClass"
+    ),
+    "click.classes": Function(
+        "groupArray", parameters=[Column("click_class")], alias="click_classes"
     ),
     "click.id": Function("groupArray", parameters=[Column("click_id")], alias="click_id"),
     "click.role": Function("groupArray", parameters=[Column("click_role")], alias="click_role"),

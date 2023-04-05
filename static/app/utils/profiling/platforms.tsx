@@ -10,6 +10,7 @@ export const supportedProfilingPlatformSDKs = [
   'php',
   'rust',
   'php',
+  'javascript-nextjs',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
 export type SupportedProfilingPlatformSDK =
@@ -32,6 +33,10 @@ export function getDocsPlatformSDKForPlatform(
 
   if (platform.startsWith('node')) {
     return 'node';
+  }
+
+  if (platform === 'javascript-nextjs') {
+    return 'javascript-nextjs';
   }
 
   if (platform.startsWith('python')) {

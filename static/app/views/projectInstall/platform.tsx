@@ -75,7 +75,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
       <div>
         <SetUpSdkDoc
           organization={organization}
-          project={project}
+          project={{...project, platform: params.platform as PlatformKey}}
           location={location}
           router={router}
         />
