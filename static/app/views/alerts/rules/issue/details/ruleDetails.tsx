@@ -4,6 +4,7 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {Alert} from 'sentry/components/alert';
+import MuteAlert from 'sentry/components/alerts/muteAlert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
@@ -290,6 +291,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
+              <MuteAlert isMuted={false} />
               <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
                 {t('Duplicate')}
               </Button>
