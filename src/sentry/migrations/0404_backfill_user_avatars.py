@@ -9,9 +9,10 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def backfill_user_avatar(apps, schema_editor):
     User = apps.get_model("sentry", "User")
+    UserAvatar = apps.get_model("sentry", "UserAvatar")
 
-    for user in RangeQuerySetWrapperWithProgressBar(User.objects.prefetch_related("avatar").all()):
-        avatar = user.avatar.first()
+    for user in RangeQuerySetWrapperWithProgressBar(User.objects.all()):
+        avatar = UserAvatar.objects.filter(user_id=user.id).first()
         if avatar is None:
             continue
         user.avatar_type = avatar.avatar_type
