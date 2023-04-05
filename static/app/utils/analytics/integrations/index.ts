@@ -123,6 +123,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.serverless_function_action': 'Integrations: Serverless Function Action',
   'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
   'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',
+  'project_ownership.modal_opened': 'Project Ownership: Modal Opened',
+  'project_ownership.saved': 'Project Ownership: Saved',
   ...codeownersEventMap,
   ...stacktraceLinkEventMap,
   ...platformEventMap,
