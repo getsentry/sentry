@@ -213,7 +213,7 @@ def get_redis_client_for_ds() -> Any:
 
 
 def generate_cache_key_adj_factor(org_id: int) -> str:
-    return f"ds::o:{org_id}:prioritise_projects:adj_factor"
+    return f"ds::o:{org_id}:rate_rebalance_factor"
 
 
 def actual_sample_rate(count_keep: int, count_drop: int) -> float:
