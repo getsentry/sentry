@@ -15,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
-import TimeSince from 'sentry/components/timeSince';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -231,17 +230,10 @@ function MonitorForm({
           {t('How often you expect your recurring jobs to run.')}
         </ListItemSubText>
         <InputGroup>
-          {monitor !== undefined && monitor.nextCheckIn && (
+          {monitor !== undefined && (
             <Alert type="info">
-              {tct(
-                'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
-                {
-                  nextCheckin: (
-                    <strong>
-                      <TimeSince date={monitor.nextCheckIn} />
-                    </strong>
-                  ),
-                }
+              {t(
+                'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
               )}
             </Alert>
           )}
