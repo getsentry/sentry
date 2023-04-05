@@ -21,7 +21,7 @@ class MigrationMeta:
 
     @property
     def full_name(self) -> str:
-        return f"{self.number}_{self.name}"
+        return f"{self.number:04}_{self.name}"
 
     @classmethod
     def from_filename(cls, filepath: str) -> "MigrationMeta":
@@ -71,7 +71,7 @@ def find_highest_migration(migrations_path: str) -> MigrationMeta:
         click.echo("Could not find the head migration")
         raise click.Abort()
 
-    click.echo(f"> Current head migration is {found.number}_{found.name}")
+    click.echo(f"> Current head migration is {found.full_name}")
     return found
 
 
