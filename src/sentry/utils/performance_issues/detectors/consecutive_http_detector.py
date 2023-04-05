@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import re
 from datetime import timedelta
+from urllib.parse import parse_qs, urlparse
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
@@ -9,12 +12,33 @@ from sentry.models import Organization, Project
 from ..base import (
     DetectorType,
     PerformanceDetector,
-    fingerprint_spans,
     get_duration_between_spans,
     get_span_duration,
+    get_url_from_span,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+URL_PARAMETER_REGEX = re.compile(
+    r"""(?x)
+    (?P<uuid>
+        \b
+            [0-9a-fA-F]{8}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{12}
+        \b
+    ) |
+    (?P<hashlike>
+        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
+    ) |
+    (?P<int>
+        -\d+\b |
+        \b\d+\b
+    )
+"""
+)  # Adapted from message.py
 
 
 class ConsecutiveHTTPSpanDetector(PerformanceDetector):
@@ -131,8 +155,17 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         return True
 
     def _fingerprint(self) -> str:
-        hashed_spans = fingerprint_spans(self.consecutive_http_spans, True)
-        return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_spans}"
+        url_paths = []
+        for http_span in self.consecutive_http_spans:
+            url = get_url_from_span(http_span)
+            parametrized_url = self.parameterize_url(url)
+            path = urlparse(parametrized_url).path
+            if path not in url_paths:
+                url_paths.append(path)
+        url_paths.sort()
+
+        hashed_url_paths = hashlib.sha1(("-".join(url_paths)).encode("utf8")).hexdigest()
+        return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_url_paths}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
@@ -141,6 +174,38 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         return features.has(
             "organizations:performance-consecutive-http-detector", organization, actor=None
         )
+
+    @staticmethod
+    def parameterize_url(url: str) -> str:
+        parsed_url = urlparse(str(url))
+
+        protocol_fragments = []
+        if parsed_url.scheme:
+            protocol_fragments.append(parsed_url.scheme)
+            protocol_fragments.append("://")
+
+        host_fragments = []
+        for fragment in parsed_url.netloc.split("."):
+            host_fragments.append(str(fragment))
+
+        path_fragments = []
+        for fragment in parsed_url.path.split("/"):
+            if URL_PARAMETER_REGEX.search(fragment):
+                path_fragments.append("*")
+            else:
+                path_fragments.append(str(fragment))
+
+        query = parse_qs(parsed_url.query)
+
+        return "".join(
+            [
+                "".join(protocol_fragments),
+                ".".join(host_fragments),
+                "/".join(path_fragments),
+                "?",
+                "&".join(sorted([f"{key}=*" for key in query.keys()])),
+            ]
+        ).rstrip("?")
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True
