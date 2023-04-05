@@ -11,10 +11,12 @@ import statistics
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union
 
-ForecastObject = Dict[str, Union[int, str]]
+IssueForecast = Dict[str, Union[int, str]]
 
 
-def generate_issue_forecast(data: Dict[str, Any], start_time: datetime) -> List[ForecastObject]:
+def generate_issue_forecast(
+    data: Dict[str, List[Any]], start_time: datetime
+) -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -38,7 +40,7 @@ def generate_issue_forecast(data: Dict[str, Any], start_time: datetime) -> List[
     """
 
     # output list of dictionaries
-    output: List[ForecastObject] = []
+    output: List[IssueForecast] = []
 
     input_dates = [datetime.strptime(x, "%Y-%m-%dT%H:%M:%S%f%z") for x in data["intervals"]]
     output_dates = [start_time + timedelta(days=x) for x in range(14)]
@@ -104,7 +106,7 @@ def generate_issue_forecast(data: Dict[str, Any], start_time: datetime) -> List[
         limit_v2 = wavg_limit + baseline
 
         # final limit is max of the two calculations
-        forecast: ForecastObject = {
+        forecast: IssueForecast = {
             "forecasted_date": output_ts.strftime("%Y-%m-%d"),
             "forecasted_value": int(max(limit_v1, limit_v2)),
         }

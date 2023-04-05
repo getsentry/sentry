@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from django.db import transaction
 
@@ -12,7 +12,7 @@ from sentry.utils.json import JSONData
 
 BATCH_SIZE = 1000
 GroupForecastTuple = Tuple[Group, List[int]]
-ParsedGroupCount = Dict[int, Dict[str, Any]]
+ParsedGroupCount = Dict[int, Dict[str, List[Union[str, int]]]]
 
 
 @instrumented_task(
