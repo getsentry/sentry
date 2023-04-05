@@ -51,7 +51,7 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models import Environment, Organization, Project, Team
 from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
@@ -69,6 +69,7 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
@@ -136,7 +137,7 @@ class QueryBuilder(BaseQueryBuilder):
             else:
                 environments = []
 
-        user = User.objects.filter(id=params["user_id"]).first() if "user_id" in params else None
+        user = user_service.get_user(params["user_id"]) if "user_id" in params else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
