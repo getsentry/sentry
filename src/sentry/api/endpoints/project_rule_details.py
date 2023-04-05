@@ -10,7 +10,15 @@ from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import RuleActivity, RuleActivityType, RuleStatus, SentryAppComponent, Team, User
+from sentry.models import (
+    RuleActivity,
+    RuleActivityType,
+    RuleSnooze,
+    RuleStatus,
+    SentryAppComponent,
+    Team,
+    User,
+)
 from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
@@ -78,6 +86,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         if len(errors):
             serialized_rule["errors"] = errors
+
+        try:
+            rule_snooze = RuleSnooze.objects.get(user_id=request.user.id, rule=rule)
+            serialized_rule["snoozeDetails"] = {"snooze": True, "ownerId": rule_snooze.owner_id}
+        except RuleSnooze.DoesNotExist:
+            pass
 
         return Response(serialized_rule)
 
