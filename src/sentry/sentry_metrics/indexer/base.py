@@ -33,7 +33,7 @@ class FetchTypeExt(NamedTuple):
 
 
 KR = TypeVar("KR", bound="KeyResult")
-UR = TypeVar("UR", bound="UseCaseResult")
+UR = TypeVar("UR", bound="UseCaseKeyResult")
 
 
 class Metadata(NamedTuple):
@@ -55,7 +55,7 @@ class KeyResult:
 
 
 @dataclass(frozen=True)
-class UseCaseResult:
+class UseCaseKeyResult:
     use_case_id: str
     org_id: int
     string: str
@@ -117,7 +117,7 @@ class KeyCollection:
         return keys
 
 
-class UseCaseCollection:
+class UseCaseKeyCollection:
     def __init__(self, mapping: Mapping[str, Union[Mapping[int, Set[str]], KeyCollection]]):
         self.mapping = {
             use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
@@ -252,38 +252,44 @@ class KeyResults:
         return self.results[org_id]
 
 
-class UseCaseResults:
+class UseCaseKeyResults:
     def __init__(self) -> None:
         self.results: MutableMapping[str, KeyResults] = defaultdict(lambda: KeyResults())
 
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, self.__class__) and self.results == __value.results
 
-    def add_use_case_result(
+    def add_use_case_key_result(
         self,
-        use_case_result: UseCaseResult,
+        use_case_key_result: UseCaseKeyResult,
         fetch_type: Optional[FetchType] = None,
         fetch_type_ext: Optional[FetchTypeExt] = None,
     ) -> None:
-        self.results[use_case_result.use_case_id].add_key_result(
-            KeyResult(use_case_result.org_id, use_case_result.string, use_case_result.id),
+        self.results[use_case_key_result.use_case_id].add_key_result(
+            KeyResult(
+                use_case_key_result.org_id, use_case_key_result.string, use_case_key_result.id
+            ),
             fetch_type,
             fetch_type_ext,
         )
 
-    def add_use_case_results(
+    def add_use_case_key_results(
         self,
-        use_case_results: Sequence[UseCaseResult],
+        use_case_key_results: Sequence[UseCaseKeyResult],
         fetch_type: Optional[FetchType] = None,
         fetch_type_ext: Optional[FetchTypeExt] = None,
     ) -> None:
-        for use_case, grouped_use_case_results in groupby(
-            use_case_results, lambda use_case_result: use_case_result.use_case_id
+        for use_case, grouped_use_case_key_results in groupby(
+            use_case_key_results, lambda use_case_key_result: use_case_key_result.use_case_id
         ):
             self.results[use_case].add_key_results(
                 [
-                    KeyResult(use_case_result.org_id, use_case_result.string, use_case_result.id)
-                    for use_case_result in grouped_use_case_results
+                    KeyResult(
+                        use_case_key_result.org_id,
+                        use_case_key_result.string,
+                        use_case_key_result.id,
+                    )
+                    for use_case_key_result in grouped_use_case_key_results
                 ],
                 fetch_type,
                 fetch_type_ext,
@@ -296,8 +302,8 @@ class UseCaseResults:
             if (mapped_result := key_results.get_mapped_results())
         }
 
-    def get_unmapped_use_cases(self, use_cases: UseCaseCollection) -> UseCaseCollection:
-        return UseCaseCollection(
+    def get_unmapped_use_cases(self, use_cases: UseCaseKeyCollection) -> UseCaseKeyCollection:
+        return UseCaseKeyCollection(
             {
                 use_case_id: unmapped_result
                 for use_case_id, key_collection in use_cases.mapping.items()
@@ -324,7 +330,7 @@ class UseCaseResults:
             if key_results.get_fetch_metadata()
         }
 
-    def merge(self, other: "UseCaseResults") -> "UseCaseResults":
+    def merge(self, other: "UseCaseKeyResults") -> "UseCaseKeyResults":
         def merge_use_case(use_case_id: str) -> KeyResults:
             if use_case_id in self.results and use_case_id in other.results:
                 return self.results[use_case_id].merge(other.results[use_case_id])
@@ -332,7 +338,7 @@ class UseCaseResults:
                 return self.results[use_case_id]
             return other.results[use_case_id]
 
-        new_results = UseCaseResults()
+        new_results = UseCaseKeyResults()
 
         new_results.results = {
             use_case_id: merge_use_case(use_case_id)

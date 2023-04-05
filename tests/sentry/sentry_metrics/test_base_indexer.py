@@ -9,9 +9,9 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResult,
     KeyResults,
     Metadata,
-    UseCaseCollection,
-    UseCaseResult,
-    UseCaseResults,
+    UseCaseKeyCollection,
+    UseCaseKeyResult,
+    UseCaseKeyResults,
 )
 
 
@@ -44,8 +44,8 @@ class KeyCollectionTest(TestCase):
 
 
 class UseCaseCollectionTest(TestCase):
-    def test_no_date(self) -> None:
-        collection = UseCaseCollection({})
+    def test_no_data(self) -> None:
+        collection = UseCaseKeyCollection({})
         assert collection.mapping == {}
         assert collection.size == 0
 
@@ -59,7 +59,7 @@ class UseCaseCollectionTest(TestCase):
             "use_case_3": {5: {"k"}},
         }
 
-        collection = UseCaseCollection(org_strings)
+        collection = UseCaseKeyCollection(org_strings)
         collection_tuples = [
             ("use_case_1", 1, "a"),
             ("use_case_1", 1, "b"),
@@ -209,51 +209,53 @@ class KeyResultsTest(TestCase):
 
 class UseCaseResultsTest(TestCase):
     def test_basic(self) -> None:
-        use_case_results = UseCaseResults()
+        use_case_key_results = UseCaseKeyResults()
 
-        assert use_case_results.results == {}
-        assert use_case_results.get_mapped_results() == {}
-        assert use_case_results.get_mapped_strings_to_ints() == {}
+        assert use_case_key_results.results == {}
+        assert use_case_key_results.get_mapped_results() == {}
+        assert use_case_key_results.get_mapped_strings_to_ints() == {}
 
-        use_case_collection = UseCaseCollection(
+        use_case_collection = UseCaseKeyCollection(
             {
                 "uc_1": {1: {"a", "b", "c"}, 2: {"e", "f"}},
                 "uc_2": {1: {"a", "j"}},
                 "uc_3": {5: {"a", "c"}},
             }
         )
-        assert use_case_results.get_unmapped_use_cases(use_case_collection) == use_case_collection
+        assert (
+            use_case_key_results.get_unmapped_use_cases(use_case_collection) == use_case_collection
+        )
         results_with_meta = [
             (
                 [
-                    UseCaseResult(use_case_id="uc_1", org_id=1, string="a", id=1),
+                    UseCaseKeyResult(use_case_id="uc_1", org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
-                    UseCaseResult(use_case_id="uc_1", org_id=1, string="c", id=2),
-                    UseCaseResult(use_case_id="uc_2", org_id=1, string="a", id=3),
-                    UseCaseResult(use_case_id="uc_2", org_id=1, string="j", id=4),
+                    UseCaseKeyResult(use_case_id="uc_1", org_id=1, string="c", id=2),
+                    UseCaseKeyResult(use_case_id="uc_2", org_id=1, string="a", id=3),
+                    UseCaseKeyResult(use_case_id="uc_2", org_id=1, string="j", id=4),
                 ],
                 FetchType.CACHE_HIT,
             ),
             (
                 [
-                    UseCaseResult(use_case_id="uc_4", org_id=2, string="j", id=5),
+                    UseCaseKeyResult(use_case_id="uc_4", org_id=2, string="j", id=5),
                 ],
                 FetchType.FIRST_SEEN,
             ),
         ]
         for results, meta in results_with_meta:
-            use_case_results.add_use_case_results(results, meta)
+            use_case_key_results.add_use_case_key_results(results, meta)
 
-        assert use_case_results.get_mapped_results() == {
+        assert use_case_key_results.get_mapped_results() == {
             "uc_1": {1: {"a": 1, "c": 2}},
             "uc_2": {1: {"a": 3, "j": 4}},
             "uc_4": {2: {"j": 5}},
         }
-        assert use_case_results.get_fetch_metadata() == {
+        assert use_case_key_results.get_fetch_metadata() == {
             "uc_1": defaultdict(dict, {1: {"c": Metadata(id=2, fetch_type=FetchType.CACHE_HIT)}}),
             "uc_2": defaultdict(
                 dict,
@@ -266,13 +268,15 @@ class UseCaseResultsTest(TestCase):
             ),
             "uc_4": defaultdict(dict, {2: {"j": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)}}),
         }
-        assert use_case_results.get_unmapped_use_cases(use_case_collection) == UseCaseCollection(
+        assert use_case_key_results.get_unmapped_use_cases(
+            use_case_collection
+        ) == UseCaseKeyCollection(
             {
                 "uc_1": {1: {"b"}, 2: {"e", "f"}},
                 "uc_3": {5: {"a", "c"}},
             }
         )
-        assert use_case_results.get_mapped_strings_to_ints() == {
+        assert use_case_key_results.get_mapped_strings_to_ints() == {
             "uc_1:1:a": 1,
             "uc_1:1:c": 2,
             "uc_2:1:a": 3,
@@ -281,29 +285,30 @@ class UseCaseResultsTest(TestCase):
         }
 
     def test_merge(self) -> None:
-        use_case_results_1 = UseCaseResults()
-        use_case_results_2 = UseCaseResults()
+        use_case_key_results_1 = UseCaseKeyResults()
+        use_case_key_results_2 = UseCaseKeyResults()
         assert (
-            use_case_results_1.merge(UseCaseResults()).merge(UseCaseResults()) == UseCaseResults()
+            use_case_key_results_1.merge(UseCaseKeyResults()).merge(UseCaseKeyResults())
+            == UseCaseKeyResults()
         )
         results_with_meta_1 = [
             (
                 [
-                    UseCaseResult(use_case_id="uc_1", org_id=1, string="a", id=1),
+                    UseCaseKeyResult(use_case_id="uc_1", org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
-                    UseCaseResult(use_case_id="uc_1", org_id=1, string="c", id=2),
-                    UseCaseResult(use_case_id="uc_2", org_id=1, string="a", id=3),
-                    UseCaseResult(use_case_id="uc_3", org_id=1, string="e", id=4),
+                    UseCaseKeyResult(use_case_id="uc_1", org_id=1, string="c", id=2),
+                    UseCaseKeyResult(use_case_id="uc_2", org_id=1, string="a", id=3),
+                    UseCaseKeyResult(use_case_id="uc_3", org_id=1, string="e", id=4),
                 ],
                 FetchType.CACHE_HIT,
             ),
             (
                 [
-                    UseCaseResult(use_case_id="uc_3", org_id=2, string="e", id=5),
+                    UseCaseKeyResult(use_case_id="uc_3", org_id=2, string="e", id=5),
                 ],
                 FetchType.FIRST_SEEN,
             ),
@@ -311,46 +316,48 @@ class UseCaseResultsTest(TestCase):
         results_with_meta_2 = [
             (
                 [
-                    UseCaseResult(use_case_id="uc_1", org_id=1, string="a", id=1),
+                    UseCaseKeyResult(use_case_id="uc_1", org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
-                    UseCaseResult(use_case_id="uc_1", org_id=1, string="c", id=2),
-                    UseCaseResult(use_case_id="uc_1", org_id=1, string="d", id=3),
-                    UseCaseResult(use_case_id="uc_2", org_id=2, string="a", id=4),
-                    UseCaseResult(use_case_id="uc_4", org_id=1, string="e", id=5),
+                    UseCaseKeyResult(use_case_id="uc_1", org_id=1, string="c", id=2),
+                    UseCaseKeyResult(use_case_id="uc_1", org_id=1, string="d", id=3),
+                    UseCaseKeyResult(use_case_id="uc_2", org_id=2, string="a", id=4),
+                    UseCaseKeyResult(use_case_id="uc_4", org_id=1, string="e", id=5),
                 ],
                 FetchType.CACHE_HIT,
             ),
             (
                 [
-                    UseCaseResult(use_case_id="uc_3", org_id=2, string="e", id=5),
+                    UseCaseKeyResult(use_case_id="uc_3", org_id=2, string="e", id=5),
                 ],
                 FetchType.FIRST_SEEN,
             ),
         ]
         for results, meta in results_with_meta_1:
-            use_case_results_1.add_use_case_results(results, meta)
+            use_case_key_results_1.add_use_case_key_results(results, meta)
         assert (
-            use_case_results_1.merge(UseCaseResults()).merge(UseCaseResults()) == use_case_results_1
+            use_case_key_results_1.merge(UseCaseKeyResults()).merge(UseCaseKeyResults())
+            == use_case_key_results_1
         )
         assert (
-            UseCaseResults().merge(UseCaseResults()).merge(use_case_results_1) == use_case_results_1
+            UseCaseKeyResults().merge(UseCaseKeyResults()).merge(use_case_key_results_1)
+            == use_case_key_results_1
         )
         for results, meta in results_with_meta_2:
-            use_case_results_2.add_use_case_results(results, meta)
-        assert use_case_results_1.merge(use_case_results_2) == use_case_results_2.merge(
-            use_case_results_1
+            use_case_key_results_2.add_use_case_key_results(results, meta)
+        assert use_case_key_results_1.merge(use_case_key_results_2) == use_case_key_results_2.merge(
+            use_case_key_results_1
         )
-        assert use_case_results_1.merge(use_case_results_2).get_mapped_results() == {
+        assert use_case_key_results_1.merge(use_case_key_results_2).get_mapped_results() == {
             "uc_1": {1: {"a": 1, "c": 2, "d": 3}},
             "uc_2": {1: {"a": 3}, 2: {"a": 4}},
             "uc_3": {1: {"e": 4}, 2: {"e": 5}},
             "uc_4": {1: {"e": 5}},
         }
-        assert use_case_results_1.merge(use_case_results_2).get_fetch_metadata() == {
+        assert use_case_key_results_1.merge(use_case_key_results_2).get_fetch_metadata() == {
             "uc_1": defaultdict(
                 dict,
                 {
