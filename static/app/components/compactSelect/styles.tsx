@@ -117,6 +117,12 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
     opacity: 0;
     pointer-events: none;
   `}
+
+  li[role="rowgroup"]:hover &,
+  li[role="presentation"]:hover & {
+    opacity: 1;
+    pointer-events: all;
+  }
 `;
 
 export const SectionSeparator = styled('li')`
@@ -155,4 +161,16 @@ export const EmptyMessage = styled('p')`
   ul:not(:empty) ~ & {
     display: none;
   }
+`;
+
+export const SizeLimitMessage = styled('li')`
+  border-top: solid 1px ${p => p.theme.innerBorder};
+  margin: ${space(0.5)} ${space(1.5)} ${space(0.5)};
+  padding: ${space(0.75)} ${space(1)} 0;
+
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  list-style-type: none;
+  white-space: nowrap;
+  text-align: center;
 `;
