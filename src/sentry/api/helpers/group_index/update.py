@@ -251,7 +251,7 @@ def update_groups(
 
         return handle_discard(request, list(queryset), projects, acting_user)
 
-    statusDetails = result.pop("statusDetails", result)
+    status_details = result.pop("statusDetails", result)
     status = result.get("status")
     release = None
     commit = None
@@ -260,7 +260,7 @@ def update_groups(
     activity_data: MutableMapping[str, Any | None] | None = None
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
-        if status == "resolvedInNextRelease" or statusDetails.get("inNextRelease"):
+        if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
             # TODO(jess): We may want to support this for multi project, but punting on it for now
             if len(projects) > 1:
                 return Response(
@@ -268,7 +268,7 @@ def update_groups(
                     status=400,
                 )
             release = (
-                statusDetails.get("inNextRelease")
+                status_details.get("inNextRelease")
                 or Release.objects.filter(
                     projects=projects[0], organization_id=projects[0].organization_id
                 )
@@ -284,15 +284,15 @@ def update_groups(
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
             )
-            status_details = {
+            new_status_details = {
                 "inNextRelease": True,
             }
             if serialized_user:
-                status_details["actor"] = serialized_user[0]
+                new_status_details["actor"] = serialized_user[0]
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
             res_status = GroupResolution.Status.pending
-        elif statusDetails.get("inRelease"):
+        elif status_details.get("inRelease"):
             # TODO(jess): We could update validation to check if release
             # applies to multiple projects, but I think we agreed to punt
             # on this for now
@@ -300,7 +300,7 @@ def update_groups(
                 return Response(
                     {"detail": "Cannot set resolved in release for multiple projects."}, status=400
                 )
-            release = statusDetails["inRelease"]
+            release = status_details["inRelease"]
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
                 # no version yet
@@ -310,39 +310,39 @@ def update_groups(
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
             )
-            status_details = {
+            new_status_details = {
                 "inRelease": release.version,
             }
             if serialized_user:
-                status_details["actor"] = serialized_user[0]
+                new_status_details["actor"] = serialized_user[0]
             res_type = GroupResolution.Type.in_release
             res_type_str = "in_release"
             res_status = GroupResolution.Status.resolved
-        elif statusDetails.get("inCommit"):
+        elif status_details.get("inCommit"):
             # TODO(jess): Same here, this is probably something we could do, but
             # punting for now.
             if len(projects) > 1:
                 return Response(
                     {"detail": "Cannot set resolved in commit for multiple projects."}, status=400
                 )
-            commit = statusDetails["inCommit"]
+            commit = status_details["inCommit"]
             activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
             activity_data = {"commit": commit.id}
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
             )
 
-            status_details = {
+            new_status_details = {
                 "inCommit": serialize(commit, user),
             }
             if serialized_user:
-                status_details["actor"] = serialized_user[0]
+                new_status_details["actor"] = serialized_user[0]
             res_type_str = "in_commit"
         else:
             res_type_str = "now"
             activity_type = ActivityType.SET_RESOLVED.value
             activity_data = {}
-            status_details = {}
+            new_status_details = {}
 
         now = timezone.now()
         metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
@@ -533,7 +533,7 @@ def update_groups(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
             )
 
-        result.update({"status": "resolved", "statusDetails": status_details})
+        result.update({"status": "resolved", "statusDetails": new_status_details})
 
     elif status:
         new_status = STATUS_UPDATE_CHOICES[result["status"]]
@@ -557,13 +557,13 @@ def update_groups(
                 result["inbox"] = None
 
                 ignore_duration = (
-                    statusDetails.pop("ignoreDuration", None)
-                    or statusDetails.pop("snoozeDuration", None)
+                    status_details.pop("ignoreDuration", None)
+                    or status_details.pop("snoozeDuration", None)
                 ) or None
-                ignore_count = statusDetails.pop("ignoreCount", None) or None
-                ignore_window = statusDetails.pop("ignoreWindow", None) or None
-                ignore_user_count = statusDetails.pop("ignoreUserCount", None) or None
-                ignore_user_window = statusDetails.pop("ignoreUserWindow", None) or None
+                ignore_count = status_details.pop("ignoreCount", None) or None
+                ignore_window = status_details.pop("ignoreWindow", None) or None
+                ignore_user_count = status_details.pop("ignoreUserCount", None) or None
+                ignore_user_window = status_details.pop("ignoreUserWindow", None) or None
                 if ignore_duration or ignore_count or ignore_user_count:
                     if ignore_duration:
                         ignore_until = timezone.now() + timedelta(minutes=ignore_duration)

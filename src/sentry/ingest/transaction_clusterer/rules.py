@@ -24,15 +24,19 @@ class RuleStore(Protocol):
 
 
 class RedisRuleStore:
-    """We store rules in both project options and redis.
-    The reason for the additional redis store is that in the future, we want
-    to extend rule lifetimes when we see a sanitized transaction.
-    The load of writes on every sanitized transaction name is very high, but
-    the load of writes on the generation of new rules is low. Both postgres and
-    redis can handle the latter, but only redis can handle the former. The
-    approach consists of writing the former only on redis, and when we generate
-    rules (the latter) we merge and update the contents of both postgres and
-    redis.
+    """Store rules in both prjoect options and Redis.
+
+    Why Redis?
+    We want to update the rule lifetimes when a transaction has been sanitized
+    with that rule.  That load is very high for the project options to handle,
+    but Redis is capable of doing so.
+
+    Then, why project options?
+    Redis is not a persistent store, and rules should be persistent. As a
+    result, at some point the up-to-date lifetimes of rules in Redis must be
+    updated and merged back to prjoect options. This operation can't happen too
+    frequently, and the task to generate rules meets the criteria and thus is
+    responsible for that.
     """
 
     @staticmethod
