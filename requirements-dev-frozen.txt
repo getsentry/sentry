@@ -104,7 +104,7 @@ openapi-schema-validator==0.2.3
 openapi-spec-validator==0.4.0
 outcome==1.2.0
 packaging==21.3
-parse==1.19.1
+parse==1.19.0
 parsimonious==0.8.0
 pathspec==0.9.0
 pep517==0.12.0
