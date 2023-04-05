@@ -8,6 +8,7 @@ from sentry_sdk import capture_exception
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.silo.client import SiloClientError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 
@@ -85,9 +86,11 @@ class SlackRequestParser(BaseRequestParser):
         response_map = self.get_responses_from_region_silos(regions=[first_region])
         region_result = response_map[first_region.name]
         if region_result.error is not None:
-            capture_exception(region_result.error)
+            error = SiloClientError(region_result.error)
+            capture_exception(error)
             logger.error(
                 "region_error", extra={"path": self.request.path, "region": first_region.name}
             )
-            return self.get_response_from_control_silo()
+            # We want to fail loudly so that devs know this error happened on the region silo (for now)
+            raise SiloClientError(error)
         return region_result.response

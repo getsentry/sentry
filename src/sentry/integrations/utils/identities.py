@@ -2,16 +2,10 @@ from typing import Iterable, Mapping, Optional, Tuple
 
 from django.http import Http404
 
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Organization,
-    OrganizationMember,
-    User,
-)
-from sentry.services.hybrid_cloud.identity import RpcIdentityProvider, identity_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.constants import ObjectStatus
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, User
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
@@ -20,23 +14,41 @@ def get_identity_or_404(
     user: User,
     integration_id: int,
     organization_id: Optional[int] = None,
-) -> Tuple[Organization, RpcIntegration, RpcIdentityProvider]:
+) -> Tuple[RpcOrganization, Integration, IdentityProvider]:
     """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
     if provider not in EXTERNAL_PROVIDERS:
         raise Http404
 
-    integration = integration_service.get_integration(integration_id=integration_id)
-    idp = identity_service.get_provider(
-        provider_ext_id=integration.external_id, provider_type=EXTERNAL_PROVIDERS[provider]
+    integration = Integration.objects.filter(id=integration_id).first()
+    if integration is None:
+        raise Http404
+
+    idp = IdentityProvider.objects.filter(
+        external_id=integration.external_id, type=EXTERNAL_PROVIDERS[provider]
+    ).first()
+    if idp is None:
+        raise Http404
+
+    organization_integrations = OrganizationIntegration.objects.filter(
+        status=ObjectStatus.ACTIVE,
+        integration__status=ObjectStatus.ACTIVE,
+        integration_id=integration_id,
+    )
+    organization_ids = {oi.organization_id for oi in organization_integrations}
+    organizations = organization_service.get_organizations(
+        user_id=user.id, scope=None, only_visible=True
+    )
+    valid_organization_ids = [o.id for o in organizations if o.id in organization_ids]
+    if len(valid_organization_ids) <= 0:
+        raise Http404
+
+    context = organization_service.get_organization_by_id(
+        id=valid_organization_ids[0], user_id=user.id
     )
 
-    qs = OrganizationMember.objects.get_for_integration(
-        integration, user, organization_id=organization_id
-    )
-    organization = qs.first().organization if qs else None
-    if organization is None:
+    if context is None:
         raise Http404
-    return organization, integration, idp
+    return context.organization, integration, idp
 
 
 def get_identities_by_user(idp: IdentityProvider, users: Iterable[User]) -> Mapping[User, Identity]:
