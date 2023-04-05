@@ -12,6 +12,7 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
@@ -19,7 +20,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
-class EventTest(TestCase):
+class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self):
         event = self.store_event(
             data={
@@ -104,6 +105,15 @@ class EventTest(TestCase):
         )
 
         assert event1.get_email_subject() == "BAR-1 - production@0 $ baz ${tag:invalid} $invalid"
+
+    def test_transaction_email_subject(self):
+        self.project.update_option(
+            "mail:subject_template",
+            "$shortID - ${tag:environment}@${tag:release} $title",
+        )
+
+        event = self.create_performance_issue()
+        assert event.get_email_subject() == "BAR-1 - production@0.1 N+1 Query"
 
     def test_as_dict_hides_client_ip(self):
         event = self.store_event(
