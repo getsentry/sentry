@@ -133,7 +133,7 @@ def strict(filename: str, dryrun: bool) -> bool:
 
 
 @configoptions.command()
-@click.argument("key", required=True, help="the key to fetch.")
+@click.argument("key", required=True)
 @click.option(
     "--dryrun",
     is_flag=True,
