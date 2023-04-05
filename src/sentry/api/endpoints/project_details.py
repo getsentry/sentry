@@ -128,6 +128,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
+    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
 
     def validate(self, data):
         max_delay = (
