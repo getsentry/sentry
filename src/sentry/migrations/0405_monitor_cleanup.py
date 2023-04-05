@@ -30,12 +30,9 @@ def clean_up_monitors(apps, schema_editor):
             Organization.objects.get(id=organization_id)
             Project.objects.get(id=project_id)
         except (Organization.DoesNotExist, Project.DoesNotExist):
-            monitors_to_clean_up.append(monitors_to_clean_up)
+            monitors_to_clean_up.append(monitor_id)
 
-    try:
-        Monitor.objects.filter(id__in=monitors_to_clean_up).delete()
-    except Exception:
-        pass
+    Monitor.objects.filter(id__in=monitors_to_clean_up).delete()
 
 
 class Migration(CheckedMigration):
@@ -52,7 +49,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0399_enable_indexes_for_actor_fks"),
+        ("sentry", "0404_backfill_user_avatars"),
     ]
 
     operations = [
