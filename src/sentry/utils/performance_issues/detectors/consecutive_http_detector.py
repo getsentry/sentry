@@ -9,7 +9,7 @@ from sentry.models import Organization, Project
 from ..base import (
     DetectorType,
     PerformanceDetector,
-    fingerprint_spans,
+    fingerprint_http_spans,
     get_duration_between_spans,
     get_span_duration,
 )
@@ -131,8 +131,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         return True
 
     def _fingerprint(self) -> str:
-        hashed_spans = fingerprint_spans(self.consecutive_http_spans, True)
-        return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_spans}"
+        hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)
+        return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_url_paths}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()

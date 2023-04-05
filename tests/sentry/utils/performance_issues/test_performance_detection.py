@@ -229,7 +229,7 @@ class PerformanceDetectionTest(TestCase):
             perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
             assert perf_problems == [
                 PerformanceProblem(
-                    fingerprint="1-1009-c5e048717e2f5ca1a251cbbfbcfd82aee7e89cd9",
+                    fingerprint="1-1009-6654ad4d1d494222ce02c656386e6955575c17ed",
                     op="http",
                     desc="GET https://my-api.io/api/users?page=1",
                     type=PerformanceConsecutiveHTTPQueriesGroupType,

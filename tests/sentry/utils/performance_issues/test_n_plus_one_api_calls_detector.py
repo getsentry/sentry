@@ -15,6 +15,7 @@ from sentry.testutils.performance_issues.event_generators import (
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors import NPlusOneAPICallsDetector
 from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
+    parameterize_url,
     without_query_params,
 )
 from sentry.utils.performance_issues.performance_detection import (
@@ -311,7 +312,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
     ],
 )
 def test_parameterizes_url(url, parameterized_url):
-    r = NPlusOneAPICallsDetector.parameterize_url(url)
+    r = parameterize_url(url)
     assert r == parameterized_url
 
 

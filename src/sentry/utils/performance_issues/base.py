@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from sentry import options
 from sentry.eventstore.models import Event
@@ -264,6 +264,27 @@ def total_span_time(span_list: List[Dict[str, Any]]) -> float:
 
 PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
 
+PARAMETERIZED_URL_REGEX = re.compile(
+    r"""(?x)
+    (?P<uuid>
+        \b
+            [0-9a-fA-F]{8}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{12}
+        \b
+    ) |
+    (?P<hashlike>
+        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
+    ) |
+    (?P<int>
+        -\d+\b |
+        \b\d+\b
+    )
+"""
+)  # Adapted from message.py
+
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).
 UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
@@ -293,3 +314,53 @@ def fingerprint_resource_span(span: Span):
     path = ASSET_HASH_REGEX.sub("*", path)
     stripped_url = url._replace(path=path, query="").geturl()
     return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
+
+
+def parameterize_url(url: str) -> str:
+    parsed_url = urlparse(str(url))
+
+    protocol_fragments = []
+    if parsed_url.scheme:
+        protocol_fragments.append(parsed_url.scheme)
+        protocol_fragments.append("://")
+
+    host_fragments = []
+    for fragment in parsed_url.netloc.split("."):
+        host_fragments.append(str(fragment))
+
+    path_fragments = []
+    for fragment in parsed_url.path.split("/"):
+        if PARAMETERIZED_URL_REGEX.search(fragment):
+            path_fragments.append("*")
+        else:
+            path_fragments.append(str(fragment))
+
+    query = parse_qs(parsed_url.query)
+
+    return "".join(
+        [
+            "".join(protocol_fragments),
+            ".".join(host_fragments),
+            "/".join(path_fragments),
+            "?",
+            "&".join(sorted([f"{key}=*" for key in query.keys()])),
+        ]
+    ).rstrip("?")
+
+
+def fingerprint_http_spans(spans: list[Span]) -> str:
+    """
+    Fingerprints http spans based on their paramaterized paths, assumes all spans are http spans
+    """
+    url_paths = []
+    for http_span in spans:
+        url = get_url_from_span(http_span)
+        if url:
+            parametrized_url = parameterize_url(url)
+            path = urlparse(parametrized_url).path
+            if path not in url_paths:
+                url_paths.append(path)
+    url_paths.sort()
+
+    hashed_url_paths = hashlib.sha1(("-".join(url_paths)).encode("utf8")).hexdigest()
+    return hashed_url_paths
