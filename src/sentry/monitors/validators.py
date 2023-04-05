@@ -235,8 +235,8 @@ class MonitorCheckInValidator(serializers.Serializer):
             monitor_validator = MonitorValidator(
                 data={
                     "type": "cron_job",
-                    "name": self.context["monitor_id"],
-                    "slug": self.context["monitor_id"],
+                    "name": self.context["monitor_slug"],
+                    "slug": self.context["monitor_slug"],
                     "project": project.slug,
                     "config": monitor_config,
                 },
