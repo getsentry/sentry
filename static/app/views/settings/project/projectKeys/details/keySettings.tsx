@@ -137,7 +137,7 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
         addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
       } catch (error) {
         const message = t('Unable to updated dynamic SDK loader configuration');
-        handleXhrErrorResponse(message)(error);
+        handleXhrErrorResponse(error);
         addErrorMessage(message);
       }
     },
@@ -185,7 +185,7 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
         addSuccessMessage(t('Successfully updated SDK version'));
       } catch (error) {
         const message = t('Unable to updated SDK version');
-        handleXhrErrorResponse(message)(error);
+        handleXhrErrorResponse(error);
         addErrorMessage(message);
       }
     },

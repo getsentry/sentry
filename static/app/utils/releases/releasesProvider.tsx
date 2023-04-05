@@ -78,7 +78,7 @@ function ReleasesProvider({
         const errorResponse = e?.responseJSON ?? t('Unable to fetch releases');
         addErrorMessage(errorResponse);
         setLoading(false);
-        handleXhrErrorResponse(errorResponse)(e);
+        handleXhrErrorResponse(e);
       });
     return () => {
       shouldCancelRequest = true;

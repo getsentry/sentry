@@ -85,7 +85,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       .then(() => {
         // Need to hard reload because lots of components do not listen to Projects Store
         window.location.assign('/');
-      }, handleXhrErrorResponse('Unable to remove project'));
+      }, handleXhrErrorResponse);
   };
 
   handleTransferProject = async () => {
@@ -104,7 +104,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       window.location.assign('/');
     } catch (err) {
       if (err.status >= 500) {
-        handleXhrErrorResponse('Unable to transfer project')(err);
+        handleXhrErrorResponse(err);
       }
     }
   };

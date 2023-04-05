@@ -21,7 +21,7 @@ export function fetchProjectDetails({
 
   promise.then(ProjectsStore.onUpdateSuccess).catch(error => {
     const message = t('Unable to fetch project details');
-    handleXhrErrorResponse(message)(error);
+    handleXhrErrorResponse(error);
     addErrorMessage(message);
   });
 

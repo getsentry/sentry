@@ -190,7 +190,7 @@ function CustomRepositories({
         'Rate limit for refreshing repository exceeded. Try again in a few minutes.'
       );
       addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage)(error);
+      handleXhrErrorResponse(error);
     }
   }
 

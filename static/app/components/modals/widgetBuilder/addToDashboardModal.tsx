@@ -172,7 +172,7 @@ function AddToDashboardModal({
       addSuccessMessage(t('Successfully added widget to dashboard'));
     } catch (e) {
       const errorMessage = t('Unable to add widget to dashboard');
-      handleXhrErrorResponse(errorMessage)(e);
+      handleXhrErrorResponse(e);
       addErrorMessage(errorMessage);
     }
   }

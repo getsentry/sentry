@@ -166,7 +166,7 @@ function Onboarding(props: Props) {
       try {
         await removeProject(api, organization.slug, projectSlug);
       } catch (error) {
-        handleXhrErrorResponse(t('Unable to delete project'))(error);
+        handleXhrErrorResponse(error);
         // we don't give the user any feedback regarding this error as this shall be silent
       }
     },

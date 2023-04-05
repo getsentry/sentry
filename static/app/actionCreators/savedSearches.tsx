@@ -29,7 +29,7 @@ export function saveRecentSearch(
     },
   });
 
-  promise.catch(handleXhrErrorResponse('Unable to save a recent search'));
+  promise.catch(handleXhrErrorResponse);
 
   return promise;
 }
@@ -61,7 +61,7 @@ export function fetchRecentSearches(
 
   promise.catch(resp => {
     if (resp.status !== 401 && resp.status !== 403) {
-      handleXhrErrorResponse('Unable to fetch recent searches')(resp);
+      handleXhrErrorResponse(resp);
     }
   });
 

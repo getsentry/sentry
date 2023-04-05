@@ -93,7 +93,7 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
       },
       err => {
         addErrorMessage(t('There was a problem with the request.'));
-        handleXhrErrorResponse('SelectAsync failed')(err);
+        handleXhrErrorResponse(err);
         // eslint-disable-next-line no-console
         console.error(err);
       }

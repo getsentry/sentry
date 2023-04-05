@@ -103,8 +103,7 @@ export function SetupDocsLoader({
       );
       setProjectKeyUpdateError(false);
     } catch (error) {
-      const message = t('Unable to updated dynamic SDK loader configuration');
-      handleXhrErrorResponse(message)(error);
+      handleXhrErrorResponse(error);
       setProjectKeyUpdateError(true);
     }
   }, [api, location.query.product, organization.slug, project.slug, projectKey?.id]);
