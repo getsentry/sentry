@@ -1,4 +1,3 @@
-import math
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
@@ -232,8 +231,4 @@ def adjusted_factor(prev_factor: float, actual_rate: float, desired_sample_rate:
     Calculate adjusted factor based on blended_sample rate (desired_sample_rate) and actual sample rate
     """
     assert prev_factor != 0.0
-
-    if math.isclose(desired_sample_rate, actual_rate, abs_tol=1e-9):
-        return 1.0
-
     return prev_factor * (desired_sample_rate / actual_rate)

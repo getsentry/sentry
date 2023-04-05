@@ -6,7 +6,7 @@ from typing import Sequence, Tuple
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
-from sentry.dynamic_sampling.models.utils import DSElement, actual_sample_rate
+from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
     ProjectTransactions,
@@ -24,6 +24,7 @@ from sentry.dynamic_sampling.rules.utils import (
     DecisionKeepCount,
     OrganizationId,
     ProjectId,
+    actual_sample_rate,
     adjusted_factor,
     generate_cache_key_adj_factor,
     get_redis_client_for_ds,
