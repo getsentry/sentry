@@ -486,9 +486,30 @@ class DetailedEventSerializerTest(TestCase):
             # Second breadcrumb should have whitespace added in message_formatted
             assert (
                 result["entries"][0]["data"]["values"][1]["message"]
-                == "select *\n  from table\n where something = $1"
+                == "select *\nfrom table\nwhere something = $1"
             )
             assert (
                 result["entries"][0]["data"]["values"][1]["messageRaw"]
                 == "select * from table where something = $1"
+            )
+
+    def test_event_breadcrumb_formatting_remove_quotes(self):
+        with self.feature("organizations:issue-breadcrumbs-sql-format"):
+            event = self.store_event(
+                data={
+                    "breadcrumbs": [
+                        {
+                            "category": "query",
+                            "message": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
+                        },
+                    ]
+                },
+                project_id=self.project.id,
+            )
+            result = serialize(event, None, DetailedEventSerializer())
+
+            # Should remove quotes from all terms except the one that contains a space ("column name")
+            assert (
+                result["entries"][0]["data"]["values"][0]["message"]
+                == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
             )
