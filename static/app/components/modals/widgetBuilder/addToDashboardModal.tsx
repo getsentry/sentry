@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {Location, Query} from 'history';
 
 import {
@@ -17,7 +18,6 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
@@ -171,9 +171,8 @@ function AddToDashboardModal({
       closeModal();
       addSuccessMessage(t('Successfully added widget to dashboard'));
     } catch (e) {
-      const errorMessage = t('Unable to add widget to dashboard');
-      handleXhrErrorResponse(errorMessage)(e);
-      addErrorMessage(errorMessage);
+      addErrorMessage(t('Unable to add widget to dashboard'));
+      Sentry.captureException(e);
     }
   }
 

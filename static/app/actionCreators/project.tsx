@@ -1,9 +1,10 @@
+import * as Sentry from '@sentry/react';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 /**
  * Fetches a project's details
@@ -21,8 +22,8 @@ export function fetchProjectDetails({
 
   promise.then(ProjectsStore.onUpdateSuccess).catch(error => {
     const message = t('Unable to fetch project details');
-    handleXhrErrorResponse(message)(error);
     addErrorMessage(message);
+    Sentry.captureException(error);
   });
 
   return promise;

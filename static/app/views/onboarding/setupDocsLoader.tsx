@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -15,11 +16,11 @@ import platforms from 'sentry/data/platforms';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
+import { addErrorMessage } from 'sentry/actionCreators/indicator';
 
 export function SetupDocsLoader({
   organization,
@@ -103,8 +104,8 @@ export function SetupDocsLoader({
       );
       setProjectKeyUpdateError(false);
     } catch (error) {
-      const message = t('Unable to updated dynamic SDK loader configuration');
-      handleXhrErrorResponse(message)(error);
+      addErrorMessage(t('Unable to update dynamic SDK loader configuration'));
+      Sentry.captureException(error);
       setProjectKeyUpdateError(true);
     }
   }, [api, location.query.product, organization.slug, project.slug, projectKey?.id]);

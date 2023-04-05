@@ -1,11 +1,11 @@
 import {createContext, useContext, useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Release} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 import useApi from '../useApi';
 
@@ -17,7 +17,7 @@ function fetchReleases(
 ) {
   const {environments, projects, datetime} = selection;
 
-  return api.requestPromise(`/organizations/${orgSlug}/releases/`, {
+  return api.requestPromise(`/organizations/${orgSlug}/release123s/`, {
     method: 'GET',
     data: {
       sort: 'date',
@@ -75,10 +75,9 @@ function ReleasesProvider({
           return;
         }
 
-        const errorResponse = e?.responseJSON ?? t('Unable to fetch releases');
-        addErrorMessage(errorResponse);
+        addErrorMessage(t('Unable to fetch releases'));
         setLoading(false);
-        handleXhrErrorResponse(errorResponse)(e);
+        Sentry.captureException(e);
       });
     return () => {
       shouldCancelRequest = true;
