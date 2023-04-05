@@ -35,7 +35,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "403_backfill_actors"),
+        ("sentry", "0403_backfill_actors"),
     ]
 
     operations = [
