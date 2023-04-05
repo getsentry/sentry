@@ -48,6 +48,8 @@ def sync_status_inbound(
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
             )
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(

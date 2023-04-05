@@ -211,6 +211,8 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         organization_id=organization_id,
         group_id=group.id,
         resolution_type=resolution_type,
+        issue_type=group.issue_type.slug,
+        issue_category=group.issue_category.name.lower(),
     )
 
 
