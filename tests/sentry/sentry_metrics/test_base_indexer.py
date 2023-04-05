@@ -279,3 +279,100 @@ class UseCaseResultsTest(TestCase):
             "uc_2:1:j": 4,
             "uc_4:2:j": 5,
         }
+
+    def test_merge(self) -> None:
+        use_case_results_1 = UseCaseResults()
+        use_case_results_2 = UseCaseResults()
+        assert (
+            use_case_results_1.merge(UseCaseResults()).merge(UseCaseResults()) == UseCaseResults()
+        )
+        results_with_meta_1 = [
+            (
+                [
+                    UseCaseResult(use_case_id="uc_1", org_id=1, string="a", id=1),
+                ],
+                None,
+            ),
+            (
+                [
+                    UseCaseResult(use_case_id="uc_1", org_id=1, string="c", id=2),
+                    UseCaseResult(use_case_id="uc_2", org_id=1, string="a", id=3),
+                    UseCaseResult(use_case_id="uc_3", org_id=1, string="e", id=4),
+                ],
+                FetchType.CACHE_HIT,
+            ),
+            (
+                [
+                    UseCaseResult(use_case_id="uc_3", org_id=2, string="e", id=5),
+                ],
+                FetchType.FIRST_SEEN,
+            ),
+        ]
+        results_with_meta_2 = [
+            (
+                [
+                    UseCaseResult(use_case_id="uc_1", org_id=1, string="a", id=1),
+                ],
+                None,
+            ),
+            (
+                [
+                    UseCaseResult(use_case_id="uc_1", org_id=1, string="c", id=2),
+                    UseCaseResult(use_case_id="uc_1", org_id=1, string="d", id=3),
+                    UseCaseResult(use_case_id="uc_2", org_id=2, string="a", id=4),
+                    UseCaseResult(use_case_id="uc_4", org_id=1, string="e", id=5),
+                ],
+                FetchType.CACHE_HIT,
+            ),
+            (
+                [
+                    UseCaseResult(use_case_id="uc_3", org_id=2, string="e", id=5),
+                ],
+                FetchType.FIRST_SEEN,
+            ),
+        ]
+        for results, meta in results_with_meta_1:
+            use_case_results_1.add_use_case_results(results, meta)
+        assert (
+            use_case_results_1.merge(UseCaseResults()).merge(UseCaseResults()) == use_case_results_1
+        )
+        assert (
+            UseCaseResults().merge(UseCaseResults()).merge(use_case_results_1) == use_case_results_1
+        )
+        for results, meta in results_with_meta_2:
+            use_case_results_2.add_use_case_results(results, meta)
+        assert use_case_results_1.merge(use_case_results_2) == use_case_results_2.merge(
+            use_case_results_1
+        )
+        assert use_case_results_1.merge(use_case_results_2).get_mapped_results() == {
+            "uc_1": {1: {"a": 1, "c": 2, "d": 3}},
+            "uc_2": {1: {"a": 3}, 2: {"a": 4}},
+            "uc_3": {1: {"e": 4}, 2: {"e": 5}},
+            "uc_4": {1: {"e": 5}},
+        }
+        assert use_case_results_1.merge(use_case_results_2).get_fetch_metadata() == {
+            "uc_1": defaultdict(
+                dict,
+                {
+                    1: {
+                        "c": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                        "d": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    }
+                },
+            ),
+            "uc_2": defaultdict(
+                dict,
+                {
+                    1: {"a": Metadata(id=3, fetch_type=FetchType.CACHE_HIT)},
+                    2: {"a": Metadata(id=4, fetch_type=FetchType.CACHE_HIT)},
+                },
+            ),
+            "uc_3": defaultdict(
+                dict,
+                {
+                    1: {"e": Metadata(id=4, fetch_type=FetchType.CACHE_HIT)},
+                    2: {"e": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)},
+                },
+            ),
+            "uc_4": defaultdict(dict, {1: {"e": Metadata(id=5, fetch_type=FetchType.CACHE_HIT)}}),
+        }
