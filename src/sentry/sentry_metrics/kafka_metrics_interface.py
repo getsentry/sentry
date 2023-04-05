@@ -16,7 +16,7 @@ class KafkaGenericMetricsBackend(GenericMetricsBackend):
         metric_name: str,
         value: int,
         tags: Mapping[str, str],
-    ):
+    ) -> None:
         pass
 
     def set(
@@ -26,7 +26,7 @@ class KafkaGenericMetricsBackend(GenericMetricsBackend):
         metric_name: str,
         value: int,
         tags: Mapping[str, str],
-    ):
+    ) -> None:
         pass
 
     def distribution(
@@ -36,5 +36,5 @@ class KafkaGenericMetricsBackend(GenericMetricsBackend):
         metric_name: str,
         value: int,
         tags: Mapping[str, str],
-    ):
+    ) -> None:
         pass
