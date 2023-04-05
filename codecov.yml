@@ -1,10 +1,3 @@
-codecov:
-  notify:
-    # The minimum amount of codecov reporting checks that need to complete
-    # For FE we have 5 checks and for BE we have 11
-    # TODO: Remove this when we have support of after_n_builds per flag
-    after_n_builds: 5
-
 # Setting coverage targets per flag
 coverage:
   status:
@@ -59,9 +52,24 @@ flags:
     paths:
     - "static/app/"
     carryforward: true
+    # Do not send any notifications until N coverage reports are uploaded
+    after_n_builds: 5
   backend:
     paths:
     - "src/sentry/**/*.py"
     carryforward: true
+    # Do not send any notifications until N coverage reports are uploaded
+    after_n_builds: 11
 
-comment: false
+# This will add a comment to PRs
+# Read more here: https://docs.codecov.com/docs/pull-request-comments#layout
+comment:
+  layout: "diff, files"
+  behavior: default # Update, if comment exists. Otherwise post new.
+  # require_changes: true
+  # Comments will only post when coverage changes. Furthermore, if a comment
+  # already exists, and a newer commit results in no coverage change for the
+  # entire pull, the comment will be deleted.
+  require_changes: true
+  require_base: yes # must have a base report to post
+  require_head: yes # must have a head report to post
