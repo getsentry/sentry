@@ -54,7 +54,12 @@ def get_query_builder_for_group(
     query: str, snuba_params: Mapping[str, Any], group: Group, limit: int, offset: int
 ) -> QueryBuilder:
     dataset = Dataset.IssuePlatform
-    if group.issue_category == GroupCategory.PERFORMANCE:
+    from sentry import options
+
+    if group.issue_category == GroupCategory.PERFORMANCE and not (
+        options.get("performance.issues.send_to_issues_platform", True)
+        and group.project.get_option("sentry:performance_issue_send_to_issues_platform", True)
+    ):
         dataset = Dataset.Transactions
     elif group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
