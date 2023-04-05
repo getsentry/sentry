@@ -187,7 +187,6 @@ tqdm==4.64.1
 trio==0.21.0
 trio-websocket==0.9.2
 types-beautifulsoup4==4.11.6
-types-cachetools==5.3.0.5
 types-freezegun==1.1.10
 types-jsonschema==4.16.1
 types-psycopg2==2.9.21

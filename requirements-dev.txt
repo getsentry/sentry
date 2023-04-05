@@ -32,7 +32,6 @@ lxml-stubs
 msgpack-types>=0.2.0
 mypy>=0.982
 types-beautifulsoup4
-types-cachetools
 types-freezegun
 types-jsonschema
 types-psycopg2
