@@ -109,12 +109,16 @@ class Actor(Model):
 
 
 def get_actor_id_for_user(user: Union["User", RpcUser]):
+    return get_actor_for_user(user).id
+
+
+def get_actor_for_user(user: Union["User", RpcUser]):
     with transaction.atomic():
         actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
         if not actor:
             actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
             user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
-    return actor.id
+    return actor
 
 
 class ActorTuple(namedtuple("Actor", "id type")):

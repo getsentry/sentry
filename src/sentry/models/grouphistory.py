@@ -13,6 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.models.actor import get_actor_id_for_user
 from sentry.types.activity import ActivityType
 
 if TYPE_CHECKING:
@@ -217,12 +218,21 @@ def record_group_history(
     release: Optional["Release"] = None,
 ):
     prev_history = get_prev_history(group, status)
+    actor_id = None
+    if actor:
+        if isinstance(actor, RpcUser):
+            actor_id = get_actor_id_for_user(actor)
+        elif isinstance(actor, Team):
+            actor_id = actor.actor_id
+        else:
+            raise ValueError("record_group_history actor argument must be RPCUser or Team")
+
     return GroupHistory.objects.create(
         organization=group.project.organization,
         group=group,
         project=group.project,
         release=release,
-        actor_id=actor.actor_id if actor is not None else None,
+        actor_id=actor_id,
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,

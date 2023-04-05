@@ -20,7 +20,7 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.actor import get_actor_id_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.models import SnubaQuery
@@ -178,12 +178,14 @@ class ProjectTest(TestCase):
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
         rule1 = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
-        rule2 = Rule.objects.create(label="rule4", project=project, owner=from_user.actor)
+        rule2 = Rule.objects.create(
+            label="rule4", project=project, owner=get_actor_for_user(from_user)
+        )
 
         # should keep their owners
         rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
         rule4 = Rule.objects.create(
-            label="rule3", project=project, owner_id=get_actor_id_for_user(to_user)
+            label="rule3", project=project, owner=get_actor_for_user(to_user)
         )
 
         assert EnvironmentProject.objects.count() == 1

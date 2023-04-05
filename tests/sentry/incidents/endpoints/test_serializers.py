@@ -25,6 +25,7 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerSerializer,
 )
 from sentry.models import ACTOR_TYPES, Environment, Integration
+from sentry.models.actor import get_actor_for_user
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.snuba.dataset import Dataset
@@ -652,7 +653,7 @@ class TestAlertRuleSerializer(TestCase):
         # Reload user for actor
         with exempt_from_silo_limits():
             self.user = User.objects.get(id=self.user.id)
-        assert alert_rule.owner == self.user.actor
+        assert alert_rule.owner == get_actor_for_user(self.user)
         assert alert_rule.owner.type == ACTOR_TYPES["user"]
 
     def test_comparison_delta_above(self):
