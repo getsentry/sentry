@@ -88,6 +88,7 @@ default_manager.add("organizations:issue-alert-fallback-targeting", Organization
 default_manager.add("organizations:issue-alert-incompatible-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-alert-preview", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-alert-test-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:issue-breadcrumbs-sql-format", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-list-removal-action", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
