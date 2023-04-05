@@ -242,7 +242,6 @@ export function Threads({
   const threadStateDisplay = getMappedThreadState(activeThread?.state);
 
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
-
   const showThreadTags = isNil(activeThreadId) || !activeThreadName;
 
   return (
