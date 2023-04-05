@@ -202,15 +202,14 @@ class AbstractIntegrationDetailedView<
   ) => {
     options = options || {};
     // If we use this intermediate type we get type checking on the things we care about
-    const params = {
+    trackIntegrationAnalytics(eventKey, {
       view: 'integrations_directory_integration_detail',
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', // pending counts as installed here
       organization: this.props.organization,
       ...options,
-    };
-    trackIntegrationAnalytics(eventKey, params);
+    });
   };
 
   // Returns the props as needed by the hooks integrations:feature-gates
