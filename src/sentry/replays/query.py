@@ -5,8 +5,6 @@ from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Union
 
 from snuba_sdk import (
-    BooleanCondition,
-    BooleanOp,
     Column,
     Condition,
     Entity,
@@ -155,13 +153,7 @@ def query_replays_dataset(
                 # Make sure we're not too old.
                 Condition(Column("finished_at"), Op.LT, end),
                 # Require non-archived replays.
-                BooleanCondition(
-                    BooleanOp.OR,
-                    [
-                        Condition(Column("isArchived"), Op.EQ, 0),
-                        Condition(Column("isArchived"), Op.IS_NULL),
-                    ],
-                ),
+                Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
                 # Other conditions.
@@ -681,11 +673,17 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="count_urls",
     ),
     "is_archived": Function(
-        "greater",
+        "ifNull",
         parameters=[
             Function(
-                "max",
-                parameters=[Column("is_archived")],
+                "greater",
+                parameters=[
+                    Function(
+                        "max",
+                        parameters=[Column("is_archived")],
+                    ),
+                    0,
+                ],
             ),
             0,
         ],
