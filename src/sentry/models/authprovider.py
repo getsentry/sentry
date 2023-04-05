@@ -29,12 +29,12 @@ class AuthProviderDefaultTeams(Model):
     __include_in_export__ = False
 
     authprovider = FlexibleForeignKey("sentry.AuthProvider")
-    team = FlexibleForeignKey("sentry.Team")
+    team_id = HybridCloudForeignKey("sentry.Team", on_delete="CASCADE")
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_authprovider_default_teams"
-        unique_together = (("authprovider", "team"),)
+        unique_together = (("authprovider", "team_id"),)
 
 
 @control_silo_only_model
@@ -51,12 +51,6 @@ class AuthProvider(Model):
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
-    # TODO(dcramer): ManyToMany has the same issue as ForeignKey and we need
-    # to either write our own which works w/ BigAuto or switch this to use
-    # through.
-    default_teams = models.ManyToManyField(
-        "sentry.Team", blank=True, through=AuthProviderDefaultTeams
-    )
 
     flags = BitField(
         flags=(
