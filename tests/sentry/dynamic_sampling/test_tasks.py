@@ -24,7 +24,9 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
     def now(self):
         return MOCK_DATETIME
 
-    def create_project_and_add_metrics(self, name, count, org):
+    def create_project_and_add_metrics(self, name, count, org, tags=None):
+        if tags is None:
+            tags = {"transaction": "foo_transaction"}
         # Create 4 projects
         proj = self.create_project(name=name, organization=org)
 
@@ -42,7 +44,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         # Store performance metrics for proj A
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction"},
+            tags=tags,
             minutes_before_now=30,
             value=count,
             project_id=proj.id,
