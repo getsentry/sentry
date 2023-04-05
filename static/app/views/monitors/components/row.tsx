@@ -6,6 +6,9 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import Text from 'sentry/components/text';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
@@ -72,6 +75,29 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
   ) : null;
 
+  const deletionModalMessage = (
+    <Fragment>
+      <Text>
+        {tct('Are you sure you want to permanently delete "[name]"?', {
+          name: monitor.name,
+        })}
+      </Text>
+      {monitor.environments.length > 1 && (
+        <AdditionalEnvironmentWarning>
+          <Text>
+            {t(
+              `This will delete check-in data for this monitor associated with these environments:`
+            )}
+          </Text>
+          <List symbol="bullet">
+            {monitor.environments.map(environment => (
+              <ListItem key={environment.name}>{environment.name}</ListItem>
+            ))}
+          </List>
+        </AdditionalEnvironmentWarning>
+      )}
+    </Fragment>
+  );
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
@@ -89,9 +115,7 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
             onDelete();
           },
           header: t('Delete Monitor?'),
-          message: tct('Are you sure you want to permanently delete [name]?', {
-            name: monitor.name,
-          }),
+          message: deletionModalMessage,
           confirmText: t('Delete Monitor'),
           priority: 'danger',
         });
@@ -193,4 +217,8 @@ const ActionsColumn = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const AdditionalEnvironmentWarning = styled('div')`
+  margin: ${space(1)} 0;
 `;
