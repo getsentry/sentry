@@ -6,7 +6,7 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
@@ -75,77 +75,65 @@ export function ProductSelection({
             })}
       </TextBlock>
       <Products>
-        <Product
-          disabled
-          data-test-id={`product-${PRODUCT.ERROR_MONITORING}-${PRODUCT.PERFORMANCE_MONITORING}-${PRODUCT.SESSION_REPLAY}`}
+        <Tooltip title={t("Let's admit it, we all have errors.")}>
+          <Product
+            disabled
+            data-test-id={`product-${PRODUCT.ERROR_MONITORING}-${PRODUCT.PERFORMANCE_MONITORING}-${PRODUCT.SESSION_REPLAY}`}
+          >
+            <Checkbox checked readOnly size="xs" disabled />
+            <div>{t('Error Monitoring')}</div>
+          </Product>
+        </Tooltip>
+        <Tooltip
+          title={
+            <TooltipDescription>
+              {t(
+                'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
+              )}
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/performance/">
+                {t('Read the Docs')}
+              </ExternalLink>
+            </TooltipDescription>
+          }
+          isHoverable
         >
-          <Checkbox checked readOnly size="xs" disabled />
-          <div>{t('Error Monitoring')}</div>
-          <QuestionTooltip
-            size="xs"
-            title={
-              <TooltipDescription>
-                {t(
-                  'Detailed views of errors and performance problems in your application grouped by events with a similar set of characteristics.'
-                )}
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </TooltipDescription>
-            }
-            isHoverable
-          />
-        </Product>
-        <Product
-          onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}
-          data-test-id={`product-${PRODUCT.PERFORMANCE_MONITORING}`}
+          <Product
+            onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}
+            data-test-id={`product-${PRODUCT.PERFORMANCE_MONITORING}`}
+          >
+            <Checkbox
+              checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
+              size="xs"
+              readOnly
+            />
+            {t('Performance Monitoring')}
+          </Product>
+        </Tooltip>
+        <Tooltip
+          title={
+            <TooltipDescription>
+              {t(
+                'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+              )}
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/">
+                {t('Read the Docs')}
+              </ExternalLink>
+            </TooltipDescription>
+          }
+          isHoverable
         >
-          <Checkbox
-            checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
-            size="xs"
-            readOnly
-          />
-          {t('Performance Monitoring')}
-          <QuestionTooltip
-            size="xs"
-            title={
-              <TooltipDescription>
-                {t(
-                  'Detailed views of errors and performance problems in your application grouped by events with a similar set of characteristics.'
-                )}
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </TooltipDescription>
-            }
-            isHoverable
-          />
-        </Product>
-        <Product
-          onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}
-          data-test-id={`product-${PRODUCT.SESSION_REPLAY}`}
-        >
-          <Checkbox
-            checked={products.includes(PRODUCT.SESSION_REPLAY)}
-            size="xs"
-            readOnly
-          />
-          {t('Session Replay')}
-          <QuestionTooltip
-            size="xs"
-            title={
-              <TooltipDescription>
-                {t(
-                  'Detailed views of errors and performance problems in your application grouped by events with a similar set of characteristics.'
-                )}
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </TooltipDescription>
-            }
-            isHoverable
-          />
-        </Product>
+          <Product
+            onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}
+            data-test-id={`product-${PRODUCT.SESSION_REPLAY}`}
+          >
+            <Checkbox
+              checked={products.includes(PRODUCT.SESSION_REPLAY)}
+              size="xs"
+              readOnly
+            />
+            {t('Session Replay')}
+          </Product>
+        </Tooltip>
       </Products>
       {lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
@@ -199,7 +187,6 @@ const TooltipDescription = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   justify-content: flex-start;
-  text-align: left;
 `;
 
 const AlternativeInstallationAlert = styled(Alert)`
