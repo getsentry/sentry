@@ -368,7 +368,8 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         # _get_rules fetches from project options, which arent updated yet.
         assert _get_rules(project1) == {"/user/*/**": 1}
         # Update rules to update the project option storage.
-        update_rules(project1, [])
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
+            update_rules(project1, [])
         # After project options are updated, the last_seen should also be updated.
         assert _get_rules(project1) == {"/user/*/**": 2}
 
