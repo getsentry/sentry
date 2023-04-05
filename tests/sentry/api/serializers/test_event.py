@@ -489,8 +489,13 @@ class DetailedEventSerializerTest(TestCase):
             assert result["entries"][0]["type"] == "breadcrumbs"
             # First breadcrumb should not have a message_formatted property
             assert result["entries"][0]["data"]["values"][0]["message"] == "should not format this"
+            assert "messageRaw" not in result["entries"][0]["data"]["values"][0]
             # Second breadcrumb should have whitespace added in message_formatted
             assert (
                 result["entries"][0]["data"]["values"][1]["message"]
                 == "select *\n  from table\n where something = $1"
+            )
+            assert (
+                result["entries"][0]["data"]["values"][1]["messageRaw"]
+                == "select * from table where something = $1"
             )

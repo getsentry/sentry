@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Sequence
 
+import sentry_sdk
 import sqlparse
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
@@ -372,16 +373,17 @@ class DetailedEventSerializer(EventSerializer):
     def _format_breadcrumb_messages(
         self, event_data: dict[str, Any], event: Event | GroupEvent, user: User
     ):
-        breadcrumbs = next(
-            filter(lambda entry: entry["type"] == "breadcrumbs", event_data["entries"]), None
-        )
-
-        if not breadcrumbs or not features.has(
-            "organizations:issue-breadcrumbs-sql-format", event.project.organization, actor=user
-        ):
-            return event_data
-
         try:
+            breadcrumbs = next(
+                filter(lambda entry: entry["type"] == "breadcrumbs", event_data.get("entries", ())),
+                None,
+            )
+
+            if not breadcrumbs or not features.has(
+                "organizations:issue-breadcrumbs-sql-format", event.project.organization, actor=user
+            ):
+                return event_data
+
             for breadcrumb_item in breadcrumbs["data"]["values"]:
                 if breadcrumb_item["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
                     breadcrumb_item["messageRaw"] = breadcrumb_item["message"]
@@ -389,7 +391,8 @@ class DetailedEventSerializer(EventSerializer):
                         breadcrumb_item["message"], reindent_aligned=True
                     )
             return event_data
-        except Exception:
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
             return event_data
 
     def serialize(self, obj, attrs, user):
