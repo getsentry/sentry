@@ -100,7 +100,7 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
   ];
 
   const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/${
-    monitorEnv && `?environment=${monitorEnv.name}`
+    monitorEnv ? `?environment=${monitorEnv.name}` : ''
   }`;
 
   // TODO(davidenwang): Change accordingly when we have ObjectStatus on monitor
