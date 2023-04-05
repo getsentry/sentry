@@ -243,10 +243,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         elif txt == "Connection broken: invalid chunk length":
             logger.warning(f"Connection broken by chunk with invalid length. {msg}.", extra=extra)
             should_count_error = True
-        elif txt.startswith("Unable to reach host:"):
+        elif txt and txt.startswith("Unable to reach host:"):
             logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
             should_count_error = True
-        elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+        elif txt and txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
             logger.warning("Github has blocked this org. We will not continue.", extra=extra)
             # Raising the error will be handled at the task level
             raise error
