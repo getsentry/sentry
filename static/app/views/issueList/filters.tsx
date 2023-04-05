@@ -42,12 +42,25 @@ const SearchContainer = styled('div')`
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  flex: 0 1 0;
+  display: flex;
+  flex-basis: content;
   width: 100%;
-  max-width: 35rem;
+  max-width: 43rem;
+  align-self: flex-start;
 
   > div > button {
     width: 100%;
+  }
+
+  & > * {
+    /* Prevent date filter from shrinking below 6.5rem */
+    &:nth-last-child(2) {
+      min-width: 6.5rem;
+    }
+
+    &:last-child {
+      min-width: 0;
+    }
   }
 `;
 

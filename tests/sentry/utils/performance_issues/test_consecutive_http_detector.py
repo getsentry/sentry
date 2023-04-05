@@ -60,7 +60,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -71,7 +71,16 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
                 evidence_display=[],
             )
         ]
@@ -95,7 +104,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -106,7 +115,16 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
                 evidence_display=[],
             )
         ]
@@ -164,5 +182,5 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         problem_2 = self.find_problems(create_event(spans))[0]
 
-        assert problem_2.fingerprint == "1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64"
+        assert problem_2.fingerprint == "1-1009-515a42c2614f98fa886b6d9ad1ddfe1929329f53"
         assert problem_1.fingerprint == problem_2.fingerprint

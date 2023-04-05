@@ -1,13 +1,14 @@
-import {Fragment, useCallback, useContext, useRef} from 'react';
+import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
 import {AriaListBoxOptions, useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
 import {ListState} from '@react-stately/list';
-import {Node} from '@react-types/shared';
 
+import {t} from 'sentry/locale';
 import {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
-import {ListLabel, ListSeparator, ListWrap} from '../styles';
+import {SelectFilterContext} from '../list';
+import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -31,10 +32,6 @@ interface ListBoxProps
    */
   keyDownHandler: (e: React.KeyboardEvent<HTMLUListElement>) => boolean;
   /**
-   * Items to be rendered inside this list box.
-   */
-  listItems: Node<any>[];
-  /**
    * Object containing the selection state and focus position, needed for
    * `useListBox()`.
    */
@@ -44,6 +41,10 @@ interface ListBoxProps
    */
   label?: React.ReactNode;
   size?: FormSize;
+  /**
+   * Message to be displayed when some options are hidden due to `sizeLimit`.
+   */
+  sizeLimitMessage?: string;
 }
 
 /**
@@ -57,11 +58,11 @@ interface ListBoxProps
  * the `grid` prop on CompactSelect to true).
  */
 function ListBox({
-  listItems,
   listState,
   size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
+  sizeLimitMessage,
   keyDownHandler,
   label,
   ...props
@@ -88,7 +89,22 @@ function ListBox({
     [keyDownHandler, listBoxProps]
   );
 
-  const {overlayIsOpen} = useContext(SelectContext);
+  const {overlayIsOpen, search} = useContext(SelectContext);
+  const hiddenOptions = useContext(SelectFilterContext);
+  const listItems = useMemo(
+    () =>
+      [...listState.collection].filter(node => {
+        if (node.type === 'section') {
+          return ![...node.childNodes].every(child =>
+            hiddenOptions.has(child.props.value)
+          );
+        }
+
+        return !hiddenOptions.has(node.props.value);
+      }),
+    [listState.collection, hiddenOptions]
+  );
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
@@ -116,6 +132,12 @@ function ListBox({
               />
             );
           })}
+
+        {!search && hiddenOptions.size > 0 && (
+          <SizeLimitMessage>
+            {sizeLimitMessage ?? t('Use search to find more options…')}
+          </SizeLimitMessage>
+        )}
       </ListWrap>
     </Fragment>
   );

@@ -69,7 +69,7 @@ def test_consent(client, default_project, test_event, openai_policy):
 
     openai_policy["result"] = "individual_consent"
     response = client.get(path)
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json() == {"restriction": "individual_consent"}
     response = client.get(path + "?consent=yes")
     assert response.status_code == 200
@@ -77,7 +77,7 @@ def test_consent(client, default_project, test_event, openai_policy):
 
     openai_policy["result"] = "subprocessor"
     response = client.get(path)
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json() == {"restriction": "subprocessor"}
 
     openai_policy["result"] = "allowed"
