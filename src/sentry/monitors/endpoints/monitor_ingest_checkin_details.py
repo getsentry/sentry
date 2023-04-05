@@ -34,7 +34,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         operation_id="Update a check-in",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
             MONITOR_PARAMS.CHECKIN_ID,
         ],
         request=MonitorCheckInValidator,

@@ -1349,17 +1349,17 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitors",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
         OrganizationMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-details",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/stats/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/stats/$",
         OrganizationMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-stats",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
@@ -1368,7 +1368,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitor-check-in-index",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
@@ -1376,7 +1376,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitor-check-in-details",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
         method_dispatch(
             GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
             POST=MonitorIngestCheckinAttachmentEndpoint.as_view(),  # Legacy ingest endpoint
@@ -2625,12 +2625,12 @@ urlpatterns = [
     # Top-level monitor checkin APIs. NOTE that there are also organization
     # level checkin ingest APIs.
     url(
-        r"^monitors/(?P<monitor_id>[^\/]+)/checkins/$",
+        r"^monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
         MonitorIngestCheckInIndexEndpoint.as_view(),
         name="sentry-api-0-monitor-ingest-check-in-index",
     ),
     url(
-        r"^monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        r"^monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
         MonitorIngestCheckInDetailsEndpoint.as_view(),
         name="sentry-api-0-monitor-ingest-check-in-details",
     ),
