@@ -2,7 +2,11 @@ import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {addErrorMessage, addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
