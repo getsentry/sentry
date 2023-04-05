@@ -232,7 +232,7 @@
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production yarn webpack --mode development",
     "build-production": "NODE_ENV=production yarn webpack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 yarn webpack",
-    "build-js-loader": "node scripts/build-js-loader.js",
+    "build-js-loader": "ts-node scripts/build-js-loader.ts",
     "validate-api-examples": "cd api-docs && yarn openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install"
   },

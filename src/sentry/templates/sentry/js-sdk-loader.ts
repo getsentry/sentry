@@ -1,3 +1,8 @@
+declare const __LOADER__PUBLIC_KEY__: any;
+declare const __LOADER_SDK_URL__: any;
+declare const __LOADER__CONFIG__: any;
+declare const __LOADER__IS_LAZY__: any;
+
 (function sentryLoader(
   _window,
   _document,
@@ -10,11 +15,10 @@
   _config,
   _lazy
 ) {
-  var lazy = _lazy;
-  var forceLoad = false;
-  var i;
+  let lazy = _lazy;
+  let forceLoad = false;
 
-  for (i = 0; i < document.scripts.length; i++) {
+  for (let i = 0; i < document.scripts.length; i++) {
     if (document.scripts[i].src.indexOf(_publicKey) > -1) {
       // If lazy was set to true above, we need to check if the user has set data-lazy="no"
       // to confirm that we should lazy load the CDN bundle
@@ -25,12 +29,12 @@
     }
   }
 
-  var injected = false;
-  var onLoadCallbacks = [];
+  let injected = false;
+  const onLoadCallbacks: (() => void)[] = [];
 
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
-  var queue = function (content) {
+  const queue = function (content) {
     // content.e = error
     // content.p = promise rejection
     // content.f = function call the Sentry
@@ -62,8 +66,8 @@
     // come out in the wrong order. Because of that we don't need async=1 as GA does.
     // it was probably(?) a legacy behavior that they left to not modify few years old snippet
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
-    var _currentScriptTag = _document.scripts[0];
-    var _newScriptTag = _document.createElement(_script);
+    const _currentScriptTag = _document.scripts[0];
+    const _newScriptTag = _document.createElement(_script) as HTMLScriptElement;
     _newScriptTag.src = _sdkBundleUrl;
     _newScriptTag.crossOrigin = 'anonymous';
 
@@ -77,14 +81,14 @@
         // Add loader as SDK source
         _window.SENTRY_SDK_SOURCE = 'loader';
 
-        var SDK = _window[_namespace];
+        const SDK = _window[_namespace];
 
-        var oldInit = SDK.init;
+        const oldInit = SDK.init;
 
         // Configure it using provided DSN and config object
         SDK.init = function (options) {
-          var target = _config;
-          for (var key in options) {
+          const target = _config;
+          for (const key in options) {
             if (Object.prototype.hasOwnProperty.call(options, key)) {
               target[key] = options[key];
             }
@@ -98,22 +102,22 @@
       }
     });
 
-    _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
+    _currentScriptTag.parentNode!.insertBefore(_newScriptTag, _currentScriptTag);
   }
 
   function sdkLoaded(callbacks, SDK) {
     try {
-      var data = queue.data;
+      const data = queue.data;
 
       // We have to make sure to call all callbacks first
-      for (i = 0; i < callbacks.length; i++) {
+      for (let i = 0; i < callbacks.length; i++) {
         if (typeof callbacks[i] === 'function') {
           callbacks[i]();
         }
       }
 
-      var initAlreadyCalled = false;
-      var __sentry = _window.__SENTRY__;
+      let initAlreadyCalled = false;
+      const __sentry = _window.__SENTRY__;
       // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
       if (
         !(typeof __sentry === 'undefined') &&
@@ -125,11 +129,11 @@
 
       // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
       // We replay all calls to `Sentry.*` now
-      var calledSentry = false;
-      for (i = 0; i < data.length; i++) {
+      let calledSentry = false;
+      for (let i = 0; i < data.length; i++) {
         if (data[i].f) {
           calledSentry = true;
-          var call = data[i];
+          const call = data[i];
           if (initAlreadyCalled === false && call.f !== 'init') {
             // First call always has to be init, this is a conveniece for the user so call to init is optional
             SDK.init();
@@ -145,11 +149,11 @@
 
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
-      var tracekitErrorHandler = _window[_onerror];
-      var tracekitUnhandledRejectionHandler = _window[_onunhandledrejection];
+      const tracekitErrorHandler = _window[_onerror];
+      const tracekitUnhandledRejectionHandler = _window[_onunhandledrejection];
 
       // And now capture all previously caught exceptions
-      for (i = 0; i < data.length; i++) {
+      for (let i = 0; i < data.length; i++) {
         if ('e' in data[i] && tracekitErrorHandler) {
           tracekitErrorHandler.apply(_window, data[i].e);
         } else if ('p' in data[i] && tracekitUnhandledRejectionHandler) {
@@ -190,15 +194,15 @@
     'configureScope',
     'withScope',
     'showReportDialog',
-  ].forEach(function (func) {
+  ].forEach(function (f) {
     _window[_namespace][f] = function () {
-      queue({f: func, a: arguments});
+      queue({f, a: arguments});
     };
   });
 
   // Store reference to the old `onerror` handler and override it with our own function
   // that will just push exceptions to the queue and call through old handler if we found one
-  var _oldOnerror = _window[_onerror];
+  const _oldOnerror = _window[_onerror];
   _window[_onerror] = function () {
     // Use keys as "data type" to save some characters"
     queue({
@@ -211,7 +215,7 @@
   };
 
   // Do the same store/queue/call operations for `onunhandledrejection` event
-  var _oldOnunhandledrejection = _window[_onunhandledrejection];
+  const _oldOnunhandledrejection = _window[_onunhandledrejection];
   _window[_onunhandledrejection] = function (e) {
     queue({
       p:
@@ -232,7 +236,8 @@
     });
   }
 })(
-  window,
+  window as Window &
+    typeof globalThis & {SENTRY_SDK_SOURCE?: string; Sentry?: any; __SENTRY__?: any},
   document,
   'script',
   'onerror',

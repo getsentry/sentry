@@ -1,5 +1,10 @@
-const {minify} = require('terser');
-const fs = require('fs');
+/* eslint-disable no-console */
+/* eslint import/no-nodejs-modules:0 */
+
+import fs from 'fs';
+
+import {minify} from 'terser';
+import * as ts from 'typescript';
 
 /**
  * This script is used to generate the loader script templates used by Django.
@@ -7,22 +12,31 @@ const fs = require('fs');
  * and generates both an unminified and minified version of it, with Django template tags.
  *
  * The generated Django template tags have to be checked in normally, and are what's actually used.
- * The base `.js` file is only the blueprint used to generate the template files off.
+ * The base `.ts` file is only the blueprint used to generate the template files off.
  *
  * Run this script whenever you change the base loader script,
  * then verify the build output of both generated `js.tmpl` files and check all three files in.
- *
- * Note: You can use the following command to verify that the base file is valid ES5:
- * npx es5-validator src/sentry/templates/sentry/js-sdk-loader.js
  */
 
 const header = `{% load sentry_helpers %}`;
-const loaderScriptPath = './src/sentry/templates/sentry/js-sdk-loader.js';
+const loaderScriptPath = './src/sentry/templates/sentry/js-sdk-loader.ts';
 const loaderTmplPath = './src/sentry/templates/sentry/js-sdk-loader.js.tmpl';
 const loaderMinTmplPath = './src/sentry/templates/sentry/js-sdk-loader.min.js.tmpl';
 
 async function run() {
-  const base = fs.readFileSync(loaderScriptPath, 'utf-8');
+  const baseTs = fs.readFileSync(loaderScriptPath, 'utf-8');
+
+  const {outputText: base} = ts.transpileModule(baseTs, {
+    compilerOptions: {
+      noEmitOnError: true,
+      target: ts.ScriptTarget.ES5,
+      module: ts.ModuleKind.CommonJS,
+    },
+  });
+
+  if (!base) {
+    throw new Error('Could not transpile loader script!');
+  }
 
   const unminifiedLoader = `${header}${replacePlaceholders(base)}`;
   const {code: minifiedBase} = await minify(base, {
@@ -34,6 +48,10 @@ async function run() {
       ecma: 5,
     },
   });
+
+  if (!minifiedBase) {
+    throw new Error('Could not minify loader script!');
+  }
 
   const minifiedLoader = `${header}${replacePlaceholders(minifiedBase)}\n`;
 
@@ -51,7 +69,7 @@ async function run() {
  * This is done so the base template is actually valid JS (so we can minify it, have autocomplete, linting, etc.).
  * The placeholders are replaced with the actual values by Django.
  */
-function replacePlaceholders(str) {
+function replacePlaceholders(str: string): string {
   return str
     .replace('__LOADER__PUBLIC_KEY__', "'{{ publicKey|safe }}'")
     .replace('__LOADER_SDK_URL__', "'{{ jsSdkUrl|safe }}'")
