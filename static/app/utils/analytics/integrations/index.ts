@@ -58,6 +58,11 @@ type IntegrationInstallationInputValueChangeEventParams = {
   field_name: string;
 } & SingleIntegrationEventParams;
 
+type ProjectOwnershipModalParams = {
+  page: 'issue_details' | 'project_settings';
+  net_change?: number;
+};
+
 // Event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
@@ -83,6 +88,8 @@ export type IntegrationEventParameters = {
   'integrations.uninstall_clicked': SingleIntegrationEventParams;
   'integrations.uninstall_completed': SingleIntegrationEventParams;
   'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
+  'project_ownership.modal_opened': ProjectOwnershipModalParams;
+  'project_ownership.saved': ProjectOwnershipModalParams;
 } & CodeownersEventParameters &
   StacktraceLinkEventParameters &
   PlatformEventParameters;
@@ -116,6 +123,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.serverless_function_action': 'Integrations: Serverless Function Action',
   'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
   'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',
+  'project_ownership.modal_opened': 'Project Ownership: Modal Opened',
+  'project_ownership.saved': 'Project Ownership: Saved',
   ...codeownersEventMap,
   ...stacktraceLinkEventMap,
   ...platformEventMap,
