@@ -146,6 +146,10 @@ def _get_rules(project: Project) -> RuleSet:
     return ProjectOptionRuleStore().read(project)
 
 
+def get_redis_rules(project: Project) -> RuleSet:
+    return RedisRuleStore().read(project)
+
+
 def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
