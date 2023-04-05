@@ -26,7 +26,7 @@ class ApiTokensEndpoint(Endpoint):
     def get(self, request: Request) -> Response:
         user_id = request.user.id
         if is_active_superuser(request):
-            user_id = request.GET.get("userId")
+            user_id = request.GET.get("userId", user_id)
 
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user_id=user_id).select_related(
@@ -66,7 +66,7 @@ class ApiTokensEndpoint(Endpoint):
     def delete(self, request: Request):
         user_id = request.user.id
         if is_active_superuser(request):
-            user_id = request.data.get("userId")
+            user_id = request.data.get("userId", user_id)
         token = request.data.get("token")
         if not token:
             return Response({"token": ""}, status=400)
