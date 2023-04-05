@@ -485,7 +485,7 @@ describe('Threads', function () {
                   id: 0,
                   current: false,
                   crashed: true,
-                  name: null,
+                  name: 'main',
                   stacktrace: {
                     frames: [
                       {
@@ -901,7 +901,7 @@ describe('Threads', function () {
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
         expect(screen.getByText('Blocked')).toBeInTheDocument();
-        expect(screen.getByText('waiting on tid=1')).toBeInTheDocument();
+        expect(screen.getAllByText('waiting on tid=1')).toHaveLength(2);
         expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
         // Actions
@@ -919,6 +919,62 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+
+        expect(container).toSnapshot();
+      });
+
+      it('hides thread tag event entry if none', function () {
+        const newOrg = {
+          ...organization,
+          features: ['anr-improvements'],
+        };
+        const newProps = {
+          ...props,
+          data: {
+            values: [
+              {
+                id: 0,
+                current: false,
+                crashed: true,
+                name: null,
+                stacktrace: {
+                  frames: [
+                    {
+                      filename: null,
+                      absPath: null,
+                      module: null,
+                      package: '/System/Library/Frameworks/UIKit.framework/UIKit',
+                      platform: null,
+                      instructionAddr: '0x197885c54',
+                      symbolAddr: '0x197885bf4',
+                      function: '<redacted>',
+                      rawFunction: null,
+                      symbol: null,
+                      context: [],
+                      lineNo: null,
+                      colNo: null,
+                      inApp: false,
+                      trust: null,
+                      errors: null,
+                      vars: null,
+                    },
+                  ],
+                  framesOmitted: null,
+                  registers: {
+                    cpsr: '0x60000000',
+                    fp: '0x16fd79870',
+                    lr: '0x10008c5ac',
+                  },
+                  hasSystemFrames: true,
+                },
+                rawStacktrace: null,
+              },
+            ],
+          },
+          organization: newOrg,
+        };
+        const {container} = render(<Threads {...newProps} />, {organization: newOrg});
+        expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
 
         expect(container).toSnapshot();
       });
