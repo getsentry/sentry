@@ -242,7 +242,7 @@ export function Threads({
   const threadStateDisplay = getMappedThreadState(activeThread?.state);
 
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
-  const showThreadTags = isNil(activeThreadId) || !activeThreadName;
+  const hideThreadTags = isNil(activeThreadId) || !activeThreadName;
 
   return (
     <Fragment>
@@ -285,7 +285,7 @@ export function Threads({
               </EventDataSection>
             )}
           </Grid>
-          {showThreadTags && (
+          {!hideThreadTags && (
             <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
               {renderPills()}
             </EventDataSection>
