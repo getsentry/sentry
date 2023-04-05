@@ -184,6 +184,7 @@ class IntegrationService(RpcService):
         """
         pass
 
+    @rpc_method
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
     ) -> Optional[RpcOrganizationIntegration]:
@@ -295,6 +296,7 @@ class IntegrationService(RpcService):
 
     # The following methods replace instance methods of the ORM objects!
 
+    @rpc_method
     def get_installation(
         self,
         *,
@@ -315,6 +317,7 @@ class IntegrationService(RpcService):
         )
         return installation
 
+    @rpc_method
     def has_feature(self, *, provider: str, feature: "IntegrationFeatures") -> bool:
         """
         Returns True if the IntegrationProvider subclass contains a given feature
