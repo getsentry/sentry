@@ -1,20 +1,4 @@
-from __future__ import annotations
-
-import os.path
-
-from cachetools.func import ttl_cache
 from django.conf import settings
-
-from sentry.utils import json
-
-
-@ttl_cache(ttl=60)
-def _frontend_versions() -> dict[str, str]:
-    try:
-        with open(os.path.join(settings.CONF_DIR, "settings", "frontend-versions.json")) as f:
-            return json.load(f)  # type: ignore[no-any-return]  # getsentry path
-    except OSError:
-        return {}  # common case for self-hosted
 
 
 def get_frontend_app_asset_url(module: str, key: str) -> str:
@@ -24,30 +8,12 @@ def get_frontend_app_asset_url(module: str, key: str) -> str:
     server before using their locally cached asset.
 
     Example:
-      {% frontend_app_asset_url 'sentry' 'entrypoints/sentry.css' %}
-      =>  "/_static/dist/sentry/entrypoints/sentry.css"
+      {% frontend_app_asset_url 'sentry' 'sentry.css' %}
+      =>  "/_static/dist/sentry/sentry.css"
     """
-    if not key.startswith("entrypoints/"):
-        raise AssertionError(f"unexpected key: {key}")
+    args = (settings.STATIC_FRONTEND_APP_URL.rstrip("/"), module, key.lstrip("/"))
 
-    entrypoints, key = key.split("/", 1)
-    versions = _frontend_versions()
-    if versions:
-        entrypoints = "entrypoints-hashed"
-        key = versions[key]
-
-    return "/".join(
-        (
-            settings.STATIC_FRONTEND_APP_URL.rstrip("/"),
-            module,
-            entrypoints,
-            key,
-        )
-    )
-
-
-def get_frontend_dist_prefix() -> str:
-    return f"{settings.STATIC_FRONTEND_APP_URL.rstrip('/')}/sentry/"
+    return "{}/{}/{}".format(*args)
 
 
 def get_asset_url(module: str, path: str) -> str:

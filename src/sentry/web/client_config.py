@@ -14,7 +14,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType, user_service
 from sentry.utils import auth
-from sentry.utils.assets import get_frontend_dist_prefix
+from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import is_self_hosted
@@ -181,7 +181,7 @@ def get_client_config(request=None):
         "urlPrefix": options.get("system.url-prefix"),
         "version": version_info,
         "features": enabled_features,
-        "distPrefix": get_frontend_dist_prefix(),
+        "distPrefix": get_frontend_app_asset_url("sentry", ""),
         "needsUpgrade": needs_upgrade,
         "dsn": public_dsn,
         "statuspage": _get_statuspage(),
