@@ -570,7 +570,6 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -591,7 +590,6 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
     default_project.update(platform="python")
 
     assert generate_rules(default_project) == [
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -614,7 +612,6 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
     redis_client.hset(f"ds::p:{default_project.id}:boosted_releases", f"ds::r:{1234}", time.time())
 
     assert generate_rules(default_project) == [
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -640,7 +637,6 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
     )
 
     assert generate_rules(default_project) == [
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -711,7 +707,6 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "samplingValue": {"type": "factor", "value": implicit_rate / project_sample_rate},
             "type": "transaction",
         },
-        DEFAULT_FACTOR_RULE(1.0),
         {
             "condition": {"inner": [], "op": "and"},
             "id": uniform_id,
@@ -736,7 +731,6 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
         "t1": 0.7,
     }, 0.037
     uniform_id = RESERVED_IDS[RuleType.UNIFORM_RULE]
-    adj_factor_id = RESERVED_IDS[RuleType.ADJUSTMENT_FACTOR_RULE]
 
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -758,9 +752,8 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     rules = generate_rules(default_project)
 
     # we should have only the uniform rule
-    assert len(rules) == 2
-    assert rules[0]["id"] == adj_factor_id
-    assert rules[1]["id"] == uniform_id
+    assert len(rules) == 1
+    assert rules[0]["id"] == uniform_id
 
 
 @pytest.mark.django_db
