@@ -12,7 +12,7 @@ class GenericMetricsBackend:
         value: int,
         tags: Mapping[str, str],
     ) -> None:
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def set(
         use_case_id: UseCaseID,
@@ -22,7 +22,7 @@ class GenericMetricsBackend:
         value: int,
         tags: Mapping[str, str],
     ) -> None:
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def distribution(
         use_case_id: UseCaseID,
@@ -32,4 +32,4 @@ class GenericMetricsBackend:
         value: int,
         tags: Mapping[str, str],
     ) -> None:
-        raise NotImplementedError
+        raise NotImplementedError()
