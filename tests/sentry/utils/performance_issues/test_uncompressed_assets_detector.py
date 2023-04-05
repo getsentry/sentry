@@ -77,7 +77,12 @@ class UncompressedAssetsDetectorTest(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
-                evidence_data={},
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
                 evidence_display=[],
             )
         ]
@@ -111,7 +116,12 @@ class UncompressedAssetsDetectorTest(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
-                evidence_data={},
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
                 evidence_display=[],
             )
         ]
@@ -145,7 +155,12 @@ class UncompressedAssetsDetectorTest(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
-                evidence_data={},
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
                 evidence_display=[],
             )
         ]
@@ -266,7 +281,12 @@ class UncompressedAssetsDetectorTest(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["b66a5642da1edb52"],
-                evidence_data={},
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["b66a5642da1edb52"],
+                },
                 evidence_display=[],
             ),
         ]

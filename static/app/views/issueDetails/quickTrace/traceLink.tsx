@@ -43,4 +43,5 @@ export function TraceLink({event}: TraceLinkProps) {
 
 const StyledLink = styled(Link)`
   margin-left: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

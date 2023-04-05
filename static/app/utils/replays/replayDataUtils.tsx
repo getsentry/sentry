@@ -73,6 +73,11 @@ export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: strin
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags
+  const user = Object.fromEntries(
+    Object.entries(apiResponse.user)
+      .filter(([key, value]) => key !== 'display_name' && value)
+      .map(([key, value]) => [`user.${key}`, [value]])
+  );
   const unorderedTags: ReplayRecord['tags'] = {
     ...apiResponse.tags,
     ...(apiResponse.browser?.name ? {'browser.name': [apiResponse.browser.name]} : {}),
@@ -87,11 +92,12 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
     ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
     ...(apiResponse.releases ? {releases: [...apiResponse.releases]} : {}),
+    ...(apiResponse.replay_type ? {replayType: [apiResponse.replay_type]} : {}),
     ...(apiResponse.os?.name ? {'os.name': [apiResponse.os.name]} : {}),
     ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
     ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
     ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
-    ...(apiResponse.user?.ip ? {'user.ip': [apiResponse.user.ip]} : {}),
+    ...user,
   };
 
   // Sort the tags by key

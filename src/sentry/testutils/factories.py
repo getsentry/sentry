@@ -90,6 +90,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
+from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
@@ -307,7 +308,9 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(organization=organization, scope_list=scope_list)
+        return ApiKey.objects.create(
+            organization_id=organization.id if organization else None, scope_list=scope_list
+        )
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -360,7 +363,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_project_bookmark(project, user):
-        return ProjectBookmark.objects.create(project_id=project.id, user=user)
+        return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -1309,7 +1312,8 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        return ExternalActor.objects.create(actor=user.actor, **kwargs)
+        actor_id = get_actor_id_for_user(user)
+        return ExternalActor.objects.create(actor_id=actor_id, **kwargs)
 
     @staticmethod
     @exempt_from_silo_limits()

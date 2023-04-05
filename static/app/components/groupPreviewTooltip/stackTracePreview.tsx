@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
-import StackTraceContentV3 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV3';
+import {HierarchicalGroupingContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/hierarchicalGroupingContent';
+import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
@@ -81,15 +81,16 @@ export function StackTracePreviewContent({
     isHoverPreviewed: true,
   };
 
-  if (orgFeatures.includes('native-stack-trace-v2') && isNativePlatform(platform)) {
-    return (
-      <StackTraceContentV3 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
-    );
+  if (isNativePlatform(platform)) {
+    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
   if (orgFeatures.includes('grouping-stacktrace-ui')) {
     return (
-      <StackTraceContentV2 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
+      <HierarchicalGroupingContent
+        {...commonProps}
+        groupingCurrentLevel={groupingCurrentLevel}
+      />
     );
   }
 

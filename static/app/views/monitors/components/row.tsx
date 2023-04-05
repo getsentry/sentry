@@ -16,7 +16,13 @@ import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {crontabAsText} from 'sentry/views/monitors/utils';
 
-import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from '../types';
+import {
+  Monitor,
+  MonitorConfig,
+  MonitorEnvironment,
+  MonitorStatus,
+  ScheduleType,
+} from '../types';
 
 import {MonitorBadge} from './monitorBadge';
 
@@ -24,6 +30,7 @@ interface MonitorRowProps {
   monitor: Monitor;
   onDelete: () => void;
   organization: Organization;
+  monitorEnv?: MonitorEnvironment;
 }
 
 function scheduleAsText(config: MonitorConfig) {
@@ -59,9 +66,11 @@ function scheduleAsText(config: MonitorConfig) {
   return t('Unknown schedule');
 }
 
-function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
+function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowProps) {
   const api = useApi();
-  const lastCheckin = <TimeSince unitStyle="regular" date={monitor.lastCheckIn} />;
+  const lastCheckin = monitorEnv?.lastCheckIn ? (
+    <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
+  ) : null;
 
   const actions: MenuItemProps[] = [
     {
@@ -90,49 +99,55 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
     },
   ];
 
+  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/${
+    monitorEnv ? `?environment=${monitorEnv.name}` : ''
+  }`;
+
+  // TODO(davidenwang): Change accordingly when we have ObjectStatus on monitor
+  const monitorStatus = monitorEnv ? monitorEnv.status : monitor.status;
+
   return (
     <Fragment>
       <MonitorName>
-        <MonitorBadge status={monitor.status} />
+        <MonitorBadge status={monitorEnv?.status ?? monitor.status} />
         <NameAndSlug>
-          <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
-            {monitor.name}
-          </Link>
+          <Link to={monitorDetailUrl}>{monitor.name}</Link>
           <MonitorSlug>{monitor.slug}</MonitorSlug>
         </NameAndSlug>
       </MonitorName>
-      <StatusColumn>
+      <MonitorColumn>
         <TextOverflow>
-          {monitor.status === MonitorStatus.DISABLED
+          {monitorStatus === MonitorStatus.DISABLED
             ? t('Paused')
-            : monitor.status === MonitorStatus.ACTIVE
+            : monitorStatus === MonitorStatus.ACTIVE || !lastCheckin
             ? t('Waiting for first check-in')
-            : monitor.status === MonitorStatus.OK
+            : monitorStatus === MonitorStatus.OK
             ? tct('Check-in [lastCheckin]', {lastCheckin})
-            : monitor.status === MonitorStatus.MISSED_CHECKIN
+            : monitorStatus === MonitorStatus.MISSED_CHECKIN
             ? tct('Missed [lastCheckin]', {lastCheckin})
-            : monitor.status === MonitorStatus.ERROR
+            : monitorStatus === MonitorStatus.ERROR
             ? tct('Failed [lastCheckin]', {lastCheckin})
             : null}
         </TextOverflow>
-      </StatusColumn>
-      <ScheduleColumn>{scheduleAsText(monitor.config)}</ScheduleColumn>
-      <NextCheckin>
-        {monitor.nextCheckIn &&
-        monitor.status !== MonitorStatus.DISABLED &&
-        monitor.status !== MonitorStatus.ACTIVE ? (
-          <TimeSince unitStyle="regular" date={monitor.nextCheckIn} />
+      </MonitorColumn>
+      <MonitorColumn>{scheduleAsText(monitor.config)}</MonitorColumn>
+      <MonitorColumn>
+        {monitorEnv?.nextCheckIn &&
+        monitorEnv.status !== MonitorStatus.DISABLED &&
+        monitorEnv.status !== MonitorStatus.ACTIVE ? (
+          <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
         ) : (
           '\u2014'
         )}
-      </NextCheckin>
-      <ProjectColumn>
+      </MonitorColumn>
+      <MonitorColumn>
         <IdBadge
           project={monitor.project}
           avatarSize={18}
           avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
         />
-      </ProjectColumn>
+      </MonitorColumn>
+      <MonitorColumn>{monitorEnv?.name ?? '\u2014'}</MonitorColumn>
       <ActionsColumn>
         <DropdownMenu
           items={actions}
@@ -169,22 +184,7 @@ const MonitorSlug = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const StatusColumn = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const ScheduleColumn = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const NextCheckin = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const ProjectColumn = styled('div')`
+const MonitorColumn = styled('div')`
   display: flex;
   align-items: center;
 `;

@@ -8,7 +8,8 @@ from enum import Enum
 from typing import Any, Optional, cast
 
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
+from sentry.services.hybrid_cloud.region import UnimplementedRegionResolution
+from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo import SiloMode
 
 
@@ -41,7 +42,7 @@ class ProjectKeyService(RpcService):
 
         return DatabaseBackedProjectKeyService()
 
-    @rpc_method
+    @regional_rpc_method(resolve=UnimplementedRegionResolution())
     @abstractmethod
     def get_project_key(self, *, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         pass

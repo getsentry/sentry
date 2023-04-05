@@ -1,14 +1,13 @@
-from unittest import TestCase
-
-from sentry.models import Organization, Project, Team, User
+from sentry.models import Organization, Project, Team
 from sentry.notifications.helpers import get_scope
 from sentry.notifications.types import NotificationScopeType
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.testutils import TestCase
 
 
 class GetScopeTestCase(TestCase):
     def setUp(self) -> None:
-        self.user = User(id=1)
+        self.user = self.create_user()
 
     def test_get_scope_user(self):
         scope_type, scope_identifier = get_scope(actor=RpcActor.from_orm_user(self.user))
