@@ -14,6 +14,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import marked from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -117,7 +118,10 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
       />
     );
   }
+
   if (error?.responseJSON?.restriction === 'individual_consent') {
+    const activeSuperUser = isActiveSuperuser();
+
     PolicyErrorState = (
       <EmptyMessage
         icon={<IconFlag size="xl" />}
@@ -141,6 +145,10 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
                 setIndividualConsent(true);
                 dataRefetch();
               }}
+              disabled={activeSuperUser}
+              title={
+                activeSuperUser ? t("Superusers can't consent to policies") : undefined
+              }
             >
               {t('Confirm')}
             </Button>
