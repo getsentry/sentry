@@ -83,7 +83,8 @@ type DashboardHeadersProps = {organization: Organization};
 
 type ReplayGracePeriodAlertProps = {organization: Organization};
 
-type ReplayOnboardinCTAProps = {children: React.ReactNode; organization: Organization};
+type ReplayOnboardingAlertProps = {children: React.ReactNode};
+type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
 
 type ProfilingBetaAlertBannerProps = {
   organization: Organization;
@@ -146,7 +147,8 @@ export type ComponentHooks = {
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
   'component:replay-feedback-button': () => React.ComponentType<{}>;
-  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardinCTAProps>;
+  'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
+  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:set-up-sdk-doc': () => React.ComponentType<SetUpSdkDocProps>;
   'component:superuser-access-category': React.FC<any>;
 };
