@@ -109,23 +109,11 @@ class Actor(Model):
 
 
 def get_actor_id_for_user(user: Union["User", RpcUser]):
-    # Handy for JIT creation of user actors
-    if user.actor_id:
-        return user.actor_id
-    # Temporary Dual write
-    # Until we have indexes back online, we have to account for potential race condition on user creation
     with transaction.atomic():
-        actors_for_user = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).all()
-        if len(actors_for_user) > 0:
-            actor = actors_for_user[0]
-        else:
+        actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
+        if not actor:
             actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
-        # Just clear other actors without allowing orm interaction, these won't be important after the following update.
-        Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).exclude(id=actor.id).update(
-            user_id=None
-        )
-
-    user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+            user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
     return actor.id
 
 

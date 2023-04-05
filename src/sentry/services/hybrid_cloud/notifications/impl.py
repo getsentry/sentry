@@ -5,6 +5,7 @@ from typing import List, Optional, Sequence
 from django.db.models import Q
 
 from sentry.models import NotificationSetting, User
+from sentry.models.actor import get_actor_id_for_user
 from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -111,7 +112,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     scope_identifier=user_id,
                 ),
                 type=type.value,
-                target_id=user.actor_id,
+                target_id=get_actor_id_for_user(user),
             )
         ]
 
