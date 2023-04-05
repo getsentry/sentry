@@ -228,7 +228,7 @@ def actual_sample_rate(count_keep: int, count_drop: int) -> float:
 
 def adjusted_factor(prev_factor: float, actual_rate: float, desired_sample_rate: float):
     """
-    Calculate adjusted factor based on blended_sample rate (desired_sample_rate) and actual sample rate
+    Calculates an adjustment factor in order to bring the actual sample rate to the blended_sample rate (i.e. desired_sample_rate)
     """
     assert prev_factor != 0.0
     return prev_factor * (desired_sample_rate / actual_rate)
