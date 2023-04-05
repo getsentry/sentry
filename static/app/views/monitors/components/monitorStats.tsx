@@ -13,10 +13,11 @@ import theme from 'sentry/utils/theme';
 import useApiRequests from 'sentry/utils/useApiRequests';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {Monitor, MonitorStat} from '../types';
+import {Monitor, MonitorEnvironment, MonitorStat} from '../types';
 
 type Props = {
   monitor: Monitor;
+  monitorEnv: MonitorEnvironment;
   orgId: string;
 };
 
@@ -24,7 +25,7 @@ type State = {
   stats: MonitorStat[] | null;
 };
 
-const MonitorStats = ({monitor, orgId}: Props) => {
+const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -48,6 +49,7 @@ const MonitorStats = ({monitor, orgId}: Props) => {
             since: since.toString(),
             until: until.toString(),
             resolution: '1d',
+            environment: monitorEnv.name,
           },
         },
       ],

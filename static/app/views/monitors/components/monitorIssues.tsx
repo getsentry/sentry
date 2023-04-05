@@ -5,10 +5,11 @@ import {t} from 'sentry/locale';
 import {getUtcDateString} from 'sentry/utils/dates';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {Monitor} from '../types';
+import {Monitor, MonitorEnvironment} from '../types';
 
 type Props = {
   monitor: Monitor;
+  monitorEnv: MonitorEnvironment;
   orgId: string;
 };
 
@@ -34,6 +35,8 @@ const MonitorIssues = ({orgId, monitor}: Props) => {
       : {
           statsPeriod: period,
         };
+
+  // TODO(epurkhiser): We probably want to filter on envrionemnt
 
   return (
     <GroupList

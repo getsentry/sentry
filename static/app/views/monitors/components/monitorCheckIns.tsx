@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import useApiRequests from 'sentry/utils/useApiRequests';
-import {CheckInStatus, Monitor} from 'sentry/views/monitors/types';
+import {CheckInStatus, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
 
 import CheckInIcon from './checkInIcon';
 
@@ -26,6 +26,7 @@ type CheckIn = {
 
 type Props = {
   monitor: Monitor;
+  monitorEnv: MonitorEnvironment;
   orgId: string;
 };
 
@@ -33,13 +34,13 @@ type State = {
   checkInList: CheckIn[];
 };
 
-const MonitorCheckIns = ({monitor, orgId}: Props) => {
+const MonitorCheckIns = ({monitor, monitorEnv, orgId}: Props) => {
   const {data, hasError, renderComponent} = useApiRequests<State>({
     endpoints: [
       [
         'checkInList',
         `/organizations/${orgId}/monitors/${monitor.slug}/checkins/`,
-        {query: {per_page: '10'}},
+        {query: {per_page: '10', environment: monitorEnv.name}},
         {paginate: true},
       ],
     ],
