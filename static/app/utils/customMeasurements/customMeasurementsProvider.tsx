@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
-import {Query} from 'history';
 import * as Sentry from '@sentry/react';
+import {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
