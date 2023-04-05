@@ -114,7 +114,7 @@ class CompositeRuleStore:
     def _trim_rules(self, rules: RuleSet) -> RuleSet:
         sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
         last_seen_deadline = _now() - TRANSACTION_NAME_RULE_TTL_SECS
-        sorted_rules = list(filter(lambda rule: rule[1] >= last_seen_deadline, sorted_rules))
+        sorted_rules = [rule for rule in sorted_rules if rule[1] >= last_seen_deadline]
 
         if self.MERGE_MAX_RULES < len(rules):
             with sentry_sdk.configure_scope() as scope:
