@@ -6,6 +6,8 @@ import {t} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, Organization, Plugin, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
 type Field = {
   depends?: string[];
@@ -305,6 +307,13 @@ class IssueActions extends PluginComponentBase<Props, State> {
     // TODO(ts): This needs a better approach. We splice in this attribute to trigger
     // a refetch in GroupDetails
     type StaleGroup = Group & {stale?: boolean};
+
+    trackAdvancedAnalyticsEvent('issue_details.external_issue_created', {
+      organization: this.props.organization,
+      ...getAnalyticsDataForGroup(this.props.group),
+      external_issue_provider: this.props.plugin.slug,
+      external_issue_type: 'plugin',
+    });
 
     GroupStore.onUpdateSuccess('', [this.getGroup().id], {stale: true} as StaleGroup);
     this.props.onSuccess && this.props.onSuccess(data);

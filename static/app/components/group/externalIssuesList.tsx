@@ -180,7 +180,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
 
   renderSentryAppIssues(): ExternalIssueComponent[] {
     const {externalIssues, sentryAppInstallations} = this.state;
-    const {components, group} = this.props;
+    const {components, group, organization} = this.props;
 
     return components
       .map<ExternalIssueComponent | null>(component => {
@@ -203,6 +203,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
             <ErrorBoundary key={sentryApp.slug} mini>
               <SentryAppExternalIssueActions
                 group={group}
+                organization={organization}
                 event={this.props.event}
                 sentryAppComponent={component}
                 sentryAppInstallation={installation}
