@@ -37,6 +37,7 @@ export const DocumentationWrapper = styled('div')`
   blockquote,
   hr,
   pre,
+  pre[class*='language-'],
   div[data-language] {
     margin-top: 1em;
     margin-bottom: 1em;

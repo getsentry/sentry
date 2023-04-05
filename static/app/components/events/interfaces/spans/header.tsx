@@ -524,7 +524,14 @@ class TraceViewHeader extends Component<PropType, State> {
                         )}
                       </CursorGuideHandler.Consumer>
                       {hasProfileMeasurementsChart && (
-                        <ProfilingMeasurements profileData={profiles.data} />
+                        <ProfilingMeasurements
+                          profileData={profiles.data}
+                          renderCursorGuide={this.renderCursorGuide}
+                          renderFog={() => this.renderFog(this.props.dragProps)}
+                          renderWindowSelection={() =>
+                            this.renderWindowSelection(this.props.dragProps)
+                          }
+                        />
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
                     </Fragment>
@@ -792,11 +799,11 @@ const MinimapContainer = styled('div')`
 const ViewHandleContainer = styled('div')`
   position: absolute;
   top: 0;
-  height: ${MINIMAP_HEIGHT}px;
+  height: 100%;
 `;
 
 const ViewHandleLine = styled('div')`
-  height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
+  height: calc(100% - ${VIEW_HANDLE_HEIGHT}px);
   width: 2px;
   background-color: ${p => p.theme.textColor};
 `;
@@ -879,7 +886,7 @@ const Handle = ({
 const WindowSelection = styled('div')`
   position: absolute;
   top: 0;
-  height: ${MINIMAP_HEIGHT}px;
+  height: 100%;
   background-color: ${p => p.theme.textColor};
   opacity: 0.1;
 `;
