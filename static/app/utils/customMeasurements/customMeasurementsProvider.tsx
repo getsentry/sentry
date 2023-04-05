@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
 import {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -9,6 +8,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
 import {
@@ -88,8 +88,10 @@ export function CustomMeasurementsProvider({
             return;
           }
 
-          addErrorMessage(t('Unable to fetch custom performance metrics'));
-          Sentry.captureException(e);
+          const errorResponse =
+            e?.responseJSON ?? t('Unable to fetch custom performance metrics');
+          addErrorMessage(errorResponse);
+          handleXhrErrorResponse(errorResponse)(e);
         });
     }
 

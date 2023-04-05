@@ -1,11 +1,11 @@
 import {Component, forwardRef} from 'react';
 import ReactSelect from 'react-select';
-import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 import SelectControl, {ControlProps, GeneralSelectValue} from './selectControl';
 
@@ -93,7 +93,7 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
       },
       err => {
         addErrorMessage(t('There was a problem with the request.'));
-        Sentry.captureException(err);
+        handleXhrErrorResponse('SelectAsync failed')(err);
         // eslint-disable-next-line no-console
         console.error(err);
       }

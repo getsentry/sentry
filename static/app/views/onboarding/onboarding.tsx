@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingStatus} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -165,8 +166,8 @@ function Onboarding(props: Props) {
       try {
         await removeProject(api, organization.slug, projectSlug);
       } catch (error) {
+        handleXhrErrorResponse(t('Unable to delete project'))(error);
         // we don't give the user any feedback regarding this error as this shall be silent
-        Sentry.captureException(error);
       }
     },
     [api, organization.slug]

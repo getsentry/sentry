@@ -1,7 +1,6 @@
 import {useContext, useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -22,6 +21,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import {defined} from 'sentry/utils';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 import Repository from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
@@ -190,7 +190,7 @@ function CustomRepositories({
         'Rate limit for refreshing repository exceeded. Try again in a few minutes.'
       );
       addErrorMessage(errorMessage);
-      Sentry.captureException(error);
+      handleXhrErrorResponse(errorMessage)(error);
     }
   }
 

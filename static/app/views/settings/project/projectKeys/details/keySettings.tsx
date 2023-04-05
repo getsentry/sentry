@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
 
 import {
   addErrorMessage,
@@ -27,6 +26,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
@@ -136,8 +136,9 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
 
         addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
       } catch (error) {
-        addErrorMessage(t('Unable to updated dynamic SDK loader configuration'));
-        Sentry.captureException(error);
+        const message = t('Unable to updated dynamic SDK loader configuration');
+        handleXhrErrorResponse(message)(error);
+        addErrorMessage(message);
       }
     },
     [api, apiEndpoint, dynamicSDKLoaderOptions, setDynamicSDKLoaderOptions]
@@ -183,8 +184,9 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
 
         addSuccessMessage(t('Successfully updated SDK version'));
       } catch (error) {
-        addErrorMessage(t('Unable to update SDK version'));
-        Sentry.captureException(error);
+        const message = t('Unable to updated SDK version');
+        handleXhrErrorResponse(message)(error);
+        addErrorMessage(message);
       }
     },
     [
