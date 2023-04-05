@@ -85,12 +85,12 @@ const FormatMessage = withProjects(function FormatMessageInner({
     return <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>{content}</Link>;
   }
 
-  // Formatted messages should horizontally scroll instead of wrap
-  if (breadcrumb.messageRaw) {
-    return <FormattedCode>{content}</FormattedCode>;
+  switch (breadcrumb.messageFormat) {
+    case 'sql':
+      return <FormattedCode>{content}</FormattedCode>;
+    default:
+      return content;
   }
-
-  return content;
 });
 
 const FormattedCode = styled('div')`
