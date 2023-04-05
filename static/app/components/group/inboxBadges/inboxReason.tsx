@@ -6,17 +6,9 @@ import DateTime from 'sentry/components/dateTime';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {InboxDetails} from 'sentry/types';
+import {GroupInboxReason, InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-
-const GroupInboxReason = {
-  NEW: 0,
-  UNIGNORED: 1,
-  REGRESSION: 2,
-  MANUAL: 3,
-  REPROCESSED: 4,
-};
 
 type Props = {
   inbox: InboxDetails;
@@ -83,7 +75,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           duration: getDuration(userWindow * 60, 0, true),
         });
       }
-      return tct('Affected [count] user(s)', {
+      return t('Affected [count] user(s)', {
         count: getCountText(userCount),
       });
     }
@@ -135,6 +127,16 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           tooltipText:
             dateAdded &&
             t('Reprocessed %(relative)s', {
+              relative: relativeDateAdded,
+            }),
+        };
+      case GroupInboxReason.ESCALATING:
+        return {
+          tagType: 'info',
+          reasonBadgeText: t('Escalating'),
+          tooltipText:
+            dateAdded &&
+            t('Escalating %(relative)s', {
               relative: relativeDateAdded,
             }),
         };
