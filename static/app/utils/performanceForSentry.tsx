@@ -136,10 +136,12 @@ export const VisuallyCompleteWithData = ({
   id,
   hasData,
   children,
+  disabled,
 }: {
   children: ReactNode;
   hasData: boolean;
   id: string;
+  disabled?: boolean;
 }) => {
   const isDataCompleteSet = useRef(false);
 
@@ -147,12 +149,15 @@ export const VisuallyCompleteWithData = ({
 
   const isVCDSet = useRef(false);
 
-  if (isVCDSet && hasData && performance && performance.mark) {
+  if (isVCDSet && hasData && performance && performance.mark && !disabled) {
     performance.mark(`${id}-vcsd-start`);
     isVCDSet.current = true;
   }
 
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
     try {
       const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
       if (!transaction) {
@@ -180,7 +185,11 @@ export const VisuallyCompleteWithData = ({
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [hasData, id]);
+  }, [hasData, disabled, id]);
+
+  if (disabled) {
+    return <Fragment>{children}</Fragment>;
+  }
 
   return (
     <Profiler id={id} onRender={onRenderCallback}>

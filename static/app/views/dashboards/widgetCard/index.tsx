@@ -281,17 +281,16 @@ class WidgetCard extends Component<Props, State> {
             )
         )
     );
-    const WidgetWrapper =
-      Number(this.props.index) === 0 ? VisuallyCompleteWithData : Fragment;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         {conditionalWrapWithDashboardsMEPProvider(
           <React.Fragment>
-            <WidgetWrapper
+            <VisuallyCompleteWithData
               id="DashboardList-FirstWidgetCard"
               hasData={(this.state.tableData?.length ?? 0) > 0}
+              disabled={Number(this.props.index) !== 0}
             >
               <WidgetCardPanel isDragging={false}>
                 <WidgetHeader>
@@ -345,7 +344,7 @@ class WidgetCard extends Component<Props, State> {
                 )}
                 {this.renderToolbar()}
               </WidgetCardPanel>
-            </WidgetWrapper>
+            </VisuallyCompleteWithData>
             {!organization.features.includes('performance-mep-bannerless-ui') &&
               (organization.features.includes('dashboards-mep') ||
                 organization.features.includes('mep-rollout-flag')) && (
