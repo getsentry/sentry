@@ -539,7 +539,7 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
     "occurrence-consumer",
     include_batching_options=True,
     allow_force_cluster=False,
-    default_max_batch_size=100,
+    default_max_batch_size=20,
 )
 @strict_offset_reset_option()
 @configuration
