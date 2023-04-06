@@ -1976,7 +1976,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
     def test_error_main_thread_true(self):
         self.store_event(
             data={
-                "fingerprint": ["put-me-in-group1"],
                 "event_id": "2" * 32,
                 "message": "something",
                 "timestamp": iso_format(self.base_datetime),
