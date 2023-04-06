@@ -8,6 +8,9 @@ type SaveQueryParams = {
 };
 
 export type SaveQueryEventParameters = {
+  'discover_v2.delete_query_failed': SaveQueryParams & {error: string};
+  'discover_v2.delete_query_request': SaveQueryParams;
+  'discover_v2.delete_query_success': SaveQueryParams;
   'discover_v2.save_existing_query_failed': SaveQueryParams & {error: string};
   'discover_v2.save_existing_query_request': SaveQueryParams;
   'discover_v2.save_existing_query_success': SaveQueryParams;
@@ -15,6 +18,8 @@ export type SaveQueryEventParameters = {
   'discover_v2.save_new_query_request': SaveQueryParams;
   'discover_v2.save_new_query_success': SaveQueryParams;
   'discover_v2.update_query_failed': SaveQueryParams & {error: string};
+  'discover_v2.update_query_name_request': SaveQueryParams;
+  'discover_v2.update_query_name_successs': SaveQueryParams;
   'discover_v2.update_query_request': SaveQueryParams;
   'discover_v2.update_query_success': SaveQueryParams;
 };
@@ -23,6 +28,7 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_v2.add_equation': {};
   'discover_v2.build_new_query': {};
   'discover_v2.change_sort': {sort: string};
+  'discover_v2.create_alert_clicked': {status: string};
   'discover_v2.facet_map.clicked': {tag: string};
   'discover_v2.prebuilt_query_click': {query_name?: string};
   'discover_v2.processed_baseline_toggle.clicked': {toggled: string};
@@ -91,4 +97,12 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.update_query_request': 'Discoverv2: Request to update a saved query',
   'discover_v2.update_query_success': 'Discoverv2: Successfully updated a saved query',
   'discover_v2.quick_context_update_query': 'Discoverv2: Update query from Quick Context',
+  'discover_v2.update_query_name_request':
+    "Discoverv2: Request to update a saved query's name",
+  'discover_v2.update_query_name_successs':
+    "Discoverv2: Successfully updated a saved query's name",
+  'discover_v2.delete_query_success': 'Discoverv2: Successfully deleted a saved query',
+  'discover_v2.delete_query_failed': 'Discoverv2: Failed to delete a saved query',
+  'discover_v2.delete_query_request': 'Discoverv2: Request to delete a saved query',
+  'discover_v2.create_alert_clicked': 'Discoverv2: Create alert clicked',
 };
