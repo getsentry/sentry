@@ -325,6 +325,24 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     loaderOnboarding && jsDynamicLoader && currentPlatform === 'javascript'
   );
 
+  const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
+  const showReactOnboarding =
+    currentPlatform === 'javascript-react' && docsWithProductSelection;
+
+  const hideLoaderOnboarding = useCallback(() => {
+    setShowLoaderOnboarding(false);
+
+    if (!project?.id) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('onboarding.js_loader_npm_docs_shown', {
+      organization,
+      platform: currentPlatform,
+      project_id: project?.id,
+    });
+  }, [organization, currentPlatform, project?.id]);
+
   const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
@@ -332,7 +350,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     }
 
     // this will be fetched in the SetupDocsReact component
-    if (project.platform === 'javascript-react' && docsWithProductSelection) {
+    if (showReactOnboarding) {
       return;
     }
 
@@ -341,7 +359,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       return;
     }
 
-    if (integrationSlug && !integrationUseManualSetup) {
+    if (showIntegrationOnboarding) {
       setLoadedPlatform(project.platform);
       setPlatformDocs(null);
       setHasError(false);
@@ -367,9 +385,8 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     project?.platform,
     api,
     organization.slug,
-    integrationSlug,
-    integrationUseManualSetup,
-    docsWithProductSelection,
+    showReactOnboarding,
+    showIntegrationOnboarding,
     showLoaderOnboarding,
   ]);
 
@@ -434,7 +451,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           </SidebarWrapper>
         )}
         <MainContent>
-          {integrationSlug && !integrationUseManualSetup ? (
+          {showIntegrationOnboarding ? (
             <IntegrationSetup
               integrationSlug={integrationSlug}
               project={project}
@@ -442,7 +459,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
                 setIntegrationUseManualSetup(true);
               }}
             />
-          ) : project.platform === 'javascript-react' && docsWithProductSelection ? (
+          ) : showReactOnboarding ? (
             <ProjectDocsReact
               organization={organization}
               project={project}
@@ -455,7 +472,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
               project={project}
               location={location}
               platform={loadedPlatform}
-              close={() => setShowLoaderOnboarding(false)}
+              close={hideLoaderOnboarding}
             />
           ) : (
             <ProjectDocs
