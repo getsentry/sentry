@@ -104,6 +104,7 @@ const MemoizedChart = React.memo(Chart);
 
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
+  onStartWindowSelection?: (event: React.MouseEvent<HTMLDivElement>) => void;
   renderCursorGuide?: ({
     cursorGuideHeight,
     mouseLeft,
@@ -119,6 +120,7 @@ type ProfilingMeasurementsProps = {
 
 function ProfilingMeasurements({
   profileData,
+  onStartWindowSelection,
   renderCursorGuide,
   renderFog,
   renderWindowSelection,
@@ -156,6 +158,7 @@ function ProfilingMeasurements({
                 onMouseMove={event => {
                   displayCursorGuide(event.pageX);
                 }}
+                onMouseDown={onStartWindowSelection}
               >
                 <MemoizedChart data={cpuUsageData} />
                 <Overlays>
