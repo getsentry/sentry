@@ -6,6 +6,7 @@ from unittest.mock import patch
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupforecast import GroupForecast
 from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.project import Project
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
@@ -34,8 +35,9 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     def create_groups(self, num_groups: int) -> List[Group]:
         group_list = []
+        project_1 = Project.objects.filter(id=1)[0]
         for i in range(num_groups):
-            group = self.create_group()
+            group = self.create_group(project=project_1)
             group.status = GroupStatus.IGNORED
             group.save()
             group_list.append(group)

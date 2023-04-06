@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from snuba_sdk import (
     Column,
@@ -16,7 +16,6 @@ from snuba_sdk import (
 )
 
 from sentry.models import Group
-from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
 
 QUERY_LIMIT = 10000  # This is the maximum value for Snuba
@@ -24,7 +23,7 @@ QUERY_LIMIT = 10000  # This is the maximum value for Snuba
 SEVEN_DAYS_IN_HOURS = 7 * 24
 
 
-def query_groups_past_counts(groups: List[Group]) -> JSONData:
+def query_groups_past_counts(groups: List[Group]) -> List[Dict[str, Any]]:
     """Query Snuba for the counts for every group bucketed into hours"""
     offset = 0
     all_results = []

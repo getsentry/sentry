@@ -1,5 +1,6 @@
+import logging
 from datetime import datetime
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from django.db import transaction
 
@@ -8,21 +9,26 @@ from sentry.issues.escalating_issues_alg import generate_issue_forecast
 from sentry.models import Group, GroupStatus
 from sentry.models.groupforecast import GroupForecast
 from sentry.tasks.base import instrumented_task
-from sentry.utils.json import JSONData
 
 BATCH_SIZE = 1000
 GroupForecastTuple = Tuple[Group, List[int]]
 ParsedGroupCount = Dict[int, Dict[str, List[Union[str, int]]]]
 
+logger = logging.getLogger(__name__)
+
 
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
     queue="weekly_escalating_forecast",
-    max_retries=5,
+    max_retries=0,  # TODO: Increase this when the task is changed to run weekly
 )  # type: ignore
 def run_escalating_forecast() -> None:
     archived_groups = list(
-        Group.objects.filter(groupsnooze__until_escalating=True, status=GroupStatus.IGNORED)
+        # TODO: Change this to Group.objects.filter(status=GroupStatus.IGNORED, substatus=GroupStatus.ARCHIVED_UNTIL_ESCALATING) once substatus is added
+        # TODO: Do not limit to project id = 1 and limit 10 once these topics are clarified
+        Group.objects.filter(
+            groupsnooze__until_escalating=True, status=GroupStatus.IGNORED, project__id=1
+        )[:10]
     )
     if not archived_groups:
         return
@@ -45,7 +51,7 @@ def run_escalating_forecast() -> None:
         )
 
 
-def parse_groups_past_counts(response: JSONData) -> ParsedGroupCount:
+def parse_groups_past_counts(response: List[Dict[str, Any]]) -> ParsedGroupCount:
     """
     Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
     ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
