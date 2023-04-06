@@ -91,7 +91,7 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
         and _should_store_transaction_name(event_data)
     ):
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
-        _bump_rule_lifetime(project, event_data)
+        safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 
 
 def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
@@ -125,12 +125,7 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
     if not applied_rules:
         return
 
-    # XXX(iker): we're accessing project options here, and it represents a high
-    # (read) load.  However, since we're cleaning the redis store often, it's
-    # the only way to fetch the rules.
-    # Not checking if new rules exist means other strings could be added to the
-    # rules storage, which can explode the size of a project config.
-    stored_rules = clusterer_rules._get_rules(project)
+    stored_rules = clusterer_rules.get_redis_rules(project)
 
     for applied_rule in applied_rules:
         # There are two types of rules:

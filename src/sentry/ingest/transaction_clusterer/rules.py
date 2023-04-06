@@ -24,7 +24,7 @@ class RuleStore(Protocol):
 
 
 class RedisRuleStore:
-    """Store rules in both prjoect options and Redis.
+    """Store rules in both project options and Redis.
 
     Why Redis?
     We want to update the rule lifetimes when a transaction has been sanitized
@@ -34,7 +34,7 @@ class RedisRuleStore:
     Then, why project options?
     Redis is not a persistent store, and rules should be persistent. As a
     result, at some point the up-to-date lifetimes of rules in Redis must be
-    updated and merged back to prjoect options. This operation can't happen too
+    updated and merged back to project options. This operation can't happen too
     frequently, and the task to generate rules meets the criteria and thus is
     responsible for that.
     """
@@ -59,7 +59,8 @@ class RedisRuleStore:
         with client.pipeline() as p:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
-            p.hmset(key, rules)
+            if len(rules) > 0:
+                p.hmset(key, rules)
 
 
 class ProjectOptionRuleStore:
@@ -118,7 +119,9 @@ class CompositeRuleStore:
 
         if self.MERGE_MAX_RULES < len(rules):
             with sentry_sdk.configure_scope() as scope:
-                scope.set_tag("discarded", len(rules) - self.MERGE_MAX_RULES)
+                sentry_sdk.set_measurement(
+                    "discarded_transactions", len(rules) - self.MERGE_MAX_RULES
+                )
                 scope.set_context(
                     "clustering_rules_max",
                     {
@@ -152,6 +155,10 @@ def _get_rules(project: Project) -> RuleSet:
     return ProjectOptionRuleStore().read(project)
 
 
+def get_redis_rules(project: Project) -> RuleSet:
+    return RedisRuleStore().read(project)
+
+
 def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
@@ -167,6 +174,8 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
     # Run the updates even if there aren't any new rules, to get all the stores
     # up-to-date.
+    # NOTE: keep in mind this function writes to Postgres, so it shouldn't be
+    # called often.
 
     last_seen = _now()
     new_rule_set = {rule: last_seen for rule in new_rules}

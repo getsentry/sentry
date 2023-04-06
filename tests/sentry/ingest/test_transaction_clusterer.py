@@ -374,6 +374,60 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         assert _get_rules(project1) == {"/user/*/**": 2}
 
 
+@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
+@mock.patch(
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
+    wraps=cluster_projects,  # call immediately
+)
+@pytest.mark.django_db
+def test_dont_store_inexisting_rules(_, default_organization):
+    tmp_redis_storage = {}
+
+    class MockRedisRuleStore:
+        def read(self, project: Project) -> RuleSet:
+            return tmp_redis_storage.get(project, {})
+
+        def write(self, project: Project, rules) -> None:
+            tmp_redis_storage[project] = rules
+
+    rogue_transaction = {
+        "transaction": "/transaction/for/rogue/*/rule",
+        "transaction_info": {"source": "sanitized"},
+        "_meta": {
+            "transaction": {
+                "": {
+                    "rem": [
+                        ["int", "s", 0, 0],
+                        ["/i/am/a/rogue/rule/dont/store/me/**", "s"],
+                    ],
+                    "val": "/transaction/for/rogue/hola/rule",
+                }
+            }
+        },
+    }
+
+    with mock.patch(
+        "sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore
+    ), Feature({"organizations:transaction-name-clusterer": True}):
+        project1 = Project(id=234, name="project1", organization_id=default_organization.id)
+        project1.save()
+
+        for i in range(3):
+            _store_transaction_name(project1, f"/user/tx-{project1.name}-{i}/settings")
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
+            spawn_clusterers()
+
+        record_transaction_name(
+            project1,
+            rogue_transaction,
+        )
+
+        assert _get_rules(project1) == {"/user/*/**": 1}
+
+
 @pytest.mark.django_db
 def test_stale_rules_arent_saved(default_project):
     assert len(get_sorted_rules(default_project)) == 0
