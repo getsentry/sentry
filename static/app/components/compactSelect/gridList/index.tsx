@@ -10,6 +10,7 @@ import {FormSize} from 'sentry/utils/theme';
 import {SelectContext} from '../control';
 import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
+import {SelectSection} from '../types';
 
 import {GridListOption} from './option';
 import {GridListSection} from './section';
@@ -36,6 +37,15 @@ interface GridListProps
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  /**
+   * To be called when the user toggle-selects a whole section (applicable when sections
+   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
+   * and before `onChange`.
+   */
+  onSectionToggle?: (
+    section: SelectSection<React.Key>,
+    type: 'select' | 'unselect'
+  ) => void;
   size?: FormSize;
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
@@ -57,6 +67,7 @@ function GridList({
   listState,
   size = 'md',
   label,
+  onSectionToggle,
   sizeLimitMessage,
   keyDownHandler,
   ...props
@@ -107,6 +118,7 @@ function GridList({
                   key={item.key}
                   node={item}
                   listState={listState}
+                  onToggle={onSectionToggle}
                   size={size}
                 />
               );

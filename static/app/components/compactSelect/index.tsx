@@ -53,6 +53,7 @@ function CompactSelect<Value extends React.Key>({
   value,
   defaultValue,
   onChange,
+  onSectionToggle,
   multiple,
   disallowEmptySelection,
   isOptionDisabled,
@@ -107,6 +108,7 @@ function CompactSelect<Value extends React.Key>({
       <List
         {...listProps}
         items={optionsWithKey}
+        onSectionToggle={onSectionToggle}
         disallowEmptySelection={disallowEmptySelection}
         isOptionDisabled={isOptionDisabled}
         size={size}
