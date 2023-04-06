@@ -25,21 +25,15 @@ class ConfigOptionsTest(CliTestCase):
     @pytest.fixture(autouse=True)
     def setup(self):
         self.store.flush_local_cache()
-        self.manager.register("testkey1")
-        self.manager.set("testkey1", "testvalue1")
-        self.manager.register("testkey2")
-        self.manager.set("testkey2", "testvalue2")
 
-    def test_fetch(self):
+    def test_get(self):
         # symbolserver.options: {'url': 'http://127.0.0.1:3000'}
-        rv = self.invoke("fetch", "--key=symbolserver.options")
-        # print(type(rv.output))
-        # print(rv.output)
+        rv = self.invoke("get", "symbolserver.options")
         assert rv.exit_code == 0, rv.output
         assert "http://127.0.0.1:3000" in rv.output
 
-    def test_badFetch(self):
-        rv = self.invoke("fetch", "--key=testkey3")
+    def test_badGet(self):
+        rv = self.invoke("get", "testkey3")
         assert rv.exit_code == 0, rv.output
         assert "unknown option: testkey3" in rv.output
 
