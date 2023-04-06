@@ -414,6 +414,10 @@ class ProjectPerformance extends AsyncView<Props, State> {
               initialData={{
                 performanceIssueCreationRate:
                   this.state.project.performanceIssueCreationRate,
+                performanceIssueSendToPlatform:
+                  this.state.project.performanceIssueSendToPlatform,
+                performanceIssueCreationThroughPlatform:
+                  this.state.project.performanceIssueCreationThroughPlatform,
               }}
               apiMethod="PUT"
               apiEndpoint={projectEndpoint}
