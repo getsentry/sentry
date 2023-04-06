@@ -89,20 +89,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         if len(errors):
             serialized_rule["errors"] = errors
 
-        try:
-            rule_snooze = RuleSnooze.objects.get(
-                Q(user_id=request.user.id) | Q(user_id=None), rule=rule
-            )
-
+        rule_snooze = RuleSnooze.objects.filter(
+            Q(user_id=request.user.id) | Q(user_id=None), rule=rule
+        )
+        if rule_snooze.exists():
             serialized_rule["snooze"] = True
-
-            if request.user.id == rule_snooze.owner_id:
-                serialized_rule["snoozeCreatedBy"] = "You"
+            snooze = rule_snooze[0]
+            if request.user.id == snooze.owner_id:
+                created_by = "You"
             else:
-                creator_name = user_service.get_user(rule_snooze.owner_id).get_display_name()
-                serialized_rule["snoozeCreatedBy"] = creator_name
-
-        except RuleSnooze.DoesNotExist:
+                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
+                created_by = creator_name
+            serialized_rule["snoozeCreatedBy"] = created_by
+        else:
             serialized_rule["snooze"] = False
 
         return Response(serialized_rule)
