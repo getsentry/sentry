@@ -103,7 +103,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 serialized_rule["snoozeCreatedBy"] = creator_name
 
         except RuleSnooze.DoesNotExist:
-            pass
+            serialized_rule["snooze"] = False
 
         return Response(serialized_rule)
 
