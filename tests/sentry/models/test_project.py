@@ -20,6 +20,7 @@ from sentry.models import (
     User,
     UserOption,
 )
+from sentry.models.actor import get_actor_id_for_user
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -195,7 +196,9 @@ class ProjectTest(TestCase):
 
         # should keep their owners
         rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
-        rule4 = Rule.objects.create(label="rule3", project=project, owner=to_user.actor)
+        rule4 = Rule.objects.create(
+            label="rule3", project=project, owner_id=get_actor_id_for_user(to_user)
+        )
 
         assert EnvironmentProject.objects.count() == 1
         assert snuba_query.environment.id == environment.id

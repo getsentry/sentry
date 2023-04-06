@@ -118,6 +118,8 @@ const mockedTrace = (project: Project) => {
         level: 'info',
         culprit: 'MainActivity.add_attachment',
         type: 1008,
+        end: 1678290375.15056,
+        start: 1678290374.150562,
       },
     ],
     timestamp: 1678290375.150561,

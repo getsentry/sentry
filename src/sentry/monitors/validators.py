@@ -8,7 +8,7 @@ from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.monitors.models import CheckInStatus, MonitorStatus, MonitorType, ScheduleType
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorStatus, MonitorType, ScheduleType
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -183,6 +183,18 @@ class MonitorValidator(serializers.Serializer):
             value = MONITOR_TYPES[value]
         return value
 
+    def validate_slug(self, value):
+        # Ignore if slug is equal to current value
+        if not value or (self.instance and value == self.instance.get("slug")):
+            return value
+
+        if Monitor.objects.filter(
+            slug=value, organization_id=self.context["organization"].id
+        ).exists():
+            raise ValidationError(f'The slug "{value}" is already in use.')
+
+        return value
+
     def update(self, instance, validated_data):
         config = instance.get("config", {})
         config.update(validated_data.get("config", {}))
@@ -223,8 +235,8 @@ class MonitorCheckInValidator(serializers.Serializer):
             monitor_validator = MonitorValidator(
                 data={
                     "type": "cron_job",
-                    "name": self.context["monitor_id"],
-                    "slug": self.context["monitor_id"],
+                    "name": self.context["monitor_slug"],
+                    "slug": self.context["monitor_slug"],
                     "project": project.slug,
                     "config": monitor_config,
                 },

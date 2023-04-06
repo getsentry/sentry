@@ -6,6 +6,7 @@ from sentry.api.serializers.models.alert_rule import (
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.models import Rule
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -38,11 +39,12 @@ class BaseAlertRuleSerializerTest:
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["projects"] == alert_rule_projects
         assert result["includeAllProjects"] == alert_rule.include_all_projects
-        if alert_rule.created_by:
+        if alert_rule.created_by_id:
+            created_by = user_service.get_user(user_id=alert_rule.created_by_id)
             assert result["createdBy"] == {
-                "id": alert_rule.created_by.id,
-                "name": alert_rule.created_by.get_display_name(),
-                "email": alert_rule.created_by.email,
+                "id": alert_rule.created_by_id,
+                "name": created_by.get_display_name(),
+                "email": created_by.email,
             }
         else:
             assert result["createdBy"] is None
@@ -132,7 +134,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(environment=self.environment, user=user)
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
-        assert alert_rule.created_by.id == user.id
+        assert alert_rule.created_by_id == user.id
 
     def test_owner(self):
         user = self.create_user("foo@example.com")

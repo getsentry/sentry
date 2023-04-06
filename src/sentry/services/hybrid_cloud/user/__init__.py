@@ -6,9 +6,10 @@
 import datetime
 from abc import abstractmethod
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, cast
 
 from pydantic.fields import Field
+from typing_extensions import TypedDict
 
 from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
@@ -49,7 +50,7 @@ class RpcUser(RpcModel):
     email: str = ""
     emails: FrozenSet[str] = frozenset()
     username: str = ""
-    actor_id: int = -1
+    actor_id: Optional[int] = None
     display_name: str = ""
     label: str = ""
     is_superuser: bool = False
@@ -118,6 +119,7 @@ class UserFilterArgs(TypedDict, total=False):
 class UserUpdateArgs(TypedDict, total=False):
     avatar_url: str
     avatar_type: int
+    actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
 
 
 class UserService(RpcService):
@@ -200,6 +202,7 @@ class UserService(RpcService):
         # Returns a serialized user
         pass
 
+    @rpc_method
     def get_user(self, user_id: int) -> Optional[RpcUser]:
         """
         This method returns a User object given an ID
