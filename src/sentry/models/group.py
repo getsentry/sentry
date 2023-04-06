@@ -150,7 +150,6 @@ class GroupStatus:
 
 
 class GroupSubStatus:
-    NONE = 0
     ARCHIVED_UNTIL_ESCALATING = 1
     ESCALATING = 2
     ONGOING = 3
@@ -427,9 +426,9 @@ class Group(Model):
         db_index=True,
     )
     sub_status = BoundedPositiveIntegerField(
-        default=GroupSubStatus.NONE,
+        null=True,
+        default=None,
         choices=(
-            (GroupSubStatus.NONE, _("None")),
             (GroupSubStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
