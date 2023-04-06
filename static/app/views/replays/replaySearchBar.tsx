@@ -132,7 +132,7 @@ function ReplaySearchBar(props: Props) {
 
         if (searchKeys.length > 0) {
           trackAdvancedAnalyticsEvent('replay.search', {
-            search_keys: searchKeys,
+            search_keys: searchKeys.join(','),
             organization,
           });
         }
