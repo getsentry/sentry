@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddField(
             model_name="group",
-            name="sub_status",
+            name="substatus",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
                 db_index=True, default=None, null=True
             ),
@@ -34,9 +34,9 @@ class Migration(CheckedMigration):
         migrations.AlterIndexTogether(
             name="group",
             index_together={
-                ("project", "status", "sub_status", "last_seen", "id"),
+                ("project", "status", "substatus", "last_seen", "id"),
                 ("project", "status", "last_seen", "id"),
-                ("project", "status", "sub_status", "type", "last_seen", "id"),
+                ("project", "status", "substatus", "type", "last_seen", "id"),
                 ("project", "first_release"),
                 ("project", "id"),
                 ("project", "status", "type", "last_seen", "id"),

@@ -425,7 +425,7 @@ class Group(Model):
         ),
         db_index=True,
     )
-    sub_status = BoundedPositiveIntegerField(
+    substatus = BoundedPositiveIntegerField(
         null=True,
         default=None,
         choices=(
