@@ -23,9 +23,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="groupsnooze",
-            name="until_escalating",
-            field=models.BooleanField(null=True),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_groupsnooze" ALTER COLUMN "until_escalating" DROP NOT NULL;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_groupsnooze" ALTER COLUMN "until_escalating" SET NOT NULL
+                    """,
+                    hints={"tables": ["sentry_group_snooze"]},
+                )
+            ],
+            state_operations=[
+                migrations.AlterField(
+                    model_name="groupsnooze",
+                    name="until_escalating",
+                    field=models.BooleanField(null=True),
+                ),
+            ],
+        )
     ]
