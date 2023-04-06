@@ -2,17 +2,22 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {getProfilingDocsForPlatform} from 'sentry/utils/profiling/platforms';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
@@ -77,23 +82,34 @@ export function GapSpanDetails({
   // Found the profile, render the preview
   if (transactionHasProfile) {
     return (
-      <Container>
-        <ProfilePreview
-          canvasView={canvasView}
-          event={event}
-          organization={organization}
-        />
-        <FlamegraphContainer>
-          <FlamegraphThemeProvider>
+      <FlamegraphThemeProvider>
+        <div>
+          <ProfilePreviewHeader
+            canvasView={canvasView}
+            event={event}
+            organization={organization}
+          />
+          <ProfilePreviewLegend />
+          <FlamegraphContainer>
             <FlamegraphPreview
               flamegraph={flamegraph}
               relativeStartTimestamp={relativeStartTimestamp}
               relativeStopTimestamp={relativeStopTimestamp}
               updateFlamegraphView={setCanvasView}
             />
-          </FlamegraphThemeProvider>
-        </FlamegraphContainer>
-      </Container>
+          </FlamegraphContainer>
+          <p>
+            {tct(
+              'You can also [docLink:manually instrument] certain regions of your code to see span details for future transactions.',
+              {
+                docLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
+                ),
+              }
+            )}
+          </p>
+        </div>
+      </FlamegraphThemeProvider>
     );
   }
 
@@ -120,7 +136,7 @@ export function GapSpanDetails({
   // platform that has not setup profiling yet
   return (
     <Container>
-      <SetupProfilingInstructions docsLink={docsLink} />
+      <SetupProfilingInstructions profilingDocsLink={docsLink} />
       <FlamegraphContainer>
         <FlamegraphThemeProvider>
           <FlamegraphPreview
@@ -137,13 +153,15 @@ export function GapSpanDetails({
 }
 
 interface SetupProfilingInstructionsProps {
-  docsLink: string;
+  profilingDocsLink: string;
 }
 
-function SetupProfilingInstructions({docsLink}: SetupProfilingInstructionsProps) {
+function SetupProfilingInstructions({
+  profilingDocsLink,
+}: SetupProfilingInstructionsProps) {
   return (
-    <InstructionsContainer>
-      <Heading>{t('Requires Manual Instrumentation')}</Heading>
+    <div>
+      <h4>{t('Requires Manual Instrumentation')}</h4>
       <p>
         {tct(
           `To manually instrument certain regions of your code, view [docLink:our documentation].`,
@@ -154,7 +172,7 @@ function SetupProfilingInstructions({docsLink}: SetupProfilingInstructionsProps)
           }
         )}
       </p>
-      <Heading>{t('With Profiling, we could paint a better picture')}</Heading>
+      <h4>{t('With Profiling, we could paint a better picture')}</h4>
       <p>
         {t(
           'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
@@ -164,12 +182,12 @@ function SetupProfilingInstructions({docsLink}: SetupProfilingInstructionsProps)
         icon={<IconProfiling />}
         size="sm"
         priority="primary"
-        href={docsLink}
+        href={profilingDocsLink}
         external
       >
         {t('Set Up Profiling')}
       </Button>
-    </InstructionsContainer>
+    </div>
   );
 }
 
@@ -179,7 +197,7 @@ interface ProfilePreviewProps {
   organization: Organization;
 }
 
-function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) {
+function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewProps) {
   const profileId = event.contexts.profile?.profile_id || '';
 
   // we want to try to go straight to the same config view as the preview
@@ -209,44 +227,84 @@ function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) 
   }
 
   return (
-    <InstructionsContainer>
-      <Heading>{t('Requires Manual Instrumentation')}</Heading>
-      <p>
-        {tct(
-          `To manually instrument certain regions of your code, view [docLink:our documentation].`,
-          {
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-            ),
-          }
-        )}
-      </p>
-      <Heading>{t('A Profile is available for this transaction!')}</Heading>
-      <p>
-        {t(
-          'We have a profile that can give you some additional context on which functions were sampled during this span.'
-        )}
-      </p>
-      <Button icon={<IconProfiling />} size="sm" onClick={handleGoToProfile} to={target}>
+    <HeaderContainer>
+      <HeaderContainer>
+        <SectionHeading>{t('Related Profile')}</SectionHeading>
+        <QuestionTooltip
+          position="top"
+          size="sm"
+          containerDisplayMode="block"
+          title={t(
+            'This profile was collected concurrently with the transaction. It displays the relevant stacks and functions for the duration of this span.'
+          )}
+        />
+      </HeaderContainer>
+      <Button icon={<IconProfiling />} size="xs" onClick={handleGoToProfile} to={target}>
         {t('Go to Profile')}
       </Button>
-    </InstructionsContainer>
+    </HeaderContainer>
   );
 }
+
+function ProfilePreviewLegend() {
+  const theme = useFlamegraphTheme();
+  const applicationFrameColor = colorComponentsToRGBA(
+    theme.COLORS.FRAME_APPLICATION_COLOR
+  );
+  const systemFrameColor = colorComponentsToRGBA(theme.COLORS.FRAME_SYSTEM_COLOR);
+
+  return (
+    <Container>
+      <LegendItem>
+        <LegendMarker color={applicationFrameColor} />
+        {t('Application Function')}
+      </LegendItem>
+      <LegendItem>
+        <LegendMarker color={systemFrameColor} />
+        {t('System Function')}
+      </LegendItem>
+    </Container>
+  );
+}
+
+const FlamegraphContainer = styled('div')`
+  height: 300px;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
 
 const Container = styled('div')`
   display: flex;
   flex-direction: row;
+  gap: ${space(1.5)};
+
+  ${FlamegraphContainer} {
+    min-width: 300px;
+    flex: 1 1 auto;
+  }
 `;
 
-const Heading = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+const LegendItem = styled('span')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const InstructionsContainer = styled('div')`
-  width: 300px;
+const LegendMarker = styled('span')<{color: string}>`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 1px;
+  background-color: ${p => p.color};
 `;
 
-const FlamegraphContainer = styled('div')`
-  flex: auto;
+const HeaderContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(1)};
 `;
