@@ -1973,6 +1973,44 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         assert list(results) == list(results2)
 
+    def test_error_main_thread_true(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "SyntaxError",
+                            "value": "hello world",
+                            "thread_id": 1,
+                        },
+                    ],
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": 1,
+                            "main": True,
+                        },
+                    ],
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        results = self.make_query(
+            projects=[self.project],
+            search_filter_query="error.handled:1",
+            sort_by="date",
+            limit=1,
+            count_hits=True,
+        )
+
+        assert results.hits == 1
+
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
     @property
