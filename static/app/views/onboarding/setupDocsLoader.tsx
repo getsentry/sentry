@@ -110,6 +110,18 @@ export function SetupDocsLoader({
     }
   }, [api, location.query.product, organization.slug, project.slug, projectKey?.id]);
 
+  const track = useCallback(() => {
+    if (!project?.id) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('onboarding.setup_loader_docs_rendered', {
+      organization,
+      platform: currentPlatform,
+      project_id: project?.id,
+    });
+  }, [organization, currentPlatform, project?.id]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData, organization.slug, project.slug]);
@@ -117,6 +129,10 @@ export function SetupDocsLoader({
   useEffect(() => {
     handleUpdateSelectedProducts();
   }, [handleUpdateSelectedProducts, location.query.product]);
+
+  useEffect(() => {
+    track();
+  }, [track]);
 
   return (
     <Fragment>

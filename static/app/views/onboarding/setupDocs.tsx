@@ -343,32 +343,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     });
   }, [organization, currentPlatform, project?.id]);
 
-  const track = useCallback(() => {
-    if (!project?.id) {
-      return;
-    }
-
-    trackAdvancedAnalyticsEvent('onboarding.setup_docs_rendered', {
-      organization,
-      platform: currentPlatform,
-      project_id: project?.id,
-      mode: showIntegrationOnboarding
-        ? 'integration'
-        : showReactOnboarding
-        ? 'react'
-        : showLoaderOnboarding
-        ? 'loader'
-        : 'default',
-    });
-  }, [
-    organization,
-    currentPlatform,
-    project?.id,
-    showIntegrationOnboarding,
-    showReactOnboarding,
-    showLoaderOnboarding,
-  ]);
-
   const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
@@ -426,10 +400,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       newFooterLogExperiment();
     }
   }, [newFooterLogExperiment, heartbeatFooter]);
-
-  useEffect(() => {
-    track();
-  }, [track, showIntegrationOnboarding, showReactOnboarding, showLoaderOnboarding]);
 
   if (!project) {
     return null;

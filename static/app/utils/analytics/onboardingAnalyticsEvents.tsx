@@ -25,8 +25,7 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
-  'onboarding.setup_docs_rendered': {
-    mode: string;
+  'onboarding.setup_loader_docs_rendered': {
     platform: string;
     project_id: string;
   };
@@ -50,7 +49,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: JS Loader Optional Configuration Expanded',
   'onboarding.js_loader_npm_docs_shown':
     'Onboarding: JS Loader Switch to npm Instructions',
-  'onboarding.setup_docs_rendered': 'Onboarding: Setup Docs Rendered',
+  'onboarding.setup_loader_docs_rendered': 'Onboarding: Setup Loader Docs Rendered',
   'onboarding.view_error_button_clicked': 'Onboarding: Go To Issues Button Clicked',
   'onboarding.view_sample_error_button_clicked':
     'Onboarding: View Sample Error Button Clicked',
