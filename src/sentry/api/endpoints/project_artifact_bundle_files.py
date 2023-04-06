@@ -10,12 +10,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import MAX_ARTIFACT_BUNDLE_FILES_OFFSET
-from sentry.models import (
-    ArtifactBundle,
-    ArtifactBundleArchive,
-    ProjectArtifactBundle,
-    SourceFileType,
-)
+from sentry.models import ArtifactBundle, ArtifactBundleArchive, SourceFileType
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 
 INVALID_SOURCE_FILE_TYPE = 0
@@ -59,11 +54,11 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
 
         try:
-            project_artifact_bundle = ProjectArtifactBundle.objects.filter(
+            artifact_bundle = ArtifactBundle.objects.filter(
                 organization_id=project.organization.id,
-                project_id=project.id,
-                artifact_bundle__bundle_id=bundle_id,
-            ).select_related("artifact_bundle__file")[0]
+                bundle_id=bundle_id,
+                projectartifactbundle__project_id=project.id,
+            )[0]
         except IndexError:
             return Response(
                 {
@@ -71,8 +66,6 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 },
                 status=400,
             )
-
-        artifact_bundle = project_artifact_bundle.artifact_bundle
 
         try:
             # We open the archive to fetch the number of files.
