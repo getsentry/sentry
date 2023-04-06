@@ -369,4 +369,16 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.max_batch_time,
             self.input_block_size,
             self.output_block_size,
+            initializer=initialize_consumer_state,
         )
+
+
+def initialize_consumer_state() -> None:
+    """
+    Initialization function for subprocesses spawned by the occurrence ingestion consumer.
+
+    It initializes the Sentry Django app from scratch to avoid multiprocessing issues.
+    """
+    from sentry.runner import configure
+
+    configure()
