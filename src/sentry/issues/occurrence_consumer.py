@@ -118,7 +118,11 @@ def process_event_and_issue_occurrence(
         )
 
     event = save_event_from_occurrence(event_data)
-    return save_issue_occurrence(occurrence_data, event)
+    with metrics.timer(
+        "occurrence_consumer._process_message.save_issue_occurrence",
+        tags={"method": "process_event_and_issue_occurrence"},
+    ):
+        return save_issue_occurrence(occurrence_data, event)
 
 
 def lookup_event_and_process_issue_occurrence(
@@ -131,7 +135,11 @@ def lookup_event_and_process_issue_occurrence(
     except Exception:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
 
-    return save_issue_occurrence(occurrence_data, event)
+    with metrics.timer(
+        "occurrence_consumer._process_message.save_issue_occurrence",
+        tags={"method": "lookup_event_and_process_issue_occurrence"},
+    ):
+        return save_issue_occurrence(occurrence_data, event)
 
 
 def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -248,7 +256,8 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
-            kwargs = _get_kwargs(message)
+            with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
+                kwargs = _get_kwargs(message)
             occurrence_data = kwargs["occurrence_data"]
             metrics.incr(
                 "occurrence_ingest.messages",
@@ -277,12 +286,18 @@ def _process_message(
 
             if "event_data" in kwargs:
                 txn.set_tag("result", "success")
-                return process_event_and_issue_occurrence(
-                    kwargs["occurrence_data"], kwargs["event_data"]
-                )
+                with metrics.timer(
+                    "occurrence_consumer._process_message.process_event_and_issue_occurrence"
+                ):
+                    return process_event_and_issue_occurrence(
+                        kwargs["occurrence_data"], kwargs["event_data"]
+                    )
             else:
                 txn.set_tag("result", "success")
-                return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
+                with metrics.timer(
+                    "occurrence_consumer._process_message.lookup_event_and_process_issue_occurrence"
+                ):
+                    return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
@@ -296,8 +311,9 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         def process_message(message: Message[KafkaPayload]) -> None:
             try:
-                payload = json.loads(message.payload.value, use_rapid_json=True)
-                _process_message(payload)
+                with metrics.timer("occurrence_consumer.process_message"):
+                    payload = json.loads(message.payload.value, use_rapid_json=True)
+                    _process_message(payload)
             except (
                 rapidjson.JSONDecodeError,
                 InvalidEventPayloadError,
