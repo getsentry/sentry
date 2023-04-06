@@ -124,4 +124,25 @@ class Migration(CheckedMigration):
         authprovider_migrations()
         + pagerdutyservice_migrations()
         + repositoryprojectpathconfig_migrations()
+        + [
+            migrations.AddField(
+                model_name="authproviderdefaultteams",
+                name="team_id",
+                field=sentry.db.models.fields.bounded.BoundedBigIntegerField(default=-1),
+                preserve_default=False,
+            ),
+            migrations.AlterField(
+                model_name="authproviderdefaultteams",
+                name="authprovider",
+                field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+            ),
+            migrations.AlterUniqueTogether(
+                name="authproviderdefaultteams",
+                unique_together=set(),
+            ),
+            migrations.RemoveField(
+                model_name="authproviderdefaultteams",
+                name="team",
+            ),
+        ]
     )

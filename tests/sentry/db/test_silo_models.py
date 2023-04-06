@@ -1,14 +1,7 @@
 from sentry.api.serializers.base import registry
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import Actor, NotificationSetting, OrganizationMember, SentryApp, User
-from sentry.models.integrations import (
-    ExternalActor,
-    ExternalIssue,
-    Integration,
-    OrganizationIntegration,
-    PagerDutyService,
-    RepositoryProjectPathConfig,
-)
+from sentry.models.integrations import ExternalActor, ExternalIssue, Integration
 from sentry.testutils.silo import (
     validate_models_have_silos,
     validate_no_cross_silo_deletions,
@@ -21,8 +14,6 @@ fk_emeptions = {
     (Integration, AlertRuleTriggerAction),
     (Integration, ExternalActor),
     (Integration, ExternalIssue),
-    (OrganizationIntegration, PagerDutyService),
-    (OrganizationIntegration, RepositoryProjectPathConfig),
     (NotificationSetting, Actor),
     (User, Actor),
     (AlertRuleTriggerAction, SentryApp),
