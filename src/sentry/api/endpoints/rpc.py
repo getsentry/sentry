@@ -1,4 +1,3 @@
-from django.conf import settings
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,6 +6,7 @@ from sentry.api.base import Endpoint
 from sentry.services.hybrid_cloud.rpc import (
     RpcArgumentException,
     RpcResolutionException,
+    RpcSenderCredentials,
     dispatch_to_local_service,
 )
 
@@ -29,7 +29,7 @@ class RpcServiceEndpoint(Endpoint):  # type: ignore
 
         TODO: Real solution
         """
-        return bool(settings.ALLOW_HYBRID_CLOUD_RPC)
+        return RpcSenderCredentials.read_from_settings().is_allowed
 
     def post(self, request: Request, service_name: str, method_name: str) -> Response:
         if not self._is_authorized(request):

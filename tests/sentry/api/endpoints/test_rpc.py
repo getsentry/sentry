@@ -22,44 +22,44 @@ class RpcServiceEndpointTest(APITestCase):
         response = self.client.post(path)
         assert response.status_code == 403
 
-    @override_settings(ALLOW_HYBRID_CLOUD_RPC=True)
+    @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_bad_service_name(self):
         path = self._get_path("not_a_service", "not_a_method")
         response = self.client.post(path)
         assert response.status_code == 404
 
-    @override_settings(ALLOW_HYBRID_CLOUD_RPC=True)
+    @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_bad_method_name(self):
         path = self._get_path("user", "not_a_method")
         response = self.client.post(path)
         assert response.status_code == 404
 
-    @override_settings(ALLOW_HYBRID_CLOUD_RPC=True)
+    @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_no_arguments(self):
         path = self._get_path("organization", "get_organization_by_id")
         response = self.client.post(path)
         assert response.status_code == 400
 
-    @override_settings(ALLOW_HYBRID_CLOUD_RPC=True)
+    @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_missing_argument_key(self):
         path = self._get_path("organization", "get_organization_by_id")
         response = self.client.post(path, {})
         assert response.status_code == 400
 
-    @override_settings(ALLOW_HYBRID_CLOUD_RPC=True)
+    @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_missing_argument_values(self):
         path = self._get_path("organization", "get_organization_by_id")
         response = self.client.post(path, {"args": {}})
         assert response.status_code == 400
 
-    @override_settings(ALLOW_HYBRID_CLOUD_RPC=True)
+    @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_with_empty_response(self):
         path = self._get_path("organization", "get_organization_by_id")
         response = self.client.post(path, {"args": {"id": 0}})
         assert response.status_code == 200
         assert response.data is None
 
-    @override_settings(ALLOW_HYBRID_CLOUD_RPC=True)
+    @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_with_object_response(self):
         organization = self.create_organization()
 
