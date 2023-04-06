@@ -45,12 +45,12 @@ def generate_normalized_output(
         )
         item["user"] = {
             "id": item.pop("user_id", None),
-            "name": item.pop("user_name", None),
+            "username": item.pop("user_username", None),
             "email": item.pop("user_email", None),
             "ip": item.pop("user_ip", None),
         }
         item["user"]["display_name"] = (
-            item["user"]["name"]
+            item["user"]["username"]
             or item["user"]["email"]
             or item["user"]["id"]
             or item["user"]["ip"]
@@ -78,6 +78,17 @@ def generate_normalized_output(
         item["urls"] = item.pop("urls_sorted", None)
 
         item.pop("isArchived")
+
+        item.pop("click_alt", None)
+        item.pop("click_aria_label", None)
+        item.pop("clickClass", None)
+        item.pop("click_classes", None)
+        item.pop("click_id", None)
+        item.pop("click_role", None)
+        item.pop("click_tag", None)
+        item.pop("click_testid", None)
+        item.pop("click_text", None)
+        item.pop("click_title", None)
 
         yield item
 

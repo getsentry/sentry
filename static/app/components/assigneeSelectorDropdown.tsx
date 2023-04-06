@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -496,7 +497,9 @@ export class AssigneeSelectorDropdown extends Component<
       // TODO: codeowners may no longer exist
       codeowners: t('Codeowners'),
     };
-    return suggestedOwners
+
+    const uniqueSuggestions = uniqBy(suggestedOwners, owner => owner.owner);
+    return uniqueSuggestions
       .map<SuggestedAssignee | null>(owner => {
         // converts a backend suggested owner to a suggested assignee
         const [ownerType, id] = owner.owner.split(':');

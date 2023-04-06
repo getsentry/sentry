@@ -128,6 +128,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
+    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -419,8 +420,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_project_write = request.access and request.access.has_scope("project:write")
 
-        changed_proj_settings = {}
-
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
         else:
@@ -454,6 +453,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
 
         changed = False
+        changed_proj_settings = {}
 
         old_slug = None
         if result.get("slug"):
@@ -622,10 +622,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "performanceIssueSendToPlatform" in result:
             if project.update_option(
                 "sentry:performance_issue_send_to_issues_platform",
-                result["performanceIssueCreationThroughPlatform"],
+                result["performanceIssueSendToPlatform"],
             ):
                 changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
-                    "performanceIssueCreationThroughPlatform"
+                    "performanceIssueSendToPlatform"
                 ]
         if "performanceIssueCreationThroughPlatform" in result:
             if project.update_option(

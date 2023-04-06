@@ -1,5 +1,4 @@
 import {act} from 'react-test-renderer';
-import {QueryClientProvider} from '@tanstack/react-query';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -11,6 +10,7 @@ import {
   PersistedStoreProvider,
   usePersistedStoreCategory,
 } from 'sentry/stores/persistedStore';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('PersistedStore', function () {

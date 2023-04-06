@@ -15,7 +15,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             member.save()
 
             auth_provider = AuthProvider.objects.create(
-                organization=organization, provider="dummy", flags=0
+                organization_id=organization.id, provider="dummy", flags=0
             )
 
             AuthIdentity.objects.create(auth_provider=auth_provider, user=user)

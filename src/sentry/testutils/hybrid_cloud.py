@@ -5,8 +5,11 @@ import functools
 from types import TracebackType
 from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type, cast
 
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud import DelegatedBySiloMode, InterfaceWithLifecycle, hc_test_stub
 from sentry.silo import SiloMode
+from sentry.testutils.silo import exempt_from_silo_limits
 
 
 class use_real_service:
@@ -93,3 +96,53 @@ def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
         yield
     finally:
         hc_test_stub.cb = None
+
+
+class HybridCloudTestMixin:
+    @exempt_from_silo_limits()
+    def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):
+        org_member_mapping_query = OrganizationMemberMapping.objects.filter(
+            organization_id=org_member.organization_id,
+            email=org_member.email,
+            user_id=org_member.user_id,
+        )
+
+        assert org_member_mapping_query.count() == 1
+        org_member_mapping = org_member_mapping_query.get()
+
+        email = org_member_mapping.email
+        user_id = org_member_mapping.user_id
+        # only either user_id or email should have a value, but not both.
+        assert (email is None and user_id) or (email and user_id is None)
+
+        assert (
+            OrganizationMember.objects.filter(
+                organization_id=org_member.organization_id,
+                user_id=user_id,
+                email=email,
+            ).count()
+            == 1
+        )
+
+        assert org_member_mapping.role == org_member.role
+        if org_member.inviter:
+            assert org_member_mapping.inviter_id == org_member.inviter.id
+        else:
+            assert org_member_mapping.inviter_id is None
+        assert org_member_mapping.invite_status == org_member.invite_status
+        if expected:
+            for key, expected_value in expected.items():
+                assert getattr(org_member_mapping, key) == expected_value
+
+    @exempt_from_silo_limits()
+    def assert_org_member_mapping_not_exists(self, org_member: OrganizationMember):
+        email = org_member.email
+        user_id = org_member.user_id
+        # only either user_id or email should have a value, but not both.
+        assert (email is None and user_id) or (email and user_id is None)
+
+        assert not OrganizationMemberMapping.objects.filter(
+            organization_id=org_member.organization_id,
+            email=org_member.email,
+            user_id=org_member.user_id,
+        ).exists()

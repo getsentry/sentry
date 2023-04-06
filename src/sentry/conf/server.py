@@ -684,6 +684,11 @@ CELERY_QUEUES = [
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
     ),
+    Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
+    Queue(
+        "events.symbolicate_js_event_low_priority",
+        routing_key="events.symbolicate_js_event_low_priority",
+    ),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
@@ -748,7 +753,7 @@ for queue in CELERY_QUEUES:
 
 from celery.schedules import crontab
 
-# XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
+# XXX: Make sure to register the monitor_slug for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
 CELERYBEAT_SCHEDULE = {
     "check-auth": {
@@ -895,8 +900,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-prioritize-transactions": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
-        # Run job every 4 hours at min 10
-        "schedule": crontab(minute=10, hour="*/4"),
+        # Run every 5 minutes
+        "schedule": timedelta(minutes=6),
     },
 }
 
@@ -923,6 +928,9 @@ LOGGING = {
     "handlers": {
         "null": {"class": "logging.NullHandler"},
         "console": {"class": "sentry.logging.handlers.StructLogHandler"},
+        # This `internal` logger is separate from the `Logging` integration in the SDK. Since
+        # we have this to record events, in `sdk.py` we set the integration's `event_level` to
+        # None, so that it records breadcrumbs for all log calls but doesn't send any events.
         "internal": {"level": "ERROR", "class": "sentry_sdk.integrations.logging.EventHandler"},
         "metrics": {
             "level": "WARNING",
@@ -1093,6 +1101,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enable the sentry sample format response
     "organizations:profiling-sampled-format": False,
+    # Enabled for those orgs who participated in the profiling Beta program
+    "organizations:profiling-beta-grace": False,
+    # Enable profiling GA messaging (update paths from AM1 to AM2)
+    "organizations:profiling-ga": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1207,10 +1219,14 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-experiment": False,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
+    # Enable SQL formatting for breadcrumb items
+    "organizations:issue-breadcrumbs-sql-format": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
+    # Display CPU and memory metrics in transactions with profiles
+    "organizations:mobile-cpu-memory-in-transactions": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1267,6 +1283,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
+    # Enable Session Replay DOM search
+    "organizations:session-replay-dom-search": False,
     # Enabled for those orgs who participated in the Replay Beta program
     "organizations:session-replay-beta-grace": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
@@ -1282,18 +1300,20 @@ SENTRY_FEATURES = {
     "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
+    # Enable the new experimental starfish view
+    "organizations:starfish-view": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Enable access to Notification Actions and their endpoints
     "organizations:notification-actions": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
-    # Enable the new native stack trace design
-    "organizations:native-stack-trace-v2": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
+    # Enable apply actual sample rate to dynamic sampling biases
+    "organizations:ds-apply-actual-sample-rate-to-biases": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
     # Enable version 2 of reprocessing (completely distinct from v1)
@@ -1313,8 +1333,6 @@ SENTRY_FEATURES = {
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable new DS bias: prioritise by transaction
-    "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
@@ -2128,7 +2146,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
+            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
@@ -2690,12 +2708,6 @@ KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
 
-# To be deprecated. Should be replaced by the single KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS topic
-KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS = (
-    "generic-metrics-distributions-subscription-results"
-)
-KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS = "generic-metrics-sets-subscription-results"
-
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
@@ -2722,8 +2734,7 @@ KAFKA_SNUBA_GENERICS_METRICS_CS = "snuba-metrics-generics-cloudspanner"
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics-sets": KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics-distributions": KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS,
+    "generic-metrics": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
     "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
     "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
@@ -2741,8 +2752,6 @@ KAFKA_TOPICS = {
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
@@ -3019,14 +3028,21 @@ INJECTED_SCRIPT_ASSETS = []
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 
+PG_VERSION = os.getenv("PG_VERSION") or "9.6"
+
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
-# Note: The docs have this backwards. We set this to False here so that we always add check
-# constraints instead of setting the column to not null.
-ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
+
+if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
+    # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+
+    # https://github.com/tbicr/django-pg-zero-downtime-migrations/blob/7b3f5c045b40e656772859af4206acf3f11c0951/CHANGES.md#06
+
+    # Note: The docs have this backwards. We set this to False here so that we always add check
+    # constraints instead of setting the column to not null.
+    ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
 ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
@@ -3153,6 +3169,7 @@ SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organiza
 # Temporary allowlist for specially configured organizations to use the direct-storage
 # driver.
 SENTRY_REPLAYS_STORAGE_ALLOWLIST = []
+SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST = []
 
 SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",

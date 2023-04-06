@@ -7,7 +7,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import Organization, Project
+from sentry.models import Environment, Organization, Project
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.validators import MonitorValidator
@@ -74,14 +74,23 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
-            queryset = queryset.filter(monitorenvironment__environment__in=environments)
+            if request.GET.get("includeNew"):
+                queryset = queryset.filter(
+                    Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
+                )
+            else:
+                queryset = queryset.filter(monitorenvironment__environment__in=environments)
+        else:
+            environments = list(Environment.objects.filter(organization_id=organization.id))
 
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(id__iexact=value))
+                    queryset = queryset.filter(
+                        Q(name__icontains=value) | Q(id__iexact=value) | Q(slug__icontains=value)
+                    )
                 elif key == "id":
                     queryset = queryset.filter(in_iexact("id", value))
                 elif key == "name":

@@ -16,7 +16,7 @@ import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -122,12 +122,12 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   // debug id bundles tab url
   const debugIdsUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/debug-id-bundles/${params.bundleId}/`
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/${params.bundleId}/`
   );
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
 
-  const {data: artifactsData, isLoading: artifactsLoading} = useQuery<
+  const {data: artifactsData, isLoading: artifactsLoading} = useApiQuery<
     [Artifact[], any, any]
   >(
     [
@@ -150,7 +150,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   );
 
   const {data: debugIdBundlesArtifactsData, isLoading: debugIdBundlesArtifactsLoading} =
-    useQuery<[DebugIdBundleArtifact, any, any]>(
+    useApiQuery<[DebugIdBundleArtifact, any, any]>(
       [
         debugIdBundlesArtifactsEndpoint,
         {
@@ -183,7 +183,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={tabDebugIdBundlesActive ? t('Debug ID Bundle') : t('Release Bundle')}
+        title={tabDebugIdBundlesActive ? t('Artifact Bundle') : t('Release Bundle')}
         subtitle={
           <VersionAndDetails>
             {params.bundleId}

@@ -11,6 +11,7 @@ from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentSt
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 
@@ -24,13 +25,10 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
 ) -> None:
     # Make sure organization integration is still active:
-    try:
-        integration = Integration.objects.get(
-            id=action.integration_id,
-            organizations=incident.organization,
-            status=ObjectStatus.VISIBLE,
-        )
-    except Integration.DoesNotExist:
+    integration, org_integration = integration_service.get_organization_context(
+        organization_id=incident.organization_id, integration_id=action.integration_id
+    )
+    if org_integration is None or integration is None or integration.status != ObjectStatus.VISIBLE:
         # Integration removed, but rule is still active.
         return
 
