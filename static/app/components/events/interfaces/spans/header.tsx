@@ -418,6 +418,21 @@ class TraceViewHeader extends Component<PropType, State> {
 
   render() {
     const {organization} = this.props;
+    const handleStartWindowSelection = (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target;
+
+      if (
+        target instanceof Element &&
+        target.getAttribute &&
+        target.getAttribute('data-ignore')
+      ) {
+        // ignore this event if we need to
+        return;
+      }
+
+      this.props.dragProps.onWindowSelectionDragStart(event);
+    };
+
     return (
       <ProfileContext.Consumer>
         {profiles => {
@@ -491,20 +506,7 @@ class TraceViewHeader extends Component<PropType, State> {
                             onMouseMove={event => {
                               displayCursorGuide(event.pageX);
                             }}
-                            onMouseDown={event => {
-                              const target = event.target;
-
-                              if (
-                                target instanceof Element &&
-                                target.getAttribute &&
-                                target.getAttribute('data-ignore')
-                              ) {
-                                // ignore this event if we need to
-                                return;
-                              }
-
-                              this.props.dragProps.onWindowSelectionDragStart(event);
-                            }}
+                            onMouseDown={handleStartWindowSelection}
                           >
                             <MinimapContainer>
                               {this.renderFog(this.props.dragProps)}
@@ -531,6 +533,7 @@ class TraceViewHeader extends Component<PropType, State> {
                           renderWindowSelection={() =>
                             this.renderWindowSelection(this.props.dragProps)
                           }
+                          onChartMouseDown={handleStartWindowSelection}
                         />
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
