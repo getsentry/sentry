@@ -75,7 +75,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           duration: getDuration(userWindow * 60, 0, true),
         });
       }
-      return t('Affected [count] user(s)', {
+      return tct('Affected [count] user(s)', {
         count: getCountText(userCount),
       });
     }
