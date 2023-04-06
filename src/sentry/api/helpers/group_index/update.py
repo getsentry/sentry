@@ -40,7 +40,6 @@ from sentry.models import (
     Release,
     Team,
     User,
-    UserOption,
     follows_semver_versioning_scheme,
     remove_group_from_inbox,
 )
@@ -51,6 +50,7 @@ from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.signals import (
     issue_ignored,
     issue_mark_reviewed,
@@ -122,9 +122,11 @@ def self_subscribe_and_assign_issue(
         GroupSubscription.objects.subscribe(
             user=acting_user, group=group, reason=GroupSubscriptionReason.status_change
         )
-        self_assign_issue = UserOption.objects.get_value(
-            user=acting_user, key="self_assign_issue", default="0"
+
+        user_options = user_option_service.get_many(
+            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
         )
+        self_assign_issue = "0" if len(user_options) <= 0 else user_options[0].value
         if self_assign_issue == "1" and not group.assignee_set.exists():
             return ActorTuple(type=User, id=acting_user.id)
     return None

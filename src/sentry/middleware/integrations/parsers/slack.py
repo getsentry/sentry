@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from sentry_sdk import capture_exception
 
 from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.webhooks.action import SlackActionEndpoint
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.silo.client import SiloClientError
@@ -46,7 +47,6 @@ class SlackRequestParser(BaseRequestParser):
         "SlackLinkTeamView",
         "SlackUnlinkTeamView",
         "SlackCommandsEndpoint",
-        "SlackActionEndpoint",
         "SlackEventEndpoint",
     ]
 
@@ -82,13 +82,21 @@ class SlackRequestParser(BaseRequestParser):
             logger.error("no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
-        # Django views are returned from the control silo no matter what.
         view_class_name = self.match.func.view_class.__name__
         if view_class_name in self.control_classes:
             return self.get_response_from_control_silo()
 
+        # Actions can be generic, parse the payload to identify the silo
+        if view_class_name == "SlackActionEndpoint":
+            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
+            slack_request = self.match.func.view_class.slack_request_class(drf_request)
+            action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
+
+            if action_option in ["link", "ignore", "all_slack"]:
+                return self.get_response_from_control_silo()
+
         # Slack only requires one synchronous response.
-        # By convention, we just assume it's the first returned region.
+        # By convention, we just assume it's the first integration region.
         first_region = regions[0]
         response_map = self.get_responses_from_region_silos(regions=[first_region])
         region_result = response_map[first_region.name]

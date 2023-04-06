@@ -87,6 +87,9 @@ class IntegrationNudgeNotification(BaseNotification):
             )
         ]
 
+    def get_callback_data(self) -> Mapping[str, Any]:
+        return {"enable_notifications": True}
+
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 

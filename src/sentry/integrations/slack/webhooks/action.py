@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, List, Mapping, MutableMapping, Sequence
 
 import requests as requests_
 from django.urls import reverse
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api import ApiClient, client
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -123,7 +123,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return is_message
 
 
-@region_silo_endpoint
+@all_silo_endpoint
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
@@ -394,6 +394,24 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return self.respond()
 
+    @classmethod
+    def get_action_option(cls, slack_request: SlackActionRequest) -> str | None:
+        action_option = None
+        for action_data in slack_request.data.get("actions", []):
+            # Get the _first_ value in the action list.
+            value = action_data.get("value")
+            if value and not action_option:
+                action_option = value
+        return action_option
+
+    @classmethod
+    def get_action_list(cls, slack_request: SlackActionRequest) -> List[MessageAction]:
+        return [
+            MessageAction(**action_data)
+            for action_data in slack_request.data.get("actions", [])
+            if "name" in action_data
+        ]
+
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
         try:
@@ -403,17 +421,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond(status=e.status)
 
         # Actions list may be empty when receiving a dialog response.
-        action_list_raw = slack_request.data.get("actions", [])
 
-        action_list = []
-        action_option = None
-        for action_data in action_list_raw:
-            # Get the _first_ value in the action list.
-            value = action_data.get("value")
-            if value and not action_option:
-                action_option = value
-            if "name" in action_data:
-                action_list.append(MessageAction(**action_data))
+        action_option = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking our auto response in the messages tab we just return a 200
         if action_option == "sentry_docs_link_clicked":
@@ -426,9 +435,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if action_option in ["approve_member", "reject_member"]:
             return self.handle_member_approval(slack_request, action_option)
 
-        if action_list and action_list[0].name == "enable_notifications":
+        if action_option in ["all_slack"]:
             return self.handle_enable_notifications(slack_request)
 
+        action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:
