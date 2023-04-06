@@ -474,6 +474,7 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
+from .endpoints.rpc import RpcServiceEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.source_map_debug import SourceMapDebugEndpoint
@@ -2507,6 +2508,11 @@ INTERNAL_URLS = [
         r"^project-config/$",
         AdminRelayProjectConfigsEndpoint.as_view(),
         name="sentry-api-0-internal-project-config",
+    ),
+    url(
+        r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
+        RpcServiceEndpoint.as_view(),
+        name="sentry-api-0-rpc-service",
     ),
 ]
 

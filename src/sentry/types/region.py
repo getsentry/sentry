@@ -52,6 +52,9 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
+    api_token: str | None = None
+    """An API token to authorize RPCs from here to the region's silo."""
+
     def validate(self) -> None:
         from sentry import options
         from sentry.api.utils import generate_region_url
