@@ -17,6 +17,14 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.js_loader_show_configuration': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.js_loader_show_npm': {
+    platform: string;
+    project_id: string;
+  };
   'onboarding.view_error_button_clicked': {
     new_organization: boolean;
     platform: string;
@@ -33,6 +41,9 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.explore_sentry_button_clicked': 'Onboarding: Explore Sentry Button Clicked',
   'onboarding.first_error_received': 'Onboarding: First Error Received',
   'onboarding.first_error_processed': 'Onboarding: First Error Processed',
+  'onboarding.js_loader_show_configuration':
+    'Onboarding: JS Loader Configuration Expanded',
+  'onboarding.js_loader_show_npm': 'Onboarding: JS Loader Switch to npm Instructions',
   'onboarding.view_error_button_clicked': 'Onboarding: Go To Issues Button Clicked',
   'onboarding.view_sample_error_button_clicked':
     'Onboarding: View Sample Error Button Clicked',

@@ -325,6 +325,16 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     loaderOnboarding && jsDynamicLoader && currentPlatform === 'javascript'
   );
 
+  const hideLoaderOnboarding = useCallback(() => {
+    setShowLoaderOnboarding(false);
+
+    trackAdvancedAnalyticsEvent('onboarding.js_loader_show_npm', {
+      organization,
+      platform: currentPlatform,
+      project_id: project.id,
+    });
+  }, [organization, currentPlatform, project.id]);
+
   const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
@@ -455,7 +465,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
               project={project}
               location={location}
               platform={loadedPlatform}
-              close={() => setShowLoaderOnboarding(false)}
+              close={hideLoaderOnboarding}
             />
           ) : (
             <ProjectDocs
