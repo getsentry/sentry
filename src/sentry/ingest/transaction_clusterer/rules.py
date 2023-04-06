@@ -110,7 +110,9 @@ class CompositeRuleStore:
         sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
         if self.MERGE_MAX_RULES < len(rules):
             with sentry_sdk.configure_scope() as scope:
-                scope.set_tag("discarded", len(rules) - self.MERGE_MAX_RULES)
+                sentry_sdk.set_measurement(
+                    "discarded_transactions", len(rules) - self.MERGE_MAX_RULES
+                )
                 scope.set_context(
                     "clustering_rules_max",
                     {
