@@ -425,15 +425,13 @@ class Group(Model):
         ),
         db_index=True,
     )
-    substatus = BoundedPositiveIntegerField(
+    substatus = BoundedIntegerField(
         null=True,
-        default=None,
         choices=(
             (GroupSubStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
         ),
-        db_index=True,
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -464,8 +462,6 @@ class Group(Model):
             ("project", "id"),
             ("project", "status", "last_seen", "id"),
             ("project", "status", "type", "last_seen", "id"),
-            ("project", "status", "sub_status", "last_seen", "id"),
-            ("project", "status", "sub_status", "type", "last_seen", "id"),
         ]
         unique_together = (
             ("project", "short_id"),
