@@ -2005,11 +2005,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             projects=[self.project],
             search_filter_query="error.handled:1",
             sort_by="date",
-            limit=1,
-            count_hits=True,
         )
 
-        assert results.hits == 1
+        assert len(results) == 1
 
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
