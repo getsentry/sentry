@@ -425,8 +425,14 @@ class Group(Model):
         ),
         db_index=True,
     )
+<<<<<<< HEAD
     substatus = BoundedIntegerField(
         null=True,
+=======
+    sub_status = BoundedPositiveIntegerField(
+        null=True,
+        default=None,
+>>>>>>> 7b0f4592d2 (make sub_status nullable and default to null. then we can write a migration to write legal sub_status)
         choices=(
             (GroupSubStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
