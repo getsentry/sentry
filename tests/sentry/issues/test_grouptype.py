@@ -5,11 +5,14 @@ from unittest.mock import patch
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
     DEFAULT_IGNORE_LIMIT,
+    ErrorGroupType,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
     NoiseConfig,
     PerformanceGroupTypeDefaults,
+    PerformanceNPlusOneGroupType,
+    ProfileJSONDecodeType,
     get_group_type_by_slug,
     get_group_types_by_category,
 )
@@ -158,3 +161,19 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             assert TestGroupType.allow_post_process_group(self.organization)
         with self.feature(TestGroupType.build_ingest_feature_name()):
             assert TestGroupType.allow_ingest(self.organization)
+
+
+class GroupRegistryTest(BaseGroupTypeTest):
+    def test_get_visible(self) -> None:
+        registry = GroupTypeRegistry()
+        registry.add(PerformanceNPlusOneGroupType)
+        registry.add(ProfileJSONDecodeType)
+        assert registry.get_visible(self.organization) == []
+        with self.feature(PerformanceNPlusOneGroupType.build_visible_feature_name()):
+            assert registry.get_visible(self.organization) == [PerformanceNPlusOneGroupType]
+        registry.add(ErrorGroupType)
+        with self.feature(PerformanceNPlusOneGroupType.build_visible_feature_name()):
+            assert set(registry.get_visible(self.organization)) == {
+                PerformanceNPlusOneGroupType,
+                ErrorGroupType,
+            }
