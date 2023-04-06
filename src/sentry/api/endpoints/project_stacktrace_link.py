@@ -190,7 +190,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
         result: JSONData = {"config": None, "sourceUrl": None}
 
-        integrations = Integration.objects.filter(organizations=project.organization_id)
+        integrations = Integration.objects.filter(
+            organizationintegration__organization_id=project.organization_id
+        )
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
@@ -265,14 +267,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                should_get_coverage = codecov_enabled(project.organization, request.user)
+                should_get_coverage = codecov_enabled(project.organization)
                 scope.set_tag("codecov.enabled", should_get_coverage)
                 if should_get_coverage:
-                    codecov_data, err = fetch_codecov_data(config=current_config)
+                    codecov_data = fetch_codecov_data(config=current_config)
                     if codecov_data:
                         result["codecov"] = codecov_data
-                    if err:
-                        logger.exception(err)
             try:
                 set_tags(scope, result)
             except Exception:

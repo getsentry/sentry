@@ -428,6 +428,24 @@ class DetailedEventSerializerTest(TestCase):
             "parentSpanIds": ["8dd7a5869a4f4583"],
             "issueType": "performance_n_plus_one_db_queries",
             "type": 1006,
+            "evidenceData": {
+                "op": "db",
+                "causeSpanIds": ["9179e43ae844b174"],
+                "offenderSpanIds": [
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+                "parentSpanIds": ["8dd7a5869a4f4583"],
+            },
+            "evidenceDisplay": [],
         }
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
@@ -444,3 +462,33 @@ class DetailedEventSerializerTest(TestCase):
 
         result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
         assert result["perfProblem"] is None
+
+    def test_event_breadcrumb_formatting(self):
+        with self.feature("organizations:issue-breadcrumbs-sql-format"):
+            event = self.store_event(
+                data={
+                    "breadcrumbs": [
+                        {"category": "generic", "message": "should not format this"},
+                        {
+                            "category": "query",
+                            "message": "select * from table where something = $1",
+                        },
+                    ]
+                },
+                project_id=self.project.id,
+            )
+            result = serialize(event, None, DetailedEventSerializer())
+
+            assert result["entries"][0]["type"] == "breadcrumbs"
+            # First breadcrumb should not have a message_formatted property
+            assert result["entries"][0]["data"]["values"][0]["message"] == "should not format this"
+            assert "messageRaw" not in result["entries"][0]["data"]["values"][0]
+            # Second breadcrumb should have whitespace added in message_formatted
+            assert (
+                result["entries"][0]["data"]["values"][1]["message"]
+                == "select *\n  from table\n where something = $1"
+            )
+            assert (
+                result["entries"][0]["data"]["values"][1]["messageRaw"]
+                == "select * from table where something = $1"
+            )

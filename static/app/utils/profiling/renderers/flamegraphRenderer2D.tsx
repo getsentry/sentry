@@ -1,16 +1,10 @@
 import {mat3} from 'gl-matrix';
 
+import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-
-// Convert color component from 0-1 to 0-255 range
-function colorComponentsToRgba(color: number[]): string {
-  return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
-    color[2] * 255
-  )}, ${color[3] ?? 1})`;
-}
 
 export class FlamegraphRenderer2D extends FlamegraphRenderer {
   draw(configViewToPhysicalSpace: mat3) {
@@ -40,7 +34,7 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
 
       const colors =
         this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
-      const color = colorComponentsToRgba(colors);
+      const color = colorComponentsToRGBA(colors);
 
       context.fillStyle = color;
       context.fillRect(
@@ -54,10 +48,6 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
         queue.push(frame.children[i]);
       }
     }
-  }
-
-  setHighlightedFrames(_frames: FlamegraphFrame[] | null) {
-    throw new Error('Method `setHighlightedFrames` not implemented.');
   }
 
   setSearchResults(

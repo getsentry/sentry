@@ -17,7 +17,7 @@ from sentry.utils.safe import safe_execute
 
 #: Maximum number of transaction names per project that we want
 #: to store in redis.
-MAX_SET_SIZE = 1000
+MAX_SET_SIZE = 2000
 
 #: Retention of a set.
 #: Remove the set if it has not received any updates for 24 hours.
@@ -64,10 +64,7 @@ def _store_transaction_name(project: Project, transaction_name: str) -> None:
     with sentry_sdk.start_span(op="txcluster.store_transaction_name"):
         client = get_redis_client()
         redis_key = _get_redis_key(project)
-        max_set_size = MAX_SET_SIZE
-        if features.has("organizations:transaction-name-clusterer-2x", project.organization):
-            max_set_size = 2 * MAX_SET_SIZE
-        add_to_set(client, [redis_key], [transaction_name, max_set_size, SET_TTL])
+        add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
 
 
 def get_transaction_names(project: Project) -> Iterator[str]:
@@ -94,12 +91,7 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
         and _should_store_transaction_name(event_data)
     ):
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
-
-        # TODO: For every transaction that had a rule applied to it, we should
-        # bump the rule's lifetime here such that it stays alive while it is
-        # being used.
-        # For that purpose, we need to add the applied rule to the transaction
-        # payload so we can check it here.
+        safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 
 
 def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
@@ -124,3 +116,26 @@ def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
         return False
 
     return True
+
+
+def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
+    from sentry.ingest.transaction_clusterer import rules as clusterer_rules
+
+    applied_rules = event_data.get("_meta", {}).get("transaction", {}).get("", {}).get("rem", {})
+    if not applied_rules:
+        return
+
+    stored_rules = clusterer_rules.get_redis_rules(project)
+
+    for applied_rule in applied_rules:
+        # There are two types of rules:
+        # Transaction clustering rules  -- ["<pattern>", "<action>"]
+        # Other rules                   -- ["<reason>", "<action>", <from>, <to>]
+        # We are only looking at the transaction clustering rules, so checking
+        # for the length of the array should be enough.
+        if len(applied_rule) == 2:
+            pattern = applied_rule[0]
+            if pattern in stored_rules:
+                # Only one clustering rule is applied per project
+                clusterer_rules.update_redis_rules(project, [pattern])
+                return

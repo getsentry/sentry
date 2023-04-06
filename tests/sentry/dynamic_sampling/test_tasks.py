@@ -24,7 +24,9 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
     def now(self):
         return MOCK_DATETIME
 
-    def create_project_and_add_metrics(self, name, count, org):
+    def create_project_and_add_metrics(self, name, count, org, tags=None):
+        if tags is None:
+            tags = {"transaction": "foo_transaction"}
         # Create 4 projects
         proj = self.create_project(name=name, organization=org)
 
@@ -36,12 +38,13 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
                 {"id": "ignoreHealthChecks", "active": False},
                 {"id": "boostLatestRelease", "active": False},
                 {"id": "boostKeyTransactions", "active": False},
+                {"id": "boostLowVolumeTransactions", "active": False},
             ],
         )
         # Store performance metrics for proj A
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction"},
+            tags=tags,
             minutes_before_now=30,
             value=count,
             project_id=proj.id,
@@ -137,9 +140,8 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
         get_blended_sample_rate.return_value = 0.25
 
         with self.options({"dynamic-sampling.prioritise_transactions.load_rate": 1.0}):
-            with self.feature({"organizations:ds-prioritise-by-transaction-bias": True}):
-                with self.tasks():
-                    prioritise_transactions()
+            with self.tasks():
+                prioritise_transactions()
 
         # now redis should contain rebalancing data for our projects
         for org in self.orgs_info:
@@ -152,3 +154,45 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
                     assert (
                         transaction_name in tran_rate
                     )  # check we have some rate calculated for each transaction
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    def test_prioritise_transactions_partial(self, get_blended_sample_rate):
+        """
+        Test the V2 algorithm is used, only specified projects are balanced and the
+        rest get a global rate
+
+        Create orgs projects & transactions and then check that the task creates rebalancing data
+        in Redis
+        """
+        BLENDED_RATE = 0.25
+        get_blended_sample_rate.return_value = BLENDED_RATE
+
+        with self.options(
+            {
+                "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
+                "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions": 1,
+                "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions": 1,
+            }
+        ):
+            with self.tasks():
+                prioritise_transactions()
+
+        # now redis should contain rebalancing data for our projects
+        for org in self.orgs_info:
+            org_id = org["org_id"]
+            for proj_id in org["project_ids"]:
+                tran_rate, implicit_rate = get_transactions_resampling_rates(
+                    org_id=org_id, proj_id=proj_id, default_rate=0.1
+                )
+                # explicit transactions
+                for transaction_name in ["ts1", "tl5"]:
+                    assert (
+                        transaction_name in tran_rate
+                    )  # check we have some rate calculated for each transaction
+                # implicit transactions
+                for transaction_name in ["ts2", "tm3", "tl4"]:
+                    assert (
+                        transaction_name not in tran_rate
+                    )  # check we have some rate calculated for each transaction
+                # we do have some different rate for implicit transactions
+                assert implicit_rate != BLENDED_RATE

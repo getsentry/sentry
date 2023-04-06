@@ -128,6 +128,10 @@ export default function TagFacets({
   }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
+  if (!organization.features.includes('device-classification')) {
+    delete tagsData['device.class'];
+  }
+
   const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
   const remainingTagKeys = Object.keys(tagsData)
     .filter(tagKey => !tagKeys.includes(tagKey))

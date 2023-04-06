@@ -104,7 +104,6 @@ function importJSSelfProfile(
     measurements: {},
     metadata: {
       platform: 'javascript',
-      durationNS: profile.duration,
     },
   };
 }
@@ -162,26 +161,23 @@ function importSentrySampledProfile(
     );
   }
 
-  const firstSample = input.profile.samples[0];
-  const lastSample = input.profile.samples[input.profile.samples.length - 1];
-  const duration = lastSample.elapsed_since_start_ns - firstSample.elapsed_since_start_ns;
-
   return {
     transactionID: input.transaction.id,
     traceID: input.transaction.trace_id,
     name: input.transaction.name,
     activeProfileIndex,
-    measurements: {},
+    measurements: input.measurements,
     metadata: {
       deviceLocale: input.device.locale,
       deviceManufacturer: input.device.manufacturer,
       deviceModel: input.device.model,
       deviceOSName: input.os.name,
       deviceOSVersion: input.os.version,
-      durationNS: duration,
       environment: input.environment,
       platform: input.platform,
       profileID: input.event_id,
+      projectID: input.project_id,
+      release: input.release,
 
       // these don't really work for multiple transactions
       transactionID: input.transaction.id,

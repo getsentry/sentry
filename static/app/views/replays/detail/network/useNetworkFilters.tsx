@@ -9,6 +9,8 @@ export type FilterFields = {
   f_n_search: string;
   f_n_status: string[];
   f_n_type: string[];
+  n_detail_row?: string;
+  n_detail_tab?: string;
 };
 
 type Options = {
@@ -36,7 +38,7 @@ const FILTERS = {
     (status.includes(UNKNOWN_STATUS) && item.data.statusCode === undefined),
 
   type: (item: NetworkSpan, types: string[]) =>
-    types.length === 0 || types.includes(item.op.replace('resource.', '')),
+    types.length === 0 || types.includes(item.op),
 
   searchTerm: (item: NetworkSpan, searchTerm: string) =>
     JSON.stringify(item.description).toLowerCase().includes(searchTerm),
@@ -48,6 +50,20 @@ function useNetworkFilters({networkSpans}: Options): Return {
   const status = decodeList(query.f_n_status);
   const type = decodeList(query.f_n_type);
   const searchTerm = decodeScalar(query.f_n_search, '').toLowerCase();
+
+  // Need to clear Network Details URL params when we filter, otherwise you can
+  // get into a state where it is trying to load details for a non fetch/xhr
+  // request.
+  const setFilterAndClearDetails = useCallback(
+    arg => {
+      setFilter({
+        ...arg,
+        n_detail_row: undefined,
+        n_detail_tab: undefined,
+      });
+    },
+    [setFilter]
+  );
 
   const items = useMemo(
     () =>
@@ -61,17 +77,11 @@ function useNetworkFilters({networkSpans}: Options): Return {
 
   const getResourceTypes = useCallback(
     () =>
-      Array.from(
-        new Set(
-          networkSpans
-            .map(networkSpan => networkSpan.op.replace('resource.', ''))
-            .concat(type)
-        )
-      )
-        .sort()
+      Array.from(new Set(networkSpans.map(networkSpan => networkSpan.op).concat(type)))
+        .sort((a, b) => ((a.split('.')?.[1] ?? a) < (b.split('.')?.[1] ?? b) ? -1 : 1))
         .map(value => ({
           value,
-          label: value,
+          label: value.split('.')?.[1] ?? value,
         })),
     [networkSpans, type]
   );
@@ -95,15 +105,19 @@ function useNetworkFilters({networkSpans}: Options): Return {
   );
 
   const setStatus = useCallback(
-    (f_n_status: string[]) => setFilter({f_n_status}),
-    [setFilter]
+    (f_n_status: string[]) => setFilterAndClearDetails({f_n_status}),
+    [setFilterAndClearDetails]
   );
 
-  const setType = useCallback((f_n_type: string[]) => setFilter({f_n_type}), [setFilter]);
+  const setType = useCallback(
+    (f_n_type: string[]) => setFilterAndClearDetails({f_n_type}),
+    [setFilterAndClearDetails]
+  );
 
   const setSearchTerm = useCallback(
-    (f_n_search: string) => setFilter({f_n_search: f_n_search || undefined}),
-    [setFilter]
+    (f_n_search: string) =>
+      setFilterAndClearDetails({f_n_search: f_n_search || undefined}),
+    [setFilterAndClearDetails]
   );
 
   return {

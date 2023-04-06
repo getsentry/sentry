@@ -44,7 +44,7 @@ const SamplingModal = (props: Props) => {
             {
               projectSettings: (
                 <Link
-                  to={`/settings/${organization.slug}/projects/${project?.slug}/dynamic-sampling/`}
+                  to={`/settings/${organization.slug}/projects/${project?.slug}/performance/`}
                 />
               ),
             }

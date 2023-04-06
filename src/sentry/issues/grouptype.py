@@ -315,7 +315,7 @@ def reduce_noise(
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
-    grouptype: GroupType,
+    grouptype: Type[GroupType],
     client: Any,
     grouphash: str,
     project: Project,

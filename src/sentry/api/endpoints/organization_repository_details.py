@@ -11,6 +11,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, Repository, ScheduledDeletion
+from sentry.services.hybrid_cloud import coerce_id_from
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -57,7 +58,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         if result.get("integrationId"):
             try:
                 integration = Integration.objects.get(
-                    id=result["integrationId"], organizations=organization
+                    id=result["integrationId"],
+                    organizationintegration__organization_id=coerce_id_from(organization),
                 )
             except Integration.DoesNotExist:
                 return Response({"detail": "Invalid integration id"}, status=400)

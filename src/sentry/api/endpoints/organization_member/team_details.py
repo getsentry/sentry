@@ -108,9 +108,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not created:
             return
 
-        requester = request.user if request.user != member.user else None
+        requester = request.user.id if request.user.id != member.user_id else None
         if requester:
-            omt.update(requester=requester)
+            omt.update(requester_id=requester)
 
         omt.send_request_email()
 
