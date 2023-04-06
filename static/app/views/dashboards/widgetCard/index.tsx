@@ -28,6 +28,7 @@ import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -280,47 +281,38 @@ class WidgetCard extends Component<Props, State> {
             )
         )
     );
+    const WidgetWrapper =
+      Number(this.props.index) === 0 ? VisuallyCompleteWithData : Fragment;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         {conditionalWrapWithDashboardsMEPProvider(
           <React.Fragment>
-            <WidgetCardPanel isDragging={false}>
-              <WidgetHeader>
-                <Tooltip
-                  title={widget.title}
-                  containerDisplayMode="grid"
-                  showOnlyOnOverflow
-                >
-                  <WidgetTitle>{widget.title}</WidgetTitle>
-                </Tooltip>
-                {this.renderContextMenu()}
-              </WidgetHeader>
-              {hasSessionDuration && SESSION_DURATION_ALERT}
-              {isWidgetInvalid ? (
-                <Fragment>
-                  {renderErrorMessage?.('Widget query condition is invalid.')}
-                  <StyledErrorPanel>
-                    <IconWarning color="gray500" size="lg" />
-                  </StyledErrorPanel>
-                </Fragment>
-              ) : noLazyLoad ? (
-                <WidgetCardChartContainer
-                  location={location}
-                  api={api}
-                  organization={organization}
-                  selection={selection}
-                  widget={widget}
-                  isMobile={isMobile}
-                  renderErrorMessage={renderErrorMessage}
-                  tableItemLimit={tableItemLimit}
-                  windowWidth={windowWidth}
-                  onDataFetched={this.setData}
-                  dashboardFilters={dashboardFilters}
-                />
-              ) : (
-                <LazyLoad once resize height={200}>
+            <WidgetWrapper
+              id="DashboardList-FirstWidgetCard"
+              hasData={(this.state.tableData?.length ?? 0) > 0}
+            >
+              <WidgetCardPanel isDragging={false}>
+                <WidgetHeader>
+                  <Tooltip
+                    title={widget.title}
+                    containerDisplayMode="grid"
+                    showOnlyOnOverflow
+                  >
+                    <WidgetTitle>{widget.title}</WidgetTitle>
+                  </Tooltip>
+                  {this.renderContextMenu()}
+                </WidgetHeader>
+                {hasSessionDuration && SESSION_DURATION_ALERT}
+                {isWidgetInvalid ? (
+                  <Fragment>
+                    {renderErrorMessage?.('Widget query condition is invalid.')}
+                    <StyledErrorPanel>
+                      <IconWarning color="gray500" size="lg" />
+                    </StyledErrorPanel>
+                  </Fragment>
+                ) : noLazyLoad ? (
                   <WidgetCardChartContainer
                     location={location}
                     api={api}
@@ -334,10 +326,26 @@ class WidgetCard extends Component<Props, State> {
                     onDataFetched={this.setData}
                     dashboardFilters={dashboardFilters}
                   />
-                </LazyLoad>
-              )}
-              {this.renderToolbar()}
-            </WidgetCardPanel>
+                ) : (
+                  <LazyLoad once resize height={200}>
+                    <WidgetCardChartContainer
+                      location={location}
+                      api={api}
+                      organization={organization}
+                      selection={selection}
+                      widget={widget}
+                      isMobile={isMobile}
+                      renderErrorMessage={renderErrorMessage}
+                      tableItemLimit={tableItemLimit}
+                      windowWidth={windowWidth}
+                      onDataFetched={this.setData}
+                      dashboardFilters={dashboardFilters}
+                    />
+                  </LazyLoad>
+                )}
+                {this.renderToolbar()}
+              </WidgetCardPanel>
+            </WidgetWrapper>
             {!organization.features.includes('performance-mep-bannerless-ui') &&
               (organization.features.includes('dashboards-mep') ||
                 organization.features.includes('mep-rollout-flag')) && (
