@@ -118,7 +118,11 @@ def process_event_and_issue_occurrence(
         )
 
     event = save_event_from_occurrence(event_data)
-    return save_issue_occurrence(occurrence_data, event)
+    with metrics.timer(
+        "occurrence_consumer._process_message.save_issue_occurrence",
+        tags={"method": "process_event_and_issue_occurrence"},
+    ):
+        return save_issue_occurrence(occurrence_data, event)
 
 
 def lookup_event_and_process_issue_occurrence(
@@ -131,7 +135,11 @@ def lookup_event_and_process_issue_occurrence(
     except Exception:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
 
-    return save_issue_occurrence(occurrence_data, event)
+    with metrics.timer(
+        "occurrence_consumer._process_message.save_issue_occurrence",
+        tags={"method": "lookup_event_and_process_issue_occurrence"},
+    ):
+        return save_issue_occurrence(occurrence_data, event)
 
 
 def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
