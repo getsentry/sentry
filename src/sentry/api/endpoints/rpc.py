@@ -2,7 +2,7 @@ from rest_framework.exceptions import NotFound, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.services.hybrid_cloud.rpc import (
     RpcArgumentException,
     RpcResolutionException,
@@ -11,6 +11,7 @@ from sentry.services.hybrid_cloud.rpc import (
 )
 
 
+@all_silo_endpoint
 class RpcServiceEndpoint(Endpoint):  # type: ignore
     permission_classes = ()
 
