@@ -13,7 +13,7 @@ const SortStrategies: Record<string, (row) => any> = {
   status: row => row.data.statusCode,
   description: row => row.description,
   op: row => row.op,
-  size: row => row.data.size,
+  size: row => row.data.size ?? row.data.response?.size ?? row.data.responseBodySize,
   duration: row => row.endTimestamp - row.startTimestamp,
   startTimestamp: row => row.startTimestamp,
 };
