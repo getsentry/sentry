@@ -31,7 +31,7 @@ class RedisRuleStore:
     Then, why project options?
     Redis is not a persistent store, and rules should be persistent. As a
     result, at some point the up-to-date lifetimes of rules in Redis must be
-    updated and merged back to prjoect options. This operation can't happen too
+    updated and merged back to project options. This operation can't happen too
     frequently, and the task to generate rules meets the criteria and thus is
     responsible for that.
     """
