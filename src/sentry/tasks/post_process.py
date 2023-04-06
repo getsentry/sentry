@@ -967,6 +967,7 @@ def sdk_crash_monitoring(job: PostProcessJob):
         return
 
     event = job["event"]
+    # TODO: ensure event is the proper event as expected by the sdk_crash_detection
     sdk_crash_detection.detect_sdk_crash(event=event)
 
 
