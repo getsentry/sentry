@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path, set_path
+from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
 from sentry.utils.sdk_crashes.event_stripper import EventStripper
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
@@ -47,3 +48,10 @@ class SDKCrashDetection:
 
             set_path(sdk_crash_event, "contexts", "sdk_crash_detection", value={"detected": True})
             self.sdk_crash_reporter.report(sdk_crash_event)
+
+
+_crash_reporter = SDKCrashReporter()
+_cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
+_event_stripper = EventStripper(sdk_crash_detector=_cocoa_sdk_crash_detector)
+
+sdk_crash_detection = SDKCrashDetection(_crash_reporter, _cocoa_sdk_crash_detector, _event_stripper)

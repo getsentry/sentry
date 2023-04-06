@@ -961,23 +961,13 @@ def fire_error_processed(job: PostProcessJob):
 
 
 def sdk_crash_monitoring(job: PostProcessJob):
-    # Importing this at the top of the file doesn't work.
-    from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
-    from sentry.utils.sdk_crashes.event_stripper import EventStripper
-    from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetection, SDKCrashReporter
+    from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
 
     if job["is_reprocessed"]:
         return
 
     event = job["event"]
-
-    crash_reporter = SDKCrashReporter()
-    cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
-    event_stripper = EventStripper(sdk_crash_detector=cocoa_sdk_crash_detector)
-
-    crash_detection = SDKCrashDetection(crash_reporter, cocoa_sdk_crash_detector, event_stripper)
-
-    crash_detection.detect_sdk_crash(event=event)
+    sdk_crash_detection.detect_sdk_crash(event=event)
 
 
 def plugin_post_process_group(plugin_slug, event, **kwargs):
