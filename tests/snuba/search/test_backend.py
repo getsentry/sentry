@@ -1974,7 +1974,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == list(results2)
 
     def test_error_main_thread_true(self):
-        self.store_event(
+        event = self.store_event(
             data={
                 "event_id": "2" * 32,
                 "message": "something",
@@ -2006,7 +2006,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             sort_by="date",
         )
 
-        assert len(results) == 1
+        # assert list(event) == list(results)
+        assert set(results) == {event.group}
 
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
