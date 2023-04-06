@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.exceptions import ConflictError
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleSnooze
@@ -43,7 +44,12 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
                 except AlertRule.DoesNotExist:
                     raise serializers.ValidationError("Rule does not exist")
 
-            # should we error if it's already been created? we're not allowing editing, right? just unmuting?
+            # don't allow editing of a rulesnooze object for a given rule and user (or no user)
+            if RuleSnooze.objects.filter(
+                user_id=data.get("userId"), rule=issue_alert_rule, alert_rule=metric_alert_rule
+            ).exists():
+                raise ConflictError("RuleSnooze already exists for this rule and scope.")
+
             RuleSnooze.objects.create(
                 user_id=data.get("userId"),
                 owner_id=request.user.id,

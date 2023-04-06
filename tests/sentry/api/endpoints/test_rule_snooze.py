@@ -137,6 +137,23 @@ class RuleSnoozeTest(APITestCase):
         ).exists()
         assert response.status_code == 200
 
+    def test_edit_issue_alert_mute(self):
+        """Test that we throw an error if a rule has already been muted by a user"""
+        data = {"userId": self.user.id, "rule": True}
+        response = self.get_response(
+            self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+        )
+        assert RuleSnooze.objects.filter(rule=self.issue_alert_rule.id).exists()
+        assert response.status_code == 200
+
+        data = {"userId": self.user.id, "rule": True, "until": self.until}
+        response = self.get_response(
+            self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+        )
+        assert len(RuleSnooze.objects.all()) == 1
+        assert response.status_code == 409
+        assert "RuleSnooze already exists for this rule and scope." in response.data["detail"]
+
     def test_mute_metric_alert_user_forever(self):
         """Test that a user can mute a metric alert rule for themselves forever"""
         data = {"userId": self.user.id, "alertRule": True}
@@ -250,6 +267,23 @@ class RuleSnoozeTest(APITestCase):
             alert_rule=self.metric_alert_rule.id, user_id=self.user.id, until=self.until
         ).exists()
         assert response.status_code == 200
+
+    def test_edit_metric_alert_mute(self):
+        """Test that we throw an error if a metric alert rule has already been muted by a user"""
+        data = {"userId": self.user.id, "alertRule": True}
+        response = self.get_response(
+            self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+        )
+        assert RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
+        assert response.status_code == 200
+
+        data = {"userId": self.user.id, "alertRule": True, "until": self.until}
+        response = self.get_response(
+            self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+        )
+        assert len(RuleSnooze.objects.all()) == 1
+        assert response.status_code == 409
+        assert "RuleSnooze already exists for this rule and scope." in response.data["detail"]
 
     def test_no_issue_alert(self):
         """Test that we throw an error when an issue alert rule doesn't exist"""
