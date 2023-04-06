@@ -163,6 +163,8 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
     # Run the updates even if there aren't any new rules, to get all the stores
     # up-to-date.
+    # NOTE: keep in mind this function writes to Postgres, so it shouldn't be
+    # called often.
 
     last_seen = _now()
     new_rule_set = {rule: last_seen for rule in new_rules}
