@@ -534,9 +534,16 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 
 @run.command("occurrences-ingest-consumer")
-@kafka_options("occurrence-consumer", allow_force_cluster=False)
+@kafka_options("occurrence-consumer", include_batching_options=True, allow_force_cluster=False)
 @strict_offset_reset_option()
 @configuration
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def occurrences_ingest_consumer(**options):
     from django.conf import settings
 

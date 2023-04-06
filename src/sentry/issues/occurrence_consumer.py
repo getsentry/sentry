@@ -14,7 +14,7 @@ from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
     ProcessingStrategyFactory,
-    RunTask,
+    RunTaskWithMultiprocessing,
 )
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
@@ -48,9 +48,22 @@ def get_occurrences_ingest_consumer(
     auto_offset_reset: str,
     group_id: str,
     strict_offset_reset: bool,
+    max_batch_size: int,
+    max_batch_time: int,
+    processes: int,
+    input_block_size: int,
+    output_block_size: int,
 ) -> StreamProcessor[KafkaPayload]:
     return create_ingest_occurences_consumer(
-        consumer_type, auto_offset_reset, group_id, strict_offset_reset
+        consumer_type,
+        auto_offset_reset,
+        group_id,
+        strict_offset_reset,
+        max_batch_size,
+        max_batch_time,
+        processes,
+        input_block_size,
+        output_block_size,
     )
 
 
@@ -59,6 +72,11 @@ def create_ingest_occurences_consumer(
     auto_offset_reset: str,
     group_id: str,
     strict_offset_reset: bool,
+    max_batch_size: int,
+    max_batch_time: int,
+    processes: int,
+    input_block_size: int,
+    output_block_size: int,
 ) -> StreamProcessor[KafkaPayload]:
     kafka_cluster = settings.KAFKA_TOPICS[topic_name]["cluster"]
     create_topics(kafka_cluster, [topic_name])
@@ -72,7 +90,13 @@ def create_ingest_occurences_consumer(
         )
     )
 
-    strategy_factory = OccurrenceStrategyFactory()
+    strategy_factory = OccurrenceStrategyFactory(
+        max_batch_size,
+        max_batch_time,
+        processes,
+        input_block_size,
+        output_block_size,
+    )
 
     return StreamProcessor(
         consumer,
@@ -304,6 +328,21 @@ def _process_message(
 
 
 class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(
+        self,
+        max_batch_size: int,
+        max_batch_time: int,
+        processes: int,
+        input_block_size: int,
+        output_block_size: int,
+    ):
+        super().__init__()
+        self.max_batch_size = max_batch_size
+        self.max_batch_time = max_batch_time
+        self.num_processes = processes
+        self.input_block_size = input_block_size
+        self.output_block_size = output_block_size
+
     def create_with_partitions(
         self,
         commit: Commit,
@@ -322,4 +361,12 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             ):
                 logger.exception("failed to process message payload")
 
-        return RunTask(process_message, CommitOffsets(commit))
+        return RunTaskWithMultiprocessing(
+            process_message,
+            CommitOffsets(commit),
+            self.num_processes,
+            self.max_batch_size,
+            self.max_batch_time,
+            self.input_block_size,
+            self.output_block_size,
+        )
