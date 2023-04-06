@@ -407,7 +407,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     defaults={"provider": provider_name},
                 )[0]
                 provider = auth_provider.get_provider()
-                config = provider.build_config(provider_config)
+                try:
+                    config = provider.build_config(provider_config)
+                except KeyError:
+                    raise KeyError(f"Invalid providerConfig for authprovider {provider_name}")
                 auth_provider.update(config=config)
 
         org_tracked_field = {
@@ -563,6 +566,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 return self.respond(
                     {"slug": ["An organization with this slug already exists."]},
                     status=status.HTTP_409_CONFLICT,
+                )
+            except KeyError as err:
+                return self.respond(
+                    {"providerConfig": [err.args[0]]},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # Send outbox message to clean up mappings after organization

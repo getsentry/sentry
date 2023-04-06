@@ -828,13 +828,16 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             status_code=400,
         )
 
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             method="put",
             providerName="google",
             providerConfig={"invalid_domain": "foo.com"},
-            status_code=500,
+            status_code=400,
         )
+        assert response.data == {
+            "providerConfig": ["Invalid providerConfig for authprovider google"]
+        }
 
 
 @region_silo_test
