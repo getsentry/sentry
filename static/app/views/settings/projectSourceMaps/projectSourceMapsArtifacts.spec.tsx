@@ -94,7 +94,7 @@ describe('ProjectSourceMapsArtifacts', function () {
       );
 
       // Title
-      expect(screen.getByRole('heading')).toHaveTextContent('Artifact Bundle');
+      expect(screen.getByRole('heading')).toHaveTextContent('Release Bundle');
       // Subtitle
       expect(screen.getByText('bea7335dfaebc0ca6e65a057')).toBeInTheDocument();
 
@@ -159,7 +159,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
   });
 
-  describe('Debug ID Bundles', function () {
+  describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
         ...initializeOrg(),
@@ -167,7 +167,7 @@ describe('ProjectSourceMapsArtifacts', function () {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
               initializeOrg().project.slug
-            }/source-maps/debug-id-bundles/7227e105-744e-4066-8c69-3e5e344723fc/`,
+            }/source-maps/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/`,
             query: {},
           },
           params: {},
@@ -242,7 +242,7 @@ describe('ProjectSourceMapsArtifacts', function () {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
               initializeOrg().project.slug
-            }/source-maps/debug-id-bundles/7227e105-744e-4066-8c69-3e5e344723fc/`,
+            }/source-maps/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/`,
             query: {},
           },
           params: {},

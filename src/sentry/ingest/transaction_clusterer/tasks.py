@@ -62,9 +62,16 @@ def cluster_projects(projects: Sequence[Project]) -> None:
         if features.has("organizations:transaction-name-clusterer", project.organization):
             with sentry_sdk.start_span(op="txcluster_project") as span:
                 span.set_data("project_id", project.id)
-                clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
-                clusterer.add_input(redis.get_transaction_names(project))
-                new_rules = clusterer.get_rules()
+                tx_names = list(redis.get_transaction_names(project))
+                new_rules = []
+                if len(tx_names) >= redis.MAX_SET_SIZE:
+                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                    clusterer.add_input(tx_names)
+                    new_rules = clusterer.get_rules()
+
+                # The Redis store may have more up-to-date last_seen values,
+                # so we must update the stores to bring these values to
+                # project options, even if there aren't any new rules.
                 rules.update_rules(project, new_rules)
 
                 # Clear transaction names to prevent the set from picking up

@@ -1,13 +1,15 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import {Location} from 'history';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
@@ -20,11 +22,13 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
+import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 
 import FirstEventFooter from './components/firstEventFooter';
 import ProjectSidebarSection from './components/projectSidebarSection';
@@ -43,6 +47,149 @@ type Props = {
   search: string;
 } & StepProps;
 
+const MissingExampleWarning = ({
+  platformDocs,
+  platform,
+}: {
+  platform: PlatformKey | null;
+  platformDocs: PlatformDoc | null;
+}) => {
+  const missingExample = platformDocs?.html.includes(INCOMPLETE_DOC_FLAG);
+
+  if (!missingExample) {
+    return null;
+  }
+
+  return (
+    <Alert type="warning" showIcon>
+      {tct(
+        `Looks like this getting started example is still undergoing some
+         work and doesn't include an example for triggering an event quite
+         yet. If you have trouble sending your first event be sure to consult
+         the [docsLink:full documentation] for [platform].`,
+        {
+          docsLink: <ExternalLink href={platformDocs?.link} />,
+          platform: platforms.find(p => p.id === platform)?.name,
+        }
+      )}
+    </Alert>
+  );
+};
+
+export function ProjectDocsReact({
+  organization,
+  location,
+  project,
+  newOrg,
+}: {
+  location: Location;
+  organization: Organization;
+  project: Project;
+  newOrg?: boolean;
+}) {
+  const {
+    experimentAssignment: productSelectionAssignment,
+    logExperiment: productSelectionLogExperiment,
+  } = useExperiment('OnboardingProductSelectionExperiment', {
+    logExperimentOnMount: false,
+  });
+
+  // This is an experiment we are doing with react.
+  // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
+  // and the docs will reflect that.
+  const loadPlatform = useMemo(() => {
+    const products = location.query.product ?? [];
+    return newOrg && productSelectionAssignment === 'baseline'
+      ? 'javascript-react'
+      : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
+        products.includes(PRODUCT.SESSION_REPLAY)
+      ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
+      : products.includes(PRODUCT.PERFORMANCE_MONITORING)
+      ? ReactDocVariant.ErrorMonitoringAndPerformance
+      : products.includes(PRODUCT.SESSION_REPLAY)
+      ? ReactDocVariant.ErrorMonitoringAndSessionReplay
+      : ReactDocVariant.ErrorMonitoring;
+  }, [location.query.product, productSelectionAssignment, newOrg]);
+
+  useEffect(() => {
+    if (!newOrg) {
+      return;
+    }
+    productSelectionLogExperiment();
+  }, [productSelectionLogExperiment, newOrg]);
+
+  const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
+    [`/projects/${organization.slug}/${project.slug}/docs/${loadPlatform}/`],
+    {
+      staleTime: Infinity,
+      enabled: !!project.slug && !!organization.slug && !!loadPlatform,
+    }
+  );
+
+  return (
+    <Fragment>
+      {newOrg ? (
+        <Fragment>
+          <SetupIntroduction
+            stepHeaderText={t(
+              'Configure %s SDK',
+              platforms.find(p => p.id === 'javascript-react')?.name ?? ''
+            )}
+            platform="javascript-react"
+          />
+          {productSelectionAssignment === 'variant1' ? (
+            <ProductSelection
+              defaultSelectedProducts={[
+                PRODUCT.PERFORMANCE_MONITORING,
+                PRODUCT.SESSION_REPLAY,
+              ]}
+            />
+          ) : productSelectionAssignment === 'variant2' ? (
+            <ProductSelection />
+          ) : null}
+        </Fragment>
+      ) : (
+        <ProductSelection
+          defaultSelectedProducts={[
+            PRODUCT.PERFORMANCE_MONITORING,
+            PRODUCT.SESSION_REPLAY,
+          ]}
+        />
+      )}
+      {isLoading ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError
+          message={t('Failed to load documentation for the React platform.')}
+          onRetry={refetch}
+        />
+      ) : (
+        getDynamicText({
+          value: (
+            <DocsWrapper>
+              <DocumentationWrapper
+                dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
+              />
+              <MissingExampleWarning
+                platform="javascript-react"
+                platformDocs={{
+                  html: data?.html ?? '',
+                  link: data?.link ?? '',
+                }}
+              />
+            </DocsWrapper>
+          ),
+          fixed: (
+            <Alert type="warning">
+              Platform documentation is not rendered in for tests in CI
+            </Alert>
+          ),
+        })
+      )}
+    </Fragment>
+  );
+}
+
 function ProjectDocs(props: {
   hasError: boolean;
   onRetry: () => void;
@@ -51,52 +198,6 @@ function ProjectDocs(props: {
   platformDocs: PlatformDoc | null;
   project: Project;
 }) {
-  const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
-  );
-  const missingExampleWarning = () => {
-    const missingExample =
-      props.platformDocs && props.platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
-
-    if (!missingExample) {
-      return null;
-    }
-
-    return (
-      <Alert type="warning" showIcon>
-        {tct(
-          `Looks like this getting started example is still undergoing some
-           work and doesn't include an example for triggering an event quite
-           yet. If you have trouble sending your first event be sure to consult
-           the [docsLink:full documentation] for [platform].`,
-          {
-            docsLink: <ExternalLink href={props.platformDocs?.link} />,
-            platform: platforms.find(p => p.id === props.platform)?.name,
-          }
-        )}
-      </Alert>
-    );
-  };
-
-  const docs = props.platformDocs !== null && (
-    <DocsWrapper key={props.platformDocs.html}>
-      <DocumentationWrapper dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
-      {missingExampleWarning()}
-    </DocsWrapper>
-  );
-
-  const loadingError = (
-    <LoadingError
-      message={t(
-        'Failed to load documentation for the %s platform.',
-        props.project?.platform
-      )}
-      onRetry={props.onRetry}
-    />
-  );
-
   const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
 
   return (
@@ -108,13 +209,33 @@ function ProjectDocs(props: {
         )}
         platform={currentPlatform}
       />
-      {currentPlatform === 'javascript-react' &&
-        props.organization.features?.includes(
-          'onboarding-docs-with-product-selection'
-        ) && <ProductSelection />}
       {getDynamicText({
-        value: !props.hasError ? docs : loadingError,
-        fixed: testOnlyAlert,
+        value: !props.hasError ? (
+          props.platformDocs !== null && (
+            <DocsWrapper key={props.platformDocs.html}>
+              <DocumentationWrapper
+                dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
+              />
+              <MissingExampleWarning
+                platform={props.platform}
+                platformDocs={props.platformDocs}
+              />
+            </DocsWrapper>
+          )
+        ) : (
+          <LoadingError
+            message={t(
+              'Failed to load documentation for the %s platform.',
+              props.project?.platform
+            )}
+            onRetry={props.onRetry}
+          />
+        ),
+        fixed: (
+          <Alert type="warning">
+            Platform documentation is not rendered in for tests in CI
+          </Alert>
+        ),
       })}
     </Fragment>
   );
@@ -129,12 +250,12 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     props.selectedProjectSlug
   );
 
-  const {logExperiment, experimentAssignment} = useExperiment(
-    'OnboardingNewFooterExperiment',
-    {
-      logExperimentOnMount: false,
-    }
-  );
+  const {
+    logExperiment: newFooterLogExperiment,
+    experimentAssignment: newFooterAssignment,
+  } = useExperiment('OnboardingNewFooterExperiment', {
+    logExperimentOnMount: false,
+  });
 
   const singleSelectPlatform = !!organization?.features.includes(
     'onboarding-remove-multiselect-platform'
@@ -143,6 +264,14 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
   );
+
+  const docsWithProductSelection = !!organization.features?.includes(
+    'onboarding-docs-with-product-selection'
+  );
+
+  const loaderOnboarding = !!organization.features?.includes('onboarding-project-loader');
+
+  const jsDynamicLoader = !!organization.features?.includes('js-sdk-dynamic-loader');
 
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
@@ -192,40 +321,49 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
+  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
+    loaderOnboarding && jsDynamicLoader && currentPlatform === 'javascript'
+  );
+
+  const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
+  const showReactOnboarding =
+    currentPlatform === 'javascript-react' && docsWithProductSelection;
+
+  const hideLoaderOnboarding = useCallback(() => {
+    setShowLoaderOnboarding(false);
+
+    if (!project?.id) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('onboarding.js_loader_npm_docs_shown', {
+      organization,
+      platform: currentPlatform,
+      project_id: project?.id,
+    });
+  }, [organization, currentPlatform, project?.id]);
+
   const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
       return;
     }
 
-    if (integrationSlug && !integrationUseManualSetup) {
+    // this will be fetched in the SetupDocsReact component
+    if (showReactOnboarding) {
+      return;
+    }
+
+    // Show loader setup for base javascript platform
+    if (showLoaderOnboarding) {
+      return;
+    }
+
+    if (showIntegrationOnboarding) {
       setLoadedPlatform(project.platform);
       setPlatformDocs(null);
       setHasError(false);
       return;
-    }
-
-    let loadPlatform = String(project.platform);
-    if (
-      organization.features?.includes('onboarding-docs-with-product-selection') &&
-      project.platform === 'javascript-react'
-    ) {
-      // This is an experiment we are doing with react.
-      // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
-      // and the docs will reflect that.
-      const products = location.query.product ?? [];
-      if (
-        products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-        products.includes(PRODUCT.SESSION_REPLAY)
-      ) {
-        loadPlatform = ReactDocVariant.ErrorMonitoringPerformanceAndReplay;
-      } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
-        loadPlatform = ReactDocVariant.ErrorMonitoringAndPerformance;
-      } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
-        loadPlatform = ReactDocVariant.ErrorMonitoringAndSessionReplay;
-      } else {
-        loadPlatform = ReactDocVariant.ErrorMonitoring;
-      }
     }
 
     try {
@@ -233,7 +371,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
         api,
         orgSlug: organization.slug,
         projectSlug: project.slug,
-        platform: loadPlatform as PlatformKey,
+        platform: project.platform as PlatformKey,
       });
       setPlatformDocs(loadedDocs);
       setLoadedPlatform(project.platform);
@@ -247,10 +385,9 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     project?.platform,
     api,
     organization.slug,
-    organization.features,
-    integrationSlug,
-    integrationUseManualSetup,
-    location.query.product,
+    showReactOnboarding,
+    showIntegrationOnboarding,
+    showLoaderOnboarding,
   ]);
 
   useEffect(() => {
@@ -260,9 +397,9 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   // log experiment on mount if feature enabled
   useEffect(() => {
     if (heartbeatFooter) {
-      logExperiment();
+      newFooterLogExperiment();
     }
-  }, [logExperiment, heartbeatFooter]);
+  }, [newFooterLogExperiment, heartbeatFooter]);
 
   if (!project) {
     return null;
@@ -314,13 +451,28 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           </SidebarWrapper>
         )}
         <MainContent>
-          {integrationSlug && !integrationUseManualSetup ? (
+          {showIntegrationOnboarding ? (
             <IntegrationSetup
               integrationSlug={integrationSlug}
               project={project}
               onClickManualSetup={() => {
                 setIntegrationUseManualSetup(true);
               }}
+            />
+          ) : showReactOnboarding ? (
+            <ProjectDocsReact
+              organization={organization}
+              project={project}
+              location={location}
+              newOrg
+            />
+          ) : showLoaderOnboarding ? (
+            <SetupDocsLoader
+              organization={organization}
+              project={project}
+              location={location}
+              platform={loadedPlatform}
+              close={hideLoaderOnboarding}
             />
           ) : (
             <ProjectDocs
@@ -336,7 +488,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       </Wrapper>
 
       {heartbeatFooter ? (
-        experimentAssignment === 'variant2' ? (
+        newFooterAssignment === 'variant2' ? (
           <FooterWithViewSampleErrorButton
             projectSlug={project.slug}
             projectId={project.id}
@@ -345,7 +497,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
             location={location}
             newOrg
           />
-        ) : experimentAssignment === 'variant1' ? (
+        ) : newFooterAssignment === 'variant1' ? (
           <Footer
             projectSlug={project.slug}
             projectId={project.id}
@@ -437,6 +589,7 @@ export default SetupDocs;
 const AnimatedContentWrapper = styled(motion.div)`
   overflow: hidden;
 `;
+
 AnimatedContentWrapper.defaultProps = {
   initial: {
     height: 0,

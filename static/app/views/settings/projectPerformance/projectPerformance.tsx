@@ -186,12 +186,21 @@ class ProjectPerformance extends AsyncView<Props, State> {
         ),
       },
       {
-        name: 'performanceIssueCreationThroughPlatform',
+        name: 'performanceIssueSendToPlatform',
         type: 'boolean',
         label: t('Send Occurrences To Platform'),
         defaultValue: false,
         help: t(
           'This determines whether performance issue occurrences are sent to the issues platform.'
+        ),
+      },
+      {
+        name: 'performanceIssueCreationThroughPlatform',
+        type: 'boolean',
+        label: t('Create Issues Through Issues Platform'),
+        defaultValue: false,
+        help: t(
+          'This determines whether performance issues are created through the issues platform.'
         ),
       },
     ];
@@ -405,6 +414,10 @@ class ProjectPerformance extends AsyncView<Props, State> {
               initialData={{
                 performanceIssueCreationRate:
                   this.state.project.performanceIssueCreationRate,
+                performanceIssueSendToPlatform:
+                  this.state.project.performanceIssueSendToPlatform,
+                performanceIssueCreationThroughPlatform:
+                  this.state.project.performanceIssueCreationThroughPlatform,
               }}
               apiMethod="PUT"
               apiEndpoint={projectEndpoint}

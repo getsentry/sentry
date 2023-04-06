@@ -15,11 +15,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
-import TimeSince from 'sentry/components/timeSince';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -139,6 +139,9 @@ function MonitorForm({
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
 
+  const isSuperuser = isActiveSuperuser();
+  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
+
   const parsedSchedule = crontabAsText(crontabInput);
 
   return (
@@ -194,7 +197,7 @@ function MonitorForm({
           )}
           <StyledSentryProjectSelectorField
             name="project"
-            projects={projects.filter(project => project.isMember)}
+            projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
             disabledReason={t('Existing monitors cannot be moved between projects')}
@@ -227,17 +230,10 @@ function MonitorForm({
           {t('How often you expect your recurring jobs to run.')}
         </ListItemSubText>
         <InputGroup>
-          {monitor !== undefined && monitor.nextCheckIn && (
+          {monitor !== undefined && (
             <Alert type="info">
-              {tct(
-                'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
-                {
-                  nextCheckin: (
-                    <strong>
-                      <TimeSince date={monitor.nextCheckIn} />
-                    </strong>
-                  ),
-                }
+              {t(
+                'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
               )}
             </Alert>
           )}

@@ -26,8 +26,8 @@ def update_code_owners_schema(organization, integration=None, projects=None, **k
         if integration:
             integration = load_model_from_db(Integration, integration, allow_cache=False)
             code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
-                organization_integration__organization=organization,
-                organization_integration__integration=integration,
+                organization_integration__organization_id=organization.id,
+                organization_integration__integration_id=integration.id,
             ).values_list("id", flat=True)
 
             code_owners = ProjectCodeOwners.objects.filter(
@@ -35,7 +35,7 @@ def update_code_owners_schema(organization, integration=None, projects=None, **k
             )
 
         for code_owner in code_owners:
-            code_owner.update_schema()
+            code_owner.update_schema(organization=organization)
 
     # TODO(nisanthan): May need to add logging  for the cases where we might want to have more information if something fails
     except (RepositoryProjectPathConfig.DoesNotExist, ProjectCodeOwners.DoesNotExist):

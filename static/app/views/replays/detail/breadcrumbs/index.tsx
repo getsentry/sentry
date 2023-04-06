@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef} from 'react';
+import {memo, MouseEvent, useCallback, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -32,6 +32,7 @@ const cellMeasurer = {
 
 function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
+  const expandPaths = useRef(new Map<number, Set<string>>());
   const items = useMemo(
     () =>
       (breadcrumbs || []).filter(crumb => !['console'].includes(crumb.category || '')),
@@ -73,11 +74,35 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
     [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
   );
 
+  const deps = useMemo(() => [items], [items]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
   });
+
+  const handleDimensionChange = useCallback(
+    (
+      index: number,
+      path: string,
+      expandedState: Record<string, boolean>,
+      event: MouseEvent<HTMLDivElement>
+    ) => {
+      const rowState = expandPaths.current.get(index) || new Set();
+      if (expandedState[path]) {
+        rowState.add(path);
+      } else {
+        // Collapsed, i.e. its default state, so no need to store state
+        rowState.delete(path);
+      }
+      expandPaths.current.set(index, rowState);
+      cache.clear(index, 0);
+      listRef.current?.recomputeGridSize({rowIndex: index});
+      listRef.current?.forceUpdateGrid();
+      event.stopPropagation();
+    },
+    [cache, expandPaths, listRef]
+  );
 
   useScrollToCurrentItem({
     breadcrumbs,
@@ -97,11 +122,14 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <BreadcrumbRow
+          index={index}
           isCurrent={current?.id === item.id}
           isHovered={hovered?.id === item.id}
           breadcrumb={item}
           startTimestampMs={startTimestampMs}
           style={style}
+          expandPaths={Array.from(expandPaths.current.get(index) || [])}
+          onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
     );

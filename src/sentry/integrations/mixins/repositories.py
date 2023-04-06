@@ -7,6 +7,7 @@ from sentry_sdk import configure_scope
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models import Identity, Repository
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -99,9 +100,9 @@ class RepositoryMixin:
 
     def reinstall_repositories(self) -> None:
         """Reinstalls repositories associated with the integration."""
-        organizations = self.model.organizations.all()
+        _, installs = integration_service.get_organization_contexts(integration_id=self.model.id)
         Repository.objects.filter(
-            organization_id__in=organizations.values_list("id", flat=True),
+            organization_id__in=[i.organization_id for i in installs],
             provider=f"integrations:{self.model.provider}",
             integration_id=self.model.id,
         ).update(status=ObjectStatus.VISIBLE)

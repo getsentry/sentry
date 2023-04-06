@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -15,9 +18,11 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
 )
+from sentry.incidents.utils.types import SubscriptionUpdate
 from sentry.models import Project
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -31,8 +36,8 @@ INCIDENT_SNAPSHOT_BATCH_SIZE = 50
 SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
-@instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
-def send_subscriber_notifications(activity_id):
+@instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")  # type: ignore
+def send_subscriber_notifications(activity_id: int) -> None:
     from sentry.incidents.logic import get_incident_subscribers, unsubscribe_from_incident
 
     try:
@@ -67,7 +72,9 @@ def send_subscriber_notifications(activity_id):
             msg.send_async([subscriber_user.email])
 
 
-def generate_incident_activity_email(activity, user, activity_user=None):
+def generate_incident_activity_email(
+    activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
+) -> MessageBuilder:
     incident = activity.incident
     return MessageBuilder(
         subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
@@ -78,7 +85,9 @@ def generate_incident_activity_email(activity, user, activity_user=None):
     )
 
 
-def build_activity_context(activity, user, activity_user=None):
+def build_activity_context(
+    activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
+) -> Dict[str, Any]:
     if activity_user is None:
         activity_user = user_service.get_user(user_id=activity.user_id)
 
@@ -112,12 +121,11 @@ def build_activity_context(activity, user, activity_user=None):
 
 
 @register_subscriber(SUBSCRIPTION_METRICS_LOGGER)
-def handle_subscription_metrics_logger(subscription_update, subscription):
+def handle_subscription_metrics_logger(
+    subscription_update: SubscriptionUpdate, subscription: QuerySubscription
+) -> None:
     """
     Logs results from a `QuerySubscription`.
-    :param subscription_update: dict formatted according to schemas in
-    sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
-    :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
@@ -125,7 +133,7 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
         if subscription.snuba_query.dataset == Dataset.Metrics.value:
             processor = SubscriptionProcessor(subscription)
             # XXX: Temporary hack so that we can extract these values without raising an exception
-            processor.reset_trigger_counts = lambda *arg, **kwargs: None
+            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore
             aggregation_value = processor.get_aggregation_value(subscription_update)
 
             logger.info(
@@ -143,12 +151,11 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
 
 
 @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
-def handle_snuba_query_update(subscription_update, subscription):
+def handle_snuba_query_update(
+    subscription_update: SubscriptionUpdate, subscription: QuerySubscription
+) -> None:
     """
     Handles a subscription update for a `QuerySubscription`.
-    :param subscription_update: dict formatted according to schemas in
-    sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
-    :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
@@ -162,8 +169,15 @@ def handle_snuba_query_update(subscription_update, subscription):
     queue="incidents",
     default_retry_delay=60,
     max_retries=5,
-)
-def handle_trigger_action(action_id, incident_id, project_id, method, metric_value=None, **kwargs):
+)  # type: ignore
+def handle_trigger_action(
+    action_id: int,
+    incident_id: int,
+    project_id: int,
+    method: str,
+    metric_value: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
     from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
 
     try:
@@ -220,8 +234,8 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
     queue="incidents",
     default_retry_delay=60,
     max_retries=2,
-)
-def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
+)  # type: ignore
+def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
     from sentry.incidents.models import AlertRule
 

@@ -26,6 +26,7 @@ from sentry.replays.lib.query import (
     ListField,
     Number,
     QueryConfig,
+    Selector,
     String,
     Tag,
     UUIDField,
@@ -184,8 +185,14 @@ def query_replays_count(
             select=[
                 _strip_uuid_dashes("replay_id", Column("replay_id")),
                 Function(
-                    "any",
-                    parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
+                    "ifNull",
+                    parameters=[
+                        Function(
+                            "max",
+                            parameters=[Column("is_archived")],
+                        ),
+                        0,
+                    ],
                     alias="is_archived",
                 ),
             ],
@@ -405,7 +412,7 @@ class ReplayQueryConfig(QueryConfig):
     url = ListField(query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
-    user_name = String(field_alias="user.name", query_alias="user_name")
+    user_username = String(field_alias="user.username")
     user_ip_address = String(field_alias="user.ip", query_alias="user_ip")
     os_name = String(field_alias="os.name", query_alias="os_name")
     os_version = String(field_alias="os.version", query_alias="os_version")
@@ -420,11 +427,25 @@ class ReplayQueryConfig(QueryConfig):
 
     # These are object-type fields.  User's who query by these fields are likely querying by
     # the "name" value.
-    user = String(field_alias="user", query_alias="user_name")
+    user = String(field_alias="user", query_alias="user_username")
     os = String(field_alias="os", query_alias="os_name")
     browser = String(field_alias="browser", query_alias="browser_name")
     device = String(field_alias="device", query_alias="device_name")
     sdk = String(field_alias="sdk", query_alias="sdk_name")
+
+    # Click
+    click_alt = ListField(field_alias="replay_click.alt", is_sortable=False)
+    click_class = ListField(
+        field_alias="replay_click.class", query_alias="clickClass", is_sortable=False
+    )
+    click_id = ListField(field_alias="replay_click.id", is_sortable=False)
+    click_aria_label = ListField(field_alias="replay_click.label", is_sortable=False)
+    click_role = ListField(field_alias="replay_click.role", is_sortable=False)
+    click_tag = ListField(field_alias="replay_click.tag", is_sortable=False)
+    click_testid = ListField(field_alias="replay_click.testid", is_sortable=False)
+    click_text = ListField(field_alias="replay_click.textContent", is_sortable=False)
+    click_title = ListField(field_alias="replay_click.title", is_sortable=False)
+    click_selector = Selector(field_alias="replay_click.selector", is_sortable=False)
 
     # Tag
     tags = Tag(field_alias="*")
@@ -554,7 +575,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "count_segments": ["count_segments"],
     "is_archived": ["is_archived"],
     "activity": ["activity", "count_errors", "count_urls"],
-    "user": ["user_id", "user_email", "user_name", "user_ip"],
+    "user": ["user_id", "user_email", "user_username", "user_ip"],
     "os": ["os_name", "os_version"],
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
@@ -563,7 +584,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
     "user.email": ["user_email"],
-    "user.name": ["user_name"],
+    "user.username": ["user_username"],
     "user.ip": ["user_ip"],
     "os.name": ["os_name"],
     "os.version": ["os_version"],
@@ -575,6 +596,27 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "device.model": ["device_model"],
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
+    # Click actions
+    "replay_click.alt": ["click.alt"],
+    "replay_click.label": ["click.aria_label"],
+    "replay_click.class": ["click.class"],
+    "replay_click.id": ["click.id"],
+    "replay_click.role": ["click.role"],
+    "replay_click.tag": ["click.tag"],
+    "replay_click.testid": ["click.testid"],
+    "replay_click.textContent": ["click.text"],
+    "replay_click.title": ["click.title"],
+    "replay_click.selector": [
+        "click.alt",
+        "click.aria_label",
+        "click.classes",
+        "click.id",
+        "click.role",
+        "click.tag",
+        "click.testid",
+        "click.text",
+        "click.title",
+    ],
 }
 
 
@@ -637,8 +679,14 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="count_urls",
     ),
     "is_archived": Function(
-        "any",
-        parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
+        "ifNull",
+        parameters=[
+            Function(
+                "max",
+                parameters=[Column("is_archived")],
+            ),
+            0,
+        ],
         alias="isArchived",
     ),
     "activity": _activity_score(),
@@ -651,7 +699,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     "dist": take_any_from_aggregation(column_name="dist"),
     "user_id": take_any_from_aggregation(column_name="user_id"),
     "user_email": take_any_from_aggregation(column_name="user_email"),
-    "user_name": take_any_from_aggregation(column_name="user_name"),
+    "user_username": take_any_from_aggregation(column_name="user_name", alias="user_username"),
     "user_ip": Function(
         "IPv4NumToString",
         parameters=[take_any_from_aggregation(column_name="ip_address_v4", aliased=False)],
@@ -669,6 +717,24 @@ QUERY_ALIAS_COLUMN_MAP = {
     "sdk_version": take_any_from_aggregation(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
+    "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),
+    "click.aria_label": Function(
+        "groupArray", parameters=[Column("click_aria_label")], alias="click_aria_label"
+    ),
+    "click.class": Function(
+        "groupArrayArray", parameters=[Column("click_class")], alias="clickClass"
+    ),
+    "click.classes": Function(
+        "groupArray", parameters=[Column("click_class")], alias="click_classes"
+    ),
+    "click.id": Function("groupArray", parameters=[Column("click_id")], alias="click_id"),
+    "click.role": Function("groupArray", parameters=[Column("click_role")], alias="click_role"),
+    "click.tag": Function("groupArray", parameters=[Column("click_tag")], alias="click_tag"),
+    "click.testid": Function(
+        "groupArray", parameters=[Column("click_testid")], alias="click_testid"
+    ),
+    "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
+    "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
 }
 
 
