@@ -16,6 +16,7 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleFireHistory,
+    RuleSnooze,
     RuleStatus,
     User,
 )
@@ -144,6 +145,37 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["id"] == conditions[0]["id"]
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
+
+    def test_with_snooze_rule(self):
+        RuleSnooze.objects.create(
+            user_id=self.user.id,
+            owner_id=self.user.id,
+            rule=self.rule,
+            until=None,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == "You"
+
+    def test_with_snooze_rule_everyone(self):
+        user2 = self.create_user("user2@example.com")
+
+        RuleSnooze.objects.create(
+            owner_id=user2.id,
+            rule=self.rule,
+            until=None,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
