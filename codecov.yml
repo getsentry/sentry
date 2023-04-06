@@ -8,16 +8,14 @@ coverage:
       frontend:
         # codecov will not fail status checks for master
         only_pulls: true
-        # This will be needed until codecov supports after_n_builds for flags
-        informational: true # Do not fail the check
+        informational: false # Fail the check
         target: 60%
         flags:
         - frontend
       backend:
         # codecov will not fail status checks for master
         only_pulls: true
-        # This will be needed until codecov supports after_n_builds for flags
-        informational: true # Do not fail the check
+        informational: false # Fail the check
         target: 90%
         flags:
           - backend
@@ -52,20 +50,24 @@ flags:
     paths:
     - "static/app/"
     carryforward: true
-    # Do not send any notifications until N coverage reports are uploaded
+    # Do not send any status checks until N coverage reports are uploaded
     after_n_builds: 5
   backend:
     paths:
     - "src/sentry/**/*.py"
     carryforward: true
-    # Do not send any notifications until N coverage reports are uploaded
+    # Do not send any status checks until N coverage reports are uploaded
     after_n_builds: 11
 
-# This will add a comment to PRs
-# Read more here: https://docs.codecov.com/docs/pull-request-comments#layout
+# after_n_builds declared in flags cannot control when to make comments
+# A value of 11 will mean that only BE PRs will get a comment (only if the score changes)
+# Once comments listen to the value in flags we can add comments to FE PRs
+# Read more here: https://docs.codecov.com/docs/pull-request-comments
 comment:
+  after_n_builds: 11
   layout: "diff, files"
-  behavior: default # Update, if comment exists. Otherwise post new.
+  # Update, if comment exists. Otherwise post new.
+  behavior: default
   # require_changes: true
   # Comments will only post when coverage changes. Furthermore, if a comment
   # already exists, and a newer commit results in no coverage change for the
