@@ -79,7 +79,26 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
             "type": "transaction",
             "condition": {
                 "op": "and",
-                "inner": [],
+                "inner": [
+                    {
+                        "op": "not",
+                        "inner": {
+                            "name": "event.transaction",
+                            "op": "eq",
+                            "options": {"ignoreCase": True},
+                            "value": ["t1"],
+                        },
+                    },
+                    {
+                        "op": "not",
+                        "inner": {
+                            "name": "event.transaction",
+                            "op": "eq",
+                            "options": {"ignoreCase": True},
+                            "value": ["t2"],
+                        },
+                    },
+                ],
             },
             "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + 2,
         },

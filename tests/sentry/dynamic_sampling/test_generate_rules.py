@@ -702,7 +702,20 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "type": "transaction",
         },
         {
-            "condition": {"inner": [], "op": "and"},
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "not",
+                        "inner": {
+                            "name": "event.transaction",
+                            "op": "eq",
+                            "options": {"ignoreCase": True},
+                            "value": ["t1"],
+                        },
+                    }
+                ],
+            },
             "id": 1401,
             "samplingValue": {"type": "factor", "value": implicit_rate / project_sample_rate},
             "type": "transaction",

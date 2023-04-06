@@ -21,10 +21,17 @@ class RareTransactionsRulesBias(Bias):
             return ret_val  # no point returning any rules the project rule should take over
 
         idx = 0
+        implicit_rate_condition = []
         for name, transaction_rate in transaction_map.items():
             if base_sample_rate != 0:
                 transaction_rate /= base_sample_rate
             # add a rule for each rebalanced transaction
+            condition = {
+                "op": "eq",
+                "name": "event.transaction",
+                "value": [name],
+                "options": {"ignoreCase": True},
+            }
             ret_val.append(
                 {
                     "samplingValue": {
@@ -34,18 +41,13 @@ class RareTransactionsRulesBias(Bias):
                     "type": "transaction",
                     "condition": {
                         "op": "or",
-                        "inner": [
-                            {
-                                "op": "eq",
-                                "name": "event.transaction",
-                                "value": [name],
-                                "options": {"ignoreCase": True},
-                            }
-                        ],
+                        "inner": [condition],
                     },
                     "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
                 }
             )
+
+            implicit_rate_condition.append({"op": "not", "inner": condition})
             idx += 1
         if base_sample_rate != 0:
             rate = implicit_rate / base_sample_rate
@@ -58,7 +60,7 @@ class RareTransactionsRulesBias(Bias):
                     "type": "transaction",
                     "condition": {
                         "op": "and",
-                        "inner": [],
+                        "inner": implicit_rate_condition,
                     },
                     "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
                 }
