@@ -533,7 +533,7 @@ class TraceViewHeader extends Component<PropType, State> {
                           renderWindowSelection={() =>
                             this.renderWindowSelection(this.props.dragProps)
                           }
-                          onChartMouseDown={handleStartWindowSelection}
+                          onStartWindowSelection={handleStartWindowSelection}
                         />
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
