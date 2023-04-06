@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0405_rulesnooze_user_null"),
+        ("sentry", "0404_backfill_user_avatars"),
     ]
 
     operations = [

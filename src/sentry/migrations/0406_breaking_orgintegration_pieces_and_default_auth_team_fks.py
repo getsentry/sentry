@@ -117,7 +117,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0403_backfill_actors"),
+        ("sentry", "0405_rulesnooze_user_null"),
     ]
 
     operations = (
