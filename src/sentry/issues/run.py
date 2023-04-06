@@ -124,11 +124,12 @@ def process_message(message: Message[KafkaPayload]) -> None:
         InvalidEventPayloadError,
         _process_message,
     )
-    from sentry.utils import json
+    from sentry.utils import json, metrics
 
     try:
-        payload = json.loads(message.payload.value, use_rapid_json=True)
-        _process_message(payload)
+        with metrics.timer("occurrence_consumer.process_message"):
+            payload = json.loads(message.payload.value, use_rapid_json=True)
+            _process_message(payload)
     except (
         rapidjson.JSONDecodeError,
         InvalidEventPayloadError,
