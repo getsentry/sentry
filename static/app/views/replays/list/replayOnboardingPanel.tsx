@@ -33,6 +33,11 @@ const OnboardingCTAHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
+const OnboardingAlertHook = HookOrDefault({
+  hookName: 'component:replay-onboarding-alert',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
+
 export default function ReplayOnboardingPanel() {
   const preferences = useLegacyStore(PreferencesStore);
   const pageFilters = usePageFilters();
@@ -80,29 +85,31 @@ export default function ReplayOnboardingPanel() {
 
   return (
     <Fragment>
-      {hasSelectedProjects && allSelectedProjectsUnsupported && (
-        <Alert icon={<IconInfo />}>
-          {tct(
-            `[projectMsg] [action] a project using our [link], or equivalent framework SDK.`,
-            {
-              action: primaryAction === 'create' ? t('Create') : t('Select'),
-              projectMsg: (
-                <strong>
-                  {t(
-                    `Session Replay isn't available for project %s.`,
-                    selectedProjects[0].slug
-                  )}
-                </strong>
-              ),
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/">
-                  {t('Sentry browser SDK package')}
-                </ExternalLink>
-              ),
-            }
-          )}
-        </Alert>
-      )}
+      <OnboardingAlertHook>
+        {hasSelectedProjects && allSelectedProjectsUnsupported && (
+          <Alert icon={<IconInfo />}>
+            {tct(
+              `[projectMsg] [action] a project using our [link], or equivalent framework SDK.`,
+              {
+                action: primaryAction === 'create' ? t('Create') : t('Select'),
+                projectMsg: (
+                  <strong>
+                    {t(
+                      `Session Replay isn't available for project %s.`,
+                      selectedProjects[0].slug
+                    )}
+                  </strong>
+                ),
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/">
+                    {t('Sentry browser SDK package')}
+                  </ExternalLink>
+                ),
+              }
+            )}
+          </Alert>
+        )}
+      </OnboardingAlertHook>
       <OnboardingPanel
         image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}
       >

@@ -157,6 +157,7 @@ export function Control({
   triggerProps,
   isOpen,
   onClose,
+  onInteractOutside,
   disabled,
   position = 'bottom-start',
   offset,
@@ -242,6 +243,7 @@ export function Control({
     position,
     offset,
     isOpen,
+    onInteractOutside,
     onOpenChange: async open => {
       // On open
       if (open) {
