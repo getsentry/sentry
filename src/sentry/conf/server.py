@@ -3028,7 +3028,7 @@ INJECTED_SCRIPT_ASSETS = []
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 
-PG_VERSION = os.getenv("PG_VERSION") or "9.6"
+PG_VERSION = os.getenv("PG_VERSION") or "14"
 
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
