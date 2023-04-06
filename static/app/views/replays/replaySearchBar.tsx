@@ -12,6 +12,7 @@ import {
   TagCollection,
   TagValue,
 } from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FieldKind,
@@ -19,6 +20,7 @@ import {
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
 } from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import useTags from 'sentry/utils/useTags';
 
@@ -121,6 +123,20 @@ function ReplaySearchBar(props: Props) {
       maxMenuHeight={500}
       hasRecentSearches
       fieldDefinitionGetter={getReplayFieldDefinition}
+      onSearch={(query: string) => {
+        props?.onSearch?.(query);
+        const conditions = new MutableSearch(query);
+        const searchKeys = conditions.tokens
+          .map(({key}) => key)
+          .filter(v => typeof v === 'string') as string[];
+
+        if (searchKeys.length > 0) {
+          trackAdvancedAnalyticsEvent('replay.search', {
+            search_keys: searchKeys,
+            organization,
+          });
+        }
+      }}
     />
   );
 }
