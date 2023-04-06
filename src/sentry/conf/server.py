@@ -684,6 +684,11 @@ CELERY_QUEUES = [
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
     ),
+    Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
+    Queue(
+        "events.symbolicate_js_event_low_priority",
+        routing_key="events.symbolicate_js_event_low_priority",
+    ),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
@@ -748,7 +753,7 @@ for queue in CELERY_QUEUES:
 
 from celery.schedules import crontab
 
-# XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
+# XXX: Make sure to register the monitor_slug for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
 CELERYBEAT_SCHEDULE = {
     "check-auth": {
@@ -923,6 +928,9 @@ LOGGING = {
     "handlers": {
         "null": {"class": "logging.NullHandler"},
         "console": {"class": "sentry.logging.handlers.StructLogHandler"},
+        # This `internal` logger is separate from the `Logging` integration in the SDK. Since
+        # we have this to record events, in `sdk.py` we set the integration's `event_level` to
+        # None, so that it records breadcrumbs for all log calls but doesn't send any events.
         "internal": {"level": "ERROR", "class": "sentry_sdk.integrations.logging.EventHandler"},
         "metrics": {
             "level": "WARNING",
@@ -1093,6 +1101,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enable the sentry sample format response
     "organizations:profiling-sampled-format": False,
+    # Enabled for those orgs who participated in the profiling Beta program
+    "organizations:profiling-beta-grace": False,
+    # Enable profiling GA messaging (update paths from AM1 to AM2)
+    "organizations:profiling-ga": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1207,6 +1219,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-experiment": False,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
+    # Enable SQL formatting for breadcrumb items
+    "organizations:issue-breadcrumbs-sql-format": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1294,8 +1308,6 @@ SENTRY_FEATURES = {
     "organizations:notification-actions": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
-    # Enable the new native stack trace design
-    "organizations:native-stack-trace-v2": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue

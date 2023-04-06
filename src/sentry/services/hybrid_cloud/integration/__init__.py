@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Un
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud import RpcModel, RpcPaginationArgs, RpcPaginationResult
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -183,6 +184,7 @@ class IntegrationService(RpcService):
         """
         pass
 
+    @rpc_method
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
     ) -> Optional[RpcOrganizationIntegration]:
@@ -294,6 +296,7 @@ class IntegrationService(RpcService):
 
     # The following methods replace instance methods of the ORM objects!
 
+    @rpc_method
     def get_installation(
         self,
         *,
@@ -314,6 +317,7 @@ class IntegrationService(RpcService):
         )
         return installation
 
+    @rpc_method
     def has_feature(self, *, provider: str, feature: "IntegrationFeatures") -> bool:
         """
         Returns True if the IntegrationProvider subclass contains a given feature

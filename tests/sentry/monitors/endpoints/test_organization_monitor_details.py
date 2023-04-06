@@ -82,6 +82,13 @@ class UpdateMonitorTest(MonitorTestCase):
 
         assert resp.data["slug"][0] == 'The slug "my-test-monitor" is already in use.', resp.content
 
+    def test_slug_same(self):
+        monitor = self._create_monitor(slug="my-test-monitor")
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-test-monitor"}
+        )
+
     def test_can_disable(self):
         monitor = self._create_monitor()
         resp = self.get_success_response(
