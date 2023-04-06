@@ -29,7 +29,7 @@ class AuthProviderDefaultTeams(Model):
     # Completely defunct model.
     __include_in_export__ = False
 
-    authprovider = BoundedBigIntegerField()
+    authprovider_id = BoundedBigIntegerField()
     team_id = BoundedBigIntegerField()
 
     class Meta:
