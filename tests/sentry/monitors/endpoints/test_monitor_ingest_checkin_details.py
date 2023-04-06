@@ -31,9 +31,11 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
         # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
         # decision to permanently remove either path schema is a TODO.
         return (
-            lambda monitor_id, checkin_id: reverse(self.endpoint, args=[monitor_id, checkin_id]),
-            lambda monitor_id, checkin_id: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor_id, checkin_id]
+            lambda monitor_slug, checkin_id: reverse(
+                self.endpoint, args=[monitor_slug, checkin_id]
+            ),
+            lambda monitor_slug, checkin_id: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor_slug, checkin_id]
             ),
         )
 

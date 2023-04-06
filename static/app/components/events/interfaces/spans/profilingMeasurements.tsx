@@ -113,11 +113,15 @@ type ProfilingMeasurementsProps = {
     mouseLeft: number | undefined;
     showCursorGuide: boolean;
   }) => void;
+  renderFog?: () => void;
+  renderWindowSelection?: () => void;
 };
 
 function ProfilingMeasurements({
   profileData,
   renderCursorGuide,
+  renderFog,
+  renderWindowSelection,
 }: ProfilingMeasurementsProps) {
   const theme = useTheme();
 
@@ -154,11 +158,15 @@ function ProfilingMeasurements({
                 }}
               >
                 <MemoizedChart data={cpuUsageData} />
-                {renderCursorGuide?.({
-                  showCursorGuide,
-                  mouseLeft,
-                  cursorGuideHeight: PROFILE_MEASUREMENTS_CHART_HEIGHT,
-                })}
+                <Overlays>
+                  {renderFog?.()}
+                  {renderCursorGuide?.({
+                    showCursorGuide,
+                    mouseLeft,
+                    cursorGuideHeight: PROFILE_MEASUREMENTS_CHART_HEIGHT,
+                  })}
+                  {renderWindowSelection?.()}
+                </Overlays>
               </ChartContainer>
             </MeasurementContainer>
           )}
@@ -169,6 +177,14 @@ function ProfilingMeasurements({
 }
 
 export {ProfilingMeasurements};
+
+const Overlays = styled('div')`
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+`;
 
 const ChartContainer = styled('div')`
   position: relative;

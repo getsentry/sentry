@@ -21,4 +21,5 @@ def get_prioritise_by_project_sample_rate(project: "Project", default_sample_rat
         cached_sample_rate = float(redis_client.hget(cache_key, project.id))
     except (TypeError, ValueError):
         cached_sample_rate = None
+
     return cached_sample_rate if cached_sample_rate else default_sample_rate
