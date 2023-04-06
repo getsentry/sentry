@@ -143,8 +143,6 @@ class GroupStatus:
     # be deleted. In this state no new events shall be added to the group.
     REPROCESSING = 6
 
-    ESCALATING = 7
-
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
 
@@ -415,7 +413,6 @@ class Group(Model):
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
-            (GroupStatus.ESCALATING, _("Escalating")),
         ),
         db_index=True,
     )
