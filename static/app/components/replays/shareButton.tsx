@@ -17,12 +17,15 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 function ShareModal({currentTimeSec, Header, Body}) {
   const routes = useRoutes();
   const [isCustom, setIsCustom] = useState(false);
+  const [isShareWithTimestamp, setIsShareWithTimestamp] = useState(true);
   const [customSeconds, setSeconds] = useState(currentTimeSec);
 
   const url = new URL(window.location.href);
   const {searchParams} = url;
   searchParams.set('referrer', getRouteStringFromRoutes(routes));
-  searchParams.set('t', isCustom ? String(customSeconds) : currentTimeSec);
+  if (isShareWithTimestamp) {
+    searchParams.set('t', isCustom ? String(customSeconds) : String(currentTimeSec));
+  }
 
   // Use `value` instead of `defaultValue` so the number resets to
   // `currentTimeSec` if the user toggles isCustom
@@ -44,16 +47,19 @@ function ShareModal({currentTimeSec, Header, Body}) {
           <StyledCheckbox
             id="replay_share_custom_time"
             name="replay_share_custom_time"
-            checked={isCustom}
-            onChange={() => setIsCustom(prev => !prev)}
+            checked={isShareWithTimestamp}
+            onChange={() => setIsShareWithTimestamp(prev => !prev)}
           />
           <StyledLabel htmlFor="replay_share_custom_time">{t('Start at')}</StyledLabel>
           <StyledInput
             name="time"
             placeholder=""
-            disabled={!isCustom}
+            disabled={!isShareWithTimestamp}
             value={value}
-            onChange={e => setSeconds(parseClockToSeconds(e.target.value))}
+            onChange={e => {
+              setIsCustom(true);
+              setSeconds(parseClockToSeconds(e.target.value));
+            }}
           />
         </InputRow>
       </Body>
