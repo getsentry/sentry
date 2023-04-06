@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Iterator
+from typing import Any, Iterator, Mapping, Set
 
-_HARDCODED_USE_CASES = {"PERFORMANCE": "performance"}
+from sentry.sentry_metrics.configuration import UseCaseKey
+
+_HARDCODED_USE_CASES = {"PERFORMANCE": "performance", "RELEASE_HEALTH": "release-health"}
 
 _REGISTERED_USE_CASES: dict[str, str] = {}
 
@@ -49,6 +51,7 @@ def register_use_case(key: str) -> UseCaseID:
     return UseCaseID(key)
 
 
-register_use_case("riya")
-
-r = UseCaseID.RIYA
+METRIC_PATH_MAPPING: Mapping[UseCaseKey, Set[UseCaseID]] = {
+    UseCaseKey.RELEASE_HEALTH: {UseCaseID.RELEASE_HEALTH},
+    UseCaseKey.PERFORMANCE: {UseCaseID.PERFORMANCE},
+}
