@@ -17,7 +17,7 @@ class BackfillPerfSubscriptionsTest(TestMigrations):
     def setUp(self):
         super().setUp()
         self.logging_patch = mock.patch(
-            "sentry.migrations.0406_recreate_perf_alert_subscriptions.logging"
+            "sentry.migrations.0407_recreate_perf_alert_subscriptions.logging"
         )
         self.logging_mock = self.logging_patch.__enter__()
 
