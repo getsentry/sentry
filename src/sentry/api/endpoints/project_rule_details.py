@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,12 +11,21 @@ from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import RuleActivity, RuleActivityType, RuleStatus, SentryAppComponent, Team, User
+from sentry.models import (
+    RuleActivity,
+    RuleActivityType,
+    RuleSnooze,
+    RuleStatus,
+    SentryAppComponent,
+    Team,
+    User,
+)
 from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
 )
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
@@ -78,6 +88,21 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         if len(errors):
             serialized_rule["errors"] = errors
+
+        rule_snooze = RuleSnooze.objects.filter(
+            Q(user_id=request.user.id) | Q(user_id=None), rule=rule
+        )
+        if rule_snooze.exists():
+            serialized_rule["snooze"] = True
+            snooze = rule_snooze[0]
+            if request.user.id == snooze.owner_id:
+                created_by = "You"
+            else:
+                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
+                created_by = creator_name
+            serialized_rule["snoozeCreatedBy"] = created_by
+        else:
+            serialized_rule["snooze"] = False
 
         return Response(serialized_rule)
 
