@@ -351,19 +351,15 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             )
 
         # Manually move over organization id's for Monitors
-        try:
-            Monitor.objects.filter(organization_id=old_org_id).update(
-                organization_id=organization.id
-            )
-        except IntegrityError as e:
-            logging.exception(
-                "Failed to transfer monitors to new organization.",
-                extra={
-                    "error": str(e),
-                    "organization_to": organization.id,
-                    "organization_from": old_org_id,
-                },
-            )
+        monitors = Monitor.objects.filter(organization_id=old_org_id)
+        new_monitors = set(
+            Monitor.objects.filter(organization_id=organization.id).values_list("slug", flat=True)
+        )
+        for monitor in monitors:
+            if monitor.slug in new_monitors:
+                monitor.delete()
+            else:
+                monitor.update(organization_id=organization.id)
 
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
