@@ -23,7 +23,6 @@ import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
@@ -301,12 +300,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   handleCreateAlertSuccess = () => {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert_clicked',
-      eventName: 'Discoverv2: Create alert clicked',
+    trackAdvancedAnalyticsEvent('discover_v2.create_alert_clicked', {
+      organization,
       status: 'success',
-      organization_id: organization.id,
-      url: window.location.href,
     });
   };
 
