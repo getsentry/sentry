@@ -360,7 +360,7 @@ export function makeSpansColorMapByOpAndDescription(
 
   for (let i = 0; i < uniqueSpans.length; i++) {
     const key = uniqueSpans[i].node.span.op ?? '';
-    if (key === 'missing instrumentation') {
+    if (key === 'missing span instrumentation') {
       continue;
     }
     colors.set(key, colorBucket(i / uniqueSpans.length));
@@ -371,4 +371,11 @@ export function makeSpansColorMapByOpAndDescription(
   }
 
   return colors;
+}
+
+// Convert color component from 0-1 to 0-255 range
+export function colorComponentsToRGBA(color: number[]): string {
+  return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
+    color[2] * 255
+  )}, ${color[3] ?? 1})`;
 }

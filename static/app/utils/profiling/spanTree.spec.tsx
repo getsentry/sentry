@@ -150,7 +150,7 @@ describe('SpanTree', () => {
     );
     expect(tree.orphanedSpans.length).toBe(0);
     expect(tree.root.children[0].span.span_id).toBe('1');
-    expect(tree.root.children[1].span.op).toBe('missing instrumentation');
+    expect(tree.root.children[1].span.op).toBe('missing span instrumentation');
     expect(tree.root.children[2].span.span_id).toBe('2');
   });
 

@@ -61,7 +61,7 @@ export function FlamegraphSpanTooltip({
       <FlamegraphTooltipFrameMainInfo>
         <FlamegraphTooltipColorIndicator
           backgroundImage={
-            hoveredNode.node.span.op === 'missing instrumentation'
+            hoveredNode.node.span.op === 'missing span instrumentation'
               ? `url(${spansRenderer.patternDataUrl})`
               : 'none'
           }
