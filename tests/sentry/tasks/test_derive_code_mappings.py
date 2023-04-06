@@ -446,7 +446,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             stack_root="sentry/models",
             source_root="src/sentry/models",
             repository=repository,
-            organization_integration=organization_integration,
+            organization_integration_id=organization_integration.id,
         )
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()

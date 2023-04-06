@@ -317,7 +317,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             service = PagerDutyService.objects.create(
                 service_name=service_name,
                 integration_key="abc",
-                organization_integration=second_integration.organizationintegration_set.first(),
+                organization_integration_id=second_integration.organizationintegration_set.first().id,
             )
             data["targetIdentifier"] = service.id
             response = self.get_error_response(
@@ -331,7 +331,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             service = PagerDutyService.objects.create(
                 service_name=service_name,
                 integration_key="def",
-                organization_integration=integration.organizationintegration_set.first(),
+                organization_integration_id=integration.organizationintegration_set.first().id,
             )
             data["targetIdentifier"] = service.id
             response = self.get_success_response(

@@ -224,10 +224,10 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         if not service_id:
             pd_service_options = [
                 f"{pds['id']} ({pds['service_name']})"
-                for pds in PagerDutyService.objects.filter(
-                    organization_integration__organization_id=self.context["organization"].id,
-                    organization_integration__integration_id=self.integration.id,
-                ).values("id", "service_name")
+                for pds in PagerDutyService.find_all_by_org_and_integration(
+                    organization_id=self.context["organization"].id,
+                    integration_id=self.integration.id,
+                )
             ]
 
             raise serializers.ValidationError(
@@ -236,20 +236,18 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                 }
             )
 
-        try:
-            pds = PagerDutyService.objects.get(
-                id=service_id,
-                organization_integration__organization_id=self.context["organization"].id,
-                organization_integration__integration_id=self.integration.id,
-            )
-        except PagerDutyService.DoesNotExist:
+        pds = PagerDutyService.find_all_by_org_and_integration(
+            organization_id=self.context["organization"].id,
+            integration_id=self.integration.id,
+        )
+        if not pds or pds[0].id != service_id:
             raise serializers.ValidationError(
                 {
                     "target_identifier": f"Could not find associated PagerDuty service for the '{self.integration.name}' account. If it exists, ensure Sentry has access."
                 }
             )
-        data["target_display"] = pds.service_name
-        data["target_identifier"] = pds.id
+        data["target_display"] = pds[0].service_name
+        data["target_identifier"] = pds[0].id
         return data
 
     def validate(self, data: NotificationActionInputData) -> NotificationActionInputData:

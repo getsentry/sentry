@@ -103,37 +103,6 @@ def repositoryprojectpathconfig_migrations():
     ]
 
 
-def authproviderdefaultteams_migrations():
-    database_operations = [
-        migrations.AlterField(
-            model_name="authproviderdefaultteams",
-            name="team",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                to="sentry.Team", db_constraint=False, db_index=True, null=False
-            ),
-        ),
-    ]
-
-    state_operations = [
-        migrations.AlterField(
-            model_name="authproviderdefaultteams",
-            name="team",
-            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.Team", db_index=True, on_delete="CASCADE", null=False
-            ),
-        ),
-        migrations.RenameField(
-            model_name="authproviderdefaultteams",
-            old_name="team",
-            new_name="team_id",
-        ),
-    ]
-
-    return database_operations + [
-        migrations.SeparateDatabaseAndState(state_operations=state_operations)
-    ]
-
-
 class Migration(CheckedMigration):
     # This flag is used to mark that a migration shouldn't be automatically run in production. For
     # the most part, this should only be used for operations where it's safe to run the migration
@@ -155,5 +124,4 @@ class Migration(CheckedMigration):
         authprovider_migrations()
         + pagerdutyservice_migrations()
         + repositoryprojectpathconfig_migrations()
-        + authproviderdefaultteams_migrations()
     )

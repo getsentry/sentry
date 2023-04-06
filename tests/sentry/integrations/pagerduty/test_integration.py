@@ -122,11 +122,9 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization_id=self.organization.id
-            )
-        )
+        service = PagerDutyService.find_all_by_org_and_integration(
+            integration_id=integration.id, organization_id=self.organization.id
+        )[0]
 
         url = "https://%s.pagerduty.com" % (integration.metadata["domain_name"])
         responses.add(
@@ -194,11 +192,9 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization_id=self.organization.id
-            )
-        )
+        service = PagerDutyService.find_all_by_org_and_integration(
+            organization_id=self.organization.id, integration_id=integration.id
+        )[0]
         config = integration.get_installation(self.organization.id).get_config_data()
         assert config == {
             "service_table": [

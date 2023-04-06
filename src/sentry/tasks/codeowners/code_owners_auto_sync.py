@@ -28,7 +28,7 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
     code_mappings = (
         RepositoryProjectPathConfig.objects.filter(
             repository_id=commit.repository_id,
-            organization_integration__organization_id=commit.organization_id,
+            project__organization_id=commit.organization_id,
         )
         .annotate(
             # By default, we don't create a ProjectOwnership record (bc we treat as a negative cache) when we create ProjectCodeOwners records.

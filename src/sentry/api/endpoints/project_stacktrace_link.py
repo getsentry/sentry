@@ -206,7 +206,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         # the ordering is deterministic
         # codepath mappings must have an associated integration for stacktrace linking.
         configs = RepositoryProjectPathConfig.objects.filter(
-            project=project, organization_integration__isnull=False
+            project=project, organization_integration_id__isnull=False
         )
         try:
             configs = self.sort_code_mapping_configs(configs)

@@ -65,7 +65,7 @@ class DeleteRepositoryTest(TransactionTestCase):
             stack_root="",
             source_root="src/packages/store",
             default_branch="main",
-            organization_integration=org_integration,
+            organization_integration_id=org_integration.id,
         )
         code_owner = ProjectCodeOwners.objects.create(
             project=project,

@@ -5,8 +5,8 @@ from django.utils import timezone
 
 from bitfield import BitField
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    FlexibleForeignKey,
     Model,
     control_silo_only_model,
     sane_repr,
@@ -26,15 +26,16 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 
 @control_silo_only_model
 class AuthProviderDefaultTeams(Model):
+    # Completely defunct model.
     __include_in_export__ = False
 
-    authprovider = FlexibleForeignKey("sentry.AuthProvider")
-    team_id = HybridCloudForeignKey("sentry.Team", on_delete="CASCADE")
+    authprovider = BoundedBigIntegerField()
+    team_id = BoundedBigIntegerField()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_authprovider_default_teams"
-        unique_together = (("authprovider", "team_id"),)
+        unique_together = tuple()
 
 
 @control_silo_only_model

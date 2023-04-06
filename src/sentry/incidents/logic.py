@@ -1339,10 +1339,10 @@ def get_available_action_integrations_for_org(organization):
 
 
 def get_pagerduty_services(organization_id, integration_id):
-    return PagerDutyService.objects.filter(
-        organization_integration__organization_id=organization_id,
-        organization_integration__integration_id=integration_id,
-    ).values("id", "service_name")
+    return PagerDutyService.find_all_by_org_and_integration(
+        organization_id=organization_id,
+        integration_id=integration_id,
+    )
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.

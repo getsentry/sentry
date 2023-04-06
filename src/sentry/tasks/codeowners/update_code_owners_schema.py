@@ -25,10 +25,10 @@ def update_code_owners_schema(organization, integration=None, projects=None, **k
 
         if integration:
             integration = load_model_from_db(Integration, integration, allow_cache=False)
-            code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
-                organization_integration__organization_id=organization.id,
-                organization_integration__integration_id=integration.id,
-            ).values_list("id", flat=True)
+            code_mapping_ids = RepositoryProjectPathConfig.find_all_by_org_and_integration(
+                organization_id=organization.id,
+                integration_id=integration.id,
+            )
 
             code_owners = ProjectCodeOwners.objects.filter(
                 repository_project_path_config__in=code_mapping_ids

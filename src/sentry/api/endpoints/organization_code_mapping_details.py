@@ -31,7 +31,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
                 id=config_id,
-                organization_integration__in=[oi.id for oi in ois],
+                organization_integration_id__in=[oi.id for oi in ois],
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404

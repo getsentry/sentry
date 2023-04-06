@@ -3,10 +3,13 @@ from django.utils import timezone
 
 from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModel, region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.integrations.organization_integrity_backfill_mixin import (
+    OrganizationIntegrityBackfillMixin,
+)
 
 
 @region_silo_only_model
-class PagerDutyService(DefaultFieldsModel):
+class PagerDutyService(DefaultFieldsModel, OrganizationIntegrityBackfillMixin):
     __include_in_export__ = False
 
     organization_integration_id = HybridCloudForeignKey(

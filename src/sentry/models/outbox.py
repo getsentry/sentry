@@ -58,7 +58,6 @@ class OutboxCategory(IntEnum):
     PROJECT_UPDATE = 8
     API_APPLICATION_UPDATE = 9
     SENTRY_APP_INSTALLATION_UPDATE = 10
-    TEAM_UPDATE = 11
 
     @classmethod
     def as_choices(cls):
