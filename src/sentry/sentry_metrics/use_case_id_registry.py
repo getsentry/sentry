@@ -55,3 +55,9 @@ METRIC_PATH_MAPPING: Mapping[UseCaseKey, Set[UseCaseID]] = {
     UseCaseKey.RELEASE_HEALTH: {UseCaseID.RELEASE_HEALTH},
     UseCaseKey.PERFORMANCE: {UseCaseID.PERFORMANCE},
 }
+
+
+def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
+    for metric_path_key, use_case_list in METRIC_PATH_MAPPING.items():
+        if use_case in use_case_list:
+            return metric_path_key
