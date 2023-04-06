@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterator, Mapping, Set
+from typing import Any, Iterator, Mapping, Optional, Set
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 
@@ -57,7 +57,8 @@ METRIC_PATH_MAPPING: Mapping[UseCaseKey, Set[UseCaseID]] = {
 }
 
 
-def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
+def get_metric_path_from_usecase(use_case: UseCaseID) -> Optional[UseCaseKey]:
     for metric_path_key, use_case_list in METRIC_PATH_MAPPING.items():
         if use_case in use_case_list:
             return metric_path_key
+    return None
