@@ -88,7 +88,9 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(id__iexact=value))
+                    queryset = queryset.filter(
+                        Q(name__icontains=value) | Q(id__iexact=value) | Q(slug__icontains=value)
+                    )
                 elif key == "id":
                     queryset = queryset.filter(in_iexact("id", value))
                 elif key == "name":
