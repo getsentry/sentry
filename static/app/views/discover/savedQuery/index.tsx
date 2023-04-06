@@ -302,7 +302,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const {organization} = this.props;
     trackAdvancedAnalyticsEvent('discover_v2.create_alert_clicked', {
       organization,
-      status,
+      status: 'success',
     });
   };
 
