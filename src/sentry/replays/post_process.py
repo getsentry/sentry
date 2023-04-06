@@ -1,16 +1,18 @@
+from __future__ import annotations
+
 import collections
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple
+from typing import Any, Generator, Iterable, Iterator
 
 
-def process_raw_response(response: List[Dict[str, Any]], fields: List[str]) -> List[Dict[str, Any]]:
+def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
     """Process the response further into the expected output."""
     return list(generate_restricted_fieldset(fields, generate_normalized_output(response)))
 
 
 def generate_restricted_fieldset(
-    fields: Optional[List[str]],
-    response: List[Dict[str, Any]],
-) -> Generator[None, None, Dict[str, Any]]:
+    fields: list[str] | None,
+    response: Generator[dict[str, Any], None, None],
+) -> Iterator[dict[str, Any]]:
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
@@ -19,12 +21,18 @@ def generate_restricted_fieldset(
         yield from response
 
 
+def _strip_dashes(field: str) -> str:
+    if field:
+        return field.replace("-", "")
+    return field
+
+
 def generate_normalized_output(
-    response: List[Dict[str, Any]]
-) -> Generator[None, None, Dict[str, Any]]:
+    response: list[dict[str, Any]]
+) -> Generator[dict[str, Any], None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
-        item["id"] = item.pop("replay_id", None)
+        item["id"] = _strip_dashes(item.pop("replay_id", None))
         item["project_id"] = str(item["project_id"])
         item["trace_ids"] = item.pop("traceIds", [])
         item["error_ids"] = item.pop("errorIds", [])
@@ -37,15 +45,15 @@ def generate_normalized_output(
         )
         item["user"] = {
             "id": item.pop("user_id", None),
-            "name": item.pop("user_name", None),
+            "username": item.pop("user_username", None),
             "email": item.pop("user_email", None),
             "ip": item.pop("user_ip", None),
         }
         item["user"]["display_name"] = (
-            item["user"]["name"]
+            item["user"]["username"]
             or item["user"]["email"]
-            or item["user"]["ip"]
             or item["user"]["id"]
+            or item["user"]["ip"]
         )
         item["sdk"] = {
             "name": item.pop("sdk_name", None),
@@ -71,26 +79,35 @@ def generate_normalized_output(
 
         item.pop("isArchived")
 
+        item.pop("click_alt", None)
+        item.pop("click_aria_label", None)
+        item.pop("clickClass", None)
+        item.pop("click_classes", None)
+        item.pop("click_id", None)
+        item.pop("click_role", None)
+        item.pop("click_tag", None)
+        item.pop("click_testid", None)
+        item.pop("click_text", None)
+        item.pop("click_title", None)
+
         yield item
 
 
-def generate_sorted_urls(url_groups: List[Tuple[int, List[str]]]) -> Generator[None, None, str]:
+def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[str]:
     """Return a flat list of ordered urls."""
     for _, url_group in sorted(url_groups, key=lambda item: item[0]):
         yield from url_group
 
 
-def dict_unique_list(items: Sequence[Tuple[str, str]]) -> Dict[str, List[str]]:
+def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
     """Populate a dictionary with the first key, value pair seen.
 
     There is a potential for duplicate keys to exist in the result set.  When we filter these keys
     in Clickhouse we will filter by the first value so we ignore subsequent updates to the key.
     This function ensures what is displayed matches what was filtered.
     """
-    result = collections.defaultdict(set)
+    unique = collections.defaultdict(set)
     for key, value in items:
-        result[key].add(value)
+        unique[key].add(value)
 
-    for key, value in result.items():
-        result[key] = list(value)
-    return result
+    return {key: list(value_set) for key, value_set in unique.items()}

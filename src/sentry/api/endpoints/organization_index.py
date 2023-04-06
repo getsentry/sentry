@@ -23,6 +23,7 @@ from sentry.models import (
     ProjectPlatform,
 )
 from sentry.search.utils import tokenize_query
+from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.signals import org_setup_complete, terms_accepted
 
@@ -30,7 +31,7 @@ from sentry.signals import org_setup_complete, terms_accepted
 class OrganizationSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
-    idempotencyKey = serializers.CharField(max_length=32, required=False)
+    idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -71,8 +72,8 @@ class OrganizationIndexEndpoint(Endpoint):
         if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
-            elif request.auth.organization is not None:
-                queryset = queryset.filter(id=request.auth.organization.id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         elif owner_only:
             # This is used when closing an account
@@ -207,7 +208,6 @@ class OrganizationIndexEndpoint(Endpoint):
                     org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
 
                     organization_mapping_service.create(
-                        user=request.user,
                         organization_id=org.id,
                         slug=org.slug,
                         name=org.name,

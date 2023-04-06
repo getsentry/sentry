@@ -164,6 +164,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     projects,
                     query.to_metrics_query(),
                     use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                    tenant_ids={"organization_id": organization.id},
                 )
                 data["query"] = query.query
             except (

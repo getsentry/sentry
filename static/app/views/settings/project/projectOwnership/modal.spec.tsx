@@ -98,14 +98,14 @@ describe('Project Ownership', () => {
       screen.getByText(`path:raven/base.py ${user.email}`, {exact: false})
     ).toBeInTheDocument();
     expect(
-      screen.getByText(`url:https://example.com/path ${user.email}`, {exact: false})
+      screen.getByText(`url:*/path ${user.email}`, {exact: false})
     ).toBeInTheDocument();
 
     // Rule builder hidden TODO: remove when streamline-targeting-context is GA
     expect(screen.queryByLabelText('Rule pattern')).not.toBeInTheDocument();
   });
 
-  it('can cancel', () => {
+  it('can cancel', async () => {
     const onCancel = jest.fn();
     render(
       <ProjectOwnershipModal
@@ -118,7 +118,7 @@ describe('Project Ownership', () => {
     );
 
     // Cancel
-    userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(screen.getByText('Cancel'));
     expect(onCancel).toHaveBeenCalled();
   });
 });

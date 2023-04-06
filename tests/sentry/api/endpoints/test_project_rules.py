@@ -9,6 +9,8 @@ from django.test import override_settings
 from rest_framework import status
 
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.user import User
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
@@ -63,7 +65,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         frequency: int | None = 30,
         **kwargs: Any,
     ):
-        owner = self.user.actor.get_actor_identifier()
+        owner = Actor.objects.get(id=get_actor_id_for_user(self.user)).get_actor_identifier()
+        self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
         if "environment" in kwargs:
             query_args["environment"] = kwargs["environment"]
@@ -102,7 +105,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             expected_conditions if expected_conditions is not None else conditions
         )
         assert rule.data["frequency"] == frequency
-        assert rule.created_by == self.user
+        assert rule.created_by_id == self.user.id
         if "environment" in kwargs:
             environment = kwargs["environment"]
             assert response.data["environment"] == environment
@@ -178,7 +181,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         self.get_error_response(
             self.organization.slug,
             self.project.slug,
-            owner=self.user.actor.get_actor_identifier(),
+            owner=self.user.get_actor_identifier(),
             actionMatch="any",
             filterMatch="any",
             actions=actions,
@@ -197,7 +200,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.project.slug,
             name="test",
             frequency=30,
-            owner=self.user.actor.get_actor_identifier(),
+            owner=self.user.get_actor_identifier(),
             actionMatch="any",
             filterMatch="any",
             actions=actions,
@@ -215,7 +218,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             name="test",
-            owner=other_user.actor.get_actor_identifier(),
+            owner=other_user.get_actor_identifier(),
             actionMatch="any",
             filterMatch="any",
             actions=[],
@@ -249,7 +252,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.project.slug,
             name="test",
             frequency=30,
-            owner=self.user.actor.get_actor_identifier(),
+            owner=self.user.get_actor_identifier(),
             actionMatch="any",
             filterMatch="any",
             conditions=[condition],
@@ -267,7 +270,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.project.slug,
             name="test",
             frequency=30,
-            owner=self.user.actor.get_actor_identifier(),
+            owner=self.user.get_actor_identifier(),
             actionMatch="any",
             filterMatch="any",
             conditions=[condition],
@@ -298,7 +301,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         self.get_error_response(
             self.organization.slug,
             self.project.slug,
-            owner=self.user.actor.get_actor_identifier(),
+            owner=self.user.get_actor_identifier(),
             actionMatch="any",
             filterMatch="any",
             actions=actions,
@@ -340,7 +343,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             name="hello world",
-            owner=self.user.actor.get_actor_identifier(),
+            owner=self.user.get_actor_identifier(),
             conditions=conditions,
             filters=filters,
             actions=actions,
@@ -401,6 +404,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_202_ACCEPTED,
         )
 
+        self.user = User.objects.get(id=self.user.id)  # reload user to get actor
         assert not Rule.objects.filter(label=payload["name"]).exists()
         kwargs = {
             "name": payload["name"],

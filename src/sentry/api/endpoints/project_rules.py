@@ -114,7 +114,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             )
             rule = project_rules.Creator.run(request=request, **kwargs)
             RuleActivity.objects.create(
-                rule=rule, user=request.user, type=RuleActivityType.CREATED.value
+                rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
             )
             duplicate_rule = request.query_params.get("duplicateRule")
             wizard_v3 = request.query_params.get("wizardV3")

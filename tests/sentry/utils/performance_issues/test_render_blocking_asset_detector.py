@@ -79,6 +79,13 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 
@@ -144,6 +151,13 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 

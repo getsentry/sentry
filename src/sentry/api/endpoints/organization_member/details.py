@@ -20,7 +20,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuthIdentity,
     AuthProvider,
     InviteStatus,
     Organization,
@@ -155,7 +154,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             return Response(status=400)
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
             auth_provider = auth_provider.get_provider()
         except AuthProvider.DoesNotExist:
             auth_provider = None
@@ -355,10 +354,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         audit_data = member.get_audit_log_data()
 
         with transaction.atomic():
-            AuthIdentity.objects.filter(
-                user=member.user, auth_provider__organization=organization
-            ).delete()
-
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
             proj_list = Project.objects.filter(organization=organization).values_list(

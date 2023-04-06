@@ -45,7 +45,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         assert self.browser.element_exists_by_test_id("2fa-warning")
 
     def test_invite_sso_org(self):
-        AuthProvider.objects.create(organization=self.org, provider="google")
+        AuthProvider.objects.create(organization_id=self.org.id, provider="google")
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert self.browser.element_exists_by_test_id("action-info-sso")

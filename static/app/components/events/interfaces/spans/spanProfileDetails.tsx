@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import StackTrace from 'sentry/components/events/interfaces/crashContent/stackTrace';
-import Link from 'sentry/components/links/link';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Frame, PlatformType} from 'sentry/types/event';
+import {EntryType, EventTransaction, Frame, PlatformType} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -24,7 +24,7 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {SpanType} from './types';
 
-const MAX_STACK_DEPTH = 16;
+const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
 const TOP_NODE_MIN_COUNT = 3;
@@ -40,6 +40,17 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
   const project = projects.find(p => p.id === event.projectID);
 
   const profileGroup = useProfileGroup();
+
+  const processedEvent = useMemo(() => {
+    const entries: EventTransaction['entries'] = [...(event.entries || [])];
+    if (profileGroup.images) {
+      entries.push({
+        data: {images: profileGroup.images},
+        type: EntryType.DEBUGMETA,
+      });
+    }
+    return {...event, entries};
+  }, [event, profileGroup]);
 
   // TODO: Pick another thread if it's more relevant.
   const threadId = useMemo(
@@ -70,7 +81,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
       profile.unit
     );
 
-    return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp);
+    return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp).filter(
+      hasApplicationFrame
+    );
   }, [profile, span, event]);
 
   const [index, setIndex] = useState(0);
@@ -108,34 +121,22 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     };
   }, [index, maxNodes, event, nodes]);
 
-  const profileTarget =
-    project &&
-    profileGroup &&
-    profile &&
-    generateProfileFlamechartRouteWithQuery({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      profileId: profileGroup.traceID,
-      query: {tid: String(profile.threadId)},
-    });
-
   const spanTarget =
     project &&
     profileGroup &&
+    profileGroup.metadata.profileID &&
     profile &&
     generateProfileFlamechartRouteWithQuery({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: profileGroup.traceID,
+      profileId: profileGroup.metadata.profileID,
       query: {
         tid: String(profile.threadId),
         spanId: span.span_id,
       },
     });
 
-  const threadName = profile ? profile.name ?? `tid(${profile.threadId})` : t('unknown');
-
-  if (!defined(profile) || !defined(profileTarget) || !defined(spanTarget)) {
+  if (!defined(profile) || !defined(spanTarget)) {
     return null;
   }
 
@@ -147,43 +148,34 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     <Fragment>
       <SpanDetails>
         <SpanDetailsItem grow>
-          <Label>
-            {tct('Thread [name] - Top Stacks ([index] of [total])', {
-              name: <Link to={profileTarget}>{threadName}</Link>,
-              index: index + 1,
-              total: maxNodes,
-            })}
-          </Label>
+          <SectionHeading>{t('Most Frequent Stacks in this Span')}</SectionHeading>
         </SpanDetailsItem>
         <SpanDetailsItem>
-          <Label>
+          <SectionSubtext>
             <Tooltip title={t('%s out of %s samples', nodes[index].count, totalWeight)}>
-              {tct('[percentage]', {
+              {tct('Showing stacks [index] of [total] ([percentage])', {
+                index: index + 1,
+                total: maxNodes,
                 percentage: formatPercentage(nodes[index].count / totalWeight),
               })}
             </Tooltip>
-          </Label>
-        </SpanDetailsItem>
-        <SpanDetailsItem>
-          <Button icon={<IconProfiling />} to={spanTarget} size="sm">
-            {t('View Profile')}
-          </Button>
+          </SectionSubtext>
         </SpanDetailsItem>
         <SpanDetailsItem>
           <ButtonBar merged>
             <Button
-              icon={<IconChevron direction="left" size="sm" />}
+              icon={<IconChevron direction="left" size="xs" />}
               aria-label={t('Previous')}
-              size="sm"
+              size="xs"
               disabled={!hasPrevious}
               onClick={() => {
                 setIndex(prevIndex => prevIndex - 1);
               }}
             />
             <Button
-              icon={<IconChevron direction="right" size="sm" />}
+              icon={<IconChevron direction="right" size="xs" />}
               aria-label={t('Next')}
-              size="sm"
+              size="xs"
               disabled={!hasNext}
               onClick={() => {
                 setIndex(prevIndex => prevIndex + 1);
@@ -191,11 +183,16 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
             />
           </ButtonBar>
         </SpanDetailsItem>
+        <SpanDetailsItem>
+          <Button icon={<IconProfiling />} to={spanTarget} size="xs">
+            {t('View Profile')}
+          </Button>
+        </SpanDetailsItem>
       </SpanDetails>
-      <StackTrace
-        event={event}
-        hasHierarchicalGrouping
-        newestFirst={false}
+      <StackTraceContent
+        event={processedEvent}
+        hasHierarchicalGrouping={false}
+        newestFirst
         platform={event.platform || 'other'}
         stacktrace={{
           framesOmitted: null,
@@ -203,9 +200,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
           registers: null,
           frames,
         }}
-        nativeV2
         stackView={STACK_VIEW.APP}
-        hideIcon
+        inlined
+        maxDepth={MAX_STACK_DEPTH}
       />
     </Fragment>
   );
@@ -223,16 +220,16 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
 
     duration += profile.weights[i];
 
-    if (sample.isRoot() || !inRange) {
+    if (sample.isRoot || !inRange) {
       continue;
     }
 
     const stack: CallTreeNode[] = [sample];
     let node: CallTreeNode | null = sample;
 
-    while (node && node.parent && !node.parent.isRoot()) {
-      node = node.parent;
+    while (node && !node.isRoot) {
       stack.push(node);
+      node = node.parent;
     }
 
     let tree = callTree;
@@ -254,7 +251,7 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
 
       // make sure to increment the count/weight so it can be sorted later
       last.count += node.count;
-      last.addToSelfWeight(node.selfWeight);
+      last.selfWeight += node.selfWeight;
 
       tree = last;
     }
@@ -288,13 +285,20 @@ function sortByCount(a: CallTreeNode, b: CallTreeNode) {
   return b.count - a.count;
 }
 
+function hasApplicationFrame(node: CallTreeNode | null) {
+  while (node && !node.isRoot) {
+    if (node.frame.is_application) {
+      return true;
+    }
+    node = node.parent;
+  }
+  return false;
+}
+
 function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame[] {
   const frames: Frame[] = [];
 
-  let framesCount = 0;
-  let prevFrame: Frame | null = null;
-
-  while (framesCount < MAX_STACK_DEPTH && node && !node.isRoot()) {
+  while (node && !node.isRoot) {
     const frame = {
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,
@@ -303,38 +307,27 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
       filename: node.frame.file ?? null,
       function: node.frame.name ?? null,
       inApp: node.frame.is_application,
-      instructionAddr: null,
+      instructionAddr: node.frame.instructionAddr ?? null,
       lineNo: node.frame.line ?? null,
-      // TODO: distinguish between module/package
-      module: node.frame.image ?? null,
-      package: null,
+      module: node.frame.module ?? null,
+      package: node.frame.package ?? null,
       platform,
       rawFunction: null,
-      symbol: null,
-      symbolAddr: null,
+      symbol: node.frame.symbol ?? null,
+      symbolAddr: node.frame.symbolAddr ?? null,
+      symbolicatorStatus: node.frame.symbolicatorStatus,
       trust: null,
       vars: null,
     };
 
-    if (
-      // In app frames are not collapsed so count it.
-      frame.inApp ||
-      // Only count non in app frames if the previous frame is in app.
-      // This is because a group of non in app frames will be collapsed
-      // into a single frame, so we only count the entire group once.
-      prevFrame?.inApp
-    ) {
-      framesCount += 1;
-    }
-
     frames.push(frame);
-
-    prevFrame = frame;
-
     node = node.parent;
   }
 
-  return frames;
+  // Profile stacks start from the inner most frame, while error stacks
+  // start from the outer most frame. Reverse the order here to match
+  // the convention on errors.
+  return frames.reverse();
 }
 
 const SpanDetails = styled('div')`
@@ -344,10 +337,11 @@ const SpanDetails = styled('div')`
   gap: ${space(1)};
 `;
 
-const Label = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`
   ${p => (p.grow ? 'flex: 1 2 auto' : 'flex: 0 1 auto')}
+`;
+
+const SectionSubtext = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;

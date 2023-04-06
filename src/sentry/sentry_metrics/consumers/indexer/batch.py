@@ -3,6 +3,7 @@ import random
 from collections import defaultdict
 from typing import (
     Any,
+    Dict,
     List,
     Mapping,
     MutableMapping,
@@ -10,15 +11,20 @@ from typing import (
     Optional,
     Sequence,
     Set,
-    TypedDict,
+    Union,
     cast,
 )
 
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.decoder.base import ValidationError
+from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
+from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
+from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
+from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
@@ -65,14 +71,6 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
-class InboundMessage(TypedDict):
-    # Note: This is only the subset of fields we access in this file.
-    org_id: int
-    name: str
-    type: str
-    tags: Mapping[str, str]
-
-
 class IndexerBatch:
     def __init__(
         self,
@@ -80,18 +78,20 @@ class IndexerBatch:
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
         is_output_sliced: bool,
+        arroyo_input_codec: Optional[JsonCodec],
     ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
         self.is_output_sliced = is_output_sliced
+        self.__input_codec = arroyo_input_codec
 
         self._extract_messages()
 
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
-        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, InboundMessage] = {}
+        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, IngestMetric] = {}
 
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
@@ -107,6 +107,18 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
+
+            try:
+                if self.__input_codec:
+                    self.__input_codec.validate(parsed_payload)
+            except ValidationError:
+                # For now while this is still experimental, those errors are
+                # not supposed to be fatal.
+                logger.warn(
+                    "process_messages.invalid_schema",
+                    extra={"payload_value": str(msg.payload.value)},
+                    exc_info=True,
+                )
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
@@ -214,7 +226,7 @@ class IndexerBatch:
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
-            output_message_meta: Mapping[str, MutableMapping[str, str]] = defaultdict(dict)
+            output_message_meta: Dict[str, Dict[str, str]] = defaultdict(dict)
             assert isinstance(message.value, BrokerValue)
             partition_offset = PartitionIdxOffset(
                 message.value.partition.index, message.value.offset
@@ -228,18 +240,15 @@ class IndexerBatch:
                     },
                 )
                 continue
-            new_payload_value = cast(
-                MutableMapping[Any, Any],
-                self.parsed_payloads_by_offset.pop(partition_offset),
-            )
+            old_payload_value = self.parsed_payloads_by_offset.pop(partition_offset)
 
-            metric_name = new_payload_value["name"]
-            org_id = new_payload_value["org_id"]
+            metric_name = old_payload_value["name"]
+            org_id = old_payload_value["org_id"]
             sentry_sdk.set_tag("sentry_metrics.organization_id", org_id)
-            tags = new_payload_value.get("tags", {})
+            tags = old_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
-            new_tags: MutableMapping[str, int] = {}
+            new_tags: Dict[str, Union[str, int]] = {}
             exceeded_global_quotas = 0
             exceeded_org_quotas = 0
 
@@ -259,7 +268,7 @@ class IndexerBatch:
                             exceeded_org_quotas += 1
                         continue
 
-                    value_to_write = v
+                    value_to_write: Union[int, str] = v
                     if self.__should_index_tag_values:
                         new_v = mapping[org_id][v]
                         if new_v is None:
@@ -313,13 +322,7 @@ class IndexerBatch:
                 "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
             )
 
-            # When sending tag values as strings, set the version on the payload
-            # to 2. This is used by the consumer to determine how to decode the
-            # tag values.
-            if not self.__should_index_tag_values:
-                new_payload_value["version"] = 2
-            new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
+            numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:
                 metadata = bulk_record_meta[org_id].get(metric_name)
                 metrics.incr(
@@ -344,12 +347,42 @@ class IndexerBatch:
                     )
                 continue
 
-            new_payload_value["retention_days"] = new_payload_value.get("retention_days", 90)
+            new_payload_value: Mapping[str, Any]
 
-            new_payload_value["mapping_meta"] = output_message_meta
-            new_payload_value["use_case_id"] = self.use_case_id.value
+            if self.__should_index_tag_values:
+                new_payload_v1: Metric = {
+                    "tags": new_tags,
+                    # XXX: relay actually sends this value unconditionally
+                    "retention_days": old_payload_value.get("retention_days", 90),
+                    "mapping_meta": output_message_meta,
+                    "use_case_id": self.use_case_id.value,
+                    "metric_id": numeric_metric_id,
+                    "org_id": old_payload_value["org_id"],
+                    "timestamp": old_payload_value["timestamp"],
+                    "project_id": old_payload_value["project_id"],
+                    "type": old_payload_value["type"],
+                    "value": old_payload_value["value"],
+                }
 
-            del new_payload_value["name"]
+                new_payload_value = new_payload_v1
+            else:
+                # When sending tag values as strings, set the version on the payload
+                # to 2. This is used by the consumer to determine how to decode the
+                # tag values.
+                new_payload_v2: GenericMetric = {
+                    "tags": cast(Dict[str, str], new_tags),
+                    "version": 2,
+                    "retention_days": old_payload_value.get("retention_days", 90),
+                    "mapping_meta": output_message_meta,
+                    "use_case_id": self.use_case_id.value,
+                    "metric_id": numeric_metric_id,
+                    "org_id": old_payload_value["org_id"],
+                    "timestamp": old_payload_value["timestamp"],
+                    "project_id": old_payload_value["project_id"],
+                    "type": old_payload_value["type"],
+                    "value": old_payload_value["value"],
+                }
+                new_payload_value = new_payload_v2
 
             kafka_payload = KafkaPayload(
                 key=message.payload.key,
@@ -357,7 +390,8 @@ class IndexerBatch:
                 headers=[
                     *message.payload.headers,
                     ("mapping_sources", mapping_header_content),
-                    ("metric_type", new_payload_value["type"]),
+                    # XXX: type mismatch, but seems to work fine in prod
+                    ("metric_type", new_payload_value["type"]),  # type: ignore
                 ],
             )
             if self.is_output_sliced:

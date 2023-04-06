@@ -47,6 +47,13 @@ class SlowDBQueryDetectorTest(TestCase):
                 parent_span_ids=None,
                 cause_span_ids=None,
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": None,
+                    "cause_span_ids": None,
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 
@@ -70,6 +77,13 @@ class SlowDBQueryDetectorTest(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "db.query",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 
@@ -85,6 +99,13 @@ class SlowDBQueryDetectorTest(TestCase):
                 parent_span_ids=None,
                 cause_span_ids=None,
                 offender_span_ids=["a05754d3fde2db29"],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": None,
+                    "cause_span_ids": None,
+                    "offender_span_ids": ["a05754d3fde2db29"],
+                },
+                evidence_display=[],
             )
         ]
 
@@ -106,6 +127,13 @@ class SlowDBQueryDetectorTest(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 

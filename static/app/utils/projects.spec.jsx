@@ -429,7 +429,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      userEvent.type(screen.getByRole('textbox'), 'test');
+      await userEvent.type(screen.getByRole('textbox'), 'test');
 
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
@@ -484,7 +484,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      userEvent.type(screen.getByRole('textbox'), 'test');
+      await userEvent.type(screen.getByRole('textbox'), 'test');
 
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
@@ -525,7 +525,7 @@ describe('utils.projects', function () {
       );
 
       // Should not have duplicates
-      userEvent.type(screen.getByRole('textbox'), 'test');
+      await userEvent.type(screen.getByRole('textbox'), 'test');
 
       await waitFor(() =>
         expect(myRenderer).toHaveBeenLastCalledWith(

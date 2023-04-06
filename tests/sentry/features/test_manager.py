@@ -5,6 +5,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.features import Feature
+from sentry.features.base import FeatureHandlerStrategy
 from sentry.models import User
 from sentry.testutils import TestCase
 
@@ -26,13 +27,21 @@ class MockBatchHandler(features.BatchFeatureHandler):
     ) -> Union[Optional[bool], Mapping[str, Optional[bool]]]:
         return {feature.name: True}
 
-    def batch_has(self, feature_names, *args: Any, **kwargs: Any):
+    def batch_has(self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any):
         if isinstance(feature_names, str):
-            return {feature_names: True}
+            feature_names = [feature_names]
 
-        return {
+        feature_results = {
             feature_name: True for feature_name in feature_names if feature_name in self.features
         }
+
+        if projects:
+            return {f"project:{project.id}": feature_results for project in projects}
+
+        if organization:
+            return {f"organization:{organization.id}": feature_results}
+
+        return {"unscoped": feature_results}
 
     def _check_for_batch(self, feature_name, organization, actor):
         return True if feature_name in self.features else None
@@ -208,13 +217,28 @@ class FeatureManagerTest(TestCase):
         manager.add("projects:feature", features.ProjectFeature)
         manager.add_entity_handler(MockBatchHandler())
 
-        assert manager.batch_has("auth:register", actor=self.user)["auth:register"]
+        assert manager.batch_has(["auth:register"], actor=self.user)["unscoped"]["auth:register"]
         assert manager.batch_has(
-            "organizations:feature", actor=self.user, organization=self.organization
-        )["organizations:feature"]
-        assert manager.batch_has("projects:feature", actor=self.user, projects=[self.project])[
-            "projects:feature"
-        ]
+            ["organizations:feature"], actor=self.user, organization=self.organization
+        )[f"organization:{self.organization.id}"]["organizations:feature"]
+        assert manager.batch_has(["projects:feature"], actor=self.user, projects=[self.project])[
+            f"project:{self.project.id}"
+        ]["projects:feature"]
+
+    def test_batch_has_no_entity(self):
+        manager = features.FeatureManager()
+        manager.add("auth:register")
+        manager.add("organizations:feature", features.OrganizationFeature)
+        manager.add("projects:feature", features.ProjectFeature)
+        manager.add_handler(MockBatchHandler())
+
+        assert manager.batch_has(["auth:register"], actor=self.user)["unscoped"]["auth:register"]
+        assert manager.batch_has(
+            ["organizations:feature"], actor=self.user, organization=self.organization
+        )[f"organization:{self.organization.id}"]["organizations:feature"]
+        assert manager.batch_has(["projects:feature"], actor=self.user, projects=[self.project])[
+            f"project:{self.project.id}"
+        ]["projects:feature"]
 
     def test_has(self):
         manager = features.FeatureManager()
@@ -239,3 +263,20 @@ class FeatureManagerTest(TestCase):
             NotImplementedError, "User flags not allowed with entity_feature=True"
         ):
             manager.add("users:feature-2", features.UserFeature, True)
+
+    def test_entity_feature_shim(self):
+        manager = features.FeatureManager()
+
+        manager.add("feat:1", features.OrganizationFeature)
+        manager.add("feat:2", features.OrganizationFeature, False)
+        manager.add("feat:3", features.OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+
+        manager.add("feat:4", features.OrganizationFeature, True)
+        manager.add("feat:5", features.OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+
+        assert "feat:1" not in manager.entity_features
+        assert "feat:2" not in manager.entity_features
+        assert "feat:3" not in manager.entity_features
+
+        assert "feat:4" in manager.entity_features
+        assert "feat:5" in manager.entity_features

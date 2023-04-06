@@ -9,7 +9,7 @@ from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, features, roles
+from sentry import audit_log, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -39,6 +39,7 @@ from sentry.models import (
     ScheduledDeletion,
     UserEmail,
 )
+from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
@@ -177,7 +178,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
-        return AuthProvider.objects.filter(organization=org).exists()
+        return AuthProvider.objects.filter(organization_id=org.id).exists()
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -428,7 +429,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 class OwnerOrganizationSerializer(OrganizationSerializer):
     defaultRole = serializers.ChoiceField(choices=roles.get_choices())
     cancelDeletion = serializers.BooleanField(required=False)
-    idempotencyKey = serializers.CharField(max_length=32, required=False)
+    idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def save(self, *args, **kwargs):
         org = self.context["organization"]
@@ -494,9 +495,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         was_pending_deletion = organization.status in DELETION_STATUSES
 
         enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
-        if enabling_codecov and features.has(
-            "organizations:codecov-stacktrace-integration-v2", organization
-        ):
+        if enabling_codecov:
             has_integration, error = has_codecov_integration(organization)
             if not has_integration:
                 return self.respond(
@@ -517,7 +516,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
                     if "slug" in changed_data:
                         organization_mapping_service.create(
-                            user=request.user,
                             organization_id=organization.id,
                             slug=organization.slug,
                             name=organization.name,
@@ -527,7 +525,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         )
                     elif "name" in changed_data:
                         organization_mapping_service.update(
-                            organization.id, RpcOrganizationMappingUpdate(name=organization.name)
+                            organization_id=organization.id,
+                            update=RpcOrganizationMappingUpdate(name=organization.name),
                         )
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.

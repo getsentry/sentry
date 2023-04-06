@@ -7,13 +7,14 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from sentry import options
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -38,6 +39,7 @@ class DetectorType(Enum):
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
+    DB_MAIN_THREAD = "db_main_thread"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -51,6 +53,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
+    DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
 }
 
 
@@ -59,12 +62,14 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
+    DetectorType.CONSECUTIVE_HTTP_OP: "performance.issues.consecutive_http.flag_disabled",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
+    DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
 }
 
 
@@ -130,11 +135,17 @@ class PerformanceDetector(ABC):
             return False
 
         try:
-            rate = options.get(system_option)
-        except options.UnknownOption:
-            rate = 0
+            creation_option_value: bool | float | None = options.get(system_option)
+            if isinstance(creation_option_value, bool):
+                return not creation_option_value
+            elif isinstance(
+                creation_option_value, float
+            ):  # If the option is a float, we are controlling it with a rate. TODO - make all detectors use boolean
+                return creation_option_value > random.random()
+            return False
 
-        return rate > random.random()
+        except options.UnknownOption:
+            return False
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
@@ -160,26 +171,54 @@ def get_duration_between_spans(first_span: Span, second_span: Span):
 
 
 def get_url_from_span(span: Span) -> str:
+    """
+    Parses the span data and pulls out the URL. Accounts for different SDKs and
+    different versions of SDKs formatting and parsing the URL contents
+    differently.
+    """
+
     data = span.get("data") or {}
-    url = data.get("url") or ""
-    if not url:
-        # If data is missing, fall back to description
-        description = span.get("description") or ""
-        parts = description.split(" ", 1)
-        if len(parts) == 2:
-            url = parts[1]
 
-    if type(url) is dict:
-        url = url.get("pathname") or ""
+    # The most modern version is to provide URL information in the span
+    # data
+    url_data = data.get("url")
 
-    return url
+    if type(url_data) is dict:
+        # Some transactions mysteriously provide the URL as a dict that looks
+        # like JavaScript's URL object
+        url = url_data.get("pathname") or ""
+        url += url_data.get("search") or ""
+        return url
+
+    if type(url_data) is str:
+        # Usually the URL is a regular string, and so is the query. This
+        # is the standardized format for all SDKs, and is the preferred
+        # format going forward. Otherwise, if `http.query` is absent, `url`
+        # contains the query.
+        url = url_data
+        query_data = data.get("http.query")
+        if type(query_data) is str and len(query_data) > 0:
+            url += f"?{query_data}"
+
+        return url
+
+    # Attempt to parse the full URL from the span description, in case
+    # the previous approaches did not yield a good result
+    description = span.get("description") or ""
+    parts = description.split(" ", 1)
+    if len(parts) == 2:
+        url = parts[1]
+        return url
+
+    return ""
 
 
-def fingerprint_spans(spans: List[Span]):
+def fingerprint_spans(spans: List[Span], unique_only: bool = False):
     span_hashes = []
     for span in spans:
-        hash = span.get("hash", "") or ""
-        span_hashes.append(str(hash))
+        hash = str(span.get("hash", "") or "")
+        if not unique_only or hash not in span_hashes:
+            span_hashes.append(hash)
     joined_hashes = "-".join(span_hashes)
     return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
 
@@ -225,6 +264,27 @@ def total_span_time(span_list: List[Dict[str, Any]]) -> float:
 
 PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
 
+PARAMETERIZED_URL_REGEX = re.compile(
+    r"""(?x)
+    (?P<uuid>
+        \b
+            [0-9a-fA-F]{8}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{4}-
+            [0-9a-fA-F]{12}
+        \b
+    ) |
+    (?P<hashlike>
+        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
+    ) |
+    (?P<int>
+        -\d+\b |
+        \b\d+\b
+    )
+"""
+)  # Adapted from message.py
+
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).
 UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
@@ -254,3 +314,53 @@ def fingerprint_resource_span(span: Span):
     path = ASSET_HASH_REGEX.sub("*", path)
     stripped_url = url._replace(path=path, query="").geturl()
     return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
+
+
+def parameterize_url(url: str) -> str:
+    parsed_url = urlparse(str(url))
+
+    protocol_fragments = []
+    if parsed_url.scheme:
+        protocol_fragments.append(parsed_url.scheme)
+        protocol_fragments.append("://")
+
+    host_fragments = []
+    for fragment in parsed_url.netloc.split("."):
+        host_fragments.append(str(fragment))
+
+    path_fragments = []
+    for fragment in parsed_url.path.split("/"):
+        if PARAMETERIZED_URL_REGEX.search(fragment):
+            path_fragments.append("*")
+        else:
+            path_fragments.append(str(fragment))
+
+    query = parse_qs(parsed_url.query)
+
+    return "".join(
+        [
+            "".join(protocol_fragments),
+            ".".join(host_fragments),
+            "/".join(path_fragments),
+            "?",
+            "&".join(sorted([f"{key}=*" for key in query.keys()])),
+        ]
+    ).rstrip("?")
+
+
+def fingerprint_http_spans(spans: list[Span]) -> str:
+    """
+    Fingerprints http spans based on their paramaterized paths, assumes all spans are http spans
+    """
+    url_paths = []
+    for http_span in spans:
+        url = get_url_from_span(http_span)
+        if url:
+            parametrized_url = parameterize_url(url)
+            path = urlparse(parametrized_url).path
+            if path not in url_paths:
+                url_paths.append(path)
+    url_paths.sort()
+
+    hashed_url_paths = hashlib.sha1(("-".join(url_paths)).encode("utf8")).hexdigest()
+    return hashed_url_paths

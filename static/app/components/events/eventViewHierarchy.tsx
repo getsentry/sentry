@@ -10,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {Event, IssueAttachment, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
@@ -37,7 +37,7 @@ function EventViewHierarchyContent({event, project}: Props) {
   const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
 
   // There should be only one view hierarchy
-  const {isLoading, data} = useQuery<string>(
+  const {isLoading, data} = useApiQuery<string>(
     [
       defined(hierarchyMeta)
         ? getAttachmentUrl({
@@ -96,10 +96,7 @@ function EventViewHierarchyContent({event, project}: Props) {
 function EventViewHierarchy(props: Props) {
   const organization = useOrganization();
 
-  if (
-    !organization.features?.includes('mobile-view-hierarchies') ||
-    !organization.features.includes('event-attachments')
-  ) {
+  if (!organization.features.includes('event-attachments')) {
     return null;
   }
 

@@ -7,11 +7,13 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import RuleBuilder from './ruleBuilder';
 
@@ -22,9 +24,14 @@ const defaultProps = {
 };
 
 type Props = {
+  dateUpdated: string | null;
   initialText: string;
   onCancel: () => void;
   organization: Organization;
+  /**
+   * Used for analytics
+   */
+  page: 'issue_details' | 'project_settings';
   project: Project;
   onSave?: (text: string | null) => void;
 } & typeof defaultProps;
@@ -61,7 +68,7 @@ class OwnerInput extends Component<Props, State> {
   }
 
   handleUpdateOwnership = () => {
-    const {organization, project, onSave} = this.props;
+    const {organization, project, onSave, page, initialText} = this.props;
     const {text} = this.state;
     this.setState({error: null});
 
@@ -84,6 +91,13 @@ class OwnerInput extends Component<Props, State> {
           },
           () => onSave && onSave(text)
         );
+        trackIntegrationAnalytics('project_ownership.saved', {
+          page,
+          organization,
+          net_change:
+            (text?.split('\n').filter(x => x).length ?? 0) -
+            initialText.split('\n').filter(x => x).length,
+        });
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
@@ -151,7 +165,8 @@ class OwnerInput extends Component<Props, State> {
   };
 
   render() {
-    const {project, organization, disabled, urls, paths, initialText} = this.props;
+    const {project, organization, disabled, urls, paths, initialText, dateUpdated} =
+      this.props;
     const {hasChanges, text, error} = this.state;
 
     const hasStreamlineTargetingFeature = organization.features.includes(
@@ -179,7 +194,15 @@ class OwnerInput extends Component<Props, State> {
           }}
         >
           <Panel>
-            <PanelHeader>{t('Ownership Rules')}</PanelHeader>
+            <PanelHeader>
+              {t('Ownership Rules')}
+
+              {dateUpdated && (
+                <SyncDate>
+                  {t('Last Edited')} <TimeSince date={dateUpdated} />
+                </SyncDate>
+              )}
+            </PanelHeader>
             <PanelBody>
               <StyledTextArea
                 aria-label={t('Ownership Rules')}
@@ -264,6 +287,11 @@ const InvalidOwners = styled('div')`
   color: ${p => p.theme.error};
   font-weight: bold;
   margin-top: 12px;
+`;
+
+const SyncDate = styled('div')`
+  font-weight: normal;
+  text-transform: none;
 `;
 
 export default OwnerInput;

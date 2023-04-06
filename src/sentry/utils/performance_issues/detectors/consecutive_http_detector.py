@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.models import Organization, Project
 
 from ..base import (
     DetectorType,
     PerformanceDetector,
-    fingerprint_spans,
+    fingerprint_http_spans,
     get_duration_between_spans,
     get_span_duration,
 )
@@ -79,6 +80,13 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
+            evidence_display=[],
+            evidence_data={
+                "parent_span_ids": [],
+                "cause_span_ids": [],
+                "offender_span_ids": offender_span_ids,
+                "op": "http",
+            },
         )
 
         self._reset_variables()
@@ -123,14 +131,16 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         return True
 
     def _fingerprint(self) -> str:
-        hashed_spans = fingerprint_spans(self.consecutive_http_spans)
-        return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_spans}"
+        hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)
+        return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_url_paths}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return False
+        return features.has(
+            "organizations:performance-consecutive-http-detector", organization, actor=None
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False
+        return True

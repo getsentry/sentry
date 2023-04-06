@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {PopperProps, usePopper} from 'react-popper';
 import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
 import {useButton} from '@react-aria/button';
@@ -78,6 +78,11 @@ export interface UseOverlayProps
    */
   offset?: number;
   /**
+   * To be called when the overlay closes because of a user interaction (click) outside
+   * the overlay. Note: this won't be called when the user presses Escape to dismiss.
+   */
+  onInteractOutside?: () => void;
+  /**
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
@@ -97,6 +102,7 @@ function useOverlay({
   shouldCloseOnBlur = false,
   isKeyboardDismissDisabled,
   shouldCloseOnInteractOutside,
+  onInteractOutside,
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
@@ -187,21 +193,35 @@ function useOverlay({
   );
 
   // Get props for overlay element
+  const interactedOutside = useRef(false);
   const {overlayProps} = useAriaOverlay(
     {
       onClose: () => {
         onClose?.();
+
+        if (interactedOutside.current) {
+          onInteractOutside?.();
+          interactedOutside.current = false;
+        }
+
         openState.close();
       },
       isOpen: openState.isOpen,
       isDismissable,
       shouldCloseOnBlur,
       isKeyboardDismissDisabled,
-      shouldCloseOnInteractOutside: target =>
-        target &&
-        triggerRef.current !== target &&
-        !triggerRef.current?.contains(target) &&
-        (shouldCloseOnInteractOutside?.(target) ?? true),
+      shouldCloseOnInteractOutside: target => {
+        if (
+          target &&
+          triggerRef.current !== target &&
+          !triggerRef.current?.contains(target) &&
+          (shouldCloseOnInteractOutside?.(target) ?? true)
+        ) {
+          interactedOutside.current = true;
+          return true;
+        }
+        return false;
+      },
     },
     overlayRef
   );

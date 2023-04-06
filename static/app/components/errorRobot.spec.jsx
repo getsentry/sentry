@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import {ErrorRobot} from 'sentry/components/errorRobot';
+import ErrorRobot from 'sentry/components/errorRobot';
 
 describe('ErrorRobot', function () {
   let getIssues;
@@ -33,16 +33,16 @@ describe('ErrorRobot', function () {
       );
     }
 
-    it('Renders a button for creating an event', function () {
+    it('Renders a button for creating an event', async function () {
       createWrapper();
-      const button = screen.getByRole('button', {name: 'Create a sample event'});
+      const button = await screen.findByRole('button', {name: 'Create a sample event'});
       expect(button).toBeEnabled();
       expect(getIssues).toHaveBeenCalled();
     });
 
-    it('Renders installation instructions', function () {
+    it('Renders installation instructions', async function () {
       createWrapper();
-      userEvent.click(screen.getByText('Installation Instructions'));
+      await userEvent.click(screen.getByText('Installation Instructions'));
       expect(routerContext.context.router.push).toHaveBeenCalledWith(
         '/org-slug/project-slug/getting-started/'
       );

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import dataclasses
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
+
+from django.db import transaction
 
 from sentry import roles
 from sentry.models import (
@@ -16,6 +17,7 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
+from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
@@ -48,10 +50,12 @@ def unescape_flag_name(flag_name: str) -> str:
 class DatabaseBackedOrganizationService(OrganizationService):
     @classmethod
     def _serialize_member_flags(cls, member: OrganizationMember) -> RpcOrganizationMemberFlags:
-        result = RpcOrganizationMemberFlags()
-        for f in dataclasses.fields(RpcOrganizationMemberFlags):
-            setattr(result, f.name, bool(getattr(member.flags, unescape_flag_name(f.name))))
-        return result
+        return cast(
+            RpcOrganizationMemberFlags,
+            RpcOrganizationMemberFlags.serialize_by_field_name(
+                member.flags, name_transform=unescape_flag_name, value_transform=bool
+            ),
+        )
 
     @classmethod
     def serialize_member(
@@ -66,6 +70,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             has_global_access=member.has_global_access,
             scopes=list(member.get_scopes()),
             flags=cls._serialize_member_flags(member),
+            invite_status=member.invite_status,
         )
 
         omts = OrganizationMemberTeam.objects.filter(
@@ -103,10 +108,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     @classmethod
     def _serialize_flags(cls, org: Organization) -> RpcOrganizationFlags:
-        result = RpcOrganizationFlags()
-        for f in dataclasses.fields(result):
-            setattr(result, f.name, getattr(org.flags, f.name))
-        return result
+        return cast(
+            RpcOrganizationFlags,
+            RpcOrganizationFlags.serialize_by_field_name(org.flags, value_transform=bool),
+        )
 
     @classmethod
     def _serialize_team(cls, team: Team) -> RpcTeam:
@@ -125,7 +130,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         result = RpcTeamMember(
             id=team_member.id,
             is_active=team_member.is_active,
-            role=team_member.get_team_role(),
+            role_id=team_member.get_team_role().id,
             team_id=team_member.team_id,
             project_ids=list(project_ids),
             scopes=list(team_member.get_scopes()),
@@ -170,9 +175,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def check_membership_by_id(
         self, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
+        from sentry.auth.access import get_cached_organization_member
+
         try:
-            member = OrganizationMember.objects.get(
-                organization_id=organization_id, user_id=user_id
+            member = get_cached_organization_member(
+                user_id=user_id, organization_id=organization_id
             )
         except OrganizationMember.DoesNotExist:
             return None
@@ -184,11 +191,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     ) -> Optional[RpcUserOrganizationContext]:
         membership: Optional[RpcOrganizationMember] = None
         if user_id is not None:
-            try:
-                om = OrganizationMember.objects.get(organization_id=id, user_id=user_id)
-                membership = self.serialize_member(om)
-            except OrganizationMember.DoesNotExist:
-                pass
+            membership = self.check_membership_by_id(organization_id=id, user_id=user_id)
 
         try:
             query = Organization.objects.filter(id=id)
@@ -277,18 +280,30 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def add_organization_member(
         self,
         *,
-        organization: RpcOrganization,
-        user: RpcUser,
-        flags: RpcOrganizationMemberFlags | None,
-        role: str | None,
+        organization_id: int,
+        default_org_role: str,
+        user: RpcUser | None = None,
+        email: str | None = None,
+        flags: RpcOrganizationMemberFlags | None = None,
+        role: str | None = None,
+        inviter_id: int | None = None,
+        invite_status: int | None = InviteStatus.APPROVED.value,
     ) -> RpcOrganizationMember:
-        member = OrganizationMember.objects.create(
-            organization_id=organization.id,
-            user_id=user.id,
-            flags=self._deserialize_member_flags(flags) if flags else 0,
-            role=role or organization.default_role,
-        )
-        return self.serialize_member(member)
+        assert (user is None and email) or (user and email is None), "Must set either user or email"
+        with transaction.atomic():
+            org_member: OrganizationMember = OrganizationMember.objects.create(
+                organization_id=organization_id,
+                user_id=user.id if user else None,
+                email=email,
+                flags=self._deserialize_member_flags(flags) if flags else 0,
+                role=role or default_org_role,
+                inviter_id=inviter_id,
+                invite_status=invite_status,
+            )
+            region_outbox = org_member.outbox_for_update()
+            region_outbox.save()
+        region_outbox.drain_shard(max_updates_to_drain=10)
+        return self.serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         OrganizationMemberTeam.objects.create(
@@ -298,6 +313,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # created, but doing so would require a list of project IDs. We can implement
         # that if a return value is needed in the future.
 
+    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
+        team_members = OrganizationMemberTeam.objects.filter(team_id=team_id)
+        return [
+            self.serialize_member(team_member.organizationmember) for team_member in team_members
+        ]
+
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
         model.flags = self._deserialize_member_flags(organization_member.flags)
@@ -305,7 +326,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     @classmethod
     def _serialize_invite(cls, om: OrganizationMember) -> RpcOrganizationInvite:
-        return RpcOrganizationInvite(om.id, om.token, om.email)
+        return RpcOrganizationInvite(id=om.id, token=om.token, email=om.email)
 
     def get_all_org_roles(
         self,

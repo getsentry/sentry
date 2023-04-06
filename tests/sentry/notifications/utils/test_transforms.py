@@ -1,6 +1,5 @@
-from unittest import TestCase
-
-from sentry.models import Group, NotificationSetting, Project, User
+from sentry.models import NotificationSetting
+from sentry.models.actor import get_actor_id_for_user
 from sentry.notifications.helpers import (
     transform_to_notification_settings_by_recipient,
     transform_to_notification_settings_by_scope,
@@ -10,21 +9,24 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.notifications import NotificationsService
+from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
 class TransformTestCase(TestCase):
     def setUp(self) -> None:
-        self.user = User(id=1)
-        self.project = Project(id=123)
-        self.group = Group(id=456, project=self.project)
+        self.user = self.create_user()
+        self.project = self.create_project()
+        self.group = self.create_group(project=self.project)
         self.notification_settings = [
             NotificationSetting(
                 provider=ExternalProviders.SLACK.value,
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
-                target=self.user.actor,
+                target_id=get_actor_id_for_user(self.user),
                 scope_type=NotificationScopeType.PROJECT.value,
                 scope_identifier=self.project.id,
             ),
@@ -32,10 +34,16 @@ class TransformTestCase(TestCase):
                 provider=ExternalProviders.SLACK.value,
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
-                target=self.user.actor,
+                target_id=get_actor_id_for_user(self.user),
                 scope_type=NotificationScopeType.USER.value,
                 scope_identifier=self.user.id,
             ),
+        ]
+
+        self.user_actor = RpcActor.from_orm_user(self.user)
+        self.rpc_notification_settings = [
+            NotificationsService.serialize_notification_setting(setting)
+            for setting in self.notification_settings
         ]
 
 
@@ -49,16 +57,16 @@ class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
 
         assert (
             transform_to_notification_settings_by_recipient(
-                notification_settings=[], recipients=[self.user]
+                notification_settings=[], recipients=[self.user_actor]
             )
             == {}
         )
 
     def test_transform_to_notification_settings_by_recipient(self):
         assert transform_to_notification_settings_by_recipient(
-            notification_settings=self.notification_settings, recipients=[self.user]
+            notification_settings=self.rpc_notification_settings, recipients=[self.user_actor]
         ) == {
-            self.user: {
+            self.user_actor: {
                 NotificationScopeType.USER: {
                     ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS
                 },
@@ -75,7 +83,7 @@ class TransformToNotificationSettingsByScopeTestCase(TransformTestCase):
 
     def test_transform_to_notification_settings_by_scope(self):
         assert transform_to_notification_settings_by_scope(
-            notification_settings=self.notification_settings,
+            notification_settings=self.rpc_notification_settings,
         ) == {
             NotificationScopeType.USER: {
                 self.user.id: {ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS},

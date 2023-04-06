@@ -19,6 +19,7 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
+  IconStar,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -187,6 +188,22 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const starfish = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:starfish-view"
+      features={['starfish-view']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconStar size="md" />}
+        label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/starfish/`}
+        id="starfish"
+      />
+    </Feature>
+  );
+
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -328,6 +345,7 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {performance}
+                {starfish}
                 {profiling}
                 {replays}
                 {monitors}

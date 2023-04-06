@@ -35,7 +35,7 @@ describe('OrganizationProjects', function () {
     Client.clearMockResponses();
   });
 
-  it('should render the projects in the store', function () {
+  it('should render the projects in the store', async function () {
     const {container} = render(<OrganizationProjectsContainer location={{query: {}}} />);
 
     expect(container).toSnapshot();
@@ -46,7 +46,7 @@ describe('OrganizationProjects', function () {
     expect(statsGetMock).toHaveBeenCalledTimes(1);
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
-    userEvent.click(screen.getByRole('button', {name: 'Bookmark Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Bookmark Project'}));
     expect(
       screen.getByRole('button', {name: 'Bookmark Project', pressed: true})
     ).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('OrganizationProjects', function () {
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should search organization projects', function () {
+  it('should search organization projects', async function () {
     const searchMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],
@@ -65,7 +65,7 @@ describe('OrganizationProjects', function () {
 
     const searchBox = screen.getByRole('textbox');
 
-    userEvent.type(searchBox, project.slug);
+    await userEvent.type(searchBox, project.slug);
 
     expect(searchMock).toHaveBeenLastCalledWith(
       `/organizations/${org.slug}/projects/`,
@@ -77,7 +77,7 @@ describe('OrganizationProjects', function () {
       })
     );
 
-    userEvent.type(searchBox, '{enter}');
+    await userEvent.type(searchBox, '{enter}');
     expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
   });
 });

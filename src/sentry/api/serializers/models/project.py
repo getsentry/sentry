@@ -175,6 +175,12 @@ def format_options(attrs: defaultdict(dict)):
         "sentry:performance_issue_creation_rate": options.get(
             "sentry:performance_issue_creation_rate"
         ),
+        "sentry:performance_issue_send_to_issues_platform": options.get(
+            "sentry:performance_issue_send_to_issues_platform"
+        ),
+        "sentry:performance_issue_create_issue_through_plaform": options.get(
+            "sentry:performance_issue_create_issue_through_plaform"
+        ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
@@ -206,6 +212,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasSessions: bool
     hasProfiles: bool
     hasReplays: bool
+    hasMonitors: bool
     platform: Optional[str]
     firstEvent: Optional[datetime]
 
@@ -464,6 +471,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             "hasSessions": bool(obj.flags.has_sessions),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
+            "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "features": attrs["features"],
             "status": status_label,
@@ -696,6 +704,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasSessions=bool(obj.flags.has_sessions),
             hasProfiles=bool(obj.flags.has_profiles),
             hasReplays=bool(obj.flags.has_replays),
+            hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             platform=obj.platform,
             platforms=attrs["platforms"],
@@ -878,10 +887,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
                 "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
                 "performanceIssueCreationRate": get_value_with_default(
                     "sentry:performance_issue_creation_rate"
+                ),
+                "performanceIssueSendToPlatform": get_value_with_default(
+                    "sentry:performance_issue_send_to_issues_platform"
+                ),
+                "performanceIssueCreationThroughPlatform": get_value_with_default(
+                    "sentry:performance_issue_create_issue_through_plaform"
                 ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,

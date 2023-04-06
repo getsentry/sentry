@@ -33,6 +33,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 
@@ -476,24 +477,29 @@ class EventsTable extends Component<Props, State> {
                       organization={organization}
                       replayIds={replayIds}
                     >
-                      <GridEditable
-                        isLoading={
-                          isTotalEventsLoading ||
-                          isDiscoverQueryLoading ||
-                          shouldFetchAttachments
-                        }
-                        data={tableData?.data ?? []}
-                        columnOrder={columnOrder}
-                        columnSortBy={eventView.getSorts()}
-                        grid={{
-                          onResizeColumn: this.handleResizeColumn,
-                          renderHeadCell: this.renderHeadCellWithMeta(
-                            tableData?.meta
-                          ) as any,
-                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                        }}
-                        location={location}
-                      />
+                      <VisuallyCompleteWithData
+                        id="TransactionEvents-EventsTable"
+                        hasData={!!tableData?.data?.length}
+                      >
+                        <GridEditable
+                          isLoading={
+                            isTotalEventsLoading ||
+                            isDiscoverQueryLoading ||
+                            shouldFetchAttachments
+                          }
+                          data={tableData?.data ?? []}
+                          columnOrder={columnOrder}
+                          columnSortBy={eventView.getSorts()}
+                          grid={{
+                            onResizeColumn: this.handleResizeColumn,
+                            renderHeadCell: this.renderHeadCellWithMeta(
+                              tableData?.meta
+                            ) as any,
+                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                          }}
+                          location={location}
+                        />
+                      </VisuallyCompleteWithData>
                       <Pagination
                         disabled={isDiscoverQueryLoading}
                         caption={paginationCaption}

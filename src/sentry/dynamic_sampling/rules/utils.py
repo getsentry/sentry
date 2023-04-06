@@ -17,6 +17,8 @@ IGNORE_HEALTH_CHECKS_FACTOR = 5
 
 
 ProjectId = int
+DecisionDropCount = int
+DecisionKeepCount = int
 OrganizationId = int
 TransactionName = str
 
@@ -34,6 +36,7 @@ class ActivatableBias(TypedDict):
 # experience. These can be overridden by the project details endpoint
 class RuleType(Enum):
     UNIFORM_RULE = "uniformRule"
+    ADJUSTMENT_FACTOR_RULE = "adjustmentFactorRule"
     BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
     IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
@@ -49,13 +52,14 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     },
     {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
-    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,
     RuleType.BOOST_ENVIRONMENTS_RULE: 1001,
     RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
+    RuleType.ADJUSTMENT_FACTOR_RULE: 1004,
     RuleType.BOOST_LOW_VOLUME_TRANSACTIONS: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }
@@ -206,3 +210,25 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
 def get_redis_client_for_ds() -> Any:
     cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
     return redis.redis_clusters.get(cluster_key)
+
+
+def generate_cache_key_adj_factor(org_id: int) -> str:
+    return f"ds::o:{org_id}:rate_rebalance_factor"
+
+
+def actual_sample_rate(count_keep: int, count_drop: int) -> float:
+    """
+    Calculate actual sample rate based on relay `decision` tag values
+    """
+    try:
+        return count_keep / (count_drop + count_keep)
+    except ZeroDivisionError:
+        return 0.0
+
+
+def adjusted_factor(prev_factor: float, actual_rate: float, desired_sample_rate: float) -> float:
+    """
+    Calculates an adjustment factor in order to bring the actual sample rate to the blended_sample rate (i.e. desired_sample_rate)
+    """
+    assert prev_factor != 0.0
+    return prev_factor * (desired_sample_rate / actual_rate)

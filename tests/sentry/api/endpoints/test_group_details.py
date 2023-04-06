@@ -229,6 +229,28 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, sort_by="date", limit=1)
             assert response.status_code == 429
 
+    def test_with_deleted_user_activity(self):
+        self.login_as(user=self.user)
+        user = self.create_user("foo@example.com")
+
+        group = self.create_group()
+        Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.NOTE.value,
+            user_id=user.id,
+            data={"text": "This is bad"},
+            datetime=timezone.now(),
+        )
+
+        with exempt_from_silo_limits():
+            user.delete()
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+
 
 @region_silo_test(stable=True)
 class GroupUpdateTest(APITestCase):
@@ -392,7 +414,7 @@ class GroupUpdateTest(APITestCase):
         # migrating to DRF 3.x.
         with exempt_from_silo_limits():
             api_key = ApiKey.objects.create(
-                organization=self.organization, scope_list=["event:write"]
+                organization_id=self.organization.id, scope_list=["event:write"]
             )
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
