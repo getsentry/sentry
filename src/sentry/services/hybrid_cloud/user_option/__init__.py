@@ -4,7 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, Iterable, List, Optional, TypedDict, cast
+from typing import Any, Iterable, List, Optional, cast
+
+from typing_extensions import TypedDict
 
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.auth import AuthenticationContext

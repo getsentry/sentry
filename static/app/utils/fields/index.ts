@@ -968,6 +968,7 @@ export const ISSUE_FIELDS = [
   FieldKey.BOOKMARKS,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_CLASS,
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_LOCALE,
   FieldKey.DEVICE_LOCALE,
@@ -1155,6 +1156,7 @@ enum ReplayClickFieldKey {
   CLICK_ID = 'replay_click.id',
   CLICK_LABEL = 'replay_click.label',
   CLICK_ROLE = 'replay_click.role',
+  CLICK_SELECTOR = 'replay_click.selector',
   CLICK_TAG = 'replay_click.tag',
   CLICK_TESTID = 'replay_click.testid',
   CLICK_TEXT_CONTENT = 'replay_click.textContent',
@@ -1263,6 +1265,7 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_ID,
   ReplayClickFieldKey.CLICK_LABEL,
   ReplayClickFieldKey.CLICK_ROLE,
+  ReplayClickFieldKey.CLICK_SELECTOR,
   ReplayClickFieldKey.CLICK_TAG,
   ReplayClickFieldKey.CLICK_TEXT_CONTENT,
   ReplayClickFieldKey.CLICK_TITLE,
@@ -1293,6 +1296,13 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
   [ReplayClickFieldKey.CLICK_ROLE]: {
     desc: t('`role` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_SELECTOR]: {
+    desc: t(
+      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

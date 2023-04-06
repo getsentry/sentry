@@ -165,7 +165,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         with self.settings(SENTRY_SELF_HOSTED=False):
             org_provider = AuthProvider.objects.create(
-                organization=self.organization, provider="dummy"
+                organization_id=self.organization.id, provider="dummy"
             )
 
             user = self.create_user("foo@example.com", is_superuser=True)
@@ -204,7 +204,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         with self.settings(SENTRY_SELF_HOSTED=False):
             org_provider = AuthProvider.objects.create(
-                organization=self.organization, provider="dummy"
+                organization_id=self.organization.id, provider="dummy"
             )
 
             user = self.create_user("foo@example.com", is_superuser=True)
@@ -262,7 +262,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             other_org = self.create_organization(name="other_org")
 
             org_provider = AuthProvider.objects.create(
-                organization=self.organization, provider="dummy"
+                organization_id=self.organization.id, provider="dummy"
             )
 
             user = self.create_user("foo@example.com", is_superuser=True)
@@ -320,7 +320,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         with self.settings(SENTRY_SELF_HOSTED=False):
             org_provider = AuthProvider.objects.create(
-                organization=self.organization, provider="dummy"
+                organization_id=self.organization.id, provider="dummy"
             )
 
             user = self.create_user("foo@example.com", is_superuser=True)
@@ -353,7 +353,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
             org_provider = AuthProvider.objects.create(
-                organization=self.organization, provider="dummy"
+                organization_id=self.organization.id, provider="dummy"
             )
 
             user = self.create_user("foo@example.com", is_superuser=True)
