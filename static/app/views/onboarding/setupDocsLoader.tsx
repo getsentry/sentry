@@ -201,7 +201,7 @@ Sentry.onLoad(function() {
     setShowOptionalConfig(show);
 
     if (show) {
-      trackAdvancedAnalyticsEvent('onboarding.js_loader_show_configuration', {
+      trackAdvancedAnalyticsEvent('onboarding.js_loader_optional_configuration_shown', {
         organization,
         platform: currentPlatform,
         project_id: project.id,
