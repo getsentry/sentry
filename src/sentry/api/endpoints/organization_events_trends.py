@@ -412,6 +412,8 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
+    # def send_request_to_regression_service(self, request: Request, organization) -> None:
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -454,6 +456,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             column = columns[0]
 
         selected_columns = self.get_field_list(organization, request)
+        print("selected columns", selected_columns)
         orderby = self.get_orderby(request)
         query = request.GET.get("query")
 
@@ -466,7 +469,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
+            print("TRENDS QUery", trend_query)
             snql_trend_columns = self.resolve_trend_columns(trend_query, function, column, middle)
+            print("snql", snql_trend_columns.values())
             trend_query.columns.extend(snql_trend_columns.values())
             trend_query.aggregates.extend(snql_trend_columns.values())
             trend_query.params.aliases = self.get_snql_function_aliases(
