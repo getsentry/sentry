@@ -414,7 +414,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
-        entity = "events"
+        entity = "events" + ""
         if event_type == EventStreamEventType.Transaction:
             entity = "transactions"
         if event_type == EventStreamEventType.Generic:
