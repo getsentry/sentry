@@ -195,7 +195,7 @@ export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
   }, [item, listState.selectionManager.focusedKey, listState.selectionManager.isFocused]);
 
   const toggleAllOptions = useCallback(() => {
-    onToggle?.(item.props, allOptionsSelected ? 'unselect' : 'select');
+    onToggle?.(item.value, allOptionsSelected ? 'unselect' : 'select');
     toggleOptions(
       [...item.childNodes].map(n => n.key),
       listState.selectionManager
@@ -269,7 +269,7 @@ export function HiddenSectionToggle({
 
   const {pressProps} = usePress({
     onPress: () => {
-      onToggle?.(item.props, allOptionsSelected ? 'unselect' : 'select');
+      onToggle?.(item.value, allOptionsSelected ? 'unselect' : 'select');
       toggleOptions(
         [...item.childNodes].map(n => n.key),
         listState.selectionManager
