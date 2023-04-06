@@ -20,7 +20,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.utils import signal_first_checkin
-from sentry.monitors.validators import CronJobConfigValidator
+from sentry.monitors.validators import ConfigValidator
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
@@ -44,7 +44,7 @@ def _ensure_monitor_with_config(
     if not config:
         return monitor
 
-    validator = CronJobConfigValidator(data=config)
+    validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
         logger.debug("monitor_config for %s is not valid", monitor_slug)
