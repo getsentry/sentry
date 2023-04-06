@@ -24,6 +24,9 @@ export enum FieldKey {
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
   DEVICE_CHARGING = 'device.charging',
+  // device.class is a synthesized field calculated based off device info found in context such
+  // as model (for iOS devices), and device specs like processor_frequency (for Android devices).
+  // https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/device_class.rs
   DEVICE_CLASS = 'device.class',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
