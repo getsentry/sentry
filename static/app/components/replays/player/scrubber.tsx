@@ -21,8 +21,18 @@ function Scrubber({className}: Props) {
   return (
     <Wrapper className={className}>
       <Meter>
-        {currentHoverTime ? <MouseTrackingValue percent={hoverPlace} /> : null}
-        <PlaybackTimeValue percent={percentComplete} />
+        {currentHoverTime ? (
+          <MouseTrackingValue
+            style={{
+              width: hoverPlace * 100 + '%',
+            }}
+          />
+        ) : null}
+        <PlaybackTimeValue
+          style={{
+            width: percentComplete * 100 + '%',
+          }}
+        />
       </Meter>
       <RangeWrapper>
         <Range
