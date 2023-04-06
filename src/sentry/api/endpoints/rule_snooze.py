@@ -4,6 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -13,8 +14,8 @@ from sentry.models import Rule, RuleSnooze
 
 class RuleSnoozeSerializer(serializers.Serializer):
     userId = serializers.IntegerField(required=False, allow_null=True)
-    ruleId = serializers.IntegerField(required=False, allow_null=True)
-    alertRuleId = serializers.IntegerField(required=False, allow_null=True)
+    rule = serializers.BooleanField(required=False, allow_null=True)
+    alertRule = serializers.BooleanField(required=False, allow_null=True)
     until = serializers.DateTimeField(required=False, allow_null=True)
 
 
@@ -30,18 +31,19 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
             issue_alert_rule = None
             metric_alert_rule = None
 
-            if data.get("ruleId"):
+            if data.get("rule"):
                 try:
-                    issue_alert_rule = Rule.objects.get(id=data["ruleId"])
+                    issue_alert_rule = Rule.objects.get(id=rule_id)
                 except Rule.DoesNotExist:
                     raise serializers.ValidationError("Rule does not exist")
 
-            if data.get("alertRuleId"):
+            if data.get("alertRule"):
                 try:
-                    metric_alert_rule = AlertRule.objects.get(id=data["alertRuleId"])
-                except Rule.DoesNotExist:
+                    metric_alert_rule = AlertRule.objects.get(id=rule_id)
+                except AlertRule.DoesNotExist:
                     raise serializers.ValidationError("Rule does not exist")
 
+            # should we error if it's already been created? we're not allowing editing, right? just unmuting?
             RuleSnooze.objects.create(
                 user_id=data.get("userId"),
                 owner_id=request.user.id,
@@ -50,12 +52,30 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
                 until=data.get("until"),
                 date_added=datetime.datetime.now(),
             )
-            # create audit entry if rule snoozed for all
+            if not data.get("userId"):
+                # create an audit log entry if the rule is snoozed for everyone
+                rule = issue_alert_rule or metric_alert_rule
+                audit_log_event = "RULE_SNOOZE" if issue_alert_rule else "ALERT_RULE_SNOOZE"
+
+                self.create_audit_entry(
+                    request=request,
+                    organization=project.organization,
+                    target_object=rule.id,
+                    event=audit_log.get_event_id(audit_log_event),
+                    data=rule.get_audit_log_data(),
+                )
+            rule_id = None
+            alert_rule_id = None
+            if issue_alert_rule:
+                rule_id = issue_alert_rule.id
+            if metric_alert_rule:
+                alert_rule_id = metric_alert_rule.id
+
             rule_snooze = {
                 "ownerId": request.user.id,
                 "userId": data.get("userId", "everyone"),
-                "ruleId": data.get("ruleId"),
-                "alertRuleId": data.get("alertRuleId"),
+                "ruleId": rule_id,
+                "alertRuleId": alert_rule_id,
                 "until": data.get("until", "forever"),
                 "dateAdded": datetime.datetime.now(),
             }
