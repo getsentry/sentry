@@ -8,16 +8,15 @@ from sentry.new_migrations.migrations import CheckedMigration
 
 
 def authprovider_migrations():
-    database_operations = []
-    state_operations = [
-        migrations.RemoveField(
-            model_name="authprovider",
-            name="default_teams",
+    return [
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveField(
+                    model_name="authprovider",
+                    name="default_teams",
+                )
+            ]
         )
-    ]
-
-    return database_operations + [
-        migrations.SeparateDatabaseAndState(state_operations=state_operations)
     ]
 
 
@@ -108,12 +107,16 @@ def authproviderdefaultteams_migrations():
         migrations.AlterField(
             model_name="authproviderdefaultteams",
             name="authprovider",
-            field=sentry.db.models.fields.BoundedBigIntegerField(db_index=True, null=False),
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.OrganizationIntegration", db_constraint=False, db_index=False, null=False
+            ),
         ),
         migrations.AlterField(
             model_name="authproviderdefaultteams",
             name="team",
-            field=sentry.db.models.fields.BoundedBigIntegerField(db_index=True, null=False),
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.OrganizationIntegration", db_constraint=False, db_index=False, null=False
+            ),
         ),
         migrations.AlterUniqueTogether(
             name="authproviderdefaultteams",
@@ -122,6 +125,16 @@ def authproviderdefaultteams_migrations():
     ]
 
     state_operations = [
+        migrations.AlterField(
+            model_name="authproviderdefaultteams",
+            name="authprovider",
+            field=sentry.db.models.fields.BoundedBigIntegerField(),
+        ),
+        migrations.AlterField(
+            model_name="authproviderdefaultteams",
+            name="team",
+            field=sentry.db.models.fields.BoundedBigIntegerField(),
+        ),
         migrations.RenameField(
             model_name="authproviderdefaultteams",
             old_name="authprovider",
