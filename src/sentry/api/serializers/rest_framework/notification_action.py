@@ -240,7 +240,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             organization_id=self.context["organization"].id,
             integration_id=self.integration.id,
         )
-        if not pds or pds[0].id != service_id:
+        if not pds or str(pds[0].id) != service_id:
             raise serializers.ValidationError(
                 {
                     "target_identifier": f"Could not find associated PagerDuty service for the '{self.integration.name}' account. If it exists, ensure Sentry has access."

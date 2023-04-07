@@ -8,12 +8,9 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         return instance.status in {ObjectStatus.DELETION_IN_PROGRESS, ObjectStatus.PENDING_DELETION}
 
     def get_child_relations(self, instance):
-        from sentry.models import Identity, IntegrationExternalProject, PagerDutyService
+        from sentry.models import Identity
 
-        relations = [
-            ModelRelation(IntegrationExternalProject, {"organization_integration_id": instance.id}),
-            ModelRelation(PagerDutyService, {"organization_integration_id": instance.id}),
-        ]
+        relations = []
 
         # delete the identity attached through the default_auth_id
         if instance.default_auth_id:
