@@ -4,7 +4,6 @@ import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broa
 import {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import BroadcastSdkUpdates from 'sentry/components/sidebar/broadcastSdkUpdates';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
@@ -160,7 +159,6 @@ class Broadcasts extends Component<Props, State> {
                   />
                 ))
               )}
-              <BroadcastSdkUpdates />
             </SidebarPanel>
           )}
         </Fragment>
