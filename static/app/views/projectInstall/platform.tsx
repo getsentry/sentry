@@ -132,12 +132,16 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   };
 
   const redirectToNeutralDocs = useCallback(() => {
+    if (!project.slug) {
+      return;
+    }
+
     router.push(
       normalizeUrl(
         `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`
       )
     );
-  }, [organization.slug, project.slug, router]);
+  }, [organization.slug, project?.slug, router]);
 
   useEffect(() => {
     // redirect if platform is not known.
