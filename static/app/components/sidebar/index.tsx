@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -6,7 +6,6 @@ import {Location} from 'history';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -38,14 +37,13 @@ import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
-import useProjects from 'sentry/utils/useProjects';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
+import {useOpenOnboardingSidebar} from 'sentry/utils/useOpenOnboardingSidebar';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
-import OnboardingStatus, {isDone} from './onboardingStatus';
+import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
@@ -55,10 +53,6 @@ type Props = {
   location?: Location;
   organization?: Organization;
 };
-
-function activatePanel(panel: SidebarPanelKey) {
-  SidebarPanelStore.activatePanel(panel);
-}
 
 function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
@@ -77,9 +71,8 @@ function Sidebar({location, organization}: Props) {
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   const hasOrganization = !!organization;
-  const [onboardingState] = usePersistedOnboardingState();
 
-  const {projects: project} = useProjects();
+  useOpenOnboardingSidebar(location);
 
   const toggleCollapse = () => {
     const action = collapsed ? showSidebar : hideSidebar;
@@ -87,27 +80,6 @@ function Sidebar({location, organization}: Props) {
   };
 
   const bcl = document.body.classList;
-
-  const useOpenOnboardingSidebar = useMemo(() => {
-    if (location?.hash === '#welcome') {
-      if (hasOrganization && !ConfigStore.get('demoMode')) {
-        const tasks = getMergedTasks({
-          organization,
-          projects: project,
-          onboardingState: onboardingState || undefined,
-        });
-
-        const allDisplayedTasks = tasks
-          .filter(task => task.display)
-          .filter(task => !task.renderCard);
-        const doneTasks = allDisplayedTasks.filter(isDone);
-
-        return !(doneTasks.length >= allDisplayedTasks.length);
-      }
-      return true;
-    }
-    return false;
-  }, [organization, onboardingState, hasOrganization, project, location?.hash]);
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
@@ -136,13 +108,6 @@ function Sidebar({location, organization}: Props) {
 
     return () => bcl.remove('collapsed');
   }, [collapsed, bcl]);
-
-  // Trigger panels depending on the location hash
-  useEffect(() => {
-    if (useOpenOnboardingSidebar) {
-      activatePanel(SidebarPanelKey.OnboardingWizard);
-    }
-  }, [useOpenOnboardingSidebar]);
 
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
