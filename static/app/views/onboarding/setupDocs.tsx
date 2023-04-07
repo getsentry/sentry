@@ -79,12 +79,12 @@ const MissingExampleWarning = ({
 export function ProjectDocsReact({
   organization,
   location,
-  project,
+  projectSlug,
   newOrg,
 }: {
   location: Location;
   organization: Organization;
-  project: Project;
+  projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
   const {
@@ -119,10 +119,10 @@ export function ProjectDocsReact({
   }, [productSelectionLogExperiment, newOrg]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
-    [`/projects/${organization.slug}/${project.slug}/docs/${loadPlatform}/`],
+    [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
     {
       staleTime: Infinity,
-      enabled: !!project.slug && !!organization.slug && !!loadPlatform,
+      enabled: !!projectSlug && !!organization.slug && !!loadPlatform,
     }
   );
 
@@ -462,7 +462,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           ) : showReactOnboarding ? (
             <ProjectDocsReact
               organization={organization}
-              project={project}
+              projectSlug={project.slug}
               location={location}
               newOrg
             />
