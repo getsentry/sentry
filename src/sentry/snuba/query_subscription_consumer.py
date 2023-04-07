@@ -1,12 +1,14 @@
 import logging
 from random import random
-from typing import Callable, Dict, Mapping, cast
+from typing import Callable, Dict, Mapping
 
 import pytz
 import sentry_sdk
 from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
+from arroyo.codecs import ValidationError
+from arroyo.codecs.json import JsonCodec
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import (
@@ -15,8 +17,6 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTask,
 )
-from arroyo.processing.strategies.decoder.base import ValidationError
-from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -68,7 +68,9 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(value: bytes, jsoncodec: JsonCodec) -> SubscriptionUpdate:
+def parse_message_value(
+    value: bytes, jsoncodec: JsonCodec[SubscriptionResult]
+) -> SubscriptionUpdate:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
@@ -77,7 +79,7 @@ def parse_message_value(value: bytes, jsoncodec: JsonCodec) -> SubscriptionUpdat
     """
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
         try:
-            wrapper = cast(SubscriptionResult, jsoncodec.decode(value, validate=True))
+            wrapper = jsoncodec.decode(value, validate=True)
         except ValidationError:
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
             raise InvalidSchemaError("Message wrapper does not match schema")
@@ -101,7 +103,7 @@ def handle_message(
     message_partition: int,
     topic: str,
     dataset: str,
-    jsoncodec: JsonCodec,
+    jsoncodec: JsonCodec[SubscriptionResult],
 ) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
@@ -220,7 +222,9 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.topic = topic
         self.dataset = topic_to_dataset[self.topic]
         self.logical_topic = dataset_to_logical_topic[self.dataset]
-        self.jsoncodec = JsonCodec(get_schema(self.logical_topic)["schema"])
+        self.jsoncodec: JsonCodec[SubscriptionResult] = JsonCodec(
+            schema=get_schema(self.logical_topic)["schema"]
+        )
 
     def create_with_partitions(
         self,
