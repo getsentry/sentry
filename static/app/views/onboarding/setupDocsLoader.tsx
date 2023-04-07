@@ -11,7 +11,6 @@ import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
@@ -19,7 +18,6 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 
 export function SetupDocsLoader({
@@ -136,13 +134,6 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      <SetupIntroduction
-        stepHeaderText={t(
-          'Configure %s SDK',
-          platforms.find(p => p.id === currentPlatform)?.name ?? ''
-        )}
-        platform={currentPlatform}
-      />
       <ProductSelection
         defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
         lazyLoader
