@@ -10,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
-export const useOpenOnboardingSidebar = (location: Location) => {
+export const useOpenOnboardingSidebar = (location?: Location) => {
   const [onboardingState] = usePersistedOnboardingState();
   const {projects: project} = useProjects();
   const organization = useOrganization();
