@@ -409,6 +409,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 provider = auth_provider.get_provider()
                 try:
                     config = provider.build_config(provider_config)
+                    config["sentry-source"] = "api-organization-details"
                 except KeyError:
                     raise KeyError(f"Invalid providerConfig for authprovider {provider_name}")
                 auth_provider.update(config=config)
