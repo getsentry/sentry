@@ -148,7 +148,7 @@ class GroupStatus:
 
 
 class GroupSubStatus:
-    ARCHIVED_UNTIL_ESCALATING = 1
+    UNTIL_ESCALATING = 1
     ESCALATING = 2
     ONGOING = 3
 
@@ -425,7 +425,7 @@ class Group(Model):
     substatus = BoundedIntegerField(
         null=True,
         choices=(
-            (GroupSubStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived until escalating")),
+            (GroupSubStatus.UNTIL_ESCALATING, _("Archived until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
         ),
