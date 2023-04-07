@@ -13,10 +13,10 @@ type AutoSelectHandle = {
   selectText: () => void;
 };
 
-const AutoSelectText: React.ForwardRefRenderFunction<AutoSelectHandle, Props> = (
-  {children, className, ...props},
-  forwardedRef
-) => {
+function AutoSelectText(
+  {children, className, ...props}: Props,
+  forwardedRef: React.Ref<AutoSelectHandle>
+) {
   const element = useRef<HTMLSpanElement>(null);
 
   // We need to expose a selectText method to parent components
@@ -45,6 +45,6 @@ const AutoSelectText: React.ForwardRefRenderFunction<AutoSelectHandle, Props> = 
       <span ref={element}>{children}</span>
     </div>
   );
-};
+}
 
 export default forwardRef(AutoSelectText);
