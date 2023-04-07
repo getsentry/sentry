@@ -19,8 +19,8 @@ class OrganizationIntegrityBackfillMixin:
             org_integrations = integration_service.get_organization_integrations(
                 org_integration_ids=[self.organization_integration_id],
             )
-            if org_integrations:
-                org_integration = org_integrations[0]
-                self.organization_id = org_integration.organization_id
-                self.integration_id = org_integration.integration_id
+            assert org_integrations, "Could not find org integration!"
+            org_integration = org_integrations[0]
+            self.organization_id = org_integration.organization_id
+            self.integration_id = org_integration.integration_id
         super().save(*args, **kwds)
