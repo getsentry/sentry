@@ -47,7 +47,6 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:transaction-name-normalize",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:profiling",
     "organizations:session-replay",
@@ -205,9 +204,6 @@ class TransactionNameRule(TypedDict):
 
 
 def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
-    if not features.has("organizations:transaction-name-normalize", project.organization):
-        return None
-
     cluster_rules = get_sorted_rules(project)
     if not cluster_rules:
         return None

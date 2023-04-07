@@ -288,33 +288,26 @@ def test_transaction_clusterer_generates_rules(default_project):
             get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
         )
 
-    feature = "organizations:transaction-name-normalize"
-    with Feature({feature: False}):
-        assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({feature: True}):
-        assert _get_projconfig_tx_rules(default_project) is None
+    assert _get_projconfig_tx_rules(default_project) is None
 
     rules = {"/rule/*/0/**": 0, "/rule/*/1/**": 1}
     ProjectOptionRuleStore().write(default_project, rules)
 
-    with Feature({feature: False}):
-        assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({feature: True}):
-        assert _get_projconfig_tx_rules(default_project) == [
-            # TTL is 90d, so three months to expire
-            {
-                "pattern": "/rule/*/0/**",
-                "expiry": "1970-04-01T00:00:00+00:00",
-                "scope": {"source": "url"},
-                "redaction": {"method": "replace", "substitution": "*"},
-            },
-            {
-                "pattern": "/rule/*/1/**",
-                "expiry": "1970-04-01T00:00:01+00:00",
-                "scope": {"source": "url"},
-                "redaction": {"method": "replace", "substitution": "*"},
-            },
-        ]
+    assert _get_projconfig_tx_rules(default_project) == [
+        # TTL is 90d, so three months to expire
+        {
+            "pattern": "/rule/*/0/**",
+            "expiry": "1970-04-01T00:00:00+00:00",
+            "scope": {"source": "url"},
+            "redaction": {"method": "replace", "substitution": "*"},
+        },
+        {
+            "pattern": "/rule/*/1/**",
+            "expiry": "1970-04-01T00:00:01+00:00",
+            "scope": {"source": "url"},
+            "redaction": {"method": "replace", "substitution": "*"},
+        },
+    ]
 
 
 @mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
