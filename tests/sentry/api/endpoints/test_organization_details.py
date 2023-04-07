@@ -798,7 +798,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
         auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
         assert auth_provider.provider == provider
-        assert auth_provider.config == {"domains": ["foo.com"], "version": DATA_VERSION}
+        assert auth_provider.config == {
+            "domains": ["foo.com"],
+            "version": DATA_VERSION,
+            "sentry-source": "api-organization-details",
+        }
 
         self.get_success_response(
             self.organization.slug,
@@ -808,7 +812,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
         auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
         assert auth_provider.provider == provider
-        assert auth_provider.config == {"domains": ["bar.com"], "version": DATA_VERSION}
+        assert auth_provider.config == {
+            "domains": ["bar.com"],
+            "version": DATA_VERSION,
+            "sentry-source": "api-organization-details",
+        }
 
     def test_invalid_auth_provider_configuration(self):
         self.get_error_response(
