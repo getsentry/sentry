@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Sequence
+from typing import Any, List
 
 from django.db import IntegrityError, models, transaction
 
@@ -33,9 +33,6 @@ class IntegrationManager(BaseManager):
 class Integration(DefaultFieldsModel):
     __include_in_export__ = False
 
-    organizations = models.ManyToManyField(
-        "sentry.Organization", related_name="integrations", through=OrganizationIntegration
-    )
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=64)
     name = models.CharField(max_length=200)
@@ -83,12 +80,6 @@ class Integration(DefaultFieldsModel):
 
     def get_installation(self, organization_id: int, **kwargs: Any) -> Any:
         return self.get_provider().get_installation(self, organization_id, **kwargs)
-
-    def get_installations(self, **kwargs: Any) -> Sequence[Any]:
-        return [
-            self.get_provider().get_installation(self, organization.id, **kwargs)
-            for organization in self.organizations.all()
-        ]
 
     def has_feature(self, feature):
         return feature in self.get_provider().features

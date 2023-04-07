@@ -166,7 +166,10 @@ class RelayStoreHelper:
         wait_for_ingest_consumer,
     ):
         self.auth_header = get_auth_header(
-            "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
+            "TEST_USER_AGENT/0.0.0",
+            self.projectkey.public_key,
+            self.projectkey.secret_key,
+            "7",
         )
 
         self.settings = settings

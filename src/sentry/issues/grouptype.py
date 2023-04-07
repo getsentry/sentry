@@ -48,6 +48,26 @@ class GroupTypeRegistry:
     def all(self) -> List[Type[GroupType]]:
         return list(self._registry.values())
 
+    def get_visible(
+        self, organization: Organization, actor: Optional[Any] = None
+    ) -> List[Type[GroupType]]:
+        released = [gt for gt in self.all() if gt.released]
+        feature_to_grouptype = {
+            gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
+        }
+        batch_features = features.batch_has(
+            list(feature_to_grouptype.keys()), actor=actor, organization=organization
+        )
+        enabled = []
+        if batch_features:
+            feature_results = batch_features.get(f"organization:{organization.id}", {})
+            enabled = [
+                feature_to_grouptype[feature]
+                for feature, active in feature_results.items()
+                if active
+            ]
+        return released + enabled
+
     def get_all_group_type_ids(self) -> Set[int]:
         return {type.type_id for type in self._registry.values()}
 
@@ -315,7 +335,7 @@ def reduce_noise(
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
-    grouptype: GroupType,
+    grouptype: Type[GroupType],
     client: Any,
     grouphash: str,
     project: Project,

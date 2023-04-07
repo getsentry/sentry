@@ -20,6 +20,7 @@ type Props = {
 
 export function EventTags({event, organization, projectSlug, location}: Props) {
   const meta = event._meta?.tags;
+  const projectId = event.projectID;
 
   if (!!meta?.[''] && !event.tags) {
     return <AnnotatedText value={event.tags} meta={meta?.['']} />;
@@ -32,14 +33,19 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
   const orgSlug = organization.slug;
   const streamPath = `/organizations/${orgSlug}/issues/`;
 
+  const tags = !organization.features.includes('device-classification')
+    ? event.tags.filter(tag => tag.key !== 'device.class')
+    : event.tags;
+
   return (
     <StyledClippedBox clipHeight={150}>
       <Pills>
-        {event.tags.map((tag, index) => (
+        {tags.map((tag, index) => (
           <EventTagsPill
             key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
             tag={tag}
             projectSlug={projectSlug}
+            projectId={projectId}
             organization={organization}
             query={generateQueryWithTag({...location.query, referrer: 'event-tags'}, tag)}
             streamPath={streamPath}

@@ -7,6 +7,30 @@ declare namespace Profiling {
   type SymbolicatorStatus =
     import('sentry/components/events/interfaces/types').SymbolicatorStatus;
 
+  type MeasurementValue = {
+    elapsed_since_start_ns: number;
+    value: number;
+  };
+
+  type Measurements = {
+    cpu_usage?: {
+      unit: string;
+      values: MeasurementValue[];
+    }
+    frozen_frame_renders?: {
+      unit: string;
+      values: MeasurementValue[];
+    };
+    screen_frame_rates?: {
+      unit: string;
+      values: MeasurementValue[];
+    };
+    slow_frame_renders?: {
+      unit: string;
+      values: MeasurementValue[];
+    };
+  };
+
   type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
@@ -40,6 +64,7 @@ declare namespace Profiling {
 
   type SentrySampledProfile = {
     event_id: string;
+    project_id: number;
     version: string;
     os: {
       name: string;
@@ -58,7 +83,7 @@ declare namespace Profiling {
       version: string;
     };
     timestamp: string;
-    release: string;
+    release: Release | null;
     platform: string;
     environment?: string;
     debug_meta?: {
@@ -72,6 +97,7 @@ declare namespace Profiling {
       queue_metadata?: Record<string, {label: string}>;
     };
     transaction: SentrySampledProfileTransaction;
+    measurements?: Measurements;
   };
 
   ////////////////
@@ -151,11 +177,6 @@ declare namespace Profiling {
     profiles: ReadonlyArray<ProfileInput>;
   };
 
-  type FrameRender = {
-    elapsed_since_start_ns: number;
-    value: number;
-  };
-
   // We have extended the speedscope schema to include some additional metadata and measurements
   interface Schema extends SpeedscopeSchema {
     metadata: {
@@ -166,7 +187,6 @@ declare namespace Profiling {
       deviceModel: string;
       deviceOSName: string;
       deviceOSVersion: string;
-      durationNS: number;
       environment: string;
       organizationID: number;
       platform: string;
@@ -180,19 +200,6 @@ declare namespace Profiling {
     };
     profileID: string;
     projectID: number;
-    measurements?: {
-      frozen_frame_renders?: {
-        unit: string;
-        values: FrameRender[];
-      };
-      screen_frame_rates?: {
-        unit: string;
-        values: {elapsed_since_start_ns: number; value: number}[];
-      };
-      slow_frame_renders?: {
-        unit: string;
-        values: FrameRender[];
-      };
-    };
+    measurements?: Measurements;
   }
 }

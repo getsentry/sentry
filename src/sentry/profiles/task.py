@@ -45,7 +45,16 @@ def process_profile_task(
     profile: Profile,
     **kwargs: Any,
 ) -> None:
+    organization = Organization.objects.get_from_cache(id=profile["organization_id"])
+
+    sentry_sdk.set_tag("organization", organization.id)
+    sentry_sdk.set_tag("organization.slug", organization.slug)
+
     project = Project.objects.get_from_cache(id=profile["project_id"])
+
+    sentry_sdk.set_tag("project", project.id)
+    sentry_sdk.set_tag("project.slug", project.slug)
+
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     sentry_sdk.set_context(
@@ -56,15 +65,15 @@ def process_profile_task(
             "profile_id": event_id,
         },
     )
+
     sentry_sdk.set_tag("platform", profile["platform"])
+    sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
 
     if not _symbolicate_profile(profile, project, event_id):
         return
 
     if not _deobfuscate_profile(profile, project):
         return
-
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     if not _normalize_profile(profile, organization, project):
         return
@@ -460,7 +469,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     if debug_file_id is None or debug_file_id == "":
         return
 
-    with sentry_sdk.start_span(op="task.profiling.deobfuscate.fetch_difs"):
+    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
         dif_paths = ProjectDebugFile.difcache.fetch_difs(
             project, [debug_file_id], features=["mapping"]
         )
@@ -468,12 +477,12 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         if debug_file_path is None:
             return
 
-    with sentry_sdk.start_span(op="task.profiling.deobfuscate.open_mapper"):
+    with sentry_sdk.start_span(op="proguard.open"):
         mapper = ProguardMapper.open(debug_file_path)
         if not mapper.has_line_info:
             return
 
-    with sentry_sdk.start_span(op="task.profiling.deobfuscate.remap"):
+    with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
             mapped = mapper.remap_frame(
                 method["class_name"], method["name"], method["source_line"] or 0

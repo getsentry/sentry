@@ -224,6 +224,7 @@ export const profiling = [
   'node-express',
   'node-koa',
   'node-connect',
+  'javascript-nextjs',
   // python, WSGI only
   'python',
   'python-django',
@@ -239,6 +240,10 @@ export const profiling = [
   'python-rq',
   // rust
   'rust',
+  // php
+  'php',
+  'php-laravel',
+  'php-symfony2',
 ] as const;
 
 export const releaseHealth: PlatformKey[] = [
@@ -342,3 +347,10 @@ export type PlatformKey =
   | 'other';
 
 export default categoryList;
+
+export type Platform = {
+  key: PlatformKey;
+  id?: string;
+  link?: string | null;
+  name?: string;
+};

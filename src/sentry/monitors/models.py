@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 import pytz
 from croniter import croniter
@@ -22,7 +21,10 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.models import Environment, Project
+from sentry.utils.retries import TimedRetryPolicy
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -34,18 +36,16 @@ SCHEDULE_INTERVAL_MAP = {
 }
 
 
-def get_next_schedule(base_datetime, schedule_type, schedule):
+def get_next_schedule(last_checkin, schedule_type, schedule):
     if schedule_type == ScheduleType.CRONTAB:
-        itr = croniter(schedule, base_datetime)
+        itr = croniter(schedule, last_checkin)
         next_schedule = itr.get_next(datetime)
     elif schedule_type == ScheduleType.INTERVAL:
-        count, unit_name = schedule
-        # count is the "number of units" and unit_name is the "unit name of interval"
-        # which is inverse from what rrule calls them
+        interval, unit_name = schedule
         rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=count, dtstart=base_datetime, count=2
+            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=last_checkin, count=2
         )
-        if rule[0] > base_datetime:
+        if rule[0] > last_checkin:
             next_schedule = rule[0]
         else:
             next_schedule = rule[1]
@@ -55,18 +55,18 @@ def get_next_schedule(base_datetime, schedule_type, schedule):
     return next_schedule
 
 
-def get_monitor_context(monitor):
-    config = monitor.config.copy()
+def get_monitor_environment_context(monitor_environment):
+    config = monitor_environment.monitor.config.copy()
     if "schedule_type" in config:
-        config["schedule_type"] = monitor.get_schedule_type_display()
+        config["schedule_type"] = monitor_environment.monitor.get_schedule_type_display()
 
     return {
-        "id": str(monitor.guid),
-        "slug": monitor.slug,
-        "name": monitor.name,
-        "config": monitor.config,
-        "status": monitor.get_status_display(),
-        "type": monitor.get_type_display(),
+        "id": str(monitor_environment.monitor.guid),
+        "slug": monitor_environment.monitor.slug,
+        "name": monitor_environment.monitor.name,
+        "config": monitor_environment.monitor.config,
+        "status": monitor_environment.get_status_display(),
+        "type": monitor_environment.monitor.get_type_display(),
     }
 
 
@@ -186,15 +186,18 @@ class Monitor(Model):
     __repr__ = sane_repr("guid", "project_id", "name")
 
     def save(self, *args, **kwargs):
-        # TODO(epurkhsier): This logic is to be removed when the `guid` field
-        # is removed and a slug is required when creating monitors
+        if not self.slug:
+            lock = locks.get(
+                f"slug:monitor:{self.organization_id}", duration=5, name="monitor_slug"
+            )
+            with TimedRetryPolicy(10)(lock.acquire):
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization_id=self.organization_id,
+                    max_length=50,
+                )
 
-        # NOTE: We ONLY set a slug while saving when creating a new monitor and
-        # the slug has not been set. Otherwise existing monitors without slugs
-        # would have their guids changed
-        if self._state.adding is True and not self.slug:
-            self.guid = uuid4()
-            self.slug = str(self.guid)
         return super().save(*args, **kwargs)
 
     def get_schedule_type_display(self):
@@ -203,21 +206,15 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin(self, last_checkin=None):
-        if last_checkin is None:
-            last_checkin = self.last_checkin
+    def get_next_scheduled_checkin(self, last_checkin):
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
-        base_datetime = last_checkin.astimezone(tz)
-        next_checkin = get_next_schedule(base_datetime, schedule_type, self.config["schedule"])
+        next_checkin = get_next_schedule(
+            last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
+        )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        from sentry.coreapi import insert_data_to_database_legacy
-        from sentry.event_manager import EventManager
-        from sentry.models import Project
-        from sentry.signals import monitor_failed
-
         if last_checkin is None:
             next_checkin_base = timezone.now()
             last_checkin = self.last_checkin or timezone.now()
@@ -242,19 +239,6 @@ class Monitor(Model):
         if not affected:
             return False
 
-        event_manager = EventManager(
-            {
-                "logentry": {"message": f"Monitor failure: {self.name} ({reason})"},
-                "contexts": {"monitor": get_monitor_context(self)},
-                "fingerprint": ["monitor", str(self.guid), reason],
-                "tags": {"monitor.id": str(self.guid)},
-            },
-            project=Project(id=self.project_id),
-        )
-        event_manager.normalize()
-        data = event_manager.get_data()
-        insert_data_to_database_legacy(data)
-        monitor_failed.send(monitor=self, sender=type(self))
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
@@ -374,6 +358,11 @@ class MonitorEnvironment(Model):
     __repr__ = sane_repr("monitor_id", "environment_id")
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
+        from sentry.coreapi import insert_data_to_database_legacy
+        from sentry.event_manager import EventManager
+        from sentry.models import Project
+        from sentry.signals import monitor_environment_failed
+
         if last_checkin is None:
             next_checkin_base = timezone.now()
             last_checkin = self.last_checkin or timezone.now()
@@ -398,6 +387,22 @@ class MonitorEnvironment(Model):
         if not affected:
             return False
 
+        event_manager = EventManager(
+            {
+                "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
+                "contexts": {"monitor": get_monitor_environment_context(self)},
+                "fingerprint": ["monitor", str(self.monitor.guid), reason],
+                "environment": self.environment.name,
+                "tags": {
+                    "monitor.id": str(self.monitor.guid),
+                },
+            },
+            project=Project(id=self.monitor.project_id),
+        )
+        event_manager.normalize()
+        data = event_manager.get_data()
+        insert_data_to_database_legacy(data)
+        monitor_environment_failed.send(monitor_environment=self, sender=type(self))
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):

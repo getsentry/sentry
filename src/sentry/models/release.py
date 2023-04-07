@@ -34,6 +34,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
+    ArtifactBundle,
     BaseManager,
     CommitFileChange,
     GroupInbox,
@@ -608,6 +609,31 @@ class Release(Model):
             # This can happen on invalid legacy releases
             return False
 
+    @staticmethod
+    def is_release_newer_or_equal(org_id, release, other_release):
+        if release is None:
+            return False
+
+        if other_release is None:
+            return True
+
+        if release == other_release:
+            return True
+
+        releases = {
+            release.version: float(release.date_added.timestamp())
+            for release in Release.objects.filter(
+                organization_id=org_id, version__in=[release, other_release]
+            )
+        }
+        release_date = releases.get(release)
+        other_release_date = releases.get(other_release)
+
+        if release_date is not None and other_release_date is not None:
+            return release_date > other_release_date
+
+        return False
+
     @classmethod
     def get_cache_key(cls, organization_id, version):
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
@@ -1176,6 +1202,24 @@ class Release(Model):
         """
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
+
+    def last_weakly_associated_artifact_bundle(self):
+        """Counts the number of artifacts in the most recent "ArtifactBundle" that is weakly associated
+        with this release.
+        """
+        bundles = (
+            ArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                releaseartifactbundle__release_name=self.version,
+            )
+            .order_by("-date_uploaded")
+            .select_related("file")[:1]
+        )
+
+        if len(bundles) == 0:
+            return None
+
+        return bundles[0]
 
     def clear_commits(self):
         """

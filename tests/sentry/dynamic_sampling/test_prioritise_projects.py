@@ -31,8 +31,8 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            results = fetch_projects_with_total_volumes()
-        assert results[org1.id] == [(p1.id, 1.0)]
+            results = fetch_projects_with_total_volumes(org_ids=[org1.id])
+        assert results[org1.id] == [(p1.id, 1.0, 0, 0)]
 
     def test_simple_one_org_one_project_sample_rate_zero(self):
         org1 = self.create_organization("test-org")
@@ -47,7 +47,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 0.0}):
-            results = fetch_projects_with_total_volumes()
+            results = fetch_projects_with_total_volumes(org_ids=[org1.id])
         # No results
         assert results == {}
 
@@ -64,6 +64,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 0}):
-            results = fetch_projects_with_total_volumes()
+            results = fetch_projects_with_total_volumes(org_ids=[org1.id])
             # No data because rate is too small
             assert results[org1.id] == []

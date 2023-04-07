@@ -8,6 +8,7 @@ from sentry.types.region import (
     MONOLITH_REGION_NAME,
     Region,
     RegionCategory,
+    RegionConfigurationError,
     RegionContextError,
     RegionResolutionError,
     get_local_region,
@@ -57,3 +58,11 @@ class RegionMappingTest(TestCase):
                     address="/",
                     category=RegionCategory.MULTI_TENANT,
                 )
+
+    def test_validate_region(self):
+        with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="na"):
+            invalid_region = Region("na", 1, "na.sentry.io", RegionCategory.MULTI_TENANT)
+            with pytest.raises(RegionConfigurationError):
+                invalid_region.validate()
+            valid_region = Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT)
+            valid_region.validate()

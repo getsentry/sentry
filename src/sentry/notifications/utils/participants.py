@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence, Tuple
 
 from sentry import features
+from sentry.experiments import manager as expt_manager
 from sentry.models import (
     ActorTuple,
     Group,
@@ -51,7 +52,8 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.SLACK,
 }
 
-FALLTHROUGH_NOTIFICATION_LIMIT_EA = 20
+FALLTHROUGH_NOTIFICATION_LIMIT_EA = 10
+FALLTHROUGH_NOTIFICATION_LIMIT = 20
 
 
 class ParticipantMap:
@@ -201,7 +203,7 @@ def get_owners(
     project: Project,
     event: Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> List[RpcActor]:
+) -> Tuple[List[RpcActor], str]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -232,17 +234,7 @@ def get_owners(
         if not features.has("organizations:notification-all-recipients", project.organization):
             recipients = recipients[-1:]
 
-    metrics.incr(
-        "features.owners.send_to",
-        tags={
-            "outcome": outcome
-            if outcome == "match" or fallthrough_choice is None
-            else fallthrough_choice.value,
-            "isUsingDefault": ProjectOwnership.get_ownership_cached(project.id) is None,
-        },
-        skip_internal=True,
-    )
-    return recipients
+    return (recipients, outcome)
 
 
 def get_owner_reason(
@@ -317,7 +309,7 @@ def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
     )
     user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore
     suspect_committers = user_service.get_many_by_email(
-        user_emails, is_project_member=True, project_id=project.id
+        emails=user_emails, is_project_member=True, project_id=project.id
     )
     return suspect_committers
 
@@ -351,15 +343,28 @@ def determine_eligible_recipients(
             return [RpcActor.from_orm_team(team)]
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
-        suggested_assignees = get_owners(project, event, fallthrough_choice)
+        suggested_assignees, outcome = get_owners(project, event, fallthrough_choice)
+        suspect_commit_users = None
         if features.has("organizations:streamline-targeting-context", project.organization):
             try:
-                suggested_assignees += [
+                suspect_commit_users = [
                     RpcActor.from_rpc_user(user)
                     for user in get_suspect_commit_users(project, event)
                 ]
+                suggested_assignees.extend(suspect_commit_users)
             except Exception:
                 logger.exception("Could not get suspect committers. Continuing execution.")
+
+        metrics.incr(
+            "features.owners.send_to",
+            tags={
+                "outcome": outcome
+                if outcome == "match" or fallthrough_choice is None
+                else fallthrough_choice.value,
+                "hasSuspectCommitters": str(bool(suspect_commit_users)),
+            },
+        )
+
         if suggested_assignees:
             return dedupe_suggested_assignees(suggested_assignees)
 
@@ -385,6 +390,25 @@ def get_send_to(
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
+def should_use_smaller_issue_alert_fallback(org: Organization) -> Tuple[bool, str]:
+    """
+    Remove after IssueAlertFallbackExperiment experiment
+    Returns a tuple of (enabled, analytics_label)
+    """
+    if not org.flags.early_adopter.is_set:
+        # Not early access, not in experiment
+        return (False, "ga")
+
+    # Disabled
+    if not features.has("organizations:issue-alert-fallback-experiment", org, actor=None):
+        return (False, "disabled")
+
+    org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=org) == 1
+    if org_exposed:
+        return (True, "expt")
+    return (False, "ctrl")
+
+
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[RpcUser]:
@@ -408,13 +432,19 @@ def get_fallthrough_recipients(
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
+        use_smaller_limit, _ = should_use_smaller_issue_alert_fallback(org=project.organization)
+        limit = (
+            FALLTHROUGH_NOTIFICATION_LIMIT_EA
+            if use_smaller_limit
+            else FALLTHROUGH_NOTIFICATION_LIMIT
+        )
         return user_service.get_many(
             filter={
                 "user_ids": project.member_set.order_by("-user__last_active").values_list(
                     "user_id", flat=True
                 )
             }
-        )[:FALLTHROUGH_NOTIFICATION_LIMIT_EA]
+        )[:limit]
 
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 

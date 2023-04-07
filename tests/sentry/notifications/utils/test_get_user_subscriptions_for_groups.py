@@ -1,8 +1,7 @@
-from unittest import TestCase
-
-from sentry.models import Group, GroupSubscription, Project, User
+from sentry.models import Group, GroupSubscription, Project
 from sentry.notifications.helpers import get_user_subscriptions_for_groups
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
+from sentry.testutils import TestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -11,7 +10,7 @@ from sentry.types.integrations import ExternalProviders
 class GetUserSubscriptionsForGroupsTestCase(TestCase):
     def setUp(self) -> None:
         self.group_subscription = GroupSubscription(is_active=True)
-        self.user = User(id=1)
+        self.user = self.create_user()
         self.project = Project(id=1)
         self.group = Group(id=1)
 

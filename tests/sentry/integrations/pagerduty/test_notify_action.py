@@ -157,7 +157,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.project = new_project
 
         self.integration.add_organization(new_org, self.user)
-        oi = OrganizationIntegration.objects.get(organization=new_org)
+        oi = OrganizationIntegration.objects.get(organization_id=new_org.id)
         new_service = PagerDutyService.objects.create(
             service_name="New Service",
             integration_key="new_service_key",

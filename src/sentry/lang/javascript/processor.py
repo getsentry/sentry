@@ -729,7 +729,7 @@ class Fetcher:
                 else None,
                 projectartifactbundle__project_id=project_id,
             )
-            .order_by("-date_added")
+            .order_by("-date_uploaded")
             .select_related("file")[:1]
         )
 
@@ -919,7 +919,7 @@ class Fetcher:
                 releaseartifactbundle__dist_name=self.dist.name if self.dist else NULL_STRING,
                 projectartifactbundle__project_id=project_id,
             )
-            .order_by("-date_added")
+            .order_by("-date_uploaded")
             .select_related("file")[: MAX_ARTIFACTS_NUMBER + 1]
         )
 
@@ -1173,8 +1173,12 @@ class Fetcher:
         cache_key = f"source:cache:v4:{md5_text(url).hexdigest()}"
 
         if result is None:
-            if not self.allow_scraping or not url.startswith(("http:", "https:")):
+            if not url.startswith(("http:", "https:")):
                 error = {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)}
+                raise http.CannotFetch(error)
+
+            if not self.allow_scraping:
+                error = {"type": EventError.JS_SCRAPING_DISABLED, "url": http.expose_url(url)}
                 raise http.CannotFetch(error)
 
             logger.debug("Checking cache for url %r", url)

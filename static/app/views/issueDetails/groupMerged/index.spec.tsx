@@ -95,7 +95,7 @@ describe('Issues -> Merged View', function () {
       {context: routerContext}
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(container).toSnapshot();
   });

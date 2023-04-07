@@ -10,12 +10,10 @@ import ProgressRing, {
   RingText,
 } from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
-import {useSandboxSidebarTasks} from 'sentry/utils/demoWalkthrough';
 import theme from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
@@ -26,10 +24,6 @@ type Props = CommonSidebarProps & {
   org: Organization;
   projects: Project[];
 };
-
-export const getSidebarTasks = isDemoWalkthrough()
-  ? useSandboxSidebarTasks
-  : getMergedTasks;
 
 export const isDone = (task: OnboardingTaskStatus) =>
   task.status === 'complete' || task.status === 'skipped';
@@ -54,14 +48,11 @@ function OnboardingStatus({
   };
   const [onboardingState] = usePersistedOnboardingState();
 
-  const shouldShowSidebar =
-    org.features?.includes('onboarding') || ConfigStore.get('demoMode');
-
-  if (!shouldShowSidebar) {
+  if (!org.features?.includes('onboarding')) {
     return null;
   }
 
-  const tasks = getSidebarTasks({
+  const tasks = getMergedTasks({
     organization: org,
     projects,
     onboardingState: onboardingState || undefined,

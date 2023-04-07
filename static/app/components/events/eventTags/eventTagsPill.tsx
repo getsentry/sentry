@@ -21,6 +21,7 @@ const iconStyle = css`
 
 type Props = {
   organization: Organization;
+  projectId: string;
   projectSlug: string;
   query: Query;
   streamPath: string;
@@ -33,6 +34,7 @@ const EventTagsPill = ({
   query,
   organization,
   projectSlug,
+  projectId,
   streamPath,
   meta,
 }: Props) => {
@@ -41,26 +43,48 @@ const EventTagsPill = ({
   const name = !key ? <AnnotatedText value={key} meta={meta?.key?.['']} /> : key;
   const type = !key ? 'error' : undefined;
 
+  const getInnerContent = () => {
+    switch (key) {
+      case 'release':
+        return (
+          <VersionHoverCard
+            organization={organization}
+            projectSlug={projectSlug}
+            releaseVersion={value}
+            showUnderline
+            underlineColor="linkUnderline"
+          >
+            <Version version={String(value)} truncate />
+          </VersionHoverCard>
+        );
+      case 'transaction':
+        return (
+          <EventTagsPillValue
+            tag={tag}
+            meta={meta?.value?.['']}
+            streamPath={`/organizations/${organization.slug}/performance/summary/`}
+            locationSearch={`?${qs.stringify({
+              project: projectId,
+              transaction: value,
+              referrer: 'event-tags',
+            })}`}
+          />
+        );
+      default:
+        return (
+          <EventTagsPillValue
+            tag={tag}
+            meta={meta?.value?.['']}
+            streamPath={streamPath}
+            locationSearch={locationSearch}
+          />
+        );
+    }
+  };
+
   return (
     <Pill name={name} value={value} type={type}>
-      {key === 'release' ? (
-        <VersionHoverCard
-          organization={organization}
-          projectSlug={projectSlug}
-          releaseVersion={value}
-          showUnderline
-          underlineColor="linkUnderline"
-        >
-          <Version version={String(value)} truncate />
-        </VersionHoverCard>
-      ) : (
-        <EventTagsPillValue
-          tag={tag}
-          meta={meta?.value?.['']}
-          streamPath={streamPath}
-          locationSearch={locationSearch}
-        />
-      )}
+      {getInnerContent()}
       {isUrl(value) && (
         <ExternalLink href={value} className="external-icon">
           <IconOpen size="xs" css={iconStyle} />
