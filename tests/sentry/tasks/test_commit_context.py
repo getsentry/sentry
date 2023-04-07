@@ -194,7 +194,8 @@ class TestCommitContext(TestCase):
             assert GroupOwner.objects.filter(group=self.event.group).count() == 1
             assert GroupOwner.objects.filter(group=self.event.group, user_id=self.user.id).exists()
 
-    def test_no_inapp_frame_in_stacktrace(self):
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    def test_no_inapp_frame_in_stacktrace(self, mock_process_suspect_commits):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             self.event_2 = self.store_event(
@@ -235,6 +236,7 @@ class TestCommitContext(TestCase):
                 group_id=self.event.group_id,
                 project_id=self.event.project_id,
             )
+        assert mock_process_suspect_commits.call_count == 1
         assert not GroupOwner.objects.filter(
             group=self.event.group,
             project=self.event.project,
