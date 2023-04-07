@@ -161,13 +161,13 @@ def test_max_rule_threshold_merge_composite_store(default_project):
 
     assert get_sorted_rules(default_project) == [("foo/foo", 946688400), ("bar/bar", 946688400)]
 
-    with freeze_time("2002-02-02 02:00:00"):
+    with freeze_time("2000-01-01 02:00:00"):
         update_rules(default_project, [ReplacementRule("baz/baz")])
         assert len(get_sorted_rules(default_project)) == 2
         update_rules(default_project, [ReplacementRule("qux/qux")])
         assert len(get_sorted_rules(default_project)) == 2
 
-    assert get_sorted_rules(default_project) == [("baz/baz", 1012615200), ("qux/qux", 1012615200)]
+    assert get_sorted_rules(default_project) == [("baz/baz", 946692000), ("qux/qux", 946692000)]
 
 
 @pytest.mark.django_db
@@ -368,7 +368,8 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         # _get_rules fetches from project options, which arent updated yet.
         assert _get_rules(project1) == {"/user/*/**": 1}
         # Update rules to update the project option storage.
-        update_rules(project1, [])
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
+            update_rules(project1, [])
         # After project options are updated, the last_seen should also be updated.
         assert _get_rules(project1) == {"/user/*/**": 2}
 
@@ -425,3 +426,20 @@ def test_dont_store_inexisting_rules(_, default_organization):
         )
 
         assert _get_rules(project1) == {"/user/*/**": 1}
+
+
+@pytest.mark.django_db
+def test_stale_rules_arent_saved(default_project):
+    assert len(get_sorted_rules(default_project)) == 0
+
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(default_project, [ReplacementRule("foo/foo")])
+    assert get_sorted_rules(default_project) == [("foo/foo", 946688400)]
+
+    with freeze_time("2000-02-02 02:00:00"):
+        update_rules(default_project, [ReplacementRule("bar/bar")])
+    assert get_sorted_rules(default_project) == [("bar/bar", 949456800), ("foo/foo", 946688400)]
+
+    with freeze_time("2001-01-01 01:00:00"):
+        update_rules(default_project, [ReplacementRule("baz/baz")])
+    assert get_sorted_rules(default_project) == [("baz/baz", 978310800)]

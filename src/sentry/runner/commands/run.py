@@ -9,6 +9,7 @@ import click
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
+from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
 from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
 from sentry.utils.kafka import run_processor_with_signals
@@ -534,13 +535,24 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 
 @run.command("occurrences-ingest-consumer")
-@kafka_options("occurrence-consumer", allow_force_cluster=False)
+@kafka_options(
+    "occurrence-consumer",
+    include_batching_options=True,
+    allow_force_cluster=False,
+    default_max_batch_size=20,
+)
 @strict_offset_reset_option()
 @configuration
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def occurrences_ingest_consumer(**options):
     from django.conf import settings
 
-    from sentry.issues.occurrence_consumer import get_occurrences_ingest_consumer
     from sentry.utils import metrics
 
     consumer_type = settings.KAFKA_INGEST_OCCURRENCES

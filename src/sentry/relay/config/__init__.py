@@ -31,7 +31,10 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
-from sentry.ingest.transaction_clusterer.rules import get_sorted_rules
+from sentry.ingest.transaction_clusterer.rules import (
+    TRANSACTION_NAME_RULE_TTL_SECS,
+    get_sorted_rules,
+)
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
@@ -210,10 +213,6 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
         return None
 
     return [_get_tx_name_rule(p, s) for p, s in cluster_rules]
-
-
-#: How long a transaction name rule lasts, in seconds.
-TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
 
 
 def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
