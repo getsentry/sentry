@@ -46,7 +46,7 @@ class GroupSnooze(Model):
     user_window = BoundedPositiveIntegerField(null=True)
     state = JSONField(null=True)
     actor_id = BoundedPositiveIntegerField(null=True)
-    until_escalating = models.BooleanField(default=False)
+    until_escalating = models.BooleanField(null=True, default=False)
 
     objects = BaseManager(cache_fields=("group",))
 
