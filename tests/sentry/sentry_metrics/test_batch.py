@@ -73,7 +73,7 @@ extracted_string_output = {
     }
 }
 
-_INGEST_SCHEMA = JsonCodec(sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
+_INGEST_SCHEMA = JsonCodec(schema=sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
 
 
 def _construct_messages(payloads):

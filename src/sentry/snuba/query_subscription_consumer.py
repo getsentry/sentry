@@ -1,6 +1,6 @@
 import logging
 from random import random
-from typing import Any, Callable, Dict, Mapping
+from typing import Callable, Dict, Mapping
 
 import pytz
 import sentry_sdk
@@ -103,7 +103,7 @@ def handle_message(
     message_partition: int,
     topic: str,
     dataset: str,
-    jsoncodec: JsonCodec[Any],
+    jsoncodec: JsonCodec[SubscriptionResult],
 ) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
