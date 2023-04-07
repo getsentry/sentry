@@ -337,7 +337,7 @@ const DropdownItem = ({
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
-          !isDisabled ? item.callback ?? onClick.bind(this, item.value, item) : undefined
+          !isDisabled ? item.callback ?? onClick.bind(null, item.value, item) : undefined
         }
         ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
         isGrouped={isChild}
