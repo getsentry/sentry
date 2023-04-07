@@ -34,7 +34,7 @@ class BaseQuerySubscriptionTest:
 
     @cached_property
     def jsoncodec(self):
-        return JsonCodec(get_schema(self.topic)["schema"])
+        return JsonCodec(schema=get_schema(self.topic)["schema"])
 
     @cached_property
     def valid_wrapper(self):
