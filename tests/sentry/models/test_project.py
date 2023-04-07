@@ -17,6 +17,7 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     Rule,
+    ScheduledDeletion,
     User,
     UserOption,
 )
@@ -107,12 +108,15 @@ class ProjectTest(TestCase):
         assert updated_rule.environment_id != rule.environment_id
         assert updated_rule.environment_id == Environment.get_or_create(project, "production").id
 
+        # check to make sure old monitor is scheduled for deletion
+        assert ScheduledDeletion.objects.count() == 1
+
         updated_monitor = Monitor.objects.get(name="test-monitor-also")
         assert updated_monitor.id == monitor.id
         assert updated_monitor.organization_id != monitor.organization_id
         assert updated_monitor.project_id == monitor.project_id
 
-        existing_monitor = Monitor.objects.get(name="test-monitor")
+        existing_monitor = Monitor.objects.get(id=monitor_to.id)
         assert existing_monitor.id == monitor_to.id
         assert existing_monitor.organization_id == monitor_to.organization_id
         assert existing_monitor.project_id == monitor_to.project_id
