@@ -118,7 +118,7 @@ def _deconstruct_messages(snuba_messages, kafka_logical_topic="snuba-metrics"):
 
     rv = []
 
-    codec = JsonCodec(sentry_kafka_schemas.get_schema(kafka_logical_topic)["schema"])
+    codec = JsonCodec(schema=sentry_kafka_schemas.get_schema(kafka_logical_topic)["schema"])
 
     for msg in snuba_messages:
         decoded = json.loads(msg.payload.value.decode("utf-8"))

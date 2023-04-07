@@ -557,6 +557,9 @@ def occurrences_ingest_consumer(**options):
 
     consumer_type = settings.KAFKA_INGEST_OCCURRENCES
 
+    # Our batcher expects the time in seconds
+    options["max_batch_time"] = int(options["max_batch_time"] / 1000)
+
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
         consumer = get_occurrences_ingest_consumer(consumer_type, **options)
         run_processor_with_signals(consumer)
