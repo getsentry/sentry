@@ -25,6 +25,7 @@ from sentry.models.actor import get_actor_id_for_user
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
@@ -109,7 +110,8 @@ class ProjectTest(TestCase):
         assert updated_rule.environment_id == Environment.get_or_create(project, "production").id
 
         # check to make sure old monitor is scheduled for deletion
-        assert ScheduledDeletion.objects.count() == 1
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            assert ScheduledDeletion.objects.count() == 1
 
         updated_monitor = Monitor.objects.get(name="test-monitor-also")
         assert updated_monitor.id == monitor.id
