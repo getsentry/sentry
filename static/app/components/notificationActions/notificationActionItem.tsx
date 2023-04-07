@@ -14,6 +14,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import PagerdutyForm from 'sentry/components/notificationActions/forms/pagerdutyForm';
 import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
@@ -59,6 +60,7 @@ type NotificationActionItemProps = {
    * Set to "true" when adding a new notification action
    */
   defaultEdit?: boolean;
+  disabled?: boolean;
   /**
    * Optional list of roles to display as recipients of Sentry notifications
    */
@@ -75,7 +77,8 @@ function NotificationActionItem({
   recipientRoles,
   onDelete,
   onUpdate,
-}: NotificationActionItemProps) {
+  disabled = false,
+}: NotificationActionItemProps) => {
   const [isEditing, setIsEditing] = useState(defaultEdit);
   const [editedAction, setEditedAction] = useState(action);
   const serviceType = action.serviceType;
@@ -213,18 +216,24 @@ function NotificationActionItem({
     }
 
     return (
-      <DropdownMenu
-        items={menuItems}
-        trigger={triggerProps => (
-          <Button
-            {...triggerProps}
-            aria-label={t('Actions')}
-            size="xs"
-            icon={<IconEllipsis direction="down" size="sm" />}
-            data-test-id="edit-dropdown"
-          />
-        )}
-      />
+      <Tooltip
+        disabled={!disabled}
+        title={t('You do not have permission to edit notification actions.')}
+      >
+        <DropdownMenu
+          items={menuItems}
+          trigger={triggerProps => (
+            <Button
+              {...triggerProps}
+              aria-label={t('Actions')}
+              size="xs"
+              icon={<IconEllipsis direction="down" size="sm" />}
+              data-test-id="edit-dropdown"
+            />
+          )}
+          isDisabled={disabled}
+        />
+      </Tooltip>
     );
   };
 
