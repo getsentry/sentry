@@ -149,6 +149,12 @@ class GroupStatus:
     MUTED = IGNORED
 
 
+class GroupSubStatus:
+    ARCHIVED_UNTIL_ESCALATING = 1
+    ESCALATING = 2
+    ONGOING = 3
+
+
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
@@ -410,7 +416,7 @@ class Group(Model):
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(
-        default=0,
+        default=GroupStatus.UNRESOLVED,
         choices=(
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
@@ -418,6 +424,14 @@ class Group(Model):
             (GroupStatus.ESCALATING, _("Escalating")),
         ),
         db_index=True,
+    )
+    substatus = BoundedIntegerField(
+        null=True,
+        choices=(
+            (GroupSubStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived until escalating")),
+            (GroupSubStatus.ONGOING, _("Ongoing")),
+            (GroupSubStatus.ESCALATING, _("Escalating")),
+        ),
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
