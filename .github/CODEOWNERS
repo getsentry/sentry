@@ -340,10 +340,10 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/tasks/symbolication.py                                   @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                      @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/owners-native
-/src/sentry/tasks/reprocessing.py                                    @getsentry/owners-native
-/src/sentry/tasks/reprocessing2.py                                   @getsentry/owners-native
-/src/sentry/reprocessing2.py                                         @getsentry/owners-native
-/src/sentry/tasks/store.py                                           @getsentry/owners-native
+/src/sentry/tasks/reprocessing.py                                    @getsentry/owners-processing
+/src/sentry/tasks/reprocessing2.py                                   @getsentry/owners-processing
+/src/sentry/reprocessing2.py                                         @getsentry/owners-processing
+/src/sentry/tasks/store.py                                           @getsentry/owners-processing
 ## End of Native
 
 
