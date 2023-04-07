@@ -479,16 +479,15 @@ class DetailedEventSerializerTest(TestCase):
             )
             result = serialize(event, None, DetailedEventSerializer())
 
-            assert result["entries"][0]["type"] == "breadcrumbs"
+            breadcrumb_entry = result["entries"][0]
+            breadcrumbs = breadcrumb_entry["data"]["values"]
+
+            assert breadcrumb_entry["type"] == "breadcrumbs"
             # First breadcrumb should not have a message_formatted property
-            assert result["entries"][0]["data"]["values"][0]["message"] == "should not format this"
-            assert "messageRaw" not in result["entries"][0]["data"]["values"][0]
-            # Second breadcrumb should have whitespace added in message_formatted
-            assert (
-                result["entries"][0]["data"]["values"][1]["message"]
-                == "select *\n  from table\n where something = $1"
-            )
-            assert (
-                result["entries"][0]["data"]["values"][1]["messageRaw"]
-                == "select * from table where something = $1"
-            )
+            assert breadcrumbs[0]["message"] == "should not format this"
+            assert "messageRaw" not in breadcrumbs[0]
+            assert "messageFormat" not in breadcrumbs[0]
+            # Second breadcrumb should have whitespace added
+            assert breadcrumbs[1]["message"] == "select *\n  from table\n where something = $1"
+            assert breadcrumbs[1]["messageRaw"] == "select * from table where something = $1"
+            assert breadcrumbs[1]["messageFormat"] == "sql"
