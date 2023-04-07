@@ -425,7 +425,7 @@ class Group(Model):
     substatus = BoundedIntegerField(
         null=True,
         choices=(
-            (GroupSubStatus.UNTIL_ESCALATING, _("Archived until escalating")),
+            (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
         ),
