@@ -90,13 +90,18 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
-  HTMLLIElement,
-  DropdownMenuItemProps
-> = (
-  {node, state, closeOnSelect, onClose, showDivider, renderAs = 'li', ...props},
-  forwardedRef
-) => {
+function BaseDropdownMenuItem(
+  {
+    node,
+    state,
+    closeOnSelect,
+    onClose,
+    showDivider,
+    renderAs = 'li',
+    ...props
+  }: DropdownMenuItemProps,
+  forwardedRef: React.Ref<HTMLLIElement>
+) {
   const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
@@ -219,7 +224,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
       })}
     />
   );
-};
+}
 
 const DropdownMenuItem = forwardRef(BaseDropdownMenuItem);
 
