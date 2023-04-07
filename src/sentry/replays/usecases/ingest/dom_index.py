@@ -146,7 +146,7 @@ def get_user_actions(
                         "text": node["textContent"][:1024],
                         "role": attributes.get("role", "")[:32],
                         "alt": attributes.get("alt", "")[:64],
-                        "testid": attributes.get("data-testid", "")[:64],
+                        "testid": _get_testid(attributes)[:64],
                         "aria_label": attributes.get("aria-label", "")[:64],
                         "title": attributes.get("title", "")[:64],
                         "timestamp": int(payload["timestamp"]),
@@ -186,6 +186,10 @@ def get_user_actions(
                     )
 
     return result
+
+
+def _get_testid(container: Dict[str, str]) -> str:
+    return container.get("data-testid") or container.get("data-test-id") or ""
 
 
 def _initialize_publisher() -> KafkaPublisher:
