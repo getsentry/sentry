@@ -467,13 +467,22 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
               newOrg
             />
           ) : showLoaderOnboarding ? (
-            <SetupDocsLoader
-              organization={organization}
-              project={project}
-              location={location}
-              platform={loadedPlatform}
-              close={hideLoaderOnboarding}
-            />
+            <Fragment>
+              <SetupIntroduction
+                stepHeaderText={t(
+                  'Configure %s SDK',
+                  platforms.find(p => p.id === currentPlatform)?.name ?? ''
+                )}
+                platform={currentPlatform}
+              />
+              <SetupDocsLoader
+                organization={organization}
+                project={project}
+                location={location}
+                platform={loadedPlatform}
+                close={hideLoaderOnboarding}
+              />
+            </Fragment>
           ) : (
             <ProjectDocs
               platform={loadedPlatform}
