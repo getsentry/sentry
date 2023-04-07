@@ -9,14 +9,15 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ConflictError
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleSnooze
 
 
-class RuleSnoozeSerializer(serializers.Serializer):
-    userId = serializers.IntegerField(required=False, allow_null=True)
+class RuleSnoozeSerializer(CamelSnakeSerializer):
+    user_id = serializers.IntegerField(required=False, allow_null=True)
     rule = serializers.BooleanField(required=False, allow_null=True)
-    alertRule = serializers.BooleanField(required=False, allow_null=True)
+    alert_rule = serializers.BooleanField(required=False, allow_null=True)
     until = serializers.DateTimeField(required=False, allow_null=True)
 
 
@@ -43,7 +44,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
                 except Rule.DoesNotExist:
                     raise serializers.ValidationError("Rule does not exist")
 
-            if data.get("alertRule"):
+            if data.get("alert_rule"):
                 try:
                     metric_alert_rule = AlertRule.objects.get(id=rule_id)
                 except AlertRule.DoesNotExist:
@@ -51,19 +52,19 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
 
             # don't allow editing of a rulesnooze object for a given rule and user (or no user)
             if RuleSnooze.objects.filter(
-                user_id=data.get("userId"), rule=issue_alert_rule, alert_rule=metric_alert_rule
+                user_id=data.get("user_id"), rule=issue_alert_rule, alert_rule=metric_alert_rule
             ).exists():
                 raise ConflictError("RuleSnooze already exists for this rule and scope.")
 
             RuleSnooze.objects.create(
-                user_id=data.get("userId"),
+                user_id=data.get("user_id"),
                 owner_id=request.user.id,
                 rule=issue_alert_rule,
                 alert_rule=metric_alert_rule,
                 until=data.get("until"),
                 date_added=datetime.datetime.now(),
             )
-            if not data.get("userId"):
+            if not data.get("user_id"):
                 # create an audit log entry if the rule is snoozed for everyone
                 rule = issue_alert_rule or metric_alert_rule
                 audit_log_event = "RULE_SNOOZE" if issue_alert_rule else "ALERT_RULE_SNOOZE"
@@ -84,7 +85,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
 
             rule_snooze = {
                 "ownerId": request.user.id,
-                "userId": data.get("userId", "everyone"),
+                "userId": data.get("user_id", "everyone"),
                 "ruleId": rule_id,
                 "alertRuleId": alert_rule_id,
                 "until": data.get("until", "forever"),
