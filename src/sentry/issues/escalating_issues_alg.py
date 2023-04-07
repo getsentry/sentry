@@ -9,14 +9,20 @@ Validation is located at
 import math
 import statistics
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union
-
-IssueForecast = Dict[str, Union[int, str]]
+from typing import List, TypedDict
 
 
-def generate_issue_forecast(
-    data: Dict[str, List[Any]], start_time: datetime
-) -> List[IssueForecast]:
+class IssueForecast(TypedDict):
+    forecasted_date: str
+    forecasted_value: int
+
+
+class GroupCount(TypedDict):
+    intervals: List[str]
+    data: List[int]
+
+
+def generate_issue_forecast(data: GroupCount, start_time: datetime) -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 

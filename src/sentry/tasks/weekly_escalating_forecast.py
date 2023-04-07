@@ -1,18 +1,26 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, TypedDict
 
 from django.db import transaction
 
 from sentry.issues.escalating import query_groups_past_counts
 from sentry.issues.escalating_issues_alg import generate_issue_forecast
 from sentry.models import Group, GroupStatus
+from sentry.models.group import GroupSubStatus
 from sentry.models.groupforecast import GroupForecast
 from sentry.tasks.base import instrumented_task
 
 BATCH_SIZE = 1000
 GroupForecastTuple = Tuple[Group, List[int]]
-ParsedGroupCount = Dict[int, Dict[str, List[Union[str, int]]]]
+
+
+class GroupCount(TypedDict):
+    intervals: List[str]
+    data: List[int]
+
+
+ParsedGroupsCount = Dict[int, GroupCount]
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +31,12 @@ logger = logging.getLogger(__name__)
     max_retries=0,  # TODO: Increase this when the task is changed to run weekly
 )  # type: ignore
 def run_escalating_forecast() -> None:
+    # TODO: Do not limit to project id = 1 and limit 10 once these topics are clarified
     archived_groups = list(
-        # TODO: Change this to Group.objects.filter(status=GroupStatus.IGNORED, substatus=GroupStatus.ARCHIVED_UNTIL_ESCALATING) once substatus is added
-        # TODO: Do not limit to project id = 1 and limit 10 once these topics are clarified
         Group.objects.filter(
-            groupsnooze__until_escalating=True, status=GroupStatus.IGNORED, project__id=1
+            status=GroupStatus.IGNORED,
+            substatus=GroupSubStatus.ARCHIVED_UNTIL_ESCALATING,
+            project__id=1,
         )[:10]
     )
     if not archived_groups:
@@ -51,14 +60,14 @@ def run_escalating_forecast() -> None:
         )
 
 
-def parse_groups_past_counts(response: List[Dict[str, Any]]) -> ParsedGroupCount:
+def parse_groups_past_counts(response: List[Dict[str, Any]]) -> ParsedGroupsCount:
     """
     Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
     ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
 
     `response`: Snuba response for group event counts
     """
-    group_counts: ParsedGroupCount = {}
+    group_counts: ParsedGroupsCount = {}
     for data in response:
         group_id = data["group_id"]
         if group_id not in group_counts.keys():
@@ -73,7 +82,7 @@ def parse_groups_past_counts(response: List[Dict[str, Any]]) -> ParsedGroupCount
 
 
 def get_forecast_per_group(
-    archived_groups: List[Group], group_counts: ParsedGroupCount
+    archived_groups: List[Group], group_counts: ParsedGroupsCount
 ) -> List[GroupForecastTuple]:
     """
     Returns a list of forecasted values for each group.

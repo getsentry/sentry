@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, List
 
 from sentry.issues.escalating_issues_alg import generate_issue_forecast
+from sentry.tasks.weekly_escalating_forecast import GroupCount
 
 START_TIME = datetime.strptime("2022-07-27T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%f%z")
 
@@ -497,7 +498,7 @@ SEVEN_DAY_ERROR_EVENTS: List[Any] = [
 
 def test_spike_case() -> None:
     start_time = datetime.strptime("2022-07-27T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%f%z")
-    data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": SEVEN_DAY_ERROR_EVENTS}
+    data: GroupCount = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": SEVEN_DAY_ERROR_EVENTS}
 
     ceilings_list = generate_issue_forecast(data, start_time)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
@@ -582,7 +583,7 @@ def test_bursty_case() -> None:
         7627,
     ] + [0] * 95
 
-    data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
+    data: GroupCount = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
 
     ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
@@ -593,7 +594,7 @@ def test_bursty_case() -> None:
 def test_empty_input() -> None:
     error_events: List[int] = []
 
-    data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
+    data: GroupCount = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
 
     ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
@@ -654,7 +655,7 @@ def test_less_than_week_data() -> None:
         7627,
     ] + [0] * 95
 
-    data = {"intervals": SIX_DAY_INPUT_INTERVALS, "data": error_events}
+    data: GroupCount = {"intervals": SIX_DAY_INPUT_INTERVALS, "data": error_events}
 
     ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
@@ -665,7 +666,7 @@ def test_less_than_week_data() -> None:
 def test_low_freq_events() -> None:
     error_events = [6] * 168
 
-    data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
+    data: GroupCount = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": error_events}
 
     ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
@@ -674,7 +675,7 @@ def test_low_freq_events() -> None:
 
 
 def test_output() -> None:
-    data = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": SEVEN_DAY_ERROR_EVENTS}
+    data: GroupCount = {"intervals": SEVEN_DAY_INPUT_INTERVALS, "data": SEVEN_DAY_ERROR_EVENTS}
 
     ceilings_list = generate_issue_forecast(data, START_TIME)
 

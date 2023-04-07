@@ -3,9 +3,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 from unittest.mock import patch
 
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group, GroupStatus, GroupSubStatus
 from sentry.models.groupforecast import GroupForecast
-from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.project import Project
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -39,27 +38,14 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         for i in range(num_groups):
             group = self.create_group(project=project_1)
             group.status = GroupStatus.IGNORED
+            group.substatus = GroupSubStatus.ARCHIVED_UNTIL_ESCALATING
             group.save()
             group_list.append(group)
         return group_list
 
-    def snooze_groups(self, groups: List[Group]) -> None:
-        for group in groups:
-            group_snooze = GroupSnooze.objects.create(
-                group=group,
-                user_count=10,
-                until=datetime.now() + timedelta(days=1),
-                count=10,
-                state={"times_seen": 0},
-                until_escalating=True,
-            )
-            group_snooze.save()
-
     @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
     def test_single_group_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_groups(1)
-
-        self.snooze_groups(group_list)
 
         mock_query_groups_past_counts.return_value = self.get_mock_response(7, 1, group_list)
 
@@ -71,7 +57,6 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
     @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
     def test_multiple_groups_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_groups(3)
-        self.snooze_groups(group_list)
 
         mock_query_groups_past_counts.return_value = self.get_mock_response(7, 23, group_list)
 
@@ -82,23 +67,8 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             assert group_forecast[i].group in group_list
 
     @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
-    def test_ignored_groups_escalating_forecast(self, mock_query_groups_past_counts):
-        group_list = self.create_groups(3)
-        # The first group is just ignored, not archived
-        self.snooze_groups(group_list[1:])
-
-        mock_query_groups_past_counts.return_value = self.get_mock_response(7, 1, group_list[1:])
-
-        run_escalating_forecast()
-        group_forecast = GroupForecast.objects.all()
-        assert len(group_forecast) == 2
-        for i in range(len(group_forecast)):
-            assert group_forecast[i].group in group_list[1:]
-
-    @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
     def test_no_duped_groups_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_groups(3)
-        self.snooze_groups(group_list)
 
         mock_query_groups_past_counts.return_value = self.get_mock_response(7, 2, group_list)
 
