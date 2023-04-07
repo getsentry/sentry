@@ -3,6 +3,9 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.testutils.cases import TestMigrations
 
@@ -39,7 +42,8 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
-        deleted_project.delete()
+        with in_test_psql_role_override("postgres"):
+            Project.objects.filter(id=deleted_project.id).delete()
 
         deleted_organization = self.create_organization(name="deleted_org", owner=self.user)
         deleted_org_project = self.create_project(organization=deleted_organization)
@@ -52,7 +56,8 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
-        deleted_organization.delete()
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.filter(id=deleted_organization.id).delete()
 
     def test(self):
         monitor = Monitor.objects.get(id=self.monitor.id)
