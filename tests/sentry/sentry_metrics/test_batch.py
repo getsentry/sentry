@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pytest
 import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies.decoder.json import JsonCodec
+from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.configuration import UseCaseKey
