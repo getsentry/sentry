@@ -60,16 +60,18 @@ set_payload = {
 }
 
 extracted_string_output = {
-    1: {
-        "c:sessions/session@none",
-        "d:sessions/duration@second",
-        "environment",
-        "errored",
-        "healthy",
-        "init",
-        "production",
-        "s:sessions/error@none",
-        "session.status",
+    "sessions": {
+        1: {
+            "c:sessions/session@none",
+            "d:sessions/duration@second",
+            "environment",
+            "errored",
+            "healthy",
+            "init",
+            "production",
+            "s:sessions/error@none",
+            "session.status",
+        }
     }
 }
 
@@ -175,30 +177,34 @@ def _get_string_indexer_log_records(caplog):
         pytest.param(
             True,
             {
-                1: {
-                    "c:sessions/session@none",
-                    "d:sessions/duration@second",
-                    "environment",
-                    "errored",
-                    "healthy",
-                    "init",
-                    "production",
-                    "s:sessions/error@none",
-                    "session.status",
-                },
+                "sessions": {
+                    1: {
+                        "c:sessions/session@none",
+                        "d:sessions/duration@second",
+                        "environment",
+                        "errored",
+                        "healthy",
+                        "init",
+                        "production",
+                        "s:sessions/error@none",
+                        "session.status",
+                    },
+                }
             },
             id="index tag values true",
         ),
         pytest.param(
             False,
             {
-                1: {
-                    "c:sessions/session@none",
-                    "d:sessions/duration@second",
-                    "environment",
-                    "s:sessions/error@none",
-                    "session.status",
-                },
+                "sessions": {
+                    1: {
+                        "c:sessions/session@none",
+                        "d:sessions/duration@second",
+                        "environment",
+                        "s:sessions/error@none",
+                        "session.status",
+                    },
+                }
             },
             id="index tag values false",
         ),
@@ -246,16 +252,18 @@ def test_all_resolved(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            "sessions": {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -383,16 +391,18 @@ def test_all_resolved_with_routing_information(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            "sessions": {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -531,16 +541,18 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            "sessions": {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -677,12 +689,14 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "s:sessions/error@none",
-                "session.status",
+            "sessions": {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -795,16 +809,18 @@ def test_metric_id_rate_limited(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            "sessions": {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -893,16 +909,18 @@ def test_tag_key_rate_limited(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            "sessions": {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -973,16 +991,18 @@ def test_tag_value_rate_limited(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            "sessions": {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -1095,20 +1115,22 @@ def test_one_org_limited(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "environment",
-                "init",
-                "production",
-                "session.status",
-            },
-            2: {
-                "d:sessions/duration@second",
-                "environment",
-                "healthy",
-                "production",
-                "session.status",
-            },
+            "sessions": {
+                1: {
+                    "c:sessions/session@none",
+                    "environment",
+                    "init",
+                    "production",
+                    "session.status",
+                },
+                2: {
+                    "d:sessions/duration@second",
+                    "environment",
+                    "healthy",
+                    "production",
+                    "session.status",
+                },
+            }
         }
     )
 
@@ -1221,15 +1243,17 @@ def test_cardinality_limiter(caplog, settings):
     ]
     batch.filter_messages(keys_to_remove)
     assert batch.extract_strings() == {
-        1: {
-            "environment",
-            "errored",
-            "production",
-            # Note, we only extracted one MRI, of the one metric that we didn't
-            # drop
-            "s:sessions/error@none",
-            "session.status",
-        },
+        "sessions": {
+            1: {
+                "environment",
+                "errored",
+                "production",
+                # Note, we only extracted one MRI, of the one metric that we didn't
+                # drop
+                "s:sessions/error@none",
+                "session.status",
+            },
+        }
     }
 
     snuba_payloads = batch.reconstruct_messages(

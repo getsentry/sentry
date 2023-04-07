@@ -115,7 +115,8 @@ class MessageProcessor:
         )
         batch.filter_messages(cardinality_limiter_state.keys_to_remove)
 
-        org_strings = batch.extract_strings()
+        extracted_strings = batch.extract_strings()
+        org_strings = next(iter(extracted_strings.values())) if extracted_strings else {}
 
         sdk.set_measurement("org_strings.len", len(org_strings))
 

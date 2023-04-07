@@ -1,5 +1,6 @@
 import logging
 import random
+import re
 from collections import defaultdict
 from typing import (
     Any,
@@ -22,12 +23,12 @@ from arroyo.processing.strategies.decoder.base import ValidationError
 from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
-from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.utils import json, metrics
@@ -39,6 +40,7 @@ MAX_TAG_KEY_LENGTH = 200
 MAX_TAG_VALUE_LENGTH = 200
 
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
+MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
 
 class PartitionIdxOffset(NamedTuple):
@@ -71,6 +73,12 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
+def extract_use_case_id(mri: str) -> Optional[str]:
+    if (matched := MRI_RE_PATTERN.match(mri)) is not None:
+        return matched.group(2)
+    return None
+
+
 class IndexerBatch:
     def __init__(
         self,
@@ -91,14 +99,13 @@ class IndexerBatch:
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
-        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, IngestMetric] = {}
+        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, ParsedMessage] = {}
 
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
             try:
                 parsed_payload = json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
-                self.parsed_payloads_by_offset[partition_offset] = parsed_payload
             except rapidjson.JSONDecodeError:
                 self.skipped_offsets.add(partition_offset)
                 logger.error(
@@ -107,18 +114,27 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
-
             try:
                 if self.__input_codec:
                     self.__input_codec.validate(parsed_payload)
             except ValidationError:
                 # For now while this is still experimental, those errors are
                 # not supposed to be fatal.
-                logger.warn(
+                logger.warning(
                     "process_messages.invalid_schema",
                     extra={"payload_value": str(msg.payload.value)},
                     exc_info=True,
                 )
+            if use_case_id := extract_use_case_id(parsed_payload["name"]):
+                parsed_payload["use_case_id"] = use_case_id
+            else:
+                logger.warning(
+                    "process_messages.invalid_metric_resource_identifier",
+                    extra={"payload_value": str(msg.payload.value)},
+                    exc_info=True,
+                )
+                continue
+            self.parsed_payloads_by_offset[partition_offset] = parsed_payload
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
@@ -146,8 +162,8 @@ class IndexerBatch:
         self.skipped_offsets.update(keys_to_remove)
 
     @metrics.wraps("process_messages.extract_strings")
-    def extract_strings(self) -> Mapping[int, Set[str]]:
-        org_strings = defaultdict(set)
+    def extract_strings(self) -> Mapping[str, Mapping[int, Set[str]]]:
+        strings: Mapping[str, Mapping[int, Set[str]]] = defaultdict(lambda: defaultdict(set))
 
         for partition_offset, message in self.parsed_payloads_by_offset.items():
             if partition_offset in self.skipped_offsets:
@@ -157,6 +173,7 @@ class IndexerBatch:
 
             metric_name = message["name"]
             metric_type = message["type"]
+            use_case_id = message["use_case_id"]
             org_id = message["org_id"]
             tags = message.get("tags", {})
 
@@ -164,6 +181,7 @@ class IndexerBatch:
                 logger.error(
                     "process_messages.invalid_metric_name",
                     extra={
+                        "use_case_id": use_case_id,
                         "org_id": org_id,
                         "metric_name": metric_name,
                         "partition": partition_idx,
@@ -181,14 +199,13 @@ class IndexerBatch:
                 self.skipped_offsets.add(partition_offset)
                 continue
 
-            invalid_strs = invalid_metric_tags(tags)
-
-            if invalid_strs:
+            if invalid_strs := invalid_metric_tags(tags):
                 # sentry doesn't seem to actually capture nested logger.error extra args
                 sentry_sdk.set_extra("all_metric_tags", tags)
                 logger.error(
                     "process_messages.invalid_tags",
                     extra={
+                        "use_case_id": use_case_id,
                         "org_id": org_id,
                         "metric_name": metric_name,
                         "invalid_tags": invalid_strs,
@@ -199,22 +216,26 @@ class IndexerBatch:
                 self.skipped_offsets.add(partition_offset)
                 continue
 
-            parsed_strings = {
+            strings_in_message = {
                 metric_name,
                 *tags.keys(),
             }
 
             if self.__should_index_tag_values:
-                parsed_strings.update(tags.values())
+                strings_in_message.update(tags.values())
 
-            org_strings[org_id].update(parsed_strings)
+            strings[use_case_id][org_id].update(strings_in_message)
 
-        string_count = 0
-        for org_set in org_strings:
-            string_count += len(org_strings[org_set])
-        metrics.gauge("process_messages.lookups_per_batch", value=string_count)
+        metrics.gauge(
+            "process_messages.lookups_per_batch",
+            value=sum(
+                len(parsed_strings)
+                for use_case in strings.values()
+                for parsed_strings in use_case.values()
+            ),
+        )
 
-        return org_strings
+        return strings
 
     @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
