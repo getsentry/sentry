@@ -37,7 +37,7 @@ class BaseRequestParser(abc.ABC):
         self.match: ResolverMatch = resolve(self.request.path)
         self.response_handler = response_handler
 
-    def ensure_control_silo(self):
+    def _ensure_control_silo(self):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             logger.error(
                 "silo_error",
@@ -51,7 +51,7 @@ class BaseRequestParser(abc.ABC):
         """
         Used to handle the request directly on the control silo.
         """
-        self.ensure_control_silo()
+        self._ensure_control_silo()
         return self.response_handler(self.request)
 
     def _get_response_from_region_silo(self, region: Region) -> HttpResponse:
@@ -66,7 +66,7 @@ class BaseRequestParser(abc.ABC):
         Returns a mapping of region name to response/exception.
         If multiple regions are provided, only the latest response is returned to the requestor.
         """
-        self.ensure_control_silo()
+        self._ensure_control_silo()
 
         region_to_response_map = {}
 
