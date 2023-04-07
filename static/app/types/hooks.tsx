@@ -150,7 +150,7 @@ export type ComponentHooks = {
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:set-up-sdk-doc': () => React.ComponentType<SetUpSdkDocProps>;
-  'component:superuser-access-category': React.FC<any>;
+  'component:superuser-access-category': React.ComponentType<any>;
 };
 
 /**
