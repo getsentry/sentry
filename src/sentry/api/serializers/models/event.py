@@ -386,6 +386,7 @@ class DetailedEventSerializer(EventSerializer):
 
             for breadcrumb_item in breadcrumbs["data"]["values"]:
                 if breadcrumb_item["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
+                    breadcrumb_item["messageFormat"] = "sql"
                     breadcrumb_item["messageRaw"] = breadcrumb_item["message"]
                     breadcrumb_item["message"] = sqlparse.format(
                         breadcrumb_item["message"], reindent_aligned=True
