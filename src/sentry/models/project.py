@@ -301,6 +301,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             ReleaseProject,
             ReleaseProjectEnvironment,
             Rule,
+            ScheduledDeletion,
         )
         from sentry.models.actor import ACTOR_TYPES
         from sentry.monitors.models import Monitor
@@ -357,7 +358,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         )
         for monitor in monitors:
             if monitor.slug in new_monitors:
-                monitor.delete()
+                ScheduledDeletion.schedule(monitor, days=0)
             else:
                 monitor.update(organization_id=organization.id)
 
