@@ -65,7 +65,7 @@ type NotificationActionItemProps = {
   recipientRoles?: string[];
 };
 
-const NotificationActionItem = ({
+function NotificationActionItem({
   action,
   index,
   availableActions,
@@ -75,7 +75,7 @@ const NotificationActionItem = ({
   recipientRoles,
   onDelete,
   onUpdate,
-}: NotificationActionItemProps) => {
+}: NotificationActionItemProps) {
   const [isEditing, setIsEditing] = useState(defaultEdit);
   const [editedAction, setEditedAction] = useState(action);
   const serviceType = action.serviceType;
@@ -306,7 +306,7 @@ const NotificationActionItem = ({
       )}
     </StyledCard>
   );
-};
+}
 
 const StyledCard = styled(Card)<{isEditing: boolean}>`
   padding: ${space(1)} ${space(1.5)};

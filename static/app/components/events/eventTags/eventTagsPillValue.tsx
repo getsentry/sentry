@@ -12,12 +12,12 @@ type Props = {
   meta?: Meta;
 };
 
-const EventTagsPillValue = ({
+function EventTagsPillValue({
   tag: {key, value},
   meta,
   streamPath,
   locationSearch,
-}: Props) => {
+}: Props) {
   const content =
     !!meta && !value ? (
       <AnnotatedText value={value} meta={meta} />
@@ -30,6 +30,6 @@ const EventTagsPillValue = ({
   }
 
   return content;
-};
+}
 
 export default EventTagsPillValue;

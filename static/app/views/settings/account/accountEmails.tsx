@@ -158,7 +158,7 @@ type EmailRowProps = {
   onSetPrimary?: (email: string, e: React.MouseEvent) => void;
 };
 
-const EmailRow = ({
+function EmailRow({
   email,
   onRemove,
   onVerify,
@@ -166,37 +166,39 @@ const EmailRow = ({
   isVerified,
   isPrimary,
   hideRemove,
-}: EmailRowProps) => (
-  <EmailItem>
-    <EmailTags>
-      {email}
-      {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
-      {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
-    </EmailTags>
-    <ButtonBar gap={1}>
-      {!isPrimary && isVerified && (
-        <Button size="sm" onClick={e => onSetPrimary?.(email, e)}>
-          {t('Set as primary')}
-        </Button>
-      )}
-      {!isVerified && (
-        <Button size="sm" onClick={e => onVerify(email, e)}>
-          {t('Resend verification')}
-        </Button>
-      )}
-      {!hideRemove && !isPrimary && (
-        <Button
-          aria-label={t('Remove email')}
-          data-test-id="remove"
-          priority="danger"
-          size="sm"
-          icon={<IconDelete />}
-          onClick={e => onRemove(email, e)}
-        />
-      )}
-    </ButtonBar>
-  </EmailItem>
-);
+}: EmailRowProps) {
+  return (
+    <EmailItem>
+      <EmailTags>
+        {email}
+        {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
+        {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
+      </EmailTags>
+      <ButtonBar gap={1}>
+        {!isPrimary && isVerified && (
+          <Button size="sm" onClick={e => onSetPrimary?.(email, e)}>
+            {t('Set as primary')}
+          </Button>
+        )}
+        {!isVerified && (
+          <Button size="sm" onClick={e => onVerify(email, e)}>
+            {t('Resend verification')}
+          </Button>
+        )}
+        {!hideRemove && !isPrimary && (
+          <Button
+            aria-label={t('Remove email')}
+            data-test-id="remove"
+            priority="danger"
+            size="sm"
+            icon={<IconDelete />}
+            onClick={e => onRemove(email, e)}
+          />
+        )}
+      </ButtonBar>
+    </EmailItem>
+  );
+}
 
 const EmailTags = styled('div')`
   display: grid;

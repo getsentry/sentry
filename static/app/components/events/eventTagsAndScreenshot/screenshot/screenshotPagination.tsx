@@ -15,13 +15,13 @@ type Props = {
   headerText?: React.ReactNode;
 };
 
-const ScreenshotPagination = ({
+function ScreenshotPagination({
   previousDisabled,
   nextDisabled,
   headerText,
   onPrevious,
   onNext,
-}: Props) => {
+}: Props) {
   return (
     <Wrapper lightText>
       <Button
@@ -41,7 +41,7 @@ const ScreenshotPagination = ({
       />
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled(PanelHeader)`
   margin: 0;
