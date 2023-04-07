@@ -12,7 +12,7 @@ from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
 
-ALWAYS_ALLOWED_RULE_TYPES = {RuleType.UNIFORM_RULE}
+ALWAYS_ALLOWED_RULE_TYPES = {RuleType.ADJUSTMENT_FACTOR_RULE, RuleType.UNIFORM_RULE}
 
 
 def get_guarded_blended_sample_rate(project: Project) -> float:

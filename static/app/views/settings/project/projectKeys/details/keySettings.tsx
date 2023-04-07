@@ -51,12 +51,15 @@ export enum DynamicSDKLoaderOption {
 export const sdkLoaderOptions = {
   [DynamicSDKLoaderOption.HAS_PERFORMANCE]: {
     label: t('Enable Performance Monitoring'),
+    requiresV7: true,
   },
   [DynamicSDKLoaderOption.HAS_REPLAY]: {
     label: t('Enable Session Replay'),
+    requiresV7: true,
   },
   [DynamicSDKLoaderOption.HAS_DEBUG]: {
     label: t('Enable Debug Bundles'),
+    requiresV7: false,
   },
 };
 
@@ -145,15 +148,39 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
     async (newBrowserSDKVersion: typeof browserSdkVersion) => {
       addLoadingMessage();
 
+      const apiData: {
+        browserSdkVersion: typeof browserSdkVersion;
+        dynamicSdkLoaderOptions?: Partial<Record<DynamicSDKLoaderOption, boolean>>;
+      } = {
+        browserSdkVersion: newBrowserSDKVersion,
+      };
+
+      const shouldRestrictDynamicSdkLoaderOptions =
+        hasJSSDKDynamicLoaderFeatureFlag &&
+        !sdkVersionSupportsPerformanceAndReplay(newBrowserSDKVersion);
+
+      if (shouldRestrictDynamicSdkLoaderOptions) {
+        // Performance & Replay are not supported before 7.x
+        const newDynamicSdkLoaderOptions = {
+          ...dynamicSDKLoaderOptions,
+          hasPerformance: false,
+          hasReplay: false,
+        };
+
+        apiData.dynamicSdkLoaderOptions = newDynamicSdkLoaderOptions;
+      }
+
       try {
         const response = await api.requestPromise(apiEndpoint, {
           method: 'PUT',
-          data: {
-            browserSdkVersion: newBrowserSDKVersion,
-          },
+          data: apiData,
         });
 
         setBrowserSdkVersion(response.browserSdkVersion);
+
+        if (shouldRestrictDynamicSdkLoaderOptions) {
+          setDynamicSDKLoaderOptions(response.dynamicSdkLoaderOptions);
+        }
 
         addSuccessMessage(t('Successfully updated SDK version'));
       } catch (error) {
@@ -162,7 +189,14 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
         addErrorMessage(message);
       }
     },
-    [api, apiEndpoint, setBrowserSdkVersion]
+    [
+      api,
+      apiEndpoint,
+      setBrowserSdkVersion,
+      setDynamicSDKLoaderOptions,
+      hasJSSDKDynamicLoaderFeatureFlag,
+      dynamicSDKLoaderOptions,
+    ]
   );
 
   return (
@@ -267,14 +301,34 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
                       label={value.label}
                       key={key}
                       name={key}
-                      value={dynamicSDKLoaderOptions[sdkLoaderOption]}
+                      value={
+                        value.requiresV7 &&
+                        !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)
+                          ? false
+                          : dynamicSDKLoaderOptions[sdkLoaderOption]
+                      }
                       onChange={() =>
                         handleToggleDynamicSDKLoaderOption(
                           sdkLoaderOption as DynamicSDKLoaderOption,
                           !dynamicSDKLoaderOptions[sdkLoaderOption]
                         )
                       }
-                      disabled={!hasAccess}
+                      disabled={
+                        !hasAccess ||
+                        (value.requiresV7 &&
+                          !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion))
+                      }
+                      help={
+                        value.requiresV7 &&
+                        !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)
+                          ? t('Only available in SDK version 7.x and above')
+                          : key === DynamicSDKLoaderOption.HAS_REPLAY &&
+                            dynamicSDKLoaderOptions[sdkLoaderOption]
+                          ? t(
+                              'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+                            )
+                          : undefined
+                      }
                       disabledReason={
                         !hasAccess
                           ? t('You do not have permission to edit this setting')
@@ -336,4 +390,8 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
       )}
     </Access>
   );
+}
+
+function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
+  return sdkVersion === 'latest' || sdkVersion === '7.x';
 }

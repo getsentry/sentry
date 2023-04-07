@@ -418,6 +418,21 @@ class TraceViewHeader extends Component<PropType, State> {
 
   render() {
     const {organization} = this.props;
+    const handleStartWindowSelection = (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target;
+
+      if (
+        target instanceof Element &&
+        target.getAttribute &&
+        target.getAttribute('data-ignore')
+      ) {
+        // ignore this event if we need to
+        return;
+      }
+
+      this.props.dragProps.onWindowSelectionDragStart(event);
+    };
+
     return (
       <ProfileContext.Consumer>
         {profiles => {
@@ -491,20 +506,7 @@ class TraceViewHeader extends Component<PropType, State> {
                             onMouseMove={event => {
                               displayCursorGuide(event.pageX);
                             }}
-                            onMouseDown={event => {
-                              const target = event.target;
-
-                              if (
-                                target instanceof Element &&
-                                target.getAttribute &&
-                                target.getAttribute('data-ignore')
-                              ) {
-                                // ignore this event if we need to
-                                return;
-                              }
-
-                              this.props.dragProps.onWindowSelectionDragStart(event);
-                            }}
+                            onMouseDown={handleStartWindowSelection}
                           >
                             <MinimapContainer>
                               {this.renderFog(this.props.dragProps)}
@@ -524,7 +526,15 @@ class TraceViewHeader extends Component<PropType, State> {
                         )}
                       </CursorGuideHandler.Consumer>
                       {hasProfileMeasurementsChart && (
-                        <ProfilingMeasurements profileData={profiles.data} />
+                        <ProfilingMeasurements
+                          profileData={profiles.data}
+                          renderCursorGuide={this.renderCursorGuide}
+                          renderFog={() => this.renderFog(this.props.dragProps)}
+                          renderWindowSelection={() =>
+                            this.renderWindowSelection(this.props.dragProps)
+                          }
+                          onStartWindowSelection={handleStartWindowSelection}
+                        />
                       )}
                       {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
                     </Fragment>
@@ -792,11 +802,11 @@ const MinimapContainer = styled('div')`
 const ViewHandleContainer = styled('div')`
   position: absolute;
   top: 0;
-  height: ${MINIMAP_HEIGHT}px;
+  height: 100%;
 `;
 
 const ViewHandleLine = styled('div')`
-  height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
+  height: calc(100% - ${VIEW_HANDLE_HEIGHT}px);
   width: 2px;
   background-color: ${p => p.theme.textColor};
 `;
@@ -879,7 +889,7 @@ const Handle = ({
 const WindowSelection = styled('div')`
   position: absolute;
   top: 0;
-  height: ${MINIMAP_HEIGHT}px;
+  height: 100%;
   background-color: ${p => p.theme.textColor};
   opacity: 0.1;
 `;

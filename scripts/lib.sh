@@ -126,7 +126,7 @@ setup-git() {
     if ! require pre-commit; then
         pip-install -r requirements-dev.txt
     fi
-    pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push
+    pre-commit install --install-hooks
     echo ""
 }
 

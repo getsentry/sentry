@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from typing import Sequence
+from typing import Any, Sequence
 
+import sentry_sdk
+import sqlparse
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import (
@@ -23,6 +26,7 @@ from sentry.utils.safe import get_path
 
 CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
+FORMATTED_BREADCRUMB_CATEGORIES = frozenset(["query", "sql.query"])
 
 
 def get_crash_files(events):
@@ -366,12 +370,39 @@ class DetailedEventSerializer(EventSerializer):
         converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
         return converted_problem
 
+    def _format_breadcrumb_messages(
+        self, event_data: dict[str, Any], event: Event | GroupEvent, user: User
+    ):
+        try:
+            breadcrumbs = next(
+                filter(lambda entry: entry["type"] == "breadcrumbs", event_data.get("entries", ())),
+                None,
+            )
+
+            if not breadcrumbs or not features.has(
+                "organizations:issue-breadcrumbs-sql-format", event.project.organization, actor=user
+            ):
+                return event_data
+
+            for breadcrumb_item in breadcrumbs["data"]["values"]:
+                if breadcrumb_item["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
+                    breadcrumb_item["messageFormat"] = "sql"
+                    breadcrumb_item["messageRaw"] = breadcrumb_item["message"]
+                    breadcrumb_item["message"] = sqlparse.format(
+                        breadcrumb_item["message"], reindent_aligned=True
+                    )
+            return event_data
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
+            return event_data
+
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
         result["perfProblem"] = self._get_perf_problem(attrs)
+        result = self._format_breadcrumb_messages(result, obj, user)
         return result
 
 

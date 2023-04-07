@@ -3,6 +3,7 @@ from unittest import mock
 
 from sentry.utils import json
 from src.sentry.replays.usecases.ingest.dom_index import (
+    _get_testid,
     encode_as_uuid,
     get_user_actions,
     parse_replay_actions,
@@ -304,3 +305,17 @@ def test_parse_request_response_old_format_request_and_response():
             mock.call("replays.usecases.ingest.request_body_size", 1002),
             mock.call("replays.usecases.ingest.response_body_size", 8001),
         ]
+
+
+def test_get_testid():
+    # data-testid takes precedence.
+    assert _get_testid({"data-testid": "123", "data-test-id": "456"}) == "123"
+    assert _get_testid({"data-testid": "123", "data-test-id": ""}) == "123"
+    assert _get_testid({"data-testid": "123"}) == "123"
+
+    # data-test-id is the fallback case.
+    assert _get_testid({"data-testid": "", "data-test-id": "456"}) == "456"
+    assert _get_testid({"data-test-id": "456"}) == "456"
+
+    # Defaults to empty string.
+    assert _get_testid({}) == ""

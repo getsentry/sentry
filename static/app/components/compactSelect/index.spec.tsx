@@ -175,11 +175,14 @@ describe('CompactSelect', function () {
     });
 
     it('can toggle sections', async function () {
+      const mock = jest.fn();
       render(
         <CompactSelect
           multiple
+          onSectionToggle={mock}
           options={[
             {
+              key: 'section-1',
               label: 'Section 1',
               showToggleAllButton: true,
               options: [
@@ -188,6 +191,7 @@ describe('CompactSelect', function () {
               ],
             },
             {
+              key: 'section-2',
               label: 'Section 2',
               showToggleAllButton: true,
               options: [
@@ -217,6 +221,18 @@ describe('CompactSelect', function () {
         'aria-selected',
         'true'
       );
+      expect(mock).toHaveBeenCalledWith(
+        {
+          key: 'section-1',
+          label: 'Section 1',
+          showToggleAllButton: true,
+          options: [
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ],
+        },
+        'select'
+      );
 
       // press Section 1's toggle button again to unselect all
       await userEvent.keyboard('{Enter}');
@@ -227,6 +243,18 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('option', {name: 'Option Two'})).toHaveAttribute(
         'aria-selected',
         'false'
+      );
+      expect(mock).toHaveBeenCalledWith(
+        {
+          key: 'section-1',
+          label: 'Section 1',
+          showToggleAllButton: true,
+          options: [
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ],
+        },
+        'unselect'
       );
 
       // move to Section 2's toggle button and select all
@@ -240,6 +268,18 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('option', {name: 'Option Four'})).toHaveAttribute(
         'aria-selected',
         'true'
+      );
+      expect(mock).toHaveBeenCalledWith(
+        {
+          key: 'section-2',
+          label: 'Section 2',
+          showToggleAllButton: true,
+          options: [
+            {value: 'opt_three', label: 'Option Three'},
+            {value: 'opt_four', label: 'Option Four'},
+          ],
+        },
+        'select'
       );
     });
 
@@ -398,12 +438,15 @@ describe('CompactSelect', function () {
     });
 
     it('can toggle sections', async function () {
+      const mock = jest.fn();
       render(
         <CompactSelect
           grid
           multiple
+          onSectionToggle={mock}
           options={[
             {
+              key: 'section-1',
               label: 'Section 1',
               showToggleAllButton: true,
               options: [
@@ -412,6 +455,7 @@ describe('CompactSelect', function () {
               ],
             },
             {
+              key: 'section-2',
               label: 'Section 2',
               showToggleAllButton: true,
               options: [
@@ -441,6 +485,18 @@ describe('CompactSelect', function () {
         'aria-selected',
         'true'
       );
+      expect(mock).toHaveBeenCalledWith(
+        {
+          key: 'section-1',
+          label: 'Section 1',
+          showToggleAllButton: true,
+          options: [
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ],
+        },
+        'select'
+      );
 
       // press Section 1's toggle button again to unselect all
       await userEvent.keyboard('{Enter}');
@@ -451,6 +507,18 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('row', {name: 'Option Two'})).toHaveAttribute(
         'aria-selected',
         'false'
+      );
+      expect(mock).toHaveBeenCalledWith(
+        {
+          key: 'section-1',
+          label: 'Section 1',
+          showToggleAllButton: true,
+          options: [
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ],
+        },
+        'unselect'
       );
 
       // move to Section 2's toggle button and select all
@@ -464,6 +532,18 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('row', {name: 'Option Four'})).toHaveAttribute(
         'aria-selected',
         'true'
+      );
+      expect(mock).toHaveBeenCalledWith(
+        {
+          key: 'section-2',
+          label: 'Section 2',
+          showToggleAllButton: true,
+          options: [
+            {value: 'opt_three', label: 'Option Three'},
+            {value: 'opt_four', label: 'Option Four'},
+          ],
+        },
+        'select'
       );
     });
 
