@@ -143,10 +143,14 @@ class GroupStatus:
     # be deleted. In this state no new events shall be added to the group.
     REPROCESSING = 6
 
-    ESCALATING = 7
-
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
+
+
+class GroupSubStatus:
+    ARCHIVED_UNTIL_ESCALATING = 1
+    ESCALATING = 2
+    ONGOING = 3
 
 
 # Statuses that can be queried/searched for
@@ -410,14 +414,21 @@ class Group(Model):
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(
-        default=0,
+        default=GroupStatus.UNRESOLVED,
         choices=(
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
-            (GroupStatus.ESCALATING, _("Escalating")),
         ),
         db_index=True,
+    )
+    substatus = BoundedIntegerField(
+        null=True,
+        choices=(
+            (GroupSubStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived until escalating")),
+            (GroupSubStatus.ONGOING, _("Ongoing")),
+            (GroupSubStatus.ESCALATING, _("Escalating")),
+        ),
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
