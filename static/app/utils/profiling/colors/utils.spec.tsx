@@ -1,6 +1,5 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
-  makeColorBucketTheme,
   makeColorMapByLibrary,
   makeColorMapByRecursion,
   makeColorMapBySymbolName,
@@ -12,6 +11,8 @@ import {
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
+
+import {makeColorBucketTheme} from '../speedscope';
 
 const f = (key: number, name: string, file?: string, image?: string): FlamegraphFrame => {
   return {
@@ -144,8 +145,8 @@ describe('makeColorMap', () => {
     // Reverse order to ensure we actually sort
     const frames = [f(0, 'aaa'), f(1, 'aaa'), f(2, 'aaa'), f(3, 'c')];
 
-    frames[1]!.node.setRecursiveThroughNode(frames[0]!.node);
-    frames[2]!.node.setRecursiveThroughNode(frames[1]!.node);
+    frames[1]!.node.recursive = frames[0]!.node;
+    frames[2]!.node.recursive = frames[1]!.node;
 
     const map = makeColorMapByRecursion(frames, makeColorBucketTheme(LCH_LIGHT));
 

@@ -18,9 +18,18 @@ export function createSentrySampleProfileFrameIndex(
 
     frameIndex[i] = new Frame({
       key: i,
+      is_application: frame.in_app,
+      file: frame.filename,
+      path: frame.abs_path,
+      module: frame.module,
+      package: frame.package,
       name: frame.function ?? 'unknown',
       line: frame.lineno,
       column: frame.colno,
+      instructionAddr: frame.instruction_addr,
+      symbol: frame.symbol,
+      symbolAddr: frame.sym_addr,
+      symbolicatorStatus: frame.status,
     });
   }
 

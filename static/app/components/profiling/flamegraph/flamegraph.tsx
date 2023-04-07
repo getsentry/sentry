@@ -45,13 +45,13 @@ import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
   formatColorForFrame,
-  Rect,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
@@ -139,9 +139,9 @@ function findLongestMatchingFrame(
     const frame = frames.pop()!;
     if (
       focusFrame.name === frame.frame.name &&
-      // the image name on a frame is optional,
-      // treat it the same as the empty string
-      focusFrame.package === (frame.frame.image || '') &&
+      // the image name on a frame is optional treat it the same as the empty string
+      (focusFrame.package === (frame.frame.package || '') ||
+        focusFrame.package === (frame.frame.module || '')) &&
       (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
     ) {
       longestFrame = frame;

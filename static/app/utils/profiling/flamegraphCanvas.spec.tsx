@@ -3,7 +3,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('flamegraphCanvas', () => {
   beforeEach(() => {
