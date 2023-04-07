@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from typing import List
 
+from django.http import HttpResponse
 from rest_framework.request import Request
 from sentry_sdk import capture_exception
 
@@ -11,6 +13,7 @@ from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.silo.client import SiloClientError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.region import Region
 from sentry.utils.signing import unsign
 
 from .base import BaseRequestParser
@@ -41,6 +44,7 @@ class SlackRequestParser(BaseRequestParser):
     control_classes = [
         "SlackLinkIdentityView",
         "SlackUnlinkIdentityView",
+        "PipelineAdvancerView",  # installation
     ]
 
     region_classes = [
@@ -49,6 +53,27 @@ class SlackRequestParser(BaseRequestParser):
         "SlackCommandsEndpoint",
         "SlackEventEndpoint",
     ]
+
+    def handle_action_endpoint(self, regions: List[Region]) -> HttpResponse:
+        drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
+        slack_request = self.match.func.view_class.slack_request_class(drf_request)
+        action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
+
+        if action_option in ["link", "ignore", "all_slack"]:
+            return self.get_response_from_control_silo()
+        else:
+            response_map = self.get_responses_from_region_silos(regions=regions)
+            successful_responses = [
+                result for result in response_map.values() if result.response is not None
+            ]
+            if len(successful_responses < 1):
+                error_map = {region: result.error for region, result in response_map.items()}
+                logger.error(
+                    "all_regions_error",
+                    extra={"path": self.request.path, "error_map": error_map},
+                )
+                raise SiloClientError("No successful region responses")
+            return successful_responses[0].response
 
     def get_integration_from_request(self) -> RpcIntegration | None:
         view_class_name = self.match.func.view_class.__name__
@@ -75,7 +100,7 @@ class SlackRequestParser(BaseRequestParser):
         """
         Slack Webhook Requests all require synchronous responses.
         """
-        # TODO(Leander): Handle installation pipeline requests
+        view_class_name = self.match.func.view_class.__name__
 
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
@@ -86,17 +111,14 @@ class SlackRequestParser(BaseRequestParser):
         if view_class_name in self.control_classes:
             return self.get_response_from_control_silo()
 
-        # Actions can be generic, parse the payload to identify the silo
+        # Handle the actions endpoint seperately -- parse the payload to identify the silo
         if view_class_name == "SlackActionEndpoint":
-            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.match.func.view_class.slack_request_class(drf_request)
-            action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
+            return self.handle_action_endpoint(regions=regions)
 
-            if action_option in ["link", "ignore", "all_slack"]:
-                return self.get_response_from_control_silo()
-
-        # Slack only requires one synchronous response.
-        # By convention, we just assume it's the first integration region.
+        # Slack webhooks can only receive one synchronous call/response, as there are many
+        # places where we post to slack on their webhook request. This would cause multiple
+        # calls back to slack for every region we forward to.
+        # By convention, we use the first integration organization/region
         first_region = regions[0]
         response_map = self.get_responses_from_region_silos(regions=[first_region])
         region_result = response_map[first_region.name]

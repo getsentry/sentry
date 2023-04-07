@@ -6,12 +6,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.base import ControlSiloOrganizationView
 
 logger = logging.getLogger("sentry.integrations")
 
 
-class OrganizationIntegrationSetupView(OrganizationView):
+class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
     required_scope = "org:integrations"
 
     csrf_protect = False

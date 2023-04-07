@@ -1,14 +1,13 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.test import RequestFactory  # , override_settings
+from django.test import RequestFactory
 
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.base import RegionResult
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-
-# from sentry.silo import SiloMode
+from sentry.silo.client import SiloClientError
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -62,18 +61,13 @@ class SlackRequestParserTest(TestCase):
             assert mock_response_from_region.called
             assert response == region_response.response
 
-        # Falls back to control if region fails
-        region_response = RegionResult(error="mock_error")
-        with patch.object(
+        # Raises SiloClientError on failure
+        with pytest.raises(SiloClientError), patch.object(
             parser,
             "get_responses_from_region_silos",
-            return_value={self.region.name: region_response},
-        ) as mock_response_from_region, patch.object(
-            parser, "get_response_from_control_silo", return_value="mock_response"
-        ) as mock_response_from_control:
+            return_value={self.region.name: RegionResult(error="mock_error")},
+        ) as mock_response_from_region:
             response = parser.get_response()
-            assert mock_response_from_region.called
-            assert response == mock_response_from_control()
 
     def test_django_view(self):
         # Retrieve the correct integration

@@ -533,6 +533,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
 
 @integration_added.connect(weak=False)
 def record_integration_added(integration, organization, user, **kwargs):
+    # TODO(Leander): This function must be executed on region after being prompted by control
     task = OrganizationOnboardingTask.objects.filter(
         organization_id=organization.id,
         task=OnboardingTask.INTEGRATIONS,
