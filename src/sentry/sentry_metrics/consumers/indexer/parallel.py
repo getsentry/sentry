@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union, cast
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
@@ -11,7 +11,7 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.processing.strategies.transform import ParallelTransformStep
-from arroyo.types import Commit, Message, Partition, Topic
+from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import (
@@ -35,7 +35,7 @@ from sentry.utils.batching_kafka_consumer import create_topics
 logger = logging.getLogger(__name__)
 
 
-class Unbatcher(ProcessingStep[IndexerOutputMessageBatch]):
+class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]]):
     def __init__(
         self,
         next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
@@ -46,10 +46,10 @@ class Unbatcher(ProcessingStep[IndexerOutputMessageBatch]):
     def poll(self) -> None:
         self.__next_step.poll()
 
-    def submit(self, message: Message[IndexerOutputMessageBatch]) -> None:
+    def submit(self, message: Message[Union[FilteredPayload, IndexerOutputMessageBatch]]) -> None:
         assert not self.__closed
-
-        for transformed_message in message.payload:
+        # The indexer does not support filtered payload
+        for transformed_message in cast(IndexerOutputMessageBatch, message.payload):
             self.__next_step.submit(transformed_message)
 
     def close(self) -> None:
@@ -125,9 +125,12 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             commit=commit,
             slicing_router=self.__slicing_router,
         )
+
+        unbatch_step = Unbatcher(next_step=producer)
+
         parallel_strategy = ParallelTransformStep(
             MessageProcessor(self.__config).process_messages,
-            Unbatcher(next_step=producer),
+            unbatch_step,
             self.__processes,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds

@@ -18,7 +18,7 @@ from uuid import uuid4
 import pytz
 import sentry_kafka_schemas
 import urllib3
-from arroyo.strategies.decoder.json import JsonCodec
+from arroyo.codecs.json import JsonCodec
 
 from sentry import quotas
 from sentry.eventstore.models import GroupEvent
@@ -423,14 +423,14 @@ class SnubaEventStream(SnubaProtocolEventStream):
             entity = "search_issues"
 
         schema = sentry_kafka_schemas.get_schema(
-            {
+            topic={
                 "events": "events",
-                "transactions": None,
+                "transactions": "transactions",
                 "search_issues": "generic-events",
-            }["schema"]
-        )
+            }[entity]
+        )["schema"]
 
-        encoded_data = JsonCodec(schema).encode(data, validate=True)
+        encoded_data: JsonCodec[Any] = JsonCodec(schema=schema).encode(data, validate=True)
 
         try:
             resp = snuba._snuba_pool.urlopen(
