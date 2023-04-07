@@ -10,7 +10,7 @@ from sentry_sdk import capture_exception
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.webhooks.action import SlackActionEndpoint
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.models.integrations.integration import Integration
 from sentry.silo.client import SiloClientError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
@@ -75,7 +75,7 @@ class SlackRequestParser(BaseRequestParser):
                 raise SiloClientError("No successful region responses")
             return successful_responses[0].response
 
-    def get_integration_from_request(self) -> RpcIntegration | None:
+    def get_integration_from_request(self) -> Integration | None:
         view_class_name = self.match.func.view_class.__name__
         if view_class_name in WEBHOOK_ENDPOINTS:
             # We need convert the raw Django request to a Django Rest Framework request
@@ -89,12 +89,12 @@ class SlackRequestParser(BaseRequestParser):
                 capture_exception(error)
                 logger.error("validation_error", extra={"path": self.request.path})
                 return None
-            return slack_request.integration
+            return Integration.objects.filter(integration_id=slack_request.integration.id).first()
 
         elif view_class_name in DJANGO_VIEW_ENDPOINTS:
             # Parse the signed params and ensure the organization is associated with the
             params = unsign(self.match.kwargs.get("signed_params"))
-            return integration_service.get_integration(integration_id=params.get("integration_id"))
+            return Integration.objects.filter(integration_id=params.get("integration_id")).first()
 
     def get_response(self):
         """

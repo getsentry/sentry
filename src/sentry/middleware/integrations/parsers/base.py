@@ -9,7 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
 
 from sentry.models.integrations import Integration
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
@@ -104,7 +104,7 @@ class BaseRequestParser(abc.ABC):
         """
         return self.response_handler(self.request)
 
-    def get_integration_from_request(self) -> RpcIntegration | None:
+    def get_integration_from_request(self) -> Integration | None:
         """
         Parse the request to retreive organizations to forward the request to.
         Should be overwritten by implementation.
@@ -123,7 +123,7 @@ class BaseRequestParser(abc.ABC):
         if not integration:
             logger.error("no_integration", extra={"path": self.request.path})
             return []
-        organization_integrations = integration_service.get_organization_integrations(
+        organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration.id
         )
         organization_ids = [oi.organization_id for oi in organization_integrations]

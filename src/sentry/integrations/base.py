@@ -317,7 +317,7 @@ class IntegrationInstallation:
         # Return the api client for a given provider
         raise NotImplementedError
 
-    def get_default_identity(self) -> Identity | None:
+    def get_default_identity(self) -> Identity:
         """For Integrations that rely solely on user auth for authentication."""
         if not self.org_integration:
             raise Identity.DoesNotExist
