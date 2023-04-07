@@ -4,16 +4,6 @@ import click
 
 from sentry.runner.decorators import configuration
 
-tracked = [
-    re.compile("sentry:test_key.+"),
-]
-
-verbose = False
-
-
-def create_key_value_generator(data: str, newline_separator: str, kv_separator: str):
-    return (line.split(kv_separator) for line in data.split(newline_separator) if line)
-
 
 @click.group()
 def configoptions():
@@ -54,28 +44,17 @@ def patch(filename: str, dryrun: bool):
         data = configmap_data.get("data", {}).get("options-patch.yaml", "")
 
         keysToFetch = data.get("fetch", {})
-        keysToFetch = create_key_value_generator(keysToFetch, "\n", ": ")
+        keysToUpdate = data.get("update", {})
+        keysToDelete = data.get("delete", {})
+
         for key in keysToFetch:
             _get(key, dryrun)
 
-        keysToUpdate = data.get("update", {})
-        keysToUpdate = create_key_value_generator(keysToUpdate, "\n", ": ")
-        for line in keysToUpdate:
-            key = line[0]
-            val = ""
-            if len(line) > 1:
-                val = line[1]
-            success = set(key, val, dryrun)
-            if success:
-                click.echo(f"Successfully updated: {key} = {val} (dry run:{dryrun})")
-            else:
-                click.echo(f"Failed to update: {key} = {val} (dry run:{dryrun})")
+        for key, val in keysToUpdate.items():
+            _set(key, val, dryrun)
 
-        keysToDelete = data.get("delete", {})
-        keysToDelete = create_key_value_generator(keysToDelete, "\n", ": ")
         for key in keysToDelete:
-            click.echo(delete(key, dryrun))
-            click.echo(f"Successfully deleted: {key} (dry run:{dryrun})")
+            _delete(key, dryrun)
 
 
 @configoptions.command()
@@ -101,35 +80,16 @@ def strict(filename: str, dryrun: bool) -> bool:
         configmap_data = yaml.safe_load(stream)
         data = configmap_data.get("data", {}).get("options-strict.yaml", "")
 
-        kv_generator = create_key_value_generator(data, "\n", ": ")
         db_keys = (opt.name for opt in options.all())
         for key in db_keys:
-
             if not can_change(key):
                 continue
+            if key not in data.keys():
+                delete(key, dryrun)
 
-            if key not in kv_generator:
-                success = _delete(key, dryrun)
-                if success:
-                    click.echo(f"Successfully deleted: {key} (dry run:{dryrun})")
-                else:
-                    click.echo(f"Failed to deleted: {key} (dry run:{dryrun})")
-
-        kv_generator = create_key_value_generator(data, "\n", ": ")
-        for line in kv_generator:
-            click.echo(f"line: {line} {type(line)}")
-            key = line[0]
-            val = ""
-            click.echo(f"key: {key} {type(key)}")
-            if len(line) > 1:
-                val = line[1]
-            click.echo(f"val: {val} {type(val)}")
+        for key, val in data.items():
             click.echo(f"dryrun: {dryrun} {type(dryrun)}")
-            success = _set(key, val, dryrun)
-            if success:
-                click.echo(f"Successfully updated: {key} = {val} (dry run:{dryrun})")
-            else:
-                click.echo(f"Failed to update: {key} = {val} (dry run:{dryrun})")
+            _set(key, val, dryrun)
 
 
 @configoptions.command()
@@ -148,16 +108,17 @@ def get(key: str, dryrun: bool = False) -> str:
 
 
 def _get(key: str, dryrun: bool = False) -> str:
-    from sentry.options import default_manager as manager
+    from sentry import options
     from sentry.options.manager import UnknownOption
 
     try:
-        opt = manager.lookup_key(key)
-        click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {manager.get(opt.name)}")
+        opt = options.lookup_key(key)
+        click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
         return opt
     except UnknownOption:
-        click.echo("unknown option: %s" % key)
-        return ""
+        raise click.ClickException("unknown option: %s" % key)
+    except TypeError as e:
+        raise click.ClickException(str(e))
 
 
 @configoptions.command()
@@ -171,42 +132,26 @@ def _get(key: str, dryrun: bool = False) -> str:
     help="Output exactly what changes would be made and in which order.",
 )
 @configuration
-def set(key: str, val: str, dryrun: bool = False) -> bool:
+def set(key: str, val: object, dryrun: bool = False) -> bool:
+    "Sets a configuration option to a new value."
     return _set(key, val, dryrun)
 
 
-def _set(key: str, val: str, dryrun: bool = False) -> bool:
+def _set(key: str, val: object, dryrun: bool = False) -> bool:
     from sentry import options
     from sentry.options.manager import UnknownOption
 
-    success = False
-    if not can_change(key):
-        return success
-
     try:
         opt = options.lookup_key(key)
-
+        if not dryrun:
+            options.set(key, val)
+            click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
+            return opt
+        else:
+            click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
+            return opt
     except UnknownOption:
-        click.echo(f"Unknown Option in set: {key}")
-        if not dryrun:
-            try:
-                options.register(key)
-                options.set(key, val)
-                success = True
-                click.echo(f"Registered a new key: {key} = {val}")
-            except Exception:
-                click.echo(f"Failed to register option: {key} = {val}")
-
-    else:
-        if not dryrun:
-            try:
-                options.set(key, val)
-                success = True
-                click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
-            except Exception:
-                click.echo(f"Failed to update key: {opt.name} ({opt.type}) = {val}")
-
-    return success
+        raise click.ClickException("unknown option: %s" % key)
 
 
 @configoptions.command()
@@ -227,7 +172,6 @@ def _delete(key: str, dryrun: bool = False) -> bool:
     from sentry import options
     from sentry.options.manager import UnknownOption
 
-    success = False
     if not can_change(key):
         return True
 
@@ -236,10 +180,22 @@ def _delete(key: str, dryrun: bool = False) -> bool:
         if not dryrun:
             options.delete(key)
         click.echo(f"Deleted key: {key}")
-        success = True
+        return options.get(key)
     except UnknownOption:
-        click.echo(f"Unknown Option, can't delete: {key}")
-    return success
+        raise click.ClickException("unknown option: %s" % key)
+    except TypeError as e:
+        raise click.ClickException(str(e))
+
+
+tracked = [
+    re.compile("sentry:test_key.+"),
+]
+
+verbose = False
+
+
+def create_key_value_generator(data: str, newline_separator: str, kv_separator: str):
+    return (line.split(kv_separator) for line in data.split(newline_separator) if line)
 
 
 def can_change(key: str) -> bool:
