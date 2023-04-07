@@ -20,7 +20,6 @@ import {Resources} from 'sentry/components/events/interfaces/performance/resourc
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import {EventSdkUpdates} from 'sentry/components/events/sdkUpdates';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -136,7 +135,6 @@ const GroupEventDetailsContent = ({
       <EventViewHierarchy event={event} project={project} />
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      <EventSdkUpdates event={event} />
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}
