@@ -9,7 +9,7 @@ import type {DateRangePickerProps} from './dateRangePicker';
 const LazyDatePicker = lazy(() => import('./datePicker'));
 const LazyDateRangePicker = lazy(() => import('./dateRangePicker'));
 
-const CalendarSuspenseWrapper: React.FC = ({children}) => {
+function CalendarSuspenseWrapper({children}: {children: React.ReactNode}) {
   return (
     <Suspense
       fallback={
@@ -21,20 +21,20 @@ const CalendarSuspenseWrapper: React.FC = ({children}) => {
       {children}
     </Suspense>
   );
-};
+}
 
-export const DatePicker = (props: DatePickerProps) => {
+export function DatePicker(props: DatePickerProps) {
   return (
     <CalendarSuspenseWrapper>
       <LazyDatePicker {...props} />
     </CalendarSuspenseWrapper>
   );
-};
+}
 
-export const DateRangePicker = (props: DateRangePickerProps) => {
+export function DateRangePicker(props: DateRangePickerProps) {
   return (
     <CalendarSuspenseWrapper>
       <LazyDateRangePicker {...props} />
     </CalendarSuspenseWrapper>
   );
-};
+}
