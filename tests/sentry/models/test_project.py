@@ -25,7 +25,6 @@ from sentry.models.actor import get_actor_id_for_user
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.silo import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
@@ -70,7 +69,7 @@ class ProjectTest(TestCase):
             data={},
         )
 
-        Monitor.objects.create(
+        monitor = Monitor.objects.create(
             name="test-monitor",
             slug="test-monitor",
             organization_id=from_org.id,
@@ -79,7 +78,7 @@ class ProjectTest(TestCase):
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
-        monitor = Monitor.objects.create(
+        monitor_also = Monitor.objects.create(
             name="test-monitor-also",
             slug="test-monitor-also",
             organization_id=from_org.id,
@@ -110,13 +109,12 @@ class ProjectTest(TestCase):
         assert updated_rule.environment_id == Environment.get_or_create(project, "production").id
 
         # check to make sure old monitor is scheduled for deletion
-        if SiloMode.get_current_mode() != SiloMode.REGION:
-            assert ScheduledDeletion.objects.count() == 1
+        assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()
 
         updated_monitor = Monitor.objects.get(name="test-monitor-also")
-        assert updated_monitor.id == monitor.id
-        assert updated_monitor.organization_id != monitor.organization_id
-        assert updated_monitor.project_id == monitor.project_id
+        assert updated_monitor.id == monitor_also.id
+        assert updated_monitor.organization_id != monitor_also.organization_id
+        assert updated_monitor.project_id == monitor_also.project_id
 
         existing_monitor = Monitor.objects.get(id=monitor_to.id)
         assert existing_monitor.id == monitor_to.id
