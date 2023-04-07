@@ -347,3 +347,10 @@ export type PlatformKey =
   | 'other';
 
 export default categoryList;
+
+export type Platform = {
+  key: PlatformKey;
+  id?: string;
+  link?: string | null;
+  name?: string;
+};
