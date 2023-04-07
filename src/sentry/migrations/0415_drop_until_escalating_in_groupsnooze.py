@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0411_remove_until_escalating_column_from_groupsnooze"),
+        ("sentry", "0414_add_org_index_to_repo_and_pagerduty"),
     ]
 
     operations = [
