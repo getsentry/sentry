@@ -166,7 +166,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0406_monitor_cleanup"),
+        ("sentry", "0407_recreate_perf_alert_subscriptions"),
     ]
 
     operations = (
