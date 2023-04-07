@@ -1,12 +1,13 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 no-console:0 */
+/* eslint import/no-nodejs-modules:0, import/no-unresolved:0, no-console:0 */
 import {spawn} from 'child_process';
+import {join} from 'path';
 import {stderr, stdout} from 'process';
 
 import sane from 'sane';
 
-const watcherPy = sane('src/sentry');
-const watcherJson = sane('api-docs');
+const watcherPy = sane(join(__dirname, '../src/sentry'));
+const watcherJson = sane(join(__dirname, '../api-docs'));
 
 const watchers = [watcherPy, watcherJson];
 
