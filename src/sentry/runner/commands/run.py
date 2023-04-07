@@ -461,17 +461,36 @@ def post_process_forwarder(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Force subscriptions to start from a particular offset",
 )
+@kafka_options(
+    "occurrence-consumer",
+    include_batching_options=True,
+    allow_force_cluster=False,
+    default_max_batch_size=20,
+)
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @strict_offset_reset_option()
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
-    from sentry.snuba.query_subscription_consumer import get_query_subscription_consumer
+    from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
 
     subscriber = get_query_subscription_consumer(
         topic=options["topic"],
         group_id=options["group"],
         strict_offset_reset=options["strict_offset_reset"],
         initial_offset_reset=options["initial_offset_reset"],
+        # Our batcher expects the time in seconds
+        max_batch_size=int(options["max_batch_size"] / 1000),
+        max_batch_time=options["max_batch_time"],
+        processes=options["processes"],
+        input_block_size=options["input_block_size"],
+        output_block_size=options["output_block_size"],
     )
     run_processor_with_signals(subscriber)
 
