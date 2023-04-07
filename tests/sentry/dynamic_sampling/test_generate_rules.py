@@ -683,6 +683,9 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
         project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
     )
     rules = generate_rules(default_project)
+    implicit_rate /= project_sample_rate
+    t1_rate /= project_sample_rate
+    t1_rate /= implicit_rate
     assert rules == [
         # transaction boosting rule
         {
@@ -698,13 +701,13 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
                 "op": "or",
             },
             "id": boost_low_transactions_id,
-            "samplingValue": {"type": "factor", "value": t1_rate / project_sample_rate},
+            "samplingValue": {"type": "factor", "value": t1_rate},
             "type": "transaction",
         },
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1401,
-            "samplingValue": {"type": "factor", "value": implicit_rate / project_sample_rate},
+            "samplingValue": {"type": "factor", "value": implicit_rate},
             "type": "transaction",
         },
         {
