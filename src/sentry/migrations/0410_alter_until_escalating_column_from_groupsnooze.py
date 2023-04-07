@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0408_group_add_sub_status"),
+        ("sentry", "0409_group_substatus_add_index"),
     ]
 
     operations = [
