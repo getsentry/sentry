@@ -92,20 +92,6 @@ declare const __LOADER__IS_LAZY__: any;
 
         const oldInit = SDK.init;
 
-        // Add necessary integrations based on config
-        const integrations: unknown[] = [];
-        if (_config.tracesSampleRate) {
-          integrations.push(new SDK.BrowserTracing());
-        }
-
-        if (_config.replaysSessionSampleRate || _config.replaysOnErrorSampleRate) {
-          integrations.push(new SDK.Replay());
-        }
-
-        if (integrations.length) {
-          _config.integrations = integrations;
-        }
-
         // Configure it using provided DSN and config object
         SDK.init = function (options) {
           const target = _config;
@@ -114,6 +100,8 @@ declare const __LOADER__IS_LAZY__: any;
               target[key] = options[key];
             }
           }
+
+          setupDefaultIntegrations(target, SDK);
           oldInit(target);
         };
 
@@ -124,6 +112,26 @@ declare const __LOADER__IS_LAZY__: any;
     });
 
     _currentScriptTag.parentNode!.insertBefore(_newScriptTag, _currentScriptTag);
+  }
+
+  // We want to ensure to only add default integrations if they haven't been added by the user.
+  function setupDefaultIntegrations(config: any, SDK: any) {
+    const integrations: {name: string}[] = config.integrations || [];
+    const integrationNames = integrations.map(integration => integration.name);
+
+    // Add necessary integrations based on config
+    if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
+      integrations.push(new SDK.BrowserTracing());
+    }
+
+    if (
+      (config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
+      integrationNames.indexOf('Replay') === -1
+    ) {
+      integrations.push(new SDK.Replay());
+    }
+
+    config.integrations = integrations;
   }
 
   function sdkIsLoaded() {
