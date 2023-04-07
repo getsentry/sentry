@@ -143,6 +143,7 @@ class IntegrationService(RpcService):
         providers: Optional[List[str]] = None,
         org_integration_status: Optional[int] = None,
         limit: Optional[int] = None,
+        organization_integration_id: Optional[int] = None,
     ) -> List[RpcIntegration]:
         """
         Returns all APIIntegrations matching the provided kwargs.
@@ -157,6 +158,7 @@ class IntegrationService(RpcService):
         integration_id: Optional[int] = None,
         provider: Optional[str] = None,
         external_id: Optional[str] = None,
+        organization_integration_id: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id

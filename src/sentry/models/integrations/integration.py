@@ -58,6 +58,8 @@ class Integration(DefaultFieldsModel):
 
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
+            for organization_integration in self.organizationintegration_set.all():
+                organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
                 outbox.save()
             return super().delete(*args, **kwds)

@@ -144,7 +144,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
 
         label = rule.render_label()
-        assert label == "Send a notification to PagerDuty account [removed] and service [removed]"
+        assert label == "Send a notification to PagerDuty account [removed] and service Critical"
 
     def test_valid_service_options(self):
         # create new org that has the same pd account but different a service added
@@ -167,7 +167,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"account": self.integration.id})
 
         service_options = rule.get_services()
-        assert service_options == [(new_service.id, new_service.service_name)]
+        assert [(s.id, s.service_name) for s in service_options] == [
+            (new_service.id, new_service.service_name)
+        ]
 
     @responses.activate
     def test_valid_service_selected(self):

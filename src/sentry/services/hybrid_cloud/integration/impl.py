@@ -85,6 +85,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: List[str] | None = None,
         org_integration_status: int | None = None,
+        organization_integration_id: Optional[int] = None,
         limit: int | None = None,
     ) -> List[RpcIntegration]:
         integration_kwargs: Dict[str, Any] = {}
@@ -98,6 +99,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["provider__in"] = providers
         if org_integration_status is not None:
             integration_kwargs["organizationintegration__status"] = org_integration_status
+        if organization_integration_id is not None:
+            integration_kwargs["organizationintegration__id"] = organization_integration_id
 
         if not integration_kwargs:
             return []
@@ -116,6 +119,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         provider: str | None = None,
         external_id: str | None = None,
         organization_id: int | None = None,
+        organization_integration_id: Optional[int] = None,
     ) -> RpcIntegration | None:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
@@ -126,6 +130,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["external_id"] = external_id
         if organization_id is not None:
             integration_kwargs["organizationintegration__organization_id"] = organization_id
+        if organization_integration_id is not None:
+            integration_kwargs["organizationintegration__id"] = organization_integration_id
 
         if not integration_kwargs:
             return None

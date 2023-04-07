@@ -6,6 +6,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import PagerDutyService
+from sentry.services.hybrid_cloud.integration import integration_service
 
 
 def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:
@@ -57,7 +58,10 @@ class PagerDutyNotifyServiceForm(forms.Form):
                 params=params,
             )
 
-        if service.organization_integration.integration_id != integration_id:
+        integration = integration_service.get_integration(
+            organization_integration_id=service.organization_integration_id
+        )
+        if not integration or integration.id != integration_id:
             # We need to make sure that the service actually belongs to that integration,
             # meaning that it belongs under the appropriate account in PagerDuty.
             raise forms.ValidationError(

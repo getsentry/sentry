@@ -83,7 +83,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         from sentry.services.hybrid_cloud.integration import integration_service
 
         organization_integrations = integration_service.get_organization_integrations(
-            provider=self.provider, organization_id=self.project.organization_id
+            providers=[self.provider], organization_id=self.project.organization_id
         )
 
         return [
@@ -104,5 +104,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
 
     def get_form_instance(self):
         return self.form_cls(
-            self.data, integrations=self.get_integrations(), services=self.get_services()
+            self.data,
+            integrations=self.get_integrations(),
+            services=[(service.id, service.service_name) for service in self.get_services()],
         )
