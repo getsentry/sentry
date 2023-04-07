@@ -11,9 +11,10 @@ def migrations():
 @migrations.command()
 @click.argument("app_name")
 @click.argument("migration_name")
+@click.option("--allow-non-python", is_flag=True)
 @configuration
 @click.pass_context
-def run(ctx, app_name, migration_name):
+def run(ctx, app_name, migration_name, allow_non_python):
     "Manually run a single data migration. Will error if migration is not data only."
 
     from django.apps import apps
@@ -24,11 +25,12 @@ def run(ctx, app_name, migration_name):
     migration = MigrationExecutor(connections["default"]).loader.get_migration_by_prefix(
         app_name, migration_name
     )
-    for op in migration.operations:
-        if not isinstance(op, RunPython):
-            raise click.ClickException(
-                "Migration must contain only RunPython ops, found: %s" % type(op).__name__
-            )
+    if not allow_non_python:
+        for op in migration.operations:
+            if not isinstance(op, RunPython):
+                raise click.ClickException(
+                    "Migration must contain only RunPython ops, found: %s" % type(op).__name__
+                )
 
     for op in migration.operations:
         op.code(apps, None)
