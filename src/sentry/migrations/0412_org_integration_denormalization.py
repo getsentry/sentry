@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0410_alter_until_escalating_column_from_groupsnooze"),
+        ("sentry", "0411_remove_until_escalating_column_from_groupsnooze"),
     ]
 
     operations = [
