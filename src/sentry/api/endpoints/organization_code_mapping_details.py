@@ -55,7 +55,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         serializer = RepositoryProjectPathConfigSerializer(
             context={
                 "organization": organization,
-                "organization_integration": config.organization_integration,
+                "organization_integration_id": config.organization_integration_id,
             },
             instance=config,
             data=request.data,

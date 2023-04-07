@@ -10,8 +10,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
@@ -23,17 +25,22 @@ def get_link(
     config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
 ) -> Dict[str, str]:
     result = {}
-    oi = config.organization_integration
-    integration = oi.integration
-    install = integration.get_installation(oi.organization_id)
+
+    integration = integration_service.get_integration(
+        organization_integration_id=config.organization_integration_id
+    )
+    install = integration_service.get_installation(
+        integration=integration, organization_id=config.project.organization_id
+    )
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
     link = None
     try:
-        link = install.get_stacktrace_link(
-            config.repository, formatted_path, config.default_branch, version
-        )
+        if isinstance(install, RepositoryMixin):
+            link = install.get_stacktrace_link(
+                config.repository, formatted_path, config.default_branch, version
+            )
 
     except ApiError as e:
         if e.code != 403:
@@ -45,6 +52,7 @@ def get_link(
         result["sourceUrl"] = link
     else:
         result["error"] = result.get("error") or "file_not_found"
+        assert isinstance(install, RepositoryMixin)
         result["attemptedUrl"] = install.format_source_url(
             config.repository, formatted_path, config.default_branch
         )

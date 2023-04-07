@@ -35,8 +35,8 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
                 organization_ids=[pco.project.organization_id for pco in project_code_owners],
             )
             project_code_owners = project_code_owners.filter(
-                repository_project_path_config__project__organization_id__in={
-                    oi.organization_id for oi in org_integrations
+                repository_project_path_config__organization_integration_id__in={
+                    oi.id for oi in org_integrations
                 }
             )
         result = {}

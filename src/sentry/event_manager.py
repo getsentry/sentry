@@ -828,7 +828,7 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
         target_repo = None
         for repo_proj_path_model in possible_repos:
             ois = integration_service.get_organization_integrations(
-                organization_integration_ids=[repo_proj_path_model.organization_integration_id]
+                org_integration_ids=[repo_proj_path_model.organization_integration_id]
             )
             oi = ois[0]
             if not oi:

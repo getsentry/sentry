@@ -74,8 +74,8 @@ def find_commit_context_for_event(
         integration = integration_service.get_integration(
             organization_integration_id=code_mapping.organization_integration_id
         )
-        install = integration.get_installation(
-            code_mapping.organization_integration.organization_id
+        install = integration_service.get_installation(
+            integration=integration, organization_id=code_mapping.project.organization_id
         )
         try:
             commit_context = install.get_commit_context(
@@ -86,7 +86,7 @@ def find_commit_context_for_event(
             sentry_sdk.capture_exception(e)
             analytics.record(
                 "integrations.failed_to_fetch_commit_context",
-                organization_id=code_mapping.organization_integration.organization_id,
+                organization_id=code_mapping.project.organization_id,
                 project_id=code_mapping.project.id,
                 group_id=extra["group"],
                 code_mapping_id=code_mapping.id,

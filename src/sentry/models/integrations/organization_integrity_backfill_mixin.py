@@ -31,27 +31,14 @@ class OrganizationIntegrityBackfillMixin:
             return list(cls.objects.filter(organization_integration_id=org_integration.id))
         return []
 
-    @classmethod
-    def find_by_org_integration(cls: Any, *, organization_integration_id: int) -> Any:
-        """
-        Finds the given class either by and integration, organization id pair or the organization_integration_id
-        It also sets the organization_id and integration_id columns if it finds a useful match.
-
-        Will be used to backfill organization_id and integration_id columns before being removed and replaced
-        """
-        # Find the instance directly,
-        inst = cls.objects.filter(organization_integration_id=organization_integration_id).first()
-        # If it didn't exist anyways, return None and don't bother backfilling
-        if inst is None:
-            return None
-
-        if inst.organization_id is None or inst.integration_id is None:
+    def save(self, *args, **kwds) -> None:
+        if self.organization_id is None or self.integration_id is None:
             # Find the original org integration instance, backfill in the identifiers.
             org_integrations = integration_service.get_organization_integrations(
-                org_integration_ids=[organization_integration_id],
+                org_integration_ids=[self.organization_integration_id],
             )
             if org_integrations:
                 org_integration = org_integrations[0]
-                inst.organization_id = org_integration.organization_id
-                inst.integration_id = org_integration.integration_id
-        return inst
+                self.organization_id = org_integration.organization_id
+                self.integration_id = org_integration.integration_id
+        super().save(*args, **kwds)

@@ -12,11 +12,15 @@ from sentry.shared_integrations.exceptions import ApiError
 
 
 def get_codeowner_contents(config):
-    if not config.organization_integration:
+    if not config.organization_integration_id:
         raise NotFound(detail="No associated integration")
 
-    integration = config.organization_integration.integration
-    install = integration.get_installation(config.organization_integration.organization_id)
+    integration = integration_service.get_integration(
+        organization_integration_id=config.organization_integration_id
+    )
+    install = integration_service.get_installation(
+        integration=integration, organization_id=config.project.organization_id
+    )
     return install.get_codeowner_file(config.repository, ref=config.default_branch)
 
 

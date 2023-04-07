@@ -52,7 +52,9 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     @property
     def org_integration(self):
-        return self.context["organization_integration"]
+        return integration_service.get_organization_integrations(
+            org_integration_ids=[self.context["organization_integration_id"]]
+        )[0]
 
     @property
     def organization(self):
