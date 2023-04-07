@@ -31,7 +31,6 @@ import {EventViewHierarchy} from './eventViewHierarchy';
 import {EventGroupingInfo} from './groupingInfo';
 import {EventPackageData} from './packageData';
 import {EventRRWebIntegration} from './rrwebIntegration';
-import {EventSdkUpdates} from './sdkUpdates';
 import {DataSection} from './styles';
 import {EventUserFeedback} from './userFeedback';
 
@@ -117,7 +116,6 @@ const EventEntries = ({
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      {!isShare && <EventSdkUpdates event={event} />}
       {!isShare && event.groupID && (
         <EventGroupingInfo
           projectSlug={projectSlug}
