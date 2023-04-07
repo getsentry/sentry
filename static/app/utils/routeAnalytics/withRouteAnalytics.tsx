@@ -11,10 +11,10 @@ type WrappedProps<P> = Omit<P, keyof WithRouteAnalyticsProps> &
 const withRouteAnalytics = <P extends WithRouteAnalyticsProps>(
   WrappedComponent: React.ComponentType<P>
 ) => {
-  const ComponentWithRouteAnalytics: React.FC<WrappedProps<P>> = props => {
+  function ComponentWithRouteAnalytics(props: WrappedProps<P>) {
     const routeAnalyticsContext = useContext(RouteAnalyticsContext);
     return <WrappedComponent {...(props as P)} {...routeAnalyticsContext} />;
-  };
+  }
   ComponentWithRouteAnalytics.displayName = `withRouteAnalytics(${getDisplayName(
     WrappedComponent
   )})`;
