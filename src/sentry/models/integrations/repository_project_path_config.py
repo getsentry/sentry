@@ -20,7 +20,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModel, OrganizationIntegrityBackf
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
-    organization_id = BoundedBigIntegerField(null=True, db_index=False)
+    organization_id = BoundedBigIntegerField(null=True, db_index=True)
     # From a region point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(null=True, db_index=False)
     stack_root = models.TextField()
