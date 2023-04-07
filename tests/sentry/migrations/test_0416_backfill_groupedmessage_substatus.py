@@ -12,8 +12,8 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class BackfillPerfSubscriptionsTest(TestMigrations):
-    migrate_from = "0412_org_integration_denormalization"
-    migrate_to = "0413_backfill_organization_integration_denormalization"
+    migrate_from = "0415_backfill_actor_team_and_user"
+    migrate_to = "0416_backfill_groupedmessage_substatus"
 
     def setup_initial_state(self):
         org = self.create_organization()
