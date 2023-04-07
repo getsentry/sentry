@@ -4,7 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ConflictError
@@ -25,6 +25,11 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     def post(self, request: Request, project, rule_id) -> Response:
+        if not features.has("organizations:mute-alerts", project.organization, actor=None):
+            return Response(
+                {"detail": "This feature is not available for this organization."}, status=401
+            )
+
         serializer = RuleSnoozeSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
