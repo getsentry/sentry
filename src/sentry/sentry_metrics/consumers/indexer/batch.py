@@ -18,8 +18,8 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies.decoder.base import ValidationError
-from arroyo.processing.strategies.decoder.json import JsonCodec
+from arroyo.codecs import ValidationError
+from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
@@ -78,7 +78,7 @@ class IndexerBatch:
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
         is_output_sliced: bool,
-        arroyo_input_codec: Optional[JsonCodec],
+        arroyo_input_codec: Optional[JsonCodec[Any]],
     ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message

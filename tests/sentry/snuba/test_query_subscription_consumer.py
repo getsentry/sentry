@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 import pytz
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies.decoder.json import JsonCodec
+from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -34,7 +34,7 @@ class BaseQuerySubscriptionTest:
 
     @cached_property
     def jsoncodec(self):
-        return JsonCodec(get_schema(self.topic)["schema"])
+        return JsonCodec(schema=get_schema(self.topic)["schema"])
 
     @cached_property
     def valid_wrapper(self):

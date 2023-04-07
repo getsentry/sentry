@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pytest
 import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies.decoder.json import JsonCodec
+from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -73,7 +73,7 @@ extracted_string_output = {
     }
 }
 
-_INGEST_SCHEMA = JsonCodec(sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
+_INGEST_SCHEMA = JsonCodec(schema=sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
 
 
 def _construct_messages(payloads):
@@ -118,7 +118,7 @@ def _deconstruct_messages(snuba_messages, kafka_logical_topic="snuba-metrics"):
 
     rv = []
 
-    codec = JsonCodec(sentry_kafka_schemas.get_schema(kafka_logical_topic)["schema"])
+    codec = JsonCodec(schema=sentry_kafka_schemas.get_schema(kafka_logical_topic)["schema"])
 
     for msg in snuba_messages:
         decoded = json.loads(msg.payload.value.decode("utf-8"))

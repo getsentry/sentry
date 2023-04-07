@@ -1,10 +1,10 @@
 import logging
 import random
-from typing import Callable, Mapping
+from typing import Any, Callable, Mapping
 
 import sentry_kafka_schemas
 import sentry_sdk
-from arroyo.processing.strategies.decoder.json import JsonCodec
+from arroyo.codecs.json import JsonCodec
 from arroyo.types import Message
 from django.conf import settings
 
@@ -27,7 +27,9 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.MOCK: MockIndexer,
 }
 
-_INGEST_SCHEMA = JsonCodec(sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
+_INGEST_SCHEMA: JsonCodec[Any] = JsonCodec(
+    schema=sentry_kafka_schemas.get_schema("ingest-metrics")["schema"]
+)
 
 
 class MessageProcessor:
