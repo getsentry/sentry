@@ -19,7 +19,7 @@ type Props = {
   orgId: string;
 };
 
-const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
+function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
   const api = useApi();
 
   const handleDelete = async () => {
@@ -70,6 +70,6 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
       </Button>
     </ButtonBar>
   );
-};
+}
 
 export default MonitorHeaderActions;

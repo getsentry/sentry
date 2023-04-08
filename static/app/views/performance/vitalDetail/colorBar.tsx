@@ -15,7 +15,7 @@ type Props = {
   barHeight?: number;
 };
 
-const ColorBar = (props: Props) => {
+function ColorBar(props: Props) {
   return (
     <VitalBar
       barHeight={props.barHeight}
@@ -28,7 +28,7 @@ const ColorBar = (props: Props) => {
       })}
     </VitalBar>
   );
-};
+}
 
 type VitalBarProps = {
   fractions: number[];

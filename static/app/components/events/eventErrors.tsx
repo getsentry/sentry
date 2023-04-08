@@ -208,7 +208,7 @@ const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Proje
   }, [event, organization, project.platform]);
 };
 
-export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
+export function EventErrors({event, project, isShare}: EventErrorsProps) {
   const organization = useOrganization();
   useRecordAnalyticsEvent({event, project});
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
@@ -287,7 +287,7 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
       </StyledAlert>
     </StyledDataSection>
   );
-};
+}
 
 const HiddenDiv = styled('div')`
   display: none;

@@ -27,7 +27,7 @@ type Props = {
   thread?: Thread;
 };
 
-const CrashActions = ({
+function CrashActions({
   hasHierarchicalGrouping,
   stackView,
   stackType,
@@ -36,7 +36,7 @@ const CrashActions = ({
   exception,
   platform,
   onChange,
-}: Props) => {
+}: Props) {
   const hasSystemFrames: boolean =
     stacktrace?.hasSystemFrames ||
     !!exception?.values?.find(value => !!value.stacktrace?.hasSystemFrames);
@@ -104,7 +104,7 @@ const CrashActions = ({
       )}
     </ButtonGroupWrapper>
   );
-};
+}
 
 export default CrashActions;
 

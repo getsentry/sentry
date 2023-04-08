@@ -257,9 +257,13 @@ describe('StacktraceLink', function () {
   });
 
   it('renders the codecov prompt', async function () {
-    HookStore.add('component:codecov-integration-stacktrace-link', () => () => (
-      <div data-test-id="codecov-link" />
-    ));
+    HookStore.add(
+      'component:codecov-integration-stacktrace-link',
+      () =>
+        function () {
+          return <div data-test-id="codecov-link" />;
+        }
+    );
     const organization = {
       ...org,
       features: ['codecov-integration'],

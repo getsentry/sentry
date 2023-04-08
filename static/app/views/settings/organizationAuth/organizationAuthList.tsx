@@ -29,7 +29,7 @@ type Props = {
   activeProvider?: AuthProvider;
 };
 
-const OrganizationAuthList = ({organization, providerList, activeProvider}: Props) => {
+function OrganizationAuthList({organization, providerList, activeProvider}: Props) {
   const features = organization.features;
 
   // Sort provider list twice: first, by popularity,
@@ -112,6 +112,6 @@ const OrganizationAuthList = ({organization, providerList, activeProvider}: Prop
       </Panel>
     </div>
   );
-};
+}
 
 export default withOrganization(OrganizationAuthList);

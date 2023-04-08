@@ -16,7 +16,7 @@ type GroupEventHeaderProps = {
   hasReplay?: boolean;
 };
 
-const GroupEventHeader = ({event, group, project}: GroupEventHeaderProps) => {
+function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   const organization = useOrganization();
 
   return (
@@ -29,7 +29,7 @@ const GroupEventHeader = ({event, group, project}: GroupEventHeaderProps) => {
       />
     </DataSection>
   );
-};
+}
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
   margin: ${space(0.5)} 0;

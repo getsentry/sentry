@@ -52,12 +52,12 @@ function initializeData({
   return initialData;
 }
 
-const TestComponent = ({
+function TestComponent({
   router,
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
   router: InjectedRouter<Record<string, string>, any>;
-}) => {
+}) {
   const client = new QueryClient();
 
   return (
@@ -67,7 +67,7 @@ const TestComponent = ({
       </RouteContext.Provider>
     </QueryClientProvider>
   );
-};
+}
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {

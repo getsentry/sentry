@@ -51,7 +51,7 @@ const makeDefaultMockData = (
   };
 };
 
-const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
+function TestComponent(props: Partial<GroupEventDetailsProps>) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
     props.project
@@ -79,7 +79,7 @@ const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
   };
 
   return <GroupEventDetails {...mergedProps} />;
-};
+}
 
 const mockedTrace = (project: Project) => {
   return {
