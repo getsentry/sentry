@@ -319,6 +319,11 @@ class GroupTest(TestCase, SnubaTestCase):
         ):
             assert self.create_group(status=nullable_status).substatus is None
 
+    def test_group_invalid_substatus(self):
+        with pytest.raises(ValueError):
+            self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING)
+            self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ESCALATING)
+
 
 @region_silo_test
 class GroupIsOverResolveAgeTest(TestCase):
