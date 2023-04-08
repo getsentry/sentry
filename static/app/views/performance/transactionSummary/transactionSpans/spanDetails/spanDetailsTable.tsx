@@ -132,7 +132,7 @@ function renderBodyCellWithMeta(
   transactionName: string,
   suspectSpan?: SuspectSpan
 ) {
-  return (column: TableColumn, dataRow: TableDataRow): React.ReactNode => {
+  return function (column: TableColumn, dataRow: TableDataRow): React.ReactNode {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (

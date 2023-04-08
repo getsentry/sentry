@@ -83,7 +83,7 @@ type Props = {
   to?: string;
 };
 
-const SidebarItem = ({
+function SidebarItem({
   id,
   href,
   to,
@@ -102,7 +102,7 @@ const SidebarItem = ({
   organization,
   onClick,
   ...props
-}: Props) => {
+}: Props) {
   const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
@@ -192,7 +192,7 @@ const SidebarItem = ({
       </StyledSidebarItem>
     </Tooltip>
   );
-};
+}
 
 export default SidebarItem;
 

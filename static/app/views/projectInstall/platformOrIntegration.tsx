@@ -9,7 +9,7 @@ import PlatformIntegrationSetup from './platformIntegrationSetup';
 type Props = React.ComponentProps<typeof ProjectInstallPlatform> &
   Omit<React.ComponentProps<typeof PlatformIntegrationSetup>, 'integrationSlug'>;
 
-const PlatformOrIntegration = (props: Props) => {
+function PlatformOrIntegration(props: Props) {
   const parsed = qs.parse(window.location.search);
   const {platform} = props.params;
   const integrationSlug = platform && platformToIntegrationMap[platform];
@@ -23,6 +23,6 @@ const PlatformOrIntegration = (props: Props) => {
       <ProjectInstallPlatform {...props} />
     </OnboardingContextProvider>
   );
-};
+}
 
 export default PlatformOrIntegration;

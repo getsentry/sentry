@@ -72,11 +72,13 @@ function HookOrDefault<H extends HookName>({
       if (defaultComponentPromise) {
         const DefaultComponent = lazy(defaultComponentPromise);
 
-        return (props: Props) => (
-          <Suspense fallback={null}>
-            <DefaultComponent {...props} />
-          </Suspense>
-        );
+        return function (props: Props) {
+          return (
+            <Suspense fallback={null}>
+              <DefaultComponent {...props} />
+            </Suspense>
+          );
+        };
       }
 
       return defaultComponent;

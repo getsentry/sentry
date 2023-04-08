@@ -27,14 +27,14 @@ type Props = {
   showDetails: boolean;
 };
 
-const DebugFileRow = ({
+function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
   downloadRole,
   onDelete,
   orgSlug,
-}: Props) => {
+}: Props) {
   const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
     debugFile;
   const {features} = data || {};
@@ -138,7 +138,7 @@ const DebugFileRow = ({
       </RightColumn>
     </Fragment>
   );
-};
+}
 
 const DescriptionText = styled('span')`
   display: inline-flex;

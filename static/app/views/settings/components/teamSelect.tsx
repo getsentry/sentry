@@ -260,30 +260,32 @@ type TeamRowProps = {
 
 type ProjectTeamRowProps = {} & TeamRowProps;
 
-const ProjectTeamRow = ({
+function ProjectTeamRow({
   organization,
   team,
   onRemoveTeam,
   disabled,
   confirmMessage,
-}: ProjectTeamRowProps) => (
-  <TeamPanelItem data-test-id="team-row-for-project">
-    <StyledLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
-      <TeamBadge team={team} />
-    </StyledLink>
+}: ProjectTeamRowProps) {
+  return (
+    <TeamPanelItem data-test-id="team-row-for-project">
+      <StyledLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
+        <TeamBadge team={team} />
+      </StyledLink>
 
-    <Confirm
-      message={confirmMessage}
-      bypass={!confirmMessage}
-      onConfirm={() => onRemoveTeam(team.slug)}
-      disabled={disabled}
-    >
-      <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
-        {t('Remove')}
-      </Button>
-    </Confirm>
-  </TeamPanelItem>
-);
+      <Confirm
+        message={confirmMessage}
+        bypass={!confirmMessage}
+        onConfirm={() => onRemoveTeam(team.slug)}
+        disabled={disabled}
+      >
+        <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
+          {t('Remove')}
+        </Button>
+      </Confirm>
+    </TeamPanelItem>
+  );
+}
 
 type MemberTeamRowProps = {
   enforceIdpProvisioned: boolean;
@@ -293,7 +295,7 @@ type MemberTeamRowProps = {
   selectedTeamRole: Member['teamRoles'][0]['role'];
 } & TeamRowProps;
 
-const MemberTeamRow = ({
+function MemberTeamRow({
   organization,
   team,
   selectedOrgRole,
@@ -304,7 +306,7 @@ const MemberTeamRow = ({
   disabled,
   confirmMessage,
   enforceIdpProvisioned,
-}: MemberTeamRowProps) => {
+}: MemberTeamRowProps) {
   const {teamRoleList, orgRoleList} = organization;
   const isRoleOverwritten = hasOrgRoleOverwrite({
     orgRole: selectedOrgRole,
@@ -362,7 +364,7 @@ const MemberTeamRow = ({
       </Confirm>
     </TeamPanelItem>
   );
-};
+}
 
 const DropdownTeamBadge = styled(TeamBadge)`
   font-weight: normal;

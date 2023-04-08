@@ -11,7 +11,7 @@ type Props = {
   sentryFn: SentryFunction;
 };
 
-const ActionButtons = ({org, sentryFn, onDelete}: Props) => {
+function ActionButtons({org, sentryFn, onDelete}: Props) {
   const deleteButton = (
     <StyledButton
       size="sm"
@@ -21,7 +21,7 @@ const ActionButtons = ({org, sentryFn, onDelete}: Props) => {
     />
   );
   return <ButtonHolder>{deleteButton}</ButtonHolder>;
-};
+}
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.subText};

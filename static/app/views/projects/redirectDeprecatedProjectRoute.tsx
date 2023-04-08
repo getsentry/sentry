@@ -119,9 +119,8 @@ type RedirectOptions = {
 
 type RedirectCallback = (options: RedirectOptions) => string;
 
-const redirectDeprecatedProjectRoute =
-  (generateRedirectRoute: RedirectCallback) =>
-  ({params, router, routes}: Props) => {
+const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) =>
+  function ({params, router, routes}: Props) {
     // TODO(epurkhiser): The way this function get's called as a side-effect of
     // the render is pretty janky and incorrect... we should fix it.
     function trackRedirect(organizationId: string, nextRoute: string) {

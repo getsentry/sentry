@@ -10,13 +10,13 @@ import {space} from 'sentry/styles/space';
 import {Member, Organization} from 'sentry/types';
 import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 
-export const OrgRoleInfo = ({
+export function OrgRoleInfo({
   organization,
   member,
 }: {
   member: Member;
   organization: Organization;
-}) => {
+}) {
   const {orgRoleList} = organization;
   const {orgRole, orgRolesFromTeams} = member;
 
@@ -116,7 +116,7 @@ export const OrgRoleInfo = ({
       <QuestionTooltip isHoverable size="sm" title={tooltipBody} />
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('span')`
   display: inline-flex;

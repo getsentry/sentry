@@ -91,12 +91,12 @@ const getPortal = memoize((): HTMLElement => {
   return portal;
 });
 
-const TagsHeatMap = (
+function TagsHeatMap(
   props: Props & {
     isLoading: boolean;
     tableData: TagTableData | null;
   }
-) => {
+) {
   const {
     tableData,
     isLoading,
@@ -426,7 +426,7 @@ const TagsHeatMap = (
       </TransitionChart>
     </StyledPanel>
   );
-};
+}
 
 const LoadingContainer = styled('div')`
   width: 200px;

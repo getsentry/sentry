@@ -2,13 +2,13 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 import {Shortcut} from './types';
 
-const SearchHotkeysListener = ({
+function SearchHotkeysListener({
   visibleShortcuts,
   runShortcut,
 }: {
   runShortcut: (shortcut: Shortcut) => void;
   visibleShortcuts: Shortcut[];
-}) => {
+}) {
   useHotkeys(
     visibleShortcuts
       .filter(shortcut => typeof shortcut.hotkeys !== 'undefined')
@@ -21,6 +21,6 @@ const SearchHotkeysListener = ({
   );
 
   return null;
-};
+}
 
 export default SearchHotkeysListener;

@@ -15,7 +15,7 @@ type Props = {
   version: string;
 };
 
-const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
+function Deploys({version, orgSlug, projectId, deploys}: Props) {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Deploys')}</SidebarSection.Title>
@@ -36,7 +36,7 @@ const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-};
+}
 
 const Row = styled('div')`
   display: flex;

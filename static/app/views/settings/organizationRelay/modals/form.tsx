@@ -24,7 +24,7 @@ type Props = {
   values: Values;
 };
 
-const Form = ({
+function Form({
   values,
   onChange,
   errors,
@@ -33,7 +33,7 @@ const Form = ({
   disables,
   onValidateKey,
   onSave,
-}: Props) => {
+}: Props) {
   const handleChange =
     (field: FormField) =>
     (
@@ -134,7 +134,7 @@ const Form = ({
       </FieldGroup>
     </form>
   );
-};
+}
 
 export default Form;
 

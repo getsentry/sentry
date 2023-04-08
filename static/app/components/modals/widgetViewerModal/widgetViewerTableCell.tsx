@@ -51,9 +51,17 @@ type Props = {
   tableData?: TableDataWithTitle;
 };
 
-export const renderIssueGridHeaderCell =
-  ({location, widget, tableData, organization, onHeaderClick}: Props) =>
-  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+export const renderIssueGridHeaderCell = ({
+  location,
+  widget,
+  tableData,
+  organization,
+  onHeaderClick,
+}: Props) =>
+  function (
+    column: TableColumn<keyof TableDataRow>,
+    _columnIndex: number
+  ): React.ReactNode {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const sortField = getSortField(String(column.key));
@@ -87,17 +95,19 @@ export const renderIssueGridHeaderCell =
     );
   };
 
-export const renderDiscoverGridHeaderCell =
-  ({
-    location,
-    selection,
-    widget,
-    tableData,
-    organization,
-    onHeaderClick,
-    isMetricsData,
-  }: Props) =>
-  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+export const renderDiscoverGridHeaderCell = ({
+  location,
+  selection,
+  widget,
+  tableData,
+  organization,
+  onHeaderClick,
+  isMetricsData,
+}: Props) =>
+  function (
+    column: TableColumn<keyof TableDataRow>,
+    _columnIndex: number
+  ): React.ReactNode {
     const {orderby} = widget.queries[0];
     // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
     const aggregateAliasOrderBy = `${
@@ -159,14 +169,19 @@ export const renderDiscoverGridHeaderCell =
     );
   };
 
-export const renderGridBodyCell =
-  ({location, organization, widget, tableData, isFirstPage}: Props) =>
-  (
+export const renderGridBodyCell = ({
+  location,
+  organization,
+  widget,
+  tableData,
+  isFirstPage,
+}: Props) =>
+  function (
     column: GridColumnOrder,
     dataRow: Record<string, any>,
     rowIndex: number,
     columnIndex: number
-  ): React.ReactNode => {
+  ): React.ReactNode {
     const columnKey = String(column.key);
     const isTopEvents = widget.displayType === DisplayType.TOP_N;
     let cell: React.ReactNode;
@@ -263,9 +278,17 @@ export const renderPrependColumns =
     ];
   };
 
-export const renderReleaseGridHeaderCell =
-  ({location, widget, tableData, organization, onHeaderClick}: Props) =>
-  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+export const renderReleaseGridHeaderCell = ({
+  location,
+  widget,
+  tableData,
+  organization,
+  onHeaderClick,
+}: Props) =>
+  function (
+    column: TableColumn<keyof TableDataRow>,
+    _columnIndex: number
+  ): React.ReactNode {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const widgetOrderBy = widget.queries[0].orderby;

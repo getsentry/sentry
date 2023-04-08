@@ -23,7 +23,7 @@ type Props = {
   previewGroups: string[] | null;
 };
 
-const PreviewTable = ({
+function PreviewTable({
   previewGroups,
   members,
   pageLinks,
@@ -32,7 +32,7 @@ const PreviewTable = ({
   page,
   loading,
   error,
-}: Props) => {
+}: Props) {
   const renderBody = () => {
     if (loading) {
       return <LoadingIndicator />;
@@ -104,7 +104,7 @@ const PreviewTable = ({
       {renderPagination()}
     </IssuesReplayCountProvider>
   );
-};
+}
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;

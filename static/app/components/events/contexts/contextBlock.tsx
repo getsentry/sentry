@@ -7,7 +7,7 @@ type Props = {
   raw?: boolean;
 };
 
-const ContextBlock = ({data, raw = false}: Props) => {
+function ContextBlock({data, raw = false}: Props) {
   if (data.length === 0) {
     return null;
   }
@@ -17,6 +17,6 @@ const ContextBlock = ({data, raw = false}: Props) => {
       <KeyValueList data={data} raw={raw} isContextData />
     </ErrorBoundary>
   );
-};
+}
 
 export default ContextBlock;

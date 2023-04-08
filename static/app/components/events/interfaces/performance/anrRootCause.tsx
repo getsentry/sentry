@@ -94,7 +94,9 @@ const IssueSummary = styled('div')`
  * into 2 separate text nodes on the HTML AST. This allows the
  * title to be highlighted without spilling over to the subtitle.
  */
-const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
+function Spacer() {
+  return <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
+}
 
 const Subtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};

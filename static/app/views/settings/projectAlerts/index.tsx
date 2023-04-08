@@ -10,18 +10,20 @@ interface Props
   organization: Organization;
 }
 
-const ProjectAlerts = ({children, organization}: Props) => (
-  <Access organization={organization} access={['project:write']}>
-    {({hasAccess}) => (
-      <Fragment>
-        {isValidElement(children) &&
-          cloneElement<any>(children, {
-            organization,
-            canEditRule: hasAccess,
-          })}
-      </Fragment>
-    )}
-  </Access>
-);
+function ProjectAlerts({children, organization}: Props) {
+  return (
+    <Access organization={organization} access={['project:write']}>
+      {({hasAccess}) => (
+        <Fragment>
+          {isValidElement(children) &&
+            cloneElement<any>(children, {
+              organization,
+              canEditRule: hasAccess,
+            })}
+        </Fragment>
+      )}
+    </Access>
+  );
+}
 
 export default ProjectAlerts;

@@ -3,12 +3,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import Hook from 'sentry/components/hook';
 import HookStore from 'sentry/stores/hookStore';
 
-const HookWrapper = props => (
-  <div data-test-id="hook-wrapper">
-    {props.children}
-    <span>{JSON.stringify(props?.organization ?? {}, null, 2)}</span>
-  </div>
-);
+function HookWrapper(props) {
+  return (
+    <div data-test-id="hook-wrapper">
+      {props.children}
+      <span>{JSON.stringify(props?.organization ?? {}, null, 2)}</span>
+    </div>
+  );
+}
 
 describe('Hook', function () {
   afterEach(function () {

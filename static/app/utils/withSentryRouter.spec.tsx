@@ -26,10 +26,10 @@ jest.mock('sentry/constants', () => {
 
 describe('withSentryRouter', function () {
   type Props = WithRouterProps<{orgId: string}>;
-  const MyComponent = (props: Props) => {
+  function MyComponent(props: Props) {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
-  };
+  }
 
   it('injects orgId when a customer domain is being used', function () {
     mockUsingCustomerDomain.mockReturnValue(true);

@@ -15,7 +15,7 @@ import {extraQueryParameter, urlAttachQueryParams} from 'sentry/utils/demoMode';
 
 type Props = ModalRenderProps;
 
-const DemoSignUpModal = ({closeModal}: Props) => {
+function DemoSignUpModal({closeModal}: Props) {
   const signupUrl = urlAttachQueryParams(
     'https://sentry.io/signup/',
     extraQueryParameter()
@@ -78,7 +78,7 @@ const DemoSignUpModal = ({closeModal}: Props) => {
       </ImagePosition>
     </HighlightCornerContainer>
   );
-};
+}
 
 const TrialCheckInfo = styled('div')`
   padding: ${space(3)} 0;

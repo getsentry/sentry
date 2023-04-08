@@ -8,7 +8,7 @@ import withIssueTags, {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 interface MyComponentProps extends WithIssueTagsProps {
   forwardedValue: string;
 }
-const MyComponent = (props: MyComponentProps) => {
+function MyComponent(props: MyComponentProps) {
   return (
     <div>
       ForwardedValue: {props.forwardedValue}
@@ -19,7 +19,7 @@ const MyComponent = (props: MyComponentProps) => {
       {'stack filename: ' + props.tags?.['stack.filename'].name}
     </div>
   );
-};
+}
 
 describe('withIssueTags HoC', function () {
   beforeEach(() => {

@@ -30,7 +30,7 @@ type Props = {
   selected?: Set<number>;
 };
 
-const ProjectSelectorFooter = ({
+function ProjectSelectorFooter({
   selected,
   disableMultipleProjectSelection,
   hasChanges,
@@ -39,7 +39,7 @@ const ProjectSelectorFooter = ({
   onShowMyProjects,
   organization,
   message,
-}: Props) => {
+}: Props) {
   // Nothing to show.
   if (disableMultipleProjectSelection && !hasChanges && !message) {
     return null;
@@ -112,7 +112,7 @@ const ProjectSelectorFooter = ({
       </FooterActions>
     </FooterContainer>
   );
-};
+}
 
 export default ProjectSelectorFooter;
 

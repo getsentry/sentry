@@ -48,7 +48,7 @@ type Props = {
   showTagSummary?: boolean;
 };
 
-const EventEntries = ({
+function EventEntries({
   organization,
   project,
   location,
@@ -57,7 +57,7 @@ const EventEntries = ({
   className,
   isShare = false,
   showTagSummary = true,
-}: Props) => {
+}: Props) {
   const orgSlug = organization.slug;
   const projectSlug = project.slug;
   const orgFeatures = organization?.features ?? [];
@@ -130,7 +130,7 @@ const EventEntries = ({
       )}
     </div>
   );
-};
+}
 
 function Entries({
   definedEvent,

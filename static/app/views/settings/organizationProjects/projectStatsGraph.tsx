@@ -11,7 +11,7 @@ type Props = {
   stats?: Project['stats'];
 };
 
-const ProjectStatsGraph = ({project, stats}: Props) => {
+function ProjectStatsGraph({project, stats}: Props) {
   stats = stats || project.stats || [];
   const series: Series[] = [
     {
@@ -29,6 +29,6 @@ const ProjectStatsGraph = ({project, stats}: Props) => {
       )}
     </Fragment>
   );
-};
+}
 
 export default ProjectStatsGraph;

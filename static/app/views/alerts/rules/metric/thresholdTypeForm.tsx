@@ -21,7 +21,7 @@ type Props = {
   comparisonDelta?: number;
 };
 
-const ThresholdTypeForm = ({
+function ThresholdTypeForm({
   organization,
   dataset,
   disabled,
@@ -29,7 +29,7 @@ const ThresholdTypeForm = ({
   onComparisonDeltaChange,
   onComparisonTypeChange,
   comparisonDelta,
-}: Props) => {
+}: Props) {
   if (isCrashFreeAlert(dataset)) {
     return null;
   }
@@ -92,7 +92,7 @@ const ThresholdTypeForm = ({
       </FormRow>
     </Feature>
   );
-};
+}
 
 const FormRow = styled('div')`
   display: flex;

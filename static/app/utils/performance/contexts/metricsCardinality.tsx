@@ -41,12 +41,12 @@ const [_Provider, _useContext, _Context] =
  * This provider determines whether the metrics data is storing performance information correctly before we
  * make dozens of requests on pages such as performance landing and dashboards.
  */
-export const MetricsCardinalityProvider = (props: {
+export function MetricsCardinalityProvider(props: {
   children: ReactNode;
   location: Location;
   organization: Organization;
   sendOutcomeAnalytics?: boolean;
-}) => {
+}) {
   const isUsingMetrics = canUseMetricsData(props.organization);
 
   if (!isUsingMetrics) {
@@ -112,14 +112,14 @@ export const MetricsCardinalityProvider = (props: {
       </MetricsCompatibilityQuery>
     </Fragment>
   );
-};
+}
 
-const Provider = (
+function Provider(
   props: ComponentProps<typeof _Provider> & {
     organization: Organization;
     sendOutcomeAnalytics?: boolean;
   }
-) => {
+) {
   const fallbackFromNull = props.value.outcome?.shouldWarnIncompatibleSDK ?? false;
   const fallbackFromUnparam =
     props.value.outcome?.shouldNotifyUnnamedTransactions ?? false;
@@ -142,7 +142,7 @@ const Provider = (
     props.sendOutcomeAnalytics,
   ]);
   return <_Provider {...props}>{props.children}</_Provider>;
-};
+}
 
 export const MetricsCardinalityConsumer = _Context.Consumer;
 

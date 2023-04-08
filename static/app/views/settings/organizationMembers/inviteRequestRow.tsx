@@ -32,7 +32,7 @@ const InviteModalHook = HookOrDefault({
 
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
 
-const InviteRequestRow = ({
+function InviteRequestRow({
   inviteRequest,
   inviteRequestBusy,
   organization,
@@ -40,7 +40,7 @@ const InviteRequestRow = ({
   onDeny,
   onUpdate,
   allRoles,
-}: Props) => {
+}: Props) {
   const role = allRoles.find(r => r.id === inviteRequest.role);
   const roleDisallowed = !(role && role.allowed);
   const {access} = organization;
@@ -160,7 +160,7 @@ const InviteRequestRow = ({
       {hookRenderer}
     </InviteModalHook>
   );
-};
+}
 
 const JoinRequestIndicator = styled(Tag)`
   text-transform: uppercase;

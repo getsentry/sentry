@@ -400,7 +400,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
-const EventHeader = ({event}: {event: Event}) => {
+function EventHeader({event}: {event: Event}) {
   const message = getMessage(event);
   return (
     <EventHeaderContainer data-test-id="event-header">
@@ -414,7 +414,7 @@ const EventHeader = ({event}: {event: Event}) => {
       )}
     </EventHeaderContainer>
   );
-};
+}
 
 const EventHeaderContainer = styled('div')`
   max-width: ${p => p.theme.breakpoints.small};

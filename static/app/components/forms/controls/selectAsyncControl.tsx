@@ -123,7 +123,9 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   }
 }
 
-const RefForwarder = (p, ref) => <SelectAsyncControl {...p} forwardedRef={ref} />;
+function RefForwarder(p, ref) {
+  return <SelectAsyncControl {...p} forwardedRef={ref} />;
+}
 RefForwarder.displayName = 'SelectAsyncControl';
 
 export default forwardRef(RefForwarder);

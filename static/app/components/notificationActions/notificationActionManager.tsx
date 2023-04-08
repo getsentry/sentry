@@ -37,13 +37,13 @@ type NotificationActionManagerProps = {
   recipientRoles?: string[];
 };
 
-const NotificationActionManager = ({
+function NotificationActionManager({
   actions,
   availableActions,
   recipientRoles,
   project,
   updateAlertCount = () => {},
-}: NotificationActionManagerProps) => {
+}: NotificationActionManagerProps) {
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
 
@@ -206,6 +206,6 @@ const NotificationActionManager = ({
       {addAlertButton}
     </Fragment>
   );
-};
+}
 
 export default NotificationActionManager;

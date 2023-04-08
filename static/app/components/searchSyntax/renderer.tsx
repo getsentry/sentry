@@ -78,13 +78,13 @@ const shakeAnimation = keyframes`
     .join('\n')}
 `;
 
-const FilterToken = ({
+function FilterToken({
   filter,
   cursor,
 }: {
   cursor: number;
   filter: TokenResult<Token.Filter>;
-}) => {
+}) {
   const isActive = isWithinToken(filter, cursor);
 
   // This state tracks if the cursor has left the filter token. We initialize it
@@ -147,15 +147,15 @@ const FilterToken = ({
       </Filter>
     </Tooltip>
   );
-};
+}
 
-const KeyToken = ({
+function KeyToken({
   token,
   negated,
 }: {
   token: TokenResult<Token.KeySimple | Token.KeyAggregate | Token.KeyExplicitTag>;
   negated?: boolean;
-}) => {
+}) {
   let value: React.ReactNode = token.text;
 
   if (token.type === Token.KeyExplicitTag) {
@@ -167,29 +167,33 @@ const KeyToken = ({
   }
 
   return <Key negated={!!negated}>{value}:</Key>;
-};
+}
 
-const ListToken = ({
+function ListToken({
   token,
   cursor,
 }: {
   cursor: number;
   token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
-}) => (
-  <InList>
-    {token.items.map(({value, separator}) => [
-      <ListComma key="comma">{separator}</ListComma>,
-      value && renderToken(value, cursor),
-    ])}
-  </InList>
-);
+}) {
+  return (
+    <InList>
+      {token.items.map(({value, separator}) => [
+        <ListComma key="comma">{separator}</ListComma>,
+        value && renderToken(value, cursor),
+      ])}
+    </InList>
+  );
+}
 
-const NumberToken = ({token}: {token: TokenResult<Token.ValueNumber>}) => (
-  <Fragment>
-    {token.value}
-    <Unit>{token.unit}</Unit>
-  </Fragment>
-);
+function NumberToken({token}: {token: TokenResult<Token.ValueNumber>}) {
+  return (
+    <Fragment>
+      {token.value}
+      <Unit>{token.unit}</Unit>
+    </Fragment>
+  );
+}
 
 type FilterProps = {
   active: boolean;

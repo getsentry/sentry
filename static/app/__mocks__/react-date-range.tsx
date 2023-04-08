@@ -22,7 +22,7 @@ type DateRangeInputsProps = {
   range: Range;
 };
 
-const DatePickerInput = ({date, onChange, ...props}: DatePickerInputProps) => {
+function DatePickerInput({date, onChange, ...props}: DatePickerInputProps) {
   return (
     <input
       type="date"
@@ -35,7 +35,7 @@ const DatePickerInput = ({date, onChange, ...props}: DatePickerInputProps) => {
       {...props}
     />
   );
-};
+}
 
 /**
  * Replaces the react-date-range Calendar component with a date input
@@ -45,11 +45,11 @@ const DatePickerInput = ({date, onChange, ...props}: DatePickerInputProps) => {
  * const datePicker = screen.getByTestId('date-picker')
  * fireEvent.change(datePicker, {target: {value: '2022-01-01'}})
  */
-export const Calendar = ({date, onChange}: CalendarProps) => {
+export function Calendar({date, onChange}: CalendarProps) {
   return <DatePickerInput data-test-id="date-picker" date={date} onChange={onChange} />;
-};
+}
 
-const DateRangeInputs = ({range, onChange}: DateRangeInputsProps) => {
+function DateRangeInputs({range, onChange}: DateRangeInputsProps) {
   return (
     <div data-test-id={`date-range-${range.key}`}>
       <DatePickerInput
@@ -68,7 +68,7 @@ const DateRangeInputs = ({range, onChange}: DateRangeInputsProps) => {
       />
     </div>
   );
-};
+}
 
 /**
  * Replaces the react-date-range DateRange component with multiple date inputs
@@ -81,7 +81,7 @@ const DateRangeInputs = ({range, onChange}: DateRangeInputsProps) => {
  * fireEvent.change(datePickerFrom, {target: {value: '2022-01-01'}})
  * fireEvent.change(datePickerTo, {target: {value: '2022-01-02'}})
  */
-export const DateRange = ({ranges, onChange}: DateRangeProps) => {
+export function DateRange({ranges, onChange}: DateRangeProps) {
   return (
     <div data-test-id="date-range-picker">
       {ranges?.map(range => (
@@ -104,4 +104,4 @@ export const DateRange = ({ranges, onChange}: DateRangeProps) => {
       )) ?? null}
     </div>
   );
-};
+}

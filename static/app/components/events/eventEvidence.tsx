@@ -13,7 +13,7 @@ type EvidenceProps = {event: Event; projectSlug: string; group?: Group};
  * This component is rendered whenever an `event.occurrence.evidenceDisplay` is
  * present and the issue type config is set up to use evidenceDisplay.
  */
-export const EventEvidence = ({event, group, projectSlug}: EvidenceProps) => {
+export function EventEvidence({event, group, projectSlug}: EvidenceProps) {
   if (!event.occurrence) {
     return null;
   }
@@ -44,4 +44,4 @@ export const EventEvidence = ({event, group, projectSlug}: EvidenceProps) => {
       />
     </EventDataSection>
   );
-};
+}

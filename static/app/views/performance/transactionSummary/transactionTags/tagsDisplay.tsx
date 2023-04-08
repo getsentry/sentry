@@ -96,7 +96,7 @@ export const TAGS_TABLE_COLUMN_ORDER: TagsTableColumn[] = [
   },
 ];
 
-const TagsDisplay = (props: Props) => {
+function TagsDisplay(props: Props) {
   const {eventView: _eventView, location, organization, aggregateColumn, tagKey} = props;
   const eventView = _eventView.clone();
 
@@ -198,6 +198,6 @@ const TagsDisplay = (props: Props) => {
       )}
     </Fragment>
   );
-};
+}
 
 export default TagsDisplay;

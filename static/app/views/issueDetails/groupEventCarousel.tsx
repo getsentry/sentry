@@ -74,14 +74,14 @@ const makeBaseEventsPath = ({
   organization: Organization;
 }) => `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
-const EventNavigationButton = ({
+function EventNavigationButton({
   disabled,
   eventId,
   group,
   icon,
   title,
   referrer,
-}: EventNavigationButtonProps) => {
+}: EventNavigationButtonProps) {
   const organization = useOrganization();
   const location = useLocation();
   const baseEventsPath = makeBaseEventsPath({organization, group});
@@ -104,13 +104,9 @@ const EventNavigationButton = ({
       </div>
     </Tooltip>
   );
-};
+}
 
-export const GroupEventCarousel = ({
-  event,
-  group,
-  projectSlug,
-}: GroupEventCarouselProps) => {
+export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -299,7 +295,7 @@ export const GroupEventCarousel = ({
       </ActionsWrapper>
     </CarouselAndButtonsWrapper>
   );
-};
+}
 
 const CarouselAndButtonsWrapper = styled('div')`
   display: flex;

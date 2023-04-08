@@ -43,7 +43,7 @@ type Props = {
   onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
 };
 
-const ProviderItem = ({provider, active, onConfigure}: Props) => {
+function ProviderItem({provider, active, onConfigure}: Props) {
   const handleConfigure = (e: React.MouseEvent) => {
     onConfigure?.(provider.key, e);
   };
@@ -142,7 +142,7 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
       )}
     </Feature>
   );
-};
+}
 
 export default ProviderItem;
 
@@ -190,20 +190,22 @@ const DisabledHovercard = styled(Hovercard)`
   width: 350px;
 `;
 
-const LockedFeature = ({provider, features, className}: LockedFeatureProps) => (
-  <DisabledHovercard
-    containerClassName={className}
-    body={
-      <FeatureDisabled
-        features={features}
-        hideHelpToggle
-        message={t('%s SSO is disabled.', provider.name)}
-        featureName={t('SSO Auth')}
-      />
-    }
-  >
-    <Tag role="status" icon={<IconLock isSolid />}>
-      {t('disabled')}
-    </Tag>
-  </DisabledHovercard>
-);
+function LockedFeature({provider, features, className}: LockedFeatureProps) {
+  return (
+    <DisabledHovercard
+      containerClassName={className}
+      body={
+        <FeatureDisabled
+          features={features}
+          hideHelpToggle
+          message={t('%s SSO is disabled.', provider.name)}
+          featureName={t('SSO Auth')}
+        />
+      }
+    >
+      <Tag role="status" icon={<IconLock isSolid />}>
+        {t('disabled')}
+      </Tag>
+    </DisabledHovercard>
+  );
+}

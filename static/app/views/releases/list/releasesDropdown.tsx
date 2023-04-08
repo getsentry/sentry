@@ -7,7 +7,7 @@ type Props = {
   selected: string;
 };
 
-const ReleasesDropdown = ({label: prefix, options, selected, onSelect}: Props) => {
+function ReleasesDropdown({label: prefix, options, selected, onSelect}: Props) {
   const mappedOptions = Object.entries(options).map(
     ([key, {label, tooltip, disabled}]) => ({
       value: key,
@@ -25,6 +25,6 @@ const ReleasesDropdown = ({label: prefix, options, selected, onSelect}: Props) =
       triggerProps={{prefix, style: {width: '100%'}}}
     />
   );
-};
+}
 
 export default ReleasesDropdown;

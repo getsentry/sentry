@@ -13,17 +13,23 @@ type Props = {
   className?: string;
 };
 
-const FileChange = ({filename, authors, className}: Props) => (
-  <FileItem className={className}>
-    <Filename>
-      <StyledFileIcon fileName={filename} />
-      <TextOverflow>{filename}</TextOverflow>
-    </Filename>
-    <div>
-      <AvatarList users={authors as AvatarUser[]} avatarSize={25} typeMembers="authors" />
-    </div>
-  </FileItem>
-);
+function FileChange({filename, authors, className}: Props) {
+  return (
+    <FileItem className={className}>
+      <Filename>
+        <StyledFileIcon fileName={filename} />
+        <TextOverflow>{filename}</TextOverflow>
+      </Filename>
+      <div>
+        <AvatarList
+          users={authors as AvatarUser[]}
+          avatarSize={25}
+          typeMembers="authors"
+        />
+      </div>
+    </FileItem>
+  );
+}
 
 const FileItem = styled(ListGroupItem)`
   display: flex;

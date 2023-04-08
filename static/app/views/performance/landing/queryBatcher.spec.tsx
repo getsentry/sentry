@@ -28,7 +28,7 @@ const BASIC_QUERY_PARAMS = {
   statsPeriod: '14d',
 };
 
-const WrappedComponent = ({data, ...rest}) => {
+function WrappedComponent({data, ...rest}) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -50,7 +50,7 @@ const WrappedComponent = ({data, ...rest}) => {
       </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 describe('Performance > Widgets > Query Batching', function () {
   let eventsMock;

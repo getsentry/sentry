@@ -29,7 +29,7 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-const EventTagsPill = ({
+function EventTagsPill({
   tag,
   query,
   organization,
@@ -37,7 +37,7 @@ const EventTagsPill = ({
   projectId,
   streamPath,
   meta,
-}: Props) => {
+}: Props) {
   const locationSearch = `?${qs.stringify(query)}`;
   const {key, value} = tag;
   const name = !key ? <AnnotatedText value={key} meta={meta?.key?.['']} /> : key;
@@ -92,6 +92,6 @@ const EventTagsPill = ({
       )}
     </Pill>
   );
-};
+}
 
 export default EventTagsPill;

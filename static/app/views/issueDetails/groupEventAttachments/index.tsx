@@ -13,16 +13,18 @@ type Props = RouteComponentProps<{groupId: string}, {}> & {
   organization: Organization;
 };
 
-const GroupEventAttachmentsContainer = ({organization, group}: Props) => (
-  <Feature
-    features={['event-attachments']}
-    organization={organization}
-    renderDisabled={props => (
-      <FeatureDisabled {...props} featureName={t('Event Attachments')} />
-    )}
-  >
-    <GroupEventAttachments project={group.project} />
-  </Feature>
-);
+function GroupEventAttachmentsContainer({organization, group}: Props) {
+  return (
+    <Feature
+      features={['event-attachments']}
+      organization={organization}
+      renderDisabled={props => (
+        <FeatureDisabled {...props} featureName={t('Event Attachments')} />
+      )}
+    >
+      <GroupEventAttachments project={group.project} />
+    </Feature>
+  );
+}
 
 export default withOrganization(GroupEventAttachmentsContainer);

@@ -7,7 +7,7 @@ import Header from './header';
 
 type Props = React.ComponentProps<typeof Body>;
 
-const SimilarTraceID = ({event, ...props}: Props) => {
+function SimilarTraceID({event, ...props}: Props) {
   const traceID = event.contexts?.trace?.trace_id;
   return (
     <Wrapper>
@@ -15,7 +15,7 @@ const SimilarTraceID = ({event, ...props}: Props) => {
       <Body traceID={traceID} event={event} {...props} />
     </Wrapper>
   );
-};
+}
 
 export default SimilarTraceID;
 

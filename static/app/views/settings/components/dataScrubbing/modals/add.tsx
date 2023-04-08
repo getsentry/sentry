@@ -7,7 +7,7 @@ import ModalManager from './modalManager';
 type ModalManagerProps = ModalManager['props'];
 type Props = Omit<ModalManagerProps, 'title' | 'initialValues' | 'onGetNewRules'>;
 
-const Add = ({savedRules, ...props}: Props) => {
+function Add({savedRules, ...props}: Props) {
   const handleGetNewRules = (
     values: Parameters<ModalManagerProps['onGetNewRules']>[0]
   ) => {
@@ -22,6 +22,6 @@ const Add = ({savedRules, ...props}: Props) => {
       onGetNewRules={handleGetNewRules}
     />
   );
-};
+}
 
 export default Add;

@@ -31,13 +31,13 @@ type Props = {
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const DefaultTitle = ({
+function DefaultTitle({
   frame,
   platform,
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
-}: Props) => {
+}: Props) {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
@@ -210,7 +210,7 @@ const DefaultTitle = ({
   }
 
   return <Fragment>{title}</Fragment>;
-};
+}
 
 export default DefaultTitle;
 

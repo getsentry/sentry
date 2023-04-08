@@ -18,7 +18,7 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Props) => {
+function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Props) {
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
   const {releaseFileCount, bundleId} = releaseMeta;
 
@@ -74,7 +74,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-};
+}
 
 const StyledTextOverflow = styled(TextOverflow)`
   line-height: inherit;

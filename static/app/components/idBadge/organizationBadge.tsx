@@ -13,18 +13,22 @@ export interface OrganizationBadgeProps
   hideOverflow?: boolean | string;
 }
 
-const OrganizationBadge = ({
+function OrganizationBadge({
   hideOverflow = true,
   organization,
   ...props
-}: OrganizationBadgeProps) => (
-  <BaseBadge
-    displayName={
-      <BadgeDisplayName hideOverflow={hideOverflow}>{organization.slug}</BadgeDisplayName>
-    }
-    organization={organization}
-    {...props}
-  />
-);
+}: OrganizationBadgeProps) {
+  return (
+    <BaseBadge
+      displayName={
+        <BadgeDisplayName hideOverflow={hideOverflow}>
+          {organization.slug}
+        </BadgeDisplayName>
+      }
+      organization={organization}
+      {...props}
+    />
+  );
+}
 
 export default OrganizationBadge;

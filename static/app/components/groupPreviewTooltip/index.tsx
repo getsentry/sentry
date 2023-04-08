@@ -18,14 +18,14 @@ type GroupPreviewTooltipProps = {
   projectId?: string;
 };
 
-const GroupPreviewTooltip = ({
+function GroupPreviewTooltip({
   children,
   eventId,
   groupId,
   groupingCurrentLevel,
   issueCategory,
   projectId,
-}: GroupPreviewTooltipProps) => {
+}: GroupPreviewTooltipProps) {
   const projectSlug = eventId ? ProjectsStore.getById(projectId)?.slug : undefined;
 
   switch (issueCategory) {
@@ -57,6 +57,6 @@ const GroupPreviewTooltip = ({
         </EvidencePreview>
       );
   }
-};
+}
 
 export default GroupPreviewTooltip;

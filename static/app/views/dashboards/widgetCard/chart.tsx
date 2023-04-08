@@ -516,7 +516,7 @@ const StyledTransparentLoadingMask = styled(props => (
   align-items: center;
 `;
 
-const LoadingScreen = ({loading}: {loading: boolean}) => {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }
@@ -525,7 +525,7 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
       <LoadingIndicator mini />
     </StyledTransparentLoadingMask>
   );
-};
+}
 
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />

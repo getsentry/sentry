@@ -12,13 +12,13 @@ type Props = {
   onChange?: ({newestFirst}: {newestFirst: boolean}) => void;
 };
 
-const CrashTitle = ({
+function CrashTitle({
   title,
   newestFirst,
   beforeTitle,
   hideGuide = false,
   onChange,
-}: Props) => {
+}: Props) {
   const handleToggleOrder = () => {
     if (onChange) {
       onChange({newestFirst: !newestFirst});
@@ -46,7 +46,7 @@ const CrashTitle = ({
       </StyledH3>
     </Wrapper>
   );
-};
+}
 
 export default CrashTitle;
 

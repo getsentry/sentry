@@ -12,7 +12,7 @@ type Props = {
   system: boolean;
 };
 
-const AlertMessage = ({alert, system}: Props) => {
+function AlertMessage({alert, system}: Props) {
   const handleClose = () => AlertStore.closeAlert(alert);
 
   const {url, message, type, opaque} = alert;
@@ -36,7 +36,7 @@ const AlertMessage = ({alert, system}: Props) => {
       {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
     </StyledAlert>
   );
-};
+}
 
 export default AlertMessage;
 

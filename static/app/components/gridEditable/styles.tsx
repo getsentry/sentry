@@ -240,11 +240,13 @@ const GridStatusFloat = styled('div')`
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.background};
 `;
-export const GridBodyCellStatus = props => (
-  <GridStatusWrapper>
-    <GridStatusFloat>{props.children}</GridStatusFloat>
-  </GridStatusWrapper>
-);
+export function GridBodyCellStatus(props) {
+  return (
+    <GridStatusWrapper>
+      <GridStatusFloat>{props.children}</GridStatusFloat>
+    </GridStatusWrapper>
+  );
+}
 
 /**
  * We have a fat GridResizer and we use the ::after pseudo-element to draw

@@ -31,13 +31,13 @@ type SlackFormProps = {
   onSave: () => void;
 };
 
-const SlackForm = ({
+function SlackForm({
   action,
   availableActions,
   onChange,
   onSave,
   onCancel,
-}: SlackFormProps) => {
+}: SlackFormProps) {
   // Maps integrationId to integrationName
   const availableWorkspaces: Record<number, string> = useMemo(() => {
     const workspacesMap: Record<number, string> = {};
@@ -117,7 +117,7 @@ const SlackForm = ({
       </ButtonBar>
     </NotificationActionFormContainer>
   );
-};
+}
 
 const StyledInput = styled(Input)`
   width: 100px;

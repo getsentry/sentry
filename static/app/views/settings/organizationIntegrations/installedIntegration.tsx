@@ -201,12 +201,12 @@ const IntegrationItemBox = styled('div')`
   flex: 1;
 `;
 
-const IntegrationStatus = (
+function IntegrationStatus(
   props: React.HTMLAttributes<HTMLDivElement> & {
     status: ObjectStatus;
     hideTooltip?: boolean;
   }
-) => {
+) {
   const theme = useTheme();
   const {status, hideTooltip, ...p} = props;
   const color = status === 'active' ? theme.success : theme.gray300;
@@ -237,7 +237,7 @@ const IntegrationStatus = (
       {inner}
     </Tooltip>
   );
-};
+}
 
 const StyledIntegrationStatus = styled(IntegrationStatus)`
   display: flex;

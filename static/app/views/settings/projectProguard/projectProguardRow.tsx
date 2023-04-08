@@ -23,13 +23,13 @@ type Props = {
   orgSlug: string;
 };
 
-const ProjectProguardRow = ({
+function ProjectProguardRow({
   mapping,
   onDelete,
   downloadUrl,
   downloadRole,
   orgSlug,
-}: Props) => {
+}: Props) {
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
   const handleDeleteClick = () => {
@@ -102,7 +102,7 @@ const ProjectProguardRow = ({
       </ActionsColumn>
     </Fragment>
   );
-};
+}
 
 const NameColumn = styled('div')`
   display: flex;

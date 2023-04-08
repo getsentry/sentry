@@ -7,7 +7,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
 import {NavigationGroupProps} from 'sentry/views/settings/types';
 
-const SettingsNavigationGroup = (props: NavigationGroupProps) => {
+function SettingsNavigationGroup(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
 
   const navLinks = items.map(({path, title, index, show, badge, id, recordAnalytics}) => {
@@ -60,7 +60,7 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
       {navLinks}
     </NavSection>
   );
-};
+}
 
 const NavSection = styled('div')`
   margin-bottom: 20px;

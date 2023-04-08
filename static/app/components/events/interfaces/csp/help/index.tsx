@@ -16,7 +16,7 @@ export type HelpProps = {
   };
 };
 
-const CSPHelp = ({data: {effective_directive: key}}: HelpProps) => {
+function CSPHelp({data: {effective_directive: key}}: HelpProps) {
   const getHelp = () => ({
     __html: effectiveDirectives[key],
   });
@@ -56,7 +56,7 @@ const CSPHelp = ({data: {effective_directive: key}}: HelpProps) => {
       </StyledP>
     </div>
   );
-};
+}
 
 export default CSPHelp;
 

@@ -20,7 +20,7 @@ export interface Props {
   excludedTags?: string[];
 }
 
-const AllEventsTable = (props: Props) => {
+function AllEventsTable(props: Props) {
   const {location, organization, issueId, excludedTags, group} = props;
   const config = getConfigForIssueType(props.group);
   const [error, setError] = useState<string>('');
@@ -71,7 +71,7 @@ const AllEventsTable = (props: Props) => {
       referrer="api.issues.issue_events"
     />
   );
-};
+}
 
 type ColumnInfo = {columnTitles: string[]; fields: string[]};
 

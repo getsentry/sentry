@@ -8,29 +8,29 @@ describe('useSyncedLocalStorageState', function () {
     localStorageWrapper.clear();
   });
 
-  const Toggle = () => {
+  function Toggle() {
     const [value, setValue] = useSyncedLocalStorageState<boolean>('key', false);
 
     return <button onClick={() => setValue(!value)}>{value ? 'On' : 'Off'}</button>;
-  };
+  }
 
-  const Text = () => {
+  function Text() {
     const [value] = useSyncedLocalStorageState<boolean>('key', false);
 
     return <div>{value ? 'Value is on' : 'Value is off'}</div>;
-  };
+  }
 
   it('responds to changes in multiple components', async function () {
     localStorageWrapper.setItem('key', 'true');
 
-    const TestComponent = () => {
+    function TestComponent() {
       return (
         <div>
           <Toggle />
           <Text />
         </div>
       );
-    };
+    }
 
     render(<TestComponent />);
 

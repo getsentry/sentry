@@ -21,7 +21,7 @@ type Props = RouteComponentProps<{projectId?: string}, {}> & {
   projects: Project[];
 };
 
-const ProjectCrumb = ({
+function ProjectCrumb({
   organization: latestOrganization,
   project: latestProject,
   projects,
@@ -29,7 +29,7 @@ const ProjectCrumb = ({
   routes,
   route,
   ...props
-}: Props) => {
+}: Props) {
   const handleSelect = (item: {value: string}) => {
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
     // Since these models are project specific, we need to traverse up a route when switching projects
@@ -97,7 +97,7 @@ const ProjectCrumb = ({
       {...props}
     />
   );
-};
+}
 
 export {ProjectCrumb};
 export default withProjects(withLatestContext(ProjectCrumb));
