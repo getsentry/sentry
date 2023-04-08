@@ -230,7 +230,7 @@ const IconContainer = styled('div')`
   margin-top: ${space(0.25)};
 `;
 
-const BrowserDisplay = ({event}: {event: Event}) => {
+function BrowserDisplay({event}: {event: Event}) {
   const icon = generateIconName(
     event.contexts.browser?.name,
     event.contexts.browser?.version
@@ -243,7 +243,7 @@ const BrowserDisplay = ({event}: {event: Event}) => {
       <span>{event.contexts.browser?.name}</span>
     </BrowserCenter>
   );
-};
+}
 
 type EventDetailHeaderProps = {
   hasReplay: boolean;
