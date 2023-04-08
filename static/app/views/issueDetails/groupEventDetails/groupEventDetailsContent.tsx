@@ -41,7 +41,7 @@ type GroupEventEntryProps = {
   project: Project;
 };
 
-const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProps) => {
+function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProps) {
   const organization = useOrganization();
   const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
@@ -57,13 +57,13 @@ const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProp
       {...{organization, event}}
     />
   );
-};
+}
 
-const GroupEventDetailsContent = ({
+function GroupEventDetailsContent({
   group,
   event,
   project,
-}: GroupEventDetailsContentProps) => {
+}: GroupEventDetailsContentProps) {
   const organization = useOrganization();
   const location = useLocation();
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
@@ -155,7 +155,7 @@ const GroupEventDetailsContent = ({
       )}
     </Fragment>
   );
-};
+}
 
 const NotFoundMessage = styled('div')`
   padding: ${space(2)} ${space(4)};

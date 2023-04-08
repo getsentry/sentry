@@ -6,7 +6,7 @@ type Props = {
   organization?: OrganizationSummary;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
-const OrganizationAvatar = ({organization, ...props}: Props) => {
+function OrganizationAvatar({organization, ...props}: Props) {
   if (!organization) {
     return null;
   }
@@ -24,6 +24,6 @@ const OrganizationAvatar = ({organization, ...props}: Props) => {
       title={title}
     />
   );
-};
+}
 
 export default OrganizationAvatar;

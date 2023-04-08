@@ -50,7 +50,7 @@ type Props = {
   withPackage?: boolean;
 };
 
-const Version = ({
+function Version({
   version,
   organization,
   anchor = true,
@@ -60,7 +60,7 @@ const Version = ({
   projectId,
   truncate,
   className,
-}: Props) => {
+}: Props) {
   const location = useLocation();
   const versionToDisplay = formatVersion(version, withPackage);
 
@@ -146,7 +146,7 @@ const Version = ({
       {renderVersion()}
     </Tooltip>
   );
-};
+}
 
 // TODO(matej): try to wrap version with this when truncate prop is true (in separate PR)
 // const VersionWrapper = styled('div')`
