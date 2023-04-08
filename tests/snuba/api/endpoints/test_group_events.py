@@ -43,6 +43,8 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+
+        print(event_1)
         event_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
