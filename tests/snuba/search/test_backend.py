@@ -25,6 +25,7 @@ from sentry.models import (
     GroupHistoryStatus,
     GroupStatus,
     GroupSubscription,
+    GroupSubStatus,
     Integration,
     record_group_history,
 )
@@ -390,6 +391,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         group_3 = event_3.group
         group_3.status = GroupStatus.MUTED
+        group_3.substatus = GroupSubStatus.UNTIL_ESCALATING
         group_3.save()
 
         self.run_test_query_in_syntax(
@@ -1056,6 +1058,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
         group_3.status = GroupStatus.MUTED
+        group_3.substatus = GroupSubStatus.UNTIL_ESCALATING
         group_3.save()
         other_user = self.create_user()
         self.run_test_query_in_syntax(
