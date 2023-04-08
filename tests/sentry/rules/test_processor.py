@@ -7,7 +7,14 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, ProjectOwnership, Rule, RuleFireHistory
+from sentry.models import (
+    GroupRuleStatus,
+    GroupStatus,
+    GroupSubStatus,
+    ProjectOwnership,
+    Rule,
+    RuleFireHistory,
+)
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
@@ -89,6 +96,7 @@ class RuleProcessorTest(TestCase):
 
     def test_ignored_issue(self):
         self.group_event.group.status = GroupStatus.IGNORED
+        self.group_event.group.substatus = GroupSubStatus.UNTIL_ESCALATING
         self.group_event.group.save()
         rp = RuleProcessor(
             self.group_event,
