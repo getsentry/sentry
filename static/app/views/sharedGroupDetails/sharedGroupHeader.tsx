@@ -14,34 +14,36 @@ type Props = {
   group: Group;
 };
 
-const SharedGroupHeader = ({group}: Props) => (
-  <Wrapper>
-    <Details>
-      <TitleWrap>
-        <Title>{group.title}</Title>
-        <ShortIdWrapper>
-          <ShortId
-            shortId={group.shortId}
-            avatar={<ProjectBadge project={group.project} avatarSize={20} hideName />}
-          />
-          {group.issueCategory === IssueCategory.PERFORMANCE && (
-            <FeatureBadge
-              type="beta"
-              title={t(
-                'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
-              )}
+function SharedGroupHeader({group}: Props) {
+  return (
+    <Wrapper>
+      <Details>
+        <TitleWrap>
+          <Title>{group.title}</Title>
+          <ShortIdWrapper>
+            <ShortId
+              shortId={group.shortId}
+              avatar={<ProjectBadge project={group.project} avatarSize={20} hideName />}
             />
-          )}
-        </ShortIdWrapper>
-      </TitleWrap>
+            {group.issueCategory === IssueCategory.PERFORMANCE && (
+              <FeatureBadge
+                type="beta"
+                title={t(
+                  'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
+                )}
+              />
+            )}
+          </ShortIdWrapper>
+        </TitleWrap>
 
-      <TagAndMessageWrapper>
-        {group.isUnhandled && <UnhandledTag />}
-        <EventMessage message={group.culprit} />
-      </TagAndMessageWrapper>
-    </Details>
-  </Wrapper>
-);
+        <TagAndMessageWrapper>
+          {group.isUnhandled && <UnhandledTag />}
+          <EventMessage message={group.culprit} />
+        </TagAndMessageWrapper>
+      </Details>
+    </Wrapper>
+  );
+}
 
 export default SharedGroupHeader;
 

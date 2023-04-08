@@ -162,7 +162,7 @@ type Props = {
   pageLinks: string | null;
 };
 
-const AuditLogList = ({
+function AuditLogList({
   isLoading,
   pageLinks,
   entries,
@@ -170,7 +170,7 @@ const AuditLogList = ({
   eventTypes,
   onCursor,
   onEventSelect,
-}: Props) => {
+}: Props) {
   const is24Hours = shouldUse24Hours();
   const organization = useOrganization();
   const hasEntries = entries && entries.length > 0;
@@ -247,7 +247,7 @@ const AuditLogList = ({
       {pageLinks && <Pagination pageLinks={pageLinks} onCursor={onCursor} />}
     </div>
   );
-};
+}
 
 const SentryAvatar = styled(ActivityAvatar)`
   margin-right: ${space(1)};

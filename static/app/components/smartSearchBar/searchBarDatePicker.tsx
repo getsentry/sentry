@@ -68,10 +68,10 @@ const parseIncomingDateString = (incomingDateString?: string) => {
   return new Date(strippedTimeZone + 'T00:00:00');
 };
 
-const SearchBarDatePicker = ({
+function SearchBarDatePicker({
   dateString,
   handleSelectDateTime,
-}: SearchBarDatePickerProps) => {
+}: SearchBarDatePickerProps) {
   const incomingDate = parseIncomingDateString(dateString);
 
   const time = incomingDate ? format(incomingDate, 'HH:mm:ss') : DEFAULT_DAY_START_TIME;
@@ -125,14 +125,14 @@ const SearchBarDatePicker = ({
       </DatePickerFooter>
     </SearchBarDatePickerOverlay>
   );
-};
+}
 
 /**
  * This component keeps track of its own state because updates bring focus
  * back to the search bar. We make sure to keep focus within the input
  * until the user is done making changes.
  */
-const TimeInput = ({time, setTime}: TimeInputProps) => {
+function TimeInput({time, setTime}: TimeInputProps) {
   const [localTime, setLocalTime] = useState(time);
   const [isFocused, setIsFocused] = useState(false);
   const timeInputRef = useRef<HTMLInputElement | null>(null);
@@ -172,7 +172,7 @@ const TimeInput = ({time, setTime}: TimeInputProps) => {
       step={1}
     />
   );
-};
+}
 
 const SearchBarDatePickerOverlay = styled(Overlay)`
   position: absolute;

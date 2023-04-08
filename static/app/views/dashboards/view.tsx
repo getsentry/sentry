@@ -104,7 +104,7 @@ type FeatureProps = {
   organization: Organization;
 };
 
-export const DashboardBasicFeature = ({organization, children}: FeatureProps) => {
+export function DashboardBasicFeature({organization, children}: FeatureProps) {
   const renderDisabled = () => (
     <Layout.Page withPadding>
       <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -121,4 +121,4 @@ export const DashboardBasicFeature = ({organization, children}: FeatureProps) =>
       {children}
     </Feature>
   );
-};
+}

@@ -16,7 +16,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-const GroupingComponentStacktrace = ({component, showNonContributing}: Props) => {
+function GroupingComponentStacktrace({component, showNonContributing}: Props) {
   const getFrameGroups = () => {
     const frameGroups: FrameGroup[] = [];
 
@@ -57,6 +57,6 @@ const GroupingComponentStacktrace = ({component, showNonContributing}: Props) =>
       ))}
     </Fragment>
   );
-};
+}
 
 export default GroupingComponentStacktrace;
