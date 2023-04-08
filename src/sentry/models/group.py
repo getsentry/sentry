@@ -716,3 +716,18 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
             instance.substatus = GroupSubStatus.ONGOING
         if instance.status == GroupStatus.IGNORED and instance.substatus is None:
             instance.substatus = GroupSubStatus.UNTIL_ESCALATING
+
+        if instance.status == GroupStatus.UNRESOLVED and instance.substatus not in (
+            GroupSubStatus.ONGOING,
+            GroupSubStatus.ESCALATING,
+        ):
+            raise ValueError(
+                f"invalid substatus {instance.substatus} for status {instance.status}, must be ({(GroupSubStatus.ONGOING, GroupSubStatus.ESCALATING)})"
+            )
+        if (
+            instance.status == GroupStatus.IGNORED
+            and instance.substatus is not GroupSubStatus.UNTIL_ESCALATING
+        ):
+            raise ValueError(
+                f"invalid substatus {instance.substatus} for status {instance.status}, must be {GroupSubStatus.UNTIL_ESCALATING}"
+            )
