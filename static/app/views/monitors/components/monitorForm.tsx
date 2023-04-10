@@ -40,7 +40,7 @@ const SCHEDULE_OPTIONS: RadioOption<string>[] = [
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
-const DEFAULT_CRONTAB = '* * * * *';
+const DEFAULT_CRONTAB = '0 0 * * *';
 
 const getIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
@@ -283,7 +283,7 @@ function MonitorForm({
                       options={getIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
-                      defaultValue="minute"
+                      defaultValue="day"
                       required
                       stacked
                       inline={false}
