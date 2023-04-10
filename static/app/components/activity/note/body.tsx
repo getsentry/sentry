@@ -5,12 +5,14 @@ type Props = {
   className?: string;
 };
 
-const NoteBody = ({className, text}: Props) => (
-  <div
-    className={className}
-    data-test-id="activity-note-body"
-    dangerouslySetInnerHTML={{__html: marked(text)}}
-  />
-);
+function NoteBody({className, text}: Props) {
+  return (
+    <div
+      className={className}
+      data-test-id="activity-note-body"
+      dangerouslySetInnerHTML={{__html: marked(text)}}
+    />
+  );
+}
 
 export default NoteBody;

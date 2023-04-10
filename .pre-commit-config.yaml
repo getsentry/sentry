@@ -60,13 +60,6 @@ repos:
       require_serial: true
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
-    - id: prevent-push
-      name: prevent pushing master
-      stages: [push]
-      entry: bash -c 'test "$PRE_COMMIT_REMOTE_BRANCH" != "refs/heads/master"'
-      always_run: true
-      pass_filenames: false
-      language: system
 
 -   repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.21.0
