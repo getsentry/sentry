@@ -60,6 +60,10 @@ type Props = {
   organization?: Organization;
 };
 
+function activatePanel(panel: SidebarPanelKey) {
+  SidebarPanelStore.activatePanel(panel);
+}
+
 function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
@@ -98,7 +102,7 @@ const useOpenOnboardingSidebar = () => {
 
   useEffect(() => {
     if (openOnboardingSidebar) {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.OnboardingWizard);
+      activatePanel(SidebarPanelKey.OnboardingWizard);
     }
   }, [openOnboardingSidebar]);
 };
