@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
                     ALTER TABLE "sentry_groupsnooze" DROP COLUMN "until_escalating";
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_groupsnooze" ADD COLUMN "until_escalating" NULL DEFAULT false;
+                    ALTER TABLE "sentry_groupsnooze" ADD COLUMN "until_escalating" BOOLEAN DEFAULT false
                     """,
                     hints={"tables": ["sentry_groupsnooze"]},
                 )
