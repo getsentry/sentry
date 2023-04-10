@@ -31,34 +31,32 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
     </StyledExternalLink>
   );
 
+  const typeName = type || 'unknown';
+
   const pills = [
-    <Pill
-      key="mechanism"
-      name={
-        description ? (
-          <Hovercard
-            showUnderline
-            header={
-              <Details>
-                {t('Details')}
-                {linkElement}
-              </Details>
-            }
-            body={description}
-          >
-            {'mechanism'}
-          </Hovercard>
-        ) : linkElement ? (
-          <Name>
-            {'mechanism '}
-            {linkElement}
-          </Name>
-        ) : (
-          'mechanism'
-        )
-      }
-      value={type || 'unknown'}
-    />,
+    <Pill key="mechanism" name="mechanism">
+      {description ? (
+        <Hovercard
+          showUnderline
+          header={
+            <Details>
+              {t('Details')}
+              {linkElement}
+            </Details>
+          }
+          body={description}
+        >
+          {typeName}
+        </Hovercard>
+      ) : linkElement ? (
+        <Name>
+          {typeName}
+          {linkElement}
+        </Name>
+      ) : (
+        typeName
+      )}
+    </Pill>,
   ];
 
   if (!isNil(handled)) {
