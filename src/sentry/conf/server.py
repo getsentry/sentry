@@ -1304,8 +1304,6 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
-    # Enable access to Notification Actions and their endpoints
-    "organizations:notification-actions": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.

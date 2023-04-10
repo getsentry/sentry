@@ -172,74 +172,78 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const getAreaChart = provided => () => {
-    const durationUnit = getDurationUnit(provided.widgetData.chart.data);
-    return (
-      <StackedAreaChart
-        {...provided.widgetData.chart}
-        {...provided}
-        colors={colors}
-        series={provided.widgetData.chart.data}
-        animation
-        isGroupedByDate
-        showTimeInTooltip
-        yAxis={{
-          minInterval: durationUnit,
-          axisLabel: {
-            formatter(value: number) {
-              return axisLabelFormatter(
-                value,
-                aggregateOutputType(provided.widgetData.chart.data[0].seriesName),
-                undefined,
-                durationUnit
-              );
+  const getAreaChart = provided =>
+    function () {
+      const durationUnit = getDurationUnit(provided.widgetData.chart.data);
+      return (
+        <StackedAreaChart
+          {...provided.widgetData.chart}
+          {...provided}
+          colors={colors}
+          series={provided.widgetData.chart.data}
+          animation
+          isGroupedByDate
+          showTimeInTooltip
+          yAxis={{
+            minInterval: durationUnit,
+            axisLabel: {
+              formatter(value: number) {
+                return axisLabelFormatter(
+                  value,
+                  aggregateOutputType(provided.widgetData.chart.data[0].seriesName),
+                  undefined,
+                  durationUnit
+                );
+              },
             },
-          },
-        }}
-        xAxis={{
-          show: false,
-          axisLabel: {show: true, margin: 8},
-          axisLine: {show: false},
-        }}
-        tooltip={{
-          valueFormatter: value => tooltipFormatter(value, 'duration'),
-        }}
-      />
-    );
-  };
+          }}
+          xAxis={{
+            show: false,
+            axisLabel: {show: true, margin: 8},
+            axisLine: {show: false},
+          }}
+          tooltip={{
+            valueFormatter: value => tooltipFormatter(value, 'duration'),
+          }}
+        />
+      );
+    };
 
   const getHeaders = provided =>
-    provided.widgetData.list.data.map(listItem => () => {
-      const transaction = (listItem.transaction as string | undefined) ?? '';
+    provided.widgetData.list.data.map(
+      listItem =>
+        function () {
+          const transaction = (listItem.transaction as string | undefined) ?? '';
 
-      const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
-      const transactionTarget = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
-          })
-        : transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
-            projectID: listItem['project.id'] as string,
-            transaction,
-            query: props.eventView.generateQueryStringObject(),
-            subPath: 'spans',
-          });
+          const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+          const transactionTarget = isUnparameterizedRow
+            ? createUnnamedTransactionsDiscoverTarget({
+                organization,
+                location,
+              })
+            : transactionSummaryRouteWithQuery({
+                orgSlug: props.organization.slug,
+                projectID: listItem['project.id'] as string,
+                transaction,
+                query: props.eventView.generateQueryStringObject(),
+                subPath: 'spans',
+              });
 
-      const displayedField = 'count()';
-      const rightValue = listItem[displayedField];
+          const displayedField = 'count()';
+          const rightValue = listItem[displayedField];
 
-      return (
-        <Fragment>
-          <GrowLink to={transactionTarget}>
-            <Truncate value={transaction} maxLength={40} />
-          </GrowLink>
-          <RightAlignedCell>
-            <Count value={rightValue} />
-          </RightAlignedCell>
-        </Fragment>
-      );
-    });
+          return (
+            <Fragment>
+              <GrowLink to={transactionTarget}>
+                <Truncate value={transaction} maxLength={40} />
+              </GrowLink>
+              <RightAlignedCell>
+                <Count value={rightValue} />
+              </RightAlignedCell>
+            </Fragment>
+          );
+        }
+    );
 
   return (
     <GenericPerformanceWidget<DataType>

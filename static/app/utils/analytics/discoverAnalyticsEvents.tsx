@@ -28,7 +28,9 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_v2.add_equation': {};
   'discover_v2.build_new_query': {};
   'discover_v2.change_sort': {sort: string};
+  'discover_v2.column_editor.open': {};
   'discover_v2.create_alert_clicked': {status: string};
+  'discover_v2.event_details': {event_type: EventOrGroupType};
   'discover_v2.facet_map.clicked': {tag: string};
   'discover_v2.prebuilt_query_click': {query_name?: string};
   'discover_v2.processed_baseline_toggle.clicked': {toggled: string};
@@ -40,6 +42,9 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   };
   'discover_v2.quick_context_update_query': {queryKey: string};
   'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
+  'discover_v2.results.cellaction': {action: string};
+  'discover_v2.results.download_csv': {};
+  'discover_v2.results.drilldown': {};
   'discover_v2.results.toggle_tag_facets': {};
   'discover_v2.save_existing_query_failed': SaveQueryParams & {error: string};
   'discover_v2.saved_query_click': {};
@@ -51,6 +56,7 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_v2.tour.advance': {duration: number; step: number};
   'discover_v2.tour.close': {duration: number; step: number};
   'discover_v2.tour.start': {};
+  'discover_v2.update_columns': {};
   'discover_v2.view_saved_queries': {};
   'discover_v2.y_axis_change': {y_axis_value: string[]};
   'discover_views.add_to_dashboard.confirm': {};
@@ -105,4 +111,10 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.delete_query_failed': 'Discoverv2: Failed to delete a saved query',
   'discover_v2.delete_query_request': 'Discoverv2: Request to delete a saved query',
   'discover_v2.create_alert_clicked': 'Discoverv2: Create alert clicked',
+  'discover_v2.event_details': 'Discoverv2: Opened Event Details',
+  'discover_v2.column_editor.open': 'Discoverv2: Open column editor',
+  'discover_v2.results.download_csv': 'Discoverv2: Download CSV',
+  'discover_v2.results.cellaction': 'Discoverv2: Cell Action Clicked',
+  'discover_v2.results.drilldown': 'Discoverv2: Click aggregate drilldown',
+  'discover_v2.update_columns': 'Discoverv2: Update columns',
 };

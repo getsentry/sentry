@@ -47,13 +47,13 @@ type Props = {
   search: string;
 } & StepProps;
 
-const MissingExampleWarning = ({
+function MissingExampleWarning({
   platformDocs,
   platform,
 }: {
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
-}) => {
+}) {
   const missingExample = platformDocs?.html.includes(INCOMPLETE_DOC_FLAG);
 
   if (!missingExample) {
@@ -74,17 +74,17 @@ const MissingExampleWarning = ({
       )}
     </Alert>
   );
-};
+}
 
 export function ProjectDocsReact({
   organization,
   location,
-  project,
+  projectSlug,
   newOrg,
 }: {
   location: Location;
   organization: Organization;
-  project: Project;
+  projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
   const {
@@ -119,10 +119,10 @@ export function ProjectDocsReact({
   }, [productSelectionLogExperiment, newOrg]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
-    [`/projects/${organization.slug}/${project.slug}/docs/${loadPlatform}/`],
+    [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
     {
       staleTime: Infinity,
-      enabled: !!project.slug && !!organization.slug && !!loadPlatform,
+      enabled: !!projectSlug && !!organization.slug && !!loadPlatform,
     }
   );
 
@@ -462,18 +462,27 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           ) : showReactOnboarding ? (
             <ProjectDocsReact
               organization={organization}
-              project={project}
+              projectSlug={project.slug}
               location={location}
               newOrg
             />
           ) : showLoaderOnboarding ? (
-            <SetupDocsLoader
-              organization={organization}
-              project={project}
-              location={location}
-              platform={loadedPlatform}
-              close={hideLoaderOnboarding}
-            />
+            <Fragment>
+              <SetupIntroduction
+                stepHeaderText={t(
+                  'Configure %s SDK',
+                  platforms.find(p => p.id === currentPlatform)?.name ?? ''
+                )}
+                platform={currentPlatform}
+              />
+              <SetupDocsLoader
+                organization={organization}
+                project={project}
+                location={location}
+                platform={loadedPlatform}
+                close={hideLoaderOnboarding}
+              />
+            </Fragment>
           ) : (
             <ProjectDocs
               platform={loadedPlatform}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Sequence
@@ -27,6 +28,7 @@ from sentry.utils.safe import get_path
 CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
 FORMATTED_BREADCRUMB_CATEGORIES = frozenset(["query", "sql.query"])
+SQL_DOUBLEQUOTES_REGEX = re.compile(r"\"([a-zA-Z0-9_]+?)\"")
 
 
 def get_crash_files(events):
@@ -370,6 +372,9 @@ class DetailedEventSerializer(EventSerializer):
         converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
         return converted_problem
 
+    def _remove_doublequotes(self, message: str):
+        return SQL_DOUBLEQUOTES_REGEX.sub(r"\1", message)
+
     def _format_breadcrumb_messages(
         self, event_data: dict[str, Any], event: Event | GroupEvent, user: User
     ):
@@ -386,10 +391,16 @@ class DetailedEventSerializer(EventSerializer):
 
             for breadcrumb_item in breadcrumbs["data"]["values"]:
                 if breadcrumb_item["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
+                    breadcrumb_item["messageFormat"] = "sql"
                     breadcrumb_item["messageRaw"] = breadcrumb_item["message"]
                     breadcrumb_item["message"] = sqlparse.format(
-                        breadcrumb_item["message"], reindent_aligned=True
+                        breadcrumb_item["message"], reindent=True, wrap_after=80
                     )
+                    if breadcrumb_item["message"] != breadcrumb_item["messageRaw"]:
+                        breadcrumb_item["message"] = self._remove_doublequotes(
+                            breadcrumb_item["message"]
+                        )
+
             return event_data
         except Exception as exc:
             sentry_sdk.capture_exception(exc)

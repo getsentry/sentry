@@ -21,7 +21,7 @@ type Props = {
   traceID?: string;
 };
 
-const Body = ({traceID, organization, event, location}: Props) => {
+function Body({traceID, organization, event, location}: Props) {
   if (!traceID) {
     return (
       <Panel>
@@ -77,6 +77,6 @@ const Body = ({traceID, organization, event, location}: Props) => {
       }}
     </DiscoverQuery>
   );
-};
+}
 
 export default Body;
