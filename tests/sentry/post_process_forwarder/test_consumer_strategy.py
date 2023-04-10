@@ -6,7 +6,7 @@ import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
-from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
+from sentry.post_process_forwarder.consumer_strategy import PostProcessForwarderStrategyFactory
 from sentry.utils import json
 
 

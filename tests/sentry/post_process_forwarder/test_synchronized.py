@@ -13,7 +13,7 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.commit import Commit
 from arroyo.types import BrokerValue, Partition, Topic
 
-from sentry.eventstream.kafka.synchronized import SynchronizedConsumer, commit_codec
+from sentry.post_process_forwarder.synchronized import SynchronizedConsumer, commit_codec
 
 T = TypeVar("T")
 

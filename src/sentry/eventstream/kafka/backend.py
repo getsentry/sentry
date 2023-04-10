@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-import signal
-import uuid
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,28 +14,18 @@ from typing import (
     cast,
 )
 
-from arroyo import Topic, configure_metrics
-from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
-from arroyo.commit import ONCE_PER_SECOND
-from arroyo.processing.processor import StreamProcessor
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
-from sentry.eventstream.base import EventStreamEventType, GroupStates, PostProcessForwarderType
-from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
-from sentry.eventstream.kafka.synchronized import SynchronizedConsumer
+from sentry.eventstream.base import EventStreamEventType, GroupStates
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.utils import json, metrics
-from sentry.utils.arroyo import MetricsWrapper
-from sentry.utils.kafka_config import (
-    get_kafka_consumer_cluster_options,
-    get_kafka_producer_cluster_options,
-)
+from sentry.post_process_forwarder import PostProcessForwarder, PostProcessForwarderType
+from sentry.utils import json
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
 logger = logging.getLogger(__name__)
 
@@ -228,50 +216,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self) -> bool:
         return True
 
-    def _build_streaming_consumer(
-        self,
-        consumer_group: str,
-        topic: str,
-        commit_log_topic: str,
-        synchronize_commit_group: str,
-        concurrency: int,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
-        strict_offset_reset: Optional[bool],
-    ) -> StreamProcessor[KafkaPayload]:
-        configure_metrics(MetricsWrapper(metrics.backend, name="eventstream"))
-
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-
-        consumer = KafkaConsumer(
-            build_kafka_consumer_configuration(
-                get_kafka_consumer_cluster_options(cluster_name),
-                group_id=consumer_group,
-                auto_offset_reset=initial_offset_reset,
-                strict_offset_reset=strict_offset_reset,
-            )
-        )
-
-        commit_log_consumer = KafkaConsumer(
-            build_kafka_consumer_configuration(
-                get_kafka_consumer_cluster_options(cluster_name),
-                group_id=f"ppf-commit-log-{uuid.uuid1().hex}",
-                auto_offset_reset="earliest",
-            )
-        )
-
-        synchronized_consumer = SynchronizedConsumer(
-            consumer=consumer,
-            commit_log_consumer=commit_log_consumer,
-            commit_log_topic=Topic(commit_log_topic),
-            commit_log_groups={synchronize_commit_group},
-        )
-
-        strategy_factory = PostProcessForwarderStrategyFactory(concurrency)
-
-        return StreamProcessor(
-            synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
-        )
-
     def run_post_process_forwarder(
         self,
         entity: PostProcessForwarderType,
@@ -283,32 +227,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
     ) -> None:
-        logger.debug(f"Starting post process forwarder to consume {entity} messages")
-        if entity == PostProcessForwarderType.TRANSACTIONS:
-            default_topic = self.transactions_topic
-        elif entity == PostProcessForwarderType.ERRORS:
-            default_topic = self.topic
-        elif entity == PostProcessForwarderType.ISSUE_PLATFORM:
-            default_topic = self.issue_platform_topic
-        else:
-            raise ValueError("Invalid entity")
-
-        consumer = self._build_streaming_consumer(
+        PostProcessForwarder().run(
+            entity,
             consumer_group,
-            topic or default_topic,
+            topic,
             commit_log_topic,
             synchronize_commit_group,
             concurrency,
             initial_offset_reset,
             strict_offset_reset,
         )
-
-        def handler(signum: int, frame: Any) -> None:
-            consumer.signal_shutdown()
-            for producer in self.__producers.values():
-                producer.flush()
-
-        signal.signal(signal.SIGINT, handler)
-        signal.signal(signal.SIGTERM, handler)
-
-        consumer.run()
