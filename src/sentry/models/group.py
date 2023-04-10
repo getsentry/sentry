@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Mapping, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
@@ -705,3 +707,12 @@ class Group(Model):
     @property
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
+
+
+@receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
+def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
+    if instance:
+        if instance.status == GroupStatus.UNRESOLVED and instance.substatus is None:
+            instance.substatus = GroupSubStatus.ONGOING
+        if instance.status == GroupStatus.IGNORED and instance.substatus is None:
+            instance.substatus = GroupSubStatus.UNTIL_ESCALATING
