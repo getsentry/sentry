@@ -19,14 +19,12 @@ class RpcServiceEndpoint(Endpoint):  # type: ignore
         """Check whether the remote procedure call is authorized.
 
         We currently know that RPC authorization is going to look a bit different
-        from any user-based auth. It will likely rely on a shared secret between
-        silos or something like SSH keys. The authority to make arbitrary RPCs
-        surpasses anything in our current system of permission scopes; it's basically
-        "system access" only.
+        from any user-based auth. The authority to make arbitrary RPCs surpasses
+        anything in our current system of permission scopes; it's basically "system
+        access" only.
 
         As a placeholder, use a global system flag (to be set only in dev
-        environments) that allows access for superusers, and disables it entirely
-        otherwise.
+        environments) that allows access if set, and disables it entirely otherwise.
 
         TODO: Real solution
         """
