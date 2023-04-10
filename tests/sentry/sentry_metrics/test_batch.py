@@ -10,7 +10,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
@@ -229,6 +229,153 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
     )
 
     assert batch.extract_strings() == expected
+
+
+def test_extract_strings_with_multiple_use_case_ids():
+    perf_distribution_payload = {
+        "name": TransactionMRI.MEASUREMENTS_FCP.value,
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (perf_distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
+    assert batch.extract_strings() == {
+        "release-health": {
+            1: {
+                "c:sessions/session@none",
+                "environment",
+                "errored",
+                "init",
+                "production",
+                "s:sessions/error@none",
+                "session.status",
+            }
+        },
+        "performance": {
+            1: {
+                "d:transactions/measurements.fcp@millisecond",
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
+            }
+        },
+    }
+
+
+def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
+    rh_counter_payload = {
+        "name": SessionMRI.SESSION.value,
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    rh_set_payload = {
+        "name": SessionMRI.ERROR.value,
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 2,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    perf_distribution_payload = {
+        "name": TransactionMRI.MEASUREMENTS_FCP.value,
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    rh_set_payload = {
+        "name": SessionMRI.ERROR.value,
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 2,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (rh_counter_payload, []),
+            (perf_distribution_payload, []),
+            (rh_set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
+    assert batch.extract_strings() == {
+        "release-health": {
+            1: {
+                SessionMRI.SESSION.value,
+                "environment",
+                "production",
+                "session.status",
+                "init",
+            },
+            2: {
+                SessionMRI.ERROR.value,
+                "environment",
+                "production",
+                "session.status",
+                "errored",
+            },
+        },
+        "performance": {
+            1: {
+                TransactionMRI.MEASUREMENTS_FCP.value,
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
+            }
+        },
+    }
 
 
 def test_all_resolved(caplog, settings):
