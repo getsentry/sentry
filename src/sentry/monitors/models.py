@@ -397,9 +397,9 @@ class MonitorEnvironment(Model):
                 "contexts": {"monitor": get_monitor_environment_context(self)},
                 "fingerprint": ["monitor", str(self.monitor.guid), reason],
                 "environment": self.environment.name,
-                "tags": {
-                    "monitor.id": str(self.monitor.guid),
-                },
+                # TODO: Both of these values should be get transformed from context to tags
+                # We should understand why that is not happening and remove these when it correctly is
+                "tags": {"monitor.id": str(self.monitor.guid), "monitor.slug": self.monitor.slug},
             },
             project=Project(id=self.monitor.project_id),
         )
