@@ -188,12 +188,14 @@ class Endpoint(APIView):
     ) -> Response:
         try:
             response = super().handle_exception(exc)
-        except Exception:
+        except Exception as err:
             import sys
             import traceback
 
             sys.stderr.write(traceback.format_exc())
-            event_id = capture_exception()
+            event_id = capture_exception(
+                err, contexts={"Request Handler Data": handler_context} if handler_context else None
+            )
             context = {"detail": "Internal Error", "errorId": event_id}
             response = Response(context, status=500)
             response.exception = True
