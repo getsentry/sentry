@@ -9,9 +9,10 @@ import ProgressRing, {
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
+import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
@@ -24,9 +25,6 @@ type Props = CommonSidebarProps & {
   org: Organization;
   projects: Project[];
 };
-
-export const isDone = (task: OnboardingTaskStatus) =>
-  task.status === 'complete' || task.status === 'skipped';
 
 const progressTextCss = () => css`
   font-size: ${theme.fontSizeMedium};
