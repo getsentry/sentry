@@ -196,8 +196,8 @@ class Endpoint(APIView):
             event_id = capture_exception(
                 err, contexts={"Request Handler Data": handler_context} if handler_context else None
             )
-            context = {"detail": "Internal Error", "errorId": event_id}
-            response = Response(context, status=500)
+            response_body = {"detail": "Internal Error", "errorId": event_id}
+            response = Response(response_body, status=500)
             response.exception = True
         return response
 
