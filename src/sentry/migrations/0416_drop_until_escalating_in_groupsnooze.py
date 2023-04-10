@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0414_add_org_index_to_repo_and_pagerduty"),
+        ("sentry", "0415_backfill_actor_team_and_user"),
     ]
 
     operations = [
