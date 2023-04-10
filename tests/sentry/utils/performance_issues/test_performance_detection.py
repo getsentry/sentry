@@ -59,7 +59,23 @@ def assert_n_plus_one_db_problem(perf_problems):
                 "88a5ccaf25b9bd8f",
                 "bb32cf50fc56b296",
             ],
-            evidence_data={},
+            evidence_data={
+                "op": "db",
+                "parent_span_ids": ["8dd7a5869a4f4583"],
+                "cause_span_ids": ["9179e43ae844b174"],
+                "offender_span_ids": [
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+            },
             evidence_display=[],
         )
         for problem in perf_problems
@@ -138,7 +154,23 @@ class PerformanceDetectionTest(TestCase):
                     "9c3a569621230f03",
                     "8788fb3fc43ad948",
                 ],
-                evidence_data={},
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": ["86d3f8a7e85d7324"],
+                    "cause_span_ids": ["bc1f71fd71c8f594"],
+                    "offender_span_ids": [
+                        "b150bdaa43ddec7c",
+                        "968fdbd8bca7f2f6",
+                        "b2d1eddd591d84ba",
+                        "ae40cc8427bd68d2",
+                        "9e902554055d3477",
+                        "90302ecea560be76",
+                        "a75f1cec8d07106f",
+                        "8af15a555f92701e",
+                        "9c3a569621230f03",
+                        "8788fb3fc43ad948",
+                    ],
+                },
                 evidence_display=[],
             )
         ]
@@ -197,7 +229,7 @@ class PerformanceDetectionTest(TestCase):
             perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
             assert perf_problems == [
                 PerformanceProblem(
-                    fingerprint="1-1009-c5e048717e2f5ca1a251cbbfbcfd82aee7e89cd9",
+                    fingerprint="1-1009-6654ad4d1d494222ce02c656386e6955575c17ed",
                     op="http",
                     desc="GET https://my-api.io/api/users?page=1",
                     type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -211,7 +243,19 @@ class PerformanceDetectionTest(TestCase):
                         "a307ceb77c702cea",
                         "ac1e90ff646617e7",
                     ],
-                    evidence_data={},
+                    evidence_data={
+                        "op": "http",
+                        "parent_span_ids": None,
+                        "cause_span_ids": [],
+                        "offender_span_ids": [
+                            "96e0ae187b5481a1",
+                            "8d22b49a27b18270",
+                            "b2bc2ebb42248c74",
+                            "9336922774fd35bc",
+                            "a307ceb77c702cea",
+                            "ac1e90ff646617e7",
+                        ],
+                    },
                     evidence_display=[],
                 )
             ]

@@ -238,31 +238,6 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
             occurrence.to_dict(), snake_to_camel_case
         )
 
-    def test_event_breadcrumb_formatting(self):
-        with self.feature("organizations:issue-breadcrumbs-sql-format"):
-            event = self.store_event(
-                data={
-                    "breadcrumbs": [
-                        {"category": "generic", "message": "should not format this"},
-                        {
-                            "category": "query",
-                            "message": "select * from table where something = $1",
-                        },
-                    ]
-                },
-                project_id=self.project.id,
-            )
-            result = serialize(event)
-
-            assert result["entries"][0]["type"] == "breadcrumbs"
-            # First breadcrumb should not have a message_formatted property
-            assert result["entries"][0]["data"]["values"][0]["message"] == "should not format this"
-            # Second breadcrumb should have whitespace added in message_formatted
-            assert (
-                result["entries"][0]["data"]["values"][1]["message"]
-                == "select *\n  from table\n where something = $1"
-            )
-
 
 @region_silo_test
 class SharedEventSerializerTest(TestCase):
@@ -454,6 +429,7 @@ class DetailedEventSerializerTest(TestCase):
             "issueType": "performance_n_plus_one_db_queries",
             "type": 1006,
             "evidenceData": {
+                "op": "db",
                 "causeSpanIds": ["9179e43ae844b174"],
                 "offenderSpanIds": [
                     "b8be6138369491dd",
@@ -469,15 +445,7 @@ class DetailedEventSerializerTest(TestCase):
                 ],
                 "parentSpanIds": ["8dd7a5869a4f4583"],
             },
-            "evidenceDisplay": [
-                {"important": True, "name": "Transaction Name", "value": "/books/"},
-                {"important": True, "name": "Parent Span", "value": "index"},
-                {
-                    "important": True,
-                    "name": "Repeating Spans (10)",
-                    "value": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                },
-            ],
+            "evidenceDisplay": [],
         }
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
@@ -494,3 +462,32 @@ class DetailedEventSerializerTest(TestCase):
 
         result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
         assert result["perfProblem"] is None
+
+    def test_event_breadcrumb_formatting(self):
+        with self.feature("organizations:issue-breadcrumbs-sql-format"):
+            event = self.store_event(
+                data={
+                    "breadcrumbs": [
+                        {"category": "generic", "message": "should not format this"},
+                        {
+                            "category": "query",
+                            "message": "select * from table where something = $1",
+                        },
+                    ]
+                },
+                project_id=self.project.id,
+            )
+            result = serialize(event, None, DetailedEventSerializer())
+
+            breadcrumb_entry = result["entries"][0]
+            breadcrumbs = breadcrumb_entry["data"]["values"]
+
+            assert breadcrumb_entry["type"] == "breadcrumbs"
+            # First breadcrumb should not have a message_formatted property
+            assert breadcrumbs[0]["message"] == "should not format this"
+            assert "messageRaw" not in breadcrumbs[0]
+            assert "messageFormat" not in breadcrumbs[0]
+            # Second breadcrumb should have whitespace added
+            assert breadcrumbs[1]["message"] == "select *\n  from table\n where something = $1"
+            assert breadcrumbs[1]["messageRaw"] == "select * from table where something = $1"
+            assert breadcrumbs[1]["messageFormat"] == "sql"

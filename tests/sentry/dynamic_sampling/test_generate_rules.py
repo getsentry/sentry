@@ -22,7 +22,15 @@ from sentry.dynamic_sampling.rules.utils import (
 )
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import Feature
 from sentry.utils import json
+
+DEFAULT_FACTOR_RULE = lambda factor: {
+    "condition": {"inner": [], "op": "and"},
+    "id": 1004,
+    "samplingValue": {"type": "factor", "value": factor},
+    "type": "trace",
+}
 
 
 @pytest.fixture
@@ -115,7 +123,7 @@ def test_generate_rules_return_uniform_rules_with_rate(
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
             "type": "trace",
-        }
+        },
     ]
     get_enabled_user_biases.assert_called_with(
         default_project.get_option("sentry:dynamic_sampling_biases", None)
@@ -675,6 +683,9 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
         project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
     )
     rules = generate_rules(default_project)
+    implicit_rate /= project_sample_rate
+    t1_rate /= project_sample_rate
+    t1_rate /= implicit_rate
     assert rules == [
         # transaction boosting rule
         {
@@ -690,13 +701,13 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
                 "op": "or",
             },
             "id": boost_low_transactions_id,
-            "samplingValue": {"type": "factor", "value": t1_rate / project_sample_rate},
+            "samplingValue": {"type": "factor", "value": t1_rate},
             "type": "transaction",
         },
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1401,
-            "samplingValue": {"type": "factor", "value": implicit_rate / project_sample_rate},
+            "samplingValue": {"type": "factor", "value": implicit_rate},
             "type": "transaction",
         },
         {
@@ -746,3 +757,43 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     # we should have only the uniform rule
     assert len(rules) == 1
     assert rules[0]["id"] == uniform_id
+
+
+@pytest.mark.django_db
+@freeze_time("2022-10-21T18:50:25Z")
+@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
+    get_blended_sample_rate, default_project
+):
+    get_blended_sample_rate.return_value = 0.1
+    redis_client = get_redis_client_for_ds()
+
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": False},
+            {"id": "ignoreHealthChecks", "active": False},
+            {"id": "boostLatestRelease", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+        ],
+    )
+
+    # Set factor
+    default_factor = 0.5
+    redis_client.hset(
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
+        f"{default_project.id}",
+        default_factor,
+    )
+    with Feature({"organizations:ds-apply-actual-sample-rate-to-biases": True}):
+        assert generate_rules(default_project) == [
+            DEFAULT_FACTOR_RULE(default_factor),
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1000,
+                "samplingValue": {"type": "sampleRate", "value": 0.1},
+                "type": "trace",
+            },
+        ]
+    _validate_rules(default_project)

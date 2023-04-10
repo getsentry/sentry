@@ -53,9 +53,12 @@ function CompactSelect<Value extends React.Key>({
   value,
   defaultValue,
   onChange,
+  onSectionToggle,
   multiple,
   disallowEmptySelection,
   isOptionDisabled,
+  sizeLimit,
+  sizeLimitMessage,
 
   // Control props
   grid,
@@ -105,9 +108,12 @@ function CompactSelect<Value extends React.Key>({
       <List
         {...listProps}
         items={optionsWithKey}
+        onSectionToggle={onSectionToggle}
         disallowEmptySelection={disallowEmptySelection}
         isOptionDisabled={isOptionDisabled}
         size={size}
+        sizeLimit={sizeLimit}
+        sizeLimitMessage={sizeLimitMessage}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSection<Value>) => {
