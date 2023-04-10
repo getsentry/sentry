@@ -3,8 +3,6 @@ from django.db.models.signals import pre_save
 from sentry.models import Group, GroupStatus, GroupSubStatus
 from sentry.testutils.cases import TestMigrations
 
-DEFAULT_ENVIRONMENT_NAME = "production"
-
 
 class GroupSubstatusBackfillTest(TestMigrations):
     migrate_from = "0416_drop_until_escalating_in_groupsnooze"
