@@ -1,61 +1,43 @@
 from __future__ import annotations
 
-from typing import Any, Iterator, Mapping, Optional, Set
+from enum import Enum
+from typing import Mapping
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 
-_REGISTERED_USE_CASES: dict[str, str] = {
-    "PERFORMANCE": "performance",
-    "RELEASE_HEALTH": "release-health",
+
+class UseCaseID(Enum):
+    PERFORMANCE = "performance"
+    RELEASE_HEALTH = "release-health"
+
+
+# UseCaseKey will be renamed to MetricPathKey
+METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
+    UseCaseID.RELEASE_HEALTH: UseCaseKey.RELEASE_HEALTH,
+    UseCaseID.PERFORMANCE: UseCaseKey.PERFORMANCE,
 }
 
 
-class _UseCaseID(type):
-    def __getattr__(self, attr: str) -> UseCaseID:
-        if attr not in _REGISTERED_USE_CASES:
-            raise AttributeError(attr)
-
-        return UseCaseID(attr.lower())
-
-    def __iter__(self) -> Iterator[UseCaseID]:
-        return iter(
-            UseCaseID(value)
-            for value in {
-                **_REGISTERED_USE_CASES,
-            }.values()
-        )
+def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
+    return METRIC_PATH_MAPPING[use_case]
 
 
-class UseCaseID(metaclass=_UseCaseID):
-    def __init__(self, value: str):
-        if value not in _REGISTERED_USE_CASES.values():
-            raise ValueError("Passed use case has not been registered")
-
-        self.value = value
-
-    def __hash__(self) -> int:
-        return hash(self.value)
-
-    def __eq__(self, other: Any) -> bool:
-        return isinstance(other, UseCaseID) and other.value == self.value
-
-    def __repr__(self) -> str:
-        return f"UseCaseID.{self.value.upper()}"
-
-
-def register_use_case(key: str) -> UseCaseID:
-    _REGISTERED_USE_CASES[key.upper()] = key.lower()
-    return UseCaseID(key)
-
-
-METRIC_PATH_MAPPING: Mapping[UseCaseKey, Set[UseCaseID]] = {
-    UseCaseKey.RELEASE_HEALTH: {UseCaseID.RELEASE_HEALTH},
-    UseCaseKey.PERFORMANCE: {UseCaseID.PERFORMANCE},
+NAMESPACE_MAPPING: Mapping[UseCaseID, str] = {
+    UseCaseID.RELEASE_HEALTH: "sessions",
+    UseCaseID.PERFORMANCE: "transactions",
 }
 
 
-def get_metric_path_from_usecase(use_case: UseCaseID) -> Optional[UseCaseKey]:
-    for metric_path_key, use_case_list in METRIC_PATH_MAPPING.items():
-        if use_case in use_case_list:
-            return metric_path_key
-    return None
+def get_namespace_from_usecase(use_case: UseCaseID) -> str:
+    if use_case in NAMESPACE_MAPPING:
+        return NAMESPACE_MAPPING[use_case]
+
+    return use_case.value
+
+
+def get_usecase_from_namespace(namespace: str) -> UseCaseID:
+    for use_case in NAMESPACE_MAPPING:
+        if NAMESPACE_MAPPING[use_case] == namespace:
+            return use_case
+
+    return UseCaseID(namespace)
