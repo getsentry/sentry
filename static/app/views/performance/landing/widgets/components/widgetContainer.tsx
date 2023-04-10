@@ -203,13 +203,13 @@ const _WidgetContainer = (props: Props) => {
   }
 };
 
-export const WidgetInteractiveTitle = ({
+export function WidgetInteractiveTitle({
   chartSetting,
   eventView,
   setChartSetting,
   allowedCharts,
   rowChartSettings,
-}) => {
+}) {
   const organization = useOrganization();
   const menuOptions: SelectOption<string>[] = [];
 
@@ -247,7 +247,7 @@ export const WidgetInteractiveTitle = ({
       triggerProps={{borderless: true, size: 'zero'}}
     />
   );
-};
+}
 
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
@@ -261,7 +261,7 @@ const StyledCompactSelect = styled(CompactSelect)`
   }
 `;
 
-export const WidgetContainerActions = ({
+export function WidgetContainerActions({
   chartSetting,
   eventView,
   setChartSetting,
@@ -273,7 +273,7 @@ export const WidgetContainerActions = ({
   eventView: EventView;
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
-}) => {
+}) {
   const organization = useOrganization();
   const menuOptions: SelectOption<PerformanceWidgetSetting>[] = [];
 
@@ -326,7 +326,7 @@ export const WidgetContainerActions = ({
       )}
     </CompositeSelect>
   );
-};
+}
 
 const getEventViewDiscoverPath = (
   organization: Organization,

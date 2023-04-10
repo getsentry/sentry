@@ -9,7 +9,9 @@ describe('withConfig HoC', function () {
   });
 
   it('adds config prop', function () {
-    const MyComponent = ({config}) => <div>{config.test}</div>;
+    function MyComponent({config}) {
+      return <div>{config.test}</div>;
+    }
     const Container = withConfig(MyComponent);
 
     render(<Container />);

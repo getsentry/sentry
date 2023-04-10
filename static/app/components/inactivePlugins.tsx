@@ -12,7 +12,7 @@ type Props = {
   plugins: Plugin[];
 };
 
-const InactivePlugins = ({plugins, onEnablePlugin}: Props) => {
+function InactivePlugins({plugins, onEnablePlugin}: Props) {
   if (plugins.length === 0) {
     return null;
   }
@@ -39,7 +39,7 @@ const InactivePlugins = ({plugins, onEnablePlugin}: Props) => {
       </PanelBody>
     </Panel>
   );
-};
+}
 
 const Plugins = styled('div')`
   display: flex;

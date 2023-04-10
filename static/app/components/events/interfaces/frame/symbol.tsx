@@ -25,7 +25,7 @@ type Props = {
   showCompleteFunctionName?: boolean;
 };
 
-const Symbol = ({
+function Symbol({
   frame,
   absoluteFilePaths,
   onFunctionNameToggle,
@@ -33,7 +33,7 @@ const Symbol = ({
   isHoverPreviewed,
   isUsedForGrouping,
   className,
-}: Props) => {
+}: Props) {
   const hasFunctionNameHiddenDetails =
     defined(frame.rawFunction) &&
     defined(frame.function) &&
@@ -96,7 +96,7 @@ const Symbol = ({
       </Data>
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')`
   text-align: left;

@@ -32,7 +32,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupShare,
             models.GroupSubscription,
             models.LatestAppConnectBuildsCheck,
-            Monitor,
             models.ProjectBookmark,
             models.ProjectKey,
             models.ProjectTeam,
@@ -55,6 +54,7 @@ class ProjectDeletionTask(ModelDeletionTask):
                 for m in model_list
             ]
         )
+        relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
         relations.append(ModelRelation(models.Group, {"project_id": instance.id}))
         relations.append(
             ModelRelation(
