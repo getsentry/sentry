@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Sequence
 from uuid import uuid4
 
 import rest_framework
@@ -45,7 +45,7 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
@@ -537,6 +537,9 @@ def update_groups(
 
     elif status:
         new_status = STATUS_UPDATE_CHOICES[result["status"]]
+        new_substatus = (
+            SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
+        )
         ignore_duration = None
         ignore_count = None
         ignore_window = None
@@ -549,60 +552,15 @@ def update_groups(
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
-                metrics.incr("group.ignored", skip_internal=True)
-                for group in group_ids:
-                    remove_group_from_inbox(
-                        group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
+                if new_substatus == GroupSubStatus.UNTIL_ESCALATING and features.has(
+                    "organizations:escalating-issues", group_list[0].organization
+                ):
+                    handle_archived_until_escalating(group_ids, acting_user)
+                else:
+                    result["statusDetails"] = handle_ignored(
+                        group_ids, group_list, status_details, acting_user, user
                     )
                 result["inbox"] = None
-
-                ignore_duration = (
-                    status_details.pop("ignoreDuration", None)
-                    or status_details.pop("snoozeDuration", None)
-                ) or None
-                ignore_count = status_details.pop("ignoreCount", None) or None
-                ignore_window = status_details.pop("ignoreWindow", None) or None
-                ignore_user_count = status_details.pop("ignoreUserCount", None) or None
-                ignore_user_window = status_details.pop("ignoreUserWindow", None) or None
-                if ignore_duration or ignore_count or ignore_user_count:
-                    if ignore_duration:
-                        ignore_until = timezone.now() + timedelta(minutes=ignore_duration)
-                    else:
-                        ignore_until = None
-                    for group in group_list:
-                        state = {}
-                        if ignore_count and not ignore_window:
-                            state["times_seen"] = group.times_seen
-                        if ignore_user_count and not ignore_user_window:
-                            state["users_seen"] = group.count_users_seen()
-                        GroupSnooze.objects.create_or_update(
-                            group=group,
-                            values={
-                                "until": ignore_until,
-                                "count": ignore_count,
-                                "window": ignore_window,
-                                "user_count": ignore_user_count,
-                                "user_window": ignore_user_window,
-                                "state": state,
-                                "actor_id": user.id if user.is_authenticated else None,
-                            },
-                        )
-                        serialized_user = user_service.serialize_many(
-                            filter=dict(user_ids=[user.id]), as_user=user
-                        )
-                        result["statusDetails"] = {
-                            "ignoreCount": ignore_count,
-                            "ignoreUntil": ignore_until,
-                            "ignoreUserCount": ignore_user_count,
-                            "ignoreUserWindow": ignore_user_window,
-                            "ignoreWindow": ignore_window,
-                        }
-                        if serialized_user:
-                            result["statusDetails"]["actor"] = serialized_user[0]
-                else:
-                    GroupSnooze.objects.filter(group__in=group_ids).delete()
-                    ignore_until = None
-                    result["statusDetails"] = {}
             else:
                 result["statusDetails"] = {}
         if group_list and happened:
@@ -890,3 +848,83 @@ def update_groups(
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def handle_ignored(
+    group_ids: Sequence[Group],
+    group_list: Sequence[Group],
+    status_details: Dict[str, Any],
+    acting_user: User | None,
+    user: User,
+) -> dict[str, str]:
+    result_status_details = {}
+    metrics.incr("group.ignored", skip_internal=True)
+    for group in group_ids:
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
+
+    ignore_duration = (
+        status_details.pop("ignoreDuration", None) or status_details.pop("snoozeDuration", None)
+    ) or None
+    ignore_count = status_details.pop("ignoreCount", None) or None
+    ignore_window = status_details.pop("ignoreWindow", None) or None
+    ignore_user_count = status_details.pop("ignoreUserCount", None) or None
+    ignore_user_window = status_details.pop("ignoreUserWindow", None) or None
+    if ignore_duration or ignore_count or ignore_user_count:
+        if ignore_duration:
+            ignore_until = timezone.now() + timedelta(minutes=ignore_duration)
+        else:
+            ignore_until = None
+        for group in group_list:
+            state = {}
+            if ignore_count and not ignore_window:
+                state["times_seen"] = group.times_seen
+            if ignore_user_count and not ignore_user_window:
+                state["users_seen"] = group.count_users_seen()
+            GroupSnooze.objects.create_or_update(
+                group=group,
+                values={
+                    "until": ignore_until,
+                    "count": ignore_count,
+                    "window": ignore_window,
+                    "user_count": ignore_user_count,
+                    "user_window": ignore_user_window,
+                    "state": state,
+                    "actor_id": user.id if user.is_authenticated else None,
+                },
+            )
+            serialized_user = user_service.serialize_many(
+                filter=dict(user_ids=[user.id]), as_user=user
+            )
+            result_status_details = {
+                "ignoreCount": ignore_count,
+                "ignoreUntil": ignore_until,
+                "ignoreUserCount": ignore_user_count,
+                "ignoreUserWindow": ignore_user_window,
+                "ignoreWindow": ignore_window,
+            }
+            if serialized_user:
+                result_status_details["actor"] = serialized_user[0]
+    else:
+        GroupSnooze.objects.filter(group__in=group_ids).delete()
+        ignore_until = None
+        result_status_details = {}
+
+    return result_status_details
+
+
+def handle_archived_until_escalating(
+    group_ids: Sequence[int],
+    acting_user: User | None,
+):
+    """
+    Handle issues that are archived until escalating and create a forecast for them.
+
+    Issues that are marked as ignored with `archiveDuration: until_escalating`
+    in the statusDetail are treated as `archived_until_escalating`.
+    """
+    metrics.incr("group.archived_until_escalating", skip_internal=True)
+    for group in group_ids:
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
+    # TODO(snigdha): create a forecast for this group
+
+    return
