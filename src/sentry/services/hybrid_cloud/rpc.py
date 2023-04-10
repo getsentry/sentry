@@ -415,8 +415,7 @@ def dispatch_remote_call(
 
     with _fire_request(url, request_body, api_token) as response:
         charset = response.headers.get_content_charset()
-        read = response.read()
-        response_body = read.decode(charset)
+        response_body = response.read().decode(charset)
     serial_response = json.loads(response_body)
     return service.deserialize_rpc_response(method_name, serial_response)
 
