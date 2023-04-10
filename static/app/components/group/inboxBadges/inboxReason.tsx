@@ -6,17 +6,10 @@ import DateTime from 'sentry/components/dateTime';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {InboxDetails} from 'sentry/types';
+import {GroupInboxReason, InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-
-const GroupInboxReason = {
-  NEW: 0,
-  UNIGNORED: 1,
-  REGRESSION: 2,
-  MANUAL: 3,
-  REPROCESSED: 4,
-};
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   inbox: InboxDetails;
@@ -28,6 +21,7 @@ type Props = {
 const EVENT_ROUND_LIMIT = 1000;
 
 function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
+  const organization = useOrganization();
   const {reason, reason_details: reasonDetails, date_added: dateAdded} = inbox;
   const relativeDateAdded = getDynamicText({
     value: dateAdded && (
@@ -97,6 +91,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
     tooltipDescription?: string | React.ReactNode;
     tooltipText?: string;
   } {
+    const hasEscalatingIssues = organization.features.includes('escalating-issues');
     switch (reason) {
       case GroupInboxReason.UNIGNORED:
         return {
@@ -108,7 +103,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
         };
       case GroupInboxReason.REGRESSION:
         return {
-          tagType: 'error',
+          tagType: hasEscalatingIssues ? 'highlight' : 'error',
           reasonBadgeText: t('Regression'),
           tooltipText:
             dateAdded &&
@@ -135,6 +130,16 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           tooltipText:
             dateAdded &&
             t('Reprocessed %(relative)s', {
+              relative: relativeDateAdded,
+            }),
+        };
+      case GroupInboxReason.ESCALATING:
+        return {
+          tagType: 'error',
+          reasonBadgeText: t('Escalating'),
+          tooltipText:
+            dateAdded &&
+            t('Escalating %(relative)s', {
               relative: relativeDateAdded,
             }),
         };
