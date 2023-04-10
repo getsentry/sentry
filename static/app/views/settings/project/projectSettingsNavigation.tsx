@@ -11,7 +11,7 @@ type Props = {
   project?: Project;
 };
 
-const ProjectSettingsNavigation = ({organization, project}: Props) => {
+function ProjectSettingsNavigation({organization, project}: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
   const debugFilesNeedsReview = appStoreConnectContext
@@ -29,6 +29,6 @@ const ProjectSettingsNavigation = ({organization, project}: Props) => {
       project={project}
     />
   );
-};
+}
 
 export default withProject(ProjectSettingsNavigation);

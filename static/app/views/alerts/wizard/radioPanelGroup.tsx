@@ -16,30 +16,32 @@ type RadioPanelGroupProps<C extends string> = {
 type Props<C extends string> = RadioPanelGroupProps<C> &
   Omit<React.HTMLAttributes<HTMLDivElement>, keyof RadioPanelGroupProps<C>>;
 
-const RadioPanelGroup = <C extends string>({
+function RadioPanelGroup<C extends string>({
   value,
   choices,
   label,
   onChange,
   ...props
-}: Props<C>) => (
-  <Container {...props} role="radiogroup" aria-labelledby={label}>
-    {(choices || []).map(([id, name, extraContent], index) => (
-      <RadioPanel key={index}>
-        <RadioLineItem role="radio" index={index} aria-checked={value === id}>
-          <Radio
-            radioSize="small"
-            aria-label={id}
-            checked={value === id}
-            onChange={(e: React.FormEvent<HTMLInputElement>) => onChange(id, e)}
-          />
-          <div>{name}</div>
-          {extraContent}
-        </RadioLineItem>
-      </RadioPanel>
-    ))}
-  </Container>
-);
+}: Props<C>) {
+  return (
+    <Container {...props} role="radiogroup" aria-labelledby={label}>
+      {(choices || []).map(([id, name, extraContent], index) => (
+        <RadioPanel key={index}>
+          <RadioLineItem role="radio" index={index} aria-checked={value === id}>
+            <Radio
+              radioSize="small"
+              aria-label={id}
+              checked={value === id}
+              onChange={(e: React.FormEvent<HTMLInputElement>) => onChange(id, e)}
+            />
+            <div>{name}</div>
+            {extraContent}
+          </RadioLineItem>
+        </RadioPanel>
+      ))}
+    </Container>
+  );
+}
 
 export default RadioPanelGroup;
 

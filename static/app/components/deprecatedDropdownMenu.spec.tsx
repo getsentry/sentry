@@ -5,9 +5,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 
 describe('dropdownMenuDeprecated', function () {
-  const DeprecatedDropdownImplementation = (
+  function DeprecatedDropdownImplementation(
     props: Partial<ComponentProps<typeof DeprecatedDropdownMenu>> = {}
-  ) => {
+  ) {
     return (
       <DeprecatedDropdownMenu {...props}>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
@@ -22,7 +22,7 @@ describe('dropdownMenuDeprecated', function () {
         )}
       </DeprecatedDropdownMenu>
     );
-  };
+  }
 
   it('renders', function () {
     const {container} = render(<DeprecatedDropdownImplementation />);
