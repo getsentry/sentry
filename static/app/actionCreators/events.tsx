@@ -17,12 +17,12 @@ import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {
-  QueryKey,
+  ApiQueryKey,
   useApiQuery,
+  UseApiQueryOptions,
   useMutation,
   UseMutationOptions,
   useQueryClient,
-  UseQueryOptions,
 } from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -230,13 +230,13 @@ export const makeFetchEventAttachmentsQueryKey = ({
   orgSlug,
   projectSlug,
   eventId,
-}: FetchEventAttachmentParameters): QueryKey => [
+}: FetchEventAttachmentParameters): ApiQueryKey => [
   `/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`,
 ];
 
 export const useFetchEventAttachments = (
   {orgSlug, projectSlug, eventId}: FetchEventAttachmentParameters,
-  options: Partial<UseQueryOptions<FetchEventAttachmentResponse>> = {}
+  options: Partial<UseApiQueryOptions<FetchEventAttachmentResponse>> = {}
 ) => {
   const organization = useOrganization();
   return useApiQuery<FetchEventAttachmentResponse>(
