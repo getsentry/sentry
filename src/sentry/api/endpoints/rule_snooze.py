@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleSnooze
@@ -17,6 +18,28 @@ class RuleSnoozeValidator(CamelSnakeSerializer):
     rule = serializers.BooleanField(required=False, allow_null=True)
     alert_rule = serializers.BooleanField(required=False, allow_null=True)
     until = serializers.DateTimeField(required=False, allow_null=True)
+
+
+@register(RuleSnooze)
+class RuleSnoozeSerializer(Serializer):  # type: ignore
+    def serialize(self, obj, attrs, user, **kwargs):
+        result = {
+            "ownerId": obj.owner_id,
+            "userId": obj.user_id or "everyone",
+            "until": obj.until or "forever",
+            "dateAdded": obj.date_added,
+            "ruleId": obj.rule_id,
+            "alertRuleId": obj.alert_rule_id,
+        }
+        return result
+
+
+def can_edit_alert_rule(rule, organization, user):
+    rule_owner = rule.owner
+    if rule_owner:
+        if rule_owner.team not in rule_owner.team.objects.get_for_user(organization, user):
+            return False
+    return True
 
 
 @region_silo_endpoint
@@ -40,7 +63,6 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
         metric_alert_rule = None
 
         user_id = request.user.id if data.get("target") == "me" else None
-        # TODO verify ownership of rule. make sure request.user belongs to the project the rule is in
 
         if data.get("rule"):
             try:
@@ -53,6 +75,13 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
                 metric_alert_rule = AlertRule.objects.get(id=rule_id)
             except AlertRule.DoesNotExist:
                 raise serializers.ValidationError("Rule does not exist")
+
+        rule = issue_alert_rule or metric_alert_rule
+        if not can_edit_alert_rule(rule, project.organization, request.user):
+            return Response(
+                {"detail": "Requesting user cannot edit this rule."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         rule_snooze, created = RuleSnooze.objects.get_or_create(
             user_id=user_id,
@@ -73,7 +102,6 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
 
         if not user_id:
             # create an audit log entry if the rule is snoozed for everyone
-            rule = issue_alert_rule or metric_alert_rule
             audit_log_event = "RULE_SNOOZE" if issue_alert_rule else "ALERT_RULE_SNOOZE"
 
             self.create_audit_entry(
@@ -84,12 +112,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
                 data=rule.get_audit_log_data(),
             )
 
-        result = {
-            "ownerId": rule_snooze.owner_id,
-            "userId": rule_snooze.user_id or "everyone",
-            "ruleId": rule_snooze.rule_id,
-            "alertRuleId": rule_snooze.alert_rule_id,
-            "until": rule_snooze.until or "forever",
-            "dateAdded": rule_snooze.date_added,
-        }
-        return Response(result, status=status.HTTP_201_CREATED)
+        return Response(
+            serialize(rule_snooze, request.user, RuleSnoozeSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
