@@ -7,8 +7,8 @@ DEFAULT_ENVIRONMENT_NAME = "production"
 
 
 class GroupSubstatusBackfillTest(TestMigrations):
-    migrate_from = "0415_backfill_actor_team_and_user"
-    migrate_to = "0416_backfill_groupedmessage_substatus"
+    migrate_from = "0416_drop_until_escalating_in_groupsnooze"
+    migrate_to = "0417_backfill_groupedmessage_substatus"
 
     def setup_before_migration(self, apps):
         pre_save.receivers = []
