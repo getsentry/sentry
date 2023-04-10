@@ -17,7 +17,7 @@ class PagerDutyService(DefaultFieldsModel, OrganizationIntegrityBackfillMixin):
     __include_in_export__ = False
 
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
-    organization_id = BoundedBigIntegerField(null=True, db_index=True)
+    organization_id = BoundedBigIntegerField(null=False, db_index=True)
     # From a region point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(null=False, db_index=False)
     integration_key = models.CharField(max_length=255)
