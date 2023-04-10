@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -39,7 +39,7 @@ function MonitorDetails({params, location}: Props) {
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {staleTime: 0});
 
   function onUpdate(data: Monitor) {
-    queryClient.setQueryData(queryKey, data);
+    setApiQueryData(queryClient, queryKey, data);
   }
 
   if (!monitor) {
