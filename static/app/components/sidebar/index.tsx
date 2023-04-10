@@ -72,13 +72,10 @@ function hidePanel() {
 }
 
 function useOpenOnboardingSidebar(organization?: Organization) {
-  function onboardingStateFunction() {
+  function noOrgFunction() {
     return [null];
   }
-
-  const onboardingFunction = organization
-    ? usePersistedOnboardingState
-    : onboardingStateFunction;
+  const onboardingFunction = organization ? usePersistedOnboardingState : noOrgFunction;
   const [onboardingState] = onboardingFunction();
   const {projects: project} = useProjects();
   const location = useLocation();
