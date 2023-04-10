@@ -548,7 +548,7 @@ function TableView(props: TableViewProps) {
     const {organization, eventView, location, isHomepage} = props;
 
     // metrics
-    trackAdvancedAnalyticsEvent('discover_v2.results.update_columns', {
+    trackAdvancedAnalyticsEvent('discover_v2.update_columns', {
       organization,
     });
 
