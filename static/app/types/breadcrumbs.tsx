@@ -35,6 +35,8 @@ interface BreadcrumbTypeBase {
   category?: string | null;
   event_id?: string | null;
   message?: string;
+  messageFormat?: 'sql';
+  messageRaw?: string;
   timestamp?: string;
 }
 
