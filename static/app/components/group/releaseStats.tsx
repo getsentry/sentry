@@ -22,14 +22,14 @@ type Props = {
   project: Project;
 };
 
-const GroupReleaseStats = ({
+function GroupReleaseStats({
   organization,
   project,
   environments,
   allEnvironments,
   group,
   currentRelease,
-}: Props) => {
+}: Props) {
   const environment =
     environments.length > 0
       ? environments.map(env => env.displayName).join(', ')
@@ -160,7 +160,7 @@ const GroupReleaseStats = ({
       )}
     </div>
   );
-};
+}
 
 export default memo(GroupReleaseStats);
 
