@@ -63,6 +63,9 @@ type TransformedData = {
   config?: Partial<MonitorConfig>;
 };
 
+/**
+ * Transform config field values into the config object
+ */
 function transformData(_data: Record<string, any>, model: FormModel) {
   return model.fields.toJSON().reduce<TransformedData>((data, [k, v]) => {
     // We're only concerned with transforming the config
@@ -95,6 +98,23 @@ function transformData(_data: Record<string, any>, model: FormModel) {
   }, {});
 }
 
+/**
+ * Transform config field errors from the error response
+ */
+function mapFormErrors(responseJson?: any) {
+  if (responseJson.config === undefined) {
+    return responseJson;
+  }
+
+  // Bring nested config entries to the top
+  const {config, ...responseRest} = responseJson;
+  const configErrors = Object.fromEntries(
+    Object.entries(config).map(([key, value]) => [`config.${key}`, value])
+  );
+
+  return {...responseRest, ...configErrors};
+}
+
 function MonitorForm({
   monitor,
   submitLabel,
@@ -102,7 +122,7 @@ function MonitorForm({
   apiMethod,
   onSubmitSuccess,
 }: Props) {
-  const form = useRef(new FormModel({transformData}));
+  const form = useRef(new FormModel({transformData, mapFormErrors}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const [crontabInput, setCrontabInput] = useState(
