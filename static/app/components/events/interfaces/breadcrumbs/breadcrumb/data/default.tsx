@@ -1,6 +1,9 @@
+import styled from '@emotion/styled';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
@@ -82,5 +85,18 @@ const FormatMessage = withProjects(function FormatMessageInner({
     return <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>{content}</Link>;
   }
 
-  return content;
+  switch (breadcrumb.messageFormat) {
+    case 'sql':
+      return <FormattedCode>{content}</FormattedCode>;
+    default:
+      return content;
+  }
 });
+
+const FormattedCode = styled('div')`
+  padding: ${space(1)};
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow-x: auto;
+  white-space: pre;
+`;
