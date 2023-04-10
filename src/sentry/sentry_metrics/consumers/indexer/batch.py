@@ -195,7 +195,12 @@ class IndexerBatch:
             if metric_type not in ACCEPTED_METRIC_TYPES:
                 logger.error(
                     "process_messages.invalid_metric_type",
-                    extra={"org_id": org_id, "metric_type": metric_type, "offset": offset},
+                    extra={
+                        "use_case_id": use_case_id,
+                        "org_id": org_id,
+                        "metric_type": metric_type,
+                        "offset": offset,
+                    },
                 )
                 self.skipped_offsets.add(partition_offset)
                 continue
