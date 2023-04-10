@@ -397,9 +397,7 @@ class MonitorEnvironment(Model):
                 "contexts": {"monitor": get_monitor_environment_context(self)},
                 "fingerprint": ["monitor", str(self.monitor.guid), reason],
                 "environment": self.environment.name,
-                "tags": {
-                    "monitor.id": str(self.monitor.guid),
-                },
+                "tags": {"monitor.id": str(self.monitor.guid), "monitor.slug": self.monitor.slug},
             },
             project=Project(id=self.monitor.project_id),
         )
