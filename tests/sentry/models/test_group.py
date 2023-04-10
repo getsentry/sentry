@@ -14,6 +14,7 @@ from sentry.models import (
     GroupRelease,
     GroupSnooze,
     GroupStatus,
+    GroupSubStatus,
     Release,
     get_group_with_redirect,
 )
@@ -300,6 +301,23 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group.get_last_release() == "100"
 
         assert group2.get_last_release() is None
+
+    def test_group_substatus_defaults(self):
+        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus == GroupSubStatus.ONGOING
+        assert (
+            self.create_group(status=GroupStatus.IGNORED).substatus
+            == GroupSubStatus.UNTIL_ESCALATING
+        )
+        assert (
+            self.create_group(status=GroupStatus.MUTED).substatus == GroupSubStatus.UNTIL_ESCALATING
+        )
+        for nullable_status in (
+            GroupStatus.RESOLVED,
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+            GroupStatus.REPROCESSING,
+        ):
+            assert self.create_group(status=nullable_status).substatus is None
 
 
 @region_silo_test
