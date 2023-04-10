@@ -78,7 +78,7 @@ function NotificationActionItem({
   onDelete,
   onUpdate,
   disabled = false,
-}: NotificationActionItemProps) => {
+}: NotificationActionItemProps) {
   const [isEditing, setIsEditing] = useState(defaultEdit);
   const [editedAction, setEditedAction] = useState(action);
   const serviceType = action.serviceType;

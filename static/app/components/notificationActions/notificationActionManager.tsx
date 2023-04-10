@@ -46,7 +46,7 @@ function NotificationActionManager({
   project,
   updateAlertCount = () => {},
   disabled = false,
-}: NotificationActionManagerProps) => {
+}: NotificationActionManagerProps) {
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
 
