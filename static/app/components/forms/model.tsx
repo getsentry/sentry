@@ -35,6 +35,10 @@ export type FormOptions = {
    */
   initialData?: Record<string, FieldValue>;
   /**
+   * Custom transformer function for use with the error response
+   */
+  mapFormErrors?: (responseJson: any) => any;
+  /**
    * Callback triggered when a field changes value
    */
   onFieldChange?: (id: string, finalValue: FieldValue) => void;
@@ -746,12 +750,12 @@ class FormModel {
 
   submitError(err: {responseJSON?: any}) {
     this.formState = FormState.ERROR;
-    this.formErrors = this.mapFormErrors(err.responseJSON);
-    this.handleErrorResponse({responseJSON: this.formErrors});
-  }
 
-  mapFormErrors(responseJSON?: any) {
-    return responseJSON;
+    this.formErrors = this.options.mapFormErrors
+      ? this.options.mapFormErrors(err.responseJSON)
+      : err.responseJSON;
+
+    this.handleErrorResponse({responseJSON: this.formErrors});
   }
 }
 
