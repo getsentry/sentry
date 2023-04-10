@@ -11,7 +11,7 @@ import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import Line from '../../frame/line';
+import DeprecatedLine from '../../frame/deprecatedLine';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 import StacktracePlatformIcon from './platformIcon';
@@ -170,7 +170,7 @@ class Content extends Component<Props, State> {
       lastFrameIdx = (data.frames ?? []).length - 1;
     }
 
-    const frames: React.ReactElement[] = [];
+    let frames: React.ReactElement[] = [];
     let nRepeats = 0;
 
     const maxLengthOfAllRelativeAddresses = (data.frames ?? []).reduce(
@@ -217,7 +217,7 @@ class Content extends Component<Props, State> {
         const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
 
         frames.push(
-          <Line
+          <DeprecatedLine
             key={frameIdx}
             event={event}
             data={frame}
@@ -263,7 +263,7 @@ class Content extends Component<Props, State> {
     }
 
     if (defined(maxDepth)) {
-      frames.splice(maxDepth);
+      frames = frames.slice(-maxDepth);
     }
 
     if (newestFirst) {

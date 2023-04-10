@@ -42,7 +42,7 @@ function FunctionsTable(props: FunctionsTableProps) {
     }
 
     if (!SORTABLE_COLUMNS.has(column as any)) {
-      column = 'p99';
+      column = 'p75';
     }
 
     return {
@@ -131,7 +131,7 @@ function FunctionsTable(props: FunctionsTableProps) {
   );
 }
 
-const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p99', 'count']);
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p95', 'p99', 'count']);
 const SORTABLE_COLUMNS = RIGHT_ALIGNED_COLUMNS;
 
 function renderFunctionsTableCell(
@@ -175,6 +175,7 @@ function ProfilingFunctionsTableCell({
         </NumberContainer>
       );
     case 'p75':
+    case 'p95':
     case 'p99':
       return (
         <NumberContainer>
@@ -198,16 +199,9 @@ type TableDataRow = Record<TableColumnKey, any>;
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
 
-const COLUMN_ORDER: TableColumnKey[] = [
-  'name',
-  'package',
-  'count',
-  'p75',
-  'p99',
-  'examples',
-];
+const COLUMN_ORDER: TableColumnKey[] = ['name', 'package', 'count', 'p75', 'examples'];
 
-const COLUMNS: Record<Exclude<TableColumnKey, 'p95'>, TableColumn> = {
+const COLUMNS: Record<TableColumnKey, TableColumn> = {
   name: {
     key: 'name',
     name: t('Name'),
@@ -218,24 +212,24 @@ const COLUMNS: Record<Exclude<TableColumnKey, 'p95'>, TableColumn> = {
     name: t('Package'),
     width: COL_WIDTH_UNDEFINED,
   },
-  path: {
-    key: 'path',
-    name: t('Path'),
-    width: COL_WIDTH_UNDEFINED,
-  },
   p75: {
     key: 'p75',
-    name: t('P75 Total Duration'),
+    name: t('P75 Duration'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  p95: {
+    key: 'p95',
+    name: t('P95 Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   p99: {
     key: 'p99',
-    name: t('P99 Total Duration'),
+    name: t('P99 Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   count: {
     key: 'count',
-    name: t('Total Occurrences'),
+    name: t('Occurrences'),
     width: COL_WIDTH_UNDEFINED,
   },
   examples: {

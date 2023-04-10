@@ -94,6 +94,7 @@ from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
+from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -129,6 +130,7 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.event_ai_suggested_fix import EventAiSuggestedFixEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -212,6 +214,7 @@ from .endpoints.internal import (
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.notifications import (
+    NotificationActionsAvailableEndpoint,
     NotificationActionsDetailsEndpoint,
     NotificationActionsIndexEndpoint,
 )
@@ -1334,6 +1337,11 @@ ORGANIZATION_URLS = [
         NotificationActionsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notification-actions-details",
     ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/notifications/available-actions/$",
+        NotificationActionsAvailableEndpoint.as_view(),
+        name="sentry-api-0-organization-notification-available-actions",
+    ),
     # Monitors
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/$",
@@ -1341,17 +1349,17 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitors",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
         OrganizationMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-details",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/stats/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/stats/$",
         OrganizationMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-stats",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
@@ -1360,7 +1368,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitor-check-in-index",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
@@ -1368,7 +1376,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitor-check-in-details",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
         method_dispatch(
             GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
             POST=MonitorIngestCheckinAttachmentEndpoint.as_view(),  # Legacy ingest endpoint
@@ -1821,6 +1829,11 @@ PROJECT_URLS = [
         name="sentry-api-0-event-grouping-info",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/ai-fix-suggest/$",
+        EventAiSuggestedFixEndpoint.as_view(),
+        name="sentry-api-0-event-ai-fix-suggest",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/apple-crash-report$",
         EventAppleCrashReportEndpoint.as_view(),
         name="sentry-api-0-event-apple-crash-report",
@@ -2007,6 +2020,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
         ProjectReleaseFileDetailsEndpoint.as_view(),
         name="sentry-api-0-project-release-file-details",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-lookup/$",
+        ProjectArtifactLookupEndpoint.as_view(),
+        name="sentry-api-0-project-artifact-lookup",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$",
@@ -2607,12 +2625,12 @@ urlpatterns = [
     # Top-level monitor checkin APIs. NOTE that there are also organization
     # level checkin ingest APIs.
     url(
-        r"^monitors/(?P<monitor_id>[^\/]+)/checkins/$",
+        r"^monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
         MonitorIngestCheckInIndexEndpoint.as_view(),
         name="sentry-api-0-monitor-ingest-check-in-index",
     ),
     url(
-        r"^monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        r"^monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
         MonitorIngestCheckInDetailsEndpoint.as_view(),
         name="sentry-api-0-monitor-ingest-check-in-details",
     ),

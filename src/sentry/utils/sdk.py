@@ -329,12 +329,8 @@ def configure_sdk():
         experimental_transport = None
 
     if settings.SENTRY_PROFILING_ENABLED:
-        sdk_options.setdefault("_experiments", {}).update(
-            {
-                "profiles_sample_rate": settings.SENTRY_PROFILES_SAMPLE_RATE,
-                "profiler_mode": settings.SENTRY_PROFILER_MODE,
-            }
-        )
+        sdk_options["profiles_sample_rate"] = settings.SENTRY_PROFILES_SAMPLE_RATE
+        sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
@@ -409,6 +405,10 @@ def configure_sdk():
             DjangoAtomicIntegration(),
             DjangoIntegration(),
             CeleryIntegration(),
+            # This makes it so all levels of logging are recorded as breadcrumbs,
+            # but none are captured as events (that's handled by the `internal`
+            # logger defined in `server.py`, which ignores the levels set
+            # in the integration and goes straight to the underlying handler class).
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
             RedisIntegration(),

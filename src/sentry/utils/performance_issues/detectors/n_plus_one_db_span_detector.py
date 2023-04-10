@@ -52,6 +52,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "source_span",
         "n_hash",
         "n_spans",
+        "transaction",
     )
 
     type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES
@@ -211,6 +212,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
+                evidence_display=[],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": [parent_span_id],
+                    "cause_span_ids": [self.source_span.get("span_id", None)],
+                    "offender_span_ids": [span.get("span_id", None) for span in self.n_spans],
+                },
             )
 
     def _contains_valid_repeating_query(self, span: Span) -> bool:

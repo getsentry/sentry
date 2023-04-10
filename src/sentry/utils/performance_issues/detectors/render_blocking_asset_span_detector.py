@@ -71,6 +71,13 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     offender_span_ids=[span_id],
                     parent_span_ids=[],
                     cause_span_ids=[],
+                    evidence_data={
+                        "op": op,
+                        "parent_span_ids": [],
+                        "cause_span_ids": [],
+                        "offender_span_ids": [span_id],
+                    },
+                    evidence_display=[],
                 )
 
         # If we visit a span that starts after FCP, then we know we've already

@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Mapping, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
@@ -145,6 +147,12 @@ class GroupStatus:
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
+
+
+class GroupSubStatus:
+    UNTIL_ESCALATING = 1
+    ESCALATING = 2
+    ONGOING = 3
 
 
 # Statuses that can be queried/searched for
@@ -311,6 +319,7 @@ class GroupManager(BaseManager):
         external_issue_key: str,
     ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
+        from sentry.services.hybrid_cloud.integration import integration_service
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key
@@ -320,10 +329,16 @@ class GroupManager(BaseManager):
             linked_id__in=external_issue_subquery
         ).values_list("group_id", flat=True)
 
+        org_ids_with_integration = list(
+            i.organization_id
+            for i in integration_service.get_organization_integrations(
+                organization_ids=[o.id for o in organizations], integration_id=integration.id
+            )
+        )
+
         return self.filter(
             id__in=group_link_subquery,
-            project__organization__in=organizations,
-            project__organization__organizationintegration__integration_id=integration.id,
+            project__organization_id__in=org_ids_with_integration,
         ).select_related("project")
 
     def update_group_status(
@@ -401,13 +416,21 @@ class Group(Model):
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(
-        default=0,
+        default=GroupStatus.UNRESOLVED,
         choices=(
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
         ),
         db_index=True,
+    )
+    substatus = BoundedIntegerField(
+        null=True,
+        choices=(
+            (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
+            (GroupSubStatus.ONGOING, _("Ongoing")),
+            (GroupSubStatus.ESCALATING, _("Escalating")),
+        ),
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -438,6 +461,8 @@ class Group(Model):
             ("project", "id"),
             ("project", "status", "last_seen", "id"),
             ("project", "status", "type", "last_seen", "id"),
+            ("project", "status", "substatus", "last_seen", "id"),
+            ("project", "status", "substatus", "type", "last_seen", "id"),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -682,3 +707,12 @@ class Group(Model):
     @property
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
+
+
+@receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
+def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
+    if instance:
+        if instance.status == GroupStatus.UNRESOLVED and instance.substatus is None:
+            instance.substatus = GroupSubStatus.ONGOING
+        if instance.status == GroupStatus.IGNORED and instance.substatus is None:
+            instance.substatus = GroupSubStatus.UNTIL_ESCALATING

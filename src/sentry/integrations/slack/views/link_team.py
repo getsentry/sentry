@@ -1,21 +1,19 @@
+from __future__ import annotations
+
 from typing import Any, Sequence
 
 from django import forms
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from rest_framework.request import Request
 
 from sentry import analytics
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    IdentityProvider,
-    Integration,
-    NotificationSetting,
-    OrganizationMember,
-    Team,
-)
+from sentry.models import ExternalActor, Integration, OrganizationMember, Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -37,7 +35,11 @@ SUCCESS_LINKED_MESSAGE = (
 
 
 def build_team_linking_url(
-    integration: Integration, slack_id: str, channel_id: str, channel_name: str, response_url: str
+    integration: Integration | RpcIntegration,
+    slack_id: str,
+    channel_id: str,
+    channel_name: str,
+    response_url: str,
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-link-team",
@@ -74,7 +76,10 @@ class SlackLinkTeamView(BaseView):
                 request=request,
             )
 
-        integration = Integration.objects.get(id=params["integration_id"])
+        integration = integration_service.get_integration(integration_id=params["integration_id"])
+        if integration is None:
+            raise Http404
+
         organization_memberships = OrganizationMember.objects.get_for_integration(
             integration, request.user
         )
@@ -114,20 +119,23 @@ class SlackLinkTeamView(BaseView):
         if not team:
             return render_error_page(request, body_text="HTTP 404: Team does not exist")
 
-        try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
-        except IdentityProvider.DoesNotExist:
+        idp = identity_service.get_provider(
+            provider_type="slack", provider_ext_id=integration.external_id
+        )
+        if idp is None:
             logger.info("slack.action.invalid-team-id", extra={"slack_id": integration.external_id})
             return render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
-        if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
+        ident = identity_service.get_identity(
+            provider_id=idp.id, identity_ext_id=params["slack_id"]
+        )
+        if not ident:
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
-        install = integration.get_installation(team.organization.id)
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=team.organization,
-            integration=integration,
+            integration_id=integration.id,
             provider=ExternalProviders.SLACK.value,
             defaults=dict(
                 external_name=channel_name,
@@ -144,7 +152,13 @@ class SlackLinkTeamView(BaseView):
 
         if not created:
             message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
-            install.send_message(channel_id=channel_id, message=message)
+
+            integration_service.send_message(
+                integration_id=integration.id,
+                organization_id=team.organization_id,
+                channel=channel_id,
+                message=message,
+            )
             return render_to_response(
                 "sentry/integrations/slack/post-linked-team.html",
                 request=request,
@@ -157,14 +171,19 @@ class SlackLinkTeamView(BaseView):
             )
 
         # Turn on notifications for all of a team's projects.
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            team=team,
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.SLACK,
+            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+            setting_option=NotificationSettingOptionValues.ALWAYS,
+            actor=RpcActor.from_orm_team(team),
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
-        install.send_message(channel_id=channel_id, message=message)
+        integration_service.send_message(
+            integration_id=integration.id,
+            organization_id=team.organization_id,
+            channel=channel_id,
+            message=message,
+        )
         return render_to_response(
             "sentry/integrations/slack/post-linked-team.html",
             request=request,

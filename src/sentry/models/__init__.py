@@ -42,6 +42,7 @@ from .groupbookmark import *  # NOQA
 from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
+from .groupforecast import *  # NOQA
 from .grouphash import *  # NOQA
 from .grouphistory import *  # NOQA
 from .groupinbox import *  # NOQA
@@ -68,6 +69,7 @@ from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
+from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .outbox import *  # NOQA
@@ -97,6 +99,7 @@ from .repository import *  # NOQA
 from .reprocessingreport import *  # NOQA
 from .rule import *  # NOQA
 from .rulefirehistory import RuleFireHistory  # NOQA
+from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .scheduledjob import *  # NOQA

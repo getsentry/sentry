@@ -1,5 +1,6 @@
 import datetime
 import typing
+import uuid
 from enum import Enum
 
 from sentry.utils import json
@@ -36,7 +37,7 @@ def assert_expected_response(
     """Assert a received response matches what was expected."""
     # Compare the response structure and values to the expected response.
     for key, value in expected_response.items():
-        assert key in response, key
+        assert key in response, f"key: {key}"
         response_value = response.pop(key)
 
         if isinstance(response_value, dict):
@@ -45,7 +46,7 @@ def assert_expected_response(
                 if isinstance(v, list):
                     assert sorted(response_value[k]) == sorted(v)
                 else:
-                    assert response_value[k] == v
+                    assert response_value[k] == v, f"value: {v}, expected: {response_value[k]}"
         elif isinstance(response_value, list):
             assert len(response_value) == len(value), f'"{response_value}" "{value}"'
             for item in response_value:
@@ -105,7 +106,7 @@ def mock_expected_response(
             "id": kwargs.pop("user_id", "123"),
             "display_name": kwargs.pop("user_display_name", "username"),
             "email": kwargs.pop("user_email", "username@example.com"),
-            "name": kwargs.pop("user_name", "username"),
+            "username": kwargs.pop("user_name", "username"),
             "ip": kwargs.pop("user_ip", "127.0.0.1"),
         },
         "tags": kwargs.pop("tags", {}),
@@ -137,7 +138,7 @@ def mock_replay(
                         "segment_id": kwargs.pop("segment_id", 0),
                         "tags": tags,
                         "urls": kwargs.pop("urls", []),
-                        "is_archived": kwargs.pop("is_archived", False),
+                        "is_archived": kwargs.pop("is_archived", None),
                         "error_ids": kwargs.pop(
                             "error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]
                         ),
@@ -190,6 +191,47 @@ def mock_replay(
                             "headers": {"User-Agent": kwargs.pop("user_agent", "Firefox")},
                         },
                         "extra": {},
+                    }
+                ).encode()
+            )
+        ),
+    }
+
+
+def mock_replay_click(
+    timestamp: datetime.datetime,
+    project_id: str,
+    replay_id: str,
+    **kwargs: typing.Dict[str, typing.Any],
+) -> typing.Dict[str, typing.Any]:
+    return {
+        "type": "replay_event",
+        "start_time": sec(timestamp),
+        "replay_id": replay_id,
+        "project_id": project_id,
+        "retention_days": kwargs.pop("retention_days", 30),
+        "payload": list(
+            bytes(
+                json.dumps(
+                    {
+                        "type": "replay_actions",
+                        "replay_id": replay_id,
+                        "clicks": [
+                            {
+                                "node_id": kwargs["node_id"],
+                                "tag": kwargs["tag"],
+                                "id": kwargs.pop("id", ""),
+                                "class": kwargs.pop("class_", []),
+                                "text": kwargs.pop("text", ""),
+                                "role": kwargs.pop("role", ""),
+                                "alt": kwargs.pop("alt", ""),
+                                "testid": kwargs.pop("testid", ""),
+                                "aria_label": kwargs.pop("aria_label", ""),
+                                "title": kwargs.pop("title", ""),
+                                "event_hash": str(uuid.uuid4()),
+                                "timestamp": sec(timestamp),
+                            }
+                        ],
                     }
                 ).encode()
             )

@@ -12,11 +12,11 @@ import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
 import MeasureSize from 'sentry/views/replays/detail/layout/measureSize';
 import SidebarArea from 'sentry/views/replays/detail/layout/sidebarArea';
+import SideTabs from 'sentry/views/replays/detail/layout/sideTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
-import SideTabs from 'sentry/views/replays/detail/sideTabs';
 
 const MIN_VIDEO_WIDTH = 325;
-const MIN_CONTENT_WIDTH = 325;
+const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
 const MIN_CONTENT_HEIGHT = 180;

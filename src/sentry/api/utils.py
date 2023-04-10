@@ -19,7 +19,13 @@ from sentry.auth.access import get_cached_organization_member  # noqa
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.search.utils import InvalidQuery, parse_datetime_string
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud import extract_id_from
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationMember,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
@@ -196,7 +202,12 @@ def get_date_range_from_stats_period(
     return start, end
 
 
-def is_member_disabled_from_limit(request: Request, organization: Organization) -> bool:
+# The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
+# If you can use the wider more correct type, please do.
+def is_member_disabled_from_limit(
+    request: Request,
+    organization: RpcUserOrganizationContext | RpcOrganization | Organization | int,
+) -> bool:
     user = request.user
 
     # never limit sentry apps
@@ -208,9 +219,14 @@ def is_member_disabled_from_limit(request: Request, organization: Organization) 
         return False
 
     # must be a simple user at this point
-    member = organization_service.check_membership_by_id(
-        organization_id=organization.id, user_id=user.id
-    )
+
+    member: RpcOrganizationMember | None
+    if isinstance(organization, RpcUserOrganizationContext):
+        member = organization.member
+    else:
+        member = organization_service.check_membership_by_id(
+            organization_id=extract_id_from(organization), user_id=user.id
+        )
     if member is None:
         return False
     else:
@@ -255,10 +271,13 @@ _path_patterns: List[Tuple[re.Pattern[str], str]] = [
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
-    (re.compile(r"\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)"), r"/settings/\1"),
-    (re.compile(r"\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
-    (re.compile(r"\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
-    (re.compile(r"\/?[^\/]+\/([^\/]+)\/getting-started\/(.*)"), r"/getting-started/\1/\2"),
+    (re.compile(r"^\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)"), r"/settings/\1"),
+    (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
+    (re.compile(r"^\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
+    (
+        re.compile(r"^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)"),
+        r"/getting-started/\1/\2",
+    ),
 ]
 
 

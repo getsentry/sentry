@@ -8,7 +8,12 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
+from sentry.integrations.utils.code_mapping import (
+    MAX_CONNECTION_ERRORS,
+    Repo,
+    RepoTree,
+    filter_source_code_files,
+)
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -178,7 +183,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repositories = self._populate_repositories(gh_org, cache_seconds)
         extra.update({"repos_num": str(len(repositories))})
         trees = self._populate_trees(repositories)
-        logger.info("Using cached trees for Github org.", extra=extra)
+        if trees:
+            logger.info("Using cached trees for Github org.", extra=extra)
 
         try:
             rate_limit = self.get_rate_limit()
@@ -206,8 +212,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return repositories
 
-    def _populate_trees_process_error(self, error: ApiError, extra: Dict[str, str]) -> None:
+    def _populate_trees_process_error(self, error: ApiError, extra: Dict[str, str]) -> bool:
+        """
+        Log different messages based on the error received. Returns a boolean indicating whether
+        the error should count towards the connection errors tally.
+        """
         msg = "Continuing execution."
+        should_count_error = False
         txt = error.text
         if error.json:
             json_data: JSONData = error.json
@@ -223,11 +234,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
         elif txt == "Server Error":
             logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+            should_count_error = True
         elif txt == "Bad credentials":
             logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
-        elif txt.startswith("Unable to reach host:"):
+        elif txt == "Connection reset by peer":
+            logger.warning(f"Connection reset by GitHub. {msg}.", extra=extra)
+            should_count_error = True
+        elif txt == "Connection broken: invalid chunk length":
+            logger.warning(f"Connection broken by chunk with invalid length. {msg}.", extra=extra)
+            should_count_error = True
+        elif txt and txt.startswith("Unable to reach host:"):
             logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
-        elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+            should_count_error = True
+        elif txt and txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
             logger.warning("Github has blocked this org. We will not continue.", extra=extra)
             # Raising the error will be handled at the task level
             raise error
@@ -238,6 +257,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 f"Investigate if to raise error. An error happened. {msg}", extra=extra
             )
 
+        return should_count_error
+
     def _populate_trees(self, repositories: List[Dict[str, str]]) -> Dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
@@ -245,6 +266,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         """
         trees: Dict[str, RepoTree] = {}
         only_use_cache = False
+        connection_error_count = 0
 
         remaining_requests = MINIMUM_REQUESTS
         try:
@@ -276,12 +298,21 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
                 )
             except ApiError as error:
-                self._populate_trees_process_error(error, extra)
+                should_count_error = self._populate_trees_process_error(error, extra)
+                if should_count_error:
+                    connection_error_count += 1
             except Exception:
                 # Report for investigation but do not stop processing
                 logger.exception(
                     "Failed to populate_tree. Investigate. Contining execution.", extra=extra
                 )
+
+            if connection_error_count >= MAX_CONNECTION_ERRORS:
+                logger.warning(
+                    "Falling back to the cache because we've hit too many errors connecting to GitHub.",
+                    extra=extra,
+                )
+                only_use_cache = True
 
         return trees
 
@@ -350,23 +381,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Use response_key when the API stores the results within a key.
         For instance, the repositories API returns the list of repos under the "repositories" key
         """
-        with sentry_sdk.configure_scope() as scope:
-            if scope.span is not None:
-                parent_span_id = scope.span.span_id
-                trace_id = scope.span.trace_id
-            else:
-                parent_span_id = None
-                trace_id = None
-
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op=f"{self.integration_type}.http.pagination",
-            name=f"{self.integration_type}.http_response.pagination.{self.name}",
-            parent_span_id=parent_span_id,
-            trace_id=trace_id,
-            sampled=True,
+            description=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
             output = []
 
@@ -375,15 +395,29 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             resp = self.get(path, params={"per_page": self.page_size})
             logger.info(resp)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
+            next_link = get_next_link(resp)
+
+            # XXX: Debugging code; remove afterward
+            if (
+                response_key
+                and response_key == "repositories"
+                and resp["total_count"] > 0
+                and not output
+            ):
+                logger.info(f"headers: {resp.headers}")
+                logger.info(f"output: {output}")
+                logger.info(f"next_link: {next_link}")
+                logger.error("No list of repos even when there's some. Investigate.")
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            while get_next_link(resp) and page_number < page_number_limit:
-                new_path = get_next_link(resp)
-                logger.info(f"Page {page_number}: {path}")
-                resp = self.get(new_path)
+            while next_link and page_number < page_number_limit:
+                resp = self.get(next_link)
                 logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
+
+                next_link = get_next_link(resp)
+                logger.info(f"Page {page_number}: {next_link}")
                 page_number += 1
             return output
 

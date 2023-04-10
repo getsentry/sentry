@@ -83,7 +83,7 @@ describe('DropdownLink', function () {
         // Click outside
         await userEvent.click(screen.getByTestId('outside-element'), {delay: null});
 
-        await waitForElementToBeRemoved(() => screen.getByText('hi'));
+        await waitForElementToBeRemoved(() => screen.queryByText('hi'));
       });
 
       it('closes when dropdown actor button is clicked', async function () {
@@ -198,7 +198,7 @@ describe('DropdownLink', function () {
   });
 
   describe('Nested Dropdown', function () {
-    const NestedDropdown = () => {
+    function NestedDropdown() {
       return (
         <DropdownLink title="parent" alwaysRenderMenu={false}>
           <li>
@@ -213,7 +213,7 @@ describe('DropdownLink', function () {
           <li id="no-nest">Item 2</li>
         </DropdownLink>
       );
-    };
+    }
 
     it('closes when top-level actor is clicked', async function () {
       render(<NestedDropdown />);

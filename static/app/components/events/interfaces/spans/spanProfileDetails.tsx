@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import StackTrace from 'sentry/components/events/interfaces/crashContent/stackTrace';
+import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -24,7 +24,7 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {SpanType} from './types';
 
-const MAX_STACK_DEPTH = 16;
+const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
 const TOP_NODE_MIN_COUNT = 3;
@@ -81,7 +81,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
       profile.unit
     );
 
-    return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp);
+    return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp).filter(
+      hasApplicationFrame
+    );
   }, [profile, span, event]);
 
   const [index, setIndex] = useState(0);
@@ -119,32 +121,22 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     };
   }, [index, maxNodes, event, nodes]);
 
-  const profileTarget =
-    project &&
-    profileGroup &&
-    profile &&
-    generateProfileFlamechartRouteWithQuery({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      profileId: profileGroup.traceID,
-      query: {tid: String(profile.threadId)},
-    });
-
   const spanTarget =
     project &&
     profileGroup &&
+    profileGroup.metadata.profileID &&
     profile &&
     generateProfileFlamechartRouteWithQuery({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: profileGroup.traceID,
+      profileId: profileGroup.metadata.profileID,
       query: {
         tid: String(profile.threadId),
         spanId: span.span_id,
       },
     });
 
-  if (!defined(profile) || !defined(profileTarget) || !defined(spanTarget)) {
+  if (!defined(profile) || !defined(spanTarget)) {
     return null;
   }
 
@@ -197,7 +189,7 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
           </Button>
         </SpanDetailsItem>
       </SpanDetails>
-      <StackTrace
+      <StackTraceContent
         event={processedEvent}
         hasHierarchicalGrouping={false}
         newestFirst
@@ -209,7 +201,6 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
           frames,
         }}
         stackView={STACK_VIEW.APP}
-        nativeV2
         inlined
         maxDepth={MAX_STACK_DEPTH}
       />
@@ -292,6 +283,16 @@ function sortByCount(a: CallTreeNode, b: CallTreeNode) {
   }
 
   return b.count - a.count;
+}
+
+function hasApplicationFrame(node: CallTreeNode | null) {
+  while (node && !node.isRoot) {
+    if (node.frame.is_application) {
+      return true;
+    }
+    node = node.parent;
+  }
+  return false;
 }
 
 function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame[] {

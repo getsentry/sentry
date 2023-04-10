@@ -17,7 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import ProjectKey
+from sentry.models import Project, ProjectKey
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -62,7 +62,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         operation_id="Create a new check-in",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorCheckInValidator,
         responses={
@@ -81,8 +81,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     def post(
         self,
         request: Request,
-        project,
-        monitor_id: str,
+        project: Project,
+        monitor_slug: str,
         monitor: Monitor | None,
         organization_slug: str | None = None,
     ) -> Response:
@@ -104,13 +104,13 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
         checkin_validator = MonitorCheckInValidator(
             data=request.data,
-            context={"project": project, "request": request, "monitor_id": monitor_id},
+            context={"project": project, "request": request, "monitor_slug": monitor_slug},
         )
         if not checkin_validator.is_valid():
             return self.respond(checkin_validator.errors, status=400)
 
         if not monitor:
-            ratelimit_key = monitor_id
+            ratelimit_key = monitor_slug
         else:
             ratelimit_key = monitor.id
 

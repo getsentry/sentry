@@ -12,7 +12,6 @@ from sentry.integrations.utils.codecov import (
 )
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class TestCodecovIntegration(APITestCase):
@@ -40,7 +39,7 @@ class TestCodecovIntegration(APITestCase):
     def test_no_codecov_integration(self, mock_get_repositories):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=404,
         )
 
@@ -56,7 +55,7 @@ class TestCodecovIntegration(APITestCase):
     def test_has_codecov_integration(self, mock_get_repositories):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=200,
         )
 
@@ -64,7 +63,6 @@ class TestCodecovIntegration(APITestCase):
         assert has_integration
 
     @responses.activate
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_get_codecov_report(self):
         expected_line_coverage = [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]
         expected_codecov_url = "https://app.codecov.io/gh/testgit/abc/commit/0f1e2d/path/to/file.py"
@@ -88,7 +86,6 @@ class TestCodecovIntegration(APITestCase):
         assert url == expected_codecov_url
 
     @responses.activate
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_get_codecov_report_error(self):
         responses.add(
             responses.GET,

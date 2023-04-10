@@ -15,7 +15,7 @@ import {
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
-const TeamMembersRow = (props: {
+function TeamMembersRow(props: {
   hasWriteAccess: boolean;
   isOrgOwner: boolean;
   member: TeamMember;
@@ -24,7 +24,7 @@ const TeamMembersRow = (props: {
   team: Team;
   updateMemberRole: (member: Member, newRole: string) => void;
   user: User;
-}) => {
+}) {
   const {
     organization,
     team,
@@ -62,15 +62,15 @@ const TeamMembersRow = (props: {
       </div>
     </TeamRolesPanelItem>
   );
-};
+}
 
-const TeamRoleSelect = (props: {
+function TeamRoleSelect(props: {
   hasWriteAccess: boolean;
   member: TeamMember;
   organization: Organization;
   team: Team;
   updateMemberRole: (member: TeamMember, newRole: string) => void;
-}) => {
+}) {
   const {hasWriteAccess, organization, team, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
   if (!features.includes('team-roles')) {
@@ -80,7 +80,7 @@ const TeamRoleSelect = (props: {
   // Determine the team-role, including if the current team has an org role
   // and if adding the user to the current team changes their minimum team-role
   const possibleOrgRoles = [member.orgRole];
-  if (member.orgRolesFromTeams) {
+  if (member.orgRolesFromTeams && member.orgRolesFromTeams.length > 0) {
     possibleOrgRoles.push(member.orgRolesFromTeams[0].role.id);
   }
   if (team.orgRole) {
@@ -119,16 +119,16 @@ const TeamRoleSelect = (props: {
       />
     </RoleSelectWrapper>
   );
-};
+}
 
-const RemoveButton = (props: {
+function RemoveButton(props: {
   hasOrgRoleFromTeam: boolean;
   hasWriteAccess: boolean;
   isOrgOwner: boolean;
   member: TeamMember;
   onClick: () => void;
   user: User;
-}) => {
+}) {
   const {member, user, hasWriteAccess, isOrgOwner, hasOrgRoleFromTeam, onClick} = props;
 
   const isSelf = member.email === user.email;
@@ -166,7 +166,7 @@ const RemoveButton = (props: {
       {t('Remove')}
     </Button>
   );
-};
+}
 
 const RoleName = styled('div')`
   display: flex;

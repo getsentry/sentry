@@ -15,6 +15,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
+import {ProfilingBetaAlertBanner} from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -146,6 +147,8 @@ function ProfilingContent({location}: ProfilingContentProps) {
     return _eventView;
   }, [location, query, selection.projects]);
 
+  const isProfilingGA = organization.features.includes('profiling-ga');
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
@@ -156,6 +159,9 @@ function ProfilingContent({location}: ProfilingContentProps) {
         }
       >
         <Layout.Page>
+          {isProfilingGA ? (
+            <ProfilingBetaAlertBanner organization={organization} />
+          ) : null}
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>

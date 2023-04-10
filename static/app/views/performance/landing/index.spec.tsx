@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -14,6 +13,7 @@ import {
 
 import TeamStore from 'sentry/stores/teamStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
@@ -22,7 +22,7 @@ import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const searchHandlerMock = jest.fn();
 
-const WrappedComponent = ({data, withStaticFilters = false}) => {
+function WrappedComponent({data, withStaticFilters = false}) {
   const eventView = generatePerformanceEventView(
     data.router.location,
     data.projects,
@@ -58,7 +58,7 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
       </OrganizationContext.Provider>
     </QueryClientProvider>
   );
-};
+}
 
 describe('Performance > Landing > Index', function () {
   let eventStatsMock: jest.Mock;
@@ -317,7 +317,7 @@ describe('Performance > Landing > Index', function () {
 
       render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
