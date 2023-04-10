@@ -17,7 +17,7 @@ def handle_ignored(
     status_details: Dict[str, Any],
     acting_user: User | None,
     user: User,
-):
+) -> Dict[str, Any]:
     metrics.incr("group.ignored", skip_internal=True)
     for group in group_ids:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
