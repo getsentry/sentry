@@ -38,6 +38,8 @@ function useOverflowTabs({
       root: tabListRef.current,
       // Nagative right margin to account for overflow menu's trigger button
       rootMargin: `0px -42px 1px ${space(1)}`,
+      // Use 0.95 rather than 1 because of a bug in Edge (Windows) where the intersection
+      // ratio may unexpectedly drop to slightly below 1 (0.999…) on page scroll.
       threshold: 0.95,
     };
 
