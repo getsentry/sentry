@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 from random import random
 from typing import Mapping
 
@@ -17,8 +18,8 @@ from arroyo.processing.strategies import (
 )
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_schema
-from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import SubscriptionResult
 
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
 from sentry.snuba.utils import initialize_consumer_state
 
@@ -38,9 +39,6 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.topic = topic
         self.dataset = topic_to_dataset[self.topic]
         self.logical_topic = dataset_to_logical_topic[self.dataset]
-        self.jsoncodec: JsonCodec[SubscriptionResult] = JsonCodec(
-            schema=get_schema(self.logical_topic)["schema"]
-        )
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.num_processes = processes
@@ -52,47 +50,8 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        def process_message(message: Message[KafkaPayload]) -> None:
-            from sentry import options
-            from sentry.snuba.query_subscriptions.consumer import handle_message
-            from sentry.utils import metrics
-
-            with sentry_sdk.start_transaction(
-                op="handle_message",
-                name="query_subscription_consumer_process_message",
-                sampled=random() <= options.get("subscriptions-query.sample-rate"),
-            ), metrics.timer(
-                "snuba_query_subscriber.handle_message", tags={"dataset": self.dataset.value}
-            ):
-                value = message.value
-                assert isinstance(value, BrokerValue)
-                offset = value.offset
-                partition = value.partition.index
-                message_value = value.payload.value
-                try:
-                    handle_message(
-                        message_value,
-                        offset,
-                        partition,
-                        self.topic,
-                        self.dataset.value,
-                        self.jsoncodec,
-                    )
-                except Exception:
-                    # This is a failsafe to make sure that no individual message will block this
-                    # consumer. If we see errors occurring here they need to be investigated to
-                    # make sure that we're not dropping legitimate messages.
-                    logger.exception(
-                        "Unexpected error while handling message in QuerySubscriptionStrategy. Skipping message.",
-                        extra={
-                            "offset": offset,
-                            "partition": partition,
-                            "value": message_value,
-                        },
-                    )
-
         return RunTaskWithMultiprocessing(
-            process_message,
+            partial(process_message, self.dataset, self.topic, self.logical_topic),
             CommitOffsets(commit),
             self.num_processes,
             self.max_batch_size,
@@ -101,6 +60,46 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.output_block_size,
             initializer=initialize_consumer_state,
         )
+
+
+def process_message(
+    dataset: Dataset, topic: str, logical_topic: str, message: Message[KafkaPayload]
+) -> None:
+    from sentry import options
+    from sentry.snuba.query_subscriptions.consumer import handle_message
+    from sentry.utils import metrics
+
+    with sentry_sdk.start_transaction(
+        op="handle_message",
+        name="query_subscription_consumer_process_message",
+        sampled=random() <= options.get("subscriptions-query.sample-rate"),
+    ), metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}):
+        value = message.value
+        assert isinstance(value, BrokerValue)
+        offset = value.offset
+        partition = value.partition.index
+        message_value = value.payload.value
+        try:
+            handle_message(
+                message_value,
+                offset,
+                partition,
+                topic,
+                dataset.value,
+                JsonCodec(schema=get_schema(logical_topic)["schema"]),
+            )
+        except Exception:
+            # This is a failsafe to make sure that no individual message will block this
+            # consumer. If we see errors occurring here they need to be investigated to
+            # make sure that we're not dropping legitimate messages.
+            logger.exception(
+                "Unexpected error while handling message in QuerySubscriptionStrategy. Skipping message.",
+                extra={
+                    "offset": offset,
+                    "partition": partition,
+                    "value": message_value,
+                },
+            )
 
 
 def get_query_subscription_consumer(

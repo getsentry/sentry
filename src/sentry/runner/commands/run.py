@@ -485,9 +485,9 @@ def query_subscription_consumer(**options):
         group_id=options["group"],
         strict_offset_reset=options["strict_offset_reset"],
         initial_offset_reset=options["initial_offset_reset"],
+        max_batch_size=options["max_batch_size"],
         # Our batcher expects the time in seconds
-        max_batch_size=int(options["max_batch_size"] / 1000),
-        max_batch_time=options["max_batch_time"],
+        max_batch_time=int(options["max_batch_time"] / 1000),
         processes=options["processes"],
         input_block_size=options["input_block_size"],
         output_block_size=options["output_block_size"],
