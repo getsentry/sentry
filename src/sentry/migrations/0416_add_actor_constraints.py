@@ -43,11 +43,25 @@ ALTER TABLE "sentry_actor" VALIDATE CONSTRAINT "sentry_actor_team_id_6ca8eba5_fk
 ALTER TABLE "sentry_actor" DROP CONSTRAINT IF EXISTS "sentry_actor_user_id_c832ff63_uniq";
 DROP INDEX CONCURRENTLY IF EXISTS "sentry_actor_user_id_c832ff63";
 DROP INDEX CONCURRENTLY IF EXISTS "sentry_actor_user_id_c832ff63_uniq";
-CREATE UNIQUE INDEX CONCURRENTLY "sentry_actor_user_id_c832ff63_uniq" ON "sentry_actor" ("user_id");
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "sentry_actor_user_id_c832ff63_uniq" ON "sentry_actor" ("user_id");
         """.splitlines()
             if line.strip()
         ]
         + [
+            migrations.RunSQL(
+                sql="SELECT 1",
+                reverse_sql="""
+ALTER TABLE "sentry_actor" ADD CONSTRAINT "sentry_actor_team_id_6ca8eba5_uniq" UNIQUE USING INDEX "sentry_actor_team_id_6ca8eba5_uniq";
+            """,
+                hints={"tables": ["sentry_actor"]},
+            ),
+            migrations.RunSQL(
+                sql="SELECT 1",
+                reverse_sql="""
+ALTER TABLE "sentry_actor" ADD CONSTRAINT "sentry_actor_user_id_c832ff63_uniq" UNIQUE USING INDEX "sentry_actor_user_id_c832ff63_uniq";
+            """,
+                hints={"tables": ["sentry_actor"]},
+            ),
             migrations.AlterField(
                 model_name="pagerdutyservice",
                 name="organization_id",
