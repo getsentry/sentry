@@ -6,7 +6,7 @@ describe('rerender', () => {
   // Taken from https://testing-library.com/docs/example-update-props/
   let idCounter = 1;
 
-  const NumberDisplay = ({number}) => {
+  function NumberDisplay({number}) {
     const id = useRef(idCounter++); // to ensure we don't remount a different instance
 
     return (
@@ -15,7 +15,7 @@ describe('rerender', () => {
         <span data-test-id="instance-id">{id.current}</span>
       </div>
     );
-  };
+  }
 
   test('calling render with the same component on the same container does not remount', () => {
     const {rerender} = render(<NumberDisplay number={1} />);

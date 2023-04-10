@@ -31,11 +31,7 @@ const usePinnedSearch = () => {
   return savedSearches?.find(savedSearch => savedSearch.isPinned) ?? null;
 };
 
-const IssueListSetAsDefault = ({
-  organization,
-  sort,
-  query,
-}: IssueListSetAsDefaultProps) => {
+function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaultProps) {
   const location = useLocation();
 
   const selectedSavedSearch = useSelectedSavedSearch();
@@ -113,6 +109,6 @@ const IssueListSetAsDefault = ({
       {pinnedSearchActive ? t('Remove Default') : t('Set as Default')}
     </Button>
   );
-};
+}
 
 export default IssueListSetAsDefault;

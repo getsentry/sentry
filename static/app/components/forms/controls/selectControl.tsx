@@ -39,37 +39,41 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
   return (maybe as GroupedOptionsType<OptionType>)[0].options !== undefined;
 }
 
-const ClearIndicator = (
+function ClearIndicator(
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
-) => (
-  <selectComponents.ClearIndicator {...props}>
-    <IconClose legacySize="10px" />
-  </selectComponents.ClearIndicator>
-);
+) {
+  return (
+    <selectComponents.ClearIndicator {...props}>
+      <IconClose legacySize="10px" />
+    </selectComponents.ClearIndicator>
+  );
+}
 
-const DropdownIndicator = (
+function DropdownIndicator(
   props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
-) => (
-  <selectComponents.DropdownIndicator {...props}>
-    <IconChevron direction="down" legacySize="14px" />
-  </selectComponents.DropdownIndicator>
-);
+) {
+  return (
+    <selectComponents.DropdownIndicator {...props}>
+      <IconChevron direction="down" legacySize="14px" />
+    </selectComponents.DropdownIndicator>
+  );
+}
 
-const MultiValueRemove = (
+function MultiValueRemove(
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
-) => (
-  <selectComponents.MultiValueRemove {...props}>
-    <IconClose legacySize="8px" />
-  </selectComponents.MultiValueRemove>
-);
+) {
+  return (
+    <selectComponents.MultiValueRemove {...props}>
+      <IconClose legacySize="8px" />
+    </selectComponents.MultiValueRemove>
+  );
+}
 
-const SelectLoadingIndicator = () => (
-  <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />
-);
+function SelectLoadingIndicator() {
+  return <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />;
+}
 
-const SingleValue = (
-  props: React.ComponentProps<typeof selectComponents.SingleValue>
-) => {
+function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleValue>) {
   const {leadingItems, label} = props.data;
   return (
     <selectComponents.SingleValue {...props}>
@@ -79,7 +83,7 @@ const SingleValue = (
       </SingleValueWrap>
     </selectComponents.SingleValue>
   );
-};
+}
 
 const SingleValueWrap = styled('div')`
   display: grid;
@@ -92,14 +96,14 @@ const SingleValueLabel = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const Menu = (props: React.ComponentProps<typeof selectComponents.Menu>) => {
+function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   const {children, ...otherProps} = props;
   return (
     <selectComponents.Menu {...otherProps}>
       <PanelProvider>{children}</PanelProvider>
     </selectComponents.Menu>
   );
-};
+}
 
 export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> = Omit<
   ReactSelectProps<OptionType>,

@@ -6,8 +6,8 @@ type Props = {
   size: number;
 };
 
-const SentryAppIcon = ({sentryApp, size}: Props) => {
+function SentryAppIcon({sentryApp, size}: Props) {
   return <SentryAppAvatar sentryApp={sentryApp} size={size} isColor />;
-};
+}
 
 export default SentryAppIcon;
