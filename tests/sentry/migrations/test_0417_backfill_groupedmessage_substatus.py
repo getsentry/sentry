@@ -41,7 +41,7 @@ class GroupSubstatusBackfillTest(TestMigrations):
             assert g.substatus is None
 
     def test(self):
-        for g in self.groups_substatus_non_null:
+        for g in Group.objects.filter(id__in=(g.id for g in self.groups_substatus_non_null)):
             # make sure the groups with substatus values stay the same
             assert g.substatus == GroupSubStatus.ONGOING
 
