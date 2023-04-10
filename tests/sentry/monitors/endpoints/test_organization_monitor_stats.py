@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from freezegun import freeze_time
 
@@ -8,7 +8,9 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-@freeze_time("2023-02-08 07:57:00")
+@freeze_time(
+    (datetime.now() - timedelta(days=2)).replace(hour=7, minute=57, second=0, microsecond=0)
+)
 class ListMonitorCheckInsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-stats"
 
