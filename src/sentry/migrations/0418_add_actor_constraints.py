@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0415_backfill_actor_team_and_user"),
+        ("sentry", "0417_backfill_groupedmessage_substatus"),
     ]
 
     operations = (
