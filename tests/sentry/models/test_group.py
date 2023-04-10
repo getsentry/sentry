@@ -321,8 +321,13 @@ class GroupTest(TestCase, SnubaTestCase):
 
     def test_group_invalid_substatus(self):
         with pytest.raises(ValueError):
+            self.create_group(
+                status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.UNTIL_ESCALATING
+            )
             self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING)
             self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ESCALATING)
+            self.create_group(status=GroupStatus.MUTED, substatus=GroupSubStatus.ONGOING)
+            self.create_group(status=GroupStatus.MUTED, substatus=GroupSubStatus.ESCALATING)
 
 
 @region_silo_test
