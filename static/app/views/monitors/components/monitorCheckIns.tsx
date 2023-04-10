@@ -34,7 +34,7 @@ type State = {
   checkInList: CheckIn[];
 };
 
-const MonitorCheckIns = ({monitor, monitorEnv, orgId}: Props) => {
+function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
   const {data, hasError, renderComponent} = useApiRequests<State>({
     endpoints: [
       [
@@ -93,7 +93,7 @@ const MonitorCheckIns = ({monitor, monitorEnv, orgId}: Props) => {
   );
 
   return hasError ? <ErrorWrapper>{renderedComponent}</ErrorWrapper> : renderedComponent;
-};
+}
 
 export default MonitorCheckIns;
 

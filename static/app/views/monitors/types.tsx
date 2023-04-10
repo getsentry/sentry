@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types';
+import {ObjectStatus, Project} from 'sentry/types';
 
 export enum MonitorType {
   UNKNOWN = 'unknown',
@@ -79,21 +79,10 @@ export interface Monitor {
   dateCreated: string;
   environments: MonitorEnvironment[];
   id: string;
-  /**
-   * @deprecated Each monitor environment has this
-   */
-  lastCheckIn: string;
   name: string;
-  /**
-   * @deprecated Each monitor environment has this
-   */
-  nextCheckIn: string;
   project: Project;
   slug: string;
-  /**
-   * @deprecated This is going to be become a standard ObjectStatus type
-   */
-  status: MonitorStatus;
+  status: ObjectStatus;
   type: MonitorType;
 }
 

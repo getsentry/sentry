@@ -32,7 +32,7 @@ const getRateLimitValues = () => {
 // We can just generate this once
 const ACCOUNT_RATE_LIMIT_VALUES = getRateLimitValues();
 
-const OrganizationRateLimit = ({organization}: Props) => {
+function OrganizationRateLimit({organization}: Props) {
   // TODO(billy): Update organization.quota in organizationStore with new values
 
   const {quota} = organization;
@@ -118,6 +118,6 @@ const OrganizationRateLimit = ({organization}: Props) => {
       </Panel>
     </div>
   );
-};
+}
 
 export default OrganizationRateLimit;
