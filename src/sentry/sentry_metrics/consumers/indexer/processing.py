@@ -93,7 +93,6 @@ class MessageProcessor:
         )
 
         batch = IndexerBatch(
-            self._config.use_case_id,
             outer_message,
             should_index_tag_values=should_index_tag_values,
             is_output_sliced=is_output_sliced,
@@ -107,7 +106,7 @@ class MessageProcessor:
         ):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
             cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
-                batch.use_case_id, batch.parsed_payloads_by_offset
+                self._config.use_case_id, batch.parsed_payloads_by_offset
             )
 
         sdk.set_measurement(

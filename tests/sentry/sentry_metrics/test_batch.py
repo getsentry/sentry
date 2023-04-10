@@ -8,7 +8,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -60,7 +59,7 @@ set_payload = {
 }
 
 extracted_string_output = {
-    "sessions": {
+    "release-health": {
         1: {
             "c:sessions/session@none",
             "d:sessions/duration@second",
@@ -177,7 +176,7 @@ def _get_string_indexer_log_records(caplog):
         pytest.param(
             True,
             {
-                "sessions": {
+                "release-health": {
                     1: {
                         "c:sessions/session@none",
                         "d:sessions/duration@second",
@@ -196,7 +195,7 @@ def _get_string_indexer_log_records(caplog):
         pytest.param(
             False,
             {
-                "sessions": {
+                "release-health": {
                     1: {
                         "c:sessions/session@none",
                         "d:sessions/duration@second",
@@ -223,7 +222,6 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
         ]
     )
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         should_index_tag_values,
         False,
@@ -244,7 +242,6 @@ def test_all_resolved(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         False,
@@ -252,7 +249,7 @@ def test_all_resolved(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "sessions": {
+            "release-health": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -318,7 +315,7 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": 1.0,
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
@@ -341,7 +338,7 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -364,7 +361,7 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
@@ -383,7 +380,6 @@ def test_all_resolved_with_routing_information(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         True,
@@ -391,7 +387,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "sessions": {
+            "release-health": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -458,7 +454,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": 1.0,
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
@@ -482,7 +478,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -506,7 +502,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
@@ -533,7 +529,6 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         False,
@@ -541,7 +536,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "sessions": {
+            "release-health": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -607,7 +602,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": 1.0,
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
@@ -630,7 +625,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -653,7 +648,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
@@ -681,7 +676,6 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         False,
         False,
@@ -689,7 +683,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "sessions": {
+            "release-health": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -742,7 +736,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "init"},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": 1.0,
             },
             [("mapping_sources", b"c"), ("metric_type", "c")],
@@ -764,7 +758,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "healthy"},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"c"), ("metric_type", "d")],
@@ -786,7 +780,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "errored"},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [3],
             },
             [("mapping_sources", b"c"), ("metric_type", "s")],
@@ -804,12 +798,10 @@ def test_metric_id_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
-    )
+    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            "sessions": {
+            "release-health": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -875,7 +867,7 @@ def test_metric_id_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
@@ -904,12 +896,10 @@ def test_tag_key_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
-    )
+    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            "sessions": {
+            "release-health": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -986,12 +976,10 @@ def test_tag_value_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
-    )
+    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            "sessions": {
+            "release-health": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -1066,7 +1054,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": 1.0,
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
@@ -1089,7 +1077,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -1107,7 +1095,6 @@ def test_one_org_limited(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         False,
@@ -1115,7 +1102,7 @@ def test_one_org_limited(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "sessions": {
+            "release-health": {
                 1: {
                     "c:sessions/session@none",
                     "environment",
@@ -1200,7 +1187,7 @@ def test_one_org_limited(caplog, settings):
                 "tags": {"2": 4, "5": 3},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -1228,7 +1215,6 @@ def test_cardinality_limiter(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         False,
@@ -1243,7 +1229,7 @@ def test_cardinality_limiter(caplog, settings):
     ]
     batch.filter_messages(keys_to_remove)
     assert batch.extract_strings() == {
-        "sessions": {
+        "release-health": {
             1: {
                 "environment",
                 "errored",
@@ -1296,7 +1282,7 @@ def test_cardinality_limiter(caplog, settings):
                 "tags": {"1": 3, "5": 2},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "release-health",
                 "value": [3],
             },
             [
