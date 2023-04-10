@@ -25,7 +25,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
@@ -131,11 +130,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {isSidebarVisible} = this.state;
 
     // metrics
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.event_details',
-      eventName: 'Discoverv2: Opened Event Details',
+    trackAdvancedAnalyticsEvent('discover_v2.event_details', {
       event_type: event.type,
-      organization_id: parseInt(organization.id, 10),
+      organization,
     });
 
     const transactionName = event.tags.find(tag => tag.key === 'transaction')?.value;
