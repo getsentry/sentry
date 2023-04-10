@@ -8,7 +8,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-@freeze_time()
+@freeze_time("2023-02-08 07:57:00")
 class ListMonitorCheckInsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-stats"
 
