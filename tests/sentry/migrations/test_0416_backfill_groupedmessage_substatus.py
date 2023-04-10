@@ -1,42 +1,70 @@
-import pytest
+from django.db.models.signals import pre_save
 
-from sentry.models import (
-    OrganizationIntegration,
-    PagerDutyService,
-    Repository,
-    RepositoryProjectPathConfig,
-)
+from sentry.models import Group, GroupStatus, GroupSubStatus
 from sentry.testutils.cases import TestMigrations
 
-pytestmark = pytest.mark.sentry_metrics
+DEFAULT_ENVIRONMENT_NAME = "production"
 
 
-class BackfillPerfSubscriptionsTest(TestMigrations):
+class GroupSubstatusBackfillTest(TestMigrations):
     migrate_from = "0415_backfill_actor_team_and_user"
     migrate_to = "0416_backfill_groupedmessage_substatus"
 
-    def setup_initial_state(self):
-        org = self.create_organization()
-        self.create_integration(org, "blah")
-        project = self.create_project(organization=org)
-        oi = OrganizationIntegration.objects.last()
+    def setup_before_migration(self, apps):
+        pre_save.receivers = []
 
-        PagerDutyService.objects.create(
-            organization_integration=oi, integration_key="asf", service_name="house"
-        )
-        repo = Repository.objects.create(organization_id=org.id, name="moo")
-        RepositoryProjectPathConfig.objects.create(
-            organization_integration=oi,
-            repository=repo,
-            project=project,
-            stack_root="asdf",
-            source_root="src",
-        )
+        self.groups_substatus_non_null = [
+            self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING),
+            self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING),
+            self.create_group(status=GroupStatus.RESOLVED, substatus=GroupSubStatus.ONGOING),
+            self.create_group(
+                status=GroupStatus.PENDING_DELETION, substatus=GroupSubStatus.ONGOING
+            ),
+            self.create_group(
+                status=GroupStatus.DELETION_IN_PROGRESS, substatus=GroupSubStatus.ONGOING
+            ),
+            self.create_group(status=GroupStatus.PENDING_MERGE, substatus=GroupSubStatus.ONGOING),
+            self.create_group(status=GroupStatus.REPROCESSING, substatus=GroupSubStatus.ONGOING),
+            self.create_group(status=GroupStatus.MUTED, substatus=GroupSubStatus.ONGOING),
+        ]
+
+        groups_substatus_null = [
+            self.create_group(status=GroupStatus.UNRESOLVED),
+            self.create_group(status=GroupStatus.IGNORED),
+            self.create_group(status=GroupStatus.RESOLVED),
+            self.create_group(status=GroupStatus.PENDING_DELETION),
+            self.create_group(status=GroupStatus.DELETION_IN_PROGRESS),
+            self.create_group(status=GroupStatus.PENDING_MERGE),
+            self.create_group(status=GroupStatus.REPROCESSING),
+            self.create_group(status=GroupStatus.MUTED),
+        ]
+
+        for g in groups_substatus_null:
+            assert g.substatus is None
+            g.substatus = None
+            g.save()
 
     def test(self):
-        assert PagerDutyService.objects.count() == 1
-        assert RepositoryProjectPathConfig.objects.count() == 1
+        for g in self.groups_substatus_non_null:
+            # make sure the groups with substatus values stay the same
+            assert g.substatus == GroupSubStatus.ONGOING
 
-        for pds in PagerDutyService.objects.all():
-            assert pds.organization_id == pds.organization_integration.organization_id
-            assert pds.integration_id == pds.organization_integration.integration_id
+        for g in Group.objects.filter(status=GroupStatus.UNRESOLVED, substatus=None):
+            assert g.substatus == GroupSubStatus.ONGOING
+
+        for g in Group.objects.filter(
+            status__in=(GroupStatus.IGNORED, GroupStatus.MUTED), substatus=None
+        ):
+            assert g.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+        for g in Group.objects.filter(
+            status__in=(
+                GroupStatus.RESOLVED,
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_MERGE,
+                GroupStatus.REPROCESSING,
+            ),
+            substatus=None,
+        ):
+            assert g.substatus is None
