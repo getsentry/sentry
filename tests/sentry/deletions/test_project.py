@@ -21,6 +21,14 @@ from sentry.models import (
     ScheduledDeletion,
     ServiceHook,
 )
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorType,
+    ScheduleType,
+)
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -83,6 +91,22 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         metric_alert_rule = self.create_alert_rule(
             organization=project.organization, projects=[project]
         )
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=env,
+        )
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.OK,
+        )
         incident = self.create_incident(
             organization=project.organization,
             projects=[project],
@@ -110,6 +134,9 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
         assert not File.objects.filter(id=file.id).exists()
         assert not ServiceHook.objects.filter(id=hook.id).exists()
+        assert not Monitor.objects.filter(id=monitor.id).exists()
+        assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
+        assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
 
         incident.refresh_from_db()
         assert len(incident.projects.all()) == 0, "Project relation should be removed"
