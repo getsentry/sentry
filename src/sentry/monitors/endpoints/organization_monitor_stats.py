@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.base import StatsMixin, region_silo_endpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 
 from .base import MonitorEndpoint
@@ -33,8 +34,16 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.MISSED],
             date_added__gt=args["start"],
             date_added__lte=args["end"],
-        ).values_list("date_added", "status", "duration")
-        for datetime, status, duration in history.iterator():
+        )
+
+        environments = get_environments(request, organization)
+
+        if environments:
+            history = history.filter(monitor_environment__environment__in=environments)
+
+        for datetime, status, duration in history.values_list(
+            "date_added", "status", "duration"
+        ).iterator():
             ts = tsdb.normalize_to_epoch(datetime, args["rollup"])
             stats[ts][status] += 1
             if duration:
