@@ -462,7 +462,7 @@ def post_process_forwarder(**options):
     help="Force subscriptions to start from a particular offset",
 )
 @kafka_options(
-    "occurrence-consumer",
+    "query-subscription-consumer",
     include_batching_options=True,
     allow_force_cluster=False,
     default_max_batch_size=20,

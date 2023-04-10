@@ -3,9 +3,10 @@ from random import random
 from typing import Mapping
 
 import sentry_sdk
-from arroyo import Topic, configure_metrics
+from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
+from arroyo.codecs.json import JsonCodec
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import (
@@ -14,13 +15,12 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTaskWithMultiprocessing,
 )
-from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_schema
+from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import SubscriptionResult
 
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
 from sentry.snuba.utils import initialize_consumer_state
-from sentry.utils.arroyo import MetricsWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,9 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.topic = topic
         self.dataset = topic_to_dataset[self.topic]
         self.logical_topic = dataset_to_logical_topic[self.dataset]
-        self.jsoncodec = JsonCodec(get_schema(self.logical_topic)["schema"])
+        self.jsoncodec: JsonCodec[SubscriptionResult] = JsonCodec(
+            schema=get_schema(self.logical_topic)["schema"]
+        )
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.num_processes = processes
@@ -114,7 +116,7 @@ def get_query_subscription_consumer(
 ) -> StreamProcessor[KafkaPayload]:
     from django.conf import settings
 
-    from sentry.utils import kafka_config, metrics
+    from sentry.utils import kafka_config
 
     cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
@@ -126,8 +128,6 @@ def get_query_subscription_consumer(
             auto_offset_reset=initial_offset_reset,
         )
     )
-    metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
-    configure_metrics(metrics_wrapper)
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
