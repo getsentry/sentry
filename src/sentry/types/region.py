@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Iterable, Set
 from urllib.parse import urljoin
 
 from sentry.silo import SiloMode
+from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.models import Organization
@@ -100,6 +101,13 @@ class _RegionMapping:
         self.by_id = {r.id: r for r in self.regions}
 
 
+def _parse_config(region_config: str) -> Iterable[Region]:
+    config_values = json.loads(region_config)
+    for config_value in config_values:
+        config_value["category"] = RegionCategory[config_value["category"]]
+        yield Region(**config_value)
+
+
 @functools.lru_cache(maxsize=1)
 def _load_global_regions() -> _RegionMapping:
     from django.conf import settings
@@ -107,7 +115,10 @@ def _load_global_regions() -> _RegionMapping:
     # For now, assume that all region configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    return _RegionMapping(settings.SENTRY_REGION_CONFIG)
+    config = settings.SENTRY_REGION_CONFIG
+    if isinstance(config, str):
+        config = _parse_config(config)
+    return _RegionMapping(config)
 
 
 def get_region_by_name(name: str) -> Region:

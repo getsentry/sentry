@@ -23,7 +23,7 @@ Instructions for use:
 1. Commit or stash any Git changes in progress.
 2. Update foreign key relationships to identify models in the region silo.
 2. From the Sentry project root, do
-     ./scripts/silo/decorate_models_by_relation.py
+     ./scripts/decorators/silo/decorate_models_by_relation.py
 3. Do `git status` or `git diff` to observe the results. Commit if you're happy.
 """
 

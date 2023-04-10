@@ -11,7 +11,7 @@ Instructions for use:
 1. Commit or stash any Git changes in progress.
 2. Add keywords to identify model and api classes in each silo.
 3. From the Sentry project root, do
-     ./scripts/silo/audit_silo_decorators.py | ./scripts/silo/add_silo_decorators.py
+     ./scripts/decorators/silo/audit_silo_decorators.py | ./scripts/decorators/silo/add_silo_decorators.py
 4. Do `git status` or `git diff` to observe the results. Commit if you're happy.
 """
 
