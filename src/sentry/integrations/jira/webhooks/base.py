@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from typing import Any, Mapping
 
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
@@ -27,7 +28,9 @@ class JiraEndpointBase(Endpoint, abc.ABC):
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
-    def handle_exception(self, request: Request, exc: Exception) -> Response:
+    def handle_exception(
+        self, request: Request, exc: Exception, handler_context: Mapping[str, Any] | None = None
+    ) -> Response:
         if isinstance(exc, (AtlassianConnectValidationError, JiraTokenError)):
             return self.respond(status=status.HTTP_400_BAD_REQUEST)
         # Perhaps it makes sense to do this in the base class, however, I'm concerned

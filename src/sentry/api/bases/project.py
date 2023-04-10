@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any, Mapping
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -163,7 +167,9 @@ class ProjectEndpoint(Endpoint):
 
         return params
 
-    def handle_exception(self, request: Request, exc):
+    def handle_exception(
+        self, request: Request, exc: Exception, handler_context: Mapping[str, Any] | None = None
+    ) -> Response:
         if isinstance(exc, ProjectMoved):
             response = Response(
                 {"slug": exc.detail["detail"]["extra"]["slug"], "detail": exc.detail["detail"]},

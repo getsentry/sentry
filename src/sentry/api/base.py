@@ -183,7 +183,9 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(self, request: Request, exc):
+    def handle_exception(
+        self, request: Request, exc: Exception, handler_context: Mapping[str, Any] | None = None
+    ) -> Response:
         try:
             response = super().handle_exception(exc)
         except Exception:
