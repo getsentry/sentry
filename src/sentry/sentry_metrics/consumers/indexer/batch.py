@@ -26,7 +26,6 @@ from django.conf import settings
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
@@ -74,21 +73,23 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
 
 
 def extract_use_case_id(mri: str) -> Optional[str]:
+    use_case_mapping = {"transactions": "performance", "sessions": "release-health"}
     if (matched := MRI_RE_PATTERN.match(mri)) is not None:
-        return matched.group(2)
+        use_case_str = matched.group(2)
+        if use_case_str in use_case_mapping:
+            return use_case_mapping[use_case_str]
+        return use_case_str
     return None
 
 
 class IndexerBatch:
     def __init__(
         self,
-        use_case_id: UseCaseKey,
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
         is_output_sliced: bool,
         arroyo_input_codec: Optional[JsonCodec],
     ) -> None:
-        self.use_case_id = use_case_id
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
         self.is_output_sliced = is_output_sliced
@@ -376,7 +377,7 @@ class IndexerBatch:
                     # XXX: relay actually sends this value unconditionally
                     "retention_days": old_payload_value.get("retention_days", 90),
                     "mapping_meta": output_message_meta,
-                    "use_case_id": self.use_case_id.value,
+                    "use_case_id": old_payload_value["use_case_id"],
                     "metric_id": numeric_metric_id,
                     "org_id": old_payload_value["org_id"],
                     "timestamp": old_payload_value["timestamp"],
@@ -395,7 +396,7 @@ class IndexerBatch:
                     "version": 2,
                     "retention_days": old_payload_value.get("retention_days", 90),
                     "mapping_meta": output_message_meta,
-                    "use_case_id": self.use_case_id.value,
+                    "use_case_id": old_payload_value["use_case_id"],
                     "metric_id": numeric_metric_id,
                     "org_id": old_payload_value["org_id"],
                     "timestamp": old_payload_value["timestamp"],
