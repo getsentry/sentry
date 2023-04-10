@@ -73,6 +73,25 @@ describe('Adds, deletes, and updates notification actions', function () {
     expect(projectNotificationActions.length).toBe(3);
   });
 
+  it('disables buttons and dropdowns when disabled is True', function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/notifications/actions/`,
+      body: notificationActions,
+    });
+    render(
+      <NotificationActionManager
+        actions={[notificationActions[0]]}
+        availableActions={availableActions}
+        recipientRoles={['owner', 'manager']}
+        project={project}
+        disabled
+      />
+    );
+
+    expect(screen.getByLabelText('Add Action')).toBeDisabled();
+    expect(screen.getByTestId('edit-dropdown')).toBeDisabled();
+  });
+
   it('Adds a Sentry notification action', async function () {
     const mockPOST = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/notifications/actions/`,
