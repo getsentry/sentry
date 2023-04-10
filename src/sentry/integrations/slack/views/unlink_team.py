@@ -54,6 +54,9 @@ class SlackUnlinkTeamView(BaseView):
             )
 
         integration = integration_service.get_integration(integration_id=params["integration_id"])
+        if not integration:
+            raise Http404
+
         idp = identity_service.get_provider(
             provider_ext_id=integration.external_id,
             provider_type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
@@ -92,7 +95,7 @@ class SlackUnlinkTeamView(BaseView):
                 },
             )
 
-        if not identity_service.get_identity(
+        if not idp or not identity_service.get_identity(
             provider_id=idp.id, identity_ext_id=params["slack_id"]
         ):
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
