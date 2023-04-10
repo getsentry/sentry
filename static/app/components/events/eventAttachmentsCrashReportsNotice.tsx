@@ -10,7 +10,7 @@ type Props = {
   projectSlug: string;
 };
 
-const EventAttachmentsCrashReportsNotice = ({orgSlug, projectSlug, groupId}: Props) => {
+function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Props) {
   const location = useLocation();
   const settingsUrl = `/settings/${orgSlug}/projects/${projectSlug}/security-and-privacy/`;
   const attachmentsUrl = {
@@ -29,6 +29,6 @@ const EventAttachmentsCrashReportsNotice = ({orgSlug, projectSlug, groupId}: Pro
       )}
     </Alert>
   );
-};
+}
 
 export default EventAttachmentsCrashReportsNotice;

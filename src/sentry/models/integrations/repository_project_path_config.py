@@ -1,18 +1,28 @@
 from django.db import models, transaction
 from django.db.models.signals import post_save
 
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_only_model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    region_silo_only_model,
+)
+from sentry.models.integrations.organization_integrity_backfill_mixin import (
+    OrganizationIntegrityBackfillMixin,
+)
 
 
 @region_silo_only_model
-class RepositoryProjectPathConfig(DefaultFieldsModel):
+class RepositoryProjectPathConfig(DefaultFieldsModel, OrganizationIntegrityBackfillMixin):
     __include_in_export__ = False
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    organization_integration = FlexibleForeignKey(
-        "sentry.OrganizationIntegration", on_delete=models.CASCADE
-    )
+
+    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
+    organization_id = BoundedBigIntegerField(null=True, db_index=True)
+    # From a region point of view, you really only have per organization scoping.
+    integration_id = BoundedBigIntegerField(null=True, db_index=False)
     stack_root = models.TextField()
     source_root = models.TextField()
     default_branch = models.TextField(null=True)

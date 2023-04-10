@@ -27,14 +27,14 @@ type Props = {
   seenBy?: User[];
 };
 
-const SeenByList = ({
+function SeenByList({
   avatarSize = 28,
   seenBy = [],
   iconTooltip = t('People who have viewed this'),
   maxVisibleAvatars = 10,
   iconPosition = 'left',
   className,
-}: Props) => {
+}: Props) {
   const activeUser = ConfigStore.get('user');
   const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
@@ -64,7 +64,7 @@ const SeenByList = ({
       </IconWrapper>
     </SeenByWrapper>
   );
-};
+}
 
 const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   display: flex;

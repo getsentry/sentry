@@ -6,14 +6,16 @@ type Props = {
   hasThreadStates: boolean;
 };
 
-const Header = ({hasThreadStates}: Props) => (
-  <Grid hasThreadStates={hasThreadStates}>
-    <GridCell />
-    <GridCell>{t('Id')}</GridCell>
-    <GridCell>{t('Name')}</GridCell>
-    <GridCell>{t('Label')}</GridCell>
-    {hasThreadStates && <GridCell>{t('State')}</GridCell>}
-  </Grid>
-);
+function Header({hasThreadStates}: Props) {
+  return (
+    <Grid hasThreadStates={hasThreadStates}>
+      <GridCell />
+      <GridCell>{t('Id')}</GridCell>
+      <GridCell>{t('Name')}</GridCell>
+      <GridCell>{t('Label')}</GridCell>
+      {hasThreadStates && <GridCell>{t('State')}</GridCell>}
+    </Grid>
+  );
+}
 
 export default Header;
