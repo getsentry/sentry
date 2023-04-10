@@ -38,7 +38,7 @@ function useOverflowTabs({
       root: tabListRef.current,
       // Nagative right margin to account for overflow menu's trigger button
       rootMargin: `0px -42px 1px ${space(1)}`,
-      threshold: 1,
+      threshold: 0.95,
     };
 
     const callback: IntersectionObserverCallback = entries => {
