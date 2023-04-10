@@ -130,8 +130,17 @@ function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   return reactQuery.useQuery(queryKey, queryFn, options);
 }
 
+function setApiQueryData<TResponseData>(
+  queryClient: reactQuery.QueryClient,
+  queryKey: ApiQueryKey,
+  updater: reactQuery.Updater<TResponseData | undefined, TResponseData | undefined>,
+  options?: reactQuery.SetDataOptions
+): TResponseData | undefined {
+  return queryClient.setQueryData(queryKey, updater, options);
+}
+
 // eslint-disable-next-line import/export
 export * from '@tanstack/react-query';
 
 // eslint-disable-next-line import/export
-export {DEFAULT_QUERY_CLIENT_CONFIG, useApiQuery};
+export {DEFAULT_QUERY_CLIENT_CONFIG, useApiQuery, setApiQueryData};
