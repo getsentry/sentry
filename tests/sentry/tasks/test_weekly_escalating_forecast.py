@@ -38,7 +38,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         for i in range(num_groups):
             group = self.create_group(project=project_1)
             group.status = GroupStatus.IGNORED
-            group.substatus = GroupSubStatus.ARCHIVED_UNTIL_ESCALATING
+            group.substatus = GroupSubStatus.UNTIL_ESCALATING
             group.save()
             group_list.append(group)
         return group_list

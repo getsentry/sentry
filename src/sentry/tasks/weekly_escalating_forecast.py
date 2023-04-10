@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import datetime
 from typing import Dict, List, Tuple, TypedDict
 
@@ -11,7 +12,7 @@ from sentry.models.group import GroupSubStatus
 from sentry.models.groupforecast import GroupForecast
 from sentry.tasks.base import instrumented_task
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 500
 
 
 class GroupCount(TypedDict):
@@ -31,10 +32,11 @@ logger = logging.getLogger(__name__)
 )  # type: ignore
 def run_escalating_forecast() -> None:
     # TODO: Do not limit to project id = 1 and limit 10 once these topics are clarified
+    # TODO: If possible, fetch group_id instead of the entire group model
     until_escalating_groups = list(
         Group.objects.filter(
             status=GroupStatus.IGNORED,
-            substatus=GroupSubStatus.ARCHIVED_UNTIL_ESCALATING,
+            substatus=GroupSubStatus.UNTIL_ESCALATING,
             project__id=1,
         )[:10]
     )
@@ -45,18 +47,24 @@ def run_escalating_forecast() -> None:
     group_counts = parse_groups_past_counts(response)
     group_forecast_list = get_forecast_per_group(until_escalating_groups, group_counts)
 
-    with transaction.atomic():
-        # Delete old forecasts
-        GroupForecast.objects.filter(group__in=until_escalating_groups).delete()
+    # Delete and bulk create GroupForecasts in batches
+    num_batches = math.ceil(len(group_forecast_list) / BATCH_SIZE)
+    start_index = 0
+    for batch_num in range(1, num_batches + 1):
+        end_index = BATCH_SIZE * batch_num
+        group_forecast_batch = group_forecast_list[start_index:end_index]
+        with transaction.atomic():
+            GroupForecast.objects.filter(
+                group__in=[group for group, forecast in group_forecast_batch]
+            ).delete()
 
-        # Bulk create new forecasts
-        GroupForecast.objects.bulk_create(
-            [
-                GroupForecast(group=group, forecast=forecast)
-                for group, forecast in group_forecast_list
-            ],
-            batch_size=BATCH_SIZE,
-        )
+            GroupForecast.objects.bulk_create(
+                [
+                    GroupForecast(group=group, forecast=forecast)
+                    for group, forecast in group_forecast_batch
+                ]
+            )
+        start_index = end_index
 
 
 def parse_groups_past_counts(response: List[GroupsCountResponse]) -> ParsedGroupsCount:
@@ -81,17 +89,17 @@ def parse_groups_past_counts(response: List[GroupsCountResponse]) -> ParsedGroup
 
 
 def get_forecast_per_group(
-    archived_groups: List[Group], group_counts: ParsedGroupsCount
+    until_escalating_groups: List[Group], group_counts: ParsedGroupsCount
 ) -> List[Tuple[Group, List[int]]]:
     """
     Returns a list of forecasted values for each group.
 
-    `archived_groups`: List of archived groups to be forecasted
+    `until_escalating_groups`: List of archived until escalating groups to be forecasted
     `group_counts`: Parsed snuba response of group counts
     """
     time = datetime.now()
     group_forecast_list = []
-    group_dict = {group.id: group for group in archived_groups}
+    group_dict = {group.id: group for group in until_escalating_groups}
     for group_id in group_counts.keys():
         forecasts = generate_issue_forecast(group_counts[group_id], time)
         forecasts_list = [int(forecast["forecasted_value"]) for forecast in forecasts]
