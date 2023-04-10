@@ -41,7 +41,6 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
@@ -72,16 +71,14 @@ function hidePanel() {
   SidebarPanelStore.hidePanel();
 }
 
-const useOpenOnboardingSidebar = () => {
+function useOpenOnboardingSidebar(organization?: Organization) {
   const [onboardingState] = usePersistedOnboardingState();
   const {projects: project} = useProjects();
-  const organization = useOrganization();
   const location = useLocation();
-  const hasOrganization = !!organization;
 
   const openOnboardingSidebar = (() => {
     if (location?.hash === '#welcome') {
-      if (hasOrganization && !ConfigStore.get('demoMode')) {
+      if (organization && !ConfigStore.get('demoMode')) {
         const tasks = getMergedTasks({
           organization,
           projects: project,
@@ -105,7 +102,7 @@ const useOpenOnboardingSidebar = () => {
       activatePanel(SidebarPanelKey.OnboardingWizard);
     }
   }, [openOnboardingSidebar]);
-};
+}
 
 function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
@@ -114,8 +111,6 @@ function Sidebar({location, organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-
-  const hasOrganization = !!organization;
 
   useOpenOnboardingSidebar();
 
@@ -155,6 +150,7 @@ function Sidebar({location, organization}: Props) {
   }, [collapsed, bcl]);
 
   const hasPanel = !!activePanel;
+  const hasOrganization = !!organization;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
   const sidebarItemProps = {
