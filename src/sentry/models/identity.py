@@ -154,10 +154,8 @@ class IdentityManager(BaseManager):
         Removes identities under `idp` associated with either `external_id` or `user`
         and creates a new identity linking them.
         """
-        self.delete_identity(user_id=user.id, idp=idp, external_id=external_id)
-        return self.create_identity(
-            user_id=user.id, idp=idp, external_id=external_id, defaults=defaults
-        )
+        self.delete_identity(user=user, idp=idp, external_id=external_id)
+        return self.create_identity(user=user, idp=idp, external_id=external_id, defaults=defaults)
 
     def update_external_id_and_defaults(
         self,

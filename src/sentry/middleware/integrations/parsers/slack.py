@@ -89,12 +89,12 @@ class SlackRequestParser(BaseRequestParser):
                 capture_exception(error)
                 logger.error("validation_error", extra={"path": self.request.path})
                 return None
-            return Integration.objects.filter(integration_id=slack_request.integration.id).first()
+            return Integration.objects.filter(id=slack_request.integration.id).first()
 
         elif view_class_name in DJANGO_VIEW_ENDPOINTS:
             # Parse the signed params and ensure the organization is associated with the
             params = unsign(self.match.kwargs.get("signed_params"))
-            return Integration.objects.filter(integration_id=params.get("integration_id")).first()
+            return Integration.objects.filter(id=params.get("integration_id")).first()
 
     def get_response(self):
         """

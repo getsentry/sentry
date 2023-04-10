@@ -44,11 +44,12 @@ class SlackRequestParserTest(TestCase):
     @patch.object(SlackCommandRequest, "_authorize")
     def test_webhook(self, mock_authorize, mock_validate_integration, mock_integration):
         # Retrieve the correct integration
+        mock_integration.id = self.integration.id
         parser = self.get_parser("/commands/")
         integration = parser.get_integration_from_request()
         assert mock_authorize.called
         assert mock_validate_integration.called
-        assert integration == mock_integration
+        assert integration == self.integration
 
         # Returns response from region
         region_response = RegionResult(response="mock_response")
