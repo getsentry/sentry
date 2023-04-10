@@ -15,13 +15,13 @@ from sentry_kafka_schemas import get_schema
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
-from sentry.snuba.query_subscription_consumer import (
+from sentry.snuba.query_subscriptions.consumer import (
     InvalidSchemaError,
-    QuerySubscriptionStrategyFactory,
     parse_message_value,
     register_subscriber,
     subscriber_registry,
 )
+from sentry.snuba.query_subscriptions.run import QuerySubscriptionStrategyFactory
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.utils import json

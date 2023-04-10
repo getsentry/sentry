@@ -29,11 +29,9 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.query_subscription_consumer import (
-    get_query_subscription_consumer,
-    subscriber_registry,
-    topic_to_dataset,
-)
+from sentry.snuba.query_subscriptions.constants import topic_to_dataset
+from sentry.snuba.query_subscriptions.consumer import subscriber_registry
+from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
 from sentry.testutils import TestCase
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
