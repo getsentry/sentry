@@ -18,6 +18,7 @@ from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
+from sentry.issues.status_change import handle_status_update
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -50,13 +51,7 @@ from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
-from sentry.signals import (
-    issue_ignored,
-    issue_mark_reviewed,
-    issue_resolved,
-    issue_unignored,
-    issue_unresolved,
-)
+from sentry.signals import issue_mark_reviewed, issue_resolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
@@ -542,18 +537,11 @@ def update_groups(
         has_escalating_issues = features.has(
             "organizations:escalating-issues", group_list[0].organization
         )
-        ignore_duration = None
-        ignore_count = None
-        ignore_window = None
-        ignore_user_count = None
-        ignore_user_window = None
-        ignore_until = None
 
         with transaction.atomic():
-            status_changed = queryset.exclude(status=new_status).update(
+            status_updated = queryset.exclude(status=new_status).update(
                 status=new_status, substatus=new_substatus
             )
-
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
                 if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
@@ -565,81 +553,17 @@ def update_groups(
                 result["inbox"] = None
             else:
                 result["statusDetails"] = {}
-        if group_list and status_changed:
-            if new_status == GroupStatus.UNRESOLVED:
-                activity_type = ActivityType.SET_UNRESOLVED.value
-                activity_data = {}
-
-                for group in group_list:
-                    if group.status == GroupStatus.IGNORED:
-                        issue_unignored.send_robust(
-                            project=project_lookup[group.project_id],
-                            user_id=acting_user.id if acting_user else None,
-                            group=group,
-                            transition_type="manual",
-                            sender=update_groups,
-                        )
-                    else:
-                        issue_unresolved.send_robust(
-                            project=project_lookup[group.project_id],
-                            user=acting_user,
-                            group=group,
-                            transition_type="manual",
-                            sender=update_groups,
-                        )
-            elif new_status == GroupStatus.IGNORED:
-                activity_type = ActivityType.SET_IGNORED.value
-                activity_data = {
-                    "ignoreCount": ignore_count,
-                    "ignoreDuration": ignore_duration,
-                    "ignoreUntil": ignore_until,
-                    "ignoreUserCount": ignore_user_count,
-                    "ignoreUserWindow": ignore_user_window,
-                    "ignoreWindow": ignore_window,
-                }
-
-                groups_by_project_id = defaultdict(list)
-                for group in group_list:
-                    groups_by_project_id[group.project_id].append(group)
-
-                for project in projects:
-                    project_groups = groups_by_project_id.get(project.id)
-                    if project_groups:
-                        issue_ignored.send_robust(
-                            project=project,
-                            user=acting_user,
-                            group_list=project_groups,
-                            activity_data=activity_data,
-                            sender=update_groups,
-                        )
-
-            for group in group_list:
-                group.status = new_status
-
-                activity = Activity.objects.create(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    type=activity_type,
-                    user_id=acting_user.id,
-                    data=activity_data,
-                )
-                record_group_history_from_activity_type(group, activity_type, actor=acting_user)
-
-                # TODO(dcramer): we need a solution for activity rollups
-                # before sending notifications on bulk changes
-                if not is_bulk:
-                    if acting_user:
-                        GroupSubscription.objects.subscribe(
-                            user=acting_user,
-                            group=group,
-                            reason=GroupSubscriptionReason.status_change,
-                        )
-                    activity.send_notification()
-
-                if new_status == GroupStatus.UNRESOLVED:
-                    kick_off_status_syncs.apply_async(
-                        kwargs={"project_id": group.project_id, "group_id": group.id}
-                    )
+        if group_list and status_updated:
+            activity_type, activity_data = handle_status_update(
+                group_list,
+                projects,
+                project_lookup,
+                acting_user,
+                new_status,
+                is_bulk,
+                status_details=result["statusDetails"],
+                sender=update_groups,
+            )
 
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
