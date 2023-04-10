@@ -177,4 +177,4 @@ class ProjectEndpoint(Endpoint):
             )
             response["Location"] = exc.detail["detail"]["extra"]["url"]
             return response
-        return super().handle_exception(request, exc)
+        return super().handle_exception(request, exc, handler_context)

@@ -36,7 +36,7 @@ class JiraEndpointBase(Endpoint, abc.ABC):
         # Perhaps it makes sense to do this in the base class, however, I'm concerned
         # it would create too many errors at once and may be grouped together
         logger.exception("Unclear JIRA exception.")
-        return super().handle_exception(request, exc)
+        return super().handle_exception(request, exc, handler_context)
 
     def get_token(self, request: Request) -> str:
         try:

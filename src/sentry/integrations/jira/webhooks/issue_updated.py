@@ -27,7 +27,7 @@ class JiraIssueUpdatedWebhook(JiraEndpointBase):
             if response_option:
                 return self.respond(response_option)
 
-        return super().handle_exception(request, exc)
+        return super().handle_exception(request, exc, handler_context)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
