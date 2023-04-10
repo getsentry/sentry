@@ -6,7 +6,7 @@ import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -18,13 +18,11 @@ export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
   const quickTrace = useContext(QuickTraceContext);
   const handleTraceLink = useCallback(() => {
-    trackAnalyticsEvent({
-      eventKey: 'quick_trace.trace_id.clicked',
-      eventName: 'Quick Trace: Trace ID clicked',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('quick_trace.trace_id.clicked', {
+      organization,
       source: 'issues',
     });
-  }, [organization.id]);
+  }, [organization]);
 
   if (
     !quickTrace ||
