@@ -166,6 +166,9 @@ export type IssueEventParameters = {
   'quick_trace.node.clicked': {
     node_key: string;
   };
+  'quick_trace.trace_id.clicked': {
+    source: string;
+  };
   resolve_issue: {release: string};
   'source_map_debug.docs_link_clicked': SourceMapDebugParam;
   'source_map_debug.expand_clicked': SourceMapDebugParam;
@@ -218,6 +221,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
   'quick_trace.node.clicked': 'Quick Trace: Node clicked',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
+  'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
