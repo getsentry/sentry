@@ -42,7 +42,7 @@ class GroupSubstatusBackfillTest(TestMigrations):
 
     def test(self):
         for g in Group.objects.filter(id__in=(g.id for g in self.groups_substatus_non_null)):
-            # make sure the groups with substatus values stay the same
+            # make sure the groups with substatus values already set stay the same
             assert g.substatus == GroupSubStatus.ONGOING
 
         for g in Group.objects.filter(status=GroupStatus.UNRESOLVED, substatus=None):
