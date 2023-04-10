@@ -21,7 +21,7 @@ from sentry.testutils import TransactionTestCase
 class RecordingTestCaseMixin:
     @staticmethod
     def processing_factory():
-        return ProcessReplayRecordingStrategyFactory()
+        return ProcessReplayRecordingStrategyFactory(1)
 
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
@@ -201,6 +201,18 @@ class RecordingTestCaseMixin:
             platform=self.project.platform,
             user_id=self.organization.default_owner_id,
         )
+
+
+class T(RecordingTestCaseMixin, TransactionTestCase):
+    def setUp(self):
+        self.replay_id = uuid.uuid4().hex
+        self.replay_recording_id = uuid.uuid4().hex
+
+    def test(self):
+        self.submit(self.nonchunked_messages())
+
+        ReplayRecordingSegment.objects.first()
+        assert False
 
 
 # The "filestore" and "storage" drivers should behave identically barring some tweaks to how

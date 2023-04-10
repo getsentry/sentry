@@ -6,7 +6,7 @@ from typing import Any, Dict, Mapping, cast
 import msgpack
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import RunTaskInThreads, TransformStep
+from arroyo.processing.strategies import RunTaskWithMultiprocessing, TransformStep
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.filter import FilterStep
@@ -22,6 +22,7 @@ from sentry.replays.usecases.ingest import (
     ingest_recording_chunked,
     ingest_recording_not_chunked,
 )
+from sentry.runner import configure
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +45,32 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
     chunks.
     """
 
+    def __init__(
+        self,
+        num_processes: int,
+        input_block_size: int = 1024,
+        output_block_size: int = 1024,
+    ) -> None:
+        self.num_processes = num_processes
+        self.max_batch_size = 4
+        self.max_batch_time = 10
+        self.input_block_size = input_block_size
+        self.output_block_size = output_block_size
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> Any:
-        step = RunTaskInThreads(
-            processing_function=move_replay_to_permanent_storage,
-            concurrency=4,
-            max_pending_futures=50,
+        step = RunTaskWithMultiprocessing(
+            function=move_replay_to_permanent_storage,
             next_step=CommitOffsets(commit),
+            num_processes=self.num_processes,
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            input_block_size=self.input_block_size,
+            output_block_size=self.output_block_size,
+            initializer=configure,
         )
 
         step2: FilterStep[MessageContext] = FilterStep(
