@@ -12,7 +12,7 @@ class GenericMetricsBackend(ABC):
         org_id: int,
         project_id: int,
         metric_name: str,
-        value: int,
+        value: Union[int, float],
         tags: Mapping[str, str],
     ) -> None:
         raise NotImplementedError()
