@@ -444,8 +444,6 @@ describe('Onboarding Setup Docs', function () {
           features: [
             'onboarding-remove-multiselect-platform',
             'onboarding-docs-with-product-selection',
-            'onboarding-project-loader',
-            'js-sdk-dynamic-loader',
           ],
         },
         router: {
