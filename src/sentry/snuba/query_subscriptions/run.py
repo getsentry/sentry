@@ -119,6 +119,7 @@ def get_query_subscription_consumer(
     processes: int,
     input_block_size: int,
     output_block_size: int,
+    multi_proc: bool = False,
 ) -> StreamProcessor[KafkaPayload]:
     from django.conf import settings
 
@@ -144,6 +145,7 @@ def get_query_subscription_consumer(
             processes,
             input_block_size,
             output_block_size,
+            multi_proc=multi_proc,
         ),
         commit_policy=ONCE_PER_SECOND,
     )
