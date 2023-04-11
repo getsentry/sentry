@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Mapping, Sequence, Union
+from typing import Mapping, Optional, Sequence, Union
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
@@ -13,8 +13,15 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Union[int, float],
+        unit: Optional[str],
         tags: Mapping[str, str],
     ) -> None:
+
+        """
+        Used for emitting a counter metric. Ensure that the use_case_id
+        passed in has been registered in the UseCaseID enum.
+        """
+
         raise NotImplementedError()
 
     @abstractmethod
@@ -25,8 +32,14 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Sequence[int],
+        unit: Optional[str],
         tags: Mapping[str, str],
     ) -> None:
+
+        """
+        Used for emitting a set metric. Can support a sequence of values. Ensure that the use_case_id
+        passed in has been registered in the UseCaseID enum.
+        """
         raise NotImplementedError()
 
     @abstractmethod
@@ -37,6 +50,12 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Sequence[Union[int, float]],
+        unit: Optional[str],
         tags: Mapping[str, str],
     ) -> None:
+
+        """
+        Used for emitting a distribution metric. Can support a sequence of values. Ensure that the use_case_id
+        passed in has been registered in the UseCaseID enum.
+        """
         raise NotImplementedError()
