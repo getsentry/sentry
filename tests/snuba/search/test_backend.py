@@ -2111,32 +2111,38 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             "culprit": "app/components/events/eventEntries in map",
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         }
+        with self.options({"performance.issues.send_to_issues_platform": True}), self.feature(
+            "organizations:issue-platform"
+        ):
+            transaction_event_1 = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
+                    "tags": {"my_tag": 1},
+                    "fingerprint": [
+                        f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
+                    ],
+                },
+                project_id=self.project.id,
+            )
+            self.perf_group_1 = transaction_event_1.groups[0]
 
-        transaction_event_1 = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
-                "tags": {"my_tag": 1},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=self.project.id,
-        )
-        self.perf_group_1 = transaction_event_1.groups[0]
-
-        transaction_event_2 = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=2)),
-                "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
-                "tags": {"my_tag": 1},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group2"],
-            },
-            project_id=self.project.id,
-        )
-        self.perf_group_2 = transaction_event_2.groups[0]
+            transaction_event_2 = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(before_now(minutes=2)),
+                    "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
+                    "tags": {"my_tag": 1},
+                    "fingerprint": [
+                        f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group2"
+                    ],
+                },
+                project_id=self.project.id,
+            )
+            self.perf_group_2 = transaction_event_2.groups[0]
 
         error_event_data = {
             "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
@@ -2180,6 +2186,16 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_render_blocking_asset_span] my_tag:1"
         )
         assert list(results) == [self.perf_group_1, self.perf_group_2]
+
+    def test_performance_query_no_duplicates(self):
+        # Regression test to catch an issue we had with performance issues showing duplicated in the
+        # issue stream. This was  caused by us dual writing perf issues to transactions and to the
+        # issue platform. We'd end up reading the same issue twice and duplicate it in the response.
+        with self.feature("organizations:issue-platform"), self.options(
+            {"performance.issues.send_to_issues_platform": True}
+        ):
+            results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
+            assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_performance_issue_search_feature_off(self):
         with Feature({"organizations:performance-issues-search": False}):
