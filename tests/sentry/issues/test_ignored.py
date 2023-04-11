@@ -4,7 +4,7 @@ from sentry.testutils import TestCase
 
 
 class HandleIgnoredTest(TestCase):  # type: ignore
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
         self.group_list = [self.group]

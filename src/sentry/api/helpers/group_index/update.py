@@ -544,14 +544,15 @@ def update_groups(
                 result["statusDetails"] = {}
         if group_list and status_updated:
             activity_type, activity_data = handle_status_update(
-                group_list,
-                projects,
-                project_lookup,
-                acting_user,
-                new_status,
-                is_bulk,
+                group_list=group_list,
+                projects=projects,
+                project_lookup=project_lookup,
+                new_status=new_status,
+                is_bulk=is_bulk,
+                acting_user=acting_user,
                 status_details=result["statusDetails"],
                 sender=update_groups,
+                activity_type=activity_type,
             )
 
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
