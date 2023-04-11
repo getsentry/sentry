@@ -41,7 +41,9 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
 
     Returns a tuple of (has_codecov_integration, error_message)
     """
-    integrations = Integration.objects.filter(organizations=organization.id, provider="github")
+    integrations = Integration.objects.filter(
+        organizationintegration__organization_id=organization.id, provider="github"
+    )
     if not integrations.exists():
         logger.info(
             "codecov.get_integrations",
@@ -160,7 +162,7 @@ def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
         with configure_scope() as scope:
             scope.set_tag("codecov.timeout", True)
             scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
-            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOU)
+            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOUT)
         data = {"status": status.HTTP_408_REQUEST_TIMEOUT}
     except Exception as error:
         data = {"status": status.HTTP_500_INTERNAL_SERVER_ERROR}

@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SpanEvidencePreviewProps = {
@@ -48,14 +48,14 @@ const makeGroupPreviewRequestUrl = ({
   return null;
 };
 
-const SpanEvidencePreviewBody = ({
+function SpanEvidencePreviewBody({
   endpointUrl,
   onRequestBegin,
   onRequestEnd,
   onUnmount,
   projectSlug,
-}: SpanEvidencePreviewBodyProps) => {
-  const {data, isLoading, isError} = useQuery<EventTransaction>(
+}: SpanEvidencePreviewBodyProps) {
+  const {data, isLoading, isError} = useApiQuery<EventTransaction>(
     [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
     {staleTime: 60000}
   );
@@ -95,14 +95,14 @@ const SpanEvidencePreviewBody = ({
       {t('There is no span evidence available for this issue.')}
     </EmptyWrapper>
   );
-};
+}
 
-export const SpanEvidencePreview = ({
+export function SpanEvidencePreview({
   children,
   groupId,
   eventId,
   projectSlug,
-}: SpanEvidencePreviewProps) => {
+}: SpanEvidencePreviewProps) {
   const organization = useOrganization();
   const endpointUrl = makeGroupPreviewRequestUrl({
     groupId,
@@ -133,7 +133,7 @@ export const SpanEvidencePreview = ({
       {children}
     </GroupPreviewHovercard>
   );
-};
+}
 
 const EmptyWrapper = styled('div')`
   color: ${p => p.theme.subText};

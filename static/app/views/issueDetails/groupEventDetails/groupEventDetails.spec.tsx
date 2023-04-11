@@ -51,7 +51,7 @@ const makeDefaultMockData = (
   };
 };
 
-const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
+function TestComponent(props: Partial<GroupEventDetailsProps>) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
     props.project
@@ -79,7 +79,7 @@ const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
   };
 
   return <GroupEventDetails {...mergedProps} />;
-};
+}
 
 const mockedTrace = (project: Project) => {
   return {
@@ -118,6 +118,8 @@ const mockedTrace = (project: Project) => {
         level: 'info',
         culprit: 'MainActivity.add_attachment',
         type: 1008,
+        end: 1678290375.15056,
+        start: 1678290374.150562,
       },
     ],
     timestamp: 1678290375.150561,
@@ -570,11 +572,9 @@ describe('Platform Integrations', () => {
       body: [component],
     });
 
-    await act(async () => {
-      render(<TestComponent />, {organization: props.organization});
-      await tick();
-    });
+    render(<TestComponent />, {organization: props.organization});
 
+    expect(await screen.findByText('Sample App Issue')).toBeInTheDocument();
     expect(componentsRequest).toHaveBeenCalled();
   });
 
@@ -596,16 +596,14 @@ describe('Platform Integrations', () => {
         mockedTrace(props.project)
       );
       const routerContext = TestStubs.routerContext();
-      await act(async () => {
-        render(<TestComponent group={props.group} event={props.event} />, {
-          organization: props.organization,
-          context: routerContext,
-        });
-        await tick();
+
+      render(<TestComponent group={props.group} event={props.event} />, {
+        organization: props.organization,
+        context: routerContext,
       });
 
       expect(
-        screen.getByRole('heading', {
+        await screen.findByRole('heading', {
           name: /suspect root issues/i,
         })
       ).toBeInTheDocument();
@@ -624,14 +622,14 @@ describe('Platform Integrations', () => {
         performance_issues: [],
       });
       const routerContext = TestStubs.routerContext();
-      await act(async () => {
-        render(<TestComponent group={props.group} event={props.event} />, {
-          organization: props.organization,
-          context: routerContext,
-        });
-        await tick();
+
+      render(<TestComponent group={props.group} event={props.event} />, {
+        organization: props.organization,
+        context: routerContext,
       });
 
+      // mechanism: ANR
+      expect(await screen.findByText('ANR')).toBeInTheDocument();
       expect(
         screen.queryByRole('heading', {
           name: /suspect root issues/i,

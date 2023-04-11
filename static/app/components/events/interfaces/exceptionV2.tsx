@@ -5,7 +5,7 @@ import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
-import CrashContentException from './crashContent/exception';
+import {ExceptionContent} from './crashContent/exception';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
@@ -106,7 +106,7 @@ export function ExceptionV2({
         stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
-          <CrashContentException
+          <ExceptionContent
             stackType={
               display.includes('minified') ? STACK_TYPE.MINIFIED : STACK_TYPE.ORIGINAL
             }

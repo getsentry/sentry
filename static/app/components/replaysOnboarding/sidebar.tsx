@@ -1,10 +1,10 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {Button} from 'sentry/components/button';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
@@ -13,7 +13,7 @@ import {
   generateDocKeys,
   isPlatformSupported,
 } from 'sentry/components/replaysOnboarding/utils';
-import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
+import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {replayPlatforms} from 'sentry/data/platformCategories';
@@ -21,7 +21,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Project, SelectValue} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,27 +34,65 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.ReplaysOnboarding;
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const {projects, allProjects, currentProject, setCurrentProject} =
-    useCurrentProjectState({
-      currentPanel,
-    });
+  const {
+    projects,
+    allProjects,
+    currentProject,
+    setCurrentProject,
+    supportedProjects,
+    unsupportedProjects,
+  } = useCurrentProjectState({
+    currentPanel,
+  });
+
+  const projectSelectOptions = useMemo(() => {
+    const supportedProjectItems: SelectValue<string>[] = supportedProjects
+      .sort((aProject, bProject) => {
+        // if we're comparing two projects w/ or w/o replays alphabetical sort
+        if (aProject.hasReplays === bProject.hasReplays) {
+          return aProject.slug.localeCompare(bProject.slug);
+        }
+        // otherwise sort by whether or not they have replays
+        return aProject.hasReplays ? 1 : -1;
+      })
+      .map(project => {
+        return {
+          value: project.id,
+          textValue: project.id,
+          label: (
+            <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
+          ),
+        };
+      });
+
+    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
+      project => {
+        return {
+          value: project.id,
+          textValue: project.id,
+          label: (
+            <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
+          ),
+          disabled: true,
+        };
+      }
+    );
+    return [
+      {
+        label: t('Supported'),
+        options: supportedProjectItems,
+      },
+      {
+        label: t('Unsupported'),
+        options: unsupportedProjectItems,
+      },
+    ];
+  }, [supportedProjects, unsupportedProjects]);
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
   if (!isActive || !hasProjectAccess || !selectedProject) {
     return null;
   }
-
-  const items: MenuItemProps[] = allProjects.reduce((acc: MenuItemProps[], project) => {
-    const itemProps: MenuItemProps = {
-      key: project.id,
-      label: <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />,
-      onAction: () => setCurrentProject(project),
-    };
-
-    acc.push(itemProps);
-
-    return acc;
-  }, []);
 
   return (
     <TaskSidebarPanel
@@ -65,19 +103,35 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with Session Replay')}</Heading>
-        <DropdownMenu
-          items={items}
-          triggerLabel={
-            <StyledIdBadge
-              project={selectedProject}
-              avatarSize={16}
-              hideOverflow
-              disableLink
-            />
-          }
-          triggerProps={{'aria-label': selectedProject.slug}}
-          position="bottom-end"
-        />
+        <div
+          onClick={e => {
+            // we need to stop bubbling the CompactSelect click event
+            // failing to do so will cause the sidebar panel to close
+            // the event.target will be unmounted by the time the panel listener
+            // receives the event and assume the click was outside the panel
+            e.stopPropagation();
+          }}
+        >
+          <CompactSelect
+            triggerLabel={
+              currentProject ? (
+                <StyledIdBadge
+                  project={currentProject}
+                  avatarSize={16}
+                  hideOverflow
+                  disableLink
+                />
+              ) : (
+                t('Select a project')
+              )
+            }
+            value={currentProject?.id}
+            onChange={opt => setCurrentProject(allProjects.find(p => p.id === opt.value))}
+            triggerProps={{'aria-label': currentProject?.slug}}
+            options={projectSelectOptions}
+            position="bottom-end"
+          />
+        </div>
         <OnboardingContent currentProject={selectedProject} />
       </TaskList>
     </TaskSidebarPanel>
@@ -184,12 +238,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         }
         return (
           <div key={index}>
-            <OnboardingStep
-              docContent={docContents[docKey]}
-              docKey={docKey}
-              prefix="replay"
-              project={currentProject}
-            />
+            <OnboardingStepV2 step={index + 1} content={docContents[docKey]} />
             {footer}
           </div>
         );
@@ -198,8 +247,47 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 }
 
+// TODO: we'll have to move this into a folder for common consumption w/ Profiling, Performance etc.
+interface OnboardingStepV2Props {
+  content: string;
+  step: number;
+}
+
+function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
+  return (
+    <OnboardingStepContainer>
+      <div>
+        <TaskStepNumber>{step}</TaskStepNumber>
+      </div>
+      <div>
+        <DocumentationWrapper dangerouslySetInnerHTML={{__html: content}} />
+      </div>
+    </OnboardingStepContainer>
+  );
+}
+
+const OnboardingStepContainer = styled('div')`
+  display: flex;
+  & > :last-child {
+    overflow: hidden;
+  }
+`;
+
+const TaskStepNumber = styled('div')`
+  display: flex;
+  margin-right: ${space(1.5)};
+  background-color: ${p => p.theme.yellow300};
+  border-radius: 50%;
+  font-weight: bold;
+  height: ${space(4)};
+  width: ${space(4)};
+  justify-content: center;
+  align-items: center;
+`;
+
 const TaskSidebarPanel = styled(SidebarPanel)`
-  width: 450px;
+  width: 600px;
+  max-width: 100%;
 `;
 
 const TopRightBackgroundImage = styled('img')`

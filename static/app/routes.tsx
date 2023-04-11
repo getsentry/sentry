@@ -56,11 +56,11 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   resolve: () => Promise<{default: C}>
 ) {
   // XXX: Assign the component to a variable so it has a displayname
-  const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
+  function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
     return <SafeLazyLoad {...props} component={resolve} />;
-  };
+  }
 
   return RouteLazyLoad;
 }
@@ -514,8 +514,8 @@ function buildRoutes() {
           })}
         />
         <Route
-          path="debug-id-bundles/"
-          name={t('Debug ID Bundles')}
+          path="artifact-bundles/"
+          name={t('Artifact Bundles')}
           component={make(async () => {
             const {ProjectSourceMapsContainer} = await import(
               'sentry/views/settings/projectSourceMaps'
@@ -526,7 +526,7 @@ function buildRoutes() {
           })}
         >
           <Route
-            name={t('Debug ID Bundle')}
+            name={t('Artifact Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
@@ -1689,6 +1689,16 @@ function buildRoutes() {
           {performanceChildRoutes}
         </Route>
       )}
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={make(() => import('sentry/views/starfish/content'))}
+        />
+      )}
+      <Route
+        path="organizations/:orgId/starfish/"
+        component={make(() => import('sentry/views/starfish/content'))}
+      />
       <Route
         path="/organizations/:orgId/performance/"
         component={withDomainRedirect(make(() => import('sentry/views/performance')))}
