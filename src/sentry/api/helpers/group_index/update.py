@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import timedelta
 from typing import Any, Mapping, MutableMapping, Sequence
-from uuid import uuid4
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -13,12 +12,13 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, eventstream, features
+from sentry import analytics, features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating
+from sentry.issues.merge import handle_merge
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -60,7 +60,6 @@ from sentry.signals import (
     issue_unresolved,
 )
 from sentry.tasks.integrations import kick_off_status_syncs
-from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -841,43 +840,7 @@ def update_groups(
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
 
-        if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
-            raise rest_framework.exceptions.ValidationError(
-                detail="Only error issues can be merged.", code=400
-            )
-
-        group_list_by_times_seen = sorted(
-            group_list, key=lambda g: (g.times_seen, g.id), reverse=True
-        )
-        primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
-
-        group_ids_to_merge = [g.id for g in groups_to_merge]
-        eventstream_state = eventstream.start_merge(
-            primary_group.project_id, group_ids_to_merge, primary_group.id
-        )
-
-        Group.objects.filter(id__in=group_ids_to_merge).update(status=GroupStatus.PENDING_MERGE)
-
-        transaction_id = uuid4().hex
-        merge_groups.delay(
-            from_object_ids=group_ids_to_merge,
-            to_object_id=primary_group.id,
-            transaction_id=transaction_id,
-            eventstream_state=eventstream_state,
-        )
-
-        Activity.objects.create(
-            project=project_lookup[primary_group.project_id],
-            group=primary_group,
-            type=ActivityType.MERGE.value,
-            user_id=acting_user.id,
-            data={"issues": [{"id": c.id} for c in groups_to_merge]},
-        )
-
-        result["merge"] = {
-            "parent": str(primary_group.id),
-            "children": [str(g.id) for g in groups_to_merge],
-        }
+        result["merge"] = handle_merge()
 
     # Support moving groups in or out of the inbox
     inbox = result.get("inbox", None)
