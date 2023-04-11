@@ -7,30 +7,44 @@ import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
-  isMuted: boolean;
+  setSnooze: (nextState: boolean) => void;
+  isSnoozed?: boolean;
 };
 
-const dropdownItems: MenuItemProps[] = [
-  {
-    key: 'me',
-    label: t('Mute for me'),
-  },
-  {
-    key: 'everyone',
-    label: t('Mute for everyone'),
-  },
-];
-const MuteAlert = ({isMuted}: Props) => {
-  if (isMuted) {
+function SnoozeAlert({isSnoozed, setSnooze}: Props) {
+  function handleMuteForMe() {
+    setSnooze(!isSnoozed);
+  }
+  function handleMuteForEveryone() {
+    setSnooze(!isSnoozed);
+  }
+
+  function handleUnmute() {
+    setSnooze(!isSnoozed);
+  }
+  const dropdownItems: MenuItemProps[] = [
+    {
+      key: 'me',
+      label: t('Mute for me'),
+      onAction: () => handleMuteForMe(),
+    },
+    {
+      key: 'everyone',
+      label: t('Mute for everyone'),
+      onAction: () => handleMuteForEveryone(),
+    },
+  ];
+
+  if (isSnoozed) {
     return (
-      <Button size="sm" icon={<IconMute />}>
+      <Button size="sm" icon={<IconMute />} onClick={() => handleUnmute()}>
         {t('Unmute')}
       </Button>
     );
   }
   return (
     <ButtonBar>
-      <MuteButton size="sm" icon={<IconSound />}>
+      <MuteButton size="sm" icon={<IconSound />} onClick={() => handleMuteForMe()}>
         {t('Mute')}
       </MuteButton>
       <DropdownMenu
@@ -47,9 +61,9 @@ const MuteAlert = ({isMuted}: Props) => {
       />
     </ButtonBar>
   );
-};
+}
 
-export default MuteAlert;
+export default SnoozeAlert;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;

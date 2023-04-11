@@ -4,7 +4,7 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {Alert} from 'sentry/components/alert';
-import MuteAlert from 'sentry/components/alerts/muteAlert';
+import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
@@ -38,6 +38,7 @@ type Props = AsyncComponent['props'] & {
 } & RouteComponentProps<{projectId: string; ruleId: string}, {}>;
 
 type State = AsyncComponent['state'] & {
+  isSnoozed: boolean | undefined;
   memberList: Member[];
   rule: IssueAlertRule | null;
 };
@@ -59,6 +60,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       organization,
       rule_id: parseInt(params.ruleId, 10),
     });
+    this.setState({isSnoozed: this.state.rule?.snooze});
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -79,6 +81,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       rule: null,
       memberList: [],
+      isSnoozed: false,
     };
   }
 
@@ -157,6 +160,10 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       },
     });
   }
+
+  setSnooze = (snooze: boolean) => {
+    this.setState({isSnoozed: snooze});
+  };
 
   handleUpdateDatetime = (datetime: ChangeData) => {
     const {start, end, relative, utc} = datetime;
@@ -291,7 +298,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <MuteAlert isMuted={false} />
+              <SnoozeAlert isSnoozed={this.state.isSnoozed} setSnooze={this.setSnooze} />
               <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
                 {t('Duplicate')}
               </Button>
@@ -314,6 +321,18 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         <Layout.Body>
           <Layout.Main>
             {this.renderIncompatibleAlert()}
+            {this.state.isSnoozed && (
+              <Alert showIcon>
+                {/* {tct(
+                "[creator] muted this alert so you won't get these notifications in the future.",
+                {creator: rule.snoozeCreatedBy}
+              )} */}
+                {tct(
+                  "[creator] muted this alert so you won't get these notifications in the future.",
+                  {creator: 'You'}
+                )}
+              </Alert>
+            )}
             <StyledPageTimeRangeSelector
               organization={organization}
               relative={period ?? ''}
