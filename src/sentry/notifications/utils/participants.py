@@ -403,9 +403,8 @@ def get_send_to(
                 muted_user_id.append(rule_snooze.user_id)
 
         if muted_user_id:
-            recipients = [
-                recipient for recipient in recipients if recipient.id not in muted_user_id
-            ]
+            recipients = list(filter(lambda x: x.id not in muted_user_id, recipients))
+
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
