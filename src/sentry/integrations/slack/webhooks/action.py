@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api import ApiClient, client
-from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -123,7 +123,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return is_message
 
 
-@all_silo_endpoint
+@region_silo_endpoint
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
@@ -447,6 +447,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if not identity_user:
             return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
+        # TODO: hybrid-cloud-ify
         NotificationSetting.objects.enable_settings_for_user(
             recipient=identity_user, provider=ExternalProviders.SLACK
         )

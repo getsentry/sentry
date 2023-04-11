@@ -96,6 +96,36 @@ class SlackRequestParser(BaseRequestParser):
             params = unsign(self.match.kwargs.get("signed_params"))
             return Integration.objects.filter(id=params.get("integration_id")).first()
 
+    def get_response_from_first_region(self):
+        regions = self.get_regions_from_organizations()
+        first_region = regions[0]
+        response_map = self.get_responses_from_region_silos(regions=[first_region])
+        region_result = response_map[first_region.name]
+        if region_result.error is not None:
+            error = SiloClientError(region_result.error)
+            capture_exception(error)
+            logger.error(
+                "region_error", extra={"path": self.request.path, "region": first_region.name}
+            )
+            # We want to fail loudly so that devs know this error happened on the region silo (for now)
+            raise SiloClientError(error)
+        return region_result.response
+
+    def get_response_from_all_regions(self):
+        regions = self.get_regions_from_organizations()
+        response_map = self.get_responses_from_region_silos(regions=regions)
+        successful_responses = [
+            result for result in response_map.values() if result.response is not None
+        ]
+        if len(successful_responses < 1):
+            error_map = {region: result.error for region, result in response_map.items()}
+            logger.error(
+                "all_regions_error",
+                extra={"path": self.request.path, "error_map": error_map},
+            )
+            raise SiloClientError("No successful region responses")
+        return successful_responses[0].response
+
     def get_response(self):
         """
         Slack Webhook Requests all require synchronous responses.
@@ -111,23 +141,17 @@ class SlackRequestParser(BaseRequestParser):
         if view_class_name in self.control_classes:
             return self.get_response_from_control_silo()
 
-        # Handle the actions endpoint seperately -- parse the payload to identify the silo
         if view_class_name == "SlackActionEndpoint":
-            return self.handle_action_endpoint(regions=regions)
+            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
+            slack_request = self.match.func.view_class.slack_request_class(drf_request)
+            action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
+
+            # All actions other than those below are sent to every region
+            if action_option not in ["link", "ignore", "all_slack"]:
+                return self.get_response_from_all_regions()
 
         # Slack webhooks can only receive one synchronous call/response, as there are many
         # places where we post to slack on their webhook request. This would cause multiple
         # calls back to slack for every region we forward to.
         # By convention, we use the first integration organization/region
-        first_region = regions[0]
-        response_map = self.get_responses_from_region_silos(regions=[first_region])
-        region_result = response_map[first_region.name]
-        if region_result.error is not None:
-            error = SiloClientError(region_result.error)
-            capture_exception(error)
-            logger.error(
-                "region_error", extra={"path": self.request.path, "region": first_region.name}
-            )
-            # We want to fail loudly so that devs know this error happened on the region silo (for now)
-            raise SiloClientError(error)
-        return region_result.response
+        return self.get_response_from_first_region()
