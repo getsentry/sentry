@@ -50,7 +50,8 @@ flags:
     paths:
     - "static/app/"
     carryforward: true
-    # Do not send any status checks until N coverage reports are uploaded
+    # FE uploads 5 coverage reports. This property ensures codecov waits
+    #  for all reports to be uploaded before creating a GitHub status check.
     after_n_builds: 5
   backend:
     paths:
