@@ -134,7 +134,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             # Create a new monitor during checkin. Uses update_or_create to
             # protect against races.
             if create_monitor:
-                monitor, _ = Monitor.objects.update_or_create(
+                monitor, created = Monitor.objects.update_or_create(
                     organization_id=project.organization_id,
                     slug=monitor_data["slug"],
                     defaults={
@@ -145,7 +145,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                         "config": monitor_data["config"],
                     },
                 )
-                signal_first_monitor_created(project, request.user, True)
+
+                if created:
+                    signal_first_monitor_created(project, request.user, True)
 
             # Monitor does not exist and we have not created one
             if not monitor:
