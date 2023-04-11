@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from itertools import groupby
 from typing import (
+    Any,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -85,9 +86,9 @@ class KeyCollection:
 
     def __eq__(self, value: Any) -> bool:
         return (
-            isinstance(__value, self.__class__)
-            and self.size == __value.size
-            and self.mapping == __value.mapping
+            isinstance(value, self.__class__)
+            and self.size == value.size
+            and self.mapping == value.mapping
         )
 
     def _size(self) -> int:
