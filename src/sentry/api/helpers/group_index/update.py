@@ -17,7 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.ignored import handle_ignored
+from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.status_change import handle_status_update
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
@@ -45,7 +45,7 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
@@ -531,14 +531,28 @@ def update_groups(
 
     elif status:
         new_status = STATUS_UPDATE_CHOICES[result["status"]]
+        new_substatus = (
+            SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
+        )
+        has_escalating_issues = features.has(
+            "organizations:escalating-issues", group_list[0].organization
+        )
+
         with transaction.atomic():
-            status_updated = queryset.exclude(status=new_status).update(status=new_status)
+            status_updated = queryset.exclude(status=new_status).update(
+                status=new_status, substatus=new_substatus
+            )
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
-                result["statusDetails"] = handle_ignored(
-                    group_ids, group_list, status_details, acting_user, user
-                )
+                if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
+                    result["statusDetails"] = handle_archived_until_escalating(
+                        group_list, acting_user
+                    )
+                else:
+                    result["statusDetails"] = handle_ignored(
+                        group_ids, group_list, status_details, acting_user, user
+                    )
                 result["inbox"] = None
             else:
                 result["statusDetails"] = {}

@@ -1,6 +1,7 @@
-from sentry.issues.ignored import handle_ignored
+from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.models import GroupInbox, GroupInboxReason, GroupSnooze, add_group_to_inbox
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 
 
 class HandleIgnoredTest(TestCase):  # type: ignore
@@ -43,3 +44,14 @@ class HandleIgnoredTest(TestCase):  # type: ignore
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).first()
         assert snooze.user_count == status_details.get("ignoreUserCount")
+
+
+@apply_feature_flag_on_cls("organizations:escalating-issues")
+class HandleArchiveUntilEscalating(TestCase):  # type: ignore
+    def test_archive_until_escalating(self) -> None:
+        group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        handle_archived_until_escalating([group.id], self.user)
+        assert not GroupInbox.objects.filter(group=group).exists()
+        assert not GroupSnooze.objects.filter(group=group).exists()

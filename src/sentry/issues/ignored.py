@@ -5,8 +5,7 @@ from typing import Any, Dict, Sequence
 
 from django.utils import timezone
 
-from sentry.models import Group, GroupSnooze, User
-from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models import Group, GroupInboxRemoveAction, GroupSnooze, User, remove_group_from_inbox
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 
@@ -70,3 +69,28 @@ def handle_ignored(
         ignore_until = None
 
     return new_status_details
+
+
+def handle_archived_until_escalating(
+    group_list: Sequence[Group],
+    acting_user: User | None,
+) -> Dict[str, Any]:
+    """
+    Handle issues that are archived until escalating and create a forecast for them.
+
+    Issues that are marked as ignored with `archiveDuration: until_escalating`
+    in the statusDetail are treated as `archived_until_escalating`.
+    """
+    metrics.incr("group.archived_until_escalating", skip_internal=True)
+    for group in group_list:
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
+    # TODO(snigdha): create a forecast for this group
+
+    # TODO(snigdha): we should be able to remove this in a future refactor
+    return {
+        "ignoreCount": None,
+        "ignoreUntil": None,
+        "ignoreUserCount": None,
+        "ignoreUserWindow": None,
+        "ignoreWindow": None,
+    }
