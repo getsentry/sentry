@@ -2009,7 +2009,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         results = self.make_query(
             projects=[myProject],
-            search_filter_query="error.handled:1",
+            search_filter_query="error.main_thread:1",
             sort_by="date",
         )
 
@@ -2050,7 +2050,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         results = self.make_query(
             projects=[myProject],
-            search_filter_query="error.handled:0",
+            search_filter_query="error.main_thread:0",
             sort_by="date",
         )
 
@@ -2088,7 +2088,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         results = self.make_query(
             projects=[myProject],
-            search_filter_query="error.handled:0",
+            search_filter_query="error.main_thread:1",
             sort_by="date",
         )
 
