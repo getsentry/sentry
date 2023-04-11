@@ -18,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.ignored import handle_archived_until_escalating
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -32,7 +33,6 @@ from sentry.models import (
     GroupResolution,
     GroupSeen,
     GroupShare,
-    GroupSnooze,
     GroupStatus,
     GroupSubscription,
     GroupTombstone,
@@ -45,9 +45,10 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
@@ -537,6 +538,12 @@ def update_groups(
 
     elif status:
         new_status = STATUS_UPDATE_CHOICES[result["status"]]
+        new_substatus = (
+            SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
+        )
+        has_escalating_issues = features.has(
+            "organizations:escalating-issues", group_list[0].organization
+        )
         ignore_duration = None
         ignore_count = None
         ignore_window = None
@@ -545,64 +552,69 @@ def update_groups(
         ignore_until = None
 
         with transaction.atomic():
-            happened = queryset.exclude(status=new_status).update(status=new_status)
+            happened = queryset.exclude(status=new_status).update(
+                status=new_status, substatus=new_substatus
+            )
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
-                metrics.incr("group.ignored", skip_internal=True)
-                for group in group_ids:
-                    remove_group_from_inbox(
-                        group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
-                    )
-                result["inbox"] = None
-
-                ignore_duration = (
-                    status_details.pop("ignoreDuration", None)
-                    or status_details.pop("snoozeDuration", None)
-                ) or None
-                ignore_count = status_details.pop("ignoreCount", None) or None
-                ignore_window = status_details.pop("ignoreWindow", None) or None
-                ignore_user_count = status_details.pop("ignoreUserCount", None) or None
-                ignore_user_window = status_details.pop("ignoreUserWindow", None) or None
-                if ignore_duration or ignore_count or ignore_user_count:
-                    if ignore_duration:
-                        ignore_until = timezone.now() + timedelta(minutes=ignore_duration)
-                    else:
-                        ignore_until = None
-                    for group in group_list:
-                        state = {}
-                        if ignore_count and not ignore_window:
-                            state["times_seen"] = group.times_seen
-                        if ignore_user_count and not ignore_user_window:
-                            state["users_seen"] = group.count_users_seen()
-                        GroupSnooze.objects.create_or_update(
-                            group=group,
-                            values={
-                                "until": ignore_until,
-                                "count": ignore_count,
-                                "window": ignore_window,
-                                "user_count": ignore_user_count,
-                                "user_window": ignore_user_window,
-                                "state": state,
-                                "actor_id": user.id if user.is_authenticated else None,
-                            },
-                        )
-                        serialized_user = user_service.serialize_many(
-                            filter=dict(user_ids=[user.id]), as_user=user
-                        )
-                        result["statusDetails"] = {
-                            "ignoreCount": ignore_count,
-                            "ignoreUntil": ignore_until,
-                            "ignoreUserCount": ignore_user_count,
-                            "ignoreUserWindow": ignore_user_window,
-                            "ignoreWindow": ignore_window,
-                        }
-                        if serialized_user:
-                            result["statusDetails"]["actor"] = serialized_user[0]
+                if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
+                    handle_archived_until_escalating(group_list, acting_user)
                 else:
-                    GroupSnooze.objects.filter(group__in=group_ids).delete()
-                    ignore_until = None
-                    result["statusDetails"] = {}
+                    metrics.incr("group.ignored", skip_internal=True)
+                    for group in group_ids:
+                        remove_group_from_inbox(
+                            group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
+                        )
+
+                    ignore_duration = (
+                        status_details.pop("ignoreDuration", None)
+                        or status_details.pop("snoozeDuration", None)
+                    ) or None
+                    ignore_count = status_details.pop("ignoreCount", None) or None
+                    ignore_window = status_details.pop("ignoreWindow", None) or None
+                    ignore_user_count = status_details.pop("ignoreUserCount", None) or None
+                    ignore_user_window = status_details.pop("ignoreUserWindow", None) or None
+                    if ignore_duration or ignore_count or ignore_user_count:
+                        if ignore_duration:
+                            ignore_until = timezone.now() + timedelta(minutes=ignore_duration)
+                        else:
+                            ignore_until = None
+                        for group in group_list:
+                            state = {}
+                            if ignore_count and not ignore_window:
+                                state["times_seen"] = group.times_seen
+                            if ignore_user_count and not ignore_user_window:
+                                state["users_seen"] = group.count_users_seen()
+                            GroupSnooze.objects.create_or_update(
+                                group=group,
+                                values={
+                                    "until": ignore_until,
+                                    "count": ignore_count,
+                                    "window": ignore_window,
+                                    "user_count": ignore_user_count,
+                                    "user_window": ignore_user_window,
+                                    "state": state,
+                                    "actor_id": user.id if user.is_authenticated else None,
+                                },
+                            )
+                            serialized_user = user_service.serialize_many(
+                                filter=dict(user_ids=[user.id]), as_user=user
+                            )
+                            result["statusDetails"] = {
+                                "ignoreCount": ignore_count,
+                                "ignoreUntil": ignore_until,
+                                "ignoreUserCount": ignore_user_count,
+                                "ignoreUserWindow": ignore_user_window,
+                                "ignoreWindow": ignore_window,
+                            }
+                            if serialized_user:
+                                result["statusDetails"]["actor"] = serialized_user[0]
+                    else:
+                        GroupSnooze.objects.filter(group__in=group_ids).delete()
+                        ignore_until = None
+                        result["statusDetails"] = {}
+                result["inbox"] = None
             else:
                 result["statusDetails"] = {}
         if group_list and happened:

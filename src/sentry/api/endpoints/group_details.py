@@ -279,6 +279,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                                      the bookmark flag.
         :param boolean isSubscribed:
         :param boolean isPublic: sets the issue to public or private.
+        :param string substatus: the new substatus for the issues. Valid values
+                                 defined in GroupSubStatus.
         :auth: required
         """
         try:
