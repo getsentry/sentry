@@ -14,6 +14,7 @@ from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
     ProcessingStrategyFactory,
+    RunTask,
     RunTaskWithMultiprocessing,
 )
 from arroyo.types import BrokerValue, Commit, Message, Partition
@@ -35,6 +36,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         processes: int,
         input_block_size: int,
         output_block_size: int,
+        multi_proc: bool = True,
     ):
         self.topic = topic
         self.dataset = topic_to_dataset[self.topic]
@@ -44,22 +46,27 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.num_processes = processes
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
+        self.multi_proc = multi_proc
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTaskWithMultiprocessing(
-            partial(process_message, self.dataset, self.topic, self.logical_topic),
-            CommitOffsets(commit),
-            self.num_processes,
-            self.max_batch_size,
-            self.max_batch_time,
-            self.input_block_size,
-            self.output_block_size,
-            initializer=initialize_consumer_state,
-        )
+        callable = partial(process_message, self.dataset, self.topic, self.logical_topic)
+        if self.multi_proc:
+            return RunTaskWithMultiprocessing(
+                callable,
+                CommitOffsets(commit),
+                self.num_processes,
+                self.max_batch_size,
+                self.max_batch_time,
+                self.input_block_size,
+                self.output_block_size,
+                initializer=initialize_consumer_state,
+            )
+        else:
+            return RunTask(callable, CommitOffsets(commit))
 
 
 def process_message(

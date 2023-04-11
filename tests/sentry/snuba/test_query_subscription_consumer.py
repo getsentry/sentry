@@ -13,6 +13,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from sentry_kafka_schemas import get_schema
 
+from sentry.runner.commands.run import DEFAULT_BLOCK_SIZE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.query_subscriptions.consumer import (
@@ -69,7 +70,7 @@ class BaseQuerySubscriptionTest:
 class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metrics(self):
-        with mock.patch("sentry.snuba.query_subscription_consumer.metrics") as self.metrics:
+        with mock.patch("sentry.utils.metrics") as self.metrics:
             yield
 
     def test_arroyo_consumer(self):
@@ -93,15 +94,23 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         data["payload"]["subscription_id"] = sub.subscription_id
         commit = mock.Mock()
         partition = Partition(Topic("test"), 0)
-        strategy = QuerySubscriptionStrategyFactory(self.topic).create_with_partitions(
-            commit, {partition: 0}
-        )
-        message = self.build_mock_message(self.valid_wrapper, topic=self.topic)
+        strategy = QuerySubscriptionStrategyFactory(
+            self.topic,
+            1,
+            1,
+            1,
+            DEFAULT_BLOCK_SIZE,
+            DEFAULT_BLOCK_SIZE,
+            # We have to disable multi_proc here, otherwise the consumer attempts to access the dev
+            # database rather than the test one due to reinitialising Django
+            multi_proc=False,
+        ).create_with_partitions(commit, {partition: 0})
+        message = self.build_mock_message(data, topic=self.topic)
 
         strategy.submit(
             Message(
                 BrokerValue(
-                    KafkaPayload(b"key", message.value(), [("should_drop", b"1")]),
+                    KafkaPayload(b"key", message.value().encode("utf-8"), [("should_drop", b"1")]),
                     partition,
                     1,
                     datetime.now(),
