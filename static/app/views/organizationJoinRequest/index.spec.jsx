@@ -1,7 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {trackAdhocEvent} from 'sentry/utils/analytics';
 import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 
 jest.mock('sentry/utils/analytics', () => ({
@@ -14,7 +13,6 @@ describe('OrganizationJoinRequest', function () {
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
   beforeEach(function () {
-    trackAdhocEvent.mockClear();
     MockApiClient.clearMockResponses();
   });
 
@@ -24,11 +22,6 @@ describe('OrganizationJoinRequest', function () {
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Email Address'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Request to Join'})).toBeInTheDocument();
-
-    expect(trackAdhocEvent).toHaveBeenCalledWith({
-      eventKey: 'join_request.viewed',
-      org_slug: org.slug,
-    });
   });
 
   it('submits', async function () {
