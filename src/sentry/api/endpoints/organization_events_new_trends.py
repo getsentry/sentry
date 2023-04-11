@@ -28,51 +28,45 @@ ads_connection_pool = connection_from_url(
 )
 
 
+def get_trends(snuba_io):
+    response = ads_connection_pool.urlopen(
+        "POST",
+        "/trends/breakpoint_detector",
+        body=json.dumps(snuba_io),
+        headers={"content-type": "application/json;charset=utf-8"},
+    )
+    return Response(json.loads(response.data), status=200)
+
+
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
+        return True
         return features.has(
             "organizations:performance-new-trends", organization, actor=request.user
         )
 
     def get(self, request: Request, organization) -> Response:
-        # if not self.has_feature(organization, request):
-        #     return Response(status=404)
+        if not self.has_feature(organization, request):
+            return Response(status=404)
 
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
-        # get 2 weeks before and a week after is possible
+        # TODO get 2 weeks before and a week after if possible
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
             raise ParseError(detail=f"{trend_type} is not a supported trend type")
 
         trend_function = request.GET.get("trendFunction", "p50()")
-        # try:
-        #     function, columns, _ = parse_function(trend_function)
-        # except InvalidSearchQuery as error:
-        #     raise ParseError(detail=error)
-        # if len(columns) == 0:
-        #     # Default to duration
-        #     column = "transaction.duration"
-        # else:
-        #     column = columns[0]
 
         selected_columns = self.get_field_list(organization, request)
-        # selected_columns.append(trend_function)
-        query = request.GET.get("query")
 
-        # TODO derive these from feature flags
-        # use_metrics = True
-        # use_metrics_layer = True
-        # dataset = metrics_enhanced_performance
-
-        # TODO check what this is for
-        # allow_metric_aggregates = True
-        top_columns = ["transaction", "project", "count()"]
+        top_columns = ["count()", "transaction", "project"]
+        # TODO use user query and remove trends-specific aliases
         _query = (
             "tpm():>0.01 transaction.duration:>0 transaction.duration:<15min event.type:transaction"
         )
@@ -90,7 +84,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             results = discover.top_events_timeseries(
                 timeseries_columns=query_columns,
                 selected_columns=top_columns,
-                user_query=_query,
+                user_query=query,
                 params=params,
                 rollup=rollup,
                 limit=10,
@@ -103,15 +97,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             return results
 
-        def get_trends(snuba_io):
-            response = ads_connection_pool.urlopen(
-                "POST",
-                "/trends/breakpoint_detector",
-                body=json.dumps(snuba_io),
-                headers={"content-type": "application/json;charset=utf-8"},
-            )
-            return Response(json.loads(response.data), status=200)
-
         try:
             response = Response(
                 self.get_event_stats_data(
@@ -121,12 +106,16 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     top_events=10,
                     query_column=trend_function,
                     params=params,
-                    query=query,
+                    query=_query,
                 )
             )
 
-            trends_request = {}
-            trends_request["data"] = response.data["data"]
+            trends_request = {"data": None}
+            data = response.data
+
+            data["sort"] = request.GET.get("sort", "trend_percentage()")
+            data["trendFunction"] = trend_function
+            trends_request["data"] = data
 
             # send the data to microservice
             trends = get_trends(trends_request)
