@@ -13,6 +13,7 @@ from arroyo.processing.strategies import (
 from arroyo.types import Commit, Message, Partition
 
 from sentry import options
+from sentry.eventstream.base import GroupStates
 
 # TODO: The post process forwarder should eventually be able to take any dispatcher
 # function and never import from the eventstream module
@@ -20,7 +21,6 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
-from sentry.eventstream.types import GroupStates
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
