@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   MINIMAP_HEIGHT,
   PROFILE_MEASUREMENTS_CHART_HEIGHT,
@@ -28,6 +28,8 @@ import {defined} from 'sentry/utils';
 import * as CursorGuideHandler from './cursorGuideHandler';
 
 const NS_PER_MS = 1000000;
+const CPU_USAGE = 'cpu_usage';
+const MEMORY = 'memory_footprint';
 
 function toMilliseconds(nanoseconds: number) {
   return nanoseconds / NS_PER_MS;
@@ -35,9 +37,9 @@ function toMilliseconds(nanoseconds: number) {
 
 function getChartName(op: string) {
   switch (op) {
-    case 'cpu_usage':
+    case CPU_USAGE:
       return t('CPU Usage');
-    case 'memory_footprint':
+    case MEMORY:
       return t('Memory');
     default:
       return '';
@@ -49,7 +51,7 @@ type ChartProps = {
     unit: string;
     values: Profiling.MeasurementValue[];
   };
-  type: 'cpu_usage' | 'memory_footprint';
+  type: typeof CPU_USAGE | typeof MEMORY;
 };
 
 function Chart({data, type}: ChartProps) {
@@ -62,8 +64,7 @@ function Chart({data, type}: ChartProps) {
       data: uniqBy<SeriesDataUnit>(
         data.values.map(value => {
           return {
-            // name: toMilliseconds(value.elapsed_since_start_ns).toFixed(0),
-            name: value.elapsed_since_start_ns,
+            name: toMilliseconds(value.elapsed_since_start_ns).toFixed(0),
             value: value.value,
           };
         }),
@@ -145,20 +146,17 @@ function ProfilingMeasurements({
 }: ProfilingMeasurementsProps) {
   const theme = useTheme();
   const [measurementType, setMeasurementType] = useState<
-    'cpu_usage' | 'memory_footprint'
-  >('cpu_usage');
+    typeof CPU_USAGE | typeof MEMORY
+  >(CPU_USAGE);
 
   if (
     !('measurements' in profileData) ||
     !defined(profileData.measurements?.[measurementType])
   ) {
-    console.log('reee');
     return null;
   }
 
-  // const cpuUsageData = profileData.measurements!.cpu_usage!;
   const data = profileData.measurements![measurementType];
-  console.log(data);
 
   return (
     <CursorGuideHandler.Consumer>
@@ -170,9 +168,29 @@ function ProfilingMeasurements({
                 <OpsLine>
                   <OpsNameContainer>
                     <OpsDot style={{backgroundColor: theme.green200}} />
-                    <StyledDropdownButton borderless>
-                      <OpsName>{getChartName(measurementType)}</OpsName>
-                    </StyledDropdownButton>
+                    <StyledDropdownMenu
+                      trigger={triggerProps => (
+                        <StyledDropdownButton {...triggerProps} borderless>
+                          <OpsName>{getChartName(measurementType)}</OpsName>
+                        </StyledDropdownButton>
+                      )}
+                      items={[
+                        {
+                          key: CPU_USAGE,
+                          label: getChartName(CPU_USAGE),
+                          onAction: () => {
+                            setMeasurementType(CPU_USAGE);
+                          },
+                        },
+                        {
+                          key: MEMORY,
+                          label: getChartName(MEMORY),
+                          onAction: () => {
+                            setMeasurementType(MEMORY);
+                          },
+                        },
+                      ]}
+                    />
                   </OpsNameContainer>
                 </OpsLine>
               </ChartOpsLabel>
@@ -239,6 +257,11 @@ const MeasurementContainer = styled('div')`
 
 const StyledDropdownButton = styled(DropdownButton)`
   padding: 0;
+  padding-right: ${space(0.5)};
   margin-left: 0;
   font-weight: normal;
+`;
+
+const StyledDropdownMenu = styled(DropdownMenu)`
+  margin-left: 0;
 `;
