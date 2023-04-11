@@ -41,8 +41,12 @@ describe('OwnershipRulesTable', () => {
     const rules: ParsedOwnershipRule[] = [
       {
         matcher: {pattern: 'pattern', type: 'path'},
-        // @ts-expect-error this seems to only happen when adding a codeowners file
-        owners: [{type: 'user', id: user1.id, name: undefined}],
+        // Name = undefined only seems to happen when adding a new codeowners file
+        owners: [{type: 'user', id: user1.id, name: undefined as any}],
+      },
+      {
+        matcher: {pattern: 'my/path', type: 'path'},
+        owners: [{type: 'user', id: user2.id, name: user2.name}],
       },
     ];
 
@@ -54,8 +58,8 @@ describe('OwnershipRulesTable', () => {
     );
 
     expect(screen.getByText('pattern')).toBeInTheDocument();
-    // No options available, button is disabled
-    expect(screen.getByRole('button', {name: 'Everyone'})).toBeDisabled();
+    expect(screen.getByText('my/path')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Everyone'})).toBeEnabled();
   });
 
   it('should render multiple project owners', () => {
