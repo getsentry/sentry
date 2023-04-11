@@ -23,7 +23,7 @@ import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SeriesDataUnit} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined, formatBytesBase10} from 'sentry/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 
@@ -108,7 +108,11 @@ function Chart({data, type}: ChartProps) {
       colors={[theme.green200] as string[]}
       tooltip={{
         valueFormatter: (value, _seriesName) => {
-          return `${value.toFixed(2)}%`;
+          if (type === CPU_USAGE) {
+            return `${value.toFixed(2)}%`;
+          }
+
+          return formatBytesBase10(value);
         },
       }}
     />
