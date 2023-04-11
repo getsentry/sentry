@@ -1330,6 +1330,8 @@ SENTRY_FEATURES = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
     "organizations:anr-improvements": False,
+    # Enable anr frame analysis
+    "organizations:anr-analyze-frames": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
