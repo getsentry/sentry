@@ -92,6 +92,7 @@ _DEFAULT_DAEMONS = {
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
     "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
     "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
+    "silo-proxy": ["sentry", "run", "silo-proxy"],
 }
 
 
@@ -334,6 +335,9 @@ and run `sentry devservices up kafka zookeeper`.
 
     if occurrence_ingest:
         daemons += [_get_daemon("occurrences")]
+
+    if settings.SILO_MODE in ["CONTROL"]:
+        daemons += [_get_daemon("silo-proxy")]
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)

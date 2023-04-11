@@ -130,6 +130,7 @@ def get_region_for_organization(organization: Organization) -> Region:
     run only in monolith mode.
     """
     mapping = _load_global_regions()
+    return mapping.by_id[1]
 
     if not mapping.regions:
         raise RegionContextError("No regions are configured")

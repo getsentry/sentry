@@ -3,15 +3,15 @@ from typing import Any, Mapping, Optional, Union
 from requests import Response
 from sentry_sdk.tracing import Transaction
 
-from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.client import BaseApiResponse
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.proxy import IntegrationProxyClient
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 
 
-class SlackClient(ApiClient):  # type: ignore
+class SlackClient(IntegrationProxyClient):  # type: ignore
     allow_redirects = False
     integration_name = "slack"
     base_url = "https://slack.com/api"

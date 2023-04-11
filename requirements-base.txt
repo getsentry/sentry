@@ -31,6 +31,7 @@ jsonschema>=3.2.0
 lxml>=4.9.1
 maxminddb>=2.0.3
 mistune>=2.0.3
+mitmproxy>=9.0.1
 mmh3>=3.0.0
 packaging>=21.3
 parsimonious>=0.8.0

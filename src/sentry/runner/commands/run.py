@@ -683,3 +683,10 @@ def last_seen_updater(**options):
 
     with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
         run_processor_with_signals(consumer)
+
+
+@run.command("silo-proxy")
+def silo_proxy():
+    from sentry.silo.runner import start_proxy_server
+
+    start_proxy_server()

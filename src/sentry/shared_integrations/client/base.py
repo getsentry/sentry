@@ -82,6 +82,7 @@ class BaseApiClient(TrackResponseMixin):
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        proxies: Mapping[str, str] = None,
     ) -> BaseApiResponseX:
         if allow_text is None:
             allow_text = self.allow_text
@@ -120,6 +121,8 @@ class BaseApiClient(TrackResponseMixin):
         ) as span:
             try:
                 with build_session() as session:
+                    if proxies is not None:
+                        session.proxies = proxies
                     resp = (
                         session.send(prepared_request)
                         if prepared_request is not None
