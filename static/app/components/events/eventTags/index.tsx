@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -6,6 +7,8 @@ import Pills from 'sentry/components/pills';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isMobilePlatform} from 'sentry/utils/platform';
 
 import {AnnotatedText} from '../meta/annotatedText';
 
@@ -18,9 +21,57 @@ type Props = {
   projectSlug: string;
 };
 
+const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
+
 export function EventTags({event, organization, projectSlug, location}: Props) {
   const meta = event._meta?.tags;
   const projectId = event.projectID;
+
+  const tags = !organization.features.includes('device-classification')
+    ? event.tags?.filter(tag => tag.key !== 'device.class')
+    : event.tags;
+
+  useEffect(() => {
+    if (
+      organization.features.includes('device-classification') &&
+      isMobilePlatform(event.platform)
+    ) {
+      const deviceClass = event.tags.find(tag => tag.key === 'device.class')?.value;
+      const deviceFamily = event.tags.find(tag => tag.key === 'device.family')?.value;
+      const deviceModel = event.tags.find(tag => tag.key === 'device.model')?.value;
+      // iOS device missing classification
+      if (deviceFamily && IOS_DEVICE_FAMILIES.includes(deviceFamily)) {
+        if (!deviceClass && deviceModel) {
+          trackAdvancedAnalyticsEvent('device.classification.unclassified.ios.device', {
+            organization,
+            model: deviceModel,
+          });
+        }
+      } else {
+        const deviceProcessorCount = parseInt(
+          event.tags.find(tag => tag.key === 'device.processor_count')?.value ?? '',
+          10
+        );
+        const deviceProcessorFrequency = parseInt(
+          event.tags.find(tag => tag.key === 'device.processor_frequency')?.value ?? '',
+          10
+        );
+        if (
+          deviceProcessorFrequency > 3499 ||
+          (deviceProcessorCount > 9 && deviceProcessorFrequency > 3299)
+        ) {
+          trackAdvancedAnalyticsEvent('device.classification.high.end.android.device', {
+            organization,
+            class: deviceClass,
+            family: deviceFamily,
+            model: deviceModel,
+            processor_count: deviceProcessorCount,
+            processor_frequency: deviceProcessorFrequency,
+          });
+        }
+      }
+    }
+  }, [event, organization]);
 
   if (!!meta?.[''] && !event.tags) {
     return <AnnotatedText value={event.tags} meta={meta?.['']} />;
@@ -32,10 +83,6 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
 
   const orgSlug = organization.slug;
   const streamPath = `/organizations/${orgSlug}/issues/`;
-
-  const tags = !organization.features.includes('device-classification')
-    ? event.tags.filter(tag => tag.key !== 'device.class')
-    : event.tags;
 
   return (
     <StyledClippedBox clipHeight={150}>
