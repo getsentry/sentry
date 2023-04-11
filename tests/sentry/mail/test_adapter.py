@@ -31,6 +31,7 @@ from sentry.models import (
     ProjectOwnership,
     Repository,
     Rule,
+    RuleSnooze,
     User,
     UserEmail,
     UserOption,
@@ -183,6 +184,38 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
 
+    def test_simple_snooze(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) == 0
+
+    def test_snooze_for_all(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        RuleSnooze.objects.create(owner_id=self.user.id, rule=rule)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) == 0
+
     def test_simple_notification_generic(self):
         """Test that an issue that is neither error nor performance type renders a generic email template"""
         event = self.store_event(
@@ -305,6 +338,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
+        assert not msg.subject
         assert msg.subject == "[Sentry] BAR-1 - N+1 Query"
         checked_values = [
             "Transaction Name",

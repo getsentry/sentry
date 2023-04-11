@@ -393,16 +393,19 @@ def get_send_to(
         project, target_type, target_identifier, event, fallthrough_choice
     )
 
-    rule_snoozes = RuleSnooze.objects.filter(Q(rule__in=rules))
+    if rules:
+        rule_snoozes = RuleSnooze.objects.filter(Q(rule__in=rules))
+        muted_user_id = []
+        for rule_snooze in rule_snoozes:
+            if rule_snooze.user_id is None:
+                return {}
+            else:
+                muted_user_id.append(rule_snooze.user_id)
 
-    muted_user_id = []
-    for rule_snooze in rule_snoozes:
-        if rule_snooze.user_id is None:
-            return {}
-        else:
-            muted_user_id.append(rule_snooze.user_id)
-
-    recipients = [recipient for recipient in recipients if recipient.id not in muted_user_id]
+        if muted_user_id:
+            recipients = [
+                recipient for recipient in recipients if recipient.id not in muted_user_id
+            ]
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
