@@ -3,7 +3,7 @@ from sentry.models import GroupInbox, GroupInboxReason, GroupSnooze, add_group_t
 from sentry.testutils import TestCase
 
 
-class HandleIgnored(TestCase):  # type: ignore
+class HandleIgnoredTest(TestCase):  # type: ignore
     def setUp(self):
         super().setUp()
         self.group = self.create_group()

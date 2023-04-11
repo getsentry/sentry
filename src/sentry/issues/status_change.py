@@ -32,7 +32,6 @@ def handle_status_update(
     activity_data = {}
     if new_status == GroupStatus.UNRESOLVED:
         activity_type = ActivityType.SET_UNRESOLVED.value
-        activity_data = {}
 
         for group in group_list:
             if group.status == GroupStatus.IGNORED:
