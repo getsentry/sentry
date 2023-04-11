@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import * as useApi from 'sentry/utils/useApi';
 
@@ -20,15 +20,15 @@ describe('queryClient', function () {
         body: {value: 5},
       });
 
-      const TestComponent = () => {
-        const {data} = useQuery<ResponseData>(['/some/test/path/'], {staleTime: 0});
+      function TestComponent() {
+        const {data} = useApiQuery<ResponseData>(['/some/test/path/'], {staleTime: 0});
 
         if (!data) {
           return null;
         }
 
         return <div>{data.value}</div>;
-      };
+      }
 
       render(<TestComponent />);
 
@@ -43,8 +43,8 @@ describe('queryClient', function () {
         body: {value: 5},
       });
 
-      const TestComponent = () => {
-        const {data} = useQuery<ResponseData>(
+      function TestComponent() {
+        const {data} = useApiQuery<ResponseData>(
           ['/some/test/path/', {query: {filter: 'red'}}],
           {staleTime: 0}
         );
@@ -54,7 +54,7 @@ describe('queryClient', function () {
         }
 
         return <div>{data.value}</div>;
-      };
+      }
 
       render(<TestComponent />);
 
@@ -67,15 +67,15 @@ describe('queryClient', function () {
     });
 
     it('can fetch with custom query function', async function () {
-      const TestComponent = () => {
-        const {data} = useQuery<ResponseData>(['some-key'], () => ({value: 5}));
+      function TestComponent() {
+        const {data} = useApiQuery<ResponseData>(['some-key'], () => ({value: 5}));
 
         if (!data) {
           return null;
         }
 
         return <div>{data.value}</div>;
-      };
+      }
 
       render(<TestComponent />);
 
@@ -92,8 +92,8 @@ describe('queryClient', function () {
       jest.spyOn(useApi, 'default').mockReturnValue(api);
       jest.spyOn(api, 'requestPromise').mockRejectedValue(requestError);
 
-      const TestComponent = () => {
-        const {isError, error} = useQuery<ResponseData>(['/some/test/path'], {
+      function TestComponent() {
+        const {isError, error} = useApiQuery<ResponseData>(['/some/test/path'], {
           staleTime: 0,
         });
 
@@ -102,7 +102,7 @@ describe('queryClient', function () {
         }
 
         return <div>{error.message}</div>;
-      };
+      }
 
       render(<TestComponent />);
 

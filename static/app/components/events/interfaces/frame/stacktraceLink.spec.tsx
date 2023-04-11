@@ -203,7 +203,6 @@ describe('StacktraceLink', function () {
   it('renders the codecov link', async function () {
     const organization = {
       ...org,
-      features: ['codecov-stacktrace-integration'],
       codecovAccess: true,
     };
     MockApiClient.addMockResponse({
@@ -239,7 +238,6 @@ describe('StacktraceLink', function () {
   it('renders the missing coverage warning', async function () {
     const organization = {
       ...org,
-      features: ['codecov-stacktrace-integration'],
       codecovAccess: true,
     };
     MockApiClient.addMockResponse({
@@ -259,12 +257,16 @@ describe('StacktraceLink', function () {
   });
 
   it('renders the codecov prompt', async function () {
-    HookStore.add('component:codecov-integration-stacktrace-link', () => () => (
-      <div data-test-id="codecov-link" />
-    ));
+    HookStore.add(
+      'component:codecov-integration-stacktrace-link',
+      () =>
+        function () {
+          return <div data-test-id="codecov-link" />;
+        }
+    );
     const organization = {
       ...org,
-      features: ['codecov-integration', 'codecov-stacktrace-integration-v2'],
+      features: ['codecov-integration'],
       codecovAccess: false,
     };
     MockApiClient.addMockResponse({

@@ -12,7 +12,7 @@ import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tct, tn} from 'sentry/locale';
 import {AvatarProject, OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
 import {getShortEventId} from 'sentry/utils/events';
 import {
@@ -36,10 +36,8 @@ type Props = Pick<
 };
 
 function handleTraceLink(organization: OrganizationSummary) {
-  trackAnalyticsEvent({
-    eventKey: 'quick_trace.trace_id.clicked',
-    eventName: 'Quick Trace: Trace ID clicked',
-    organization_id: parseInt(organization.id, 10),
+  trackAdvancedAnalyticsEvent('quick_trace.trace_id.clicked', {
+    organization: organization.id,
     source: 'events',
   });
 }
@@ -79,7 +77,7 @@ export default function QuickTraceMeta({
     footer = <ExternalLink href={docsLink}>{t('Read the docs')}</ExternalLink>;
   } else {
     if (quickTrace.isLoading) {
-      body = <Placeholder height="24px" />;
+      body = <Placeholder height="20px" />;
     } else if (quickTrace.error) {
       body = '\u2014';
     } else {

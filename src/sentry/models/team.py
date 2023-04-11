@@ -18,18 +18,19 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.models.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class TeamManager(BaseManager):
     def get_for_user(
         self,
         organization: "Organization",
-        user: Union["User", RpcUser],
+        user: Union["User", "RpcUser"],
         scope: Optional[str] = None,
         with_projects: bool = False,
     ) -> Union[Sequence["Team"], Sequence[Tuple["Team", Sequence["Project"]]]]:
@@ -152,7 +153,11 @@ class Team(Model):
         default=TeamStatus.VISIBLE,
     )
     actor = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+        "sentry.Actor",
+        related_name="team_from_actor",
+        db_index=True,
+        unique=True,
+        null=True,
     )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -175,7 +180,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:team", duration=5, name="team_slug")
+            lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
         super().save(*args, **kwargs)
@@ -280,13 +285,21 @@ class Team(Model):
         ).delete()
 
         if new_team != self:
+            # Delete the old team
             cursor = connections[router.db_for_write(Team)].cursor()
             # we use a cursor here to avoid automatic cascading of relations
             # in Django
             try:
                 cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
+                cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
             finally:
                 cursor.close()
+
+            # Change whatever new_team's actor is to the one from the old team.
+            with transaction.atomic():
+                Actor.objects.filter(id=self.actor_id).update(team_id=new_team.id)
+                new_team.actor_id = self.actor_id
+                new_team.save()
 
     def get_audit_log_data(self):
         return {

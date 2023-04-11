@@ -178,6 +178,9 @@ def format_options(attrs: defaultdict(dict)):
         "sentry:performance_issue_send_to_issues_platform": options.get(
             "sentry:performance_issue_send_to_issues_platform"
         ),
+        "sentry:performance_issue_create_issue_through_plaform": options.get(
+            "sentry:performance_issue_create_issue_through_plaform"
+        ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
@@ -198,27 +201,28 @@ class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
 
 class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     id: str
-    name: str  # TODO: add deprecation about this field (not used in app)
     slug: str
+    name: str  # TODO: add deprecation about this field (not used in app)
+    platform: Optional[str]
+    dateCreated: datetime
     isBookmarked: bool
     isMember: bool
-    hasAccess: bool
-    dateCreated: datetime
-    features: List[str]
+    firstEvent: Optional[datetime]
     firstTransactionEvent: bool
-    hasSessions: bool
+    features: List[str]
+    hasAccess: bool
     hasProfiles: bool
     hasReplays: bool
-    platform: Optional[str]
-    firstEvent: Optional[datetime]
+    hasMonitors: bool
+    hasSessions: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
+    isInternal: bool
     isPublic: bool
+    avatar: Any  # TODO: use Avatar type from other serializers
     color: str
     status: str  # TODO enum/literal
-    isInternal: bool
-    avatar: Any  # TODO: use Avatar type from other serializers
 
 
 @register(Project)
@@ -457,24 +461,25 @@ class ProjectSerializer(Serializer):  # type: ignore
         context: ProjectSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
-            "name": obj.name,
-            "isPublic": obj.public,
-            "isBookmarked": attrs["is_bookmarked"],
-            "color": obj.color,
+            "name": obj.name,  # Deprecated
+            "platform": obj.platform,
             "dateCreated": obj.date_added,
+            "isBookmarked": attrs["is_bookmarked"],
+            "isPublic": obj.public,
+            "isMember": attrs["is_member"],
+            "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": bool(obj.flags.has_transactions),
-            "hasSessions": bool(obj.flags.has_sessions),
+            "hasAccess": attrs["has_access"],
+            "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
+            "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
-            "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
-            "features": attrs["features"],
-            "status": status_label,
-            "platform": obj.platform,
+            "hasSessions": bool(obj.flags.has_sessions),
             "isInternal": obj.is_internal_project(),
-            "isMember": attrs["is_member"],
-            "hasAccess": attrs["has_access"],
             "avatar": avatar,
+            "color": obj.color,
+            "status": status_label,
         }
         if "stats" in attrs:
             context["stats"] = attrs["stats"]
@@ -699,6 +704,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasSessions=bool(obj.flags.has_sessions),
             hasProfiles=bool(obj.flags.has_profiles),
             hasReplays=bool(obj.flags.has_replays),
+            hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             platform=obj.platform,
             platforms=attrs["platforms"],
@@ -885,8 +891,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "performanceIssueCreationRate": get_value_with_default(
                     "sentry:performance_issue_creation_rate"
                 ),
-                "performanceIssueCreationThroughPlatform": get_value_with_default(
+                "performanceIssueSendToPlatform": get_value_with_default(
                     "sentry:performance_issue_send_to_issues_platform"
+                ),
+                "performanceIssueCreationThroughPlatform": get_value_with_default(
+                    "sentry:performance_issue_create_issue_through_plaform"
                 ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,

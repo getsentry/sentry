@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import collections
-from typing import Any, Iterable, Iterator
+from typing import Any, Generator, Iterable, Iterator
 
 
 def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
@@ -11,7 +11,7 @@ def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> l
 
 def generate_restricted_fieldset(
     fields: list[str] | None,
-    response: Iterable[dict[str, Any]],
+    response: Generator[dict[str, Any], None, None],
 ) -> Iterator[dict[str, Any]]:
     """Return only the fields requested by the client."""
     if fields:
@@ -27,7 +27,9 @@ def _strip_dashes(field: str) -> str:
     return field
 
 
-def generate_normalized_output(response: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
+def generate_normalized_output(
+    response: list[dict[str, Any]]
+) -> Generator[dict[str, Any], None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         item["id"] = _strip_dashes(item.pop("replay_id", None))
@@ -43,12 +45,12 @@ def generate_normalized_output(response: list[dict[str, Any]]) -> Iterator[dict[
         )
         item["user"] = {
             "id": item.pop("user_id", None),
-            "name": item.pop("user_name", None),
+            "username": item.pop("user_username", None),
             "email": item.pop("user_email", None),
             "ip": item.pop("user_ip", None),
         }
         item["user"]["display_name"] = (
-            item["user"]["name"]
+            item["user"]["username"]
             or item["user"]["email"]
             or item["user"]["id"]
             or item["user"]["ip"]
@@ -76,6 +78,17 @@ def generate_normalized_output(response: list[dict[str, Any]]) -> Iterator[dict[
         item["urls"] = item.pop("urls_sorted", None)
 
         item.pop("isArchived")
+
+        item.pop("click_alt", None)
+        item.pop("click_aria_label", None)
+        item.pop("clickClass", None)
+        item.pop("click_classes", None)
+        item.pop("click_id", None)
+        item.pop("click_role", None)
+        item.pop("click_tag", None)
+        item.pop("click_testid", None)
+        item.pop("click_text", None)
+        item.pop("click_title", None)
 
         yield item
 

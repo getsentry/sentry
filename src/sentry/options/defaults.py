@@ -230,6 +230,13 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
+# The sample rate at which to allow dom-click-search.
+register(
+    "replay.ingest.dom-click-search",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -422,6 +429,9 @@ register("store.reprocessing-force-disable", default=False)
 
 register("store.race-free-group-creation-force-disable", default=False)
 
+# Option to enable dart deobfuscation on ingest
+register("processing.view-hierarchies-dart-deobfuscation", default=0.0)
+
 
 # ## sentry.killswitches
 #
@@ -601,6 +611,11 @@ register("sentry-metrics.cardinality-limiter.limits.performance.per-org", defaul
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
+
+register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
+register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
 
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)

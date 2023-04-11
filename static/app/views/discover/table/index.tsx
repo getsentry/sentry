@@ -7,7 +7,8 @@ import {Client} from 'sentry/api';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {metric} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -17,6 +18,7 @@ import EventView, {
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import withApi from 'sentry/utils/withApi';
 
 import TableView from './tableView';
@@ -185,16 +187,12 @@ class Table extends PureComponent<TableProps, TableState> {
           pageLinks: null,
           tableData: null,
         });
-
-        trackAnalyticsEvent({
-          eventKey: 'discover_search.failed',
-          eventName: 'Discover Search: Failed',
-          organization_id: this.props.organization.id,
+        trackAdvancedAnalyticsEvent('discover_search.failed', {
+          organization: this.props.organization,
           search_type: 'events',
           search_source: 'discover_search',
           error: message,
         });
-
         setError(message, err.status);
       });
   };
@@ -216,17 +214,22 @@ class Table extends PureComponent<TableProps, TableState> {
             return (
               <CustomMeasurementsContext.Consumer>
                 {contextValue => (
-                  <TableView
-                    {...this.props}
-                    isLoading={isLoading}
-                    isFirstPage={isFirstPage}
-                    error={error}
-                    eventView={eventView}
-                    tableData={tableData}
-                    measurementKeys={measurementKeys}
-                    spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
-                    customMeasurements={contextValue?.customMeasurements ?? undefined}
-                  />
+                  <VisuallyCompleteWithData
+                    id="Discover-Table"
+                    hasData={(tableData?.data?.length ?? 0) > 0}
+                  >
+                    <TableView
+                      {...this.props}
+                      isLoading={isLoading}
+                      isFirstPage={isFirstPage}
+                      error={error}
+                      eventView={eventView}
+                      tableData={tableData}
+                      measurementKeys={measurementKeys}
+                      spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
+                      customMeasurements={contextValue?.customMeasurements ?? undefined}
+                    />
+                  </VisuallyCompleteWithData>
                 )}
               </CustomMeasurementsContext.Consumer>
             );

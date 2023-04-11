@@ -71,6 +71,7 @@ export type TeamInsightsEventParameters = {
       | 'shared'
       | 'discarded'
       | 'open_in_discover'
+      | 'open_ai_suggested_fix'
       | 'assign'
       | ResolutionStatus;
     assigned_suggestion_reason?: string;
@@ -107,6 +108,10 @@ export type TeamInsightsEventParameters = {
   'project_detail.performance_tour.close': BaseTour;
   'project_detail.releases_tour.advance': ReleasesTour;
   'project_detail.releases_tour.close': ReleasesTour;
+  'release_detail.pagination': {direction: string};
+  'releases_list.click_add_release_health': {
+    project_id: number;
+  };
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -159,4 +164,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
   'project_detail.releases_tour.advance': 'Project Detail: Releases Tour Advance',
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
+  'release_detail.pagination': 'Release Detail: Pagination',
+  'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
 };

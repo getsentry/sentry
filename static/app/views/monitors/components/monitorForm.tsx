@@ -15,11 +15,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
-import TimeSince from 'sentry/components/timeSince';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -40,6 +40,7 @@ const SCHEDULE_OPTIONS: RadioOption<string>[] = [
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
+const DEFAULT_CRONTAB = '0 0 * * *';
 
 const getIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
@@ -62,6 +63,9 @@ type TransformedData = {
   config?: Partial<MonitorConfig>;
 };
 
+/**
+ * Transform config field values into the config object
+ */
 function transformData(_data: Record<string, any>, model: FormModel) {
   return model.fields.toJSON().reduce<TransformedData>((data, [k, v]) => {
     // We're only concerned with transforming the config
@@ -94,6 +98,23 @@ function transformData(_data: Record<string, any>, model: FormModel) {
   }, {});
 }
 
+/**
+ * Transform config field errors from the error response
+ */
+function mapFormErrors(responseJson?: any) {
+  if (responseJson.config === undefined) {
+    return responseJson;
+  }
+
+  // Bring nested config entries to the top
+  const {config, ...responseRest} = responseJson;
+  const configErrors = Object.fromEntries(
+    Object.entries(config).map(([key, value]) => [`config.${key}`, value])
+  );
+
+  return {...responseRest, ...configErrors};
+}
+
 function MonitorForm({
   monitor,
   submitLabel,
@@ -101,13 +122,13 @@ function MonitorForm({
   apiMethod,
   onSubmitSuccess,
 }: Props) {
-  const form = useRef(new FormModel({transformData}));
+  const form = useRef(new FormModel({transformData, mapFormErrors}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const [crontabInput, setCrontabInput] = useState(
     monitor?.config.schedule_type === ScheduleType.CRONTAB
       ? monitor?.config.schedule
-      : null
+      : DEFAULT_CRONTAB
   );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
@@ -138,6 +159,9 @@ function MonitorForm({
   const selectedProject = selectedProjectId
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
+
+  const isSuperuser = isActiveSuperuser();
+  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
   const parsedSchedule = crontabAsText(crontabInput);
 
@@ -194,7 +218,7 @@ function MonitorForm({
           )}
           <StyledSentryProjectSelectorField
             name="project"
-            projects={projects.filter(project => project.isMember)}
+            projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
             disabledReason={t('Existing monitors cannot be moved between projects')}
@@ -227,17 +251,10 @@ function MonitorForm({
           {t('How often you expect your recurring jobs to run.')}
         </ListItemSubText>
         <InputGroup>
-          {monitor !== undefined && monitor.nextCheckIn && (
+          {monitor !== undefined && (
             <Alert type="info">
-              {tct(
-                'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
-                {
-                  nextCheckin: (
-                    <strong>
-                      <TimeSince date={monitor.nextCheckIn} />
-                    </strong>
-                  ),
-                }
+              {t(
+                'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
               )}
             </Alert>
           )}
@@ -249,7 +266,8 @@ function MonitorForm({
                   <ScheduleGroupInputs>
                     <StyledTextField
                       name="config.schedule"
-                      placeholder="*/5 * * * *"
+                      placeholder="* * * * *"
+                      defaultValue={DEFAULT_CRONTAB}
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
                       required
                       stacked
@@ -275,6 +293,7 @@ function MonitorForm({
                     <StyledNumberField
                       name="config.schedule.frequency"
                       placeholder="e.g. 1"
+                      defaultValue="1"
                       required
                       stacked
                       inline={false}
@@ -284,7 +303,7 @@ function MonitorForm({
                       options={getIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
-                      placeholder="minute"
+                      defaultValue="day"
                       required
                       stacked
                       inline={false}

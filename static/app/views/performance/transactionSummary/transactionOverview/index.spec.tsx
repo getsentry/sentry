@@ -1,5 +1,4 @@
 import {browserHistory, InjectedRouter} from 'react-router';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -11,6 +10,7 @@ import {
   MEPSetting,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -52,12 +52,12 @@ function initializeData({
   return initialData;
 }
 
-const TestComponent = ({
+function TestComponent({
   router,
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
   router: InjectedRouter<Record<string, string>, any>;
-}) => {
+}) {
   const client = new QueryClient();
 
   return (
@@ -67,7 +67,7 @@ const TestComponent = ({
       </RouteContext.Provider>
     </QueryClientProvider>
   );
-};
+}
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {

@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef} from 'react';
+import {memo, MouseEvent, useCallback, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -8,8 +8,10 @@ import {
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -29,6 +31,8 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
+  const {currentTime, currentHoverTime} = useReplayContext();
+  const expandPaths = useRef(new Map<number, Set<string>>());
   const items = useMemo(
     () =>
       (breadcrumbs || []).filter(crumb => !['console'].includes(crumb.category || '')),
@@ -36,11 +40,69 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   );
 
   const listRef = useRef<ReactVirtualizedList>(null);
+
+  const itemLookup = useMemo(
+    () =>
+      breadcrumbs &&
+      breadcrumbs
+        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .sort(([a], [b]) => a - b),
+    [breadcrumbs]
+  );
+
+  const current = useMemo(
+    () =>
+      breadcrumbs
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentTime,
+          })
+        : undefined,
+    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime && breadcrumbs
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+          })
+        : undefined,
+    [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
+  );
+
+  const deps = useMemo(() => [items], [items]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
   });
+
+  const handleDimensionChange = useCallback(
+    (
+      index: number,
+      path: string,
+      expandedState: Record<string, boolean>,
+      event: MouseEvent<HTMLDivElement>
+    ) => {
+      const rowState = expandPaths.current.get(index) || new Set();
+      if (expandedState[path]) {
+        rowState.add(path);
+      } else {
+        // Collapsed, i.e. its default state, so no need to store state
+        rowState.delete(path);
+      }
+      expandPaths.current.set(index, rowState);
+      cache.clear(index, 0);
+      listRef.current?.recomputeGridSize({rowIndex: index});
+      listRef.current?.forceUpdateGrid();
+      event.stopPropagation();
+    },
+    [cache, expandPaths, listRef]
+  );
 
   useScrollToCurrentItem({
     breadcrumbs,
@@ -60,10 +122,14 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <BreadcrumbRow
+          index={index}
+          isCurrent={current?.id === item.id}
+          isHovered={hovered?.id === item.id}
           breadcrumb={item}
-          breadcrumbs={items}
           startTimestampMs={startTimestampMs}
           style={style}
+          expandPaths={Array.from(expandPaths.current.get(index) || [])}
+          onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
     );

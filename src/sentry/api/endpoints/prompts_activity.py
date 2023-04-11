@@ -103,7 +103,7 @@ class PromptsActivityEndpoint(Endpoint):
         try:
             with transaction.atomic():
                 PromptsActivity.objects.create_or_update(
-                    feature=feature, user=request.user, values={"data": data}, **fields
+                    feature=feature, user_id=request.user.id, values={"data": data}, **fields
                 )
         except IntegrityError:
             pass

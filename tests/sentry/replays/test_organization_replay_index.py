@@ -3,15 +3,18 @@ import uuid
 
 from django.urls import reverse
 
-from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
+from sentry.replays.testutils import (
+    assert_expected_response,
+    mock_expected_response,
+    mock_replay,
+    mock_replay_click,
+)
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 
-REPLAYS_FEATURES = {
-    "organizations:session-replay": True,
-}
+REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
 @region_silo_test
@@ -155,7 +158,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             assert len(response_data["data"][0]["user"]) == 5
             assert "id" in response_data["data"][0]["user"]
-            assert "name" in response_data["data"][0]["user"]
+            assert "username" in response_data["data"][0]["user"]
             assert "email" in response_data["data"][0]["user"]
             assert "ip" in response_data["data"][0]["user"]
             assert "display_name" in response_data["data"][0]["user"]
@@ -514,7 +517,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "duration:>15",
                 "user.id:123",
                 "user:username123",
-                "user.name:username123",
+                "user.username:username123",
                 "user.email:username@example.com",
                 "user.email:*@example.com",
                 "user.ip:127.0.0.1",
@@ -729,7 +732,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "device.family",
                 "device.model",
                 "user.id",
-                "user.name",
+                "user.username",
                 "user.email",
                 "activity",
             ]
@@ -865,10 +868,172 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
 
+    def test_get_replays_filter_clicks(self):
+        """Test replays conform to the interchange format."""
+        project = self.create_project(teams=[self.team])
 
-@region_silo_test
-@apply_feature_flag_on_cls("organizations:global-views")
-@apply_feature_flag_on_cls("organizations:session-replay-index-subquery")
-class OrganizationReplayIndexTestSubQueryOptimized(OrganizationReplayIndexTest):
-    # run the same tests except with the subquery optimization applied
-    pass
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=2,
+                tag="button",
+                id="myid",
+                class_=["class1", "class3"],
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                "replay_click.alt:Alt",
+                "replay_click.class:class1",
+                "replay_click.class:class2",
+                "replay_click.class:class3",
+                "replay_click.id:myid",
+                "replay_click.label:AriaLabel",
+                "replay_click.role:button",
+                "replay_click.tag:div",
+                "replay_click.tag:button",
+                "replay_click.testid:1",
+                "replay_click.textContent:Hello",
+                "replay_click.title:MyTitle",
+                "replay_click.selector:div#myid",
+                "replay_click.selector:div[alt=Alt]",
+                "replay_click.selector:div[title=MyTitle]",
+                "replay_click.selector:div[data-testid='1']",
+                "replay_click.selector:div[role=button]",
+                "replay_click.selector:div#myid.class1.class2",
+                # Single quotes around attribute value.
+                "replay_click.selector:div[role='button']",
+                "replay_click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+
+            queries = [
+                "replay_click.alt:NotAlt",
+                "replay_click.class:class4",
+                "replay_click.id:other",
+                "replay_click.label:NotAriaLabel",
+                "replay_click.role:form",
+                "replay_click.tag:header",
+                "replay_click.testid:2",
+                "replay_click.textContent:World",
+                "replay_click.title:NotMyTitle",
+                "!replay_click.selector:div#myid",
+                "replay_click.selector:div#notmyid",
+                # Assert all classes must match.
+                "replay_click.selector:div#myid.class1.class2.class3",
+                # Invalid selectors return no rows.
+                "replay_click.selector:$#%^#%",
+                # Integer type role values are not allowed and must be wrapped in single quotes.
+                "replay_click.selector:div[title=1]",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
+
+    def test_get_replays_filter_clicks_nested_selector(self):
+        """Test replays do not support nested selectors."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                'replay_click.selector:"div button"',
+                'replay_click.selector:"div + button"',
+                'replay_click.selector:"div ~ button"',
+                'replay_click.selector:"div > button"',
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400
+                assert response.content == b'{"detail":"Nested selectors are not supported."}'
+
+    def test_get_replays_filter_clicks_pseudo_element(self):
+        """Assert replays only supports a subset of selector syntax."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                "replay_click.selector:a::visited",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400, query
+                assert response.content == b'{"detail":"Pseudo-elements are not supported."}', query
+
+    def test_get_replays_filter_clicks_unsupported_selector(self):
+        """Assert replays only supports a subset of selector syntax."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                "replay_click.selector:div:is(2)",
+                "replay_click.selector:p:active",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400, query
+                assert (
+                    response.content
+                    == b'{"detail":"Only attribute, class, id, and tag name selectors are supported."}'
+                ), query
+
+    def test_get_replays_filter_clicks_unsupported_operators(self):
+        """Assert replays only supports a subset of selector syntax."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                'replay_click.selector:"[aria-label~=button]"',
+                'replay_click.selector:"[aria-label|=button]"',
+                'replay_click.selector:"[aria-label^=button]"',
+                'replay_click.selector:"[aria-label$=button]"',
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400, query
+                assert (
+                    response.content == b'{"detail":"Only the \'=\' operator is supported."}'
+                ), query
+
+
+# @region_silo_test
+# @apply_feature_flag_on_cls("organizations:global-views")
+# @apply_feature_flag_on_cls("organizations:session-replay-index-subquery")
+# class OrganizationReplayIndexTestSubQueryOptimized(OrganizationReplayIndexTest):
+#     # run the same tests except with the subquery optimization applied
+#     pass

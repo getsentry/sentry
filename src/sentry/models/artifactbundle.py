@@ -52,7 +52,7 @@ class ArtifactBundle(Model):
     bundle_id = models.UUIDField(default=NULL_UUID)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     # This field represents the date of the upload that we show in the UI.
     date_uploaded = models.DateTimeField(default=timezone.now)
 
@@ -225,20 +225,29 @@ class ArtifactBundleArchive:
 
         return results
 
-    def get_files_by_file_path_or_debug_id(self, query: Optional[str]) -> Dict[str, dict]:
-        def filter_function(file_path: str, info: dict) -> bool:
+    def get_files_by_url_or_debug_id(self, query: Optional[str]) -> Dict[str, dict]:
+        def filter_function(_: str, info: dict) -> bool:
             if query is None:
                 return True
 
             normalized_query = query.lower()
 
-            if normalized_query in file_path.lower():
+            if normalized_query in info.get("url", "").lower():
                 return True
 
             headers = self.normalize_headers(info.get("headers", {}))
             debug_id = self.normalize_debug_id(headers.get("debug-id", None))
-            if debug_id is not None and normalized_query in debug_id.lower():
-                return True
+            if debug_id is not None:
+                debug_id = debug_id.lower()
+
+                if normalized_query in debug_id:
+                    return True
+
+                # We also want to try and normalize the query so that we can match for example:
+                # 2b69e5bd2e984c578ce1b58da19110ae with 2b69e5bd-2e98-4c57-8ce1-b58da19110ae.
+                normalized_query = self.normalize_debug_id(normalized_query)
+                if normalized_query is not None and normalized_query in debug_id:
+                    return True
 
             return False
 
@@ -258,3 +267,8 @@ class ArtifactBundleArchive:
             return entry[1]
 
         return None
+
+    def get_file_url_by_file_path(self, file_path):
+        files = self.manifest.get("files", {})
+        file_info = files.get(file_path, {})
+        return file_info.get("url")

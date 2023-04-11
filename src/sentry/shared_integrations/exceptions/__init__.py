@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 from typing import Any, Mapping
 from urllib.parse import urlparse
 
@@ -10,6 +11,7 @@ from rest_framework.response import Response
 from .base import ApiError
 
 __all__ = (
+    "ApiConnectionResetError",
     "ApiError",
     "ApiHostError",
     "ApiTimeoutError",
@@ -31,7 +33,7 @@ class ApiHostError(ApiError):
     @classmethod
     def from_request(cls, request: Request) -> ApiHostError:
         host = urlparse(request.url).netloc
-        return cls(f"Unable to reach host: {host}")
+        return cls(f"Unable to reach host: {host}", url=request.url)
 
 
 class ApiTimeoutError(ApiError):
@@ -46,7 +48,7 @@ class ApiTimeoutError(ApiError):
     @classmethod
     def from_request(cls, request: Request) -> ApiTimeoutError:
         host = urlparse(request.url).netloc
-        return cls(f"Timed out attempting to reach host: {host}")
+        return cls(f"Timed out attempting to reach host: {host}", url=request.url)
 
 
 class ApiUnauthorized(ApiError):
@@ -55,6 +57,10 @@ class ApiUnauthorized(ApiError):
 
 class ApiRateLimitedError(ApiError):
     code = 429
+
+
+class ApiConnectionResetError(ApiError):
+    code = errno.ECONNRESET
 
 
 class UnsupportedResponseType(ApiError):

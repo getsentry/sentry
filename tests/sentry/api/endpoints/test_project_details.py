@@ -27,6 +27,7 @@ from sentry.models import (
     Rule,
     ScheduledDeletion,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux
 from sentry.testutils.silo import region_silo_test
@@ -382,7 +383,9 @@ class ProjectUpdateTest(APITestCase):
             isBookmarked="true",
             status_code=403,
         )
-        assert not ProjectBookmark.objects.filter(user=user, project_id=self.project.id).exists()
+        assert not ProjectBookmark.objects.filter(
+            user_id=user.id, project_id=self.project.id
+        ).exists()
 
     def test_member_changes_permission_denied(self):
         project = self.create_project()
@@ -405,7 +408,7 @@ class ProjectUpdateTest(APITestCase):
 
         assert Project.objects.get(id=project.id).slug != "zzz"
 
-        assert not ProjectBookmark.objects.filter(user=user, project_id=project.id).exists()
+        assert not ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
 
     def test_name(self):
         self.get_success_response(self.org_slug, self.proj_slug, name="hello world")
@@ -566,7 +569,7 @@ class ProjectUpdateTest(APITestCase):
     def test_bookmarks(self):
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(
-            project_id=self.project.id, user=self.user
+            project_id=self.project.id, user_id=self.user.id
         ).exists()
 
     def test_subscription(self):
@@ -574,7 +577,7 @@ class ProjectUpdateTest(APITestCase):
         value0 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.project,
         )
         assert value0 == NotificationSettingOptionValues.ALWAYS
@@ -583,7 +586,7 @@ class ProjectUpdateTest(APITestCase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.project,
         )
         assert value1 == NotificationSettingOptionValues.NEVER

@@ -108,7 +108,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        api_key = ApiKey.objects.create(
+            organization_id=self.organization.id, scope_list=["org:read"]
+        )
         query = {"field": ["project.name", "environment"], "project": [self.project.id]}
 
         url = self.reverse_url()
@@ -1162,6 +1164,32 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             assert 2 == response.data["data"][0]["count()"]
             assert 1 == response.data["data"][1]["error.unhandled"]
             assert 1 == response.data["data"][1]["count()"]
+
+    def test_error_main_thread_condition(self):
+        prototype = self.load_data(platform="android-ndk")
+
+        prototype["timestamp"] = self.ten_mins_ago_iso
+        self.store_event(data=prototype, project_id=self.project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["id", "project.id"],
+                "query": "error.main_thread:true",
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 1 == len(response.data["data"])
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["id", "project.id"],
+                "query": "error.main_thread:false",
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 0 == len(response.data["data"])
 
     def test_implicit_groupby(self):
         self.store_event(
@@ -4301,7 +4329,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        api_key = ApiKey.objects.create(
+            organization_id=self.organization.id, scope_list=["org:read"]
+        )
 
         query = {
             "field": ["project.name", "environment"],

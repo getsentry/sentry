@@ -117,13 +117,13 @@ export class PerformanceInteraction {
   }
 }
 
-export const CustomProfiler = ({id, children}: {children: ReactNode; id: string}) => {
+export function CustomProfiler({id, children}: {children: ReactNode; id: string}) {
   return (
     <Profiler id={id} onRender={onRenderCallback}>
       {children}
     </Profiler>
   );
-};
+}
 
 /**
  * This component wraps the main component on a page with a measurement checking for visual completedness.
@@ -132,7 +132,7 @@ export const CustomProfiler = ({id, children}: {children: ReactNode; id: string}
  *
  * Since this component is guaranteed to be part of the -real- critical path, it also wraps the component with the custom profiler.
  */
-export const VisuallyCompleteWithData = ({
+export function VisuallyCompleteWithData({
   id,
   hasData,
   children,
@@ -140,7 +140,7 @@ export const VisuallyCompleteWithData = ({
   children: ReactNode;
   hasData: boolean;
   id: string;
-}) => {
+}) {
   const isDataCompleteSet = useRef(false);
 
   const num = useRef(1);
@@ -187,7 +187,7 @@ export const VisuallyCompleteWithData = ({
       <Fragment>{children}</Fragment>
     </Profiler>
   );
-};
+}
 
 interface OpAssetMeasurementDefinition {
   key: string;
@@ -342,8 +342,8 @@ const customMeasurements: Record<
       return undefined;
     }
     return {
-      value: span?.endTimestamp - span?.startTimestamp,
-      unit: 'seconds',
+      value: (span?.endTimestamp - span?.startTimestamp) * 1000,
+      unit: 'millisecond',
     };
   },
   /**
@@ -359,10 +359,10 @@ const customMeasurements: Record<
     if (!vcdSpan?.endTimestamp) {
       return undefined;
     }
-    const value = vcdSpan?.endTimestamp - transactionStart;
+    const value = (vcdSpan?.endTimestamp - transactionStart) * 1000;
     return {
       value,
-      unit: 'seconds',
+      unit: 'millisecond',
     };
   },
 
@@ -382,8 +382,8 @@ const customMeasurements: Record<
     }
     const timestamp = bundleSpan?.endTimestamp || 0; // Default to 0 so this works for navigations.
     return {
-      value: vcdSpan.endTimestamp - timestamp,
-      unit: 'seconds',
+      value: (vcdSpan.endTimestamp - timestamp) * 1000,
+      unit: 'millisecond',
     };
   },
 };
@@ -424,4 +424,25 @@ export const setGroupedEntityTag = (
   }
   groups = [...groups, +Infinity];
   setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
+};
+
+/**
+ * A temporary util function used for interaction transactions that will attach a tag to the transaction, indicating the element
+ * that was interacted with. This will allow for querying for transactions by a specific element. This is a high cardinality tag, but
+ * it is only temporary for an experiment
+ */
+export const addUIElementTag = (transaction: TransactionEvent) => {
+  if (!transaction || transaction.contexts?.trace?.op !== 'ui.action.click') {
+    return;
+  }
+
+  if (!transaction.tags) {
+    return;
+  }
+
+  const interactionSpan = transaction.spans?.find(
+    span => span.op === 'ui.interaction.click'
+  );
+
+  transaction.tags.interactionElement = interactionSpan?.description;
 };

@@ -21,6 +21,14 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             monitor_resp["slug"] for monitor_resp in response.data
         ]
 
+    def check_valid_environments_response(self, response, monitor, expected_environments):
+        assert {
+            monitor_environment.environment.name for monitor_environment in expected_environments
+        } == {
+            monitor_environment_resp["name"]
+            for monitor_environment_resp in monitor.get("environments", [])
+        }
+
     def test_simple(self):
         monitor = self._create_monitor()
         response = self.get_success_response(self.organization.slug)
@@ -58,6 +66,17 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             ],
         )
 
+    def test_all_monitor_environments(self):
+        monitor = self._create_monitor(status=MonitorStatus.OK)
+        monitor_environment = self._create_monitor_environment(monitor, name="test")
+
+        monitor_empty = self._create_monitor(name="empty")
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor, monitor_empty])
+        self.check_valid_environments_response(response, response.data[0], [monitor_environment])
+        self.check_valid_environments_response(response, response.data[1], [])
+
     def test_monitor_environment(self):
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)
@@ -66,6 +85,26 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self._create_monitor_environment(monitor_hidden, name="hidden")
 
         response = self.get_success_response(self.organization.slug, environment="production")
+        self.check_valid_response(response, [monitor])
+
+    def test_monitor_environment_include_new(self):
+        monitor = self._create_monitor(
+            status=MonitorStatus.OK, last_checkin=datetime.now() - timedelta(minutes=1)
+        )
+        self._create_monitor_environment(monitor)
+
+        monitor_visible = self._create_monitor(name="visible")
+
+        response = self.get_success_response(
+            self.organization.slug, environment="production", includeNew=True
+        )
+        self.check_valid_response(response, [monitor, monitor_visible])
+
+    def test_search_by_slug(self):
+        monitor = self._create_monitor(status=MonitorStatus.OK, slug="test-slug")
+        self._create_monitor(status=MonitorStatus.OK, slug="other-monitor")
+
+        response = self.get_success_response(self.organization.slug, query="test-slug")
         self.check_valid_response(response, [monitor])
 
 
@@ -109,6 +148,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             user_id=self.user.id,
             organization_id=self.organization.id,
             project_id=self.project.id,
+            from_upsert=False,
         )
 
     def test_slug(self):
