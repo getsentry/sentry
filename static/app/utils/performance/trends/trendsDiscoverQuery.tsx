@@ -62,6 +62,7 @@ export function getTrendsRequestPayload(props: RequestProps) {
   apiPayload.trendType = eventView?.trendType || props.trendChangeType;
   apiPayload.interval = eventView?.interval;
   apiPayload.middle = eventView?.middle;
+  apiPayload.withBreakpoint = eventView.withBreakpoint;
   return apiPayload;
 }
 
@@ -69,7 +70,7 @@ function TrendsDiscoverQuery(props: Props) {
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
       {...props}
-      route="new-events-trends-stats"
+      route="events-trends-stats"
       getRequestPayload={getTrendsRequestPayload}
     >
       {({tableData, ...rest}) => {
