@@ -6,7 +6,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
 class HandleArchiveUntilEscalating(TestCase):  # type: ignore
-    def test_archive_until_escalating(self):
+    def test_archive_until_escalating(self) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 

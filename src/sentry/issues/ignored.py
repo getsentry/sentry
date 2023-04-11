@@ -10,7 +10,7 @@ from sentry.utils import metrics
 def handle_archived_until_escalating(
     group_ids: Sequence[int],
     acting_user: User | None,
-):
+) -> None:
     """
     Handle issues that are archived until escalating and create a forecast for them.
 
