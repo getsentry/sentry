@@ -89,8 +89,6 @@ class ProjectPermissionTest(ProjectPermissionBase):
         team = self.create_team(organization=self.org)
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="manager", teams=[team])
-        # managers should be able to act on teams/projects they
-        # don't have access to
         assert self.has_object_perm("GET", self.project, user=user)
         assert self.has_object_perm("POST", self.project, user=user)
         assert self.has_object_perm("PUT", self.project, user=user)
@@ -108,8 +106,6 @@ class ProjectPermissionTest(ProjectPermissionBase):
         project = self.create_project(organization=self.org, teams=[])
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="manager")
-        # managers should be able to act on teams/projects they
-        # don't have access to
         assert self.has_object_perm("GET", project, user=user)
         assert self.has_object_perm("POST", project, user=user)
         assert self.has_object_perm("PUT", project, user=user)
@@ -119,8 +115,6 @@ class ProjectPermissionTest(ProjectPermissionBase):
         team = self.create_team(organization=self.org)
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="owner", teams=[team])
-        # owners should be able to act on teams/projects they
-        # don't have access to
         assert self.has_object_perm("GET", self.project, user=user)
         assert self.has_object_perm("POST", self.project, user=user)
         assert self.has_object_perm("PUT", self.project, user=user)
@@ -138,8 +132,6 @@ class ProjectPermissionTest(ProjectPermissionBase):
         project = self.create_project(organization=self.org, teams=[])
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="owner")
-        # owners should be able to act on teams/projects they
-        # don't have access to
         assert self.has_object_perm("GET", project, user=user)
         assert self.has_object_perm("POST", project, user=user)
         assert self.has_object_perm("PUT", project, user=user)
@@ -279,7 +271,7 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         team = self.create_team(organization=self.org)
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="admin", teams=[team])
-        # if `allow_joinleave` is False, admins can't act on teams
+        # if `allow_joinleave` is False, admins can't act on teams that
         # they don't have access to
         assert not self.has_object_perm("GET", self.project, user=user)
         assert not self.has_object_perm("POST", self.project, user=user)
@@ -298,8 +290,6 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         team = self.create_team(organization=self.org)
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="manager", teams=[team])
-        # managers should be able to act on teams/projects they
-        # don't have access to
         assert self.has_object_perm("GET", self.project, user=user)
         assert self.has_object_perm("POST", self.project, user=user)
         assert self.has_object_perm("PUT", self.project, user=user)
@@ -317,8 +307,6 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         project = self.create_project(organization=self.org, teams=[])
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="manager")
-        # managers should be able to act on teams/projects they
-        # don't have access to
         assert self.has_object_perm("GET", project, user=user)
         assert self.has_object_perm("POST", project, user=user)
         assert self.has_object_perm("PUT", project, user=user)
@@ -328,8 +316,6 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         team = self.create_team(organization=self.org)
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="owner", teams=[team])
-        # owners should be able to act on teams/projects they
-        # don't have access to
         assert self.has_object_perm("GET", self.project, user=user)
         assert self.has_object_perm("POST", self.project, user=user)
         assert self.has_object_perm("PUT", self.project, user=user)
@@ -347,8 +333,6 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         project = self.create_project(organization=self.org, teams=[])
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="owner")
-        # owners should be able to act on teams/projects they
-        # don't have access to
         assert self.has_object_perm("GET", project, user=user)
         assert self.has_object_perm("POST", project, user=user)
         assert self.has_object_perm("PUT", project, user=user)
