@@ -2,7 +2,6 @@
 
 from django.db import migrations
 
-import sentry.db.models.fields.bounded
 from sentry.new_migrations.migrations import CheckedMigration
 
 
@@ -61,30 +60,6 @@ ALTER TABLE "sentry_actor" ADD CONSTRAINT "sentry_actor_team_id_6ca8eba5_uniq" U
 ALTER TABLE "sentry_actor" ADD CONSTRAINT "sentry_actor_user_id_c832ff63_uniq" UNIQUE USING INDEX "sentry_actor_user_id_c832ff63_uniq";
             """,
                 hints={"tables": ["sentry_actor"]},
-            ),
-            migrations.AlterField(
-                model_name="pagerdutyservice",
-                name="organization_id",
-                field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                    db_index=True, null=False
-                ),
-            ),
-            migrations.AlterField(
-                model_name="repositoryprojectpathconfig",
-                name="organization_id",
-                field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                    db_index=True, null=False
-                ),
-            ),
-            migrations.AlterField(
-                model_name="pagerdutyservice",
-                name="integration_id",
-                field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=False),
-            ),
-            migrations.AlterField(
-                model_name="repositoryprojectpathconfig",
-                name="integration_id",
-                field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=False),
             ),
         ]
     )
