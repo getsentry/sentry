@@ -745,6 +745,7 @@ CELERY_QUEUES = [
         routing_key="dynamicsampling",
     ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
+    Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1155,13 +1156,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
-    # True if release-health related queries should be run against both
-    # backends (sessions and metrics dataset)
-    "organizations:release-health-check-metrics": False,
-    # True if differences between the metrics and sessions backend should be reported
-    "organizations:release-health-check-metrics-report": False,
-    # True if the metrics data should be returned as API response (if possible with current data)
-    "organizations:release-health-return-metrics": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
     # Enable threshold period in metric alert rule builder
@@ -1335,6 +1329,8 @@ SENTRY_FEATURES = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
     "organizations:anr-improvements": False,
+    # Enable anr frame analysis
+    "organizations:anr-analyze-frames": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
