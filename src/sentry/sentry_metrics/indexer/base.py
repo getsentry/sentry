@@ -119,6 +119,17 @@ class KeyCollection:
 
 
 class UseCaseKeyCollection:
+    """
+    A UseCaseKeyCollection is a way of keeping track of a group
+    of keys used to fetch ids, whose results are stored in UseCaseKeyResults.
+
+    A key is a use_case_id, org_id, string pair, either represented as a
+    tuple e.g ("performance", 1, "a"), or a string "performance:1:a".
+
+    Initial mapping is org_id's to sets of strings:
+        {"performance": { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
+    """
+
     def __init__(self, mapping: Mapping[str, Union[Mapping[int, Set[str]], KeyCollection]]):
         self.mapping = {
             use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
@@ -254,6 +265,14 @@ class KeyResults:
 
 
 class UseCaseKeyResults:
+    """
+    A UseCaseKeyResults the use case ID aware version of KeyResults.
+
+    It stores mapping of strings and their indexed ID, keyed by use case ID and org ID
+    E.g
+        {"performance": { 1: {"a": 1, "b": 2}, 2: {"f": 7} }}
+    """
+
     def __init__(self) -> None:
         self.results: MutableMapping[str, KeyResults] = defaultdict(lambda: KeyResults())
 
@@ -297,6 +316,9 @@ class UseCaseKeyResults:
             )
 
     def get_mapped_results(self) -> Mapping[str, Mapping[int, Mapping[str, Optional[int]]]]:
+        """
+        Only return results that string/int mappings, keyed by use case ID, then org ID.
+        """
         return {
             use_case_id: mapped_result
             for use_case_id, key_results in self.results.items()
@@ -306,6 +328,11 @@ class UseCaseKeyResults:
     def get_unmapped_use_case_keys(
         self, use_case_key_collection: UseCaseKeyCollection
     ) -> UseCaseKeyCollection:
+        """
+        Takes a UseCaseKeyCollection and compares it to the results. Returns
+        a new UseCaseKeyCollection for any keys that don't have corresponding
+        ids in results.
+        """
         return UseCaseKeyCollection(
             {
                 use_case_id: unmapped_result
@@ -318,6 +345,16 @@ class UseCaseKeyResults:
         )
 
     def get_mapped_strings_to_ints(self) -> MutableMapping[str, int]:
+        """
+        Return the results, but formatted as the following:
+            {
+                "use_case_1:1:a": 10,
+                "use_case_1:1:b": 11,
+                "use_case_1:1:c", 12,
+                "use_case_1:2:e": 13
+            }
+        This is for when we use indexer_cache.set_many()
+        """
         return {
             f"{use_case_id}:{string}": id
             for use_case_id, key_results in self.results.items()
