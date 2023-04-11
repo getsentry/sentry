@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.net.http import connection_from_url
 from sentry.snuba import discover
+from sentry.snuba.referrer import Referrer
 from sentry.utils import json
 
 IMPROVED = "improved"
@@ -88,7 +89,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 rollup=rollup,
                 limit=10,
                 organization=organization,
-                referrer="api.trends.get-event-stats",
+                referrer=Referrer.API_API_TRENDS_GET_EVENT_STATS_NEW,
                 allow_empty=False,
                 zerofill_results=zerofill_results,
                 orderby=["count()"],
