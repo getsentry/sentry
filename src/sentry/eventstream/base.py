@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -11,11 +12,11 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    TypedDict,
     Union,
     cast,
 )
 
-from sentry.eventstream.types import EventStreamEventType, GroupStates
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.post_process_forwarder import PostProcessForwarderType
 from sentry.tasks.post_process import post_process_group
@@ -27,6 +28,26 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
+
+
+class GroupState(TypedDict):
+    id: int
+    is_new: bool
+    is_regression: bool
+    is_new_group_environment: bool
+
+
+GroupStates = Sequence[GroupState]
+
+
+class EventStreamEventType(Enum):
+    """
+    We have 3 broad categories of event types that we care about in eventstream.
+    """
+
+    Error = "error"  # error, default, various security errors
+    Transaction = "transaction"  # transactions
+    Generic = "generic"  # generic events ingested via the issue platform
 
 
 class ForwarderNotRequired(NotImplementedError):

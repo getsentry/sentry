@@ -20,6 +20,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
+from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.eventstream.types import EventStreamEventType, GroupStates
 from sentry.killswitches import killswitch_matches_context
@@ -227,7 +228,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
     ) -> None:
-        PostProcessForwarder().run(
+        dispatch_function = _get_task_kwargs_and_dispatch
+
+        PostProcessForwarder(dispatch_function).run(
             entity,
             consumer_group,
             topic,

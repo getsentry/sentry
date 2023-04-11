@@ -2,9 +2,9 @@ import logging
 import signal
 import uuid
 from enum import Enum
-from typing import Any, Literal, MutableMapping, Optional, Union
+from typing import Any, Callable, Literal, MutableMapping, Optional, Union
 
-from arroyo import Topic, configure_metrics
+from arroyo import Message, Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
@@ -29,11 +29,12 @@ class PostProcessForwarderType(str, Enum):
 
 class PostProcessForwarder:
     """
-    Forwards messages to Celery for post processing once they have been
-    persisted to Snuba.
+    The `dispatch_function` should take a message and dispatch the post_process_group
+    celery task
     """
 
-    def __init__(self) -> None:
+    def __init__(self, dispatch_function: Callable[[Message[KafkaPayload]], None]) -> None:
+        self.dispatch_function = dispatch_function
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
@@ -120,7 +121,7 @@ class PostProcessForwarder:
             commit_log_groups={synchronize_commit_group},
         )
 
-        strategy_factory = PostProcessForwarderStrategyFactory(concurrency)
+        strategy_factory = PostProcessForwarderStrategyFactory(self.dispatch_function, concurrency)
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
