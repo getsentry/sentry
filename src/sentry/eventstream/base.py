@@ -12,11 +12,11 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
-    TypedDict,
     Union,
     cast,
 )
 
+from sentry.eventstream.types import GroupStates
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.post_process_forwarder import PostProcessForwarderType
 from sentry.tasks.post_process import post_process_group
@@ -35,16 +35,6 @@ class ForwarderNotRequired(NotImplementedError):
     Exception raised if this backend does not require a forwarder process to
     enqueue post-processing tasks.
     """
-
-
-class GroupState(TypedDict):
-    id: int
-    is_new: bool
-    is_regression: bool
-    is_new_group_environment: bool
-
-
-GroupStates = Sequence[GroupState]
 
 
 class EventStreamEventType(Enum):
