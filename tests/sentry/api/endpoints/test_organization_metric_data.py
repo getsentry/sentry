@@ -442,6 +442,25 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 200
 
+    def test_query_with_wildcard(self):
+        rh_indexer_record(self.organization.id, "session.crash_free_user_rate")
+        self.build_and_store_session(
+            project_id=self.project.id,
+        )
+        response = self.get_response(
+            self.organization.slug,
+            field="session.crash_free_user_rate",
+            groupBy="release",
+            environment="Release",
+            query='!release:"0.99.0 (*)"',
+            statsPeriod="14d",
+            interval="1h",
+            includeTotals="1",
+            includeSeries="0",
+        )
+
+        assert response.status_code == 400
+
     def test_pagination_offset_without_orderby(self):
         """
         Test that ensures a successful response is returned even when requesting an offset

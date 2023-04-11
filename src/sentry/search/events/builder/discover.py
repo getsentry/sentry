@@ -41,6 +41,7 @@ from snuba_sdk import (
 )
 
 from sentry.api import event_search
+from sentry.api.event_search import SearchFilter
 from sentry.discover.arithmetic import (
     OperandType,
     Operation,
@@ -1553,6 +1554,25 @@ class UnresolvedQuery(QueryBuilder):
         orderby: Optional[List[str]] = None,
     ) -> None:
         pass
+
+
+class ReleaseHealthQueryBuilder(UnresolvedQuery):
+    def _contains_wildcard_in_query(self, query: Optional[str]):
+        parsed_terms = self.parse_query(query)
+        for parsed_term in parsed_terms:
+            # Since wildcards search uses the clickhouse `match` operator that works on strings, we can't
+            # use it for release health, since tags are stored as integers and converted through
+            # the indexer.
+            if isinstance(parsed_term, SearchFilter) and parsed_term.value.is_wildcard():
+                raise InvalidSearchQuery(f"Query {query} contains wildcards")
+
+    def resolve_conditions(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        self._contains_wildcard_in_query(query)
+        return super().resolve_conditions(query, use_aggregate_conditions)
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):

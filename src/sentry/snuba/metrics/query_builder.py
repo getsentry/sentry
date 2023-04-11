@@ -32,7 +32,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.builder.discover import ReleaseHealthQueryBuilder
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
@@ -342,7 +342,7 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
     try:
-        query_builder = UnresolvedQuery(
+        query_builder = ReleaseHealthQueryBuilder(
             Dataset.Sessions,
             params={
                 "project_id": [project.id for project in projects],
@@ -350,9 +350,9 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
             },
         )
         where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
-
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
+
     return where
 
 
