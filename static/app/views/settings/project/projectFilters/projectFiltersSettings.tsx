@@ -254,6 +254,8 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
     />
   );
 
+  // Need to maintain the this binding here
+  // eslint-disable-next-line react/function-component-definition
   renderCustomFilters = (disabled: boolean) => () =>
     (
       <Feature
@@ -262,7 +264,10 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
         project={this.props.project}
         renderDisabled={({children, ...props}) => {
           if (typeof children === 'function') {
-            return children({...props, renderDisabled: this.renderDisabledCustomFilters});
+            return children({
+              ...props,
+              renderDisabled: this.renderDisabledCustomFilters,
+            });
           }
           return null;
         }}
@@ -273,7 +278,12 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
               typeof renderDisabled === 'function' &&
               // XXX: children is set to null as we're doing tricksy things
               // in the renderDisabled prop a few lines higher.
-              renderDisabled({organization, hasFeature, children: null, ...featureProps})}
+              renderDisabled({
+                organization,
+                hasFeature,
+                children: null,
+                ...featureProps,
+              })}
 
             {customFilterFields.map(field => (
               <FieldFromConfig

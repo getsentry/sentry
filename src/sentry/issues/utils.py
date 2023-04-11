@@ -1,11 +1,7 @@
 from typing import Union
 
 from sentry import options
-from sentry.issues.grouptype import (
-    GroupCategory,
-    PerformanceNPlusOneGroupType,
-    get_group_type_by_type_id,
-)
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import Project
 from sentry.models.group import Group
@@ -24,8 +20,7 @@ def can_create_group(
     return bool(
         group_type.category != GroupCategory.PERFORMANCE.value
         or (
-            # create N+1 db query issues first
-            group_type.type_id == PerformanceNPlusOneGroupType.type_id
+            group_type.category == GroupCategory.PERFORMANCE.value
             # system-wide option
             and options.get("performance.issues.create_issues_through_platform", False)
             # more-granular per-project option
@@ -36,10 +31,9 @@ def can_create_group(
 
 def write_occurrence_to_platform(performance_problem: PerformanceProblem, project: Project) -> bool:
     return bool(
-        # handle only N+1 db query detector first
-        performance_problem.type.type_id == PerformanceNPlusOneGroupType.type_id
+        performance_problem.type.category == GroupCategory.PERFORMANCE.value
         # system-wide option
         and options.get("performance.issues.send_to_issues_platform", False)
         # more-granular per-project option
-        and project.get_option("sentry:performance_issue_send_to_issues_platform", False)
+        and project.get_option("sentry:performance_issue_send_to_issues_platform", True)
     )

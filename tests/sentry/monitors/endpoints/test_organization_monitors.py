@@ -100,6 +100,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, [monitor, monitor_visible])
 
+    def test_search_by_slug(self):
+        monitor = self._create_monitor(status=MonitorStatus.OK, slug="test-slug")
+        self._create_monitor(status=MonitorStatus.OK, slug="other-monitor")
+
+        response = self.get_success_response(self.organization.slug, query="test-slug")
+        self.check_valid_response(response, [monitor])
+
 
 @region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(MonitorTestCase):

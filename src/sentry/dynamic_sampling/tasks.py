@@ -1,5 +1,9 @@
 import logging
+from collections import namedtuple
+from datetime import timedelta
 from typing import Sequence, Tuple
+
+from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
@@ -22,6 +26,9 @@ from sentry.dynamic_sampling.rules.utils import (
     DecisionKeepCount,
     OrganizationId,
     ProjectId,
+    actual_sample_rate,
+    adjusted_factor,
+    generate_cache_key_adj_factor,
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.snuba_utils import get_orgs_with_project_counts_without_modulo
@@ -57,6 +64,11 @@ def prioritise_projects() -> None:
                 org_ids=orgs
             ).items():
                 process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
+            # TODO: @andrii potentially run it as separate celery job
+            for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
+                org_ids=orgs, query_interval=timedelta(minutes=5)
+            ).items():
+                process_projects_sample_factors.delay(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(
@@ -90,20 +102,21 @@ def adjust_sample_rates(
     so relay can reread it, and we'll inject it from redis cache.
     """
     projects = []
+    Counter = namedtuple("Counter", ["count", "count_keep", "count_drop"])
     project_ids_with_counts = {}
-    # TODO: replace it in another PR with calculating actual sample rate
-    for project_id, count_per_root, _, _ in projects_with_tx_count:
-        project_ids_with_counts[project_id] = count_per_root
+    for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
+        project_ids_with_counts[project_id] = Counter(count_per_root, count_keep, count_drop)
 
     sample_rate = None
     for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
         sample_rate = quotas.get_blended_sample_rate(project)
         if sample_rate is None:
             continue
+        counts = project_ids_with_counts[project.id]
         projects.append(
             DSElement(
                 id=project.id,
-                count=project_ids_with_counts[project.id],
+                count=counts.count,
             )
         )
 
@@ -129,6 +142,57 @@ def adjust_sample_rates(
                 project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
             )
         pipeline.execute()
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.process_projects_factors",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,  # 25 mins
+    time_limit=2 * 60 + 5,
+)  # type: ignore
+def process_projects_sample_factors(
+    org_id: OrganizationId,
+    projects_with_tx_count_and_rates: Sequence[
+        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+    ],
+) -> None:
+    """
+    Takes a single org id and a list of project ids
+    """
+    with metrics.timer("sentry.tasks.dynamic_sampling.process_projects_factors.core"):
+        redis_client = get_redis_client_for_ds()
+        Counter = namedtuple("Counter", ["count", "count_keep", "count_drop"])
+        project_ids_with_counts = {}
+        for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count_and_rates:
+            project_ids_with_counts[project_id] = Counter(count_per_root, count_keep, count_drop)
+
+        with redis_client.pipeline(transaction=False) as pipeline:
+            for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
+                desired_sample_rate = quotas.get_blended_sample_rate(project)
+
+                if not desired_sample_rate:
+                    continue
+
+                counter = project_ids_with_counts[project.id]
+                if (actual_rate := actual_sample_rate(counter.count_keep, counter.count_drop)) != 0:
+                    adj_factor_cache_key = generate_cache_key_adj_factor(org_id)
+
+                    try:
+                        prev_factor = float(pipeline.hget(adj_factor_cache_key, project.id))
+                    except (TypeError, ValueError):
+                        prev_factor = 1.0
+
+                    new_factor = adjusted_factor(prev_factor, actual_rate, desired_sample_rate)
+
+                    pipeline.hset(adj_factor_cache_key, project.id, new_factor)
+                    pipeline.pexpire(adj_factor_cache_key, CACHE_KEY_TTL)
+
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="dynamic_sampling_process_projects_factors"
+                )
+            pipeline.execute()
 
 
 @instrumented_task(
@@ -191,7 +255,11 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     transactions = project_transactions["transaction_counts"]
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
-    project = Project.objects.get_from_cache(id=project_id)
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except ObjectDoesNotExist:
+        return  # project has probably been deleted no need to continue
+
     sample_rate = quotas.get_blended_sample_rate(project)
 
     if sample_rate is None or sample_rate == 1.0:

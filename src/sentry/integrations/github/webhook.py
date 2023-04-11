@@ -32,6 +32,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.json import JSONData
 
+from ...services.hybrid_cloud.integration import RpcIntegration, integration_service
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
@@ -55,9 +56,10 @@ class Webhook:
         if host:
             external_id = f"{host}:{external_id}"
 
-        try:
-            integration = Integration.objects.get(external_id=external_id, provider=self.provider)
-        except Integration.DoesNotExist:
+        integration, installs = integration_service.get_organization_contexts(
+            external_id=external_id, provider=self.provider
+        )
+        if integration is None or not installs:
             # It seems possible for the GH or GHE app to be installed on their
             # end, but the integration to not exist. Possibly from deleting in
             # Sentry first or from a failed install flow (where the integration
@@ -74,8 +76,12 @@ class Webhook:
             return
 
         if "repository" in event:
-
-            orgs = {org.id: org for org in integration.organizations.all()}
+            orgs = {
+                org.id: org
+                for org in Organization.objects.filter(
+                    id__in=[install.organization_id for install in installs]
+                )
+            }
 
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
@@ -142,7 +148,12 @@ class InstallationEventWebhook(Webhook):
                 logger.exception("Installation is missing.")
 
     def _handle_delete(self, event: Mapping[str, Any], integration: Integration) -> None:
-        organizations = integration.organizations.all()
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
+        organizations = Organization.objects.filter(
+            id__in=[oi.organization_id for oi in org_integrations]
+        )
 
         logger.info(
             "InstallationEventWebhook._handle_delete",
@@ -196,14 +207,16 @@ class PushEventWebhook(Webhook):
 
     def _handle(
         self,
-        integration: Integration,
+        integration: Integration | RpcIntegration,
         event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
         host: str | None = None,
     ) -> None:
         authors = {}
-        client = integration.get_installation(organization_id=organization.id).get_client()
+        client = integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        ).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
         for commit in event["commits"]:

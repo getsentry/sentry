@@ -2,7 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType, Event, Group, IssueCategory, IssueType} from 'sentry/types';
 import {Organization} from 'sentry/types/organization';
@@ -51,7 +51,7 @@ const makeDefaultMockData = (
   };
 };
 
-const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
+function TestComponent(props: Partial<GroupEventDetailsProps>) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
     props.project
@@ -79,7 +79,7 @@ const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
   };
 
   return <GroupEventDetails {...mergedProps} />;
-};
+}
 
 const mockedTrace = (project: Project) => {
   return {
@@ -118,6 +118,8 @@ const mockedTrace = (project: Project) => {
         level: 'info',
         culprit: 'MainActivity.add_attachment',
         type: 1008,
+        end: 1678290375.15056,
+        start: 1678290374.150562,
       },
     ],
     timestamp: 1678290375.150561,
@@ -146,11 +148,6 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
     body: {committers: []},
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/projects/${organization.slug}/${project.slug}/releases/completion/`,
-    body: [],
   });
 
   MockApiClient.addMockResponse({
@@ -342,16 +339,13 @@ describe('groupEventDetails', () => {
     );
 
     const routerContext = TestStubs.routerContext();
-    await act(async () => {
-      render(<TestComponent group={group} event={transaction} />, {
-        organization: props.organization,
-        context: routerContext,
-      });
-      await tick();
+    render(<TestComponent group={group} event={transaction} />, {
+      organization: props.organization,
+      context: routerContext,
     });
 
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         name: /span evidence/i,
       })
     ).toBeInTheDocument();
@@ -393,16 +387,13 @@ describe('groupEventDetails', () => {
     );
 
     const routerContext = TestStubs.routerContext();
-    await act(async () => {
-      render(<TestComponent group={group} event={transaction} />, {
-        organization: props.organization,
-        context: routerContext,
-      });
-      await tick();
+    render(<TestComponent group={group} event={transaction} />, {
+      organization: props.organization,
+      context: routerContext,
     });
 
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         name: /function evidence/i,
       })
     ).toBeInTheDocument();
@@ -446,16 +437,6 @@ describe('EventCause', () => {
     );
 
     MockApiClient.addMockResponse({
-      url: `/projects/${props.organization.slug}/${props.project.slug}/releases/completion/`,
-      body: [
-        {
-          step: 'commit',
-          complete: true,
-        },
-      ],
-    });
-
-    MockApiClient.addMockResponse({
       url: `/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/committers/`,
       body: {
         committers: [
@@ -470,42 +451,6 @@ describe('EventCause', () => {
     render(<TestComponent project={props.project} />, {organization: props.organization});
 
     expect(await screen.findByTestId(/event-cause/)).toBeInTheDocument();
-    expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
-  });
-
-  it('renders suspect commit if `releasesCompletion` empty', async function () {
-    const props = makeDefaultMockData(
-      undefined,
-      TestStubs.Project({firstEvent: TestStubs.Event()})
-    );
-
-    mockGroupApis(
-      props.organization,
-      props.project,
-      props.group,
-      TestStubs.Event({
-        size: 1,
-        dateCreated: '2019-03-20T00:00:00.000Z',
-        errors: [],
-        entries: [],
-        tags: [{key: 'environment', value: 'dev'}],
-        previousEventID: 'prev-event-id',
-        nextEventID: 'next-event-id',
-      })
-    );
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${props.organization.slug}/${props.project.slug}/releases/completion/`,
-      body: [],
-    });
-
-    await act(async () => {
-      render(<TestComponent project={props.project} />, {
-        organization: props.organization,
-      });
-      await tick();
-    });
-
     expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
   });
 });
@@ -570,11 +515,9 @@ describe('Platform Integrations', () => {
       body: [component],
     });
 
-    await act(async () => {
-      render(<TestComponent />, {organization: props.organization});
-      await tick();
-    });
+    render(<TestComponent />, {organization: props.organization});
 
+    expect(await screen.findByText('Sample App Issue')).toBeInTheDocument();
     expect(componentsRequest).toHaveBeenCalled();
   });
 
@@ -596,16 +539,14 @@ describe('Platform Integrations', () => {
         mockedTrace(props.project)
       );
       const routerContext = TestStubs.routerContext();
-      await act(async () => {
-        render(<TestComponent group={props.group} event={props.event} />, {
-          organization: props.organization,
-          context: routerContext,
-        });
-        await tick();
+
+      render(<TestComponent group={props.group} event={props.event} />, {
+        organization: props.organization,
+        context: routerContext,
       });
 
       expect(
-        screen.getByRole('heading', {
+        await screen.findByRole('heading', {
           name: /suspect root issues/i,
         })
       ).toBeInTheDocument();
@@ -624,14 +565,14 @@ describe('Platform Integrations', () => {
         performance_issues: [],
       });
       const routerContext = TestStubs.routerContext();
-      await act(async () => {
-        render(<TestComponent group={props.group} event={props.event} />, {
-          organization: props.organization,
-          context: routerContext,
-        });
-        await tick();
+
+      render(<TestComponent group={props.group} event={props.event} />, {
+        organization: props.organization,
+        context: routerContext,
       });
 
+      // mechanism: ANR
+      expect(await screen.findByText('ANR')).toBeInTheDocument();
       expect(
         screen.queryByRole('heading', {
           name: /suspect root issues/i,

@@ -10,6 +10,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
+const PROJECT_KEY = TestStubs.ProjectKeys()[0];
+
 function renderMockRequests({
   project,
   orgSlug,
@@ -23,6 +25,13 @@ function renderMockRequests({
     url: `/projects/${orgSlug}/${project.slug}/`,
     body: project,
   });
+
+  if (project.slug === 'javascript-browser') {
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgSlug}/${project.slug}/keys/`,
+      body: [PROJECT_KEY],
+    });
+  }
 
   MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${project.slug}/issues/`,
@@ -423,6 +432,152 @@ describe('Onboarding Setup Docs', function () {
       expect(
         await screen.findByText(ReactDocVariant.ErrorMonitoring)
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('JS Loader Script', function () {
+    it('renders Loader Script setup', async function () {
+      const {router, route, routerContext, organization, project} = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          ...initializeOrg().organization,
+          features: [
+            'onboarding-remove-multiselect-platform',
+            'onboarding-docs-with-product-selection',
+          ],
+        },
+        router: {
+          location: {
+            query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
+          },
+        },
+        projects: [
+          {
+            ...initializeOrg().project,
+            slug: 'javascript-browser',
+            platform: 'javascript',
+          },
+        ],
+      });
+
+      const updateLoaderMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY.id}/`,
+        method: 'PUT',
+        body: PROJECT_KEY,
+      });
+
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData([project]);
+
+      renderMockRequests({
+        project,
+        orgSlug: organization.slug,
+        location: router.location,
+      });
+
+      const {rerender} = render(
+        <PersistedStoreContext.Provider
+          value={[
+            {
+              onboarding: {
+                selectedPlatforms: ['javascript'],
+                platformToProjectIdMap: {
+                  javascript: 'javascript-browser',
+                },
+              },
+            },
+            jest.fn(),
+          ]}
+        >
+          <SetupDocs
+            active
+            onComplete={() => {}}
+            stepIndex={2}
+            router={router}
+            route={route}
+            location={router.location}
+            genSkipOnboardingLink={() => ''}
+            orgId={organization.slug}
+            jumpToSetupProject={() => {}}
+            search=""
+          />
+        </PersistedStoreContext.Provider>,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Configure JavaScript SDK'})
+      ).toBeInTheDocument();
+
+      expect(updateLoaderMock).toHaveBeenCalledTimes(1);
+      expect(updateLoaderMock).toHaveBeenCalledWith(
+        expect.any(String), // The URL
+        {
+          data: {
+            dynamicSdkLoaderOptions: {
+              hasDebug: false,
+              hasPerformance: true,
+              hasReplay: true,
+            },
+          },
+          error: expect.any(Function),
+          method: 'PUT',
+          success: expect.any(Function),
+        }
+      );
+
+      // update query in URL
+      router.location.query = {
+        product: [PRODUCT.SESSION_REPLAY],
+      };
+      rerender(
+        <PersistedStoreContext.Provider
+          value={[
+            {
+              onboarding: {
+                selectedPlatforms: ['javascript'],
+                platformToProjectIdMap: {
+                  javascript: 'javascript-browser',
+                },
+              },
+            },
+            jest.fn(),
+          ]}
+        >
+          <SetupDocs
+            active
+            onComplete={() => {}}
+            stepIndex={2}
+            router={router}
+            route={route}
+            location={router.location}
+            genSkipOnboardingLink={() => ''}
+            orgId={organization.slug}
+            jumpToSetupProject={() => {}}
+            search=""
+          />
+        </PersistedStoreContext.Provider>
+      );
+
+      expect(updateLoaderMock).toHaveBeenCalledTimes(2);
+      expect(updateLoaderMock).toHaveBeenLastCalledWith(
+        expect.any(String), // The URL
+        {
+          data: {
+            dynamicSdkLoaderOptions: {
+              hasDebug: false,
+              hasPerformance: false,
+              hasReplay: true,
+            },
+          },
+          error: expect.any(Function),
+          method: 'PUT',
+          success: expect.any(Function),
+        }
+      );
     });
   });
 });
