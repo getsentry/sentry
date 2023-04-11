@@ -714,5 +714,3 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
     if instance:
         if instance.status == GroupStatus.UNRESOLVED and instance.substatus is None:
             instance.substatus = GroupSubStatus.ONGOING
-        if instance.status == GroupStatus.IGNORED and instance.substatus is None:
-            instance.substatus = GroupSubStatus.UNTIL_ESCALATING
