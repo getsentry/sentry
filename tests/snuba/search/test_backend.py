@@ -1981,7 +1981,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         event = self.store_event(
             data={
-                "event_id": "2" * 32,
+                "event_id": "1" * 32,
                 "message": "something",
                 "timestamp": iso_format(self.base_datetime),
                 "exception": {
@@ -2017,7 +2017,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
     def test_error_main_thread_false(self):
         myProject = self.create_project(
-            name="Foo", slug="foo", teams=[self.team], fire_project_created=True
+            name="Foo2", slug="foo2", teams=[self.team], fire_project_created=True
         )
 
         event = self.store_event(
@@ -2058,12 +2058,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
     def test_error_main_thread_no_results(self):
         myProject = self.create_project(
-            name="Foo", slug="foo", teams=[self.team], fire_project_created=True
+            name="Foo3", slug="foo3", teams=[self.team], fire_project_created=True
         )
 
         self.store_event(
             data={
-                "event_id": "2" * 32,
+                "event_id": "3" * 32,
                 "message": "something",
                 "timestamp": iso_format(self.base_datetime),
                 "exception": {
