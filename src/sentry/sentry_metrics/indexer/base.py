@@ -33,6 +33,10 @@ class FetchTypeExt(NamedTuple):
     is_global: bool
 
 
+UseCaseId = str
+OrgId = int
+
+
 KR = TypeVar("KR", bound="KeyResult")
 UR = TypeVar("UR", bound="UseCaseKeyResult")
 
@@ -45,7 +49,7 @@ class Metadata(NamedTuple):
 
 @dataclass(frozen=True)
 class KeyResult:
-    org_id: int
+    org_id: OrgId
     string: str
     id: Optional[int]
 
@@ -57,8 +61,8 @@ class KeyResult:
 
 @dataclass(frozen=True)
 class UseCaseKeyResult:
-    use_case_id: str
-    org_id: int
+    use_case_id: UseCaseId
+    org_id: OrgId
     string: str
     id: Optional[int]
 
@@ -80,7 +84,7 @@ class KeyCollection:
         { 1: {"a", "b", "c"}, 2: {"e", "f"} }
     """
 
-    def __init__(self, mapping: Mapping[int, Set[str]]):
+    def __init__(self, mapping: Mapping[OrgId, Set[str]]):
         self.mapping = mapping
         self.size = self._size()
 
@@ -130,7 +134,7 @@ class UseCaseKeyCollection:
         {"performance": { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
     """
 
-    def __init__(self, mapping: Mapping[str, Union[Mapping[int, Set[str]], KeyCollection]]):
+    def __init__(self, mapping: Mapping[UseCaseId, Union[Mapping[OrgId, Set[str]], KeyCollection]]):
         self.mapping = {
             use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
             for use_case_id, keys in mapping.items()
@@ -147,7 +151,7 @@ class UseCaseKeyCollection:
     def _size(self) -> int:
         return sum(key_collection.size for key_collection in self.mapping.values())
 
-    def as_tuples(self) -> Sequence[Tuple[str, int, str]]:
+    def as_tuples(self) -> Sequence[Tuple[UseCaseId, OrgId, str]]:
         return [
             (use_case_id, org_id, s)
             for use_case_id, key_collection in self.mapping.items()
@@ -164,8 +168,8 @@ class UseCaseKeyCollection:
 
 class KeyResults:
     def __init__(self) -> None:
-        self.results: MutableMapping[int, MutableMapping[str, Optional[int]]] = defaultdict(dict)
-        self.meta: MutableMapping[int, MutableMapping[str, Metadata]] = defaultdict(dict)
+        self.results: MutableMapping[OrgId, MutableMapping[str, Optional[int]]] = defaultdict(dict)
+        self.meta: MutableMapping[OrgId, MutableMapping[str, Metadata]] = defaultdict(dict)
 
     def __eq__(self, __value: object) -> bool:
         return (
@@ -199,7 +203,7 @@ class KeyResults:
                     id=key_result.id, fetch_type=fetch_type, fetch_type_ext=fetch_type_ext
                 )
 
-    def get_mapped_results(self) -> Mapping[int, Mapping[str, Optional[int]]]:
+    def get_mapped_results(self) -> Mapping[OrgId, Mapping[str, Optional[int]]]:
         """
         Only return results that have org_ids with string/int mappings.
         """
@@ -212,7 +216,7 @@ class KeyResults:
         a new KeyCollection for any keys that don't have corresponding
         ids in results.
         """
-        unmapped_org_strings: MutableMapping[int, Set[str]] = defaultdict(set)
+        unmapped_org_strings: MutableMapping[OrgId, Set[str]] = defaultdict(set)
         for org_id, strings in keys.mapping.items():
             for string in strings:
                 if not self.results[org_id].get(string):
@@ -242,7 +246,7 @@ class KeyResults:
 
     def get_fetch_metadata(
         self,
-    ) -> Mapping[int, Mapping[str, Metadata]]:
+    ) -> Mapping[OrgId, Mapping[str, Metadata]]:
         return self.meta
 
     def merge(self, other: "KeyResults") -> "KeyResults":
@@ -260,7 +264,7 @@ class KeyResults:
         return new_results
 
     # For brevity, allow callers to address the mapping directly
-    def __getitem__(self, org_id: int) -> Mapping[str, Optional[int]]:
+    def __getitem__(self, org_id: OrgId) -> Mapping[str, Optional[int]]:
         return self.results[org_id]
 
 
@@ -274,7 +278,7 @@ class UseCaseKeyResults:
     """
 
     def __init__(self) -> None:
-        self.results: MutableMapping[str, KeyResults] = defaultdict(lambda: KeyResults())
+        self.results: MutableMapping[UseCaseId, KeyResults] = defaultdict(lambda: KeyResults())
 
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, self.__class__) and self.results == __value.results
@@ -315,7 +319,7 @@ class UseCaseKeyResults:
                 fetch_type_ext,
             )
 
-    def get_mapped_results(self) -> Mapping[str, Mapping[int, Mapping[str, Optional[int]]]]:
+    def get_mapped_results(self) -> Mapping[UseCaseId, Mapping[OrgId, Mapping[str, Optional[int]]]]:
         """
         Only return results that string/int mappings, keyed by use case ID, then org ID.
         """
@@ -363,7 +367,7 @@ class UseCaseKeyResults:
 
     def get_fetch_metadata(
         self,
-    ) -> Mapping[str, Mapping[int, Mapping[str, Metadata]]]:
+    ) -> Mapping[UseCaseId, Mapping[OrgId, Mapping[str, Metadata]]]:
         return {
             use_case_id: key_results.get_fetch_metadata()
             for use_case_id, key_results in self.results.items()
@@ -371,7 +375,7 @@ class UseCaseKeyResults:
         }
 
     def merge(self, other: "UseCaseKeyResults") -> "UseCaseKeyResults":
-        def merge_use_case(use_case_id: str) -> KeyResults:
+        def merge_use_case(use_case_id: UseCaseId) -> KeyResults:
             if use_case_id in self.results and use_case_id in other.results:
                 return self.results[use_case_id].merge(other.results[use_case_id])
             if use_case_id in self.results:
@@ -387,7 +391,7 @@ class UseCaseKeyResults:
 
         return new_results
 
-    def __getitem__(self, use_case_id: str) -> KeyResults:
+    def __getitem__(self, use_case_id: UseCaseId) -> KeyResults:
         return self.results[use_case_id]
 
 
