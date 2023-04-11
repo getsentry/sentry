@@ -54,9 +54,9 @@ function MonitorIssues({orgId, monitor}: Props) {
     <Fragment>
       <StyledAlert type="warning" showIcon>
         {tct(
-          'Some older issues may be missing from this list, visit the [link] for older related issues.',
+          'Some older issues may be missing from this list, visit the [link:issue stream] for older related issues.',
           {
-            link: <Link to={issueStreamLink}>{t('issue stream')}</Link>,
+            link: <Link to={issueStreamLink} />,
           }
         )}
       </StyledAlert>
