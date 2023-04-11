@@ -42,7 +42,7 @@ def format_env_vars(env_vars: Mapping[str, str]) -> str:
         value = re.sub("([\"$'\\\\])", "\\\\\\1", value)  # https://xkcd.com/1638/
         return f'{name}="{value}"'
 
-    return ";".join(format_env_var(name, value) for (name, value) in env_vars.items())
+    return " ".join(format_env_var(name, value) for (name, value) in env_vars.items())
 
 
 @click.command()
@@ -95,7 +95,7 @@ def main(api_token: str, region_count: int, control_port: int) -> None:
     control_env_vars["SENTRY_SILO_MODE"] = "CONTROL"
     control_env_vars["SENTRY_DEVSERVER_BIND"] = f"localhost:{control_port}"
 
-    print(f"# Control silo\n{format_env_vars(control_env_vars)}; sentry devserver")  # noqa
+    print(f"# Control silo\n{format_env_vars(control_env_vars)} sentry devserver")  # noqa
 
     for region in regions:
         region_env_vars = common_env_vars.copy()
@@ -103,7 +103,7 @@ def main(api_token: str, region_count: int, control_port: int) -> None:
         region_env_vars["SENTRY_REGION"] = region.name
         region_env_vars["SENTRY_DEVSERVER_BIND"] = region.bind
 
-        print(f"\n# {region.name}\n{format_env_vars(region_env_vars)}; sentry devserver")  # noqa
+        print(f"\n# {region.name}\n{format_env_vars(region_env_vars)} sentry devserver")  # noqa
 
 
 main()
