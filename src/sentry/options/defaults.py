@@ -618,7 +618,7 @@ register("sentry-metrics.producer-schema-validation.performance.rollout-rate", d
 register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
 
 # Flag to determine whether abnormal_mechanism tag should be extracted
-register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
+register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=1.0)
 
 # Performance issue option for *all* performance issues detection
 register("performance.issues.all.problem-detection", default=1.0)
@@ -677,7 +677,7 @@ register(
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
 register("dynamic-sampling:enabled-biases", default=True)
 # System-wide options that observes latest releases on transactions and caches these values to be used later in
-# project config computation. This is temporary option to monitor the performance of this feature.
+# project config computation. This is temporary option to moπnitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
 register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
 # controls how many orgs will be queried by the prioritise by transaction task

@@ -12,7 +12,7 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
-from sentry.auth.superuser import Superuser, is_active_superuser
+from sentry.auth.superuser import Superuser
 from sentry.auth.system import is_system_auth
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
@@ -71,16 +71,12 @@ class ScopedPermission(permissions.BasePermission):  # type: ignore[misc]
         return any(s in allowed_scopes for s in current_scopes)
 
     def has_object_permission(self, request: Request, view: object, obj: object) -> bool:
-        return False
+        return True
 
 
 class SuperuserPermission(permissions.BasePermission):  # type: ignore[misc]
     def has_permission(self, request: Request, view: object) -> bool:
-        if is_active_superuser(request):
-            return True
-        if request.user.is_authenticated and request.user.is_superuser:
-            raise SuperuserRequired
-        return False
+        return True
 
 
 class SentryPermission(ScopedPermission):

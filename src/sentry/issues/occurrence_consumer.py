@@ -247,6 +247,7 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
+            print("processing occurence message!\n\n")
             kwargs = _get_kwargs(message)
             occurrence_data = kwargs["occurrence_data"]
             metrics.incr(

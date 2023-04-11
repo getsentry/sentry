@@ -43,7 +43,7 @@ def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
     payload = KafkaPayload(None, json.dumps(occurrence.to_dict()).encode("utf-8"), [])
     occurrence_producer = get_occurrence_producer()
     future = occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)
-
+    print("\n\n SENDING OCCURENCE TO KAFKA", occurrence)
     track_occurrence_producer_futures(future)
 
 

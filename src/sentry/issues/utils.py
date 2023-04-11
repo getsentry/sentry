@@ -30,10 +30,4 @@ def can_create_group(
 
 
 def write_occurrence_to_platform(performance_problem: PerformanceProblem, project: Project) -> bool:
-    return bool(
-        performance_problem.type.category == GroupCategory.PERFORMANCE.value
-        # system-wide option
-        and options.get("performance.issues.send_to_issues_platform", True)
-        # more-granular per-project option
-        and project.get_option("sentry:performance_issue_send_to_issues_platform", True)
-    )
+    return True
