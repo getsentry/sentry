@@ -4,10 +4,10 @@ import uniqBy from 'lodash/uniqBy';
 import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
-  QueryKey,
+  ApiQueryKey,
   useApiQuery,
+  UseApiQueryOptions,
   useQueries,
-  UseQueryOptions,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -83,7 +83,7 @@ const sourceMapDebugQuery = ({
   eventId,
   frameIdx,
   exceptionIdx,
-}: UseSourceMapDebugProps): QueryKey => [
+}: UseSourceMapDebugProps): ApiQueryKey => [
   `/projects/${orgSlug}/${projectSlug}/events/${eventId}/source-map-debug/`,
   {
     query: {
@@ -105,7 +105,7 @@ export type StacktraceFilenameQuery = {filename: string; query: UseSourceMapDebu
 
 export function useSourceMapDebug(
   props?: UseSourceMapDebugProps,
-  options: Partial<UseQueryOptions<SourceMapDebugResponse>> = {}
+  options: Partial<UseApiQueryOptions<SourceMapDebugResponse>> = {}
 ) {
   return useApiQuery<SourceMapDebugResponse>(props ? sourceMapDebugQuery(props) : [''], {
     staleTime: Infinity,
@@ -125,7 +125,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
     retry: false,
   };
   return useQueries({
-    queries: props.map<UseQueryOptions<SourceMapDebugResponse>>(p => {
+    queries: props.map<UseApiQueryOptions<SourceMapDebugResponse>>(p => {
       const key = sourceMapDebugQuery(p);
       return {
         queryKey: sourceMapDebugQuery(p),

@@ -30,14 +30,14 @@ type Props = {
   projectId?: string;
 };
 
-const SuggestedAssignees = ({
+function SuggestedAssignees({
   group,
   owners,
   projectId,
   organization,
   loading,
   onAssign,
-}: Props) => {
+}: Props) {
   const handleAssign = useCallback(
     (owner: Owner) => {
       onAssign(owner.actor);
@@ -113,7 +113,7 @@ const SuggestedAssignees = ({
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-};
+}
 
 export {SuggestedAssignees};
 
