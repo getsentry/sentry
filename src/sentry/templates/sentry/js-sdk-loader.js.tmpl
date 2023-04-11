@@ -60,36 +60,44 @@
                 }
                 // Add loader as SDK source
                 _window.SENTRY_SDK_SOURCE = 'loader';
-                var SDK = _window[_namespace];
-                var oldInit_1 = SDK.init;
-                // Add necessary integrations based on config
-                var integrations = [];
-                if (_config.tracesSampleRate) {
-                    integrations.push(new SDK.BrowserTracing());
-                }
-                if (_config.replaysSessionSampleRate || _config.replaysOnErrorSampleRate) {
-                    integrations.push(new SDK.Replay());
-                }
-                if (integrations.length) {
-                    _config.integrations = integrations;
-                }
+                var SDK_1 = _window[_namespace];
+                var oldInit_1 = SDK_1.init;
                 // Configure it using provided DSN and config object
-                SDK.init = function (options) {
+                SDK_1.init = function (options) {
                     var target = _config;
                     for (var key in options) {
                         if (Object.prototype.hasOwnProperty.call(options, key)) {
                             target[key] = options[key];
                         }
                     }
+                    setupDefaultIntegrations(target, SDK_1);
                     oldInit_1(target);
                 };
-                sdkLoaded(callbacks, SDK);
+                sdkLoaded(callbacks, SDK_1);
             }
             catch (o_O) {
                 console.error(o_O);
             }
         });
         _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
+    }
+    // We want to ensure to only add default integrations if they haven't been added by the user.
+    function setupDefaultIntegrations(config, SDK) {
+        var integrations = config.integrations || [];
+        // integrations can be a function, in which case we will not add any defaults
+        if (!Array.isArray(integrations)) {
+            return;
+        }
+        var integrationNames = integrations.map(function (integration) { return integration.name; });
+        // Add necessary integrations based on config
+        if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
+            integrations.push(new SDK.BrowserTracing());
+        }
+        if ((config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
+            integrationNames.indexOf('Replay') === -1) {
+            integrations.push(new SDK.Replay());
+        }
+        config.integrations = integrations;
     }
     function sdkIsLoaded() {
         var __sentry = _window.__SENTRY__;
