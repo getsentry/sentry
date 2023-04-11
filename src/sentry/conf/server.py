@@ -711,7 +711,6 @@ CELERY_QUEUES = [
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
-    Queue("process_owner_assignments", routing_key="process_owner_assignments"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -745,6 +744,7 @@ CELERY_QUEUES = [
         routing_key="dynamicsampling",
     ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
+    Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1155,13 +1155,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
-    # True if release-health related queries should be run against both
-    # backends (sessions and metrics dataset)
-    "organizations:release-health-check-metrics": False,
-    # True if differences between the metrics and sessions backend should be reported
-    "organizations:release-health-check-metrics-report": False,
-    # True if the metrics data should be returned as API response (if possible with current data)
-    "organizations:release-health-return-metrics": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
     # Enable threshold period in metric alert rule builder
@@ -1304,8 +1297,6 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
-    # Enable access to Notification Actions and their endpoints
-    "organizations:notification-actions": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
@@ -1337,6 +1328,8 @@ SENTRY_FEATURES = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
     "organizations:anr-improvements": False,
+    # Enable anr frame analysis
+    "organizations:anr-analyze-frames": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest

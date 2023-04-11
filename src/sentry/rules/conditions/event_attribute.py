@@ -18,6 +18,7 @@ ATTR_CHOICES = {
     "type": Columns.TYPE,
     "error.handled": Columns.ERROR_HANDLED,
     "error.unhandled": Columns.ERROR_HANDLED,
+    "error.main_thread": Columns.ERROR_MAIN_THREAD,
     "exception.type": Columns.ERROR_TYPE,
     "exception.value": Columns.ERROR_VALUE,
     "user.id": Columns.USER_ID,
@@ -118,6 +119,8 @@ class EventAttributeCondition(EventCondition):
             return [getattr(e, path[1]) for e in event.interfaces["exception"].values]
 
         elif path[0] == "error":
+            # TODO: add support for error.main_thread
+
             if path[1] not in ("handled", "unhandled"):
                 return []
 
