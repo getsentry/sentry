@@ -262,15 +262,16 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
 
 @first_cron_checkin_received.connect(weak=False)
 def record_first_cron_checkin(project, monitor_id, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_cron_checkins))
+    updated = project.update(flags=F("flags").bitor(Project.flags.has_cron_checkins))
 
-    analytics.record(
-        "first_cron_checkin.sent",
-        user_id=project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        monitor_id=monitor_id,
-    )
+    if updated:
+        analytics.record(
+            "first_cron_checkin.sent",
+            user_id=project.organization.default_owner_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            monitor_id=monitor_id,
+        )
 
 
 @member_invited.connect(weak=False)
