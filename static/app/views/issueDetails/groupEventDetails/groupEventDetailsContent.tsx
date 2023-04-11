@@ -68,7 +68,7 @@ const GroupEventDetailsContent = ({
   const organization = useOrganization();
   const location = useLocation();
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-  const isANR = event?.tags?.find(({key}) => key === 'mechanism')?.value === 'ANR';
+  const isANR = event?.tags?.find(({key}) => key === 'mechanism')?.value === 'ANRv2';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
 
   if (!event) {

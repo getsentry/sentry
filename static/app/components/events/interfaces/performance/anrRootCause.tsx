@@ -1,13 +1,16 @@
-import {Fragment, useContext} from 'react';
+import {Fragment, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
+import isNil from 'lodash/isNil';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -21,37 +24,56 @@ interface Props {
   organization: Organization;
 }
 
-export function AnrRootCause({organization}: Props) {
+export function AnrRootCause({event, organization}: Props) {
   const quickTrace = useContext(QuickTraceContext);
   const {projects} = useProjects();
 
-  if (
+  const anrCulprit = analyzeFramesForRootCause(event);
+
+  useEffect(() => {
+    if (isNil(anrCulprit?.culprit)) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('issue_group_details.anr_root_cause_detected', {
+      organization,
+      group: event?.groupID,
+      culprit: anrCulprit?.culprit,
+    });
+  }, [anrCulprit?.culprit, organization, event?.groupID]);
+
+  const noPerfIssueOnTrace =
     !quickTrace ||
     quickTrace.error ||
     quickTrace.trace === null ||
     quickTrace.trace.length === 0 ||
-    quickTrace.trace[0]?.performance_issues?.length === 0
-  ) {
+    quickTrace.trace[0]?.performance_issues?.length === 0;
+
+  if (noPerfIssueOnTrace && !anrCulprit) {
     return null;
   }
 
-  const potentialAnrRootCause = quickTrace.trace[0].performance_issues.filter(issue =>
-    Object.values(AnrRootCauseAllowlist).includes(issue.type as AnrRootCauseAllowlist)
+  const potentialAnrRootCause = quickTrace?.trace?.[0]?.performance_issues?.filter(
+    issue =>
+      Object.values(AnrRootCauseAllowlist).includes(issue.type as AnrRootCauseAllowlist)
   );
 
-  if (potentialAnrRootCause.length === 0) {
-    return null;
-  }
+  const helpText =
+    isNil(potentialAnrRootCause) || potentialAnrRootCause.length === 0
+      ? t(
+          'Suspect Root Cause identifies common patterns that may be contributing to this ANR'
+        )
+      : t(
+          'Suspect Root Cause identifies potential Performance Issues that may be contributing to this ANR.'
+        );
 
   return (
     <EventDataSection
-      title={t('Suspect Root Issues')}
-      type="suspect-root-issues"
-      help={t(
-        'Suspect Root Issues identifies potential Performance Issues that may be contributing to this ANR.'
-      )}
+      title={t('Suspect Root Cause')}
+      type="suspect-root-cause"
+      help={helpText}
     >
-      {potentialAnrRootCause.map(issue => {
+      {potentialAnrRootCause?.map(issue => {
         const project = projects.find(p => p.id === issue.project_id.toString());
         return (
           <IssueSummary key={issue.issue_id}>
@@ -81,6 +103,7 @@ export function AnrRootCause({organization}: Props) {
           </IssueSummary>
         );
       })}
+      {anrCulprit?.resources}
     </EventDataSection>
   );
 }
