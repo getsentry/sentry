@@ -64,4 +64,18 @@ flags:
     - "src/sentry/**/*.py"
     carryforward: true
 
-comment: false
+# Read more here: https://docs.codecov.com/docs/pull-request-comments
+comment:
+  # after_n_builds declared in flags cannot control when to make comments
+  # A value of 11 will mean that only BE PRs will get a comment (only if the score changes)
+  # XXX: Once commenting pays attention to the value in flags we can add comments to FE PRs
+  after_n_builds: 11
+  layout: "diff, files"
+  # Update, if comment exists. Otherwise post new.
+  behavior: default
+  # Comments will only post when coverage changes. Furthermore, if a comment
+  # already exists, and a newer commit results in no coverage change for the
+  # entire pull, the comment will be deleted.
+  require_changes: true
+  require_base: yes # must have a base report to post
+  require_head: yes # must have a head report to post
