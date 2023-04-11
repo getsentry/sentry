@@ -596,6 +596,11 @@ urlpatterns += [
                     name="sentry-customer-domain-subscription-settings",
                 ),
                 url(
+                    r"^spike-protection/",
+                    react_page_view,
+                    name="sentry-customer-domain-spike-protection-settings",
+                ),
+                url(
                     r"^legal/",
                     react_page_view,
                     name="sentry-customer-domain-legal-settings",
