@@ -5,14 +5,16 @@ type Props = {
   platform: string;
 };
 
-const StacktracePlatformIcon = ({platform}: Props) => (
-  <StyledPlatformIcon
-    platform={platform}
-    size="20px"
-    radius={null}
-    data-test-id={`platform-icon-${platform}`}
-  />
-);
+function StacktracePlatformIcon({platform}: Props) {
+  return (
+    <StyledPlatformIcon
+      platform={platform}
+      size="20px"
+      radius={null}
+      data-test-id={`platform-icon-${platform}`}
+    />
+  );
+}
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   position: absolute;

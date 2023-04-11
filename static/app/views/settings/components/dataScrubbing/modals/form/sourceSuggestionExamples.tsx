@@ -10,21 +10,23 @@ type Props = {
   sourceName: string;
 };
 
-const SourceSuggestionExamples = ({examples, sourceName}: Props) => (
-  <Wrapper>
-    <ExampleCard
-      position="right"
-      header={t('Examples for %s in current event', <code>{sourceName}</code>)}
-      body={examples.map(example => (
-        <pre key={example}>{example}</pre>
-      ))}
-    >
-      <Content>
-        {t('See Example')} <IconQuestion size="xs" />
-      </Content>
-    </ExampleCard>
-  </Wrapper>
-);
+function SourceSuggestionExamples({examples, sourceName}: Props) {
+  return (
+    <Wrapper>
+      <ExampleCard
+        position="right"
+        header={t('Examples for %s in current event', <code>{sourceName}</code>)}
+        body={examples.map(example => (
+          <pre key={example}>{example}</pre>
+        ))}
+      >
+        <Content>
+          {t('See Example')} <IconQuestion size="xs" />
+        </Content>
+      </ExampleCard>
+    </Wrapper>
+  );
+}
 
 export default SourceSuggestionExamples;
 

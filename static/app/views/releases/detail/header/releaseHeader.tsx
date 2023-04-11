@@ -30,14 +30,14 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-const ReleaseHeader = ({
+function ReleaseHeader({
   location,
   organization,
   release,
   project,
   releaseMeta,
   refetchData,
-}: Props) => {
+}: Props) {
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
@@ -144,7 +144,7 @@ const ReleaseHeader = ({
       </Fragment>
     </Layout.Header>
   );
-};
+}
 
 const IconWrapper = styled('span')`
   transition: color 0.3s ease-in-out;

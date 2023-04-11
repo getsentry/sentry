@@ -115,7 +115,7 @@ type CreateAlertButtonProps = {
   showPermissionGuide?: boolean;
 } & ButtonProps;
 
-const CreateAlertButton = ({
+function CreateAlertButton({
   organization,
   projectSlug,
   iconProps,
@@ -125,7 +125,7 @@ const CreateAlertButton = ({
   alertOption,
   onEnter,
   ...buttonProps
-}: CreateAlertButtonProps) => {
+}: CreateAlertButtonProps) {
   const router = useRouter();
   const api = useApi();
   const createAlertUrl = (providedProj: string): string => {
@@ -212,7 +212,7 @@ const CreateAlertButton = ({
       }
     </Access>
   );
-};
+}
 
 export {CreateAlertFromViewButton};
 export default CreateAlertButton;
