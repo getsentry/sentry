@@ -38,15 +38,6 @@ export interface UseApiQueryOptions<
   staleTime: number;
 }
 
-/**
- * TODO(epurkhiser): Remove once getsentry references are updated
- */
-export interface UseQueryOptions<
-  TQueryFnData,
-  TError = RequestError,
-  TData = TQueryFnData
-> extends UseApiQueryOptions<TQueryFnData, TError, TData> {}
-
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
 const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
