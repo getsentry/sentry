@@ -819,7 +819,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?field=activity")
             assert response.status_code == 200
 
-    def test_archived_records_are_not_returned(self):
+    def test_archived_records_are_null_fields(self):
         replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=30)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
@@ -832,7 +832,27 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
-            assert len(response.json()["data"]) == 0
+            assert response.json()["data"] == [
+                {
+                    "id": replay1_id,
+                    "project_id": str(self.project.id),
+                    "trace_ids": [],
+                    "error_ids": [],
+                    "environment": None,
+                    "tags": [],
+                    "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+                    "sdk": {"name": None, "version": None},
+                    "os": {"name": None, "version": None},
+                    "browser": {"name": None, "version": None},
+                    "device": {"name": None, "brand": None, "model": None, "family": None},
+                    "urls": None,
+                    "started_at": None,
+                    "count_errors": None,
+                    "activity": None,
+                    "finished_at": None,
+                    "duration": None,
+                }
+            ]
 
     def test_archived_records_not_returned_with_environment_filtered(self):
         self.create_environment(name="prod", project=self.project)

@@ -32,6 +32,10 @@ def generate_normalized_output(
 ) -> Generator[dict[str, Any], None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
+        if item["isArchived"]:
+            yield _archived_row(item["replay_id"], item["project_id"])
+            continue
+
         item["id"] = _strip_dashes(item.pop("replay_id", None))
         item["project_id"] = str(item["project_id"])
         item["trace_ids"] = item.pop("traceIds", [])
@@ -111,3 +115,25 @@ def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
         unique[key].add(value)
 
     return {key: list(value_set) for key, value_set in unique.items()}
+
+
+def _archived_row(replay_id, project_id):
+    return {
+        "id": _strip_dashes(replay_id),
+        "project_id": str(project_id),
+        "trace_ids": [],
+        "error_ids": [],
+        "environment": None,
+        "tags": [],
+        "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+        "sdk": {"name": None, "version": None},
+        "os": {"name": None, "version": None},
+        "browser": {"name": None, "version": None},
+        "device": {"name": None, "brand": None, "model": None, "family": None},
+        "urls": None,
+        "activity": None,
+        "count_errors": None,
+        "duration": None,
+        "finished_at": None,
+        "started_at": None,
+    }
