@@ -1557,22 +1557,26 @@ class UnresolvedQuery(QueryBuilder):
 
 
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
-    def _contains_wildcard_in_query(self, query: Optional[str]):
+    def _contains_wildcard_in_query(self, query: Optional[str]) -> bool:
         parsed_terms = self.parse_query(query)
         for parsed_term in parsed_terms:
             # Since wildcards search uses the clickhouse `match` operator that works on strings, we can't
             # use it for release health, since tags are stored as integers and converted through
             # the indexer.
             if isinstance(parsed_term, SearchFilter) and parsed_term.value.is_wildcard():
-                raise InvalidSearchQuery(f"Query {query} contains wildcards")
+                return True
+
+        return False
 
     def resolve_conditions(
         self,
         query: Optional[str],
         use_aggregate_conditions: bool,
     ) -> Tuple[List[WhereType], List[WhereType]]:
-        self._contains_wildcard_in_query(query)
-        return super().resolve_conditions(query, use_aggregate_conditions)
+        if not self._contains_wildcard_in_query(query):
+            return super().resolve_conditions(query, use_aggregate_conditions)
+
+        raise InvalidSearchQuery(f"Query {query} contains wildcards")
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):
