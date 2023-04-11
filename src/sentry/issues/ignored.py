@@ -13,7 +13,7 @@ from sentry.utils import metrics
 def handle_archived_until_escalating(
     group_list: Sequence[Group],
     acting_user: User | None,
-) -> None:
+) -> Dict[str, Any]:
     """
     Handle issues that are archived until escalating and create a forecast for them.
 
@@ -25,7 +25,14 @@ def handle_archived_until_escalating(
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
     # TODO(snigdha): create a forecast for this group
 
-    return
+    # TODO(snigdha): we should be able to remove this in a future refactor
+    return {
+        "ignoreCount": None,
+        "ignoreUntil": None,
+        "ignoreUserCount": None,
+        "ignoreUserWindow": None,
+        "ignoreWindow": None,
+    }
 
 
 def handle_ignored(
