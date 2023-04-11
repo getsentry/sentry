@@ -19,12 +19,51 @@ body:
       description: If on self-hosted, what version are you running?
     validations:
       required: false
+  - type: dropdown
+    id: product-area
+    attributes:
+      label: Product Area
+      description: Where in the product did you find the bug?
+      options:
+        # Keep in sync with feature.yml and labels.yml
+        - 'Product Area: Sign in'
+        - 'Product Area: Issues'
+        - 'Product Area: Projects'
+        - 'Product Area: Performance'
+        - 'Product Area: Profiling'
+        - 'Product Area: Replays'
+        - 'Product Area: Crons'
+        - 'Product Area: Alerts'
+        - 'Product Area: Discover'
+        - 'Product Area: Dashboards'
+        - 'Product Area: Releases'
+        - 'Product Area: User Feedback'
+        - 'Product Area: Stats'
+        - 'Product Area: Settings'
+        - 'Product Area: Settings - General'
+        - 'Product Area: Settings - Projects'
+        - 'Product Area: Settings - Teams'
+        - 'Product Area: Settings - Members'
+        - 'Product Area: Settings - Security & Privacy'
+        - 'Product Area: Settings - Auth'
+        - 'Product Area: Settings - Relay'
+        - 'Product Area: Settings - Repositories'
+        - 'Product Area: Settings - Integrations'
+        - 'Product Area: Settings - Developer Settings'
+        - 'Product Area: Settings - Spike Protection'
+        - 'Product Area: Help'
+        - 'Product Area: What’s new'
+        - 'Product Area: Service status'
+        - 'Product Area: Footer'
+        - 'Product Area: Other'
+    validations:
+      required: false
   - type: input
     id: link
     attributes:
       label: Link
       placeholder: https://sentry.io/organizations/{ORG_SLUG}/...
-      description: If on SaaS, where did you find the issue? **Note:** This will divulge your org slug publicly.
+      description: If on SaaS, where exactly did you find the bug? **Note:** This will divulge your org slug publicly.
     validations:
       required: false
   - type: input

@@ -190,7 +190,7 @@
   color: '584774'
   description: ''
 
-# Product Areas
+# Product Areas - keep in sync with feature.yml and bug.yml issue templates
 - name: 'Product Area: Sign in'
   color: '8D5494'
 - name: 'Product Area: Issues'
