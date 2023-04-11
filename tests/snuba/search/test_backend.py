@@ -1975,6 +1975,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == list(results2)
 
     def test_error_main_thread_true(self):
+        myProject = self.create_project(
+            name="Foo", slug="foo", teams=[self.team], fire_project_created=True
+        )
+
         event = self.store_event(
             data={
                 "event_id": "2" * 32,
@@ -1998,17 +2002,18 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                     ],
                 },
             },
-            project_id=self.project.id,
+            project_id=myProject.id,
         )
 
+        myGroup = event.groups[0]
+
         results = self.make_query(
-            projects=[self.project],
+            projects=[myProject],
             search_filter_query="error.handled:1",
             sort_by="date",
         )
 
-        # assert list(event) == list(results)
-        assert set(results) == {event.group}
+        assert list(myGroup) == list(results)
 
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
