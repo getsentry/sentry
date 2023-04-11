@@ -24,7 +24,7 @@ class GenericMetricsBackend(ABC):
         org_id: int,
         project_id: int,
         metric_name: str,
-        value: Sequence[Union[int, str]],
+        value: Sequence[int],
         tags: Mapping[str, str],
     ) -> None:
         raise NotImplementedError()
