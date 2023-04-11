@@ -25,6 +25,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
 import type {ReplayListLocationQuery, ReplayRecord} from 'sentry/views/replays/types';
 
+// Max number of traces to list per page. Lower number means initial list will
+// load faster, but will require more queries afterwards to fill up the height
+// up the view. It also means higher chances of multi-page traces with
+// identical timestamps.
+const MAX_PAGE = 25;
+
 type State = {
   /**
    * Error, if not null.
@@ -253,7 +259,7 @@ export default function Trace({replayRecord, organization}: Props) {
         const [data, , resp] = await doDiscoverQuery<TableData>(
           api,
           `/organizations/${orgSlug}/events/`,
-          {...eventView.getEventsAPIPayload(location), per_page: 25}
+          {...eventView.getEventsAPIPayload(location), per_page: MAX_PAGE}
         );
 
         const traceIds = data.data
