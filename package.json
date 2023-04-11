@@ -196,8 +196,9 @@
     "stylelint": "14.8.2",
     "stylelint-config-prettier": "^9.0.3",
     "stylelint-config-recommended": "^8.0.0",
+    "terser": "5.16.8",
     "tocbot": "^4.20.0",
-    "tsconfig-paths": "^4.1.1",
+    "tsconfig-paths": "^4.2.0",
     "typescript-styled-plugin": "^0.18.2",
     "webpack-dev-server": "^4.11.1"
   },
@@ -231,6 +232,7 @@
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production yarn webpack --mode development",
     "build-production": "NODE_ENV=production yarn webpack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 yarn webpack",
+    "build-js-loader": "ts-node scripts/build-js-loader.ts",
     "validate-api-examples": "cd api-docs && yarn openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install"
   },

@@ -1,3 +1,4 @@
+import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
@@ -21,6 +22,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+
+import * as CursorGuideHandler from './cursorGuideHandler';
 
 const NS_PER_MS = 1000000;
 
@@ -70,11 +73,8 @@ function Chart({data}: ChartProps) {
         axisLabel: {show: false},
         axisTick: {show: false},
         axisPointer: {
-          lineStyle: {
-            color: theme.red300,
-            width: 2,
-            opacity: 0.5,
-          },
+          type: 'none',
+          triggerOn: 'mousemove',
         },
         boundaryGap: false,
       }}
@@ -99,11 +99,32 @@ function Chart({data}: ChartProps) {
   );
 }
 
+// Memoized to prevent re-rendering when the cursor guide is displayed
+const MemoizedChart = React.memo(Chart);
+
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
+  onStartWindowSelection?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  renderCursorGuide?: ({
+    cursorGuideHeight,
+    mouseLeft,
+    showCursorGuide,
+  }: {
+    cursorGuideHeight: number;
+    mouseLeft: number | undefined;
+    showCursorGuide: boolean;
+  }) => void;
+  renderFog?: () => void;
+  renderWindowSelection?: () => void;
 };
 
-function ProfilingMeasurements({profileData}: ProfilingMeasurementsProps) {
+function ProfilingMeasurements({
+  profileData,
+  onStartWindowSelection,
+  renderCursorGuide,
+  renderFog,
+  renderWindowSelection,
+}: ProfilingMeasurementsProps) {
   const theme = useTheme();
 
   if (!('measurements' in profileData) || !defined(profileData.measurements?.cpu_usage)) {
@@ -113,33 +134,63 @@ function ProfilingMeasurements({profileData}: ProfilingMeasurementsProps) {
   const cpuUsageData = profileData.measurements!.cpu_usage!;
 
   return (
-    <DividerHandlerManager.Consumer>
-      {dividerHandlerChildrenProps => {
-        const {dividerPosition} = dividerHandlerChildrenProps;
-        return (
-          <MeasurementContainer>
-            <ChartOpsLabel dividerPosition={dividerPosition}>
-              <OpsLine>
-                <OpsNameContainer>
-                  <OpsDot style={{backgroundColor: theme.green200}} />
-                  <OpsName>{t('CPU Usage')}</OpsName>
-                </OpsNameContainer>
-              </OpsLine>
-            </ChartOpsLabel>
-            <DividerSpacer />
-            <ChartContainer>
-              <Chart data={cpuUsageData} />;
-            </ChartContainer>
-          </MeasurementContainer>
-        );
-      }}
-    </DividerHandlerManager.Consumer>
+    <CursorGuideHandler.Consumer>
+      {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => (
+        <DividerHandlerManager.Consumer>
+          {({dividerPosition}) => (
+            <MeasurementContainer>
+              <ChartOpsLabel dividerPosition={dividerPosition}>
+                <OpsLine>
+                  <OpsNameContainer>
+                    <OpsDot style={{backgroundColor: theme.green200}} />
+                    <OpsName>{t('CPU Usage')}</OpsName>
+                  </OpsNameContainer>
+                </OpsLine>
+              </ChartOpsLabel>
+              <DividerSpacer />
+              <ChartContainer
+                onMouseEnter={event => {
+                  displayCursorGuide(event.pageX);
+                }}
+                onMouseLeave={() => {
+                  hideCursorGuide();
+                }}
+                onMouseMove={event => {
+                  displayCursorGuide(event.pageX);
+                }}
+                onMouseDown={onStartWindowSelection}
+              >
+                <MemoizedChart data={cpuUsageData} />
+                <Overlays>
+                  {renderFog?.()}
+                  {renderCursorGuide?.({
+                    showCursorGuide,
+                    mouseLeft,
+                    cursorGuideHeight: PROFILE_MEASUREMENTS_CHART_HEIGHT,
+                  })}
+                  {renderWindowSelection?.()}
+                </Overlays>
+              </ChartContainer>
+            </MeasurementContainer>
+          )}
+        </DividerHandlerManager.Consumer>
+      )}
+    </CursorGuideHandler.Consumer>
   );
 }
 
 export {ProfilingMeasurements};
 
+const Overlays = styled('div')`
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+`;
+
 const ChartContainer = styled('div')`
+  position: relative;
   flex: 1;
   border-top: 1px solid ${p => p.theme.border};
 `;

@@ -31,7 +31,7 @@ export interface ProjectBadgeProps
   to?: LinkProps['to'];
 }
 
-const ProjectBadge = ({
+function ProjectBadge({
   project,
   organization,
   to,
@@ -40,7 +40,7 @@ const ProjectBadge = ({
   displayPlatformName = false,
   className,
   ...props
-}: ProjectBadgeProps) => {
+}: ProjectBadgeProps) {
   const {slug, id} = project;
 
   const badge = (
@@ -70,7 +70,7 @@ const ProjectBadge = ({
   }
 
   return cloneElement(badge, {className});
-};
+}
 
 const StyledLink = styled(Link)`
   flex-shrink: 0;
