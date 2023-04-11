@@ -142,6 +142,7 @@ export function HybridFilter<Value extends React.Key>({
                 disabled={disabled || props.disabled}
                 onChange={() => toggleOption(option.value)}
                 aria-label={t('Select %s', option.label)}
+                tabIndex={-1}
                 {...props}
               />
             </CheckWrap>

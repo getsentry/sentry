@@ -126,12 +126,8 @@ describe('ProjectPageFilter', function () {
     await fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
     expect(screen.getByRole('checkbox', {name: 'Select Option One'})).toBeChecked();
 
-    // Move focus to Apply button and activate it
-    await userEvent.keyboard('{Tab>3}');
-    expect(screen.getByRole('button', {name: 'Apply'})).toHaveFocus();
-    await userEvent.keyboard('{Enter}');
-
-    // onChange is called
+    // Click "Apply" button, onChange is called
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
     expect(onChange).toHaveBeenCalledWith(['one']);
   });
 });
