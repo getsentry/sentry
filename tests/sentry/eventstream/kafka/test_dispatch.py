@@ -6,7 +6,7 @@ import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
-from sentry.post_process_forwarder.consumer_strategy import PostProcessForwarderStrategyFactory
+from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 from sentry.utils import json
 
 
@@ -68,13 +68,12 @@ def get_occurrence_kafka_payload() -> KafkaPayload:
 @pytest.mark.django_db
 @patch("sentry.eventstream.kafka.consumer_strategy.dispatch_post_process_group_task")
 def test_dispatch_task(mock_dispatch: Mock) -> None:
-    commit = Mock()
     partition = Partition(Topic("test"), 0)
-    factory = PostProcessForwarderStrategyFactory(concurrency=2)
-    strategy = factory.create_with_partitions(commit, {partition: 0})
+    dispatch_function = _get_task_kwargs_and_dispatch
 
-    strategy.submit(Message(BrokerValue(get_kafka_payload(), partition, 1, datetime.now())))
-    strategy.poll()
+    message = Message(BrokerValue(get_kafka_payload(), partition, 1, datetime.now()))
+
+    dispatch_function(message)
 
     # Dispatch can take a while
     for _i in range(0, 5):
@@ -95,22 +94,17 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         occurrence_id=None,
     )
 
-    strategy.join()
-    strategy.close()
-
 
 @pytest.mark.django_db
 @patch("sentry.tasks.post_process.post_process_group.apply_async")
 def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
-    commit = Mock()
-    partition = Partition(Topic("test-occurrence"), 0)
-    factory = PostProcessForwarderStrategyFactory(concurrency=2)
-    strategy = factory.create_with_partitions(commit, {partition: 0})
+    dispatch_function = _get_task_kwargs_and_dispatch
 
-    strategy.submit(
+    partition = Partition(Topic("test-occurrence"), 0)
+
+    dispatch_function(
         Message(BrokerValue(get_occurrence_kafka_payload(), partition, 1, datetime.now()))
     )
-    strategy.poll()
 
     # Dispatch can take a while
     for _i in range(0, 5):
@@ -133,6 +127,3 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
         },
         "queue": "post_process_issue_platform",
     }
-
-    strategy.join()
-    strategy.close()

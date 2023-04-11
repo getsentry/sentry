@@ -12,7 +12,6 @@ from arroyo.processing import StreamProcessor
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.post_process_forwarder.consumer_strategy import PostProcessForwarderStrategyFactory
 from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
 from sentry.utils import metrics
 from sentry.utils.arroyo import MetricsWrapper
@@ -125,4 +124,37 @@ class PostProcessForwarder:
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
+        )
+
+
+from typing import Callable, Mapping
+
+from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.processing.strategies import (
+    CommitOffsets,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+    RunTaskInThreads,
+)
+from arroyo.types import Commit, Message, Partition
+
+
+class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(
+        self, dispatch_function: Callable[[Message[KafkaPayload]], None], concurrency: int
+    ):
+        self.__dispatch_function = dispatch_function
+        self.__concurrency = concurrency
+        self.__max_pending_futures = concurrency + 1000
+
+    def create_with_partitions(
+        self,
+        commit: Commit,
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        return RunTaskInThreads(
+            self.__dispatch_function,
+            self.__concurrency,
+            self.__max_pending_futures,
+            CommitOffsets(commit),
         )
