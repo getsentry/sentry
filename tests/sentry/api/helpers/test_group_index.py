@@ -9,7 +9,13 @@ from sentry.api.helpers.group_index import (
     validate_search_filter_permissions,
 )
 from sentry.api.issue_search import parse_search_query
-from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
+from sentry.models import (
+    GroupInbox,
+    GroupInboxReason,
+    GroupStatus,
+    GroupSubStatus,
+    add_group_to_inbox,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -191,5 +197,6 @@ class UpdateGroupsTest(TestCase):
         group.refresh_from_db()
 
         assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()

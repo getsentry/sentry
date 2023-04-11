@@ -549,7 +549,9 @@ def update_groups(
         ignore_until = None
 
         with transaction.atomic():
-            happened = queryset.exclude(status=new_status).update(status=new_status)
+            happened = queryset.exclude(status=new_status).update(
+                status=new_status, substatus=new_substatus
+            )
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:

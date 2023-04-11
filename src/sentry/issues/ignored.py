@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from sentry.models import User
-from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models import GroupInboxRemoveAction, User, remove_group_from_inbox
 from sentry.utils import metrics
 
 
