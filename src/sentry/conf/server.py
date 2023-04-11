@@ -1157,13 +1157,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
-    # True if release-health related queries should be run against both
-    # backends (sessions and metrics dataset)
-    "organizations:release-health-check-metrics": False,
-    # True if differences between the metrics and sessions backend should be reported
-    "organizations:release-health-check-metrics-report": False,
-    # True if the metrics data should be returned as API response (if possible with current data)
-    "organizations:release-health-return-metrics": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
     # Enable threshold period in metric alert rule builder
