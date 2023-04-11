@@ -24,7 +24,9 @@ class TeamPermission(OrganizationPermission):
     def has_object_permission(self, request: Request, view, team):
         has_org_scope = super().has_object_permission(request, view, team.organization)
         if has_org_scope:
-            return has_org_scope
+            # Org-admin has "team:admin", but they can only act on their teams
+            # Org-owners and Org-owners has no restrictions due to team memberships
+            return request.access.has_team_access(team)
 
         return has_team_permission(request, team, self.scope_map)
 
