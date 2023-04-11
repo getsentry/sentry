@@ -688,8 +688,3 @@ register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactio
 # the number of large transactions to retrieve from Snuba for transaction re-balancing
 register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
 register("hybrid_cloud.outbox_rate", default=0.0)
-
-register("test_key.1", default="value1")
-register("test_key.2", default="value2")
-register("test_key.3", default="value3")
-register("test_key.4", default="value4")

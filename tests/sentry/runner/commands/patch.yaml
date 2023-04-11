@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: patch-options
+data:
+  # the yaml options file that gets passed from k8 job to senty runner
+  options-patch.yaml:
+    fetch : ["github-login.api-domain"]
+    update :
+      github-login.api-domain  : "testing"
+      nodedata.cache-sample-rate : 4.0
+    delete : ["relay.transaction-metrics-org-sample-rate"]

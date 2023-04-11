@@ -67,7 +67,7 @@ def patch(filename: str, dryrun: bool):
     help="Output exactly what changes would be made and in which order.",
 )
 @configuration
-def strict(filename: str, dryrun: bool) -> bool:
+def strict(filename: str, dryrun: bool):
     "Deletes everything not in the uploaded file, and applies all of the changes in the file."
     import yaml
 
@@ -83,12 +83,12 @@ def strict(filename: str, dryrun: bool) -> bool:
         db_keys = (opt.name for opt in options.all())
         for key in db_keys:
             if not can_change(key):
+                click.echo(f"cannot change key {key}")
                 continue
             if key not in data.keys():
-                delete(key, dryrun)
+                _delete(key, dryrun)
 
         for key, val in data.items():
-            click.echo(f"dryrun: {dryrun} {type(dryrun)}")
             _set(key, val, dryrun)
 
 
@@ -152,6 +152,8 @@ def _set(key: str, val: object, dryrun: bool = False) -> bool:
             return opt
     except UnknownOption:
         raise click.ClickException("unknown option: %s" % key)
+    except TypeError as e:
+        raise click.ClickException(str(e))
 
 
 @configoptions.command()
@@ -172,11 +174,12 @@ def _delete(key: str, dryrun: bool = False) -> bool:
     from sentry import options
     from sentry.options.manager import UnknownOption
 
-    if not can_change(key):
-        return True
-
     try:
         options.lookup_key(key)
+
+        if not can_change(key):
+            raise click.ClickException(f"Option {key} cannot be changed.")
+
         if not dryrun:
             options.delete(key)
         click.echo(f"Deleted key: {key}")
@@ -199,25 +202,26 @@ def create_key_value_generator(data: str, newline_separator: str, kv_separator: 
 
 
 def can_change(key: str) -> bool:
-    # from sentry.options import manager
-    # from sentry import options
+    from sentry import options
+    from sentry.options import manager
 
-    # opt = options.lookup_key(key)
-    # return not ((opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE))
+    opt = options.lookup_key(key)
+    return not ((opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE))
+
     # changable = not ((opt.flags & manager.FLAG_NOSTORE) and (opt.flags & manager.FLAG_IMMUTABLE))
-    changable = False
+    # changable = False
     # TODO: Figure out how to look this up
-    for i in tracked:
-        is_match = i.match(key)
-        if is_match:
-            click.echo(f"Key({key}) matches {is_match} a tracked Regex({i})")
-            changable = True
-            return changable
+    # for i in tracked:
+    #     is_match = i.match(key)
+    #     if is_match:
+    #         click.echo(f"Key({key}) matches {is_match} a tracked Regex({i})")
+    #         changable = True
+    #         return changable
 
-    if changable:
-        # click.echo(f"Key({key}) is mutable!")
-        pass
-    else:
-        # click.echo(f"Key({key}) is not mutable!")
-        pass
-    return changable
+    # if changable:
+    #     # click.echo(f"Key({key}) is mutable!")
+    #     pass
+    # else:
+    #     # click.echo(f"Key({key}) is not mutable!")
+    #     pass
+    # return changable

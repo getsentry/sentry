@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: strict-options
+data:
+  # the yaml options file that gets passed from k8 job to senty runner
+  options-strict.yaml:
+    github-login.base-domain : "test1"
+    github-login.extended-permissions  : ["test1", "test2"]
