@@ -1154,16 +1154,16 @@ enum ReplayFieldKey {
 }
 
 enum ReplayClickFieldKey {
-  CLICK_ALT = 'replay_click.alt',
-  CLICK_CLASS = 'replay_click.class',
-  CLICK_ID = 'replay_click.id',
-  CLICK_LABEL = 'replay_click.label',
-  CLICK_ROLE = 'replay_click.role',
-  CLICK_SELECTOR = 'replay_click.selector',
-  CLICK_TAG = 'replay_click.tag',
-  CLICK_TESTID = 'replay_click.testid',
-  CLICK_TEXT_CONTENT = 'replay_click.textContent',
-  CLICK_TITLE = 'replay_click.title',
+  CLICK_ALT = 'click.alt',
+  CLICK_CLASS = 'click.class',
+  CLICK_ID = 'click.id',
+  CLICK_LABEL = 'click.label',
+  CLICK_ROLE = 'click.role',
+  CLICK_SELECTOR = 'click.selector',
+  CLICK_TAG = 'click.tag',
+  CLICK_TESTID = 'click.testid',
+  CLICK_TEXT_CONTENT = 'click.textContent',
+  CLICK_TITLE = 'click.title',
 }
 
 /**
