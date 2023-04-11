@@ -1,4 +1,4 @@
-import React, {createRef, useEffect} from 'react';
+import React, {createRef, ReactNode, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -51,6 +51,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   traceSlug: string;
   traces: TraceFullDetailed[] | null;
   filteredTransactionIds?: Set<string>;
+  footer?: ReactNode;
   traceInfo?: TraceInfo;
 };
 
@@ -104,6 +105,7 @@ export default function TraceView({
   traceSlug,
   traceEventView,
   filteredTransactionIds,
+  footer,
   ...props
 }: Props) {
   const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
@@ -360,6 +362,7 @@ export default function TraceView({
                     meta={meta}
                   />
                 </TraceViewContainer>
+                {footer}
               </TracePanel>
             </ScrollbarManager.Provider>
           )}
