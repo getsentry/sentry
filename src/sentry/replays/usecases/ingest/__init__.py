@@ -173,7 +173,7 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    click_post_processor(message, headers, recording_segment, transaction)
+    replay_click_post_processor(message, headers, recording_segment, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -267,7 +267,7 @@ def _report_size_metrics(
         metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
 
 
-def click_post_processor(
+def replay_click_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
