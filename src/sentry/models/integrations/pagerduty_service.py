@@ -13,7 +13,7 @@ from sentry.models.integrations.organization_integrity_backfill_mixin import (
 
 
 @region_silo_only_model
-class PagerDutyService(DefaultFieldsModel, OrganizationIntegrityBackfillMixin):
+class PagerDutyService(OrganizationIntegrityBackfillMixin, DefaultFieldsModel):
     __include_in_export__ = False
 
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
