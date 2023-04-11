@@ -10,6 +10,6 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        handle_archived_until_escalating([group], self.user)
+        handle_archived_until_escalating([group.id], self.user)
         assert not GroupInbox.objects.filter(group=group).exists()
         assert not GroupSnooze.objects.filter(group=group).exists()

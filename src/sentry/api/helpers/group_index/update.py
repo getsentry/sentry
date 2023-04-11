@@ -541,6 +541,9 @@ def update_groups(
         new_substatus = (
             SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
         )
+        has_escalating_issues = features.has(
+            "organizations:escalating-issues", group_list[0].organization
+        )
         ignore_duration = None
         ignore_count = None
         ignore_window = None
@@ -555,10 +558,8 @@ def update_groups(
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
-                if new_substatus == GroupSubStatus.UNTIL_ESCALATING and features.has(
-                    "organizations:escalating-issues", group_list[0].organization
-                ):
-                    handle_archived_until_escalating(group_ids, acting_user)
+                if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
+                    handle_archived_until_escalating(group_list, acting_user)
                 else:
                     metrics.incr("group.ignored", skip_internal=True)
                     for group in group_ids:
