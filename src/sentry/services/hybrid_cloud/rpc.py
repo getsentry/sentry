@@ -90,7 +90,7 @@ class RpcMethodSignature:
 
     _RETURN_MODEL_ATTR = "value"
 
-    def _create_return_model(self) -> Type[pydantic.BaseModel]:
+    def _create_return_model(self) -> Type[pydantic.BaseModel] | None:
         """Dynamically create a Pydantic model class representing the return value.
 
         The created model has a single attribute containing the return value. This
@@ -99,8 +99,10 @@ class RpcMethodSignature:
         where we can't directly access an RpcModel class on which to call `parse_obj`.
         """
         name = f"{self.service_name}__{self.method_name}__ReturnModel"
-        field = (inspect.signature(self._base_method).return_annotation, ...)
-        field_definitions = {self._RETURN_MODEL_ATTR: field}
+        return_type = inspect.signature(self._base_method).return_annotation
+        if return_type is None:
+            return None
+        field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(name, **field_definitions)  # type: ignore
 
     def _extract_region_resolution(self) -> RegionResolution | None:
@@ -134,6 +136,11 @@ class RpcMethodSignature:
             raise RpcArgumentException from e
 
     def deserialize_return_value(self, value: Any) -> Any:
+        if self._return_model is None:
+            if value is not None:
+                raise RpcResponseException(f"Expected None but got {type(value)}")
+            return None
+
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
 
@@ -355,6 +362,10 @@ class RpcResolutionException(Exception):
 
 class RpcArgumentException(Exception):
     """Indicate that the serial arguments to an RPC service were invalid."""
+
+
+class RpcResponseException(Exception):
+    """Indicate that the response from a remote RPC service violated expectations."""
 
 
 def _look_up_service_method(
