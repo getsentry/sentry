@@ -2,13 +2,20 @@ import logging
 import signal
 import uuid
 from enum import Enum
-from typing import Any, Callable, Literal, MutableMapping, Optional, Union
+from typing import Any, Callable, Literal, Mapping, MutableMapping, Optional, Union
 
-from arroyo import Message, Topic, configure_metrics
+from arroyo import configure_metrics
+from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing import StreamProcessor
+from arroyo.processing.strategies import (
+    CommitOffsets,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+    RunTaskInThreads,
+)
+from arroyo.types import Commit, Message, Partition, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
@@ -125,18 +132,6 @@ class PostProcessForwarder:
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
         )
-
-
-from typing import Callable, Mapping
-
-from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import (
-    CommitOffsets,
-    ProcessingStrategy,
-    ProcessingStrategyFactory,
-    RunTaskInThreads,
-)
-from arroyo.types import Commit, Message, Partition
 
 
 class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
