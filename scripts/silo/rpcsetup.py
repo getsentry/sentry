@@ -39,21 +39,35 @@ def format_env_vars(env_vars: Mapping[str, str]) -> str:
         """
     ),
 )
-@click.option("--control-port", type=int, default=8001, help="Port on which bind the control silo")
-@click.option("--region-port", type=int, default=8002, help="Port on which bind the region silo")
-def main(api_token: str, control_port: int, region_port: int) -> None:
-    region_config = {
-        "name": "dev_region",
-        "id": 1,
-        "address": f"http://localhost:{region_port}/",
-        "category": "MULTI_TENANT",
-        "api_token": api_token,
-    }
+@click.option("--region-count", type=int, default=2, help="Number of region silos")
+@click.option(
+    "--control-port",
+    type=int,
+    default=8001,
+    help=(
+        """Port on which to bind the control silo.
+
+        Region silos will be bound on ascending numbers after this one.
+        """
+    ),
+)
+def main(api_token: str, region_count: int, control_port: int) -> None:
     sender_credentials = {
         "is_allowed": True,
         "control_silo_api_token": api_token,
         "control_silo_address": f"http://localhost:{control_port}/",
     }
+
+    region_config = [
+        {
+            "name": f"devregion{region_number}",
+            "id": region_number,
+            "address": f"http://localhost:{control_port + region_number}/",
+            "category": "MULTI_TENANT",
+            "api_token": api_token,
+        }
+        for region_number in range(1, region_count + 1)
+    ]
 
     common_env_vars = {}
     common_env_vars["SENTRY_REGION_CONFIG"] = json.dumps([region_config])
@@ -63,13 +77,16 @@ def main(api_token: str, control_port: int, region_port: int) -> None:
     control_env_vars["SENTRY_SILO_MODE"] = "CONTROL"
     control_env_vars["SENTRY_DEVSERVER_BIND"] = f"localhost:{control_port}"
 
-    region_env_vars = common_env_vars.copy()
-    region_env_vars["SENTRY_SILO_MODE"] = "REGION"
-    region_env_vars["SENTRY_REGION"] = region_config["name"]
-    region_env_vars["SENTRY_DEVSERVER_BIND"] = f"localhost:{region_port}"
+    print(f"# Control silo\n{format_env_vars(control_env_vars)}; sentry devserver")  # noqa
 
-    print(f"{format_env_vars(control_env_vars)}; sentry devserver")  # noqa
-    print(f"{format_env_vars(region_env_vars)}; sentry devserver")  # noqa
+    for region in region_config:
+        region_number = region["id"]
+        region_env_vars = common_env_vars.copy()
+        region_env_vars["SENTRY_SILO_MODE"] = "REGION"
+        region_env_vars["SENTRY_REGION"] = region["name"]
+        region_env_vars["SENTRY_DEVSERVER_BIND"] = f"localhost:{control_port + region_number}"
+
+        print(f"\n# {region['name']}\n{format_env_vars(region_env_vars)}; sentry devserver")  # noqa
 
 
 main()
