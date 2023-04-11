@@ -197,4 +197,11 @@ describe('AlertRuleDetails', () => {
       )
     ).not.toBeInTheDocument();
   });
+
+  it('renders the mute button', async () => {
+    createWrapper();
+    expect(await screen.findByText('Mute')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Mute'));
+    expect(await screen.findByText('Unmute')).toBeInTheDocument();
+  });
 });
