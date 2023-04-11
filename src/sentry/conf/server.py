@@ -745,6 +745,7 @@ CELERY_QUEUES = [
         routing_key="dynamicsampling",
     ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
+    Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
 ]
 
 for queue in CELERY_QUEUES:
