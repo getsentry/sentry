@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -89,6 +89,12 @@ type ProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
+type ProfilingUpgradePlanButtonProps = ButtonProps & {
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
 type SetUpSdkDocProps = {
   location: Location;
   organization: Organization;
@@ -144,6 +150,7 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
+  'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
   'component:replay-feedback-button': () => React.ComponentType<{}>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardinCTAProps>;
