@@ -37,8 +37,8 @@ class GenericMetricsBackend(ABC):
     ) -> None:
 
         """
-        Used for emitting a set metric. Can support a sequence of values. Ensure that the use_case_id
-        passed in has been registered in the UseCaseID enum.
+        Used for emitting a set metric. Can support a sequence of values.
+        Ensure that the use_case_id passed in has been registered in the UseCaseID enum.
         """
         raise NotImplementedError()
 
@@ -55,7 +55,7 @@ class GenericMetricsBackend(ABC):
     ) -> None:
 
         """
-        Used for emitting a distribution metric. Can support a sequence of values. Ensure that the use_case_id
-        passed in has been registered in the UseCaseID enum.
+        Used for emitting a distribution metric. Can support a sequence of values.
+        Ensure that the use_case_id passed in has been registered in the UseCaseID enum.
         """
         raise NotImplementedError()
