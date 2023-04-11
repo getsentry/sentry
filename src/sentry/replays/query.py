@@ -259,9 +259,8 @@ def query_replays_dataset_with_subquery(
             having=[
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # Make sure we're not too old.
+                # "end sort" on this query uses the started at field
                 Condition(Column("started_at"), Op.LT, end),
-                # TODO: talk about changing semantics default "end sort" to use started_at instead of finished at
                 # Require non-archived replays.
                 Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.

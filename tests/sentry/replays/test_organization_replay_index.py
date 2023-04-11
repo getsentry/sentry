@@ -1031,9 +1031,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 ), query
 
 
-# @region_silo_test
-# @apply_feature_flag_on_cls("organizations:global-views")
-# @apply_feature_flag_on_cls("organizations:session-replay-index-subquery")
-# class OrganizationReplayIndexTestSubQueryOptimized(OrganizationReplayIndexTest):
-#     # run the same tests except with the subquery optimization applied
-#     pass
+@region_silo_test
+@apply_feature_flag_on_cls("organizations:global-views")
+@apply_feature_flag_on_cls("organizations:session-replay-index-subquery")
+class OrganizationReplayIndexTestSubQueryOptimized(OrganizationReplayIndexTest):
+    # run the same tests except with the subquery optimization applied
+    pass
