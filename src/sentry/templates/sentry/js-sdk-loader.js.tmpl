@@ -84,6 +84,10 @@
     // We want to ensure to only add default integrations if they haven't been added by the user.
     function setupDefaultIntegrations(config, SDK) {
         var integrations = config.integrations || [];
+        // integrations can be a function, in which case we will not add any defaults
+        if (!Array.isArray(integrations)) {
+            return;
+        }
         var integrationNames = integrations.map(function (integration) { return integration.name; });
         // Add necessary integrations based on config
         if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {

@@ -117,6 +117,12 @@ declare const __LOADER__IS_LAZY__: any;
   // We want to ensure to only add default integrations if they haven't been added by the user.
   function setupDefaultIntegrations(config: any, SDK: any) {
     const integrations: {name: string}[] = config.integrations || [];
+
+    // integrations can be a function, in which case we will not add any defaults
+    if (!Array.isArray(integrations)) {
+      return;
+    }
+
     const integrationNames = integrations.map(integration => integration.name);
 
     // Add necessary integrations based on config
