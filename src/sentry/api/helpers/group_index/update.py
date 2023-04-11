@@ -840,7 +840,7 @@ def update_groups(
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
 
-        result["merge"] = handle_merge()
+        result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 
     # Support moving groups in or out of the inbox
     inbox = result.get("inbox", None)

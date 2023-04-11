@@ -12,8 +12,10 @@ from sentry.types.activity import ActivityType
 
 
 def handle_merge(
-    group_list: Sequence[Group], project_lookup: Dict[int, Project], acting_user: User | None
-):
+    group_list: Sequence[Group],
+    project_lookup: Dict[int, Project],
+    acting_user: User | None,
+) -> Dict[str, str | list[str]]:
     if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
         raise rest_framework.exceptions.ValidationError(
             detail="Only error issues can be merged.", code=400
@@ -41,7 +43,7 @@ def handle_merge(
         project=project_lookup[primary_group.project_id],
         group=primary_group,
         type=ActivityType.MERGE.value,
-        user_id=acting_user.id,
+        user_id=acting_user.id if acting_user else None,
         data={"issues": [{"id": c.id} for c in groups_to_merge]},
     )
 
