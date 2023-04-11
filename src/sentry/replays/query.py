@@ -434,18 +434,16 @@ class ReplayQueryConfig(QueryConfig):
     sdk = String(field_alias="sdk", query_alias="sdk_name")
 
     # Click
-    click_alt = ListField(field_alias="replay_click.alt", is_sortable=False)
-    click_class = ListField(
-        field_alias="replay_click.class", query_alias="clickClass", is_sortable=False
-    )
-    click_id = ListField(field_alias="replay_click.id", is_sortable=False)
-    click_aria_label = ListField(field_alias="replay_click.label", is_sortable=False)
-    click_role = ListField(field_alias="replay_click.role", is_sortable=False)
-    click_tag = ListField(field_alias="replay_click.tag", is_sortable=False)
-    click_testid = ListField(field_alias="replay_click.testid", is_sortable=False)
-    click_text = ListField(field_alias="replay_click.textContent", is_sortable=False)
-    click_title = ListField(field_alias="replay_click.title", is_sortable=False)
-    click_selector = Selector(field_alias="replay_click.selector", is_sortable=False)
+    click_alt = ListField(field_alias="click.alt", is_sortable=False)
+    click_class = ListField(field_alias="click.class", query_alias="clickClass", is_sortable=False)
+    click_id = ListField(field_alias="click.id", is_sortable=False)
+    click_aria_label = ListField(field_alias="click.label", is_sortable=False)
+    click_role = ListField(field_alias="click.role", is_sortable=False)
+    click_tag = ListField(field_alias="click.tag", is_sortable=False)
+    click_testid = ListField(field_alias="click.testid", is_sortable=False)
+    click_text = ListField(field_alias="click.textContent", is_sortable=False)
+    click_title = ListField(field_alias="click.title", is_sortable=False)
+    click_selector = Selector(field_alias="click.selector", is_sortable=False)
 
     # Tag
     tags = Tag(field_alias="*")
@@ -597,16 +595,16 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
     # Click actions
-    "replay_click.alt": ["click.alt"],
-    "replay_click.label": ["click.aria_label"],
-    "replay_click.class": ["click.class"],
-    "replay_click.id": ["click.id"],
-    "replay_click.role": ["click.role"],
-    "replay_click.tag": ["click.tag"],
-    "replay_click.testid": ["click.testid"],
-    "replay_click.textContent": ["click.text"],
-    "replay_click.title": ["click.title"],
-    "replay_click.selector": [
+    "click.alt": ["click.alt"],
+    "click.label": ["click.aria_label"],
+    "click.class": ["click.class"],
+    "click.id": ["click.id"],
+    "click.role": ["click.role"],
+    "click.tag": ["click.tag"],
+    "click.testid": ["click.testid"],
+    "click.textContent": ["click.text"],
+    "click.title": ["click.title"],
+    "click.selector": [
         "click.alt",
         "click.aria_label",
         "click.classes",
