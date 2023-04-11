@@ -129,7 +129,7 @@ class IndexerBatch:
             if use_case_id := extract_use_case_id(parsed_payload["name"]):
                 parsed_payload["use_case_id"] = use_case_id
             else:
-                logger.warning(
+                logger.error(
                     "process_messages.invalid_metric_resource_identifier",
                     extra={"payload_value": str(msg.payload.value)},
                     exc_info=True,
