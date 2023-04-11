@@ -39,11 +39,14 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
         def add_status_monitor(status_key: str, date: datetime | None = None):
-            return self._create_monitor(
-                status=getattr(MonitorStatus, status_key),
+            status = getattr(MonitorStatus, status_key)
+            monitor = self._create_monitor(
+                status=getattr(MonitorStatus, "ACTIVE"),
                 last_checkin=date or last_checkin,
                 name=status_key,
             )
+            self._create_monitor_environment(monitor, status=status)
+            return monitor
 
         # Subsort next checkin time
         monitor_active = add_status_monitor("ACTIVE")

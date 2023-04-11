@@ -38,7 +38,7 @@ DEFAULT_ORDERING = [
 ]
 
 DEFAULT_ORDERING_CASE = Case(
-    *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
+    *[When(monitorenvironment__status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
     output_field=IntegerField(),
 )
 

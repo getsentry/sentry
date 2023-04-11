@@ -2313,13 +2313,14 @@ class MonitorTestCase(APITestCase):
             **kwargs,
         )
 
-    def _create_monitor_environment(self, monitor, name="production"):
+    def _create_monitor_environment(self, monitor, name="production", **kwargs):
         environment = Environment.get_or_create(project=self.project, name=name)
 
         monitorenvironment_defaults = {
             "status": monitor.status,
             "next_checkin": monitor.next_checkin,
             "last_checkin": monitor.last_checkin,
+            **kwargs,
         }
 
         return MonitorEnvironment.objects.create(
