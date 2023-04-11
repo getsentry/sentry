@@ -117,7 +117,7 @@ class UserSerializerResponseSelf(UserSerializerResponse):
     flags: Any  # TODO
 
 
-AVATAR_URL_REGEX = re.compile("/avatar/([\\d\\w]+)/$")
+AVATAR_URL_REGEX = re.compile(r"/avatar/([\w]+)/$")
 
 
 @register(User)
