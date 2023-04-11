@@ -211,7 +211,6 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     features: List[str]
     hasAccess: bool
-    hasMinifiedStackTrace: bool
     hasProfiles: bool
     hasReplays: bool
     hasMonitors: bool
@@ -466,7 +465,9 @@ class ProjectSerializer(Serializer):  # type: ignore
             "platform": obj.platform,
             "dateCreated": obj.date_added,
             "isBookmarked": attrs["is_bookmarked"],
+            "isPublic": obj.public,
             "isMember": attrs["is_member"],
+            "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "hasAccess": attrs["has_access"],
