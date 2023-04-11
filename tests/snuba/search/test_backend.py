@@ -1974,6 +1974,126 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         assert list(results) == list(results2)
 
+    def test_error_main_thread_true(self):
+        myProject = self.create_project(
+            name="Foo", slug="foo", teams=[self.team], fire_project_created=True
+        )
+
+        event = self.store_event(
+            data={
+                "event_id": "1" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "SyntaxError",
+                            "value": "hello world",
+                            "thread_id": 1,
+                        },
+                    ],
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": 1,
+                            "main": True,
+                        },
+                    ],
+                },
+            },
+            project_id=myProject.id,
+        )
+
+        myGroup = event.groups[0]
+
+        results = self.make_query(
+            projects=[myProject],
+            search_filter_query="error.main_thread:1",
+            sort_by="date",
+        )
+
+        assert list(results) == [myGroup]
+
+    def test_error_main_thread_false(self):
+        myProject = self.create_project(
+            name="Foo2", slug="foo2", teams=[self.team], fire_project_created=True
+        )
+
+        event = self.store_event(
+            data={
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "SyntaxError",
+                            "value": "hello world",
+                            "thread_id": 1,
+                        },
+                    ],
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": 1,
+                            "main": False,
+                        },
+                    ],
+                },
+            },
+            project_id=myProject.id,
+        )
+
+        myGroup = event.groups[0]
+
+        results = self.make_query(
+            projects=[myProject],
+            search_filter_query="error.main_thread:0",
+            sort_by="date",
+        )
+
+        assert list(results) == [myGroup]
+
+    def test_error_main_thread_no_results(self):
+        myProject = self.create_project(
+            name="Foo3", slug="foo3", teams=[self.team], fire_project_created=True
+        )
+
+        self.store_event(
+            data={
+                "event_id": "3" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "SyntaxError",
+                            "value": "hello world",
+                            "thread_id": 1,
+                        },
+                    ],
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": 1,
+                        },
+                    ],
+                },
+            },
+            project_id=myProject.id,
+        )
+
+        results = self.make_query(
+            projects=[myProject],
+            search_filter_query="error.main_thread:1",
+            sort_by="date",
+        )
+
+        assert len(results) == 0
+
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
     @property
@@ -2507,7 +2627,31 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 count_hits=True,
             )
 
-            assert list(results) == list(results2) == list(result3) == list(results4) == []
+            results5 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.main_thread:0",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            results6 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.main_thread:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            assert (
+                list(results)
+                == list(results2)
+                == list(result3)
+                == list(results4)
+                == list(results5)
+                == list(results6)
+                == []
+            )
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):

@@ -1129,6 +1129,7 @@ default_config = SearchConfig(
     boolean_keys={
         "error.handled",
         "error.unhandled",
+        "error.main_thread",
         "stack.in_app",
         TEAM_KEY_TRANSACTION_ALIAS,
     },
