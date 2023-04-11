@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,7 +15,7 @@ from typing import (
     cast,
 )
 
-from sentry.eventstream.types import GroupStates
+from sentry.eventstream.types import EventStreamEventType, GroupStates
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.post_process_forwarder import PostProcessForwarderType
 from sentry.tasks.post_process import post_process_group
@@ -35,16 +34,6 @@ class ForwarderNotRequired(NotImplementedError):
     Exception raised if this backend does not require a forwarder process to
     enqueue post-processing tasks.
     """
-
-
-class EventStreamEventType(Enum):
-    """
-    We have 3 broad categories of event types that we care about in eventstream.
-    """
-
-    Error = "error"  # error, default, various security errors
-    Transaction = "transaction"  # transactions
-    Generic = "generic"  # generic events ingested via the issue platform
 
 
 class EventStream(Service):

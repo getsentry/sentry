@@ -20,9 +20,8 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
-from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
-from sentry.eventstream.types import GroupStates
+from sentry.eventstream.types import EventStreamEventType, GroupStates
 from sentry.killswitches import killswitch_matches_context
 from sentry.post_process_forwarder import PostProcessForwarder, PostProcessForwarderType
 from sentry.utils import json
