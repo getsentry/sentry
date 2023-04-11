@@ -30,6 +30,13 @@ if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
 
 
+class ForwarderNotRequired(NotImplementedError):
+    """
+    Exception raised if this backend does not require a forwarder process to
+    enqueue post-processing tasks.
+    """
+
+
 class GroupState(TypedDict):
     id: int
     is_new: bool
@@ -48,13 +55,6 @@ class EventStreamEventType(Enum):
     Error = "error"  # error, default, various security errors
     Transaction = "transaction"  # transactions
     Generic = "generic"  # generic events ingested via the issue platform
-
-
-class ForwarderNotRequired(NotImplementedError):
-    """
-    Exception raised if this backend does not require a forwarder process to
-    enqueue post-processing tasks.
-    """
 
 
 class EventStream(Service):
