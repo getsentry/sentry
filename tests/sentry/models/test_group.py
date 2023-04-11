@@ -304,13 +304,8 @@ class GroupTest(TestCase, SnubaTestCase):
 
     def test_group_substatus_defaults(self):
         assert self.create_group(status=GroupStatus.UNRESOLVED).substatus == GroupSubStatus.ONGOING
-        assert (
-            self.create_group(status=GroupStatus.IGNORED).substatus
-            == GroupSubStatus.UNTIL_ESCALATING
-        )
-        assert (
-            self.create_group(status=GroupStatus.MUTED).substatus == GroupSubStatus.UNTIL_ESCALATING
-        )
+        assert self.create_group(status=GroupStatus.IGNORED).substatus == GroupSubStatus.FOREVER
+        assert self.create_group(status=GroupStatus.MUTED).substatus == GroupSubStatus.FOREVER
         for nullable_status in (
             GroupStatus.RESOLVED,
             GroupStatus.PENDING_DELETION,
