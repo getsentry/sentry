@@ -23,7 +23,7 @@ import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SeriesDataUnit} from 'sentry/types/echarts';
-import {defined, formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 
@@ -77,7 +77,7 @@ function Chart({data, type}: ChartProps) {
 
   return (
     <LineChart
-      data-test-id="profile-measurements-chart"
+      data-test-id={`profile-measurements-chart-${type}`}
       height={PROFILE_MEASUREMENTS_CHART_HEIGHT}
       yAxis={{
         show: false,
@@ -155,12 +155,12 @@ function ProfilingMeasurements({
 
   if (
     !('measurements' in profileData) ||
-    !defined(profileData.measurements?.[measurementType])
+    profileData.measurements?.[measurementType] === undefined
   ) {
     return null;
   }
 
-  const data = profileData.measurements![measurementType];
+  const data = profileData.measurements[measurementType]!;
 
   return (
     <CursorGuideHandler.Consumer>
