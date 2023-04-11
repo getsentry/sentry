@@ -153,6 +153,7 @@ class GroupSubStatus:
     UNTIL_ESCALATING = 1
     ESCALATING = 2
     ONGOING = 3
+    FOREVER = 4
 
 
 # Statuses that can be queried/searched for
