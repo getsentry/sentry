@@ -37,6 +37,27 @@ describe('OwnershipRulesTable', () => {
     expect(screen.getByText(user1.name)).toBeInTheDocument();
   });
 
+  it('should filter codeowners rules without actor names', () => {
+    const rules: ParsedOwnershipRule[] = [
+      {
+        matcher: {pattern: 'pattern', type: 'path'},
+        // @ts-expect-error this seems to only happen when adding a codeowners file
+        owners: [{type: 'user', id: user1.id, name: undefined}],
+      },
+    ];
+
+    render(
+      <OwnershipRulesTable
+        projectRules={[]}
+        codeowners={[TestStubs.CodeOwner({schema: {rules}})]}
+      />
+    );
+
+    expect(screen.getByText('pattern')).toBeInTheDocument();
+    // No options available, button is disabled
+    expect(screen.getByRole('button', {name: 'Everyone'})).toBeDisabled();
+  });
+
   it('should render multiple project owners', () => {
     const rules: ParsedOwnershipRule[] = [
       {
