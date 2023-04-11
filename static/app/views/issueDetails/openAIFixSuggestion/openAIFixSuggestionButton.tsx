@@ -10,6 +10,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 type Props = {
+  activeSuperUser: boolean;
   groupId: Group['id'];
   onClick: () => void;
   className?: string;
@@ -23,6 +24,7 @@ export function OpenAIFixSuggestionButton({
   size,
   onClick,
   groupId,
+  activeSuperUser,
 }: Props) {
   const organization = useOrganization();
   const router = useRouter();
@@ -45,13 +47,21 @@ export function OpenAIFixSuggestionButton({
   return (
     <ActionButton
       className={className}
-      disabled={disabled}
+      disabled={activeSuperUser || disabled}
+      title={
+        activeSuperUser ? (
+          t("Superusers can't consent to policies")
+        ) : (
+          <div>
+            {experimentalFeatureTooltipDesc}
+            <FeatureBadge type="experimental" noTooltip />
+          </div>
+        )
+      }
       size={size}
       onClick={handleShowAISuggestion}
-      title={experimentalFeatureTooltipDesc}
     >
       {t('Suggested Fix')}
-      <FeatureBadge type="experimental" noTooltip />
     </ActionButton>
   );
 }

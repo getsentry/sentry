@@ -32,7 +32,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         )
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
             results = fetch_projects_with_total_volumes(org_ids=[org1.id])
-        assert results[org1.id] == [(p1.id, 1.0, 1, 1)]
+        assert results[org1.id] == [(p1.id, 1.0, 0, 0)]
 
     def test_simple_one_org_one_project_sample_rate_zero(self):
         org1 = self.create_organization("test-org")

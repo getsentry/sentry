@@ -2487,7 +2487,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                     evidence_data=problem.evidence_data,
                     evidence_display=problem.evidence_display,
                     detection_time=event.datetime,
-                    level="info",
+                    level=job["level"],
                 )
 
                 produce_occurrence_to_kafka(occurrence)
