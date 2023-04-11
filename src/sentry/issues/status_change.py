@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Sequence, Tuple
 
 from sentry.models import (
     Activity,
@@ -19,16 +19,16 @@ from sentry.types.activity import ActivityType
 
 
 def handle_status_update(
-    group_list=Sequence[Group],
-    projects=Sequence[Project],
-    project_lookup=Dict[int, Project],
-    acting_user=Optional[User],
-    new_status=GroupStatus,
-    is_bulk=bool,
-    status_details=Dict[str, Any],
-    sender=Any,
-):
-    activity_type = None
+    group_list: Sequence[Group],
+    projects: Sequence[Project],
+    project_lookup: Dict[int, Project],
+    new_status: GroupStatus,
+    is_bulk: bool,
+    status_details: Dict[str, Any],
+    acting_user: User | None,
+    activity_type: str | None,
+    sender: Any,
+) -> Tuple[str | None, Dict[str, Any]]:
     activity_data = {}
     if new_status == GroupStatus.UNRESOLVED:
         activity_type = ActivityType.SET_UNRESOLVED.value
@@ -86,7 +86,7 @@ def handle_status_update(
             project=project_lookup[group.project_id],
             group=group,
             type=activity_type,
-            user_id=acting_user.id,
+            user_id=acting_user.id if acting_user else None,
             data=activity_data,
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
