@@ -64,11 +64,11 @@ flags:
     - "src/sentry/**/*.py"
     carryforward: true
 
-# after_n_builds declared in flags cannot control when to make comments
-# A value of 11 will mean that only BE PRs will get a comment (only if the score changes)
-# Once comments listen to the value in flags we can add comments to FE PRs
 # Read more here: https://docs.codecov.com/docs/pull-request-comments
 comment:
+  # after_n_builds declared in flags cannot control when to make comments
+  # A value of 11 will mean that only BE PRs will get a comment (only if the score changes)
+  # XXX: Once commenting pays attention to the value in flags we can add comments to FE PRs
   after_n_builds: 11
   layout: "diff, files"
   # Update, if comment exists. Otherwise post new.
