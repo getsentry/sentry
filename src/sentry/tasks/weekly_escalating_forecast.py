@@ -75,9 +75,10 @@ def parse_groups_past_counts(response: List[GroupsCountResponse]) -> ParsedGroup
     `response`: Snuba response for group event counts
     """
     group_counts: ParsedGroupsCount = {}
+    group_ids_list = group_counts.keys()
     for data in response:
         group_id = data["group_id"]
-        if group_id not in group_counts.keys():
+        if group_id not in group_ids_list:
             group_counts[group_id] = {
                 "intervals": [data["hourBucket"]],
                 "data": [data["count()"]],
@@ -102,6 +103,6 @@ def get_forecast_per_group(
     group_dict = {group.id: group for group in until_escalating_groups}
     for group_id in group_counts.keys():
         forecasts = generate_issue_forecast(group_counts[group_id], time)
-        forecasts_list = [int(forecast["forecasted_value"]) for forecast in forecasts]
+        forecasts_list = [forecast["forecasted_value"] for forecast in forecasts]
         group_forecast_list.append((group_dict[group_id], forecasts_list))
     return group_forecast_list

@@ -1,8 +1,9 @@
 import random
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import List
 from unittest.mock import patch
 
+from sentry.issues.escalating import GroupsCountResponse
 from sentry.models.group import Group, GroupStatus, GroupSubStatus
 from sentry.models.groupforecast import GroupForecast
 from sentry.models.project import Project
@@ -11,9 +12,17 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
-    def get_mock_response(
+    def get_mock_groups_past_counts_response(
         self, num_days: int, num_hours: int, groups: List[Group]
-    ) -> Dict[str, Any]:
+    ) -> GroupsCountResponse:
+        """
+        Returns a mocked response of type `GroupsCountResponse` from `query_groups_past_counts`.
+        Creates event count data for each group in `groups` for `num_days`, for `num_hours`.
+
+        `groups`: The groups that data will be generated for
+        `num_days`: The number of days that data will be generated for
+        `num_hours`: The number of hours per day that data will be generated for
+        """
         data = []
         now = datetime.now()
 
@@ -32,9 +41,9 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
                     )
         return data
 
-    def create_groups(self, num_groups: int) -> List[Group]:
+    def create_archived_until_escalating_groups(self, num_groups: int) -> List[Group]:
         group_list = []
-        project_1 = Project.objects.filter(id=1)[0]
+        project_1 = Project.objects.get(id=1)
         for i in range(num_groups):
             group = self.create_group(project=project_1)
             group.status = GroupStatus.IGNORED
@@ -45,9 +54,11 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
     def test_single_group_escalating_forecast(self, mock_query_groups_past_counts):
-        group_list = self.create_groups(1)
+        group_list = self.create_archived_until_escalating_groups(num_groups=1)
 
-        mock_query_groups_past_counts.return_value = self.get_mock_response(7, 1, group_list)
+        mock_query_groups_past_counts.return_value = self.get_mock_groups_past_counts_response(
+            num_days=7, num_hours=1, groups=group_list
+        )
 
         run_escalating_forecast()
         group_forecast = GroupForecast.objects.all()
@@ -56,9 +67,11 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
     def test_multiple_groups_escalating_forecast(self, mock_query_groups_past_counts):
-        group_list = self.create_groups(3)
+        group_list = self.create_archived_until_escalating_groups(num_groups=3)
 
-        mock_query_groups_past_counts.return_value = self.get_mock_response(7, 23, group_list)
+        mock_query_groups_past_counts.return_value = self.get_mock_groups_past_counts_response(
+            num_days=7, num_hours=23, groups=group_list
+        )
 
         run_escalating_forecast()
         group_forecast = GroupForecast.objects.all()
@@ -68,9 +81,11 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
     def test_no_duped_groups_escalating_forecast(self, mock_query_groups_past_counts):
-        group_list = self.create_groups(3)
+        group_list = self.create_archived_until_escalating_groups(num_groups=3)
 
-        mock_query_groups_past_counts.return_value = self.get_mock_response(7, 2, group_list)
+        mock_query_groups_past_counts.return_value = self.get_mock_groups_past_counts_response(
+            num_days=7, num_hours=2, groups=group_list
+        )
 
         run_escalating_forecast()
         group_forecast = GroupForecast.objects.all()
