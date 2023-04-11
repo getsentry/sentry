@@ -1,9 +1,11 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {
   MINIMAP_HEIGHT,
   PROFILE_MEASUREMENTS_CHART_HEIGHT,
@@ -31,24 +33,37 @@ function toMilliseconds(nanoseconds: number) {
   return nanoseconds / NS_PER_MS;
 }
 
+function getChartName(op: string) {
+  switch (op) {
+    case 'cpu_usage':
+      return t('CPU Usage');
+    case 'memory_footprint':
+      return t('Memory');
+    default:
+      return '';
+  }
+}
+
 type ChartProps = {
   data: {
     unit: string;
     values: Profiling.MeasurementValue[];
   };
+  type: 'cpu_usage' | 'memory_footprint';
 };
 
-function Chart({data}: ChartProps) {
+function Chart({data, type}: ChartProps) {
   const theme = useTheme();
   const series: LineChartSeries[] = [
     {
-      seriesName: t('CPU Usage'),
+      seriesName: getChartName(type),
       // Use uniqBy since we can't guarantee the interval between recordings and
       // we're converting to lower fidelity (ns -> ms). This can result in duplicate entries
       data: uniqBy<SeriesDataUnit>(
         data.values.map(value => {
           return {
-            name: toMilliseconds(value.elapsed_since_start_ns).toFixed(0),
+            // name: toMilliseconds(value.elapsed_since_start_ns).toFixed(0),
+            name: value.elapsed_since_start_ns,
             value: value.value,
           };
         }),
@@ -100,7 +115,10 @@ function Chart({data}: ChartProps) {
 }
 
 // Memoized to prevent re-rendering when the cursor guide is displayed
-const MemoizedChart = React.memo(Chart);
+const MemoizedChart = React.memo(
+  Chart,
+  (prevProps, nextProps) => prevProps.type === nextProps.type
+);
 
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
@@ -126,12 +144,21 @@ function ProfilingMeasurements({
   renderWindowSelection,
 }: ProfilingMeasurementsProps) {
   const theme = useTheme();
+  const [measurementType, setMeasurementType] = useState<
+    'cpu_usage' | 'memory_footprint'
+  >('cpu_usage');
 
-  if (!('measurements' in profileData) || !defined(profileData.measurements?.cpu_usage)) {
+  if (
+    !('measurements' in profileData) ||
+    !defined(profileData.measurements?.[measurementType])
+  ) {
+    console.log('reee');
     return null;
   }
 
-  const cpuUsageData = profileData.measurements!.cpu_usage!;
+  // const cpuUsageData = profileData.measurements!.cpu_usage!;
+  const data = profileData.measurements![measurementType];
+  console.log(data);
 
   return (
     <CursorGuideHandler.Consumer>
@@ -143,7 +170,9 @@ function ProfilingMeasurements({
                 <OpsLine>
                   <OpsNameContainer>
                     <OpsDot style={{backgroundColor: theme.green200}} />
-                    <OpsName>{t('CPU Usage')}</OpsName>
+                    <StyledDropdownButton borderless>
+                      <OpsName>{getChartName(measurementType)}</OpsName>
+                    </StyledDropdownButton>
                   </OpsNameContainer>
                 </OpsLine>
               </ChartOpsLabel>
@@ -160,7 +189,7 @@ function ProfilingMeasurements({
                 }}
                 onMouseDown={onStartWindowSelection}
               >
-                <MemoizedChart data={cpuUsageData} />
+                <MemoizedChart data={data} type={measurementType} />
                 <Overlays>
                   {renderFog?.()}
                   {renderCursorGuide?.({
@@ -206,4 +235,10 @@ const MeasurementContainer = styled('div')`
   position: absolute;
   width: 100%;
   top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  padding: 0;
+  margin-left: 0;
+  font-weight: normal;
 `;
