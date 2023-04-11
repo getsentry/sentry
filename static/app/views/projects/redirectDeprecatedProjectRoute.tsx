@@ -10,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import Redirect from 'sentry/utils/redirect';
 import withApi from 'sentry/utils/withApi';
@@ -127,12 +127,11 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
       const payload = {
         feature: 'global_views',
         url: getRouteStringFromRoutes(routes), // the URL being redirected from
-        org_id: parseInt(organizationId, 10),
+        organization: organizationId,
       };
 
       // track redirects of deprecated URLs for analytics
-      analytics('deprecated_urls.redirect', payload);
-
+      trackAdvancedAnalyticsEvent('deprecated_urls.redirect', payload);
       return nextRoute;
     }
 
