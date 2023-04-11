@@ -122,7 +122,7 @@ first_event_with_minified_stack_trace_received = BetterSignal(providing_args=["p
 first_transaction_received = BetterSignal(providing_args=["project", "event"])
 first_profile_received = BetterSignal(providing_args=["project"])
 first_replay_received = BetterSignal(providing_args=["project"])
-first_cron_monitor_created = BetterSignal(providing_args=["project", "user"])
+first_cron_monitor_created = BetterSignal(providing_args=["project", "user", "from_upsert"])
 first_cron_checkin_received = BetterSignal(providing_args=["project", "monitor_id"])
 member_invited = BetterSignal(providing_args=["member", "user"])
 member_joined = BetterSignal(providing_args=["member", "organization"])
