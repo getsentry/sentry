@@ -12,7 +12,7 @@ type Props = {
   selection: PageFilters;
 };
 
-const ReleaseCardStatsPeriod = ({location, selection}: Props) => {
+function ReleaseCardStatsPeriod({location, selection}: Props) {
   const activePeriod =
     location.query.healthStatsPeriod || HealthStatsPeriodOption.TWENTY_FOUR_HOURS;
   const {pathname, query} = location;
@@ -45,7 +45,7 @@ const ReleaseCardStatsPeriod = ({location, selection}: Props) => {
       </Period>
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')`
   display: grid;

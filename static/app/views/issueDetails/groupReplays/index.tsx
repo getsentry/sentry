@@ -18,7 +18,7 @@ function renderNoAccess() {
   );
 }
 
-const GroupReplaysContainer = (props: Props) => {
+function GroupReplaysContainer(props: Props) {
   const organization = useOrganization();
 
   return (
@@ -30,6 +30,6 @@ const GroupReplaysContainer = (props: Props) => {
       <GroupReplays {...props} />
     </Feature>
   );
-};
+}
 
 export default GroupReplaysContainer;

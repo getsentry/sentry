@@ -40,13 +40,13 @@ function initialize({project, features, transaction, query} = {}) {
   return data;
 }
 
-const WrappedComponent = ({organization, ...props}) => {
+function WrappedComponent({organization, ...props}) {
   return (
     <OrganizationContext.Provider value={organization}>
       <TransactionVitals organization={organization} {...props} />
     </OrganizationContext.Provider>
   );
-};
+}
 
 /**
  * These values are what we expect to see on the page based on the

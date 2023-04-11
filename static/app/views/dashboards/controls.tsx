@@ -177,11 +177,11 @@ function Controls({
   );
 }
 
-const DashboardEditFeature = ({
+function DashboardEditFeature({
   children,
 }: {
   children: (hasFeature: boolean) => React.ReactNode;
-}) => {
+}) {
   const renderDisabled = p => (
     <Hovercard
       body={
@@ -205,7 +205,7 @@ const DashboardEditFeature = ({
       {({hasFeature}) => children(hasFeature)}
     </Feature>
   );
-};
+}
 
 const StyledButtonBar = styled(ButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {

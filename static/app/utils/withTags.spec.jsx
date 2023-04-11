@@ -9,7 +9,7 @@ describe('withTags HoC', function () {
   });
 
   it('works', function () {
-    const MyComponent = ({other, tags}) => {
+    function MyComponent({other, tags}) {
       return (
         <div>
           <span>{other}</span>
@@ -21,7 +21,7 @@ describe('withTags HoC', function () {
             ))}
         </div>
       );
-    };
+    }
 
     const Container = withTags(MyComponent);
     render(<Container other="value" />);
