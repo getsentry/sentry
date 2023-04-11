@@ -1143,8 +1143,6 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
-    # Normalize URL transaction names during ingestion.
-    "organizations:transaction-name-normalize": False,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
