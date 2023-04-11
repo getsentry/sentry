@@ -13,7 +13,7 @@ def get_dynamic_sdk_loader_option(project_key, option: DynamicSdkLoaderOption, d
 
 
 def get_default_loader_data(project):
-    dynamic_sdk_loader_options = project.get_option("sentry:default_loader_options")
+    dynamic_sdk_loader_options = project.get_option("sentry:default_loader_options", None)
 
     if dynamic_sdk_loader_options is not None:
         return {"dynamicSdkLoaderOptions": dynamic_sdk_loader_options}
