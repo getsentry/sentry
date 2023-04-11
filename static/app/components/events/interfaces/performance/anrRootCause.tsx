@@ -103,7 +103,7 @@ export function AnrRootCause({event, organization}: Props) {
           </IssueSummary>
         );
       })}
-      {anrCulprit?.resources}
+      {organization.features.includes('anr-analyze-frames') && anrCulprit?.resources}
     </EventDataSection>
   );
 }
