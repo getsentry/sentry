@@ -321,7 +321,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
                 suggestion = suggest_fix(event.data)
             except openai.error.RateLimitError as err:
                 return HttpResponse(
-                    json.dumps({"error": err.json_body}),
+                    json.dumps({"error": err.json_body["error"]}),
                     content_type="application/json",
                     status=429,
                 )
