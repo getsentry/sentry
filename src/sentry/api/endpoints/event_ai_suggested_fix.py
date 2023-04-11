@@ -5,7 +5,6 @@ import openai
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse
-from openai.error import RateLimitError
 
 from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
@@ -320,7 +319,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         if suggestion is None:
             try:
                 suggestion = suggest_fix(event.data)
-            except RateLimitError as err:
+            except openai.error.RateLimitError as err:
                 return HttpResponse(
                     json.dumps({"error": err.json_body}),
                     content_type="application/json",
