@@ -83,7 +83,7 @@ class KeyCollection:
         self.mapping = mapping
         self.size = self._size()
 
-    def __eq__(self, __value: object) -> bool:
+    def __eq__(self, value: Any) -> bool:
         return (
             isinstance(__value, self.__class__)
             and self.size == __value.size
