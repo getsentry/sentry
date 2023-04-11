@@ -9,7 +9,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
-import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -44,23 +44,22 @@ export function UserFeedbackEmpty({projectIds}: Props) {
 
     if (hasAnyFeedback === false) {
       // send to reload only due to higher event volume
-      trackAdhocEvent({
-        eventKey: 'user_feedback.viewed',
-        org_id: parseInt(organization.id, 10),
-        projects: projectIds,
+      trackAdvancedAnalyticsEvent('user_feedback.viewed', {
+        organization,
+        projects: projectIds?.join(',') || '',
       });
     }
     return () => {
       window.sentryEmbedCallback = null;
     };
-  }, [hasAnyFeedback, organization.id, projectIds]);
+  }, [hasAnyFeedback, organization, projectIds]);
 
-  function trackAnalytics({eventKey, eventName}: {eventKey: string; eventName: string}) {
-    trackAnalyticsEvent({
-      eventKey,
-      eventName,
-      organization_id: organization.id,
-      projects: projectIds,
+  function trackAnalytics(
+    eventKey: 'user_feedback.docs_clicked' | 'user_feedback.dialog_opened'
+  ) {
+    trackAdvancedAnalyticsEvent(eventKey, {
+      organization,
+      projects: selectedProjects?.join(','),
     });
   }
 
@@ -89,12 +88,7 @@ export function UserFeedbackEmpty({projectIds}: Props) {
         <Button
           external
           priority="primary"
-          onClick={() =>
-            trackAnalytics({
-              eventKey: 'user_feedback.docs_clicked',
-              eventName: 'User Feedback Docs Clicked',
-            })
-          }
+          onClick={() => trackAnalytics('user_feedback.docs_clicked')}
           href="https://docs.sentry.io/product/user-feedback/"
         >
           {t('Read the docs')}
@@ -105,11 +99,7 @@ export function UserFeedbackEmpty({projectIds}: Props) {
               // should never make it to the Sentry API, but just in case, use throwaway id
               eventId: '00000000000000000000000000000000',
             });
-
-            trackAnalytics({
-              eventKey: 'user_feedback.dialog_opened',
-              eventName: 'User Feedback Dialog Opened',
-            });
+            trackAnalytics('user_feedback.dialog_opened');
           }}
         >
           {t('See an example')}
