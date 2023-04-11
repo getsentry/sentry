@@ -1333,7 +1333,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'click' = 'event'
+  type: 'event' | 'replay' | 'replay_click' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':

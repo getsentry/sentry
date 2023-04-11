@@ -235,7 +235,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 if (breadcrumbsHeader) {
                   breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
                 }
-                trackAdvancedAnalyticsEvent('issue_details.header_view_clicked', {
+                trackAdvancedAnalyticsEvent('issue_details.header_view_replay_clicked', {
                   organization,
                   ...getAnalyticsDataForGroup(group),
                   ...getAnalyticsDataForEvent(event),
