@@ -17,6 +17,10 @@ declare namespace Profiling {
       unit: string;
       values: MeasurementValue[];
     }
+    memory_footprint?: {
+      unit: string;
+      values: MeasurementValue[];
+    };
     frozen_frame_renders?: {
       unit: string;
       values: MeasurementValue[];
