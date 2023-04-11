@@ -321,7 +321,10 @@ describe('Dashboards > Dashboard', () => {
 
       await userEvent.click(await screen.findByLabelText('Duplicate Widget'));
       rerender();
-      expect(await screen.findAllByText('Test Discover Widget')).toHaveLength(2);
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
+      });
     });
 
     it('opens the widget builder when editing with the modal access flag', async function () {
