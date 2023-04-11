@@ -25,6 +25,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
 import type {ReplayListLocationQuery, ReplayRecord} from 'sentry/views/replays/types';
 
+import useIsVisible from './useIsVisible';
+
 // Max number of traces to list per page. Lower number means initial list will
 // load faster, but will require more queries afterwards to fill up the height
 // up the view. It also means higher chances of multi-page traces with
@@ -306,32 +308,14 @@ export default function Trace({replayRecord, organization}: Props) {
 
   /**
    * Add a placeholder DOM element at the bottom of the list. Use the
-   * IntersectionObserver to detect when placeholder element is visible, if
+   * useIsVisible hook to detect when placeholder element is visible. If
    * it's visible we call function to fetch more results.
    */
-  useEffect(() => {
-    const observer = new IntersectionObserver(entities => {
-      const [el] = entities;
-      // The placeholder at bottom of list is visible, attempt to fetch next
-      // page.
-      if (el.isIntersecting) {
-        fetchNext();
-      }
-    });
-
-    const placeholderEl = endOfListPlaceholder.current;
-
-    if (!placeholderEl) {
-      return () => {};
-    }
-
-    observer.observe(placeholderEl);
-    return () => {
-      if (placeholderEl) {
-        observer.unobserve(placeholderEl);
-      }
-    };
-  }, [endOfListPlaceholder, fetchNext]);
+  useIsVisible({
+    ref: endOfListPlaceholder,
+    onIsVisible: fetchNext,
+    cleanup: useCallback(() => api.clear, [api]),
+  });
 
   if (state.isLoading) {
     return <LoadingIndicator />;
