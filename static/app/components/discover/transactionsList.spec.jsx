@@ -8,7 +8,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-const WrapperComponent = props => {
+function WrapperComponent(props) {
   return (
     <OrganizationContext.Provider value={props.organization}>
       <MEPSettingProvider _isMEPEnabled={false}>
@@ -16,7 +16,7 @@ const WrapperComponent = props => {
       </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 describe('TransactionsList', function () {
   let api;

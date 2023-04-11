@@ -224,6 +224,7 @@ export const profiling = [
   'node-express',
   'node-koa',
   'node-connect',
+  'javascript-nextjs',
   // python, WSGI only
   'python',
   'python-django',
@@ -346,3 +347,10 @@ export type PlatformKey =
   | 'other';
 
 export default categoryList;
+
+export type Platform = {
+  key: PlatformKey;
+  id?: string;
+  link?: string | null;
+  name?: string;
+};

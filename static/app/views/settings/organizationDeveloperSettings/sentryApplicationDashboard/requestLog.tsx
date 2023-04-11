@@ -77,7 +77,7 @@ const getEventTypes = memoize((app: SentryApp) => {
   return events;
 });
 
-const ResponseCode = ({code}: {code: number}) => {
+function ResponseCode({code}: {code: number}) {
   let type: React.ComponentProps<typeof Tag>['type'] = 'error';
   if (code <= 399 && code >= 300) {
     type = 'warning';
@@ -90,10 +90,10 @@ const ResponseCode = ({code}: {code: number}) => {
       <StyledTag type={type}>{code === 0 ? 'timeout' : code}</StyledTag>
     </Tags>
   );
-};
+}
 
-const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) =>
-  link ? (
+function TimestampLink({date, link}: {date: moment.MomentInput; link?: string}) {
+  return link ? (
     <ExternalLink href={link}>
       <DateTime date={date} />
       <StyledIconOpen size="xs" />
@@ -101,6 +101,7 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   ) : (
     <DateTime date={date} format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'} />
   );
+}
 
 type Props = AsyncComponent['props'] & {
   app: SentryApp;

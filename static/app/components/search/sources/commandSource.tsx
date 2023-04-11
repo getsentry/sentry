@@ -163,10 +163,12 @@ class CommandSource extends Component<Props, State> {
   }
 }
 
-const CommandSourceWithFeature = (props: Omit<Props, 'isSuperuser'>) => (
-  <Access isSuperuser>
-    {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
-  </Access>
-);
+function CommandSourceWithFeature(props: Omit<Props, 'isSuperuser'>) {
+  return (
+    <Access isSuperuser>
+      {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
+    </Access>
+  );
+}
 export default CommandSourceWithFeature;
 export {CommandSource};

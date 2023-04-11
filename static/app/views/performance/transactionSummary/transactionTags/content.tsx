@@ -42,7 +42,7 @@ type Props = {
 
 type TagOption = string;
 
-const TagsPageContent = (props: Props) => {
+function TagsPageContent(props: Props) {
   const {eventView, location, organization, projects} = props;
 
   const [aggregateColumn, setAggregateColumn] = useState(
@@ -74,7 +74,7 @@ const TagsPageContent = (props: Props) => {
       </SegmentExplorerQuery>
     </Layout.Main>
   );
-};
+}
 
 function getTagKeyOptions(tableData: TableData) {
   const suspectTags: TagOption[] = [];
@@ -90,14 +90,14 @@ function getTagKeyOptions(tableData: TableData) {
   };
 }
 
-const InnerContent = (
+function InnerContent(
   props: Props & {
     aggregateColumn: string;
     onChangeAggregateColumn: (aggregateColumn: string) => void;
     tableData: TableData | null;
     isLoading?: boolean;
   }
-) => {
+) {
   const {
     eventView: _eventView,
     location,
@@ -223,15 +223,15 @@ const InnerContent = (
       </StyledMain>
     </ReversedLayoutBody>
   );
-};
+}
 
-const TagsSideBar = (props: {
+function TagsSideBar(props: {
   changeTag: (tag: string, isOtherTag: boolean) => void;
   otherTags: TagOption[];
   suspectTags: TagOption[];
   isLoading?: boolean;
   tagSelected?: string;
-}) => {
+}) {
   const {suspectTags, otherTags, changeTag, tagSelected, isLoading} = props;
   return (
     <StyledSide>
@@ -288,7 +288,7 @@ const TagsSideBar = (props: {
       )}
     </StyledSide>
   );
-};
+}
 
 const RadioLabel = styled('label')`
   cursor: pointer;

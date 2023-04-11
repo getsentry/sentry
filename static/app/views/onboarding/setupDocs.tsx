@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -22,6 +22,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,14 +47,14 @@ type Props = {
   search: string;
 } & StepProps;
 
-const MissingExampleWarning = ({
+function MissingExampleWarning({
   platformDocs,
   platform,
 }: {
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
-}) => {
-  const missingExample = platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
+}) {
+  const missingExample = platformDocs?.html.includes(INCOMPLETE_DOC_FLAG);
 
   if (!missingExample) {
     return null;
@@ -73,24 +74,19 @@ const MissingExampleWarning = ({
       )}
     </Alert>
   );
-};
+}
 
 export function ProjectDocsReact({
   organization,
   location,
-  project,
+  projectSlug,
   newOrg,
 }: {
   location: Location;
   organization: Organization;
-  project: Project;
+  projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
-  const api = useApi();
-  const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
-  const [hasError, setHasError] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   const {
     experimentAssignment: productSelectionAssignment,
     logExperiment: productSelectionLogExperiment,
@@ -98,58 +94,37 @@ export function ProjectDocsReact({
     logExperimentOnMount: false,
   });
 
+  // This is an experiment we are doing with react.
+  // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
+  // and the docs will reflect that.
+  const loadPlatform = useMemo(() => {
+    const products = location.query.product ?? [];
+    return newOrg && productSelectionAssignment === 'baseline'
+      ? 'javascript-react'
+      : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
+        products.includes(PRODUCT.SESSION_REPLAY)
+      ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
+      : products.includes(PRODUCT.PERFORMANCE_MONITORING)
+      ? ReactDocVariant.ErrorMonitoringAndPerformance
+      : products.includes(PRODUCT.SESSION_REPLAY)
+      ? ReactDocVariant.ErrorMonitoringAndSessionReplay
+      : ReactDocVariant.ErrorMonitoring;
+  }, [location.query.product, productSelectionAssignment, newOrg]);
+
   useEffect(() => {
-    if (newOrg) {
-      productSelectionLogExperiment();
+    if (!newOrg) {
+      return;
     }
+    productSelectionLogExperiment();
   }, [productSelectionLogExperiment, newOrg]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    // This is an experiment we are doing with react.
-    // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
-    // and the docs will reflect that.
-    const products = location.query.product ?? [];
-
-    const loadPlatform =
-      newOrg && productSelectionAssignment === 'baseline'
-        ? 'javascript-react'
-        : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-          products.includes(PRODUCT.SESSION_REPLAY)
-        ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
-        : products.includes(PRODUCT.PERFORMANCE_MONITORING)
-        ? ReactDocVariant.ErrorMonitoringAndPerformance
-        : products.includes(PRODUCT.SESSION_REPLAY)
-        ? ReactDocVariant.ErrorMonitoringAndSessionReplay
-        : ReactDocVariant.ErrorMonitoring;
-
-    try {
-      const loadedDocs = await loadDocs({
-        api,
-        orgSlug: organization.slug,
-        projectSlug: project.slug,
-        platform: loadPlatform as unknown as PlatformKey,
-      });
-      setPlatformDocs(loadedDocs);
-      setHasError(false);
-      setLoading(false);
-    } catch (error) {
-      setHasError(error);
-      setLoading(false);
-      throw error;
+  const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
+    [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
+    {
+      staleTime: Infinity,
+      enabled: !!projectSlug && !!organization.slug && !!loadPlatform,
     }
-  }, [
-    project?.slug,
-    api,
-    organization.slug,
-    location.query.product,
-    productSelectionAssignment,
-    newOrg,
-  ]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData, location.query.product]);
+  );
 
   return (
     <Fragment>
@@ -181,23 +156,26 @@ export function ProjectDocsReact({
           ]}
         />
       )}
-      {loading ? (
+      {isLoading ? (
         <LoadingIndicator />
-      ) : hasError ? (
+      ) : isError ? (
         <LoadingError
           message={t('Failed to load documentation for the React platform.')}
-          onRetry={fetchData}
+          onRetry={refetch}
         />
       ) : (
         getDynamicText({
-          value: platformDocs !== null && (
+          value: (
             <DocsWrapper>
               <DocumentationWrapper
-                dangerouslySetInnerHTML={{__html: platformDocs.html}}
+                dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
               />
               <MissingExampleWarning
                 platform="javascript-react"
-                platformDocs={platformDocs}
+                platformDocs={{
+                  html: data?.html ?? '',
+                  link: data?.link ?? '',
+                }}
               />
             </DocsWrapper>
           ),
@@ -291,10 +269,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     'onboarding-docs-with-product-selection'
   );
 
-  const loaderOnboarding = !!organization.features?.includes('onboarding-project-loader');
-
-  const jsDynamicLoader = !!organization.features?.includes('js-sdk-dynamic-loader');
-
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
@@ -344,8 +318,26 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    loaderOnboarding && jsDynamicLoader && currentPlatform === 'javascript'
+    currentPlatform === 'javascript'
   );
+
+  const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
+  const showReactOnboarding =
+    currentPlatform === 'javascript-react' && docsWithProductSelection;
+
+  const hideLoaderOnboarding = useCallback(() => {
+    setShowLoaderOnboarding(false);
+
+    if (!project?.id) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('onboarding.js_loader_npm_docs_shown', {
+      organization,
+      platform: currentPlatform,
+      project_id: project?.id,
+    });
+  }, [organization, currentPlatform, project?.id]);
 
   const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
@@ -354,7 +346,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     }
 
     // this will be fetched in the SetupDocsReact component
-    if (project.platform === 'javascript-react' && docsWithProductSelection) {
+    if (showReactOnboarding) {
       return;
     }
 
@@ -363,7 +355,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       return;
     }
 
-    if (integrationSlug && !integrationUseManualSetup) {
+    if (showIntegrationOnboarding) {
       setLoadedPlatform(project.platform);
       setPlatformDocs(null);
       setHasError(false);
@@ -389,9 +381,8 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     project?.platform,
     api,
     organization.slug,
-    integrationSlug,
-    integrationUseManualSetup,
-    docsWithProductSelection,
+    showReactOnboarding,
+    showIntegrationOnboarding,
     showLoaderOnboarding,
   ]);
 
@@ -456,7 +447,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           </SidebarWrapper>
         )}
         <MainContent>
-          {integrationSlug && !integrationUseManualSetup ? (
+          {showIntegrationOnboarding ? (
             <IntegrationSetup
               integrationSlug={integrationSlug}
               project={project}
@@ -464,21 +455,30 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
                 setIntegrationUseManualSetup(true);
               }}
             />
-          ) : project.platform === 'javascript-react' && docsWithProductSelection ? (
+          ) : showReactOnboarding ? (
             <ProjectDocsReact
               organization={organization}
-              project={project}
+              projectSlug={project.slug}
               location={location}
               newOrg
             />
           ) : showLoaderOnboarding ? (
-            <SetupDocsLoader
-              organization={organization}
-              project={project}
-              location={location}
-              platform={loadedPlatform}
-              close={() => setShowLoaderOnboarding(false)}
-            />
+            <Fragment>
+              <SetupIntroduction
+                stepHeaderText={t(
+                  'Configure %s SDK',
+                  platforms.find(p => p.id === currentPlatform)?.name ?? ''
+                )}
+                platform={currentPlatform}
+              />
+              <SetupDocsLoader
+                organization={organization}
+                project={project}
+                location={location}
+                platform={loadedPlatform}
+                close={hideLoaderOnboarding}
+              />
+            </Fragment>
           ) : (
             <ProjectDocs
               platform={loadedPlatform}
