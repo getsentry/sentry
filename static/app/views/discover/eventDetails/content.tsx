@@ -149,8 +149,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
     const hasProfilingFeature = organization.features.includes('profiling');
-    const hasProfilingPreviewsFeature =
-      hasProfilingFeature && organization.features.includes('profiling-previews');
 
     const profileId = isTransaction(event) ? event.contexts?.profile?.profile_id : null;
 
@@ -248,7 +246,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     }}
                   >
                     <QuickTraceContext.Provider value={results}>
-                      {hasProfilingPreviewsFeature ? (
+                      {hasProfilingFeature ? (
                         <ProfilesProvider
                           orgSlug={organization.slug}
                           projectSlug={this.projectId}
