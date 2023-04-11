@@ -10,7 +10,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
-from sentry.models import Rule, RuleSnooze
+from sentry.models import Rule, RuleSnooze, Team
 
 
 class RuleSnoozeValidator(CamelSnakeSerializer):
@@ -37,7 +37,7 @@ class RuleSnoozeSerializer(Serializer):  # type: ignore
 def can_edit_alert_rule(rule, organization, user):
     rule_owner = rule.owner
     if rule_owner:
-        if rule_owner.team not in rule_owner.team.objects.get_for_user(organization, user):
+        if rule_owner.team not in Team.objects.get_for_user(organization, user):
             return False
     return True
 
@@ -59,6 +59,9 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
 
+        if data.get("rule") and data.get("alert_rule"):
+            raise serializers.ValidationError("Pass either rule or alert rule, not both.")
+
         issue_alert_rule = None
         metric_alert_rule = None
 
@@ -77,7 +80,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
                 raise serializers.ValidationError("Rule does not exist")
 
         rule = issue_alert_rule or metric_alert_rule
-        if not can_edit_alert_rule(rule, project.organization, request.user):
+        if not user_id and not can_edit_alert_rule(rule, project.organization, request.user):
             return Response(
                 {"detail": "Requesting user cannot edit this rule."},
                 status=status.HTTP_401_UNAUTHORIZED,
