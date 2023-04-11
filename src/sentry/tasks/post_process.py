@@ -27,7 +27,7 @@ from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
-    from sentry.eventstream.base import GroupState, GroupStates
+    from sentry.eventstream.types import GroupState, GroupStates
 
 logger = logging.getLogger(__name__)
 
