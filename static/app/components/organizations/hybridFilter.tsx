@@ -130,21 +130,23 @@ export function HybridFilter<Value extends React.Key>({
       ...option,
       hideCheck: true,
       trailingItems: ({isFocused, isSelected, disabled}) => {
-        const TrailingCheckbox = (props: React.ComponentProps<typeof Checkbox>) => (
-          <CheckWrap
-            visible={isFocused || isSelected || (!!multiple && modifierKeyPressed)}
-            role="presentation"
-          >
-            <Checkbox
-              size="sm"
-              checked={isSelected}
-              disabled={disabled || props.disabled}
-              onChange={() => toggleOption(option.value)}
-              aria-label={t('Select %s', option.label)}
-              {...props}
-            />
-          </CheckWrap>
-        );
+        function TrailingCheckbox(props: React.ComponentProps<typeof Checkbox>) {
+          return (
+            <CheckWrap
+              visible={isFocused || isSelected || (!!multiple && modifierKeyPressed)}
+              role="presentation"
+            >
+              <Checkbox
+                size="sm"
+                checked={isSelected}
+                disabled={disabled || props.disabled}
+                onChange={() => toggleOption(option.value)}
+                aria-label={t('Select %s', option.label)}
+                {...props}
+              />
+            </CheckWrap>
+          );
+        }
 
         return (
           <TrailingWrap
