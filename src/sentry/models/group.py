@@ -184,6 +184,12 @@ STATUS_UPDATE_CHOICES = {
     "muted": GroupStatus.IGNORED,
 }
 
+SUBSTATUS_UPDATE_CHOICES = {
+    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
+    "escalating": GroupSubStatus.ESCALATING,
+    "ongoing": GroupSubStatus.ONGOING,
+}
+
 
 class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
