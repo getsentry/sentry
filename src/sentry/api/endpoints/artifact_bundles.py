@@ -11,7 +11,8 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist, SentryAPIException
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle
+from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializer
+from sentry.models import ArtifactBundle, ProjectArtifactBundle
 
 
 class InvalidSortByParameter(SentryAPIException):
@@ -63,46 +64,13 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
             query_q = Q(bundle_id__icontains=query)
             queryset = queryset.filter(query_q)
 
-        def expose_artifact_bundle(artifact_bundle, release_dist):
-            release, dist = release_dist
-
-            # TODO(iambriccardo): Use a serializer for this.
-            return {
-                "bundleId": str(artifact_bundle.bundle_id),
-                "release": release if release != "" else None,
-                "dist": dist if dist != "" else None,
-                "fileCount": artifact_bundle.artifact_count,
-                "date": artifact_bundle.date_uploaded.isoformat()[:19] + "Z",
-            }
-
-        def serialize_results(results):
-            release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-                artifact_bundle_id__in=[r.id for r in results]
-            )
-            release_artifact_bundles = {
-                release.artifact_bundle_id: (release.release_name, release.dist_name)
-                for release in release_artifact_bundles
-            }
-            # We want to maintain the -date_added ordering, thus we index the metadata by using the id fetched with the
-            # first query.
-            return serialize(
-                [
-                    expose_artifact_bundle(
-                        artifact_bundle=r,
-                        release_dist=release_artifact_bundles.get(r.id, (None, None)),
-                    )
-                    for r in results
-                ],
-                request.user,
-            )
-
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by=self.derive_order_by(sort_by=request.GET.get("sortBy", "-date_added")),
             paginator_cls=OffsetPaginator,
             default_per_page=10,
-            on_results=serialize_results,
+            on_results=lambda r: serialize(r, request.user, ArtifactBundlesSerializer()),
         )
 
     def delete(self, request: Request, project) -> Response:

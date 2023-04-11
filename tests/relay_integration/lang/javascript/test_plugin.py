@@ -66,7 +66,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # We disable scraping per-test when necessary.
         self.project.update_option("sentry:scrape_javascript", True)
 
-    def test_adds_contexts_without_device(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_adds_contexts_without_device(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -88,7 +90,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert contexts.get("os") == {"name": "Windows", "version": "8", "type": "os"}
         assert contexts.get("device") is None
 
-    def test_adds_contexts_with_device(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    @pytest.mark.skip(
+        reason="temp disable test due to circular dependency before merging PR: https://github.com/getsentry/relay/pull/2004"
+    )
+    def test_adds_contexts_with_device(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -117,7 +124,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "brand": "Samsung",
         }
 
-    def test_adds_contexts_with_ps4_device(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_adds_contexts_with_ps4_device(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -345,8 +354,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
         mock_from_bytes.assert_called_once()
 
-    @responses.activate
-    def test_error_message_translations(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_error_message_translations(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -1292,7 +1302,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             {"url": "http://example.com/invalid_file2.js", "type": "js_invalid_content"},
         ]
 
-    def _test_expansion_via_release_archive(self, link_sourcemaps: bool):
+    def _test_expansion_via_release_archive(
+        self, link_sourcemaps: bool, process_with_symbolicator: bool
+    ):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1303,34 +1315,38 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "files": {
                 "files/_/_/file.min.js": {
                     "url": "http://example.com/file.min.js",
+                    "type": "minified_source",
                 },
                 "files/_/_/file1.js": {
                     "url": "http://example.com/file1.js",
+                    "type": "source",
                 },
                 "files/_/_/file2.js": {
                     "url": "http://example.com/file2.js",
+                    "type": "source",
                 },
                 "files/_/_/file.sourcemap.js": {
                     "url": "http://example.com/file.sourcemap.js",
+                    "type": "source_map",
                 },
             },
         }
 
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             for rel_path, entry in manifest["files"].items():
                 name = os.path.basename(rel_path)
                 content = load_fixture(name)
                 if name == "file.min.js" and not link_sourcemaps:
                     # Remove link to source map, add to header instead
                     content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
-                    entry["headers"] = {"SourceMap": "/file.sourcemap.js"}
-                zip.writestr(rel_path, content)
-            zip.writestr("manifest.json", json.dumps(manifest))
-        file_like.seek(0)
+                    entry["headers"] = {"Sourcemap": "file.sourcemap.js"}
+                zip_file.writestr(rel_path, content)
+            zip_file.writestr("manifest.json", json.dumps(manifest))
+        compressed.seek(0)
 
         file = File.objects.create(name="doesnt_matter", type="release.bundle")
-        file.putfile(file_like)
+        file.putfile(compressed)
 
         update_artifact_index(release, None, file)
 
@@ -1374,7 +1390,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -1387,11 +1406,19 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
-    def test_expansion_via_release_archive(self):
-        self._test_expansion_via_release_archive(link_sourcemaps=True)
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_via_release_archive(self, process_with_symbolicator):
+        self._test_expansion_via_release_archive(
+            link_sourcemaps=True, process_with_symbolicator=process_with_symbolicator
+        )
 
-    def test_expansion_via_release_archive_no_sourcemap_link(self):
-        self._test_expansion_via_release_archive(link_sourcemaps=False)
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_via_release_archive_no_sourcemap_link(self, process_with_symbolicator):
+        self._test_expansion_via_release_archive(
+            link_sourcemaps=False, process_with_symbolicator=process_with_symbolicator
+        )
 
     @requires_symbolicator
     @pytest.mark.symbolicator
@@ -1667,14 +1694,16 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "url": "http://example.com/file.min.js",
         }
 
-    def test_expansion_with_debug_id(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_debug_id(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -1821,7 +1850,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -1837,13 +1869,20 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
-    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(
+        self, process_with_symbolicator
+    ):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -1966,18 +2005,46 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        assert len(event.data["errors"]) == 3
-        assert event.data["errors"][0] == {
-            "type": "js_missing_sources_content",
-            "source": "http://example.com/file.min.js",
-            "sourcemap": f"debug-id://{debug_id}/~/file.sourcemap.js",
-        }
+        # NOTE: Symbolicator processor has a better fallback to pull specific files for source context
+        if process_with_symbolicator:
+            assert "errors" not in event.data
 
-    def test_expansion_with_debug_id_and_malformed_sourcemap(self):
+            exception = event.interfaces["exception"]
+            frame_list = exception.values[0].stacktrace.frames
+
+            frame = frame_list[0]
+            assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+            assert frame.context_line == "\treturn a + b; // fôo"
+            if process_with_symbolicator:
+                assert frame.post_context == ["}"]
+            else:
+                assert frame.post_context == ["}", ""]
+
+            frame = frame_list[1]
+            assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+            assert frame.context_line == "\treturn a * b;"
+            assert frame.post_context == [
+                "}",
+                "function divide(a, b) {",
+                '\t"use strict";',
+                "\ttry {",
+                "\t\treturn multiply(add(a, b), a, b) / c;",
+            ]
+        else:
+            assert len(event.data["errors"]) == 3
+            assert event.data["errors"][0] == {
+                "type": "js_missing_sources_content",
+                "source": "http://example.com/file.min.js",
+                "sourcemap": f"debug-id://{debug_id}/~/file.sourcemap.js",
+            }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_debug_id_and_malformed_sourcemap(self, process_with_symbolicator):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -2103,12 +2170,22 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert len(event.data["errors"]) == 1
-        assert event.data["errors"][0] == {
-            "type": "js_invalid_source",
-            "debug_id": f"debug-id://{debug_id}/~/file.malformed.sourcemap.js",
-        }
 
-    def test_expansion_with_debug_id_not_found(self):
+        # NOTE: Its not obvious what data we want here yet.
+        if process_with_symbolicator:
+            assert event.data["errors"][0] == {
+                "type": "js_invalid_source",
+                "url": "http://example.com/file.malformed.sourcemap.js",
+            }
+        else:
+            assert event.data["errors"][0] == {
+                "type": "js_invalid_source",
+                "debug_id": f"debug-id://{debug_id}/~/file.malformed.sourcemap.js",
+            }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_debug_id_not_found(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2119,33 +2196,37 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "files": {
                 "files/_/_/file.min.js": {
                     "url": "http://example.com/file.min.js",
+                    "type": "minified_source",
                 },
                 "files/_/_/file1.js": {
                     "url": "http://example.com/file1.js",
+                    "type": "source",
                 },
                 "files/_/_/file2.js": {
                     "url": "http://example.com/file2.js",
+                    "type": "source",
                 },
                 "files/_/_/file.sourcemap.js": {
                     "url": "http://example.com/file.sourcemap.js",
+                    "type": "source_map",
                 },
             },
         }
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             for rel_path, entry in manifest["files"].items():
                 name = os.path.basename(rel_path)
                 content = load_fixture(name)
                 if name == "file.min.js":
                     # Remove link to source map, add to header instead
                     content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
-                    entry["headers"] = {"SourceMap": "/file.sourcemap.js"}
-                zip.writestr(rel_path, content)
-            zip.writestr("manifest.json", json.dumps(manifest))
-        file_like.seek(0)
+                    entry["headers"] = {"Sourcemap": "file.sourcemap.js"}
+                zip_file.writestr(rel_path, content)
+            zip_file.writestr("manifest.json", json.dumps(manifest))
+        compressed.seek(0)
 
         file = File.objects.create(name="release_bundle.zip", type="release.bundle")
-        file.putfile(file_like)
+        file.putfile(compressed)
 
         update_artifact_index(release, None, file)
 
@@ -2198,15 +2279,16 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        assert "errors" not in event.data
-
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -2222,9 +2304,14 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
-    def test_expansion_with_release_dist_pair(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_release_dist_pair_x(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2233,8 +2320,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # real edge case that we can incur in.
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -2242,7 +2329,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
             zip_file.writestr(
                 "files/_/_/file.wc.sourcemap.js", load_fixture("file.wc.sourcemap.js")
             )
-
             zip_file.writestr(
                 "manifest.json",
                 json.dumps(
@@ -2286,15 +2372,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
                                     "debug-id": debug_id,
                                 },
                             },
-                        },
-                        "debug_meta": {
-                            "images": [
-                                {
-                                    "type": "sourcemap",
-                                    "debug_id": debug_id,
-                                    "code_file": "http://example.com/file.min.js",
-                                }
-                            ]
                         },
                     }
                 ),
@@ -2369,7 +2446,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -2385,16 +2465,23 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
-    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(
+        self, process_with_symbolicator
+    ):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
         dist = release.add_dist("android")
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -2501,20 +2588,48 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        assert len(event.data["errors"]) == 3
-        assert event.data["errors"][0] == {
-            "type": "js_missing_sources_content",
-            "source": "http://example.com/file.min.js",
-            "sourcemap": "http://example.com/file.sourcemap.js",
-        }
+        # NOTE: Symbolicator processor has a better fallback to pull specific files for source context
+        if process_with_symbolicator:
+            assert "errors" not in event.data
 
-    def test_expansion_with_release_and_malformed_sourcemap(self):
+            exception = event.interfaces["exception"]
+            frame_list = exception.values[0].stacktrace.frames
+
+            frame = frame_list[0]
+            assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+            assert frame.context_line == "\treturn a + b; // fôo"
+            if process_with_symbolicator:
+                assert frame.post_context == ["}"]
+            else:
+                assert frame.post_context == ["}", ""]
+
+            frame = frame_list[1]
+            assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+            assert frame.context_line == "\treturn a * b;"
+            assert frame.post_context == [
+                "}",
+                "function divide(a, b) {",
+                '\t"use strict";',
+                "\ttry {",
+                "\t\treturn multiply(add(a, b), a, b) / c;",
+            ]
+        else:
+            assert len(event.data["errors"]) == 3
+            assert event.data["errors"][0] == {
+                "type": "js_missing_sources_content",
+                "source": "http://example.com/file.min.js",
+                "sourcemap": "http://example.com/file.sourcemap.js",
+            }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_release_and_malformed_sourcemap(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))

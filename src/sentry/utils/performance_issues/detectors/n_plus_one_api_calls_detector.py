@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import hashlib
 import os
 import random
-import re
 from datetime import timedelta
 from typing import Optional
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
@@ -16,32 +14,13 @@ from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
     PerformanceDetector,
+    fingerprint_http_spans,
     get_span_duration,
     get_url_from_span,
+    parameterize_url,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import PerformanceProblemsMap, Span
-
-URL_PARAMETER_REGEX = re.compile(
-    r"""(?x)
-    (?P<uuid>
-        \b
-            [0-9a-fA-F]{8}-
-            [0-9a-fA-F]{4}-
-            [0-9a-fA-F]{4}-
-            [0-9a-fA-F]{4}-
-            [0-9a-fA-F]{12}
-        \b
-    ) |
-    (?P<hashlike>
-        \b[0-9a-fA-F]{10}([0-9a-fA-F]{14})?([0-9a-fA-F]{8})?([0-9a-fA-F]{8})?\b
-    ) |
-    (?P<int>
-        -\d+\b |
-        \b\d+\b
-    )
-"""
-)  # Adapted from message.py
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
@@ -100,38 +79,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_rate"] > random.random()
-
-    @staticmethod
-    def parameterize_url(url: str) -> str:
-        parsed_url = urlparse(str(url))
-
-        protocol_fragments = []
-        if parsed_url.scheme:
-            protocol_fragments.append(parsed_url.scheme)
-            protocol_fragments.append("://")
-
-        host_fragments = []
-        for fragment in parsed_url.netloc.split("."):
-            host_fragments.append(str(fragment))
-
-        path_fragments = []
-        for fragment in parsed_url.path.split("/"):
-            if URL_PARAMETER_REGEX.search(fragment):
-                path_fragments.append("*")
-            else:
-                path_fragments.append(str(fragment))
-
-        query = parse_qs(parsed_url.query)
-
-        return "".join(
-            [
-                "".join(protocol_fragments),
-                ".".join(host_fragments),
-                "/".join(path_fragments),
-                "?",
-                "&".join(sorted([f"{key}=*" for key in query.keys()])),
-            ]
-        ).rstrip("?")
 
     @classmethod
     def is_event_eligible(cls, event, project=None):
@@ -232,7 +179,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _fingerprint(self) -> Optional[str]:
         first_url = get_url_from_span(self.spans[0])
-        parameterized_first_url = self.parameterize_url(first_url)
+        parameterized_first_url = parameterize_url(first_url)
 
         # Check if we parameterized the URL at all. If not, do not attempt
         # fingerprinting. Unparameterized URLs run too high a risk of
@@ -241,10 +188,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if without_query_params(parameterized_first_url) == without_query_params(first_url):
             return None
 
-        parsed_first_url = urlparse(parameterized_first_url)
-        path = parsed_first_url.path
-
-        fingerprint = hashlib.sha1(path.encode("utf8")).hexdigest()
+        fingerprint = fingerprint_http_spans([self.spans[0]])
 
         return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
 

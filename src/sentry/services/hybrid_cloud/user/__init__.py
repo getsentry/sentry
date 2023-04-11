@@ -202,6 +202,7 @@ class UserService(RpcService):
         # Returns a serialized user
         pass
 
+    @rpc_method
     def get_user(self, user_id: int) -> Optional[RpcUser]:
         """
         This method returns a User object given an ID

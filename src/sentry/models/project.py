@@ -298,11 +298,13 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             Environment,
             EnvironmentProject,
             ProjectTeam,
+            RegionScheduledDeletion,
             ReleaseProject,
             ReleaseProjectEnvironment,
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
+        from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -348,6 +350,17 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             Rule.objects.filter(id__in=rule_ids).update(
                 environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
             )
+
+        # Manually move over organization id's for Monitors
+        monitors = Monitor.objects.filter(organization_id=old_org_id)
+        new_monitors = set(
+            Monitor.objects.filter(organization_id=organization.id).values_list("slug", flat=True)
+        )
+        for monitor in monitors:
+            if monitor.slug in new_monitors:
+                RegionScheduledDeletion.schedule(monitor, days=0)
+            else:
+                monitor.update(organization_id=organization.id)
 
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
