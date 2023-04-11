@@ -138,9 +138,12 @@ describe('analyzeAnrFrames', function () {
         vars: null,
       },
     ]);
-    const resource = analyzeFramesForRootCause(event);
-    expect(resource).toEqual(
+    const rootCause = analyzeFramesForRootCause(event);
+    expect(rootCause?.resources).toEqual(
       'Switch to SharedPreferences.commit and move commit to a background thread.'
+    );
+    expect(rootCause?.culprit).toEqual(
+      '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$[0-9]/'
     );
   });
 
@@ -166,7 +169,8 @@ describe('analyzeAnrFrames', function () {
         vars: null,
       },
     ]);
-    const resource = analyzeFramesForRootCause(event);
-    expect(resource).toEqual('Move database operations off the main thread.');
+    const rootCause = analyzeFramesForRootCause(event);
+    expect(rootCause?.resources).toEqual('Move database operations off the main thread.');
+    expect(rootCause?.culprit).toEqual('android.database.sqlite.SQLiteConnection');
   });
 });
