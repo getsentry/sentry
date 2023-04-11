@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {getIgnoreActions} from 'sentry/components/actions/ignore';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -36,6 +37,14 @@ export function getArchiveActions({
   ArchiveActionProps,
   'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
 >) {
+  // TODO(workflow): Replace ignore actions with more archive actions
+  const {dropdownItems} = getIgnoreActions({
+    confirmLabel,
+    onUpdate,
+    shouldConfirm,
+    confirmMessage,
+  });
+
   const onArchive = (statusDetails: GroupStatusResolution['statusDetails']) => {
     if (shouldConfirm && confirmMessage) {
       openConfirmModal({
@@ -68,6 +77,7 @@ export function getArchiveActions({
         label: t('Forever'),
         onAction: () => onArchive({}),
       },
+      ...dropdownItems,
     ],
   };
 }

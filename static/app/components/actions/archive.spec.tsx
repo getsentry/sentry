@@ -60,4 +60,16 @@ describe('ArchiveActions', () => {
     expect(screen.getByRole('button', {name: 'Archive'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Archive options'})).toBeDisabled();
   });
+
+  it('has ignore actions', async () => {
+    render(<ArchiveActions onUpdate={onUpdate} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'For\u2026'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: '30 minutes'}));
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      status: 'ignored',
+      statusDetails: {ignoreDuration: 30},
+    });
+  });
 });
