@@ -366,3 +366,50 @@ Retrieve a collection of tag values associated with a tag key on the replays dat
     }
   ]
   ```
+
+## Replay Click [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/clicks/]
+
+Parameters:
+
+| Parameter | Type   | Default | Description                                  |
+| --------- | ------ | ------- | -------------------------------------------- |
+| limit     | number | 100     |                                              |
+| offset    | number | 0       |                                              |
+| query     | string | 0       | Space-separated string of field, value pairs |
+
+Queryable fields:
+
+| Field             | Type          | Description                                                    |
+| ----------------- | ------------- | -------------------------------------------------------------- |
+| click.alt         | string        | The alt attribute of the HTML element.                         |
+| click.class       | array[string] | An array of HTML element classes.                              |
+| click.id          | string        | The ID of an HTML element.                                     |
+| click.label       | string        | The aria-label attribute of an HTML element.                   |
+| click.role        | string        | The role of an HTML element.                                   |
+| click.tag         | string        | Valid HTML5 tag name.                                          |
+| click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
+| click.textContent | string        | The text-content of an HTML element.                           |
+| click.title       | string        | The title attribute of an HTML element.                        |
+| click.selector    | string        | A valid CSS selector.                                          |
+
+### Fetch Replay Clicks [GET]
+
+Retrieve a collection of click events associated with a replay.
+
+| Column    | Type   | Description                    |
+| --------- | ------ | ------------------------------ |
+| node_id   | number | RRWeb node id.                 |
+| timestamp | number | Unix timestamp of click event. |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "node_id": 339,
+        "timestamp": 1681226444
+      }
+    ]
+  }
+  ```
