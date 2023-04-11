@@ -41,6 +41,9 @@ MAX_TAG_VALUE_LENGTH = 200
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
 MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
+UseCaseId = str
+OrgId = int
+
 
 class PartitionIdxOffset(NamedTuple):
     partition_idx: int
@@ -72,7 +75,7 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
-def extract_use_case_id(mri: str) -> Optional[str]:
+def extract_use_case_id(mri: str) -> Optional[UseCaseId]:
     """
     Returns the use case ID given the MRI, returns None if MRI is invalid.
     """
@@ -166,8 +169,10 @@ class IndexerBatch:
         self.skipped_offsets.update(keys_to_remove)
 
     @metrics.wraps("process_messages.extract_strings")
-    def extract_strings(self) -> Mapping[str, Mapping[int, Set[str]]]:
-        strings: Mapping[str, Mapping[int, Set[str]]] = defaultdict(lambda: defaultdict(set))
+    def extract_strings(self) -> Mapping[UseCaseId, Mapping[OrgId, Set[str]]]:
+        strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]] = defaultdict(
+            lambda: defaultdict(set)
+        )
 
         for partition_offset, message in self.parsed_payloads_by_offset.items():
             if partition_offset in self.skipped_offsets:
@@ -249,8 +254,8 @@ class IndexerBatch:
     @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
         self,
-        mapping: Mapping[int, Mapping[str, Optional[int]]],
-        bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
+        mapping: Mapping[OrgId, Mapping[str, Optional[int]]],
+        bulk_record_meta: Mapping[OrgId, Mapping[str, Metadata]],
     ) -> IndexerOutputMessageBatch:
         new_messages: IndexerOutputMessageBatch = []
 
