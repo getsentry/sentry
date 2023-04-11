@@ -8,14 +8,14 @@ type Props = {
   children: React.ReactNode;
 } & React.ComponentProps<typeof SidebarMenuItemLink>;
 
-const SidebarMenuItem = ({to, children, href, ...props}: Props) => {
+function SidebarMenuItem({to, children, href, ...props}: Props) {
   const hasMenu = !to && !href;
   return (
     <StyledSidebarMenuItemLink to={to} href={href} {...props}>
       <MenuItemLabel hasMenu={hasMenu}>{children}</MenuItemLabel>
     </StyledSidebarMenuItemLink>
   );
-};
+}
 
 const menuItemStyles = (
   p: Omit<React.ComponentProps<typeof SidebarMenuItemLink>, 'children'> & {theme: Theme}

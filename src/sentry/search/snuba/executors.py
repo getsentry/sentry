@@ -37,12 +37,11 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
-    SEARCH_STRATEGIES,
     IntermediateSearchQueryPartial,
     MergeableRow,
     SearchQueryPartial,
     UnsupportedSearchQuery,
-    _query_params_for_generic,
+    get_search_strategies,
     group_categories_from,
 )
 from sentry.models import Environment, Group, Organization, Project
@@ -277,7 +276,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = SEARCH_STRATEGIES.get(group_category, _query_params_for_generic)
+        strategy = get_search_strategies()[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
@@ -359,7 +358,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not group_categories:
             group_categories = {
                 gc
-                for gc in SEARCH_STRATEGIES.keys()
+                for gc in get_search_strategies().keys()
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }

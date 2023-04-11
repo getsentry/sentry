@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
-} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 import MonitorCheckIns from './components/monitorCheckIns';
 import MonitorHeader from './components/monitorHeader';
@@ -20,88 +19,86 @@ import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {Monitor} from './types';
 
-type Props = AsyncView['props'] &
-  WithRouteAnalyticsProps &
-  RouteComponentProps<{monitorSlug: string}, {}> & {
-    organization: Organization;
-  };
+type Props = RouteComponentProps<{monitorSlug: string}, {}>;
 
-type State = AsyncView['state'] & {
-  monitor: Monitor | null;
-};
+function MonitorDetails({params, location}: Props) {
+  const {selection} = usePageFilters();
 
-class MonitorDetails extends AsyncView<Props, State> {
-  get orgSlug() {
-    return this.props.organization.slug;
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  // TODO(epurkhiser): For now we just use the fist environment OR production
+  // if we have all environments selected
+  const environment = selection.environments[0] ?? 'production';
+
+  const queryKey = [
+    `/organizations/${organization.slug}/monitors/${params.monitorSlug}/`,
+    {query: {...location.query, environment}},
+  ] as const;
+
+  const {data: monitor} = useApiQuery<Monitor>(queryKey, {staleTime: 0});
+
+  function onUpdate(data: Monitor) {
+    setApiQueryData(queryClient, queryKey, data);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params, location} = this.props;
-    return [
-      [
-        'monitor',
-        `/organizations/${this.orgSlug}/monitors/${params.monitorSlug}/`,
-        {query: location.query},
-      ],
-    ];
-  }
-
-  getTitle() {
-    if (this.state.monitor) {
-      return `${this.state.monitor.name} - Monitors - ${this.orgSlug}`;
-    }
-    return `Monitors - ${this.orgSlug}`;
-  }
-
-  onUpdate = (data: Monitor) =>
-    this.setState(state => ({monitor: {...state.monitor, ...data}}));
-
-  onRequestSuccess(response) {
-    this.props.setEventNames(
-      'monitors.details_page_viewed',
-      'Monitors: Details Page Viewed'
-    );
-    this.props.setRouteAnalyticsParams({
-      empty_state: !response.data?.lastCheckIn,
-    });
-  }
-
-  renderBody() {
-    const {monitor} = this.state;
-
-    if (monitor === null) {
-      return null;
-    }
-
+  if (!monitor) {
     return (
       <Layout.Page>
-        <MonitorHeader monitor={monitor} orgId={this.orgSlug} onUpdate={this.onUpdate} />
+        <LoadingIndicator />
+      </Layout.Page>
+    );
+  }
+
+  const monitorEnv = monitor.environments.find(env => env.name === environment);
+
+  return (
+    <SentryDocumentTitle title={`Crons - ${monitor.name}`}>
+      <Layout.Page>
+        <MonitorHeader
+          monitor={monitor}
+          monitorEnv={monitorEnv}
+          orgId={organization.slug}
+          onUpdate={onUpdate}
+        />
         <Layout.Body>
           <Layout.Main fullWidth>
-            {!monitor.lastCheckIn ? (
-              <MonitorOnboarding orgId={this.orgSlug} monitor={monitor} />
+            {!monitorEnv?.lastCheckIn ? (
+              <MonitorOnboarding orgId={organization.slug} monitor={monitor} />
             ) : (
               <Fragment>
                 <StyledPageFilterBar condensed>
                   <DatePageFilter alignDropdown="left" />
                 </StyledPageFilterBar>
 
-                <MonitorStats monitor={monitor} orgId={this.orgSlug} />
+                <MonitorStats
+                  orgId={organization.slug}
+                  monitor={monitor}
+                  monitorEnv={monitorEnv}
+                />
 
-                <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
+                <MonitorIssues
+                  orgId={organization.slug}
+                  monitor={monitor}
+                  monitorEnv={monitorEnv}
+                />
 
-                <MonitorCheckIns monitor={monitor} orgId={this.orgSlug} />
+                <MonitorCheckIns
+                  orgId={organization.slug}
+                  monitor={monitor}
+                  monitorEnv={monitorEnv}
+                />
               </Fragment>
             )}
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
 
-export default withRouteAnalytics(withOrganization(MonitorDetails));
+export default MonitorDetails;

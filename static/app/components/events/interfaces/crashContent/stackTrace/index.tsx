@@ -7,11 +7,14 @@ import {STACK_VIEW, StacktraceType} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';
-import ContentV2 from './contentV2';
+import {HierarchicalGroupingContent} from './hierarchicalGroupingContent';
 import {NativeContent} from './nativeContent';
 import rawStacktraceContent from './rawContent';
 
-type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'> & {
+type Props = Pick<
+  React.ComponentProps<typeof HierarchicalGroupingContent>,
+  'groupingCurrentLevel'
+> & {
   event: Event;
   hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
@@ -23,7 +26,7 @@ type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'
   stackView?: STACK_VIEW;
 };
 
-export function StackTrace({
+export function StackTraceContent({
   stackView,
   stacktrace,
   event,
@@ -66,7 +69,7 @@ export function StackTrace({
   if (hasHierarchicalGrouping) {
     return (
       <ErrorBoundary mini>
-        <StyledContentV2
+        <StyledHierarchicalGroupingContent
           data={stacktrace}
           className="no-exception"
           includeSystemFrames={stackView === STACK_VIEW.FULL}
@@ -111,7 +114,9 @@ const StyledNativeContent = styled(NativeContent)<{inlined?: boolean}>`
   ${p => p.inlined && inlinedStyles}
 `;
 
-const StyledContentV2 = styled(ContentV2)<{inlined?: boolean}>`
+const StyledHierarchicalGroupingContent = styled(HierarchicalGroupingContent)<{
+  inlined?: boolean;
+}>`
   ${p => p.inlined && inlinedStyles}
 `;
 

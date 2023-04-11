@@ -215,7 +215,7 @@ type IgnoreActionProps = {
   size?: 'xs' | 'sm';
 };
 
-const IgnoreActions = ({
+function IgnoreActions({
   onUpdate,
   disabled,
   shouldConfirm,
@@ -226,7 +226,7 @@ const IgnoreActions = ({
   size = 'xs',
   confirmLabel = t('Ignore'),
   isIgnored = false,
-}: IgnoreActionProps) => {
+}: IgnoreActionProps) {
   if (isIgnored) {
     return (
       <Tooltip title={t('Change status to unresolved')}>
@@ -281,7 +281,7 @@ const IgnoreActions = ({
       />
     </ButtonBar>
   );
-};
+}
 
 export default IgnoreActions;
 

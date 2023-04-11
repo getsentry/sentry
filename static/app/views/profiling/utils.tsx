@@ -56,7 +56,7 @@ export function requestAnimationFrameTimeout(cb: () => void, timeout: number) {
 }
 
 export function renderTableHeader<K>(rightAlignedColumns: Set<K>) {
-  return (column: GridColumnOrder<K>, _columnIndex: number) => {
+  return function (column: GridColumnOrder<K>, _columnIndex: number) {
     return (
       <SortLink
         align={rightAlignedColumns.has(column.key) ? 'right' : 'left'}

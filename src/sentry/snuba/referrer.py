@@ -331,6 +331,7 @@ class ReferrerBase(Enum):
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_PERCENTAGE_CHANGE = "api.trends.get-percentage-change"
     API_VROOM = "api.vroom"
+    BACKFILL_PERF_ISSUE_EVENTS = "migration.backfill_perf_issue_events_issue_platform"
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
@@ -362,6 +363,7 @@ class ReferrerBase(Enum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
+    ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
     EVENTSTORE_GET_NEXT_OR_PREV_EVENT_ID = "eventstore.get_next_or_prev_event_id"

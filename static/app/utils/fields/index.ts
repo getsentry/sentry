@@ -24,6 +24,9 @@ export enum FieldKey {
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
   DEVICE_CHARGING = 'device.charging',
+  // device.class is a synthesized field calculated based off device info found in context such
+  // as model (for iOS devices), and device specs like processor_frequency (for Android devices).
+  // https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/device_class.rs
   DEVICE_CLASS = 'device.class',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
@@ -1156,6 +1159,7 @@ enum ReplayClickFieldKey {
   CLICK_ID = 'replay_click.id',
   CLICK_LABEL = 'replay_click.label',
   CLICK_ROLE = 'replay_click.role',
+  CLICK_SELECTOR = 'replay_click.selector',
   CLICK_TAG = 'replay_click.tag',
   CLICK_TESTID = 'replay_click.testid',
   CLICK_TEXT_CONTENT = 'replay_click.textContent',
@@ -1264,6 +1268,7 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_ID,
   ReplayClickFieldKey.CLICK_LABEL,
   ReplayClickFieldKey.CLICK_ROLE,
+  ReplayClickFieldKey.CLICK_SELECTOR,
   ReplayClickFieldKey.CLICK_TAG,
   ReplayClickFieldKey.CLICK_TEXT_CONTENT,
   ReplayClickFieldKey.CLICK_TITLE,
@@ -1294,6 +1299,13 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
   [ReplayClickFieldKey.CLICK_ROLE]: {
     desc: t('`role` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_SELECTOR]: {
+    desc: t(
+      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
