@@ -41,7 +41,6 @@ def get_trends(snuba_io):
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
-        return True
         return features.has(
             "organizations:performance-new-trends", organization, actor=request.user
         )
