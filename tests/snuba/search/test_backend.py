@@ -2013,7 +2013,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             sort_by="date",
         )
 
-        assert list(myGroup) == list(results)
+        assert list(results) == [myGroup]
 
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
