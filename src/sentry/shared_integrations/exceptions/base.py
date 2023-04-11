@@ -59,7 +59,7 @@ class ApiError(Exception):
         from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
 
         if response.status_code == 401:
-            return ApiUnauthorized(response.text)
+            return ApiUnauthorized(response.text, url=url)
         elif response.status_code == 429:
-            return ApiRateLimitedError(response.text)
+            return ApiRateLimitedError(response.text, url=url)
         return cls(response.text, response.status_code, url=url)
