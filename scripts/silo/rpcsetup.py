@@ -2,7 +2,8 @@
 
 import json  # noqa
 import re
-from typing import Mapping
+from dataclasses import dataclass
+from typing import Any, Mapping
 
 import click
 
@@ -12,12 +13,35 @@ Prints devserver commands with the necessary environment variables.
 """
 
 
-def format_env_var(name: str, value: str) -> str:
-    value = re.sub("([\"$'\\\\])", "\\\\\\1", value)  # 🤯
-    return f'{name}="{value}"'
+@dataclass(frozen=True)
+class RegionConfig:
+    number: int
+    port: int
+    api_token: str
+
+    @property
+    def name(self) -> str:
+        return f"devregion{self.number}"
+
+    @property
+    def bind(self) -> str:
+        return f"localhost:{self.port}"
+
+    def get_env_repr(self) -> Mapping[str, Any]:
+        return {
+            "name": self.name,
+            "id": self.number,
+            "address": f"http://{self.bind}/",
+            "category": "MULTI_TENANT",
+            "api_token": self.api_token,
+        }
 
 
 def format_env_vars(env_vars: Mapping[str, str]) -> str:
+    def format_env_var(name: str, value: str) -> str:
+        value = re.sub("([\"$'\\\\])", "\\\\\\1", value)  # https://xkcd.com/1638/
+        return f'{name}="{value}"'
+
     return ";".join(format_env_var(name, value) for (name, value) in env_vars.items())
 
 
@@ -47,7 +71,7 @@ def format_env_vars(env_vars: Mapping[str, str]) -> str:
     help=(
         """Port on which to bind the control silo.
 
-        Region silos will be bound on ascending numbers after this one.
+        Region silos will be bound on ascending numbers after this one in steps of 10.
         """
     ),
 )
@@ -58,19 +82,13 @@ def main(api_token: str, region_count: int, control_port: int) -> None:
         "control_silo_address": f"http://localhost:{control_port}/",
     }
 
-    region_config = [
-        {
-            "name": f"devregion{region_number}",
-            "id": region_number,
-            "address": f"http://localhost:{control_port + region_number}/",
-            "category": "MULTI_TENANT",
-            "api_token": api_token,
-        }
-        for region_number in range(1, region_count + 1)
+    regions = [
+        RegionConfig(n, control_port + 10 * n, api_token) for n in range(1, region_count + 1)
     ]
+    region_config = json.dumps([r.get_env_repr() for r in regions])
 
     common_env_vars = {}
-    common_env_vars["SENTRY_REGION_CONFIG"] = json.dumps([region_config])
+    common_env_vars["SENTRY_REGION_CONFIG"] = region_config
     common_env_vars["SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER"] = json.dumps(sender_credentials)
 
     control_env_vars = common_env_vars.copy()
@@ -79,14 +97,13 @@ def main(api_token: str, region_count: int, control_port: int) -> None:
 
     print(f"# Control silo\n{format_env_vars(control_env_vars)}; sentry devserver")  # noqa
 
-    for region in region_config:
-        region_number = region["id"]
+    for region in regions:
         region_env_vars = common_env_vars.copy()
         region_env_vars["SENTRY_SILO_MODE"] = "REGION"
-        region_env_vars["SENTRY_REGION"] = region["name"]
-        region_env_vars["SENTRY_DEVSERVER_BIND"] = f"localhost:{control_port + region_number}"
+        region_env_vars["SENTRY_REGION"] = region.name
+        region_env_vars["SENTRY_DEVSERVER_BIND"] = region.bind
 
-        print(f"\n# {region['name']}\n{format_env_vars(region_env_vars)}; sentry devserver")  # noqa
+        print(f"\n# {region.name}\n{format_env_vars(region_env_vars)}; sentry devserver")  # noqa
 
 
 main()
