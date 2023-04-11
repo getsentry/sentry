@@ -269,10 +269,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     'onboarding-docs-with-product-selection'
   );
 
-  const loaderOnboarding = !!organization.features?.includes('onboarding-project-loader');
-
-  const jsDynamicLoader = !!organization.features?.includes('js-sdk-dynamic-loader');
-
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
@@ -322,7 +318,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    loaderOnboarding && jsDynamicLoader && currentPlatform === 'javascript'
+    currentPlatform === 'javascript'
   );
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
