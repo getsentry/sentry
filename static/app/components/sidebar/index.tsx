@@ -72,12 +72,7 @@ function hidePanel() {
 }
 
 function useOpenOnboardingSidebar(organization?: Organization) {
-  // usePersistedOnboardingState calls useOrganization (which might fail) so to prevent that, we do nothing if there is no organization
-  function noOrgFunction() {
-    return [null];
-  }
-  const onboardingFunction = organization ? usePersistedOnboardingState : noOrgFunction;
-  const [onboardingState] = onboardingFunction();
+  const [onboardingState] = usePersistedOnboardingState();
   const {projects: project} = useProjects();
   const location = useLocation();
 
