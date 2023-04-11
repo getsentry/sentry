@@ -19,7 +19,7 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.monitors.utils import signal_first_checkin
+from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import ConfigValidator
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
@@ -66,6 +66,7 @@ def _ensure_monitor_with_config(
                 "config": validated_config,
             },
         )
+        signal_first_monitor_created(project, None, True)
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
