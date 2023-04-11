@@ -12,12 +12,12 @@ type Props = {
   onClickPublish?: () => void;
 };
 
-const SentryApplicationRowButtons = ({
+function SentryApplicationRowButtons({
   organization,
   app,
   onClickRemove,
   onClickPublish,
-}: Props) => {
+}: Props) {
   const isInternal = app.status === 'internal';
 
   return (
@@ -54,6 +54,6 @@ const SentryApplicationRowButtons = ({
       }}
     </Access>
   );
-};
+}
 
 export default SentryApplicationRowButtons;

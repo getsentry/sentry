@@ -64,7 +64,7 @@ export function getLineCoverage(
   return [lineCoverage, hasCoverage];
 }
 
-const Context = ({
+function Context({
   hasContextVars = false,
   hasContextSource = false,
   hasContextRegisters = false,
@@ -80,7 +80,7 @@ const Context = ({
   className,
   frameMeta,
   registersMeta,
-}: Props) => {
+}: Props) {
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -209,7 +209,7 @@ const Context = ({
       {hasAssembly && <Assembly {...parseAssembly(frame.package)} />}
     </Wrapper>
   );
-};
+}
 
 export default withOrganization(Context);
 
