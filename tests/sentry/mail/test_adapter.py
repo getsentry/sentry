@@ -216,6 +216,43 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
+    def test_someone_else_snoozes_themself(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        user2 = self.create_user(email="otheruser@example.com")
+        RuleSnooze.objects.create(user_id=user2.id, owner_id=user2.id, rule=rule)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert "my rule" in msg.alternatives[0][0]
+
+    def test_someone_else_snoozes_everyone(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        user2 = self.create_user(email="otheruser@example.com")
+        RuleSnooze.objects.create(owner_id=user2.id, rule=rule)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) == 0
+
     def test_simple_notification_generic(self):
         """Test that an issue that is neither error nor performance type renders a generic email template"""
         event = self.store_event(
