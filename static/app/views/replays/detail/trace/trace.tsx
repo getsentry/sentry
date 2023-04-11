@@ -357,8 +357,7 @@ export default function Trace({replayRecord, organization}: Props) {
         <Fragment>
           {state.isLoadingNext ? (
             <LoadingContainer>
-              {' '}
-              <LoadingIndicator mini />{' '}
+              <LoadingIndicator mini />
             </LoadingContainer>
           ) : null}
           {!state.isLoading ? <InfinitePlaceholder ref={endOfListPlaceholder} /> : null}
