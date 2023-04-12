@@ -1153,7 +1153,7 @@ export enum ReplayFieldKey {
   URLS = 'urls',
 }
 
-enum ReplayClickFieldKey {
+export enum ReplayClickFieldKey {
   CLICK_ALT = 'click.alt',
   CLICK_CLASS = 'click.class',
   CLICK_ID = 'click.id',
