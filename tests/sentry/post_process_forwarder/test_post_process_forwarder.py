@@ -1,8 +1,6 @@
 import os
-import subprocess
 import time
 import uuid
-from contextlib import contextmanager
 from unittest.mock import patch
 
 from arroyo.utils import metrics
@@ -11,7 +9,8 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.eventstream.kafka import KafkaEventStream
+from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
+from sentry.post_process_forwarder import PostProcessForwarder
 from sentry.testutils import TestCase
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
@@ -19,31 +18,6 @@ from sentry.utils.batching_kafka_consumer import wait_for_topics
 SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
 SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:2181")
 settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
-
-
-@contextmanager
-def create_topic(partitions=1, replication_factor=1):
-    command = ["docker", "exec", "sentry_kafka", "kafka-topics"] + [
-        "--zookeeper",
-        SENTRY_ZOOKEEPER_HOSTS,
-    ]
-    topic = f"test-{uuid.uuid1().hex}"
-    subprocess.check_call(
-        command
-        + [
-            "--create",
-            "--topic",
-            topic,
-            "--partitions",
-            f"{partitions}",
-            "--replication-factor",
-            f"{replication_factor}",
-        ]
-    )
-    try:
-        yield topic
-    finally:
-        subprocess.check_call(command + ["--delete", "--topic", topic])
 
 
 def kafka_message_payload():
@@ -112,8 +86,8 @@ class PostProcessForwarderTest(TestCase):
         commit_log_producer = self._get_producer("default")
         message = json.dumps(kafka_message_payload()).encode()
 
-        eventstream = KafkaEventStream()
-        consumer = eventstream._build_streaming_consumer(
+        ppf = PostProcessForwarder(_get_task_kwargs_and_dispatch)
+        consumer = ppf._build_streaming_consumer(
             consumer_group=consumer_group,
             topic=self.events_topic,
             commit_log_topic=self.commit_log_topic,
