@@ -1,3 +1,7 @@
+import {Location} from 'history';
+
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
@@ -6,7 +10,13 @@ import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 import {SingleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import {BasePerformanceViewProps} from './types';
+type BasePerformanceViewProps = {
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  withStaticFilters: boolean;
+};
 
 export function StarfishView(props: BasePerformanceViewProps) {
   return (
