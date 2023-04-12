@@ -168,7 +168,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    providerName = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    providerKey = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     providerConfig = serializers.JSONField(required=False, allow_null=True)
 
     @memoize
@@ -263,11 +263,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
-    def validate_providerName(self, value):
+    def validate_providerKey(self, value):
         from sentry.auth import manager
 
         if not manager.exists(value):
-            raise serializers.ValidationError("Invalid providerName")
+            raise serializers.ValidationError("Invalid providerKey")
         return value
 
     def validate(self, attrs):
@@ -280,14 +280,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
-        # Both providerName and providerConfig are required to configure an auth provider
-        if attrs.get("providerName") and not attrs.get("providerConfig"):
+        # Both providerKey and providerConfig are required to configure an auth provider
+        if ("providerKey" in attrs) != ("providerConfig" in attrs):
             raise serializers.ValidationError(
-                {"providerConfig": "providerConfig is required to configure an auth provider"}
-            )
-        if attrs.get("providerConfig") and not attrs.get("providerName"):
-            raise serializers.ValidationError(
-                {"providerName": "providerName is required to configure an auth provider"}
+                {
+                    "providerKey": "providerKey and providerConfig are required together to config an auth provider",
+                    "providerConfig": "providerKey and providerConfig are required together to config an auth provider",
+                }
             )
         return attrs
 
@@ -398,20 +397,20 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        if "providerName" in data and "providerConfig" in data:
-            provider_name = data["providerName"]
+        if "providerKey" in data and "providerConfig" in data:
+            provider_key = data["providerKey"]
             provider_config = data["providerConfig"]
             with transaction.atomic():
                 auth_provider = AuthProvider.objects.update_or_create(
                     organization_id=org.id,
-                    defaults={"provider": provider_name},
+                    defaults={"provider": provider_key},
                 )[0]
                 provider = auth_provider.get_provider()
                 try:
                     config = provider.build_config(provider_config)
                     config["sentry-source"] = "api-organization-details"
                 except KeyError:
-                    raise KeyError(f"Invalid providerConfig for authprovider {provider_name}")
+                    raise KeyError(f"Invalid providerConfig for authprovider {provider_key}")
                 auth_provider.update(config=config)
 
         org_tracked_field = {
