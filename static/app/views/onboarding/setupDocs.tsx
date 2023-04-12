@@ -47,13 +47,13 @@ type Props = {
   search: string;
 } & StepProps;
 
-const MissingExampleWarning = ({
+function MissingExampleWarning({
   platformDocs,
   platform,
 }: {
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
-}) => {
+}) {
   const missingExample = platformDocs?.html.includes(INCOMPLETE_DOC_FLAG);
 
   if (!missingExample) {
@@ -74,17 +74,17 @@ const MissingExampleWarning = ({
       )}
     </Alert>
   );
-};
+}
 
 export function ProjectDocsReact({
   organization,
   location,
-  project,
+  projectSlug,
   newOrg,
 }: {
   location: Location;
   organization: Organization;
-  project: Project;
+  projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
   const {
@@ -119,10 +119,10 @@ export function ProjectDocsReact({
   }, [productSelectionLogExperiment, newOrg]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
-    [`/projects/${organization.slug}/${project.slug}/docs/${loadPlatform}/`],
+    [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
     {
       staleTime: Infinity,
-      enabled: !!project.slug && !!organization.slug && !!loadPlatform,
+      enabled: !!projectSlug && !!organization.slug && !!loadPlatform,
     }
   );
 
@@ -269,10 +269,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     'onboarding-docs-with-product-selection'
   );
 
-  const loaderOnboarding = !!organization.features?.includes('onboarding-project-loader');
-
-  const jsDynamicLoader = !!organization.features?.includes('js-sdk-dynamic-loader');
-
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
@@ -322,7 +318,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    loaderOnboarding && jsDynamicLoader && currentPlatform === 'javascript'
+    currentPlatform === 'javascript'
   );
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
@@ -462,7 +458,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           ) : showReactOnboarding ? (
             <ProjectDocsReact
               organization={organization}
-              project={project}
+              projectSlug={project.slug}
               location={location}
               newOrg
             />

@@ -22,6 +22,16 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
 }
 
 export type IssueEventParameters = {
+  'device.classification.high.end.android.device': {
+    processor_count: number;
+    processor_frequency: number;
+    class?: string;
+    family?: string;
+    model?: string;
+  };
+  'device.classification.unclassified.ios.device': {
+    model: string;
+  };
   'event_cause.dismissed': {};
   'event_cause.docs_clicked': {};
   'event_cause.snoozed': {};
@@ -70,6 +80,10 @@ export type IssueEventParameters = {
     error_type: string[];
     group?: string;
     platform?: string;
+  };
+  'issue_group_details.anr_root_cause_detected': {
+    culprit?: string;
+    group?: string;
   };
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked': {
     platform?: string;
@@ -166,6 +180,9 @@ export type IssueEventParameters = {
   'quick_trace.node.clicked': {
     node_key: string;
   };
+  'quick_trace.trace_id.clicked': {
+    source: string;
+  };
   resolve_issue: {release: string};
   'source_map_debug.docs_link_clicked': SourceMapDebugParam;
   'source_map_debug.expand_clicked': SourceMapDebugParam;
@@ -218,6 +235,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
   'quick_trace.node.clicked': 'Quick Trace: Node clicked',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
+  'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
@@ -240,7 +258,11 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.external_issue_modal_opened':
     'Issue Details: External Issue Modal Opened',
   'issue_details.external_issue_created': 'Issue Details: External Issue Created',
+  'device.classification.unclassified.ios.device':
+    'Event from iOS device missing device.class',
+  'device.classification.high.end.android.device': 'Event from high end Android device',
 };

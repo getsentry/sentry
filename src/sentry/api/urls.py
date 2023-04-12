@@ -267,6 +267,7 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
 )
+from .endpoints.organization_events_new_trends import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
@@ -474,6 +475,7 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
+from .endpoints.rule_snooze import RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.source_map_debug import SourceMapDebugEndpoint
@@ -1235,6 +1237,13 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
         OrganizationEventsTrendsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-trends-stats",
+    ),
+    # This endpoint is for experimentation only
+    # Once this feature is developed, the endpoint will replace /events-trends-stats
+    url(
+        r"^(?P<organization_slug>[^\/]+)/new-events-trends-stats/$",
+        OrganizationEventsNewTrendsStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-events-new-trends-stats",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -2055,6 +2064,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/$",
         ProjectRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-details",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/snooze/$",
+        RuleSnoozeEndpoint.as_view(),
+        name="sentry-api-0-rule-snooze",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",

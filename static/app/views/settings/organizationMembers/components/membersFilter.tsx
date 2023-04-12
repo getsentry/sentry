@@ -32,7 +32,7 @@ const getBoolean = (list: string[]) =>
     ? list && list.map(v => v.toLowerCase()).includes('true')
     : null;
 
-const MembersFilter = ({className, roles, query, onChange}: Props) => {
+function MembersFilter({className, roles, query, onChange}: Props) {
   const search = new MutableSearch(query);
 
   const filters = {
@@ -111,24 +111,26 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
       </FilterLists>
     </FilterContainer>
   );
-};
+}
 
-const BooleanFilter = ({onChange, value, label}: BooleanFilterProps) => (
-  <label>
-    <Checkbox
-      aria-label={t('Enable %s filter', label)}
-      checked={value !== null}
-      onChange={() => onChange(value === null ? true : null)}
-    />
-    {label}
-    <Switch
-      aria-label={t('Toggle %s', label)}
-      isDisabled={value === null}
-      isActive={value === true}
-      toggle={() => onChange(!value)}
-    />
-  </label>
-);
+function BooleanFilter({onChange, value, label}: BooleanFilterProps) {
+  return (
+    <label>
+      <Checkbox
+        aria-label={t('Enable %s filter', label)}
+        checked={value !== null}
+        onChange={() => onChange(value === null ? true : null)}
+      />
+      {label}
+      <Switch
+        aria-label={t('Toggle %s', label)}
+        isDisabled={value === null}
+        isActive={value === true}
+        toggle={() => onChange(!value)}
+      />
+    </label>
+  );
+}
 
 const FilterContainer = styled('div')`
   border-radius: 4px;

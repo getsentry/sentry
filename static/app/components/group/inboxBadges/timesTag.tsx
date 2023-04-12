@@ -17,7 +17,7 @@ type Props = {
   lastSeen: string;
 };
 
-const TimesTag = ({lastSeen, firstSeen}: Props) => {
+function TimesTag({lastSeen, firstSeen}: Props) {
   return (
     <Wrapper>
       <StyledIconClock size="xs" color="gray300" />
@@ -51,7 +51,7 @@ const TimesTag = ({lastSeen, firstSeen}: Props) => {
         })}
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')`
   display: flex;
