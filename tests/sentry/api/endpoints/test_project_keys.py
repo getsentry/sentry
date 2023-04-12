@@ -38,6 +38,11 @@ class CreateProjectKeyTest(APITestCase):
         assert key.label == "hello world"
         assert key.rate_limit_count == 10
         assert key.rate_limit_window == 60
+        assert "dynamicSdkLoaderOptions" in key.data
+        assert key.data["dynamicSdkLoaderOptions"] == {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
 
     def test_minimal_args(self):
         project = self.create_project()
@@ -50,6 +55,11 @@ class CreateProjectKeyTest(APITestCase):
         assert resp.status_code == 201, resp.content
         key = ProjectKey.objects.get(public_key=resp.data["public"])
         assert key.label
+        assert "dynamicSdkLoaderOptions" in key.data
+        assert key.data["dynamicSdkLoaderOptions"] == {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
 
     def test_keys(self):
         project = self.create_project()

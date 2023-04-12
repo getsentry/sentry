@@ -29,6 +29,11 @@ class CreateDefaultProjectsTest(TestCase):
         pk = ProjectKey.objects.get(project=project)
         assert not pk.roles.api
         assert pk.roles.store
+        assert "dynamicSdkLoaderOptions" in pk.data
+        assert pk.data["dynamicSdkLoaderOptions"] == {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
 
         # ensure that we don't hit an error here
         create_default_projects(config)
@@ -53,6 +58,11 @@ class CreateDefaultProjectsTest(TestCase):
         pk = ProjectKey.objects.get(project=project)
         assert not pk.roles.api
         assert pk.roles.store
+        assert "dynamicSdkLoaderOptions" in pk.data
+        assert pk.data["dynamicSdkLoaderOptions"] == {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
 
         # ensure that we don't hit an error here
         create_default_projects(config)
@@ -77,6 +87,11 @@ class CreateDefaultProjectsTest(TestCase):
             pk = ProjectKey.objects.get(project=project)
             assert not pk.roles.api
             assert pk.roles.store
+            assert "dynamicSdkLoaderOptions" in pk.data
+            assert pk.data["dynamicSdkLoaderOptions"] == {
+                "hasPerformance": True,
+                "hasReplay": True,
+            }
 
             # ensure that we don't hit an error here
             create_default_projects(config)
