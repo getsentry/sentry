@@ -109,6 +109,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
                 "level": payload.get("level", DEFAULT_LEVEL),
+                "transaction_duration": payload.get("transaction_duration", 0),
             }
 
             if payload.get("event_id"):

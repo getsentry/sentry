@@ -34,6 +34,7 @@ class IssueOccurrenceData(TypedDict):
     detection_time: float
     level: Optional[str]
     culprit: Optional[str]
+    transaction_duration: Optional[int]
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,7 @@ class IssueOccurrence:
     detection_time: datetime
     level: str
     culprit: str
+    transaction_duration: int = 0
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -107,6 +109,7 @@ class IssueOccurrence:
             "detection_time": self.detection_time.timestamp(),
             "level": self.level,
             "culprit": self.culprit,
+            "transaction_duration": self.transaction_duration,
         }
 
     @classmethod
@@ -118,6 +121,9 @@ class IssueOccurrence:
         culprit = data.get("culprit")
         if not culprit:
             culprit = ""
+        transaction_duration = data.get("transaction_duration")
+        if not transaction_duration:
+            transaction_duration = 0
         return cls(
             data["id"],
             data["project_id"],
@@ -136,6 +142,7 @@ class IssueOccurrence:
             cast(datetime, parse_timestamp(data["detection_time"])),
             level,
             culprit,
+            transaction_duration,
         )
 
     @property
