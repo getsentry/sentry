@@ -330,7 +330,8 @@ function Sidebar({location, organization}: Props) {
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
-        isBeta
+        isBeta={!organization.features.includes('profiling-ga')}
+        isNew={organization.features.includes('profiling-ga')}
       />
     </Feature>
   );
