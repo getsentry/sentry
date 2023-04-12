@@ -2,7 +2,11 @@ import {useEffect, useState} from 'react';
 import {Location} from 'history';
 
 import LoadingError from 'sentry/components/loadingError';
-import {PlatformCategory, PlatformKey} from 'sentry/data/platformCategories';
+import {
+  PlatformCategory,
+  PlatformKey,
+  profiling as PROFILING_PLATFORMS,
+} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {Group, IssueCategory, Organization} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
@@ -79,8 +83,15 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
   const isReplayEnabled = organization.features.includes('session-replay');
 
+  // profiles only exist on transactions, so this only works with
+  // performance issues, and not errors
+  const isProfilingEnabled = isPerfIssue && organization.features.includes('profiling');
+
   const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
-    getPlatformColumns(group.project.platform ?? group.platform, {isReplayEnabled});
+    getPlatformColumns(group.project.platform ?? group.platform, {
+      isProfilingEnabled,
+      isReplayEnabled,
+    });
 
   const fields: string[] = [
     'id',
@@ -119,7 +130,7 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
 
 const getPlatformColumns = (
   platform: PlatformKey | undefined,
-  options: {isReplayEnabled: boolean}
+  options: {isProfilingEnabled: boolean; isReplayEnabled: boolean}
 ): ColumnInfo => {
   const replayField = options.isReplayEnabled ? ['replayId'] : [];
   const replayColumnTitle = options.isReplayEnabled ? [t('replay')] : [];
@@ -151,8 +162,14 @@ const getPlatformColumns = (
   };
 
   const platformCategory = platformToCategory(platform);
+  const platformColumns = categoryToColumnMap[platformCategory];
 
-  return categoryToColumnMap[platformCategory];
+  if (options.isProfilingEnabled && platform && PROFILING_PLATFORMS.includes(platform)) {
+    platformColumns.columnTitles.push(t('profile'));
+    platformColumns.fields.push('profile.id');
+  }
+
+  return platformColumns;
 };
 
 export default AllEventsTable;
