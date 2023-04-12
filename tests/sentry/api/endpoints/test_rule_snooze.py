@@ -12,7 +12,6 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 class RuleSnoozeTest(APITestCase):
     endpoint = "sentry-api-0-rule-snooze"
-    method = "post"
 
     def setUp(self):
         self.issue_alert_rule = Rule.objects.create(
@@ -23,6 +22,11 @@ class RuleSnoozeTest(APITestCase):
         )
         self.until = datetime.now(pytz.UTC) + timedelta(days=10)
         self.login_as(user=self.user)
+
+
+@region_silo_test
+class PostRuleSnoozeTest(RuleSnoozeTest):
+    method = "post"
 
     def test_mute_issue_alert_user_forever(self):
         """Test that a user can mute an issue alert rule for themselves forever"""
@@ -433,3 +437,51 @@ class RuleSnoozeTest(APITestCase):
         assert not RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 400
         assert "Pass either rule or alert rule, not both." in response.data
+
+
+@region_silo_test
+class DeleteRuleSnoozeTest(RuleSnoozeTest):
+    method = "delete"
+
+    def test_delete_issue_alert_rule_mute_myself(self):
+        """Test that a user can unsnooze a rule they've snoozed for just themselves"""
+        RuleSnooze.objects.create(
+            user_id=self.user.id, rule=self.issue_alert_rule, owner_id=self.user.id
+        )
+        data = {"target": "me", "rule": True}
+        with self.feature({"organizations:mute-alerts": True}):
+            response = self.get_response(
+                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+            )
+        assert not RuleSnooze.objects.filter(
+            rule=self.issue_alert_rule.id, user_id=self.user.id
+        ).exists()
+        assert response.status_code == 204
+
+    def test_delete_issue_alert_rule_mute_everyone(self):
+        """Test that a user can unsnooze a rule they've snoozed for everyone"""
+        RuleSnooze.objects.create(rule=self.issue_alert_rule, owner_id=self.user.id)
+        data = {"target": "everyone", "rule": True}
+        with self.feature({"organizations:mute-alerts": True}):
+            response = self.get_response(
+                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+            )
+        assert not RuleSnooze.objects.filter(
+            rule=self.issue_alert_rule.id, user_id=self.user.id
+        ).exists()
+        assert response.status_code == 204
+
+    def test_cant_delete_issue_alert_rule_mute_everyone(self):
+        """Test that a user can't unsnooze a rule that's snoozed for everyone if they do not belong to the team the owns the rule"""
+        other_team = self.create_team()
+        other_issue_alert_rule = Rule.objects.create(
+            label="test rule", project=self.project, owner=other_team.actor
+        )
+        RuleSnooze.objects.create(rule=other_issue_alert_rule)
+        data = {"target": "everyone", "rule": True}
+        with self.feature({"organizations:mute-alerts": True}):
+            response = self.get_response(
+                self.organization.slug, self.project.slug, other_issue_alert_rule.id, **data
+            )
+        assert RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
+        assert response.status_code == 401

@@ -49,6 +49,28 @@ def can_edit_alert_rule(rule, organization, user_id, user):
     return True
 
 
+def get_rule(data, request, rule_id):
+    if data.get("rule") and data.get("alert_rule"):
+        raise serializers.ValidationError("Pass either rule or alert rule, not both.")
+
+    issue_alert_rule = None
+    metric_alert_rule = None
+
+    if data.get("rule"):
+        try:
+            issue_alert_rule = Rule.objects.get(id=rule_id)
+        except Rule.DoesNotExist:
+            raise serializers.ValidationError("Rule does not exist")
+
+    if data.get("alert_rule"):
+        try:
+            metric_alert_rule = AlertRule.objects.get(id=rule_id)
+        except AlertRule.DoesNotExist:
+            raise serializers.ValidationError("Rule does not exist")
+
+    return issue_alert_rule, metric_alert_rule
+
+
 @region_silo_endpoint
 class RuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
@@ -66,27 +88,11 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
 
-        if data.get("rule") and data.get("alert_rule"):
-            raise serializers.ValidationError("Pass either rule or alert rule, not both.")
-
-        issue_alert_rule = None
-        metric_alert_rule = None
-
-        user_id = request.user.id if data.get("target") == "me" else None
-
-        if data.get("rule"):
-            try:
-                issue_alert_rule = Rule.objects.get(id=rule_id)
-            except Rule.DoesNotExist:
-                raise serializers.ValidationError("Rule does not exist")
-
-        if data.get("alert_rule"):
-            try:
-                metric_alert_rule = AlertRule.objects.get(id=rule_id)
-            except AlertRule.DoesNotExist:
-                raise serializers.ValidationError("Rule does not exist")
+        issue_alert_rule, metric_alert_rule = get_rule(data, request, rule_id)
 
         rule = issue_alert_rule or metric_alert_rule
+        user_id = request.user.id if data.get("target") == "me" else None
+
         if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
             return Response(
                 {"detail": "Requesting user cannot mute this rule."},
@@ -126,3 +132,41 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
             serialize(rule_snooze, request.user, RuleSnoozeSerializer()),
             status=status.HTTP_201_CREATED,
         )
+
+    def delete(self, request: Request, project, rule_id) -> Response:
+        if not features.has("organizations:mute-alerts", project.organization, actor=None):
+            return Response(
+                {"detail": "This feature is not available for this organization."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        serializer = RuleSnoozeValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        issue_alert_rule, metric_alert_rule = get_rule(data, request, rule_id)
+        rule = issue_alert_rule or metric_alert_rule
+        user_id = request.user.id if data.get("target") == "me" else None
+
+        if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
+            return Response(
+                {"detail": "Requesting user cannot unmute this rule."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        try:
+            rulesnooze = RuleSnooze.objects.get(
+                user_id=user_id,
+                rule=issue_alert_rule,
+                alert_rule=metric_alert_rule,
+                owner_id=request.user.id,
+                until=data.get("until"),
+            )
+        except RuleSnooze.DoesNotExist:
+            return Response(
+                {"detail": "This rulesnooze object doesn't exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        rulesnooze.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
