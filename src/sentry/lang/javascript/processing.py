@@ -1,9 +1,10 @@
 import logging
+from typing import Any, Callable
 
 from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import EventError, Project
+from sentry.models import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
@@ -128,14 +129,11 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
-def process_payload(data):
-    project = Project.objects.get_from_cache(id=data.get("project"))
-
+def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
+    project = symbolicator.project
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
-
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
     modules = sourcemap_images_from_data(data)
 
@@ -195,6 +193,6 @@ def process_payload(data):
     return data
 
 
-def get_symbolication_function(data):
+def get_symbolication_function(data: Any) -> Callable[[Symbolicator, Any], Any]:
     if should_use_symbolicator_for_sourcemaps(data.get("project")):
         return process_payload

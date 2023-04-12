@@ -15,6 +15,7 @@ from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
+from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
@@ -136,8 +137,11 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
+    is_js = False
     if data["platform"] in ("javascript", "node"):
         from sentry.lang.javascript.processing import get_symbolication_function
+
+        is_js = True
     else:
         from sentry.lang.native.processing import get_symbolication_function
 
@@ -157,9 +161,11 @@ def _do_preprocess_event(
             reprocessing2.backup_unprocessed_event(project=project, data=original_data)
 
             is_low_priority = should_demote_symbolication(project_id)
+            task_kind = SymbolicatorTaskKind(
+                is_js=is_js, is_low_priority=is_low_priority, is_reprocessing=from_reprocessing
+            )
             submit_symbolicate(
-                is_low_priority=is_low_priority,
-                from_reprocessing=from_reprocessing,
+                task_kind,
                 cache_key=cache_key,
                 event_id=event_id,
                 start_time=start_time,

@@ -1,6 +1,6 @@
 import logging
 import posixpath
-from typing import Set
+from typing import Any, Callable, Set
 
 from symbolic import ParseDebugIdError, normalize_debug_id
 
@@ -17,7 +17,7 @@ from sentry.lang.native.utils import (
     native_images_from_data,
     signal_from_data,
 )
-from sentry.models import EventError, Project
+from sentry.models import EventError
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.in_app import is_known_third_party, is_optional_package
@@ -267,15 +267,11 @@ def _merge_full_response(data, response):
             data_stacktrace["frames"].append(new_frame)
 
 
-def process_minidump(data):
-    project = Project.objects.get_from_cache(id=data["project"])
-
+def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
     minidump = get_event_attachment(data, MINIDUMP_ATTACHMENT_TYPE)
     if not minidump:
         logger.error("Missing minidump for minidump event")
         return
-
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
     response = symbolicator.process_minidump(minidump.data)
 
@@ -285,15 +281,11 @@ def process_minidump(data):
     return data
 
 
-def process_applecrashreport(data):
-    project = Project.objects.get_from_cache(id=data["project"])
-
+def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
     report = get_event_attachment(data, APPLECRASHREPORT_ATTACHMENT_TYPE)
     if not report:
         logger.error("Missing applecrashreport for event")
         return
-
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
     response = symbolicator.process_applecrashreport(report.data)
 
@@ -374,11 +366,7 @@ def get_frames_for_symbolication(
     return rv
 
 
-def process_payload(data):
-    project = Project.objects.get_from_cache(id=data["project"])
-
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
-
+def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
     stacktrace_infos = [
         stacktrace
         for stacktrace in find_stacktraces_in_data(data)
@@ -456,7 +444,7 @@ def process_payload(data):
     return data
 
 
-def get_symbolication_function(data):
+def get_symbolication_function(data) -> Callable[[Symbolicator, Any], Any]:
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
