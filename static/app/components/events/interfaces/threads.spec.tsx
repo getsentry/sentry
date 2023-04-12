@@ -1016,7 +1016,7 @@ describe('Threads', function () {
             hasSystemFrames: true,
           },
           rawStacktrace: null,
-          state: 'kWaitingPerformingGc',
+          state: 'WaitingPerformingGc',
         };
         threadsEntry.values = [
           {
@@ -1039,7 +1039,7 @@ describe('Threads', function () {
 
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
-        // kWaitingPerformingGc maps to Waiting
+        // WaitingPerformingGc maps to Waiting
         expect(screen.getByText('Waiting')).toBeInTheDocument();
       });
 
