@@ -38,7 +38,9 @@ CHUNK_SIZE = 9998  # Snuba's limit is 10000, and we fetch CHUNK_SIZE+1
 
 
 def fetch_projects_with_total_volumes(
-    org_ids: List[int], query_interval: Optional[timedelta] = None
+    org_ids: List[int],
+    granularity: Optional[Granularity] = None,
+    query_interval: Optional[timedelta] = None,
 ) -> Mapping[OrganizationId, Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
     """
     This function fetch with pagination orgs and projects with count per root project
@@ -46,6 +48,7 @@ def fetch_projects_with_total_volumes(
     """
     if query_interval is None:
         query_interval = timedelta(hours=1)
+        granularity = Granularity(3600)
     aggregated_projects = defaultdict(list)
     start_time = time.time()
     offset = 0
@@ -97,7 +100,7 @@ def fetch_projects_with_total_volumes(
                 ],
                 groupby=[Column("org_id"), Column("project_id")],
                 where=where,
-                granularity=Granularity(3600),
+                granularity=granularity,
                 orderby=[
                     OrderBy(Column("org_id"), Direction.ASC),
                     OrderBy(Column("project_id"), Direction.ASC),
