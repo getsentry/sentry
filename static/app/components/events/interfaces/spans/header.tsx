@@ -117,15 +117,18 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderViewHandles({
-    isDragging,
-    onLeftHandleDragStart,
-    leftHandlePosition,
-    onRightHandleDragStart,
-    rightHandlePosition,
-    viewWindowStart,
-    viewWindowEnd,
-  }: DragManagerChildrenProps) {
+  renderViewHandles(
+    {
+      isDragging,
+      onLeftHandleDragStart,
+      leftHandlePosition,
+      onRightHandleDragStart,
+      rightHandlePosition,
+      viewWindowStart,
+      viewWindowEnd,
+    }: DragManagerChildrenProps,
+    hasProfileMeasurementsChart: boolean
+  ) {
     const leftHandleGhost = isDragging ? (
       <Handle
         left={viewWindowStart}
@@ -133,6 +136,7 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     ) : null;
 
@@ -141,6 +145,7 @@ class TraceViewHeader extends Component<PropType, State> {
         left={leftHandlePosition}
         onMouseDown={onLeftHandleDragStart}
         isDragging={isDragging}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     );
 
@@ -149,6 +154,7 @@ class TraceViewHeader extends Component<PropType, State> {
         left={rightHandlePosition}
         onMouseDown={onRightHandleDragStart}
         isDragging={isDragging}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     );
 
@@ -159,6 +165,7 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     ) : null;
 
@@ -517,7 +524,10 @@ class TraceViewHeader extends Component<PropType, State> {
                                 mouseLeft,
                                 cursorGuideHeight: MINIMAP_HEIGHT,
                               })}
-                              {this.renderViewHandles(this.props.dragProps)}
+                              {this.renderViewHandles(
+                                this.props.dragProps,
+                                hasProfileMeasurementsChart
+                              )}
                               {this.renderWindowSelection(this.props.dragProps)}
                             </MinimapContainer>
                             {this.renderTimeAxis({
@@ -811,6 +821,7 @@ const ViewHandleContainer = styled('div')`
   position: absolute;
   top: 0;
   height: 100%;
+  z-index: 1;
 `;
 
 const ViewHandleLine = styled('div')`
@@ -872,7 +883,9 @@ function Handle({
   left,
   onMouseDown,
   isDragging,
+  hasProfileMeasurementsChart,
 }: {
+  hasProfileMeasurementsChart: boolean;
   isDragging: boolean;
   left: number;
   onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
@@ -881,6 +894,11 @@ function Handle({
     <ViewHandleContainer
       style={{
         left: toPercent(left),
+        height: `${
+          hasProfileMeasurementsChart
+            ? MINIMAP_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
+            : MINIMAP_HEIGHT
+        }px`,
       }}
     >
       <ViewHandleLine />
