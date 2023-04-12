@@ -1,19 +1,23 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {
-  PerformanceWidgetSetting,
-  WIDGET_DEFINITIONS,
-} from 'sentry/views/starfish/landing/widgets/widgetDefinitions';
-import {StackedAreaWidget} from 'sentry/views/starfish/landing/widgets/widgets/stackedAreaWidget';
+import withApi from 'sentry/utils/withApi';
+import DurationChart from 'sentry/views/starfish/charts/chart';
 
 import Table from '../../table';
+
+const EventsRequest = withApi(_EventsRequest);
+import {Fragment} from 'react';
+
+import {Series} from 'sentry/types/echarts';
+
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 
 type BasePerformanceViewProps = {
@@ -25,34 +29,71 @@ type BasePerformanceViewProps = {
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const chartSetting = PerformanceWidgetSetting.DB_HTTP_BREAKDOWN;
-  const chartDefinition = WIDGET_DEFINITIONS({organization: props.organization})[
-    chartSetting
-  ];
+  const {organization, eventView} = props;
 
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div data-test-id="starfish-view">
         <StyledRow minSize={200}>
-          <StackedAreaWidget
-            eventView={props.eventView}
-            organization={props.organization}
-            title="Operation Breakdown"
-            titleTooltip="Failure rate is the percentage of recorded transactions that had a known and unsuccessful status."
-            chartHeight={180}
-            fields={[
+          <EventsRequest
+            query={eventView.query}
+            includePrevious={false}
+            partial
+            interval="1h"
+            includeTransformedData
+            limit={1}
+            environment={eventView.environment}
+            project={eventView.project}
+            period={eventView.statsPeriod}
+            referrer="starfish-homepage-span-breakdown"
+            start={eventView.start}
+            end={eventView.end}
+            organization={organization}
+            yAxis={[
               'p95(spans.db)',
               'p95(spans.http)',
               'p95(spans.browser)',
               'p95(spans.resource)',
               'p95(spans.ui)',
             ]}
-            withStaticFilters
-            chartDefinition={chartDefinition}
-            chartSetting={chartSetting}
-            InteractiveTitle={null}
-            ContainerActions={null}
-          />
+            queryExtras={{
+              dataset: 'metrics',
+            }}
+          >
+            {data => {
+              return (
+                <Fragment>
+                  <DurationChart
+                    statsPeriod={eventView.statsPeriod}
+                    height={180}
+                    data={data.results as Series[]}
+                    start={eventView.start as string}
+                    end={eventView.end as string}
+                    loading={data.loading}
+                    utc={false}
+                    grid={{
+                      left: '0',
+                      right: '0',
+                      top: '16px',
+                      bottom: '8px',
+                    }}
+                    disableMultiAxis
+                    definedAxisTicks={4}
+                    stacked
+                    log
+                    chartColors={[
+                      '#444674',
+                      '#7a5088',
+                      '#b85586',
+                      '#e9626e',
+                      '#f58c46',
+                      '#f2b712',
+                    ]}
+                  />
+                </Fragment>
+              );
+            }}
+          </EventsRequest>
         </StyledRow>
 
         <Table {...props} setError={usePageError().setPageError} />
