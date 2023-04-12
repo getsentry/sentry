@@ -3,10 +3,12 @@ from typing import Mapping, Optional, Set
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
-    KeyCollection,
-    KeyResult,
-    KeyResults,
+    OrgId,
     StringIndexer,
+    UseCaseId,
+    UseCaseKeyCollection,
+    UseCaseKeyResult,
+    UseCaseKeyResults,
 )
 
 # !!! DO NOT CHANGE THESE VALUES !!!
@@ -144,15 +146,15 @@ class StaticStringIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
-        static_keys = KeyCollection(org_strings)
-        static_key_results = KeyResults()
+        self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
+        static_keys = UseCaseKeyCollection(strings)
+        static_key_results = UseCaseKeyResults
         for org_id, string in static_keys.as_tuples():
             if string in SHARED_STRINGS:
                 id = SHARED_STRINGS[string]
                 static_key_results.add_key_result(
-                    KeyResult(org_id, string, id), FetchType.HARDCODED
+                    UseCaseKeyResult(org_id, string, id), FetchType.HARDCODED
                 )
 
         org_strings_left = static_key_results.get_unmapped_keys(static_keys)
@@ -160,9 +162,7 @@ class StaticStringIndexer(StringIndexer):
         if org_strings_left.size == 0:
             return static_key_results
 
-        indexer_results = self.indexer.bulk_record(
-            use_case_id=use_case_id, org_strings=org_strings_left.mapping
-        )
+        indexer_results = self.indexer.bulk_record(org_strings=org_strings_left.mapping)
 
         return static_key_results.merge(indexer_results)
 
