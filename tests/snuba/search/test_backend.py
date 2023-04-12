@@ -2486,10 +2486,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         self.error_group_2 = error_event_2.group
 
     def test_no_feature(self):
-        with self.feature(
-            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
-        ):
-            results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+        results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
         assert list(results) == []
 
     def test_generic_query(self):
