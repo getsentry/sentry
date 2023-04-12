@@ -193,7 +193,7 @@ class TraceDetailsContent extends Component<Props, State> {
                 '%s Transactions',
                 meta?.transactions ?? traceInfo.transactions.size
               ),
-              errors: tn('%s Issues', '%s Issues', errors + performanceIssues),
+              errors: tn('%s Issue', '%s Issues', errors + performanceIssues),
             })}
             subtext={tn(
               'Across %s project',
