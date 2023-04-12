@@ -9,7 +9,7 @@ from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, features, roles
+from sentry import audit_log, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -168,8 +168,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    providerName = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    providerConfig = serializers.JSONField(required=False, allow_null=True)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -228,6 +226,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_trustedRelays(self, value):
+        from sentry import features
 
         organization = self.context["organization"]
         request = self.context["request"]
@@ -262,20 +261,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
-    def validate_providerName(self, value):
-        from sentry.auth import manager
-
-        has_api_auth_provider = features.has(
-            "organizations:api-auth-provider",
-            self.context["organization"],
-            actor=self.context["request"].user,
-        )
-        if not has_api_auth_provider:
-            return
-        if not manager.exists(value):
-            raise serializers.ValidationError("Invalid providerName")
-        return value
-
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
@@ -285,21 +270,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             if not has_existing_file and not attrs.get("avatar"):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
-                )
-        has_api_auth_provider = features.has(
-            "organizations:api-auth-provider",
-            self.context["organization"],
-            actor=self.context["request"].user,
-        )
-        if has_api_auth_provider:
-            # Both providerName and providerConfig are required to configure an auth provider
-            if attrs.get("providerName") and not attrs.get("providerConfig"):
-                raise serializers.ValidationError(
-                    {"providerConfig": "providerConfig is required to configure an auth provider"}
-                )
-            if attrs.get("providerConfig") and not attrs.get("providerName"):
-                raise serializers.ValidationError(
-                    {"providerName": "providerName is required to configure an auth provider"}
                 )
         return attrs
 
@@ -355,6 +325,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return incoming
 
     def save(self):
+        from sentry import features
 
         org = self.context["organization"]
         changed_data = {}
@@ -409,21 +380,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        if (
-            features.has("organizations:api-auth-provider", org)
-            and "providerName" in data
-            and "providerConfig" in data
-        ):
-            provider_name = data["providerName"]
-            provider_config = data["providerConfig"]
-            with transaction.atomic():
-                auth_provider = AuthProvider.objects.update_or_create(
-                    organization_id=org.id,
-                    defaults={"provider": provider_name},
-                )[0]
-                provider = auth_provider.get_provider()
-                config = provider.build_config(provider_config)
-                auth_provider.update(config=config)
 
         org_tracked_field = {
             "name": org.name,

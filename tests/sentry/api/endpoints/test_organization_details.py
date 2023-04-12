@@ -13,7 +13,6 @@ from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
-from sentry.auth.providers.google.constants import DATA_VERSION
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
@@ -330,8 +329,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "providerName": "google",
-            "providerConfig": {"domain": "foo.com"},
         }
 
         # needed to set require2FA
@@ -785,95 +782,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_org_mapping_already_taken(self):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
-
-    def test_configure_auth_provider(self):
-        with self.feature("organizations:api-auth-provider"):
-            old_config = {"domain": "foo.com"}
-            new_config = {"domain": "bar.com"}
-            provider = "google"
-
-            self.get_success_response(
-                self.organization.slug,
-                method="put",
-                providerName=provider,
-                providerConfig=old_config,
-            )
-            auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-            assert auth_provider.provider == provider
-            assert auth_provider.config == {"domains": ["foo.com"], "version": DATA_VERSION}
-
-            self.get_success_response(
-                self.organization.slug,
-                method="put",
-                providerName=provider,
-                providerConfig=new_config,
-            )
-            auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-            assert auth_provider.provider == provider
-            assert auth_provider.config == {"domains": ["bar.com"], "version": DATA_VERSION}
-
-        self.get_success_response(
-            self.organization.slug,
-            method="put",
-            providerName=provider,
-            providerConfig=old_config,
-        )
-
-        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-        assert auth_provider.provider == provider
-        assert auth_provider.config == {"domains": ["bar.com"], "version": DATA_VERSION}
-
-    def test_invalid_auth_provider_configuration(self):
-        with self.feature("organizations:api-auth-provider"):
-            self.get_error_response(
-                self.organization.slug, method="put", providerName="google", status_code=400
-            )
-            self.get_error_response(
-                self.organization.slug,
-                method="put",
-                providerConfig={"domain": "foo.com"},
-                status_code=400,
-            )
-            self.get_error_response(
-                self.organization.slug,
-                method="put",
-                providerName="not_valid",
-                providerConfig={"domain": "foo.com"},
-                status_code=400,
-            )
-
-            self.get_error_response(
-                self.organization.slug,
-                method="put",
-                providerName="google",
-                providerConfig={"invalid_domain": "foo.com"},
-                status_code=500,
-            )
-
-        # succeed if feature is not enabled and passing in anyways
-        self.get_success_response(self.organization.slug, method="put", providerName="google")
-        self.get_success_response(
-            self.organization.slug,
-            method="put",
-            providerConfig={"option": "test"},
-        )
-        self.get_success_response(
-            self.organization.slug,
-            method="put",
-            providerName="not_valid",
-            providerConfig={"option": "test"},
-        )
-        self.get_success_response(
-            self.organization.slug,
-            method="put",
-            providerName="google",
-            providerConfig={"domain": "foo.com"},
-        )
-        with pytest.raises(AuthProvider.DoesNotExist) as exc_info:
-            AuthProvider.objects.get(organization_id=self.organization.id)
-
-        exception_raised = str(exc_info.value)
-        assert exception_raised == "AuthProvider matching query does not exist."
 
 
 @region_silo_test
