@@ -69,6 +69,7 @@ default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureH
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:mute-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:custom-event-title", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:customer-domains", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
