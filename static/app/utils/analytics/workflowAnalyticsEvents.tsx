@@ -28,6 +28,7 @@ export type BaseEventAnalyticsParams = {
   num_stack_frames: number;
   num_threads_with_names: number;
   error_has_replay?: boolean;
+  error_has_user_feedback?: boolean;
   event_errors?: string;
   event_platform?: string;
   event_type?: string;

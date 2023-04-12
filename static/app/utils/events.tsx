@@ -16,6 +16,7 @@ import {
   TreeLabelPart,
 } from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
@@ -315,6 +316,7 @@ export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParam
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
     error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+    error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,
   };
 }
@@ -332,6 +334,7 @@ export type CommonGroupAnalyticsData = {
   issue_type: IssueType;
   num_comments: number;
   num_participants: number;
+  num_user_feedback: number;
   num_viewers: number;
   is_assigned?: boolean;
   issue_level?: string;
@@ -360,5 +363,6 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     integration_assignment_source: group ? getAssignmentIntegration(group) : '',
     num_participants: group?.participants.length ?? 0,
     num_viewers: group?.seenBy.filter(user => user.id !== activeUser?.id).length ?? 0,
+    num_user_feedback: group?.userReportCount ?? 0,
   };
 }
