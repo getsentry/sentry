@@ -22,12 +22,12 @@ interface ArchiveActionProps {
   size?: 'xs' | 'sm';
 }
 
-const UNTIL_ESCALATING: GroupStatusResolution = {
+const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
   substatus: 'until_escalating',
 };
-const IGNORE_FOREVER: GroupStatusResolution = {
+const ARCHIVE_FOREVER: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
 };
@@ -67,12 +67,12 @@ export function getArchiveActions({
       {
         key: 'untilEscalating',
         label: t('Until it escalates'),
-        onAction: () => onArchive(UNTIL_ESCALATING),
+        onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
       },
       {
         key: 'forever',
         label: t('Forever'),
-        onAction: () => onArchive(IGNORE_FOREVER),
+        onAction: () => onArchive(ARCHIVE_FOREVER),
       },
       ...dropdownItems,
     ],
@@ -120,7 +120,7 @@ function ArchiveActions({
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
         icon={hideIcon ? null : <IconArchive size={size} />}
-        onClick={() => onArchive(UNTIL_ESCALATING)}
+        onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >
         {t('Archive')}
