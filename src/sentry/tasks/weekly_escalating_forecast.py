@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple, TypedDict
 
 from django.db import transaction
+from sentry_sdk.crons import monitor
 
 from sentry.issues.escalating import GroupsCountResponse, query_groups_past_counts
 from sentry.issues.escalating_issues_alg import generate_issue_forecast
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
     queue="weekly_escalating_forecast",
     max_retries=0,  # TODO: Increase this when the task is changed to run weekly
 )  # type: ignore
+@monitor(monitor_slug="escalating-issue-forecast-job-monitor")
 def run_escalating_forecast() -> None:
     # TODO: Do not limit to project id = 1 and limit 10 once these topics are clarified
     # TODO: If possible, fetch group_id instead of the entire group model
