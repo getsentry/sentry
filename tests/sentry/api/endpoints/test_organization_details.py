@@ -886,8 +886,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(
             self.organization.slug,
             method="put",
-            providerName="google",
-            providerConfig={"domain": "foo.com"},
+            providerKey="google",
+            providerConfig={"invalid_domain": "foo.com"},
         )
         with pytest.raises(AuthProvider.DoesNotExist) as exc_info:
             AuthProvider.objects.get(organization_id=self.organization.id)
