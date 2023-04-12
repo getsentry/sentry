@@ -179,13 +179,25 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderFog(dragProps: DragManagerChildrenProps) {
+  renderFog(
+    dragProps: DragManagerChildrenProps,
+    hasProfileMeasurementsChart: boolean = false
+  ) {
     return (
       <Fragment>
-        <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
         <Fog
           style={{
-            height: '100%',
+            height: hasProfileMeasurementsChart
+              ? `calc(100% - ${TIME_AXIS_HEIGHT}px)`
+              : '100%',
+            width: toPercent(dragProps.viewWindowStart),
+          }}
+        />
+        <Fog
+          style={{
+            height: hasProfileMeasurementsChart
+              ? `calc(100% - ${TIME_AXIS_HEIGHT}px)`
+              : '100%',
             width: toPercent(1 - dragProps.viewWindowEnd),
             left: toPercent(dragProps.viewWindowEnd),
           }}
@@ -542,7 +554,7 @@ class TraceViewHeader extends Component<PropType, State> {
                         <ProfilingMeasurements
                           profileData={profiles.data}
                           renderCursorGuide={this.renderCursorGuide}
-                          renderFog={() => this.renderFog(this.props.dragProps)}
+                          renderFog={() => this.renderFog(this.props.dragProps, true)}
                           renderWindowSelection={() =>
                             this.renderWindowSelection(this.props.dragProps)
                           }
