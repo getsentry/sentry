@@ -29,16 +29,6 @@ def pagerdutyservice_migrations():
                 to="sentry.OrganizationIntegration", db_constraint=False, db_index=True, null=False
             ),
         ),
-        migrations.AddField(
-            model_name="pagerdutyservice",
-            name="integration_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
-        ),
-        migrations.AddField(
-            model_name="pagerdutyservice",
-            name="organization_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True, null=True),
-        ),
     ]
 
     state_operations = [
@@ -69,16 +59,6 @@ def repositoryprojectpathconfig_migrations():
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 to="sentry.OrganizationIntegration", db_constraint=False, db_index=True, null=False
             ),
-        ),
-        migrations.AddField(
-            model_name="repositoryprojectpathconfig",
-            name="integration_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
-        ),
-        migrations.AddField(
-            model_name="repositoryprojectpathconfig",
-            name="organization_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True, null=True),
         ),
     ]
 
@@ -166,7 +146,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0407_recreate_perf_alert_subscriptions"),
+        ("sentry", "0419_add_null_constraint_for_org_integration_denorm"),
     ]
 
     operations = (
