@@ -118,6 +118,7 @@ export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps &
 
 export type TraceMeta = {
   errors: number;
+  performance_issues: number;
   projects: number;
   transactions: number;
 };
