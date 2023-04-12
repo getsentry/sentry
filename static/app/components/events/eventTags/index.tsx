@@ -39,8 +39,9 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
       const deviceClass = event.tags.find(tag => tag.key === 'device.class')?.value;
       const deviceFamily = event.tags.find(tag => tag.key === 'device.family')?.value;
       const deviceModel = event.tags.find(tag => tag.key === 'device.model')?.value;
-      // iOS device missing classification
       if (deviceFamily && IOS_DEVICE_FAMILIES.includes(deviceFamily)) {
+        // iOS device missing classification, this probably indicates a new iOS device which we
+        // haven't yet classified.
         if (!deviceClass && deviceModel) {
           trackAdvancedAnalyticsEvent('device.classification.unclassified.ios.device', {
             organization,
@@ -56,6 +57,8 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
           event.tags.find(tag => tag.key === 'device.processor_frequency')?.value ?? '',
           10
         );
+        // Android device specs significantly higher than current high end devices.
+        // Consider bumping up internal device.class values if this gets triggered a lot.
         if (
           deviceProcessorFrequency > 3499 ||
           (deviceProcessorCount > 9 && deviceProcessorFrequency > 3299)
