@@ -43,10 +43,7 @@ def run_escalating_forecast() -> None:
     if not until_escalating_groups:
         return
 
-    response = query_groups_past_counts(until_escalating_groups)
-    group_counts = parse_groups_past_counts(response)
-    group_forecast_list = get_forecast_per_group(until_escalating_groups, group_counts)
-
+    group_forecast_list = get_forecasts(until_escalating_groups)
     # Delete and bulk create GroupForecasts in batches
     num_batches = math.ceil(len(group_forecast_list) / BATCH_SIZE)
     start_index = 0
@@ -106,3 +103,14 @@ def get_forecast_per_group(
         forecasts_list = [forecast["forecasted_value"] for forecast in forecasts]
         group_forecast_list.append((group_dict[group_id], forecasts_list))
     return group_forecast_list
+
+
+def get_forecasts(groups: List[Group]) -> List[Tuple[Group, List[int]]]:
+    """
+    Returns a list of forecasted values for each group.
+
+    `groups`: List of groups to be forecasted
+    """
+    past_counts = query_groups_past_counts(groups)
+    group_counts = parse_groups_past_counts(past_counts)
+    return get_forecast_per_group(groups, group_counts)
