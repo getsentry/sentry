@@ -71,6 +71,10 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
+  'issue_group_details.anr_root_cause_detected': {
+    culprit?: string;
+    group?: string;
+  };
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked': {
     platform?: string;
     project_id?: string;
@@ -244,6 +248,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.external_issue_modal_opened':
     'Issue Details: External Issue Modal Opened',
   'issue_details.external_issue_created': 'Issue Details: External Issue Created',
