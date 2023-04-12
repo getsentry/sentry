@@ -285,6 +285,14 @@ class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
 
 
 @dataclass(frozen=True)
+class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1015
+    slug = "performance_large_http_payload"
+    description = "Large http payload"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"

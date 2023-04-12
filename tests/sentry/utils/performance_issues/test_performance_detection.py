@@ -398,6 +398,7 @@ class PerformanceDetectionTest(TestCase):
                     "integration_mongo": False,
                     "integration_postgres": False,
                     "consecutive_db": False,
+                    "large_http_payload": False,
                     "consecutive_http": False,
                     "slow_db_query": False,
                     "render_blocking_assets": False,

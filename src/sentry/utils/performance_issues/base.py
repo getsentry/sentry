@@ -16,6 +16,7 @@ from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
+    PerformanceLargeHTTPPayloadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
@@ -36,6 +37,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
     CONSECUTIVE_HTTP_OP = "consecutive_http"
+    LARGE_HTTP_PAYLOAD = "large_http_payload"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
@@ -54,6 +56,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
     DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
+    DetectorType.LARGE_HTTP_PAYLOAD: PerformanceLargeHTTPPayloadGroupType,
 }
 
 
@@ -63,6 +66,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
     DetectorType.CONSECUTIVE_HTTP_OP: "performance.issues.consecutive_http.flag_disabled",
+    DetectorType.LARGE_HTTP_PAYLOAD: "performance.issues.large_http_payload.flag_disabled",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
