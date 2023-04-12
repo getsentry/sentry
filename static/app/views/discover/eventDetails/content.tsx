@@ -25,7 +25,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
@@ -131,11 +130,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {isSidebarVisible} = this.state;
 
     // metrics
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.event_details',
-      eventName: 'Discoverv2: Opened Event Details',
+    trackAdvancedAnalyticsEvent('discover_v2.event_details', {
       event_type: event.type,
-      organization_id: parseInt(organization.id, 10),
+      organization,
     });
 
     const transactionName = event.tags.find(tag => tag.key === 'transaction')?.value;
@@ -152,8 +149,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
     const hasProfilingFeature = organization.features.includes('profiling');
-    const hasProfilingPreviewsFeature =
-      hasProfilingFeature && organization.features.includes('profiling-previews');
 
     const profileId = isTransaction(event) ? event.contexts?.profile?.profile_id : null;
 
@@ -251,7 +246,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     }}
                   >
                     <QuickTraceContext.Provider value={results}>
-                      {hasProfilingPreviewsFeature ? (
+                      {hasProfilingFeature ? (
                         <ProfilesProvider
                           orgSlug={organization.slug}
                           projectSlug={this.projectId}

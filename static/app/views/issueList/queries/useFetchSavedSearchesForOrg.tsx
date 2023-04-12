@@ -1,5 +1,5 @@
 import {SavedSearch} from 'sentry/types';
-import {useApiQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 type FetchSavedSearchesForOrgParameters = {
   orgSlug: string;
@@ -14,7 +14,7 @@ export const makeFetchSavedSearchesForOrgQueryKey = ({
 
 export const useFetchSavedSearchesForOrg = (
   {orgSlug}: FetchSavedSearchesForOrgParameters,
-  options: Partial<UseQueryOptions<FetchSavedSearchesForOrgResponse>> = {}
+  options: Partial<UseApiQueryOptions<FetchSavedSearchesForOrgResponse>> = {}
 ) => {
   return useApiQuery<FetchSavedSearchesForOrgResponse>(
     makeFetchSavedSearchesForOrgQueryKey({orgSlug}),
