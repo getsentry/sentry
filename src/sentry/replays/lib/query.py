@@ -194,6 +194,58 @@ class Selector(Field):
             return Or(conditions)
 
 
+class WhereSelector(Field):
+    _operators = [Op.EQ, Op.NEQ]
+    _python_type = str
+
+    def as_condition(
+        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+    ) -> Condition:
+        if operator == Op.NEQ:
+            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+        # This list of queries implies an `OR` operation between each item in the set. To `AND`
+        # selector queries apply them separately.
+        queries: List[QueryType] = parse_selector(value)
+
+        # A valid selector will always return at least one query condition. If this did not occur
+        # then the selector was not well-formed. We return an empty resultset.
+        if len(queries) == 0:
+            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+        # Conditions are pre-made and intended for application in the HAVING clause.
+        conditions: List[Condition] = []
+
+        for query in queries:
+            if query.alt:
+                conditions.append(Condition(Column("click_alt"), operator, query.alt))
+            if query.aria_label:
+                conditions.append(Condition(Column("click_aria_label"), operator, query.aria_label))
+            if query.classes:
+                conditions.append(
+                    Condition(
+                        Function("hasAll", parameters=[Column("click_class"), query.classes]),
+                        Op.EQ,
+                        1,
+                    )
+                )
+            if query.id:
+                conditions.append(Condition(Column("click_id"), operator, query.id))
+            if query.role:
+                conditions.append(Condition(Column("click_role"), operator, query.role))
+            if query.tag:
+                conditions.append(Condition(Column("click_tag"), operator, query.tag))
+            if query.testid:
+                conditions.append(Condition(Column("click_testid"), operator, query.testid))
+            if query.title:
+                conditions.append(Condition(Column("click_title"), operator, query.title))
+
+        if len(conditions) == 1:
+            return conditions[0]
+        else:
+            return And(conditions)
+
+
 class Number(Field):
     _operators = [Op.EQ, Op.NEQ, Op.GT, Op.GTE, Op.LT, Op.LTE, Op.IN, Op.NOT_IN]
     _python_type = int
@@ -374,6 +426,41 @@ class QueryConfig:
 
 
 def generate_valid_conditions(
+    query: List[Union[SearchFilter, ParenExpression, str]], query_config: QueryConfig
+) -> List[Expression]:
+    """Convert search filters to snuba conditions."""
+    result: List[Expression] = []
+    look_back = None
+    for search_filter in query:
+        # SearchFilters are appended to the result set.  If they are top level filters they are
+        # implicitly And'ed in the WHERE/HAVING clause.
+        if isinstance(search_filter, SearchFilter):
+            condition = filter_to_condition(search_filter, query_config)
+            if look_back == "AND":
+                look_back = None
+                attempt_compressed_condition(result, condition, And)
+            elif look_back == "OR":
+                look_back = None
+                attempt_compressed_condition(result, condition, Or)
+            else:
+                result.append(condition)
+        # ParenExpressions are recursively computed.  If more than one condition is returned then
+        # those conditions are And'ed.
+        elif isinstance(search_filter, ParenExpression):
+            conditions = generate_valid_conditions(search_filter.children, query_config)
+            if len(conditions) < 2:
+                result.extend(conditions)
+            else:
+                result.append(And(conditions))
+        # String types are limited to AND and OR... I think?  In the case where its not a valid
+        # look-back it is implicitly ignored.
+        elif isinstance(search_filter, str):
+            look_back = search_filter
+
+    return result
+
+
+def generate_pregrouped_conditions(
     query: List[Union[SearchFilter, ParenExpression, str]], query_config: QueryConfig
 ) -> List[Expression]:
     """Convert search filters to snuba conditions."""

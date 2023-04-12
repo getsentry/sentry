@@ -71,6 +71,7 @@ from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
+from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
     ProjectReplayRecordingSegmentDetailsEndpoint,
@@ -2043,6 +2044,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
         ProjectReplayDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-details",
+    ),
+    url(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/clicks/$",
+        ProjectReplayClicksIndexEndpoint.as_view(),
+        name="sentry-api-0-project-replay-clicks-index",
     ),
     url(
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/$",
