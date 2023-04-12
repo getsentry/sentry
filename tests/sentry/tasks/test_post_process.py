@@ -53,7 +53,7 @@ from sentry.tasks.post_process import (
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
@@ -169,7 +169,6 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         assert event_processing_store.get(cache_key) is None
 
 
-@apply_feature_flag_on_cls("organizations:derive-code-mappings")
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def _call_post_process_group(self, data: Dict[str, str]) -> None:
         event = self.create_event(data=data, project_id=self.project.id)

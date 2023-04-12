@@ -13,7 +13,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers import with_feature
 from sentry.utils.locking import UnableToAcquireLock
 
 
@@ -35,7 +35,6 @@ class BaseDeriveCodeMappings(TestCase):
         return self.store_event(data=test_data, project_id=self.project.id).data
 
 
-@apply_feature_flag_on_cls("organizations:derive-code-mappings")
 class TestTaskBehavior(BaseDeriveCodeMappings):
     """Test task behavior that is not language specific."""
 
@@ -138,7 +137,6 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         assert stacktrace_paths == []
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_starts_with_period_slash(self):
         repo_name = "foo/bar"
         with patch(
@@ -158,7 +156,6 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_starts_with_period_slash_no_containing_directory(self):
         repo_name = "foo/bar"
         with patch(
@@ -178,7 +175,6 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_one_to_one_match(self):
         repo_name = "foo/bar"
         with patch(
@@ -217,7 +213,6 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
         assert set(stacktrace_paths) == {"some/path/test.rb", "lib/tasks/crontask.rake"}
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_rb(self):
         repo_name = "foo/bar"
         with patch(
@@ -233,7 +228,6 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_rake(self):
         repo_name = "foo/bar"
         with patch(
@@ -279,7 +273,6 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         }
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_starts_with_app(self):
         repo_name = "foo/bar"
         with patch(
@@ -295,7 +288,6 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_starts_with_multiple_dot_dot_slash(self):
         repo_name = "foo/bar"
         with patch(
@@ -311,7 +303,6 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_starts_with_app_dot_dot_slash(self):
         repo_name = "foo/bar"
         with patch(
@@ -390,7 +381,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             )
         ],
     )
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_single_project(
         self, mock_generate_code_mappings, mock_get_trees_for_org
     ):
@@ -428,7 +418,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         ],
     )
     @patch("sentry.tasks.derive_code_mappings.logger")
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_duplicates(
         self, mock_logger, mock_generate_code_mappings, mock_get_trees_for_org
     ):
@@ -466,7 +455,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         assert mock_logger.info.call_count == 1
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_stack_and_source_root_do_not_match(self):
         repo_name = "foo/bar"
         with patch(
@@ -482,7 +470,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.source_root == "src/sentry/"
 
     @responses.activate
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_no_normalization(self):
         repo_name = "foo/bar"
         with patch(
