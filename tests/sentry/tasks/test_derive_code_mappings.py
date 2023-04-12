@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from copy import deepcopy
-from typing import Dict, List, Union
 from unittest.mock import patch
 
 import pytest
 import responses
 
+from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -30,7 +32,7 @@ class BaseDeriveCodeMappings(TestCase):
             metadata={"domain_name": "github.com/Test-Org"},
         )
 
-    def generate_data(self, frames: List[Dict[str, Union[str, bool]]], platform: str = ""):
+    def generate_data(self, frames: list[dict[str, str | bool]], platform: str = "") -> NodeData:
         test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id).data
 

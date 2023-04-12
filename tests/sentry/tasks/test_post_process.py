@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 from datetime import datetime, timedelta
-from typing import Dict
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -170,7 +169,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
-    def _call_post_process_group(self, data: Dict[str, str]) -> None:
+    def _call_post_process_group(self, data: dict[str, str]) -> None:
         event = self.create_event(data=data, project_id=self.project.id)
         self.call_post_process_group(
             is_new=True,
