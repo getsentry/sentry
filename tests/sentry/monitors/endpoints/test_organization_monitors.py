@@ -163,6 +163,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             user_id=self.user.id,
             organization_id=self.organization.id,
             project_id=self.project.id,
+            from_upsert=False,
         )
 
     def test_slug(self):

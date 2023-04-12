@@ -469,6 +469,7 @@ export type ResolutionStatusDetails = {
   inNextRelease?: boolean;
   inRelease?: string;
   repository?: string;
+  untilEscalating?: boolean;
 };
 
 export type GroupStatusResolution = {
