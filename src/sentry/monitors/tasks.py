@@ -6,8 +6,8 @@ from django.utils import timezone
 
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 
-from ..utils.query import RangeQuerySetWrapper
 from .models import (
     CheckInStatus,
     MonitorCheckIn,
