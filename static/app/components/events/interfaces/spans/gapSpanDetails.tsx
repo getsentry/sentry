@@ -239,8 +239,8 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <Button icon={<IconProfiling />} size="xs" onClick={handleGoToProfile} to={target}>
-        {t('Go to Profile')}
+      <Button size="xs" onClick={handleGoToProfile} to={target}>
+        {t('View Profile')}
       </Button>
     </HeaderContainer>
   );
