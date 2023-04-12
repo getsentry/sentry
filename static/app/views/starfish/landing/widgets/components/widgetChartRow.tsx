@@ -36,7 +36,7 @@ function getInitialChartSettings(
     );
 }
 
-function ChartRow(props: ChartRowProps) {
+export function ChartRow(props: ChartRowProps) {
   const {chartCount, chartHeight, allowedCharts} = props;
   const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
@@ -67,24 +67,6 @@ function ChartRow(props: ChartRowProps) {
     </StyledRow>
   );
 }
-
-export function TripleChartRow(props: ChartRowProps) {
-  return <ChartRow {...props} />;
-}
-
-TripleChartRow.defaultProps = {
-  chartCount: 3,
-  chartHeight: 100,
-};
-
-export function SingleChartRow(props: ChartRowProps) {
-  return <ChartRow {...props} />;
-}
-
-SingleChartRow.defaultProps = {
-  chartCount: 1,
-  chartHeight: 180,
-};
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`
   margin-bottom: ${space(2)};

@@ -7,7 +7,7 @@ import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/perf
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
-import {SingleChartRow} from '../widgets/components/widgetChartRow';
+import {ChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 type BasePerformanceViewProps = {
@@ -22,7 +22,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div data-test-id="starfish-view">
-        <SingleChartRow
+        <ChartRow
+          chartCount={1}
+          chartHeight={180}
           {...props}
           allowedCharts={[PerformanceWidgetSetting.DB_HTTP_BREAKDOWN]}
         />
