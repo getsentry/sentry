@@ -29,6 +29,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -164,7 +165,9 @@ function ProfilingContent({location}: ProfilingContentProps) {
         <Layout.Page>
           {isProfilingGA ? (
             <ProfilingBetaAlertBanner organization={organization} />
-          ) : null}
+          ) : (
+            <ProfilingBetaEndAlertBanner organization={organization} />
+          )}
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>
@@ -305,6 +308,21 @@ function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
+function ProfilingBetaEndAlertBanner({organization}: {organization: Organization}) {
+  // beta users will continue to have access
+  if (organization.features.includes('profiling-beta')) {
+    return null;
+  }
+
+  return (
+    <StyledAlert system type="info">
+      {t(
+        'Profiling beta is now over. Please wait for general availability to access this feature.'
+      )}
+    </StyledAlert>
+  );
+}
+
 const BASE_FIELDS = [
   'transaction',
   'project.id',
@@ -335,6 +353,10 @@ const PanelsGrid = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
 `;
 
 export default ProfilingContent;
