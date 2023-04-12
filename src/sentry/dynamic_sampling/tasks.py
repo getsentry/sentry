@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Sequence, Tuple
 
 from django.core.exceptions import ObjectDoesNotExist
+from snuba_sdk import Granularity
 
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
@@ -66,7 +67,7 @@ def prioritise_projects() -> None:
                 process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
             # TODO: @andrii potentially run it as separate celery job
             for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
-                org_ids=orgs, query_interval=timedelta(minutes=5)
+                org_ids=orgs, granularity=Granularity(60), query_interval=timedelta(minutes=5)
             ).items():
                 process_projects_sample_factors.delay(org_id, projects_with_tx_count_and_rates)
 
