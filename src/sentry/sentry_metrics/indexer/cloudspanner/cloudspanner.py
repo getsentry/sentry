@@ -7,14 +7,8 @@ from django.conf import settings
 from google.cloud import spanner  # type: ignore[attr-defined]
 
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.indexer.base import (
-    FetchType,
-    KeyCollection,
-    KeyResult,
-    KeyResults,
-    StringIndexer,
-)
-from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
+from sentry.sentry_metrics.indexer.base import FetchType, KeyCollection, KeyResult, KeyResults
+from sentry.sentry_metrics.indexer.cache import StringIndexerCache
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
     DATABASE_PARAMETERS,
     SpannerIndexerModel,
@@ -81,7 +75,7 @@ class IdCodec(Codec[DecodedId, EncodedId]):
         return reverse_bits(value + 2**63, 64)
 
 
-class RawCloudSpannerIndexer(StringIndexer):
+class RawCloudSpannerIndexer:
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
@@ -444,4 +438,5 @@ class RawCloudSpannerIndexer(StringIndexer):
 
 class CloudSpannerIndexer(StaticStringIndexer):
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(CachingIndexer(indexer_cache, RawCloudSpannerIndexer(**kwargs)))
+        # super().__init__(CachingIndexer(indexer_cache, RawCloudSpannerIndexer(**kwargs)))
+        pass

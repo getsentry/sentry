@@ -102,9 +102,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
         totals: Totals = defaultdict(dict)
         with metrics.timer("release_monitor.fetch_project_release_health_totals.loop"):
             while (time.time() - start_time) < self.MAX_SECONDS:
-                release_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "release")
+                release_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH.value, org_id, "release")
                 release_col = Column(release_key)
-                env_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "environment")
+                env_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH.value, org_id, "environment")
                 env_col = Column(env_key)
                 query = (
                     Query(
@@ -133,7 +133,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                                 Column("metric_id"),
                                 Op.EQ,
                                 indexer.resolve(
-                                    UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value
+                                    UseCaseKey.RELEASE_HEALTH.value,
+                                    org_id,
+                                    SessionMRI.SESSION.value,
                                 ),
                             ),
                         ],
@@ -166,10 +168,10 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
 
                     for row in data:
                         env_name = indexer.reverse_resolve(
-                            UseCaseKey.RELEASE_HEALTH, org_id, row[env_key]
+                            UseCaseKey.RELEASE_HEALTH.value, org_id, row[env_key]
                         )
                         release_name = indexer.reverse_resolve(
-                            UseCaseKey.RELEASE_HEALTH, org_id, row[release_key]
+                            UseCaseKey.RELEASE_HEALTH.value, org_id, row[release_key]
                         )
                         row_totals = totals[row["project_id"]].setdefault(
                             env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore

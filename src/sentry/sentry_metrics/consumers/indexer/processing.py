@@ -122,9 +122,7 @@ class MessageProcessor:
         sdk.set_measurement("org_strings.len", len(org_strings))
 
         with metrics.timer("metrics_consumer.bulk_record"), sentry_sdk.start_span(op="bulk_record"):
-            record_result = self._indexer.bulk_record(
-                use_case_id=self._config.use_case_id, org_strings=org_strings
-            )
+            record_result = self._indexer.bulk_record({self._config.use_case_id.value: org_strings})
 
         mapping = record_result.get_mapped_results()
         bulk_record_meta = record_result.get_fetch_metadata()

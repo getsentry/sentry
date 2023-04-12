@@ -75,7 +75,7 @@ MINUTE = 60  # 60 seconds
 HOUR = MINUTE * 60
 DAY = HOUR * 24
 LEGACY_SESSIONS_DEFAULT_ROLLUP = HOUR
-USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
+USE_CASE_ID = UseCaseKey.RELEASE_HEALTH.value
 
 logger = logging.getLogger(__name__)
 

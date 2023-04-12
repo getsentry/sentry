@@ -32,6 +32,7 @@ from sentry.models import Project
 from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.indexer.base import UseCaseId
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
@@ -189,7 +190,7 @@ def _get_entity_of_metric_mri(
 
     assert projects
     org_id = org_id_from_projects(projects)
-    metric_id = indexer.resolve(use_case_id, org_id, metric_mri)
+    metric_id = indexer.resolve(use_case_id.value, org_id, metric_mri)
 
     if metric_id is None:
         raise InvalidParams
@@ -260,12 +261,12 @@ class RawMetric(MetricObject):
     """
 
     def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
-        return {resolve_weak(use_case_id, org_id_from_projects(projects), self.metric_mri)}
+        return {resolve_weak(use_case_id.value, org_id_from_projects(projects), self.metric_mri)}
 
     def generate_filter_snql_conditions(self, org_id: int, use_case_id: UseCaseKey) -> Function:
         return Function(
             "equals",
-            [Column("metric_id"), resolve_weak(use_case_id, org_id, self.metric_mri)],
+            [Column("metric_id"), resolve_weak(use_case_id.value, org_id, self.metric_mri)],
         )
 
 
@@ -276,7 +277,9 @@ class AliasedDerivedMetric(AliasedDerivedMetricDefinition, MetricObject):
     """
 
     def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
-        return {resolve_weak(use_case_id, org_id_from_projects(projects), self.raw_metric_mri)}
+        return {
+            resolve_weak(use_case_id.value, org_id_from_projects(projects), self.raw_metric_mri)
+        }
 
     def generate_filter_snql_conditions(self, org_id: int, use_case_id: UseCaseKey) -> Function:
         conditions = [
@@ -284,7 +287,7 @@ class AliasedDerivedMetric(AliasedDerivedMetricDefinition, MetricObject):
                 "equals",
                 [
                     Column("metric_id"),
-                    resolve_weak(use_case_id, org_id, self.raw_metric_mri),
+                    resolve_weak(use_case_id.value, org_id, self.raw_metric_mri),
                 ],
             )
         ]
@@ -926,7 +929,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
 
     @classmethod
     def __recursively_generate_metric_ids(
-        cls, org_id: int, derived_metric_mri: str, use_case_id: UseCaseKey
+        cls, org_id: int, derived_metric_mri: str, use_case_id: UseCaseId
     ) -> Set[int]:
         """
         Method that traverses a derived metric dependency tree to return a set of the metric ids
@@ -946,7 +949,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
     def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
         org_id = org_id_from_projects(projects)
         return self.__recursively_generate_metric_ids(
-            org_id, derived_metric_mri=self.metric_mri, use_case_id=use_case_id
+            org_id, derived_metric_mri=self.metric_mri, use_case_id=use_case_id.value
         )
 
     @classmethod
@@ -982,7 +985,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
                 project_ids=project_ids,
                 org_id=org_id,
                 metric_ids=cls.__recursively_generate_metric_ids(
-                    org_id, derived_metric_mri, use_case_id
+                    org_id, derived_metric_mri, use_case_id.value
                 ),
                 alias=alias,
             )
