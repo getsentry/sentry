@@ -645,6 +645,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.weekly_escalating_forecast",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -711,6 +712,7 @@ CELERY_QUEUES = [
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
+    Queue("process_owner_assignments", routing_key="process_owner_assignments"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -903,6 +905,13 @@ CELERYBEAT_SCHEDULE = {
         # Run every 5 minutes
         "schedule": timedelta(minutes=6),
     },
+    "weekly-escalating-forecast": {
+        "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
+        # TODO: Change this to run weekly once we verify the results
+        "schedule": timedelta(hours=6),
+        # TODO: Increase expiry time to x4 once we change this to run weekly
+        "options": {"expires": 60 * 60 * 3},
+    },
 }
 
 BGTASKS = {
@@ -1037,6 +1046,8 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enables the new artifact bundle uploads
     "organizations:artifact-bundles": False,
+    # Enables alert creation on indexed events in UI (use for PoC/testing only)
+    "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
@@ -1102,7 +1113,7 @@ SENTRY_FEATURES = {
     # Enable the sentry sample format response
     "organizations:profiling-sampled-format": False,
     # Enabled for those orgs who participated in the profiling Beta program
-    "organizations:profiling-beta-grace": False,
+    "organizations:profiling-beta": False,
     # Enable profiling GA messaging (update paths from AM1 to AM2)
     "organizations:profiling-ga": False,
     # Enable multi project selection
@@ -2859,6 +2870,23 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # max number of second to wait between subsequent attempts.
 SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
+# The `url` of the different Symbolicator pools.
+# We want to route different workloads to a different set of Symbolicator pools.
+# This can be as fine-grained as using a different pool for `js` symbolication,
+# for the `lpq` (See `SENTRY_LPQ_OPTIONS` and related settings) and for normal
+# symbolication. The keys here should match the `SymbolicatorPools` enum
+# defined in `src/sentry/lang/native/symbolicator.py`.
+# If a specific setting does not exist, this will fall back to the `default` pool.
+# If that is not configured, it will fall back to the `url` configured in
+# `symbolicator.options`.
+# The settings here are intentionally empty and will fall back to
+# `symbolicator.options` for backwards compatibility.
+SYMBOLICATOR_POOL_URLS = {
+    # "js": "...",
+    # "lpq": "...",
+    # "default": "...",
+}
+
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",
     "sentry.web.frontend",
@@ -3021,7 +3049,7 @@ INJECTED_SCRIPT_ASSETS = []
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 
-PG_VERSION = os.getenv("PG_VERSION") or "9.6"
+PG_VERSION = os.getenv("PG_VERSION") or "14"
 
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
