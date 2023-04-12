@@ -317,7 +317,7 @@ function ProfilingBetaEndAlertBanner({organization}: {organization: Organization
   return (
     <StyledAlert system type="info">
       {t(
-        'Profiling beta is now over. Please wait for general availability to access this feature.'
+        'Profiling beta is now over. Please wait for general availability in the next few weeks to access this feature.'
       )}
     </StyledAlert>
   );
