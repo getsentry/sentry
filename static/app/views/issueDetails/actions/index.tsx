@@ -399,18 +399,20 @@ class Actions extends Component<Props> {
                     ],
                   },
                 ]),
-            ...(isIgnored && hasEscalatingIssues
-              ? []
-              : [
-                  {
-                    key: 'Archive',
-                    className: 'hidden-sm hidden-md hidden-lg',
-                    label: t('Archive'),
-                    isSubmenu: true,
-                    disabled,
-                    children: archiveDropdownItems,
-                  },
-                ]),
+            ...(hasEscalatingIssues
+              ? isIgnored
+                ? []
+                : [
+                    {
+                      key: 'Archive',
+                      className: 'hidden-sm hidden-md hidden-lg',
+                      label: t('Archive'),
+                      isSubmenu: true,
+                      disabled,
+                      children: archiveDropdownItems,
+                    },
+                  ]
+              : []),
             {
               key: 'open-in-discover',
               className: 'hidden-sm hidden-md hidden-lg',
