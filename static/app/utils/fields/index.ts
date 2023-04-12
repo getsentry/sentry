@@ -1139,7 +1139,7 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SpansUi,
 ];
 
-enum ReplayFieldKey {
+export enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
@@ -1153,7 +1153,7 @@ enum ReplayFieldKey {
   URLS = 'urls',
 }
 
-enum ReplayClickFieldKey {
+export enum ReplayClickFieldKey {
   CLICK_ALT = 'replay_click.alt',
   CLICK_CLASS = 'replay_click.class',
   CLICK_ID = 'replay_click.id',

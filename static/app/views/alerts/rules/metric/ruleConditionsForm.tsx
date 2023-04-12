@@ -30,8 +30,8 @@ import {
 } from 'sentry/views/alerts/utils';
 import {
   AlertType,
-  DATASET_OMITTED_TAGS,
-  DATASET_SUPPORTED_TAGS,
+  datasetOmittedTags,
+  datasetSupportedTags,
 } from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -484,9 +484,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 <StyledSearchBar
                   searchSource="alert_builder"
                   defaultQuery={initialData?.query ?? ''}
-                  omitTags={DATASET_OMITTED_TAGS[dataset]}
-                  {...(DATASET_SUPPORTED_TAGS[dataset]
-                    ? {supportedTags: DATASET_SUPPORTED_TAGS[dataset]}
+                  omitTags={datasetOmittedTags(dataset, organization)}
+                  {...(datasetSupportedTags(dataset, organization)
+                    ? {supportedTags: datasetSupportedTags(dataset, organization)}
                     : {})}
                   includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
@@ -496,10 +496,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   onChange={onChange}
                   query={initialData.query}
                   // We only need strict validation for Transaction queries, everything else is fine
-                  highlightUnsupportedTags={[
-                    Dataset.GENERIC_METRICS,
-                    Dataset.TRANSACTIONS,
-                  ].includes(dataset)}
+                  highlightUnsupportedTags={
+                    organization.features.includes('alert-allow-indexed')
+                      ? false
+                      : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
+                  }
                   onKeyDown={e => {
                     /**
                      * Do not allow enter key to submit the alerts form since it is unlikely
