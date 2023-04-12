@@ -7,14 +7,14 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 
 
 class UseCaseID(Enum):
-    PERFORMANCE = "performance"
-    RELEASE_HEALTH = "release-health"
+    TRANSACTIONS = "transactions"
+    SESSIONS = "sessions"
 
 
 # UseCaseKey will be renamed to MetricPathKey
 METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
-    UseCaseID.RELEASE_HEALTH: UseCaseKey.RELEASE_HEALTH,
-    UseCaseID.PERFORMANCE: UseCaseKey.PERFORMANCE,
+    UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
+    UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
 }
 
 
