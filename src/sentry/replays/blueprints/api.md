@@ -53,18 +53,18 @@ This document is structured by resource with each resource having actions that c
 
     Additionally, you can filter by these hidden fields.
 
-    | Field                    | Type          | Description                                                    |
-    | ------------------------ | ------------- | -------------------------------------------------------------- |
-    | replay_click.alt         | string        | The alt attribute of the HTML element.                         |
-    | replay_click.class       | array[string] | An array of HTML element classes.                              |
-    | replay_click.id          | string        | The ID of an HTML element.                                     |
-    | replay_click.label       | string        | The aria-label attribute of an HTML element.                   |
-    | replay_click.role        | string        | The role of an HTML element.                                   |
-    | replay_click.tag         | string        | Valid HTML5 tag name.                                          |
-    | replay_click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-    | replay_click.textContent | string        | The text-content of an HTML element.                           |
-    | replay_click.title       | string        | The title attribute of an HTML element.                        |
-    | replay_click.selector    | string        | A valid CSS selector.                                          |
+    | Field             | Type          | Description                                                    |
+    | ----------------- | ------------- | -------------------------------------------------------------- |
+    | click.alt         | string        | The alt attribute of the HTML element.                         |
+    | click.class       | array[string] | An array of HTML element classes.                              |
+    | click.id          | string        | The ID of an HTML element.                                     |
+    | click.label       | string        | The aria-label attribute of an HTML element.                   |
+    | click.role        | string        | The role of an HTML element.                                   |
+    | click.tag         | string        | Valid HTML5 tag name.                                          |
+    | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
+    | click.textContent | string        | The text-content of an HTML element.                           |
+    | click.title       | string        | The title attribute of an HTML element.                        |
+    | click.selector    | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 

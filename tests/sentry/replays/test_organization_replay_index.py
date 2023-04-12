@@ -909,27 +909,27 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "replay_click.alt:Alt",
-                "replay_click.class:class1",
-                "replay_click.class:class2",
-                "replay_click.class:class3",
-                "replay_click.id:myid",
-                "replay_click.label:AriaLabel",
-                "replay_click.role:button",
-                "replay_click.tag:div",
-                "replay_click.tag:button",
-                "replay_click.testid:1",
-                "replay_click.textContent:Hello",
-                "replay_click.title:MyTitle",
-                "replay_click.selector:div#myid",
-                "replay_click.selector:div[alt=Alt]",
-                "replay_click.selector:div[title=MyTitle]",
-                "replay_click.selector:div[data-testid='1']",
-                "replay_click.selector:div[role=button]",
-                "replay_click.selector:div#myid.class1.class2",
+                "click.alt:Alt",
+                "click.class:class1",
+                "click.class:class2",
+                "click.class:class3",
+                "click.id:myid",
+                "click.label:AriaLabel",
+                "click.role:button",
+                "click.tag:div",
+                "click.tag:button",
+                "click.testid:1",
+                "click.textContent:Hello",
+                "click.title:MyTitle",
+                "click.selector:div#myid",
+                "click.selector:div[alt=Alt]",
+                "click.selector:div[title=MyTitle]",
+                "click.selector:div[data-testid='1']",
+                "click.selector:div[role=button]",
+                "click.selector:div#myid.class1.class2",
                 # Single quotes around attribute value.
-                "replay_click.selector:div[role='button']",
-                "replay_click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
+                "click.selector:div[role='button']",
+                "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -938,23 +938,23 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(response_data["data"]) == 1, query
 
             queries = [
-                "replay_click.alt:NotAlt",
-                "replay_click.class:class4",
-                "replay_click.id:other",
-                "replay_click.label:NotAriaLabel",
-                "replay_click.role:form",
-                "replay_click.tag:header",
-                "replay_click.testid:2",
-                "replay_click.textContent:World",
-                "replay_click.title:NotMyTitle",
-                "!replay_click.selector:div#myid",
-                "replay_click.selector:div#notmyid",
+                "click.alt:NotAlt",
+                "click.class:class4",
+                "click.id:other",
+                "click.label:NotAriaLabel",
+                "click.role:form",
+                "click.tag:header",
+                "click.testid:2",
+                "click.textContent:World",
+                "click.title:NotMyTitle",
+                "!click.selector:div#myid",
+                "click.selector:div#notmyid",
                 # Assert all classes must match.
-                "replay_click.selector:div#myid.class1.class2.class3",
+                "click.selector:div#myid.class1.class2.class3",
                 # Invalid selectors return no rows.
-                "replay_click.selector:$#%^#%",
+                "click.selector:$#%^#%",
                 # Integer type role values are not allowed and must be wrapped in single quotes.
-                "replay_click.selector:div[title=1]",
+                "click.selector:div[title=1]",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
@@ -969,10 +969,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                'replay_click.selector:"div button"',
-                'replay_click.selector:"div + button"',
-                'replay_click.selector:"div ~ button"',
-                'replay_click.selector:"div > button"',
+                'click.selector:"div button"',
+                'click.selector:"div + button"',
+                'click.selector:"div ~ button"',
+                'click.selector:"div > button"',
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -986,7 +986,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "replay_click.selector:a::visited",
+                "click.selector:a::visited",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -1000,8 +1000,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "replay_click.selector:div:is(2)",
-                "replay_click.selector:p:active",
+                "click.selector:div:is(2)",
+                "click.selector:p:active",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -1018,10 +1018,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                'replay_click.selector:"[aria-label~=button]"',
-                'replay_click.selector:"[aria-label|=button]"',
-                'replay_click.selector:"[aria-label^=button]"',
-                'replay_click.selector:"[aria-label$=button]"',
+                'click.selector:"[aria-label~=button]"',
+                'click.selector:"[aria-label|=button]"',
+                'click.selector:"[aria-label^=button]"',
+                'click.selector:"[aria-label$=button]"',
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
