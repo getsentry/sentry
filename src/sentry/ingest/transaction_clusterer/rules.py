@@ -11,6 +11,9 @@ from .base import ReplacementRule
 #: Map from rule string to last_seen timestamp
 RuleSet = Mapping[ReplacementRule, int]
 
+#: How long a transaction name rule lasts, in seconds.
+TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
+
 
 class RuleStore(Protocol):
     def read(self, project: Project) -> RuleSet:
@@ -21,7 +24,7 @@ class RuleStore(Protocol):
 
 
 class RedisRuleStore:
-    """Store rules in both prjoect options and Redis.
+    """Store rules in both project options and Redis.
 
     Why Redis?
     We want to update the rule lifetimes when a transaction has been sanitized
@@ -108,9 +111,14 @@ class CompositeRuleStore:
 
     def _trim_rules(self, rules: RuleSet) -> RuleSet:
         sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
+        last_seen_deadline = _now() - TRANSACTION_NAME_RULE_TTL_SECS
+        sorted_rules = [rule for rule in sorted_rules if rule[1] >= last_seen_deadline]
+
         if self.MERGE_MAX_RULES < len(rules):
             with sentry_sdk.configure_scope() as scope:
-                scope.set_tag("discarded", len(rules) - self.MERGE_MAX_RULES)
+                sentry_sdk.set_measurement(
+                    "discarded_transactions", len(rules) - self.MERGE_MAX_RULES
+                )
                 scope.set_context(
                     "clustering_rules_max",
                     {

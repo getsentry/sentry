@@ -13,6 +13,7 @@ type ExpandButtonRenderProps = {
 };
 
 type Props = {
+  children: React.ReactNode;
   collapseButton?: (props: CollapseButtonRenderProps) => React.ReactNode;
   expandButton?: (props: ExpandButtonRenderProps) => React.ReactNode;
   maxVisibleItems?: number;
@@ -21,12 +22,12 @@ type Props = {
 /**
  * This component is used to show first X items and collapse the rest
  */
-const Collapsible: React.FC<Props> = ({
+function Collapsible({
   collapseButton,
   expandButton,
   maxVisibleItems = 5,
   children,
-}) => {
+}: Props) {
   const [isCollapsed, setCollapsed] = useState(true);
   const handleCollapseToggle = () => setCollapsed(!isCollapsed);
 
@@ -61,6 +62,6 @@ const Collapsible: React.FC<Props> = ({
       {numberOfHiddenItems === 0 && collapseButton?.({onCollapse: handleCollapseToggle})}
     </Fragment>
   );
-};
+}
 
 export default Collapsible;

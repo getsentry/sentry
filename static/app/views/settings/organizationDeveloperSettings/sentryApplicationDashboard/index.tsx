@@ -218,7 +218,7 @@ type InteractionsChartProps = {
     [key: string]: [number, number][];
   };
 };
-const InteractionsChart = ({data}: InteractionsChartProps) => {
+function InteractionsChart({data}: InteractionsChartProps) {
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
     (key: string) => {
       const seriesData = data[key].map(point => ({
@@ -246,7 +246,7 @@ const InteractionsChart = ({data}: InteractionsChartProps) => {
       />
     </ChartWrapper>
   );
-};
+}
 
 const Row = styled('div')`
   display: flex;

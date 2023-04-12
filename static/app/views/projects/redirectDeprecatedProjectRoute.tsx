@@ -10,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import Redirect from 'sentry/utils/redirect';
 import withApi from 'sentry/utils/withApi';
@@ -119,21 +119,19 @@ type RedirectOptions = {
 
 type RedirectCallback = (options: RedirectOptions) => string;
 
-const redirectDeprecatedProjectRoute =
-  (generateRedirectRoute: RedirectCallback) =>
-  ({params, router, routes}: Props) => {
+const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) =>
+  function ({params, router, routes}: Props) {
     // TODO(epurkhiser): The way this function get's called as a side-effect of
     // the render is pretty janky and incorrect... we should fix it.
     function trackRedirect(organizationId: string, nextRoute: string) {
       const payload = {
         feature: 'global_views',
         url: getRouteStringFromRoutes(routes), // the URL being redirected from
-        org_id: parseInt(organizationId, 10),
+        organization: organizationId,
       };
 
       // track redirects of deprecated URLs for analytics
-      analytics('deprecated_urls.redirect', payload);
-
+      trackAdvancedAnalyticsEvent('deprecated_urls.redirect', payload);
       return nextRoute;
     }
 
