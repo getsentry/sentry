@@ -63,6 +63,7 @@ default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrateg
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -108,6 +109,7 @@ default_manager.add("organizations:mobile-vitals", OrganizationFeature, FeatureH
 default_manager.add("organizations:mobile-cpu-memory-in-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:anr-rate", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -154,9 +156,6 @@ default_manager.add("organizations:project-event-date-limit", OrganizationFeatur
 default_manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:release-health-check-metrics-report", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:release-health-return-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:release-health-drop-sessions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:required-email-verification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
