@@ -14,15 +14,11 @@ import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import useTeams from 'sentry/utils/useTeams';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
 import {StarfishView} from './views/starfishView';
 
@@ -39,7 +35,7 @@ type Props = {
 };
 
 export function StarfishLanding(props: Props) {
-  const {organization, location, eventView, projects, onboardingProject} = props;
+  const {organization, location, eventView, onboardingProject} = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
@@ -92,55 +88,27 @@ export function StarfishLanding(props: Props) {
 
         <Layout.Body data-test-id="performance-landing-body">
           <Layout.Main fullWidth>
-            <MetricsCardinalityProvider
-              sendOutcomeAnalytics
-              organization={organization}
-              location={location}
-            >
-              <MetricsDataSwitcher
-                organization={organization}
-                eventView={eventView}
-                location={location}
-              >
-                {metricsDataSide => {
-                  return (
-                    <MEPSettingProvider
-                      location={location}
-                      forceTransactions={metricsDataSide.forceTransactionsOnly}
-                    >
-                      <MetricsDataSwitcherAlert
-                        organization={organization}
-                        eventView={eventView}
-                        projects={projects}
-                        location={location}
-                        router={props.router}
-                        {...metricsDataSide}
-                      />
-                      <PageErrorAlert />
-                      <Fragment>
-                        <SearchContainerWithFilterAndMetrics>
-                          {pageFilters}
-                        </SearchContainerWithFilterAndMetrics>
-                        {initiallyLoaded ? (
-                          <TeamKeyTransactionManager.Provider
-                            organization={organization}
-                            teams={teams}
-                            selectedTeams={['myteams']}
-                            selectedProjects={eventView.project.map(String)}
-                          >
-                            <GenericQueryBatcher>
-                              <StarfishView {...props} />
-                            </GenericQueryBatcher>
-                          </TeamKeyTransactionManager.Provider>
-                        ) : (
-                          <LoadingIndicator />
-                        )}
-                      </Fragment>
-                    </MEPSettingProvider>
-                  );
-                }}
-              </MetricsDataSwitcher>
-            </MetricsCardinalityProvider>
+            <PageErrorAlert />
+            <Fragment>
+              <SearchContainerWithFilterAndMetrics>
+                {pageFilters}
+              </SearchContainerWithFilterAndMetrics>
+
+              {initiallyLoaded ? (
+                <TeamKeyTransactionManager.Provider
+                  organization={organization}
+                  teams={teams}
+                  selectedTeams={['myteams']}
+                  selectedProjects={eventView.project.map(String)}
+                >
+                  <GenericQueryBatcher>
+                    <StarfishView {...props} />
+                  </GenericQueryBatcher>
+                </TeamKeyTransactionManager.Provider>
+              ) : (
+                <LoadingIndicator />
+              )}
+            </Fragment>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
