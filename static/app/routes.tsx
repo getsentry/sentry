@@ -1692,7 +1692,9 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/starfish/"
-          component={make(() => import('sentry/views/starfish/content'))}
+          component={withDomainRequired(
+            make(() => import('sentry/views/starfish/content'))
+          )}
         />
       )}
       <Route
