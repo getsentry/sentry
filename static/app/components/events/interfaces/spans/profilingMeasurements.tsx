@@ -4,19 +4,14 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   MINIMAP_HEIGHT,
   PROFILE_MEASUREMENTS_CHART_HEIGHT,
+  TIME_AXIS_HEIGHT,
 } from 'sentry/components/events/interfaces/spans/constants';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
-import {
-  OpsDot,
-  OpsLine,
-  OpsName,
-  OpsNameContainer,
-} from 'sentry/components/events/opsBreakdown';
+import {OpsLine} from 'sentry/components/events/opsBreakdown';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
@@ -104,7 +99,7 @@ function Chart({data, type}: ChartProps) {
       seriesOptions={{
         showSymbol: false,
       }}
-      colors={[theme.green200] as string[]}
+      colors={[theme.red300] as string[]}
       tooltip={{
         valueFormatter: (value, _seriesName) => {
           if (type === CPU_USAGE) {
@@ -147,7 +142,6 @@ function ProfilingMeasurements({
   renderFog,
   renderWindowSelection,
 }: ProfilingMeasurementsProps) {
-  const theme = useTheme();
   const [measurementType, setMeasurementType] = useState<
     typeof CPU_USAGE | typeof MEMORY
   >(CPU_USAGE);
@@ -169,32 +163,18 @@ function ProfilingMeasurements({
             <MeasurementContainer>
               <ChartOpsLabel dividerPosition={dividerPosition}>
                 <OpsLine>
-                  <OpsNameContainer>
-                    <OpsDot style={{backgroundColor: theme.green200}} />
-                    <StyledDropdownMenu
-                      trigger={triggerProps => (
-                        <StyledDropdownButton {...triggerProps} borderless>
-                          <OpsName>{getChartName(measurementType)}</OpsName>
-                        </StyledDropdownButton>
-                      )}
-                      items={[
-                        {
-                          key: CPU_USAGE,
-                          label: getChartName(CPU_USAGE),
-                          onAction: () => {
-                            setMeasurementType(CPU_USAGE);
-                          },
-                        },
-                        {
-                          key: MEMORY,
-                          label: getChartName(MEMORY),
-                          onAction: () => {
-                            setMeasurementType(MEMORY);
-                          },
-                        },
-                      ]}
-                    />
-                  </OpsNameContainer>
+                  <RadioGroup
+                    style={{overflowX: 'visible'}}
+                    choices={[
+                      [CPU_USAGE, getChartName(CPU_USAGE)],
+                      [MEMORY, getChartName(MEMORY)],
+                    ]}
+                    value={measurementType}
+                    label={t('potato')}
+                    onChange={type => {
+                      setMeasurementType(type);
+                    }}
+                  />
                 </OpsLine>
               </ChartOpsLabel>
               <DividerSpacer />
@@ -245,8 +225,10 @@ const ChartContainer = styled('div')`
 `;
 
 const ChartOpsLabel = styled('div')<{dividerPosition: number}>`
+  display: flex;
+  align-items: center;
   width: calc(${p => toPercent(p.dividerPosition)} - 0.5px);
-  height: 100%;
+  height: ${PROFILE_MEASUREMENTS_CHART_HEIGHT + TIME_AXIS_HEIGHT}px;
   padding-left: ${space(3)};
 `;
 
@@ -256,15 +238,4 @@ const MeasurementContainer = styled('div')`
   width: 100%;
   top: ${MINIMAP_HEIGHT}px;
   border-top: 1px solid ${p => p.theme.border};
-`;
-
-const StyledDropdownButton = styled(DropdownButton)`
-  padding: 0;
-  padding-right: ${space(0.5)};
-  margin-left: 0;
-  font-weight: normal;
-`;
-
-const StyledDropdownMenu = styled(DropdownMenu)`
-  margin-left: 0;
 `;
