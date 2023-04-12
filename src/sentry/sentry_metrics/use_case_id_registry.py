@@ -20,24 +20,3 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
 
 def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
     return METRIC_PATH_MAPPING[use_case]
-
-
-NAMESPACE_MAPPING: Mapping[UseCaseID, str] = {
-    UseCaseID.RELEASE_HEALTH: "sessions",
-    UseCaseID.PERFORMANCE: "transactions",
-}
-
-
-def get_namespace_from_usecase(use_case: UseCaseID) -> str:
-    if use_case in NAMESPACE_MAPPING:
-        return NAMESPACE_MAPPING[use_case]
-
-    return use_case.value
-
-
-def get_usecase_from_namespace(namespace: str) -> UseCaseID:
-    for use_case in NAMESPACE_MAPPING:
-        if NAMESPACE_MAPPING[use_case] == namespace:
-            return use_case
-
-    return UseCaseID(namespace)
