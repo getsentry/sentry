@@ -66,7 +66,7 @@ def get_occurrence_kafka_payload() -> KafkaPayload:
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.consumer_strategy.dispatch_post_process_group_task")
+@patch("sentry.eventstream.kafka.dispatch.dispatch_post_process_group_task")
 def test_dispatch_task(mock_dispatch: Mock) -> None:
     partition = Partition(Topic("test"), 0)
     dispatch_function = _get_task_kwargs_and_dispatch

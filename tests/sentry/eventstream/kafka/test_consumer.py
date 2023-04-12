@@ -103,9 +103,7 @@ class PostProcessForwarderTest(TestCase):
         self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
         metrics._metrics_backend = None
 
-    @patch(
-        "sentry.eventstream.kafka.consumer_strategy.dispatch_post_process_group_task", autospec=True
-    )
+    @patch("sentry.eventstream.kafka.dispatch.dispatch_post_process_group_task", autospec=True)
     def test_post_process_forwarder_streaming_consumer(self, dispatch_post_process_group_task):
         consumer_group = f"consumer-{uuid.uuid1().hex}"
         synchronize_commit_group = f"sync-consumer-{uuid.uuid1().hex}"
