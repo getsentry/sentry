@@ -9,7 +9,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   MINIMAP_HEIGHT,
   PROFILE_MEASUREMENTS_CHART_HEIGHT,
-  TIME_AXIS_HEIGHT,
 } from 'sentry/components/events/interfaces/spans/constants';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import {
@@ -256,7 +255,7 @@ const MeasurementContainer = styled('div')`
   display: flex;
   position: absolute;
   width: 100%;
-  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  top: ${MINIMAP_HEIGHT}px;
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
