@@ -152,7 +152,7 @@ def test_cocoa_function_name(mock_symbolicator, default_project):
         "modules": [],
     }
 
-    process_payload(data)
+    process_payload(mock_symbolicator, data)
 
     function_name = get_path(data, "exception", "values", 0, "stacktrace", "frames", 0, "function")
     assert function_name == "thunk for closure"
@@ -352,7 +352,7 @@ def test_il2cpp_symbolication(mock_symbolicator, default_project):
         ],
     }
 
-    process_payload(data)
+    process_payload(mock_symbolicator, data)
 
     frame = get_path(data, "exception", "values", 0, "stacktrace", "frames", 3)
 
