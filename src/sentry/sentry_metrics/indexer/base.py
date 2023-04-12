@@ -411,7 +411,9 @@ class StringIndexer(Service):
         "reverse_shared_org_resolve",
     )
 
-    def bulk_record(self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]) -> KeyResults:
+    def bulk_record(
+        self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
         """
         Takes in a mapping with use case IDs mapped to Org IDs mapped to set of strings.
 
