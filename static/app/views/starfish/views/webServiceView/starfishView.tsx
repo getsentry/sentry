@@ -9,9 +9,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import withApi from 'sentry/utils/withApi';
-import Chart from 'sentry/views/starfish/chart';
+import Chart from 'sentry/views/starfish/components/chart';
 
-import Table from '../../table';
+import Table from '../../components/table';
 
 const EventsRequest = withApi(_EventsRequest);
 import {Fragment} from 'react';

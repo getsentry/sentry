@@ -38,13 +38,14 @@ import {
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 
-import {COLUMN_TITLES} from './data';
+const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
+
 import {
   createUnnamedTransactionsDiscoverTarget,
   getProjectID,
   getSelectedProjectPlatforms,
   UNPARAMETERIZED_TRANSACTION,
-} from './utils';
+} from '../utils';
 
 type Props = {
   eventView: EventView;

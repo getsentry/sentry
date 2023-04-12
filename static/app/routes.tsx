@@ -1701,7 +1701,9 @@ function buildRoutes() {
 
   const starfishChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/starfish/content'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
+      />
       <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
@@ -1731,7 +1733,7 @@ function buildRoutes() {
 
       <Route
         path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/content'))}
+        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
         key="org-starfish"
       >
         {starfishChildRoutes}

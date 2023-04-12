@@ -19,9 +19,10 @@ import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {generatePerformanceEventView, getDefaultStatsPeriod} from './data';
-import {StarfishLanding} from './landing';
-import {addRoutePerformanceContext} from './utils';
+import {generatePerformanceEventView, getDefaultStatsPeriod} from '../../data';
+import {addRoutePerformanceContext} from '../../utils';
+
+import {StarfishLanding} from './starfishLanding';
 
 type Props = {
   location: Location;
@@ -34,7 +35,7 @@ type State = {
   error?: string;
 };
 
-function PerformanceContent({selection, location, demoMode, router}: Props) {
+function WebServiceView({selection, location, demoMode, router}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -155,4 +156,4 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   );
 }
 
-export default withPageFilters(PerformanceContent);
+export default withPageFilters(WebServiceView);

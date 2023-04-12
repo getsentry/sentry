@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
+import {NewQuery, Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -14,8 +14,6 @@ export const DEFAULT_STATS_PERIOD = '7d';
 export const DEFAULT_PROJECT_THRESHOLD_METRIC = 'duration';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
 
-export const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
-
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
@@ -24,155 +22,6 @@ export const getDefaultStatsPeriod = (organization: Organization) => {
   }
   return DEFAULT_STATS_PERIOD;
 };
-
-export enum PERFORMANCE_TERM {
-  TPM = 'tpm',
-  THROUGHPUT = 'throughput',
-  FAILURE_RATE = 'failureRate',
-  P50 = 'p50',
-  P75 = 'p75',
-  P95 = 'p95',
-  P99 = 'p99',
-  LCP = 'lcp',
-  FCP = 'fcp',
-  FID = 'fid',
-  CLS = 'cls',
-  STATUS_BREAKDOWN = 'statusBreakdown',
-  DURATION_DISTRIBUTION = 'durationDistribution',
-  USER_MISERY = 'userMisery',
-  APDEX = 'apdex',
-  APP_START_COLD = 'appStartCold',
-  APP_START_WARM = 'appStartWarm',
-  SLOW_FRAMES = 'slowFrames',
-  FROZEN_FRAMES = 'frozenFrames',
-  STALL_PERCENTAGE = 'stallPercentage',
-  MOST_ISSUES = 'mostIssues',
-  MOST_ERRORS = 'mostErrors',
-  SLOW_HTTP_SPANS = 'slowHTTPSpans',
-  TIME_TO_FULL_DISPLAY = 'timeToFullDisplay',
-  TIME_TO_INITIAL_DISPLAY = 'timeToInitialDisplay',
-}
-
-export type TooltipOption = SelectValue<string> & {
-  tooltip: string;
-};
-
-export function getAxisOptions(organization: Organization): TooltipOption[] {
-  return [
-    {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: 'apdex()',
-      label: t('Apdex'),
-    },
-    {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
-      value: 'tpm()',
-      label: t('Transactions Per Minute'),
-    },
-    {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
-      value: 'failure_rate()',
-      label: t('Failure Rate'),
-    },
-    {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
-      value: 'p50()',
-      label: t('p50 Duration'),
-    },
-    {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
-      value: 'p95()',
-      label: t('p95 Duration'),
-    },
-    {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
-      value: 'p99()',
-      label: t('p99 Duration'),
-    },
-  ];
-}
-
-export type AxisOption = TooltipOption & {
-  field: string;
-  label: string;
-  backupOption?: AxisOption;
-  isDistribution?: boolean;
-  isLeftDefault?: boolean;
-  isRightDefault?: boolean;
-};
-
-type TermFormatter = (organization: Organization) => string;
-
-export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
-  tpm: () => t('TPM is the number of recorded transaction events per minute.'),
-  throughput: () =>
-    t('Throughput is the number of recorded transaction events per minute.'),
-  failureRate: () =>
-    t(
-      'Failure rate is the percentage of recorded transactions that had a known and unsuccessful status.'
-    ),
-  p50: () => t('p50 indicates the duration that 50% of transactions are faster than.'),
-  p75: () => t('p75 indicates the duration that 75% of transactions are faster than.'),
-  p95: () => t('p95 indicates the duration that 95% of transactions are faster than.'),
-  p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
-  lcp: () =>
-    t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
-  fcp: () =>
-    t('First contentful paint (FCP) is a web vital meant to represent user load times'),
-  fid: () =>
-    t(
-      'First input delay (FID) is a web vital representing load for the first user interaction on a page.'
-    ),
-  cls: () =>
-    t(
-      'Cumulative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
-    ),
-  statusBreakdown: () =>
-    t(
-      'The breakdown of transaction statuses. This may indicate what type of failure it is.'
-    ),
-  durationDistribution: () =>
-    t(
-      'Distribution buckets counts of transactions at specifics times for your current date range'
-    ),
-  userMisery: () =>
-    t(
-      "User Misery is a score that represents the number of unique users who have experienced load times 4x the project's configured threshold. Adjust project threshold in project performance settings."
-    ),
-  apdex: () =>
-    t(
-      'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to project performance settings.'
-    ),
-  appStartCold: () =>
-    t('Cold start is a measure of the application start up time from scratch.'),
-  appStartWarm: () =>
-    t('Warm start is a measure of the application start up time while still in memory.'),
-  slowFrames: () => t('The count of the number of slow frames in the transaction.'),
-  frozenFrames: () => t('The count of the number of frozen frames in the transaction.'),
-  mostErrors: () => t('Transactions with the most associated errors.'),
-  mostIssues: () => t('The most instances of an issue for a related transaction.'),
-  slowHTTPSpans: () => t('The transactions with the slowest spans of a certain type.'),
-  stallPercentage: () =>
-    t(
-      'The percentage of the transaction duration in which the application is in a stalled state.'
-    ),
-  timeToFullDisplay: () =>
-    t(
-      'The time between application launch and complete display of all resources and views'
-    ),
-  timeToInitialDisplay: () =>
-    t('The time it takes for an application to produce its first frame'),
-};
-
-export function getTermHelp(
-  organization: Organization,
-  term: keyof typeof PERFORMANCE_TERMS
-): string {
-  if (!PERFORMANCE_TERMS.hasOwnProperty(term)) {
-    return '';
-  }
-  return PERFORMANCE_TERMS[term](organization);
-}
 
 function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
   const conditions = new MutableSearch(searchQuery);

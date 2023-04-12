@@ -20,7 +20,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import useTeams from 'sentry/utils/useTeams';
 
-import {StarfishView} from './views/starfishView';
+import {StarfishView} from './starfishView';
 
 type Props = {
   eventView: EventView;
