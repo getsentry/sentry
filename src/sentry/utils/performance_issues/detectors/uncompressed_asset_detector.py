@@ -101,7 +101,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         return self.settings["detection_enabled"]
 
     def is_event_eligible(cls, event):
-        tags = event.get("tags", [])
+        tags = [tag for tag in event.get("tags", []) if tag is not None]
         browser_name = next(
             (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
         )
