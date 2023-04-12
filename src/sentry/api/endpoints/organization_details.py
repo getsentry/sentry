@@ -269,9 +269,20 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         organization = self.context["organization"]
         has_api_auth_provider = features.has("organizations:api-auth-provider", organization)
         if not has_api_auth_provider:
-            return
+            raise serializers.ValidationError(
+                "Organization does not have the api-auth-provider feature flag enabled"
+            )
         if not manager.exists(value):
             raise serializers.ValidationError("Invalid providerKey")
+        return value
+
+    def validate_providerConfig(self, value):
+        organization = self.context["organization"]
+        has_api_auth_provider = features.has("organizations:api-auth-provider", organization)
+        if not has_api_auth_provider:
+            raise serializers.ValidationError(
+                "Organization does not have the api-auth-provider feature flag enabled"
+            )
         return value
 
     def validate(self, attrs):
