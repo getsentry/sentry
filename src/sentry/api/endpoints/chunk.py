@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features, options
 from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
@@ -32,8 +32,8 @@ CHUNK_UPLOAD_ACCEPT = (
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
     # TODO: at a later point when we return artifact bundles here
-    # users will by default upload artifact bundles as this is what
-    # sentry-cli looks for.
+    #   users will by default upload artifact bundles as this is what
+    #   sentry-cli looks for.
     # "artifact_bundles",  # Artifact bundles containing source maps.
 )
 
@@ -83,6 +83,12 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
+        accept = CHUNK_UPLOAD_ACCEPT
+        if features.has(
+            "organizations:artifact-bundles", organization=organization, actor=request.user
+        ):
+            accept += ("artifact_bundles",)
+
         return Response(
             {
                 "url": url,
@@ -93,7 +99,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 "concurrency": MAX_CONCURRENCY,
                 "hashAlgorithm": HASH_ALGORITHM,
                 "compression": ["gzip"],
-                "accept": CHUNK_UPLOAD_ACCEPT,
+                "accept": accept,
             }
         )
 
