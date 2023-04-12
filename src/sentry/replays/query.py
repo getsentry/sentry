@@ -97,7 +97,7 @@ def query_replay_instance(
         where=[
             Condition(Column("replay_id"), Op.EQ, replay_id),
         ],
-        having=[],
+        having=[Condition(Column("isArchived"), Op.EQ, 0)],
         fields=[],
         sorting=[],
         pagination=None,
@@ -152,8 +152,6 @@ def query_replays_dataset(
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
                 # Make sure we're not too old.
                 Condition(Column("finished_at"), Op.LT, end),
-                # Require non-archived replays.
-                Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
                 # Other conditions.
