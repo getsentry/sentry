@@ -39,6 +39,14 @@
         "schema": {
           "type": "string"
         }
+      },
+      {
+        "name": "download",
+        "in": "query",
+        "description": "If this is set to true, then the response payload will be the raw file contents. Otherwise, the response will be the file metadata as JSON.",
+        "schema": {
+          "type": "boolean"
+        }
       }
     ],
     "responses": {
@@ -115,14 +123,6 @@
         "required": true,
         "schema": {
           "type": "string"
-        }
-      },
-      {
-        "name": "download",
-        "in": "query",
-        "description": "If this is set to true, then the response payload will be the raw file contents. Otherwise, the response will be the file metadata as JSON.",
-        "schema": {
-          "type": "boolean"
         }
       }
     ],
