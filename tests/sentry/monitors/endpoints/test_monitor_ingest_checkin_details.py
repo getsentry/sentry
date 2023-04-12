@@ -50,8 +50,8 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             date_added=timezone.now() - timedelta(minutes=1),
         )
 
-    def _create_monitor_environment(self, monitor):
-        environment = Environment.get_or_create(project=self.project, name="production")
+    def _create_monitor_environment(self, monitor, name="production"):
+        environment = Environment.get_or_create(project=self.project, name=name)
 
         monitorenvironment_defaults = {
             "status": monitor.status,
@@ -85,7 +85,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
     def test_passing(self):
         monitor = self._create_monitor()
-        monitor_environment = self._create_monitor_environment(monitor)
+        monitor_environment = self._create_monitor_environment(monitor, name="dev")
         for path_func in self._get_path_functions():
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
@@ -100,6 +100,9 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.OK
+            assert (
+                checkin.monitor_environment.environment.name == monitor_environment.environment.name
+            )
 
             monitor = Monitor.objects.get(id=monitor.id)
             assert monitor.next_checkin > checkin.date_added
