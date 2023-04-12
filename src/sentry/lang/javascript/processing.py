@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
 from sentry.lang.native.error import SymbolicationFailed, write_error
@@ -159,11 +159,12 @@ def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
     if not _handle_response_status(data, response):
         return data
 
+    data["processed_by_symbolicator"] = True
+
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
         data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
 
-    # TODO: should this really be a hard assert? Or rather an internal log?
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
     for sinfo, raw_stacktrace, complete_stacktrace in zip(
@@ -193,6 +194,7 @@ def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_symbolication_function(data: Any) -> Callable[[Symbolicator, Any], Any]:
+def get_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
     if should_use_symbolicator_for_sourcemaps(data.get("project")):
         return process_payload
+    return None
