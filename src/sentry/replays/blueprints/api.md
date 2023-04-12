@@ -60,11 +60,11 @@ This document is structured by resource with each resource having actions that c
     | replay_click.id          | string        | The ID of an HTML element.                                     |
     | replay_click.label       | string        | The aria-label attribute of an HTML element.                   |
     | replay_click.role        | string        | The role of an HTML element.                                   |
+    | replay_click.selector    | string        | A valid CSS selector.                                          |
     | replay_click.tag         | string        | Valid HTML5 tag name.                                          |
     | replay_click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
     | replay_click.textContent | string        | The text-content of an HTML element.                           |
     | replay_click.title       | string        | The title attribute of an HTML element.                        |
-    | replay_click.selector    | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
