@@ -1689,6 +1689,18 @@ function buildRoutes() {
           {performanceChildRoutes}
         </Route>
       )}
+      <Route
+        path="/organizations/:orgId/performance/"
+        component={withDomainRedirect(make(() => import('sentry/views/performance')))}
+        key="org-performance"
+      >
+        {performanceChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
+  const starfishRoutes = (
+    <Fragment>
       {usingCustomerDomain && (
         <Route
           path="/starfish/"
@@ -1701,13 +1713,6 @@ function buildRoutes() {
         path="organizations/:orgId/starfish/"
         component={make(() => import('sentry/views/starfish/content'))}
       />
-      <Route
-        path="/organizations/:orgId/performance/"
-        component={withDomainRedirect(make(() => import('sentry/views/performance')))}
-        key="org-performance"
-      >
-        {performanceChildRoutes}
-      </Route>
     </Fragment>
   );
 
@@ -2137,6 +2142,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {starfishRoutes}
       {profilingRoutes}
       {adminManageRoutes}
       {gettingStartedRoutes}
