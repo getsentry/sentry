@@ -3,22 +3,11 @@ import {Location} from 'history';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-  PageFilters,
-  Project,
-  ReleaseProject,
-} from 'sentry/types';
+import {NewQuery, Organization, PageFilters, Project, ReleaseProject} from 'sentry/types';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
-import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/formatters';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
-import {decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 export const QUERY_KEYS = [
   'environment',
@@ -129,86 +118,6 @@ export function platformToPerformanceType(
   return platformType;
 }
 
-/**
- * Used for transaction summary to determine appropriate columns on a page, since there is no display field set for the page.
- */
-export function platformAndConditionsToPerformanceType(
-  projects: Project[],
-  eventView: EventView
-) {
-  const performanceType = platformToPerformanceType(projects, eventView.project);
-  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
-    const conditions = new MutableSearch(eventView.query);
-    const ops = conditions.getFilterValues('!transaction.op');
-    if (ops.some(op => op === 'pageload')) {
-      return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
-    }
-  }
-
-  return performanceType;
-}
-
-/**
- * Used for transaction summary to check the view itself, since it can have conditions which would exclude it from having vitals aside from platform.
- */
-export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Project[]) {
-  return (
-    platformAndConditionsToPerformanceType(projects, eventView) ===
-    PROJECT_PERFORMANCE_TYPE.FRONTEND
-  );
-}
-
-export function isSummaryViewFrontend(eventView: EventView, projects: Project[]) {
-  return (
-    platformAndConditionsToPerformanceType(projects, eventView) ===
-      PROJECT_PERFORMANCE_TYPE.FRONTEND ||
-    platformAndConditionsToPerformanceType(projects, eventView) ===
-      PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
-  );
-}
-
-export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/`;
-}
-
-export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/trends/`;
-}
-
-export function getTransactionSearchQuery(location: Location, query: string = '') {
-  return decodeScalar(location.query.query, query).trim();
-}
-
-export function removeTracingKeysFromSearch(
-  currentFilter: MutableSearch,
-  options: {excludeTagKeys: Set<string>} = {
-    excludeTagKeys: new Set([
-      // event type can be "transaction" but we're searching for issues
-      'event.type',
-      // the project is already determined by the transaction,
-      // and issue search does not support the project filter
-      'project',
-    ]),
-  }
-) {
-  currentFilter.getFilterKeys().forEach(tagKey => {
-    const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
-    // Remove aggregates and transaction event fields
-    if (
-      // aggregates
-      searchKey.match(/\w+\(.*\)/) ||
-      // transaction event fields
-      TRACING_FIELDS.includes(searchKey) ||
-      // tags that we don't want to pass to pass to issue search
-      options.excludeTagKeys.has(searchKey)
-    ) {
-      currentFilter.removeFilter(tagKey);
-    }
-  });
-
-  return currentFilter;
-}
-
 export function addRoutePerformanceContext(selection: PageFilters) {
   const transaction = getCurrentSentryReactTransaction();
   const days = statsPeriodToDays(
@@ -231,26 +140,6 @@ export function addRoutePerformanceContext(selection: PageFilters) {
     groupedPeriod = '<=30d';
   }
   transaction?.setTag('query.period.grouped', groupedPeriod);
-}
-
-export function getTransactionName(location: Location): string | undefined {
-  const {transaction} = location.query;
-
-  return decodeScalar(transaction);
-}
-
-export function getPerformanceDuration(milliseconds: number) {
-  return getDuration(milliseconds / 1000, milliseconds > 1000 ? 2 : 0, true);
-}
-
-export function areMultipleProjectsSelected(eventView: EventView) {
-  if (!eventView.project.length) {
-    return true; // My projects
-  }
-  if (eventView.project.length === 1 && eventView.project[0] === ALL_ACCESS_PROJECTS) {
-    return true; // All projects
-  }
-  return false;
 }
 
 export function getSelectedProjectPlatformsArray(

@@ -2,16 +2,6 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-export const GridCell = styled('div')`
-  font-size: 14px;
-`;
-
-export const GridCellNumber = styled(GridCell)`
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  flex-grow: 1;
-`;
-
 export const DoubleHeaderContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
