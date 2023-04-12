@@ -645,6 +645,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.weekly_escalating_forecast",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -903,6 +904,13 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
         # Run every 5 minutes
         "schedule": timedelta(minutes=6),
+    },
+    "weekly-escalating-forecast": {
+        "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
+        # TODO: Change this to run weekly once we verify the results
+        "schedule": timedelta(hours=6),
+        # TODO: Increase expiry time to x4 once we change this to run weekly
+        "options": {"expires": 60 * 60 * 3},
     },
 }
 
