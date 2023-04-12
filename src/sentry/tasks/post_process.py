@@ -760,12 +760,12 @@ def process_code_mappings(job: PostProcessJob) -> None:
             if event.data["platform"] not in SUPPORTED_LANGUAGES:
                 return
 
+            # Limit the overall number of tasks by only processing one issue per project
+            # per hour
             project_cache_key = f"code-mappings:project:{project.id}:"
-            project_queued = cache.get(project_cache_key)
-            if project_queued is None:
+            if cache.get(project_cache_key) is None:
                 cache.set(project_cache_key, True, 3600)
-
-            if project_queued:
+            else:
                 return
 
             org = event.project.organization
