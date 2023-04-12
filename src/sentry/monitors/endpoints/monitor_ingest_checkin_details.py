@@ -89,11 +89,12 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
             params["duration"] = duration
 
-        monitor_environment = MonitorEnvironment.objects.ensure_environment(
-            project, monitor, params.get("environment")
-        )
-
-        if not checkin.monitor_environment:
+        # TODO(rjo100): will need to remove this when environment is ensured
+        monitor_environment = checkin.monitor_environment
+        if not monitor_environment:
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, result.get("environment")
+            )
             checkin.monitor_environment = monitor_environment
             checkin.save()
 
@@ -101,8 +102,8 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             checkin.update(**params)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = monitor.mark_failed(current_datetime)
-                monitor_environment.mark_failed(current_datetime)
+                monitor.mark_failed(current_datetime)
+                monitor_failed = monitor_environment.mark_failed(current_datetime)
                 if not monitor_failed:
                     return self.respond(serialize(checkin, request.user), status=208)
             else:
