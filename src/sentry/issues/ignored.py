@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import logging
 from typing import Sequence
 
-from sentry import logging
 from sentry.models import (
     Group,
     GroupForecast,
@@ -30,8 +30,23 @@ def handle_archived_until_escalating(
     for group in group_list:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
 
-    group_forecasts = get_forecasts(list(group_list))
-    GroupForecast.objects.get(group__in=group_list).delete()
+    forecasts = get_forecasts(list(group_list))
+    group_forecasts = []
+    for group, forecast in forecasts:
+        if not forecast:
+            logger.info(
+                "archived_until_escalating.no_forecast_created",
+                extra={
+                    "detail": "No forecast created for groups",
+                    "group_id": group.id,
+                },
+            )
+        else:
+            group_forecasts.append((group, forecast))
+
+    if not group_forecasts:
+        return
+    GroupForecast.objects.filter(group__in=group_list).delete()
     GroupForecast.objects.bulk_create(
         [GroupForecast(group=group, forecast=forecast) for group, forecast in group_forecasts]
     )
