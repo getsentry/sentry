@@ -1699,20 +1699,43 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const starfishChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/starfish/content'))} />
+      <Route
+        path="database/"
+        component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
+      />
+      <Route
+        path="api/"
+        component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+      />
+      <Route
+        path="cache/"
+        component={make(() => import('sentry/views/starfish/modules/cacheModule'))}
+      />
+    </Fragment>
+  );
+
   const starfishRoutes = (
     <Fragment>
       {usingCustomerDomain && (
         <Route
           path="/starfish/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/starfish/content'))
-          )}
-        />
+          component={withDomainRequired(make(() => import('sentry/views/starfish')))}
+          key="orgless-starfish-route"
+        >
+          {starfishChildRoutes}
+        </Route>
       )}
+
       <Route
         path="organizations/:orgId/starfish/"
         component={make(() => import('sentry/views/starfish/content'))}
-      />
+        key="org-starfish"
+      >
+        {starfishChildRoutes}
+      </Route>
     </Fragment>
   );
 
