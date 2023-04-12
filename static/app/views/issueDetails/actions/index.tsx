@@ -41,7 +41,6 @@ import {
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {analytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -314,12 +313,7 @@ class Actions extends Component<Props> {
     ));
 
   openDiscardModal = () => {
-    const {organization} = this.props;
-
     openModal(this.renderDiscardModal);
-    analytics('feature.discard_group.modal_opened', {
-      org_id: parseInt(organization.id, 10),
-    });
   };
 
   openShareModal = () => {

@@ -29,7 +29,7 @@ function MonitorDetails({params, location}: Props) {
 
   // TODO(epurkhiser): For now we just use the fist environment OR production
   // if we have all environments selected
-  const environment = selection.environments[0] ?? 'production';
+  const environment = selection.environments[0];
 
   const queryKey = [
     `/organizations/${organization.slug}/monitors/${params.monitorSlug}/`,
