@@ -54,7 +54,7 @@ class UncompressedAssetsDetectorTest(TestCase):
         event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
-            "tags": [["browser.name", "chrome"]],
+            "tags": [["browser.name", "chrome"], None],
             "spans": [
                 create_asset_span(
                     duration=1000.0,
