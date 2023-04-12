@@ -22,6 +22,16 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
 }
 
 export type IssueEventParameters = {
+  'device.classification.high.end.android.device': {
+    processor_count: number;
+    processor_frequency: number;
+    class?: string;
+    family?: string;
+    model?: string;
+  };
+  'device.classification.unclassified.ios.device': {
+    model: string;
+  };
   'event_cause.dismissed': {};
   'event_cause.docs_clicked': {};
   'event_cause.snoozed': {};
@@ -252,4 +262,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.external_issue_modal_opened':
     'Issue Details: External Issue Modal Opened',
   'issue_details.external_issue_created': 'Issue Details: External Issue Created',
+  'device.classification.unclassified.ios.device':
+    'Event from iOS device missing device.class',
+  'device.classification.high.end.android.device': 'Event from high end Android device',
 };
