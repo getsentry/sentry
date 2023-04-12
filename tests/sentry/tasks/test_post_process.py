@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from datetime import datetime, timedelta
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -12,6 +13,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
@@ -169,8 +171,15 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
-    def _call_post_process_group(self, data: dict[str, str]) -> None:
-        event = self.create_event(data=data, project_id=self.project.id)
+    def _create_event(
+        self,
+        data: dict[str, Any],
+        project_id: int | None = None,
+    ) -> Event:
+        data.setdefault("platform", "javascript")
+        return self.store_event(data=data, project_id=project_id or self.project.id)
+
+    def _call_post_process_group(self, event: Event) -> None:
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
@@ -180,13 +189,17 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
     def test_derive_invalid_platform(self, mock_derive_code_mappings):
-        self._call_post_process_group({"platform": "elixir"})
+        event = self._create_event({"platform": "elixir"})
+        self._call_post_process_group(event)
+
         assert mock_derive_code_mappings.delay.call_count == 0
 
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
         for platform in SUPPORTED_LANGUAGES:
-            self._call_post_process_group({"platform": platform})
+            event = self._create_event({"platform": platform})
+            self._call_post_process_group(event)
+
             assert mock_derive_code_mappings.delay.call_count == 1
 
 
