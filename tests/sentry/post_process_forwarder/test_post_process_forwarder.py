@@ -1,6 +1,7 @@
 import os
 import time
 import uuid
+from typing import Any
 from unittest.mock import patch
 
 from arroyo.utils import metrics
@@ -20,7 +21,7 @@ SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:218
 settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
 
 
-def kafka_message_payload():
+def kafka_message_payload() -> Any:
     return [
         2,
         "insert",
@@ -42,8 +43,8 @@ def kafka_message_payload():
     ]
 
 
-class PostProcessForwarderTest(TestCase):
-    def _get_producer(self, cluster_name):
+class PostProcessForwarderTest(TestCase):  # type: ignore
+    def _get_producer(self, cluster_name: str) -> Producer:
         conf = {
             "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
                 "bootstrap.servers"
@@ -52,7 +53,7 @@ class PostProcessForwarderTest(TestCase):
         }
         return Producer(conf)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.events_topic = f"events-{uuid.uuid4().hex}"
         self.commit_log_topic = f"events-commit-{uuid.uuid4().hex}"
@@ -71,14 +72,16 @@ class PostProcessForwarderTest(TestCase):
         self.admin_client = AdminClient(cluster_options)
         wait_for_topics(self.admin_client, [self.events_topic, self.commit_log_topic])
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
         metrics._metrics_backend = None
 
     @patch("sentry.eventstream.kafka.dispatch.dispatch_post_process_group_task", autospec=True)
-    def test_post_process_forwarder_streaming_consumer(self, dispatch_post_process_group_task):
+    def test_post_process_forwarder_streaming_consumer(
+        self, dispatch_post_process_group_task: Any
+    ) -> None:
         consumer_group = f"consumer-{uuid.uuid1().hex}"
         synchronize_commit_group = f"sync-consumer-{uuid.uuid1().hex}"
 
