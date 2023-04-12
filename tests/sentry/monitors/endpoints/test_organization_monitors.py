@@ -40,6 +40,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
         def add_status_monitor(status_key: str, date: datetime | None = None):
             status = getattr(MonitorStatus, status_key)
+            # TODO(rjo100): this is precursor to removing the MonitorStatus from Monitors
             monitor = self._create_monitor(
                 status=getattr(MonitorStatus, "ACTIVE"),
                 last_checkin=date or last_checkin,
