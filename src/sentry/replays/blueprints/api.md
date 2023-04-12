@@ -90,6 +90,7 @@ Retrieve a collection of replays.
 | error_ids         | array[string]                 | -                                                      |
 | finished_at       | string                        | The **latest** timestamp received.                     |
 | id                | string                        | The ID of the Replay instance.                         |
+| is_archived       | bool                          | Whether the replay was deleted or not.                 |
 | os.name           | optional[string]              | -                                                      |
 | os.version        | optional[string]              | -                                                      |
 | platform          | string                        | -                                                      |
@@ -133,6 +134,7 @@ Retrieve a collection of replays.
         "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "finished_at": "2022-07-07T14:15:33.201019",
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
+        "is_archived": false,
         "os": {
           "name": "iOS",
           "version": "16.2"
@@ -391,7 +393,6 @@ Queryable fields:
 | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
 | click.textContent | string        | The text-content of an HTML element.                           |
 | click.title       | string        | The title attribute of an HTML element.                        |
-
 
 ### Fetch Replay Clicks [GET]
 
