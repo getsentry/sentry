@@ -330,7 +330,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "providerName": "google",
+            "providerKey": "google",
             "providerConfig": {"domain": "foo.com"},
         }
 
@@ -793,7 +793,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(
             self.organization.slug,
             method="put",
-            providerName=provider,
+            providerKey=provider,
             providerConfig=old_config,
         )
         auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
@@ -807,7 +807,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(
             self.organization.slug,
             method="put",
-            providerName=provider,
+            providerKey=provider,
             providerConfig=new_config,
         )
         auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
@@ -820,7 +820,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_invalid_auth_provider_configuration(self):
         self.get_error_response(
-            self.organization.slug, method="put", providerName="google", status_code=400
+            self.organization.slug, method="put", providerKey="google", status_code=400
         )
         self.get_error_response(
             self.organization.slug,
@@ -831,7 +831,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(
             self.organization.slug,
             method="put",
-            providerName="not_valid",
+            providerKey="not_valid",
             providerConfig={"domain": "foo.com"},
             status_code=400,
         )
@@ -839,7 +839,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_error_response(
             self.organization.slug,
             method="put",
-            providerName="google",
+            providerKey="google",
             providerConfig={"invalid_domain": "foo.com"},
             status_code=400,
         )
