@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -128,6 +129,7 @@ function GroupEventDetailsContent({
       <Resources {...{event, group}} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
+      <AiSuggestedSolution event={event} projectSlug={project.slug} />
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />

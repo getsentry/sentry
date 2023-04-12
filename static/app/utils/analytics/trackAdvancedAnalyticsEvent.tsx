@@ -1,3 +1,7 @@
+import {
+  aiSuggestedSolutionEventMap,
+  AiSuggestedSolutionEventParameters,
+} from './aiSuggestedSolutionAnalyticsEvents';
 import {coreUIEventMap, CoreUIEventParameters} from './coreuiAnalyticsEvents';
 import {dashboardsEventMap, DashboardsEventParameters} from './dashboardsAnalyticsEvents';
 import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEvents';
@@ -37,7 +41,8 @@ type EventParameters = GrowthEventParameters &
   TeamInsightsEventParameters &
   DynamicSamplingEventParameters &
   OnboardingEventParameters &
-  StackTraceEventParameters;
+  StackTraceEventParameters &
+  AiSuggestedSolutionEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -56,6 +61,7 @@ const allEventMap: Record<string, string | null> = {
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
   ...stackTraceEventMap,
+  ...aiSuggestedSolutionEventMap,
 };
 
 /**
