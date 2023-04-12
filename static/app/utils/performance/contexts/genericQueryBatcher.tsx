@@ -178,7 +178,7 @@ function handleBatching(
   });
 }
 
-export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => {
+export function GenericQueryBatcher({children}: {children: React.ReactNode}) {
   const queries = useRef<Record<symbol, BatchQueryDefinition>>({});
 
   const timeoutRef = useRef<number | undefined>(undefined);
@@ -212,7 +212,7 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
       {children}
     </GenericQueryBatcherProvider>
   );
-};
+}
 
 type NodeContext = {
   batchProperty: string;

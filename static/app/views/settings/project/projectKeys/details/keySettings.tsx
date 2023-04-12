@@ -85,10 +85,6 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
     fixed: '__JS_SDK_LOADER_URL__',
   });
 
-  const hasJSSDKDynamicLoaderFeatureFlag = !!organization.features?.includes(
-    'js-sdk-dynamic-loader'
-  );
-
   const handleRemove = useCallback(async () => {
     addLoadingMessage(t('Revoking key\u2026'));
 
@@ -156,7 +152,6 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
       };
 
       const shouldRestrictDynamicSdkLoaderOptions =
-        hasJSSDKDynamicLoaderFeatureFlag &&
         !sdkVersionSupportsPerformanceAndReplay(newBrowserSDKVersion);
 
       if (shouldRestrictDynamicSdkLoaderOptions) {
@@ -194,7 +189,6 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
       apiEndpoint,
       setBrowserSdkVersion,
       setDynamicSDKLoaderOptions,
-      hasJSSDKDynamicLoaderFeatureFlag,
       dynamicSDKLoaderOptions,
     ]
   );
@@ -285,60 +279,59 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
                 )}
               />
             </PanelBody>
-            {hasJSSDKDynamicLoaderFeatureFlag && (
-              <PanelFooter>
-                {Object.entries(sdkLoaderOptions).map(([key, value]) => {
-                  const sdkLoaderOption = Object.keys(dynamicSDKLoaderOptions).find(
-                    dynamicSdkLoaderOption => dynamicSdkLoaderOption === key
-                  );
 
-                  if (!sdkLoaderOption) {
-                    return null;
-                  }
+            <PanelFooter>
+              {Object.entries(sdkLoaderOptions).map(([key, value]) => {
+                const sdkLoaderOption = Object.keys(dynamicSDKLoaderOptions).find(
+                  dynamicSdkLoaderOption => dynamicSdkLoaderOption === key
+                );
 
-                  return (
-                    <BooleanField
-                      label={value.label}
-                      key={key}
-                      name={key}
-                      value={
-                        value.requiresV7 &&
-                        !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)
-                          ? false
-                          : dynamicSDKLoaderOptions[sdkLoaderOption]
-                      }
-                      onChange={() =>
-                        handleToggleDynamicSDKLoaderOption(
-                          sdkLoaderOption as DynamicSDKLoaderOption,
-                          !dynamicSDKLoaderOptions[sdkLoaderOption]
-                        )
-                      }
-                      disabled={
-                        !hasAccess ||
-                        (value.requiresV7 &&
-                          !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion))
-                      }
-                      help={
-                        value.requiresV7 &&
-                        !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)
-                          ? t('Only available in SDK version 7.x and above')
-                          : key === DynamicSDKLoaderOption.HAS_REPLAY &&
-                            dynamicSDKLoaderOptions[sdkLoaderOption]
-                          ? t(
-                              'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
-                            )
-                          : undefined
-                      }
-                      disabledReason={
-                        !hasAccess
-                          ? t('You do not have permission to edit this setting')
-                          : undefined
-                      }
-                    />
-                  );
-                })}
-              </PanelFooter>
-            )}
+                if (!sdkLoaderOption) {
+                  return null;
+                }
+
+                return (
+                  <BooleanField
+                    label={value.label}
+                    key={key}
+                    name={key}
+                    value={
+                      value.requiresV7 &&
+                      !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)
+                        ? false
+                        : dynamicSDKLoaderOptions[sdkLoaderOption]
+                    }
+                    onChange={() =>
+                      handleToggleDynamicSDKLoaderOption(
+                        sdkLoaderOption as DynamicSDKLoaderOption,
+                        !dynamicSDKLoaderOptions[sdkLoaderOption]
+                      )
+                    }
+                    disabled={
+                      !hasAccess ||
+                      (value.requiresV7 &&
+                        !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion))
+                    }
+                    help={
+                      value.requiresV7 &&
+                      !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)
+                        ? t('Only available in SDK version 7.x and above')
+                        : key === DynamicSDKLoaderOption.HAS_REPLAY &&
+                          dynamicSDKLoaderOptions[sdkLoaderOption]
+                        ? t(
+                            'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+                          )
+                        : undefined
+                    }
+                    disabledReason={
+                      !hasAccess
+                        ? t('You do not have permission to edit this setting')
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </PanelFooter>
           </Panel>
 
           <Panel>

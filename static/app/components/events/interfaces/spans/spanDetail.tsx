@@ -340,7 +340,7 @@ function SpanDetail(props: Props) {
   function renderProfileMessage() {
     const {organization, span, event} = props;
 
-    if (!organization.features.includes('profiling-span-previews') || isGapSpan(span)) {
+    if (!organization.features.includes('profiling') || isGapSpan(span)) {
       return null;
     }
 
@@ -353,7 +353,7 @@ function SpanDetail(props: Props) {
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
-          {organization.features.includes('profiling-previews') ? (
+          {organization.features.includes('profiling') ? (
             <GapSpanDetails
               event={event}
               span={span}
@@ -574,14 +574,16 @@ const StyledText = styled('p')`
   margin: ${space(2)} ${space(0)};
 `;
 
-const TextTr = ({children}) => (
-  <tr>
-    <td className="key" />
-    <ValueTd className="value">
-      <StyledText>{children}</StyledText>
-    </ValueTd>
-  </tr>
-);
+function TextTr({children}) {
+  return (
+    <tr>
+      <td className="key" />
+      <ValueTd className="value">
+        <StyledText>{children}</StyledText>
+      </ValueTd>
+    </tr>
+  );
+}
 
 const ErrorToggle = styled(Button)`
   margin-top: ${space(0.75)};
@@ -601,7 +603,7 @@ const StyledIconLink = styled(IconLink)`
   margin-left: ${space(1)};
 `;
 
-export const Row = ({
+export function Row({
   title,
   keep,
   children,
@@ -611,7 +613,7 @@ export const Row = ({
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-}) => {
+}) {
   if (!keep && !children) {
     return null;
   }
@@ -629,9 +631,9 @@ export const Row = ({
       </ValueTd>
     </tr>
   );
-};
+}
 
-export const Tags = ({span}: {span: RawSpanType}) => {
+export function Tags({span}: {span: RawSpanType}) {
   const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
   if (!tags) {
@@ -656,7 +658,7 @@ export const Tags = ({span}: {span: RawSpanType}) => {
       </td>
     </tr>
   );
-};
+}
 
 function generateSlug(result: TransactionResult): string {
   return generateEventSlug({

@@ -17,8 +17,6 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import region_silo_test
 
-NOTIFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
-
 
 @region_silo_test(stable=True)
 class NotificationActionsIndexEndpointTest(APITestCase):
@@ -50,29 +48,21 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         )
         self.login_as(user=self.user)
 
-    def test_requires_feature(self):
-        self.get_error_response(self.organization.slug, status_code=status.HTTP_404_NOT_FOUND)
-        self.get_error_response(
-            self.organization.slug,
-            status_code=status.HTTP_404_NOT_FOUND,
-            method="POST",
-        )
-
     def test_get_simple(self):
         notif_actions = [
             self.create_notification_action(organization=self.organization),
             self.create_notification_action(organization=self.organization),
         ]
         other_notif_action = self.create_notification_action(organization=self.other_organization)
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            response = self.get_success_response(
-                self.organization.slug,
-                status_code=status.HTTP_200_OK,
-            )
-            assert len(response.data) == len(notif_actions)
-            assert serialize(other_notif_action) not in response.data
-            for action in notif_actions:
-                assert serialize(action) in response.data
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert len(response.data) == len(notif_actions)
+        assert serialize(other_notif_action) not in response.data
+        for action in notif_actions:
+            assert serialize(action) in response.data
 
     @patch.object(
         NotificationAction,
@@ -135,27 +125,25 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             },
         }
 
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            for data in query_data.values():
-                response = self.get_success_response(
-                    self.organization.slug,
-                    status_code=status.HTTP_200_OK,
-                    qs_params=data["query"],
-                )
-                assert len(response.data) == len(data["result"])
-                for action in data["result"]:
-                    assert serialize(action) in response.data
+        for data in query_data.values():
+            response = self.get_success_response(
+                self.organization.slug,
+                status_code=status.HTTP_200_OK,
+                qs_params=data["query"],
+            )
+            assert len(response.data) == len(data["result"])
+            for action in data["result"]:
+                assert serialize(action) in response.data
 
     def test_post_missing_fields(self):
         required_fields = ["serviceType", "triggerType", "targetType"]
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            response = self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-            )
-            for field in required_fields:
-                assert field in response.data
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+        )
+        for field in required_fields:
+            assert field in response.data
 
     def test_post_invalid_types(self):
         invalid_types = {
@@ -163,66 +151,66 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "triggerType": "ascension",
             "targetType": "shade",
         }
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            for type_key, invalid_value in invalid_types.items():
-                data = {**self.base_data}
-                data[type_key] = invalid_value
-                response = self.get_error_response(
-                    self.organization.slug,
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    method="POST",
-                    **data,
-                )
-                assert type_key in response.data
+
+        for type_key, invalid_value in invalid_types.items():
+            data = {**self.base_data}
+            data[type_key] = invalid_value
+            response = self.get_error_response(
+                self.organization.slug,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                method="POST",
+                **data,
+            )
+            assert type_key in response.data
 
     def test_post_invalid_integration(self):
         data = {**self.base_data}
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            # Unknown integration
-            data["integrationId"] = -1
-            response = self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-                **data,
-            )
-            assert "integrationId" in response.data
 
-            # Integration from another organization
-            integration = self.create_integration(
-                organization=self.other_organization, external_id="sp1d3r"
-            )
-            data["integrationId"] = integration.id
-            response = self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-                **data,
-            )
-            assert "integrationId" in response.data
+        # Unknown integration
+        data["integrationId"] = -1
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+            **data,
+        )
+        assert "integrationId" in response.data
+
+        # Integration from another organization
+        integration = self.create_integration(
+            organization=self.other_organization, external_id="sp1d3r"
+        )
+        data["integrationId"] = integration.id
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+            **data,
+        )
+        assert "integrationId" in response.data
 
     def test_post_invalid_projects(self):
         data = {**self.base_data}
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            # Unknown project
-            data["projects"] = ["deep nest"]
-            response = self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-                **data,
-            )
-            assert "projects" in response.data
-            # Project from another organization
-            project = self.create_project(name="citadel", organization=self.other_organization)
-            data["projects"] = [project.slug]
-            response = self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-                **data,
-            )
-            assert "projects" in response.data
+
+        # Unknown project
+        data["projects"] = ["deep nest"]
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+            **data,
+        )
+        assert "projects" in response.data
+        # Project from another organization
+        project = self.create_project(name="citadel", organization=self.other_organization)
+        data["projects"] = [project.slug]
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+            **data,
+        )
+        assert "projects" in response.data
 
     def test_post_no_project_access(self):
         user = self.create_user("hornet@hk.com")
@@ -232,13 +220,12 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **self.base_data,
             "projects": [p.slug for p in self.projects],
         }
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_403_FORBIDDEN,
-                method="POST",
-                **data,
-            )
+        self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="POST",
+            **data,
+        )
 
     @patch.dict(NotificationAction._registry, {})
     def test_post_raises_validation_from_registry(self):
@@ -249,14 +236,13 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
         self.mock_register(self.base_data)(MockActionRegistration)
 
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            response = self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-                **self.base_data,
-            )
-            assert error_message in str(response.data)
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+            **self.base_data,
+        )
+        assert error_message in str(response.data)
 
     @patch.dict(NotificationAction._registry, {})
     @responses.activate
@@ -277,33 +263,33 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         }
 
         self.mock_register(data)(MockActionRegistration)
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            # Can't find slack channel
-            responses.add(
-                method=responses.GET,
-                url="https://slack.com/api/conversations.list",
-                status=500,
-            )
-            self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-                **data,
-            )
-            # Successful search for channel
-            responses.add(
-                method=responses.GET,
-                url="https://slack.com/api/conversations.list",
-                status=200,
-                json={"ok": True, "channels": [{"name": channel_name, "id": channel_id}]},
-            )
-            response = self.get_success_response(
-                self.organization.slug,
-                status_code=status.HTTP_201_CREATED,
-                method="POST",
-                **data,
-            )
-            assert response.data["targetIdentifier"] == channel_id
+
+        # Can't find slack channel
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=500,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+            **data,
+        )
+        # Successful search for channel
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            json={"ok": True, "channels": [{"name": channel_name, "id": channel_id}]},
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_201_CREATED,
+            method="POST",
+            **data,
+        )
+        assert response.data["targetIdentifier"] == channel_id
 
     @patch.dict(NotificationAction._registry, {})
     def test_post_with_pagerduty_validation(self):
@@ -328,42 +314,42 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         }
 
         self.mock_register(data)(MockActionRegistration)
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            # Didn't provide a targetIdentifier key
-            response = self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-                **data,
-            )
-            assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
-            service = PagerDutyService.objects.create(
-                service_name=service_name,
-                integration_key="abc",
-                organization_integration_id=second_integration.organizationintegration_set.first(),
-            )
-            data["targetIdentifier"] = service.id
-            response = self.get_error_response(
-                self.organization.slug,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                method="POST",
-                **data,
-            )
-            assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
-            service = PagerDutyService.objects.create(
-                service_name=service_name,
-                integration_key="def",
-                organization_integration_id=integration.organizationintegration_set.first(),
-            )
-            data["targetIdentifier"] = service.id
-            response = self.get_success_response(
-                self.organization.slug,
-                status_code=status.HTTP_201_CREATED,
-                method="POST",
-                **data,
-            )
-            assert response.data["targetIdentifier"] == service.id
-            assert response.data["targetDisplay"] == service.service_name
+
+        # Didn't provide a targetIdentifier key
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+            **data,
+        )
+        assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
+        service = PagerDutyService.objects.create(
+            service_name=service_name,
+            integration_key="abc",
+            organization_integration_id=second_integration.organizationintegration_set.first().id,
+        )
+        data["targetIdentifier"] = service.id
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="POST",
+            **data,
+        )
+        assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
+        service = PagerDutyService.objects.create(
+            service_name=service_name,
+            integration_key="def",
+            organization_integration_id=integration.organizationintegration_set.first().id,
+        )
+        data["targetIdentifier"] = service.id
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_201_CREATED,
+            method="POST",
+            **data,
+        )
+        assert response.data["targetIdentifier"] == service.id
+        assert response.data["targetDisplay"] == service.service_name
 
     @patch.dict(NotificationAction._registry, {})
     def test_post_simple(self):
@@ -381,20 +367,18 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **self.base_data,
             "projects": [p.slug for p in self.projects],
         }
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
-            assert not registration.validate_action.called
-            response = self.get_success_response(
-                self.organization.slug,
-                status_code=status.HTTP_201_CREATED,
-                method="POST",
-                **data,
-            )
-            # Database reflects changes
-            assert registration.validate_action.called
-            notif_action = NotificationAction.objects.get(id=response.data.get("id"))
-            assert response.data == serialize(notif_action)
-            # Relation table has been updated
-            notif_action_projects = NotificationActionProject.objects.filter(
-                action_id=notif_action.id
-            )
-            assert len(notif_action_projects) == len(self.projects)
+
+        assert not registration.validate_action.called
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_201_CREATED,
+            method="POST",
+            **data,
+        )
+        # Database reflects changes
+        assert registration.validate_action.called
+        notif_action = NotificationAction.objects.get(id=response.data.get("id"))
+        assert response.data == serialize(notif_action)
+        # Relation table has been updated
+        notif_action_projects = NotificationActionProject.objects.filter(action_id=notif_action.id)
+        assert len(notif_action_projects) == len(self.projects)

@@ -1,13 +1,13 @@
 import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
-import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {Platform} from 'sentry/data/platformCategories';
 import type {Group} from 'sentry/types';
 import {UseExperiment} from 'sentry/utils/useExperiment';
 import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
@@ -90,11 +90,17 @@ type ProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
+type ProfilingUpgradePlanButtonProps = ButtonProps & {
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
 type SetUpSdkDocProps = {
   location: Location;
   organization: Organization;
+  platform: Platform;
   project: Project;
-  router: InjectedRouter;
 };
 
 type FirstPartyIntegrationAlertProps = {
@@ -145,12 +151,13 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
+  'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
   'component:replay-feedback-button': () => React.ComponentType<{}>;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:set-up-sdk-doc': () => React.ComponentType<SetUpSdkDocProps>;
-  'component:superuser-access-category': React.FC<any>;
+  'component:superuser-access-category': React.ComponentType<any>;
 };
 
 /**

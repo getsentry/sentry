@@ -6,7 +6,7 @@ type Props = {
   docIntegration?: DocIntegration;
 } & BaseAvatar['props'];
 
-const DocIntegrationAvatar = ({docIntegration, ...props}: Props) => {
+function DocIntegrationAvatar({docIntegration, ...props}: Props) {
   if (!docIntegration?.avatar) {
     return <PluginIcon {...props} pluginId={docIntegration?.slug} />;
   }
@@ -19,6 +19,6 @@ const DocIntegrationAvatar = ({docIntegration, ...props}: Props) => {
       title={docIntegration.name}
     />
   );
-};
+}
 
 export default DocIntegrationAvatar;

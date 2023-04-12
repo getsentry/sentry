@@ -27,22 +27,24 @@ const Important = styled('div')`
   font-size: 1.2em;
 `;
 
-const GoodbyeModalContent = ({Header, Body, Footer}: ModalRenderProps) => (
-  <div>
-    <Header>{t('Closing Account')}</Header>
-    <Body>
-      <TextBlock>
-        {t('Your account has been deactivated and scheduled for removal.')}
-      </TextBlock>
-      <TextBlock>
-        {t('Thanks for using Sentry! We hope to see you again soon!')}
-      </TextBlock>
-    </Body>
-    <Footer>
-      <Button href={BYE_URL}>{t('Goodbye')}</Button>
-    </Footer>
-  </div>
-);
+function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
+  return (
+    <div>
+      <Header>{t('Closing Account')}</Header>
+      <Body>
+        <TextBlock>
+          {t('Your account has been deactivated and scheduled for removal.')}
+        </TextBlock>
+        <TextBlock>
+          {t('Thanks for using Sentry! We hope to see you again soon!')}
+        </TextBlock>
+      </Body>
+      <Footer>
+        <Button href={BYE_URL}>{t('Goodbye')}</Button>
+      </Footer>
+    </div>
+  );
+}
 
 type OwnedOrg = {
   organization: Organization;

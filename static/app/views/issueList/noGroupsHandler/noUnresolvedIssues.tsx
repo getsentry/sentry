@@ -5,30 +5,28 @@ import zeroInboxIssuesImg from 'sentry-images/spot/zero-inbox-issues.svg';
 
 import {space} from 'sentry/styles/space';
 
-const Message = ({
-  title,
-  subtitle,
-}: {
-  subtitle: React.ReactNode;
-  title: React.ReactNode;
-}) => (
-  <Fragment>
-    <EmptyMessage>{title}</EmptyMessage>
-    <p>{subtitle}</p>
-  </Fragment>
-);
+function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.ReactNode}) {
+  return (
+    <Fragment>
+      <EmptyMessage>{title}</EmptyMessage>
+      <p>{subtitle}</p>
+    </Fragment>
+  );
+}
 
 type Props = {
   subtitle: React.ReactNode;
   title: React.ReactNode;
 };
 
-const NoUnresolvedIssues = ({title, subtitle}: Props) => (
-  <Wrapper>
-    <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />
-    <Message title={title} subtitle={subtitle} />
-  </Wrapper>
-);
+function NoUnresolvedIssues({title, subtitle}: Props) {
+  return (
+    <Wrapper>
+      <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />
+      <Message title={title} subtitle={subtitle} />
+    </Wrapper>
+  );
+}
 
 const Wrapper = styled('div')`
   display: flex;
