@@ -7,6 +7,7 @@ from django.utils import timezone
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
+from ..utils.query import RangeQuerySetWrapper
 from .models import (
     CheckInStatus,
     MonitorCheckIn,
@@ -25,16 +26,16 @@ TIMEOUT = 12 * 60
 #
 # NOTE: We should keep an eye on this as we have more and more usage of
 # monitors the larger the number of checkins to check will exist.
-MONITOR_LIMIT = 10_000
+MONITOR_LIMIT = 20_000
 
 # This is the MAXIMUM number of pending MONITOR CHECKINS this job will check.
 #
 # NOTE: We should keep an eye on this as we have more and more usage of
 # monitors the larger the number of checkins to check will exist.
-CHECKINS_LIMIT = 10_000
+CHECKINS_LIMIT = 20_000
 
 
-@instrumented_task(name="sentry.monitors.tasks.check_monitors", time_limit=15, soft_time_limit=10)
+@instrumented_task(name="sentry.monitors.tasks.check_monitors", time_limit=25, soft_time_limit=20)
 def check_monitors(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
@@ -59,7 +60,7 @@ def check_monitors(current_datetime=None):
         )[:MONITOR_LIMIT]
     )
     metrics.gauge("sentry.monitors.tasks.check_monitors.missing_count", qs.count())
-    for monitor_environment in qs:
+    for monitor_environment in RangeQuerySetWrapper(qs):
         logger.info(
             "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
         )
@@ -80,7 +81,7 @@ def check_monitors(current_datetime=None):
     )
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
-    for checkin in qs:
+    for checkin in RangeQuerySetWrapper(qs):
         timeout = timedelta(minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT)
         if checkin.date_updated > current_datetime - timeout:
             continue
