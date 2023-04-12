@@ -2066,7 +2066,7 @@ PROJECT_URLS = [
         name="sentry-api-0-project-rule-details",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/snooze/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/(?P<rule_type>[^\/]+)/snooze/$",
         RuleSnoozeEndpoint.as_view(),
         name="sentry-api-0-rule-snooze",
     ),

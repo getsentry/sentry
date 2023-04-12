@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pytz
 
 from sentry import audit_log
+from sentry.api.endpoints.rule_snooze import RuleType
 from sentry.models import AuditLogEntry, Rule, RuleSnooze
 from sentry.models.actor import ActorTuple
 from sentry.testutils import APITestCase
@@ -30,10 +31,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_issue_alert_user_forever(self):
         """Test that a user can mute an issue alert rule for themselves forever"""
-        data = {"target": "me", "rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(rule=self.issue_alert_rule.id).exists()
         assert response.status_code == 201
@@ -46,10 +51,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_issue_alert_user_until(self):
         """Test that a user can mute an issue alert rule for themselves a period of time"""
-        data = {"target": "me", "rule": True, "until": self.until}
+        data = {"target": "me", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(rule=self.issue_alert_rule.id).exists()
         assert response.status_code == 201
@@ -62,10 +71,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_issue_alert_everyone_forever(self):
         """Test that an issue alert rule can be muted for everyone forever"""
-        data = {"target": "everyone", "rule": True}
+        data = {"target": "everyone"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(rule=self.issue_alert_rule.id).exists()
         assert response.status_code == 201
@@ -84,10 +97,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_issue_alert_everyone_until(self):
         """Test that an issue alert rule can be muted for everyone for a period of time"""
-        data = {"target": "everyone", "rule": True, "until": self.until}
+        data = {"target": "everyone", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(rule=self.issue_alert_rule.id).exists()
         assert response.status_code == 201
@@ -106,10 +123,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_issue_alert_user_then_everyone(self):
         """Test that a user can mute an issue alert for themselves and then the same alert can be muted for everyone"""
-        data = {"target": "me", "rule": True, "until": self.until}
+        data = {"target": "me", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(
             rule=self.issue_alert_rule.id, user_id=self.user.id, until=self.until
@@ -117,10 +138,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
         assert response.status_code == 201
 
         everyone_until = datetime.now(pytz.UTC) + timedelta(days=1)
-        data = {"target": "everyone", "rule": True, "until": everyone_until}
+        data = {"target": "everyone", "until": everyone_until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(
             rule=self.issue_alert_rule.id, user_id=None, until=everyone_until
@@ -130,20 +155,28 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
     def test_mute_issue_alert_everyone_then_user(self):
         """Test that an issue alert can be muted for everyone and then a user can mute the same alert for themselves"""
         everyone_until = datetime.now(pytz.UTC) + timedelta(days=1)
-        data = {"target": "everyone", "rule": True, "until": everyone_until}
+        data = {"target": "everyone", "until": everyone_until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(
             rule=self.issue_alert_rule.id, user_id=None, until=everyone_until
         ).exists()
         assert response.status_code == 201
 
-        data = {"target": "me", "rule": True, "until": self.until}
+        data = {"target": "me", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(
             rule=self.issue_alert_rule.id, user_id=self.user.id, until=self.until
@@ -152,18 +185,26 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_edit_issue_alert_mute(self):
         """Test that we throw an error if an issue alert rule has already been muted by a user"""
-        data = {"target": "me", "rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(rule=self.issue_alert_rule.id).exists()
         assert response.status_code == 201
 
-        data = {"target": "me", "rule": True, "until": self.until}
+        data = {"target": "me", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert len(RuleSnooze.objects.all()) == 1
         assert response.status_code == 410
@@ -175,10 +216,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
         other_issue_alert_rule = Rule.objects.create(
             label="test rule", project=self.project, owner=other_team.actor
         )
-        data = {"target": "everyone", "rule": True}
+        data = {"target": "everyone"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, other_issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                other_issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert not RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
         assert response.status_code == 401
@@ -190,10 +235,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
         other_issue_alert_rule = Rule.objects.create(
             label="test rule", project=self.project, owner=other_team.actor
         )
-        data = {"target": "me", "rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, other_issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                other_issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
         assert response.status_code == 201
@@ -203,20 +252,28 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
         other_issue_alert_rule = Rule.objects.create(
             label="test rule", project=self.project, owner=None
         )
-        data = {"target": "me", "rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, other_issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                other_issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
         assert response.status_code == 201
 
     def test_mute_metric_alert_user_forever(self):
         """Test that a user can mute a metric alert rule for themselves forever"""
-        data = {"target": "me", "alert_rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 201
@@ -229,10 +286,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_metric_alert_user_until(self):
         """Test that a user can mute a metric alert rule for themselves a period of time"""
-        data = {"target": "me", "alert_rule": True, "until": self.until}
+        data = {"target": "me", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 201
@@ -245,10 +306,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_metric_alert_everyone_forever(self):
         """Test that a metric alert rule can be muted for everyone forever"""
-        data = {"target": "everyone", "alert_rule": True}
+        data = {"target": "everyone"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 201
@@ -267,10 +332,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_metric_alert_everyone_until(self):
         """Test that a metric alert rule can be muted for everyone for a period of time"""
-        data = {"target": "everyone", "alert_rule": True, "until": self.until}
+        data = {"target": "everyone", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 201
@@ -289,10 +358,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_mute_metric_alert_user_then_everyone(self):
         """Test that a user can mute a metric alert for themselves and then the same alert can be muted for everyone"""
-        data = {"target": "me", "alert_rule": True, "until": self.until}
+        data = {"target": "me", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(
             alert_rule=self.metric_alert_rule.id, user_id=self.user.id, until=self.until
@@ -300,10 +373,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
         assert response.status_code == 201
 
         everyone_until = datetime.now(pytz.UTC) + timedelta(days=1)
-        data = {"target": "everyone", "alert_rule": True, "until": everyone_until}
+        data = {"target": "everyone", "until": everyone_until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(
             alert_rule=self.metric_alert_rule.id, user_id=None, until=everyone_until
@@ -313,20 +390,28 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
     def test_mute_metric_alert_everyone_then_user(self):
         """Test that a metric alert can be muted for everyone and then a user can mute the same alert for themselves"""
         everyone_until = datetime.now(pytz.UTC) + timedelta(days=1)
-        data = {"target": "everyone", "alert_rule": True, "until": everyone_until}
+        data = {"target": "everyone", "until": everyone_until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(
             alert_rule=self.metric_alert_rule.id, user_id=None, until=everyone_until
         ).exists()
         assert response.status_code == 201
 
-        data = {"target": "me", "alert_rule": True, "until": self.until}
+        data = {"target": "me", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(
             alert_rule=self.metric_alert_rule.id, user_id=self.user.id, until=self.until
@@ -335,18 +420,26 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
 
     def test_edit_metric_alert_mute(self):
         """Test that we throw an error if a metric alert rule has already been muted by a user"""
-        data = {"target": "me", "alert_rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 201
 
-        data = {"target": "me", "alert_rule": True, "until": self.until}
+        data = {"target": "me", "until": self.until}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert len(RuleSnooze.objects.all()) == 1
         assert response.status_code == 410
@@ -360,10 +453,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
             projects=[self.project],
             owner=ActorTuple.from_actor_identifier(f"team:{other_team.id}"),
         )
-        data = {"target": "everyone", "alertRule": True}
+        data = {"target": "everyone"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, other_metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                other_metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert not RuleSnooze.objects.filter(alert_rule=other_metric_alert_rule).exists()
         assert response.status_code == 401
@@ -377,10 +474,14 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
             projects=[self.project],
             owner=ActorTuple.from_actor_identifier(f"team:{other_team.id}"),
         )
-        data = {"target": "me", "alertRule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, other_metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                other_metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(alert_rule=other_metric_alert_rule).exists()
         assert response.status_code == 201
@@ -390,53 +491,54 @@ class PostRuleSnoozeTest(RuleSnoozeTest):
         other_metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project], owner=None
         )
-        data = {"target": "me", "alertRule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, other_metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                other_metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(alert_rule=other_metric_alert_rule.id).exists()
         assert response.status_code == 201
 
     def test_no_issue_alert(self):
         """Test that we throw an error when an issue alert rule doesn't exist"""
-        data = {"target": "me", "rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
-            response = self.get_response(self.organization.slug, self.project.slug, 777, **data)
+            response = self.get_response(
+                self.organization.slug, self.project.slug, 777, RuleType.ISSUE_ALERT.value, **data
+            )
         assert not RuleSnooze.objects.filter(alert_rule=self.issue_alert_rule.id).exists()
         assert response.status_code == 400
         assert "Rule does not exist" in response.data
 
     def test_no_metric_alert(self):
         """Test that we throw an error when a metric alert rule doesn't exist"""
-        data = {"target": "me", "alert_rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
-            response = self.get_response(self.organization.slug, self.project.slug, 777, **data)
+            response = self.get_response(
+                self.organization.slug, self.project.slug, 777, RuleType.METRIC_ALERT.value, **data
+            )
         assert not RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 400
         assert "Rule does not exist" in response.data
 
     def test_invalid_data_issue_alert(self):
         """Test that we throw an error when passed invalid data"""
-        data = {"target": "me", "rule": self.issue_alert_rule.id}
+        data = {"target": "me", "until": 123}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.metric_alert_rule.id,
+                RuleType.METRIC_ALERT.value,
+                **data,
             )
         assert not RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 400
-        assert "Must be a valid boolean" in response.data["rule"][0]
-
-    def test_rule_and_alert_rule(self):
-        """Test that we throw an error if both rule and alert rule are passed"""
-        data = {"target": "me", "rule": True, "alert_rule": True}
-        with self.feature({"organizations:mute-alerts": True}):
-            response = self.get_response(
-                self.organization.slug, self.project.slug, self.metric_alert_rule.id, **data
-            )
-        assert not RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
-        assert response.status_code == 400
-        assert "Pass either rule or alert rule, not both." in response.data
+        assert "Datetime has wrong format." in response.data["until"][0]
 
 
 @region_silo_test
@@ -448,10 +550,14 @@ class DeleteRuleSnoozeTest(RuleSnoozeTest):
         RuleSnooze.objects.create(
             user_id=self.user.id, rule=self.issue_alert_rule, owner_id=self.user.id
         )
-        data = {"target": "me", "rule": True}
+        data = {"target": "me"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert not RuleSnooze.objects.filter(
             rule=self.issue_alert_rule.id, user_id=self.user.id
@@ -461,10 +567,14 @@ class DeleteRuleSnoozeTest(RuleSnoozeTest):
     def test_delete_issue_alert_rule_mute_everyone(self):
         """Test that a user can unsnooze a rule they've snoozed for everyone"""
         RuleSnooze.objects.create(rule=self.issue_alert_rule, owner_id=self.user.id)
-        data = {"target": "everyone", "rule": True}
+        data = {"target": "everyone"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, self.issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert not RuleSnooze.objects.filter(
             rule=self.issue_alert_rule.id, user_id=self.user.id
@@ -478,10 +588,14 @@ class DeleteRuleSnoozeTest(RuleSnoozeTest):
             label="test rule", project=self.project, owner=other_team.actor
         )
         RuleSnooze.objects.create(rule=other_issue_alert_rule)
-        data = {"target": "everyone", "rule": True}
+        data = {"target": "everyone"}
         with self.feature({"organizations:mute-alerts": True}):
             response = self.get_response(
-                self.organization.slug, self.project.slug, other_issue_alert_rule.id, **data
+                self.organization.slug,
+                self.project.slug,
+                other_issue_alert_rule.id,
+                RuleType.ISSUE_ALERT.value,
+                **data,
             )
         assert RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
         assert response.status_code == 401

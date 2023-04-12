@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -13,10 +14,13 @@ from sentry.incidents.models import AlertRule
 from sentry.models import Organization, Rule, RuleSnooze, Team
 
 
+class RuleType(Enum):
+    ISSUE_ALERT = 0
+    METRIC_ALERT = 1
+
+
 class RuleSnoozeValidator(CamelSnakeSerializer):
     target = serializers.CharField(required=True, allow_null=False)
-    rule = serializers.BooleanField(required=False, allow_null=True)
-    alert_rule = serializers.BooleanField(required=False, allow_null=True)
     until = serializers.DateTimeField(required=False, allow_null=True)
 
 
@@ -49,20 +53,17 @@ def can_edit_alert_rule(rule, organization, user_id, user):
     return True
 
 
-def get_rule(data, request, rule_id):
-    if data.get("rule") and data.get("alert_rule"):
-        raise serializers.ValidationError("Pass either rule or alert rule, not both.")
-
+def get_rule(rule_id, rule_type):
     issue_alert_rule = None
     metric_alert_rule = None
 
-    if data.get("rule"):
+    if rule_type == RuleType.ISSUE_ALERT.value:
         try:
             issue_alert_rule = Rule.objects.get(id=rule_id)
         except Rule.DoesNotExist:
             raise serializers.ValidationError("Rule does not exist")
 
-    if data.get("alert_rule"):
+    elif rule_type == RuleType.METRIC_ALERT.value:
         try:
             metric_alert_rule = AlertRule.objects.get(id=rule_id)
         except AlertRule.DoesNotExist:
@@ -75,7 +76,7 @@ def get_rule(data, request, rule_id):
 class RuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
-    def post(self, request: Request, project, rule_id) -> Response:
+    def post(self, request: Request, project, rule_id, rule_type) -> Response:
         if not features.has("organizations:mute-alerts", project.organization, actor=None):
             return Response(
                 {"detail": "This feature is not available for this organization."},
@@ -87,12 +88,10 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-
-        issue_alert_rule, metric_alert_rule = get_rule(data, request, rule_id)
+        issue_alert_rule, metric_alert_rule = get_rule(rule_id, int(rule_type))
 
         rule = issue_alert_rule or metric_alert_rule
         user_id = request.user.id if data.get("target") == "me" else None
-
         if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
             return Response(
                 {"detail": "Requesting user cannot mute this rule."},
@@ -133,7 +132,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
             status=status.HTTP_201_CREATED,
         )
 
-    def delete(self, request: Request, project, rule_id) -> Response:
+    def delete(self, request: Request, project, rule_id, rule_type) -> Response:
         if not features.has("organizations:mute-alerts", project.organization, actor=None):
             return Response(
                 {"detail": "This feature is not available for this organization."},
@@ -145,7 +144,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        issue_alert_rule, metric_alert_rule = get_rule(data, request, rule_id)
+        issue_alert_rule, metric_alert_rule = get_rule(rule_id, int(rule_type))
         rule = issue_alert_rule or metric_alert_rule
         user_id = request.user.id if data.get("target") == "me" else None
 
