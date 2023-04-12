@@ -1038,6 +1038,8 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enables the new artifact bundle uploads
     "organizations:artifact-bundles": False,
+    # Enables alert creation on indexed events in UI (use for PoC/testing only)
+    "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
