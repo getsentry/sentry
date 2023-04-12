@@ -302,7 +302,7 @@ class DatabaseBackedAuthService(AuthService):
             organization_id=organization.id,
             default_org_role=organization.default_role,
             role=organization.default_role,
-            user=serial_user,
+            user_id=user.id,
             flags=flags,
         )
 
