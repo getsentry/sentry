@@ -20,7 +20,6 @@ from sentry.services.hybrid_cloud.region import (
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -272,7 +271,7 @@ class OrganizationService(RpcService):
         *,
         organization_id: int,
         default_org_role: str,
-        user: Optional[RpcUser] = None,
+        user_id: Optional[int] = None,
         email: Optional[str] = None,
         flags: Optional[RpcOrganizationMemberFlags] = None,
         role: Optional[str] = None,
