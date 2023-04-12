@@ -57,6 +57,7 @@ def query_replays_collection(
     offset: Optional[str],
     search_filters: List[SearchFilter],
     organization: Optional[Organization] = None,
+    actor: Optional[Any] = None,
 ) -> dict:
     """Query aggregated replay collection."""
 
@@ -80,7 +81,9 @@ def query_replays_collection(
             and len(search_filters) == 0
             and (sort is None or _sort_eligible_for_subquery(sort))
             and len(conditions) == 0
-            and features.has("organizations:session-replay-index-subquery", organization)
+            and features.has(
+                "organizations:session-replay-index-subquery", organization, actor=actor
+            )
         )
 
     conditions = []
