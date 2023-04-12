@@ -2054,6 +2054,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 "sourcemaps.processed", amount=len(self.sourcemaps_touched), skip_internal=True
             )
 
+        # TODO: If we do some A/B testing for symbolicator, we would want to compare
+        # the stack traces processed by both the existing processor (this one), and the
+        # symbolicator result, and log any differences.
+        # Q: what do we want to diff? raw/_stacktraces? With the full source context?
+        # Processing Errors? Do we want to sample those reports?
+        # We also need to account for known differences? Like symbolicator not
+        # outputting a trailing empty line, whereas the python processor does.
+
     def suspected_console_errors(self, frames):
         def is_suspicious_frame(frame) -> bool:
             function = frame.get("function", None)
