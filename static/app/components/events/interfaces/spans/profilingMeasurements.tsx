@@ -242,7 +242,6 @@ const Overlays = styled('div')`
 const ChartContainer = styled('div')`
   position: relative;
   flex: 1;
-  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const ChartOpsLabel = styled('div')<{dividerPosition: number}>`
@@ -256,6 +255,7 @@ const MeasurementContainer = styled('div')`
   position: absolute;
   width: 100%;
   top: ${MINIMAP_HEIGHT}px;
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
