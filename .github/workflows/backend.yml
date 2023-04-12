@@ -75,7 +75,7 @@ jobs:
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3, 4]
-        pg-version: ['9.6']
+        pg-version: ['14']
 
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
@@ -117,7 +117,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        pg-version: ['9.6']
+        pg-version: ['14']
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
@@ -151,7 +151,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        pg-version: ['9.6']
+        pg-version: ['14']
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
@@ -277,7 +277,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        pg-version: ['9.6']
+        pg-version: ['14']
 
     steps:
       - name: Checkout sentry

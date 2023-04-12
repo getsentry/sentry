@@ -26,7 +26,7 @@ jobs:
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
-        pg-version: ['9.6']
+        pg-version: ['14']
 
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
