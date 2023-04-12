@@ -26,7 +26,6 @@ import DiscoverQuery, {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
@@ -39,7 +38,6 @@ import {
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 
-import {getMEPQueryParams} from './landing/widgets/utils';
 import {COLUMN_TITLES} from './data';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -418,56 +416,47 @@ class _Table extends Component<Props, State> {
     return (
       <GuideAnchor target="performance_table" position="top-start">
         <div data-test-id="performance-table">
-          <MEPConsumer>
-            {value => {
-              return (
-                <DiscoverQuery
-                  eventView={sortedEventView}
-                  orgSlug={organization.slug}
-                  location={location}
-                  setError={error => setError(error?.message)}
-                  referrer="api.performance.landing-table"
-                  transactionName={transaction}
-                  transactionThreshold={transactionThreshold}
-                  queryExtras={getMEPQueryParams(value)}
+          return (
+          <DiscoverQuery
+            eventView={sortedEventView}
+            orgSlug={organization.slug}
+            location={location}
+            setError={error => setError(error?.message)}
+            referrer="api.performance.landing-table"
+            transactionName={transaction}
+            transactionThreshold={transactionThreshold}
+            queryExtras={{dataset: 'metrics'}}
+          >
+            {({pageLinks, isLoading, tableData}) => (
+              <Fragment>
+                <VisuallyCompleteWithData
+                  id="PerformanceTable"
+                  hasData={!isLoading && !!tableData?.data && tableData.data.length > 0}
                 >
-                  {({pageLinks, isLoading, tableData}) => (
-                    <Fragment>
-                      <VisuallyCompleteWithData
-                        id="PerformanceTable"
-                        hasData={
-                          !isLoading && !!tableData?.data && tableData.data.length > 0
-                        }
-                      >
-                        <GridEditable
-                          isLoading={isLoading}
-                          data={tableData ? tableData.data : []}
-                          columnOrder={columnOrder}
-                          columnSortBy={columnSortBy}
-                          grid={{
-                            onResizeColumn: this.handleResizeColumn,
-                            renderHeadCell: this.renderHeadCellWithMeta(
-                              tableData?.meta
-                            ) as any,
-                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                            renderPrependColumns: this.renderPrependCellWithData(
-                              tableData
-                            ) as any,
-                            prependColumnWidths,
-                          }}
-                          location={location}
-                        />
-                      </VisuallyCompleteWithData>
-                      <Pagination
-                        pageLinks={pageLinks}
-                        paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                      />
-                    </Fragment>
-                  )}
-                </DiscoverQuery>
-              );
-            }}
-          </MEPConsumer>
+                  <GridEditable
+                    isLoading={isLoading}
+                    data={tableData ? tableData.data : []}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      onResizeColumn: this.handleResizeColumn,
+                      renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                      renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                      renderPrependColumns: this.renderPrependCellWithData(
+                        tableData
+                      ) as any,
+                      prependColumnWidths,
+                    }}
+                    location={location}
+                  />
+                </VisuallyCompleteWithData>
+                <Pagination
+                  pageLinks={pageLinks}
+                  paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                />
+              </Fragment>
+            )}
+          </DiscoverQuery>
         </div>
       </GuideAnchor>
     );
