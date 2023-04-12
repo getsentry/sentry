@@ -39,11 +39,12 @@ import {
 
 const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 
+import {getProjectID} from 'sentry/views/performance/utils';
+
 import {
   createUnnamedTransactionsDiscoverTarget,
-  getProjectID,
   UNPARAMETERIZED_TRANSACTION,
-} from '../utils';
+} from '../utils/createUnnamedTransactionsDiscoverTarget';
 
 type Props = {
   eventView: EventView;
@@ -379,7 +380,6 @@ class _Table extends Component<Props, State> {
     return (
       <GuideAnchor target="performance_table" position="top-start">
         <div data-test-id="performance-table">
-          return (
           <DiscoverQuery
             eventView={sortedEventView}
             orgSlug={organization.slug}

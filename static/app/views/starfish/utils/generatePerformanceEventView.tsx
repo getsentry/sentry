@@ -10,9 +10,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 
-export const DEFAULT_STATS_PERIOD = '7d';
-export const DEFAULT_PROJECT_THRESHOLD_METRIC = 'duration';
-export const DEFAULT_PROJECT_THRESHOLD = 300;
+const DEFAULT_STATS_PERIOD = '7d';
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
