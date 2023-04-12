@@ -7,11 +7,14 @@ import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {
+  PerformanceWidgetSetting,
+  WIDGET_DEFINITIONS,
+} from 'sentry/views/starfish/landing/widgets/widgetDefinitions';
+import {StackedAreaWidget} from 'sentry/views/starfish/landing/widgets/widgets/stackedAreaWidget';
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
-import WidgetContainer from '../widgets/components/widgetContainer';
-import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 type BasePerformanceViewProps = {
   eventView: EventView;
@@ -22,22 +25,33 @@ type BasePerformanceViewProps = {
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
+  const chartSetting = PerformanceWidgetSetting.DB_HTTP_BREAKDOWN;
+  const chartDefinition = WIDGET_DEFINITIONS({organization: props.organization})[
+    chartSetting
+  ];
+
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div data-test-id="starfish-view">
         <StyledRow minSize={200}>
-          <WidgetContainer
-            allowedCharts={[PerformanceWidgetSetting.DB_HTTP_BREAKDOWN]}
-            chartCount={1}
-            chartHeight={180}
+          <StackedAreaWidget
             eventView={props.eventView}
-            location={props.location}
-            key={0}
+            organization={props.organization}
+            title="Operation Breakdown"
+            titleTooltip="Failure rate is the percentage of recorded transactions that had a known and unsuccessful status."
+            chartHeight={180}
+            fields={[
+              'p95(spans.db)',
+              'p95(spans.http)',
+              'p95(spans.browser)',
+              'p95(spans.resource)',
+              'p95(spans.ui)',
+            ]}
             withStaticFilters
-            index={0}
-            defaultChartSetting={PerformanceWidgetSetting.DB_HTTP_BREAKDOWN}
-            rowChartSettings={[PerformanceWidgetSetting.DB_HTTP_BREAKDOWN]}
-            setRowChartSettings={() => {}}
+            chartDefinition={chartDefinition}
+            chartSetting={chartSetting}
+            InteractiveTitle={null}
+            ContainerActions={null}
           />
         </StyledRow>
 
