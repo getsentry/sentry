@@ -1105,7 +1105,7 @@ SENTRY_FEATURES = {
     # Enable the sentry sample format response
     "organizations:profiling-sampled-format": False,
     # Enabled for those orgs who participated in the profiling Beta program
-    "organizations:profiling-beta-grace": False,
+    "organizations:profiling-beta": False,
     # Enable profiling GA messaging (update paths from AM1 to AM2)
     "organizations:profiling-ga": False,
     # Enable multi project selection
