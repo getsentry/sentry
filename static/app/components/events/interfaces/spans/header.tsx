@@ -690,14 +690,12 @@ class ActualMinimap extends PureComponent<{
 const TimeAxis = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   width: 100%;
   position: absolute;
-  margin-left: -1px;
   left: 0;
   top: ${p =>
     p.hasProfileMeasurementsChart
       ? MINIMAP_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
       : MINIMAP_HEIGHT}px;
   border-top: 1px solid ${p => p.theme.border};
-  border-left: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.gray300};
