@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Event, Project} from 'sentry/types';
@@ -36,6 +37,15 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
       type="ai-suggested-solution"
       guideTarget="ai-suggested-solution"
       title={t('Resources and Maybe Solutions')}
+      help={tct(
+        'This is an OpenAI generated solution that suggests a fix for this issue. Be aware that this may not be accurate. [learnMore:Learn more]',
+        {
+          learnMore: (
+            <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/suggested-fix/" />
+          ),
+        }
+      )}
+      isHelpHoverable
       actions={
         <ToggleButton
           onClick={() => {
