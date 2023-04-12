@@ -9,7 +9,6 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAdhocEvent} from 'sentry/utils/analytics';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
@@ -21,15 +20,6 @@ class OrganizationJoinRequest extends Component<Props, State> {
   state: State = {
     submitSuccess: null,
   };
-
-  componentDidMount() {
-    const {params} = this.props;
-
-    trackAdhocEvent({
-      eventKey: 'join_request.viewed',
-      org_slug: params.orgId,
-    });
-  }
 
   handleSubmitSuccess = () => {
     this.setState({submitSuccess: true});

@@ -2,13 +2,13 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {Event, ProfileContext, ProfileContextKey} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import {getKnownData, getUnknownData} from '../utils';
 
@@ -21,6 +21,8 @@ interface ProfileContextProps {
 
 export function ProfileEventContext({event, data}: ProfileContextProps) {
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === event.projectID);
   const meta = event._meta?.contexts?.profile ?? {};
 
   return (
@@ -32,7 +34,7 @@ export function ProfileEventContext({event, data}: ProfileContextProps) {
             meta,
             knownDataTypes: PROFILE_KNOWN_DATA_VALUES,
             onGetKnownDataDetails: v =>
-              getProfileKnownDataDetails({...v, organization, event}),
+              getProfileKnownDataDetails({...v, organization, project}),
           }).map(v => ({
             ...v,
             subjectDataTestId: `profile-context-${v.key.toLowerCase()}-value`,
@@ -59,14 +61,14 @@ export function ProfileEventContext({event, data}: ProfileContextProps) {
 
 function getProfileKnownDataDetails({
   data,
-  event,
   organization,
+  project,
   type,
 }: {
   data: ProfileContext;
-  event: Event;
   organization: Organization;
   type: ProfileContextKey;
+  project?: Project;
 }) {
   switch (type) {
     case ProfileContextKey.PROFILE_ID: {
@@ -76,10 +78,10 @@ function getProfileKnownDataDetails({
         return undefined;
       }
 
-      const target = event.projectSlug
+      const target = project?.slug
         ? generateProfileFlamechartRoute({
             orgSlug: organization.slug,
-            projectSlug: event.projectSlug,
+            projectSlug: project?.slug,
             profileId,
           })
         : undefined;
@@ -97,9 +99,8 @@ function getProfileKnownDataDetails({
                 source: 'events.profile_event_context',
               })
             }
-            icon={<IconProfiling size="xs" />}
           >
-            {t('Go to Profile')}
+            {t('View Profile')}
           </Button>
         ),
       };

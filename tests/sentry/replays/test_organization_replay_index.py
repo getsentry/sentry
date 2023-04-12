@@ -819,7 +819,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?field=activity")
             assert response.status_code == 200
 
-    def test_archived_records_are_not_returned(self):
+    def test_archived_records_are_null_fields(self):
         replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=30)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
@@ -832,41 +832,28 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
-            assert len(response.json()["data"]) == 0
-
-    def test_archived_records_not_returned_with_environment_filtered(self):
-        self.create_environment(name="prod", project=self.project)
-
-        replay1_id = uuid.uuid4().hex
-        timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=30)
-        timestamp2 = datetime.datetime.now() - datetime.timedelta(seconds=20)
-
-        self.store_replays(mock_replay(timestamp1, self.project.id, replay1_id, environment="prod"))
-        self.store_replays(mock_replay(timestamp2, self.project.id, replay1_id, is_archived=True))
-
-        with self.feature(REPLAYS_FEATURES):
-            # We can't manipulate environment to hide the archival state.
-            response = self.client.get(self.url + "?field=id&environment=prod")
-            assert response.status_code == 200
-            assert len(response.json()["data"]) == 0
-
-    def test_archived_records_not_returned_with_selective_date_range(self):
-        """If the archive entry falls outside the date range ensure it can still be returned."""
-        replay1_id = uuid.uuid4().hex
-        timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=30)
-        timestamp2 = datetime.datetime.now() - datetime.timedelta(seconds=20)
-        timestamp3 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-
-        self.store_replays(mock_replay(timestamp1, self.project.id, replay1_id))
-        self.store_replays(mock_replay(timestamp3, self.project.id, replay1_id, is_archived=True))
-
-        with self.feature(REPLAYS_FEATURES):
-            # We can't manipulate dates to hide the archival state.
-            response = self.client.get(
-                self.url + f"?start={timestamp1.isoformat()}&end={timestamp2.isoformat()}"
-            )
-            assert response.status_code == 200
-            assert len(response.json()["data"]) == 0
+            assert response.json()["data"] == [
+                {
+                    "id": replay1_id,
+                    "project_id": str(self.project.id),
+                    "trace_ids": [],
+                    "error_ids": [],
+                    "environment": None,
+                    "tags": [],
+                    "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+                    "sdk": {"name": None, "version": None},
+                    "os": {"name": None, "version": None},
+                    "browser": {"name": None, "version": None},
+                    "device": {"name": None, "brand": None, "model": None, "family": None},
+                    "urls": None,
+                    "started_at": None,
+                    "count_errors": None,
+                    "activity": None,
+                    "finished_at": None,
+                    "duration": None,
+                    "is_archived": True,
+                }
+            ]
 
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
@@ -909,27 +896,27 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "replay_click.alt:Alt",
-                "replay_click.class:class1",
-                "replay_click.class:class2",
-                "replay_click.class:class3",
-                "replay_click.id:myid",
-                "replay_click.label:AriaLabel",
-                "replay_click.role:button",
-                "replay_click.tag:div",
-                "replay_click.tag:button",
-                "replay_click.testid:1",
-                "replay_click.textContent:Hello",
-                "replay_click.title:MyTitle",
-                "replay_click.selector:div#myid",
-                "replay_click.selector:div[alt=Alt]",
-                "replay_click.selector:div[title=MyTitle]",
-                "replay_click.selector:div[data-testid='1']",
-                "replay_click.selector:div[role=button]",
-                "replay_click.selector:div#myid.class1.class2",
+                "click.alt:Alt",
+                "click.class:class1",
+                "click.class:class2",
+                "click.class:class3",
+                "click.id:myid",
+                "click.label:AriaLabel",
+                "click.role:button",
+                "click.tag:div",
+                "click.tag:button",
+                "click.testid:1",
+                "click.textContent:Hello",
+                "click.title:MyTitle",
+                "click.selector:div#myid",
+                "click.selector:div[alt=Alt]",
+                "click.selector:div[title=MyTitle]",
+                "click.selector:div[data-testid='1']",
+                "click.selector:div[role=button]",
+                "click.selector:div#myid.class1.class2",
                 # Single quotes around attribute value.
-                "replay_click.selector:div[role='button']",
-                "replay_click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
+                "click.selector:div[role='button']",
+                "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -938,23 +925,23 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(response_data["data"]) == 1, query
 
             queries = [
-                "replay_click.alt:NotAlt",
-                "replay_click.class:class4",
-                "replay_click.id:other",
-                "replay_click.label:NotAriaLabel",
-                "replay_click.role:form",
-                "replay_click.tag:header",
-                "replay_click.testid:2",
-                "replay_click.textContent:World",
-                "replay_click.title:NotMyTitle",
-                "!replay_click.selector:div#myid",
-                "replay_click.selector:div#notmyid",
+                "click.alt:NotAlt",
+                "click.class:class4",
+                "click.id:other",
+                "click.label:NotAriaLabel",
+                "click.role:form",
+                "click.tag:header",
+                "click.testid:2",
+                "click.textContent:World",
+                "click.title:NotMyTitle",
+                "!click.selector:div#myid",
+                "click.selector:div#notmyid",
                 # Assert all classes must match.
-                "replay_click.selector:div#myid.class1.class2.class3",
+                "click.selector:div#myid.class1.class2.class3",
                 # Invalid selectors return no rows.
-                "replay_click.selector:$#%^#%",
+                "click.selector:$#%^#%",
                 # Integer type role values are not allowed and must be wrapped in single quotes.
-                "replay_click.selector:div[title=1]",
+                "click.selector:div[title=1]",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
@@ -969,10 +956,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                'replay_click.selector:"div button"',
-                'replay_click.selector:"div + button"',
-                'replay_click.selector:"div ~ button"',
-                'replay_click.selector:"div > button"',
+                'click.selector:"div button"',
+                'click.selector:"div + button"',
+                'click.selector:"div ~ button"',
+                'click.selector:"div > button"',
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -986,7 +973,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "replay_click.selector:a::visited",
+                "click.selector:a::visited",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -1000,8 +987,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "replay_click.selector:div:is(2)",
-                "replay_click.selector:p:active",
+                "click.selector:div:is(2)",
+                "click.selector:p:active",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -1018,10 +1005,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                'replay_click.selector:"[aria-label~=button]"',
-                'replay_click.selector:"[aria-label|=button]"',
-                'replay_click.selector:"[aria-label^=button]"',
-                'replay_click.selector:"[aria-label$=button]"',
+                'click.selector:"[aria-label~=button]"',
+                'click.selector:"[aria-label|=button]"',
+                'click.selector:"[aria-label^=button]"',
+                'click.selector:"[aria-label$=button]"',
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
