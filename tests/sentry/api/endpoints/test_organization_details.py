@@ -13,7 +13,6 @@ from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
-from sentry.auth.providers.google.constants import DATA_VERSION
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
@@ -330,8 +329,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
+<<<<<<< HEAD
             "providerKey": "google",
             "providerConfig": {"domain": "foo.com"},
+=======
+>>>>>>> 4c04dd4de5 (fix(api): Remove feature flag code changes to put in other PR)
         }
 
         # needed to set require2FA
