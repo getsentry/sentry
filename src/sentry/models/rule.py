@@ -41,7 +41,7 @@ class Rule(Model):
         choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
         db_index=True,
     )
-    owner = FlexibleForeignKey("sentry.Actor", null=True)
+    owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
 
