@@ -2486,7 +2486,10 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         self.error_group_2 = error_event_2.group
 
     def test_no_feature(self):
-        results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
+            results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
         assert list(results) == []
 
     def test_generic_query(self):
@@ -2611,7 +2614,9 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         Any queries with `error.handled` or `error.unhandled` filters querying the search_issues dataset
         should be rejected and return empty results.
         """
-        with self.feature("organizations:issue-platform"):
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:profile error.unhandled:0",
