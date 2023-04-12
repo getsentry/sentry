@@ -7,11 +7,11 @@ from django.core.cache import caches
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
-    KeyResult,
     OrgId,
     StringIndexer,
     UseCaseId,
     UseCaseKeyCollection,
+    UseCaseKeyResult,
     UseCaseKeyResults,
 )
 from sentry.utils import metrics
@@ -124,27 +124,32 @@ class CachingIndexer(StringIndexer):
         )
 
         cache_key_results = UseCaseKeyResults()
-        cache_key_results.add_key_results(
-            [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
+        cache_key_results.add_use_case_key_results(
+            [UseCaseKeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
             FetchType.CACHE_HIT,
         )
 
-        db_record_keys = cache_key_results.get_unmapped_keys(cache_keys)
+        db_record_keys = cache_key_results.get_unmapped_use_case_keys(cache_keys)
 
         if db_record_keys.size == 0:
             return cache_key_results
 
-        db_record_key_results = self.indexer.bulk_record(db_record_keys.mapping)
-        self.cache.set_many(db_record_key_results.get_mapped_key_strings_to_ints())
+        db_record_key_results = self.indexer.bulk_record(
+            {
+                use_case_id: keyCollection.mapping
+                for use_case_id, keyCollection in db_record_keys.mapping.items()
+            }
+        )
+        self.cache.set_many(db_record_key_results.get_mapped_strings_to_ints())
         return cache_key_results.merge(db_record_key_results)
 
     def record(self, use_case_id: UseCaseId, org_id: int, string: str) -> Optional[int]:
-        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
-        return result[org_id][string]
+        result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
+        return result[use_case_id][org_id][string]
 
     def resolve(self, use_case_id: UseCaseId, org_id: int, string: str) -> Optional[int]:
         key = f"{use_case_id}:{org_id}:{string}"
-        result = self.cache.get(key, use_case_id.value)
+        result = self.cache.get(key)
 
         if result and isinstance(result, int):
             metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "resolve"})
@@ -154,7 +159,7 @@ class CachingIndexer(StringIndexer):
         id = self.indexer.resolve(use_case_id, org_id, string)
 
         if id is not None:
-            self.cache.set(key, id, use_case_id.value)
+            self.cache.set(key, id)
 
         return id
 
