@@ -1,6 +1,10 @@
+import dataclasses
 import logging
 import time
 import uuid
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -9,10 +13,12 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.cache import default_cache
-from sentry.lang.native.sources import get_internal_release_file_source, sources_for_symbolication
-from sentry.models import Organization
+from sentry.lang.native.sources import (
+    get_internal_artifact_lookup_source,
+    sources_for_symbolication,
+)
+from sentry.models import Project
 from sentry.net.http import Session
-from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, metrics
 
 MAX_ATTEMPTS = 3
@@ -25,20 +31,40 @@ def _task_id_cache_key_for_event(project_id, event_id):
     return f"symbolicator:{event_id}:{project_id}"
 
 
+@dataclass(frozen=True)
+class SymbolicatorTaskKind:
+    is_js: bool = False
+    is_low_priority: bool = False
+    is_reprocessing: bool = False
+
+    def with_low_priority(self, is_low_priority: bool) -> "SymbolicatorTaskKind":
+        return dataclasses.replace(self, is_low_priority=is_low_priority)
+
+
+class SymbolicatorPools(Enum):
+    js = "js"
+    lpq = "lpq"
+    default = "default"
+
+
 class Symbolicator:
-    def __init__(self, project, event_id, release=None):
-        symbolicator_options = options.get("symbolicator.options")
-        base_url = symbolicator_options["url"].rstrip("/")
+    def __init__(self, task_kind: SymbolicatorTaskKind, project: Project, event_id: str):
+        URLS = settings.SYMBOLICATOR_POOL_URLS
+        pool = SymbolicatorPools.default
+        if task_kind.is_low_priority:
+            pool = SymbolicatorPools.lpq
+        elif task_kind.is_js:
+            pool = SymbolicatorPools.js
+
+        base_url = (
+            URLS.get(pool)
+            or URLS.get(SymbolicatorPools.default)
+            or options.get("symbolicator.options")["url"]
+        )
+        base_url = base_url.rstrip("/")
         assert base_url
 
-        # needed for efficient featureflag checks in getsentry
-        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
         self.project = project
-        self.release = release
         self.sess = SymbolicatorSession(
             url=base_url,
             project_id=str(project.id),
@@ -135,8 +161,8 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(self, stacktraces, modules, dist, allow_scraping=True):
-        source = get_internal_release_file_source(self.project, self.release)
+    def process_js(self, stacktraces, modules, release, dist, allow_scraping=True):
+        source = get_internal_artifact_lookup_source(self.project)
 
         json = {
             "source": source,
@@ -145,6 +171,8 @@ class Symbolicator:
             "allow_scraping": allow_scraping,
         }
 
+        if release is not None:
+            json["release"] = release
         if dist is not None:
             json["dist"] = dist
 
@@ -157,6 +185,11 @@ class TaskIdNotFound(Exception):
 
 class ServiceUnavailable(Exception):
     pass
+
+
+class RetrySymbolication(Exception):
+    def __init__(self, retry_after: Optional[int] = None) -> None:
+        self.retry_after = retry_after
 
 
 class SymbolicatorSession:

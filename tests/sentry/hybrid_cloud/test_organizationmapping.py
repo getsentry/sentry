@@ -14,7 +14,6 @@ from sentry.testutils.silo import control_silo_test
 class OrganizationMappingTest(TransactionTestCase):
     def test_create(self):
         fields = {
-            "user": self.user,
             "organization_id": self.organization.id,
             "slug": self.organization.slug,
             "name": "test name",
@@ -42,7 +41,7 @@ class OrganizationMappingTest(TransactionTestCase):
         self.create_organization_mapping(self.organization, **data)
         next_organization_id = 7654321
         rpc_org_mapping = organization_mapping_service.create(
-            **{**data, "user": self.user, "organization_id": next_organization_id}
+            **{**data, "organization_id": next_organization_id}
         )
 
         assert not OrganizationMapping.objects.filter(organization_id=self.organization.id).exists()
@@ -68,7 +67,6 @@ class OrganizationMappingTest(TransactionTestCase):
             organization_mapping_service.create(
                 **{
                     **data,
-                    "user": self.user,
                     "organization_id": 7654321,
                     "region_name": "de",
                     "idempotency_key": "test2",
@@ -77,7 +75,6 @@ class OrganizationMappingTest(TransactionTestCase):
 
     def test_update(self):
         fields = {
-            "user": self.user,
             "name": "test name",
             "organization_id": self.organization.id,
             "slug": self.organization.slug,
@@ -87,18 +84,22 @@ class OrganizationMappingTest(TransactionTestCase):
         assert rpc_org_mapping.customer_id is None
 
         organization_mapping_service.update(
-            self.organization.id, RpcOrganizationMappingUpdate(customer_id="test")
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(customer_id="test"),
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
 
         organization_mapping_service.update(
-            self.organization.id, RpcOrganizationMappingUpdate(name="new name!")
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(name="new name!"),
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
         assert org_mapping.name == "new name!"
 
-        organization_mapping_service.update(self.organization.id, RpcOrganizationMappingUpdate())
+        organization_mapping_service.update(
+            organization_id=self.organization.id, update=RpcOrganizationMappingUpdate()
+        )
         # Does not overwrite with empty value.
         assert org_mapping.name == "new name!"

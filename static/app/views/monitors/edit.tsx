@@ -1,60 +1,59 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorSlug: string}, {}> & {
-    organization: Organization;
-  };
+export default function EditMonitor() {
+  const {monitorSlug} = useParams();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
 
-type State = AsyncView['state'] & {
-  monitor: Monitor | null;
-};
+  const queryKeyUrl = `/organizations/${organization.slug}/monitors/${monitorSlug}/`;
 
-class EditMonitor extends AsyncView<Props, State> {
-  get orgSlug() {
-    return this.props.organization.slug;
-  }
+  const {
+    isLoading,
+    isError,
+    data: monitor,
+    refetch,
+  } = useApiQuery<Monitor>([queryKeyUrl], {
+    staleTime: 0,
+  });
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
-    return [
-      ['monitor', `/organizations/${this.orgSlug}/monitors/${params.monitorSlug}/`],
-    ];
-  }
-
-  onUpdate = (data: Monitor) =>
-    this.setState(state => ({monitor: {...state.monitor, ...data}}));
-
-  onSubmitSuccess = (data: Monitor) =>
+  function onSubmitSuccess(data: Monitor) {
+    setApiQueryData(queryClient, [queryKeyUrl], data);
     browserHistory.push(
-      normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.slug}/`)
+      normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`)
     );
-
-  getTitle() {
-    if (this.state.monitor) {
-      return `${this.state.monitor.name} - Crons - ${this.orgSlug}`;
-    }
-    return `Crons - ${this.orgSlug}`;
   }
 
-  renderBody() {
-    const {monitor} = this.state;
-
-    if (monitor === null) {
-      return null;
+  function getTitle() {
+    if (monitor) {
+      return `${monitor.name} - Crons - ${organization.slug}`;
     }
+    return `Crons - ${organization.slug}`;
+  }
 
-    return (
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} message="Failed to load monitor." />;
+  }
+
+  return (
+    <SentryDocumentTitle title={getTitle()}>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -62,7 +61,7 @@ class EditMonitor extends AsyncView<Props, State> {
               crumbs={[
                 {
                   label: t('Crons'),
-                  to: `/organizations/${this.orgSlug}/crons/`,
+                  to: `/organizations/${organization.slug}/crons/`,
                 },
                 {
                   label: t('Editing %s', monitor.name),
@@ -77,14 +76,12 @@ class EditMonitor extends AsyncView<Props, State> {
             <MonitorForm
               monitor={monitor}
               apiMethod="PUT"
-              apiEndpoint={`/organizations/${this.orgSlug}/monitors/${monitor.slug}/`}
-              onSubmitSuccess={this.onSubmitSuccess}
+              apiEndpoint={`/organizations/${organization.slug}/monitors/${monitor.slug}/`}
+              onSubmitSuccess={onSubmitSuccess}
             />
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
-
-export default withOrganization(EditMonitor);

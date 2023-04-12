@@ -20,6 +20,10 @@ class RegionCategory(Enum):
     SINGLE_TENANT = "SINGLE_TENANT"
 
 
+class RegionConfigurationError(Exception):
+    """Indicate that a region was misconfigured or could not be initialized."""
+
+
 @dataclass(frozen=True, eq=True)
 class Region:
     """A region of the Sentry platform, hosted by a region silo."""
@@ -48,10 +52,25 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
-    def __post_init__(self) -> None:
+    def validate(self) -> None:
+        from sentry import options
+        from sentry.api.utils import generate_region_url
         from sentry.utils.snowflake import REGION_ID
 
         REGION_ID.validate(self.id)
+
+        # Validate address with respect to self.name for multi-tenant regions.
+        region_url_template: str | None = options.get("system.region-api-url-template")
+        if (
+            SiloMode.get_current_mode() != SiloMode.MONOLITH
+            and self.category == RegionCategory.MULTI_TENANT
+            and region_url_template is not None
+        ):
+            expected_address = generate_region_url(self.name)
+            if self.address != expected_address:
+                raise RegionConfigurationError(
+                    f"Expected address for {self.name} to be: {expected_address}. Was defined as: {self.address}"
+                )
 
     def to_url(self, path: str) -> str:
         """Resolve a path into a URL on this region's silo.

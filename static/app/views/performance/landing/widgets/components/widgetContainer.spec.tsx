@@ -26,7 +26,7 @@ const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, withStaticFilters = false, ...rest}) => {
+function WrappedComponent({data, withStaticFilters = false, ...rest}) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -50,7 +50,7 @@ const WrappedComponent = ({data, withStaticFilters = false, ...rest}) => {
       </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 const issuesPredicate = (url, options) =>
   url.includes('events') && options.query?.query.includes('error');
@@ -993,8 +993,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
-    userEvent.click(await screen.findByLabelText('More'));
-    userEvent.click(await screen.findByText('User Misery'));
+    await userEvent.click(await screen.findByLabelText('More'));
+    await userEvent.click(await screen.findByText('User Misery'));
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'User Misery'
@@ -1025,12 +1025,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     // Open context menu
-    userEvent.click(await screen.findByLabelText('More'));
+    await userEvent.click(await screen.findByLabelText('More'));
 
     // Check that the the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
     const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
-    userEvent.click(userMiseryOption);
+    await userEvent.click(userMiseryOption);
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'
     );

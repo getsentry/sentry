@@ -6,8 +6,10 @@ import {Location} from 'history';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
+import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
@@ -19,6 +21,7 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
+  IconStar,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -36,8 +39,10 @@ import {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
-import {useExperiment} from 'sentry/utils/useExperiment';
+import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
+import useProjects from 'sentry/utils/useProjects';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -66,6 +71,39 @@ function hidePanel() {
   SidebarPanelStore.hidePanel();
 }
 
+function useOpenOnboardingSidebar(organization?: Organization) {
+  const [onboardingState] = usePersistedOnboardingState();
+  const {projects: project} = useProjects();
+  const location = useLocation();
+
+  const openOnboardingSidebar = (() => {
+    if (location?.hash === '#welcome') {
+      if (organization && !ConfigStore.get('demoMode')) {
+        const tasks = getMergedTasks({
+          organization,
+          projects: project,
+          onboardingState: onboardingState || undefined,
+        });
+
+        const allDisplayedTasks = tasks
+          .filter(task => task.display)
+          .filter(task => !task.renderCard);
+        const doneTasks = allDisplayedTasks.filter(isDone);
+
+        return !(doneTasks.length >= allDisplayedTasks.length);
+      }
+      return true;
+    }
+    return false;
+  })();
+
+  useEffect(() => {
+    if (openOnboardingSidebar) {
+      activatePanel(SidebarPanelKey.OnboardingWizard);
+    }
+  }, [openOnboardingSidebar]);
+}
+
 function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
@@ -73,9 +111,8 @@ function Sidebar({location, organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const {logExperiment, experimentAssignment} = useExperiment('APMSidebarExperiment', {
-    logExperimentOnMount: false,
-  });
+
+  useOpenOnboardingSidebar();
 
   const toggleCollapse = () => {
     const action = collapsed ? showSidebar : hideSidebar;
@@ -86,13 +123,6 @@ function Sidebar({location, organization}: Props) {
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
-
-  // log experiment on mount if feature enabled
-  useEffect(() => {
-    if (organization?.features.includes('performance-view')) {
-      logExperiment();
-    }
-  }, [logExperiment, organization?.features]);
 
   // Add classname to body
   useEffect(() => {
@@ -118,13 +148,6 @@ function Sidebar({location, organization}: Props) {
 
     return () => bcl.remove('collapsed');
   }, [collapsed, bcl]);
-
-  // Trigger panels depending on the location hash
-  useEffect(() => {
-    if (location?.hash === '#welcome') {
-      activatePanel(SidebarPanelKey.OnboardingWizard);
-    }
-  }, [location?.hash]);
 
   const hasPanel = !!activePanel;
   const hasOrganization = !!organization;
@@ -191,13 +214,25 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconLightning size="md" />}
-        label={
-          <GuideAnchor target="performance">
-            {experimentAssignment === 1 ? t('APM') : t('Performance')}
-          </GuideAnchor>
-        }
+        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/performance/`}
         id="performance"
+      />
+    </Feature>
+  );
+
+  const starfish = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:starfish-view"
+      features={['starfish-view']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconStar size="md" />}
+        label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/starfish/`}
+        id="starfish"
       />
     </Feature>
   );
@@ -343,6 +378,7 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {performance}
+                {starfish}
                 {profiling}
                 {replays}
                 {monitors}

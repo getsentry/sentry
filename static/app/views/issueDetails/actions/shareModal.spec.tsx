@@ -72,7 +72,7 @@ describe('shareModal', () => {
       ))
     );
 
-    userEvent.click(screen.getByLabelText('Unshare'));
+    await userEvent.click(screen.getByLabelText('Unshare'));
 
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
     expect(issuesApi).toHaveBeenCalledTimes(1);

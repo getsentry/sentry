@@ -38,6 +38,7 @@ export function ColumnsStep({
   const datasetConfig = getDatasetConfig(widgetType);
   return (
     <BuildStep
+      data-test-id="choose-column-step"
       title={t('Choose your columns')}
       description={
         dataSet === DataSet.ISSUES

@@ -45,7 +45,8 @@ export abstract class FlamegraphRenderer {
     const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
       this.frames,
       this.theme.COLORS.COLOR_MAPS[this.options.colorCoding],
-      this.theme.COLORS.COLOR_BUCKET
+      this.theme.COLORS.COLOR_BUCKET,
+      this.theme
     );
     this.colorBuffer = colorBuffer;
     this.colorMap = colorMap;
@@ -99,8 +100,6 @@ export abstract class FlamegraphRenderer {
     }
     return hoveredNode;
   }
-
-  abstract setHighlightedFrames(_frames: FlamegraphFrame[] | null);
 
   abstract setSearchResults(
     _query: string,

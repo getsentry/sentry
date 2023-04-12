@@ -384,14 +384,14 @@ describe('Dashboards > Detail', function () {
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
 
       // Enter edit mode.
-      userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
 
       // Remove the second and third widgets
-      userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
-      userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
+      await userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
+      await userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
 
       // Save changes
-      userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
 
       expect(updateMock).toHaveBeenCalled();
       expect(updateMock).toHaveBeenCalledWith(
@@ -460,7 +460,7 @@ describe('Dashboards > Detail', function () {
       );
 
       // Enter edit mode.
-      userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
       expect(await screen.findByRole('button', {name: 'Add widget'})).toBeInTheDocument();
     });
 
@@ -513,7 +513,7 @@ describe('Dashboards > Detail', function () {
       );
 
       // Enter edit mode.
-      userEvent.click(await screen.findByRole('button', {name: 'Edit Dashboard'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit Dashboard'}));
       expect(screen.queryByRole('button', {name: 'Add widget'})).not.toBeInTheDocument();
     });
 
@@ -560,21 +560,19 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
-      });
 
-      await screen.findByText('First Widget');
-      await screen.findByText('Second Widget');
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      expect(await screen.findByText('First Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Second Widget')).toBeInTheDocument();
     });
 
     it('does not trigger request if layout not updated', async () => {
@@ -603,22 +601,19 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
 
-        userEvent.click(screen.getByText('Edit Dashboard'));
-        userEvent.click(screen.getByText('Save and Finish'));
-        await tick();
-      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      await userEvent.click(await screen.findByText('Edit Dashboard'));
+      await userEvent.click(await screen.findByText('Save and Finish'));
 
       expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
       expect(mockPut).not.toHaveBeenCalled();
@@ -651,20 +646,17 @@ describe('Dashboards > Detail', function () {
         ),
       });
 
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
-      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
 
-      userEvent.click(await screen.findByText('Edit Dashboard'));
+      await userEvent.click(await screen.findByText('Edit Dashboard'));
       const widget = screen.getByText('First Widget').closest('.react-grid-item');
       const resizeHandle = within(widget).getByTestId('custom-resize-handle');
 
@@ -697,23 +689,19 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
-      });
 
-      await act(async () => {
-        userEvent.click(await screen.findByText('Edit Dashboard'));
-        userEvent.click(await screen.findByText('Cancel'));
-      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      await userEvent.click(await screen.findByText('Edit Dashboard'));
+      await userEvent.click(await screen.findByText('Cancel'));
 
       expect(window.confirm).not.toHaveBeenCalled();
     });
@@ -743,26 +731,25 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
       });
 
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
-            router={initialData.router}
-            location={{...initialData.router.location, pathname: '/widget/123/'}}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
-      });
-
-      expect(openWidgetViewerModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organization: initialData.organization,
-          widget,
-          onClose: expect.anything(),
-        })
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/123/'}}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
       );
+
+      await waitFor(() => {
+        expect(openWidgetViewerModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organization: initialData.organization,
+            widget,
+            onClose: expect.anything(),
+          })
+        );
+      });
     });
 
     it('redirects user to dashboard url if widget is not found', async () => {
@@ -781,7 +768,7 @@ describe('Dashboards > Detail', function () {
         {context: initialData.routerContext, organization: initialData.organization}
       );
 
-      await screen.findByText('All Releases');
+      expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
       expect(openWidgetViewerModal).not.toHaveBeenCalled();
       expect(initialData.router.replace).toHaveBeenCalledWith(
@@ -819,7 +806,7 @@ describe('Dashboards > Detail', function () {
         }
       );
 
-      userEvent.click(await screen.findByText('Save and Finish'));
+      await userEvent.click(await screen.findByText('Save and Finish'));
       expect(mockPOST).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/',
         expect.objectContaining({
@@ -859,7 +846,7 @@ describe('Dashboards > Detail', function () {
         }
       );
 
-      userEvent.click(await screen.findByText('Add Dashboard'));
+      await userEvent.click(await screen.findByText('Add Dashboard'));
       expect(mockPOST).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/',
         expect.objectContaining({
@@ -895,8 +882,8 @@ describe('Dashboards > Detail', function () {
         }
       );
 
-      userEvent.click(await screen.findByText('24H'));
-      userEvent.click(screen.getByText('Last 7 days'));
+      await userEvent.click(await screen.findByText('24H'));
+      await userEvent.click(screen.getByText('Last 7 days'));
       await screen.findByText('7D');
 
       expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
@@ -942,7 +929,7 @@ describe('Dashboards > Detail', function () {
         {context: testData.routerContext, organization: testData.organization}
       );
 
-      userEvent.click(await screen.findByText('Save'));
+      await userEvent.click(await screen.findByText('Save'));
 
       expect(mockPut).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
@@ -1003,10 +990,10 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText('7D');
-      userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
-      userEvent.click(screen.getByText('Clear'));
+      await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
+      await userEvent.click(screen.getByText('Clear'));
       screen.getByText('All Releases');
-      userEvent.click(document.body);
+      await userEvent.click(document.body);
 
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1048,7 +1035,7 @@ describe('Dashboards > Detail', function () {
         {context: testData.routerContext, organization: testData.organization}
       );
 
-      userEvent.click(await screen.findByText('Save'));
+      await userEvent.click(await screen.findByText('Save'));
 
       expect(mockPut).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
@@ -1103,11 +1090,11 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText('7D');
-      userEvent.click(await screen.findByText('All Releases'));
-      userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
-      userEvent.keyboard('{esc}');
+      await userEvent.click(await screen.findByText('All Releases'));
+      await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+      await userEvent.keyboard('{Escape}');
 
-      userEvent.click(screen.getByText('Cancel'));
+      await userEvent.click(screen.getByText('Cancel'));
 
       screen.getByText('All Releases');
       expect(browserHistory.replace).toHaveBeenCalledWith(
@@ -1298,7 +1285,7 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText(/not-selected-1/);
-      userEvent.click(screen.getByText('Cancel'));
+      await userEvent.click(screen.getByText('Cancel'));
 
       // release isn't used in the redirect
       expect(browserHistory.replace).toHaveBeenCalledWith(
@@ -1348,9 +1335,9 @@ describe('Dashboards > Detail', function () {
         {context: testData.routerContext, organization: testData.organization}
       );
 
-      userEvent.click(await screen.findByText('All Releases'));
-      userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
-      userEvent.click(document.body);
+      await userEvent.click(await screen.findByText('All Releases'));
+      await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+      await userEvent.click(document.body);
 
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1408,14 +1395,12 @@ describe('Dashboards > Detail', function () {
         {context: testData.routerContext, organization: testData.organization}
       );
 
-      userEvent.click(await screen.findByText('All Releases'));
-      userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
-      await act(async () => {
-        userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
-      });
+      await userEvent.click(await screen.findByText('All Releases'));
+      await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
+      await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears
-      expect(screen.getByText('Latest Release(s)')).toBeInTheDocument();
+      expect(await screen.findByText('Latest Release(s)')).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
     });
   });

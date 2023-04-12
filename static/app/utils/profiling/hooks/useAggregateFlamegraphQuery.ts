@@ -1,6 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -13,7 +13,7 @@ export function useAggregateFlamegraphQuery({transaction}: {transaction: string}
   const conditions = new MutableSearch([]);
   conditions.setFilterValues('transaction_name', [transaction]);
 
-  return useQuery<Profiling.ProfileInput>(
+  return useApiQuery<Profiling.Schema>(
     [
       url,
       {

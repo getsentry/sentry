@@ -1,4 +1,4 @@
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 type SimpleStub<T = any> = () => T;
 
@@ -22,6 +22,7 @@ type TestStubFixtures = {
   AuthProvider: OverridableStub;
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
+  AvailableNotificationActions: OverridableStub;
   BitbucketIntegrationConfig: SimpleStub;
   Breadcrumb: OverridableStub;
   Broadcast: OverridableStub;
@@ -100,6 +101,7 @@ type TestStubFixtures = {
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
   ReplayError: OverridableStub;
+  ReplayList: OverridableStubList<ReplayListRecord>;
   ReplayRRWebDivHelloWorld: OverridableStub;
   ReplayRRWebNode: OverridableStub;
   ReplayRecord: OverridableStub<ReplayRecord>;
@@ -135,6 +137,8 @@ type TestStubFixtures = {
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;
   SourceMapArtifact: OverridableStub;
+  SourceMapsDebugIDBundles: OverridableStub;
+  SourceMapsDebugIDBundlesArtifacts: OverridableStub;
   Span: OverridableStub;
   Subscriptions: OverridableStubList;
   TagValues: OverridableStubList;

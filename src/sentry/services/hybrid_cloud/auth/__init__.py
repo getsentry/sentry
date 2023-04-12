@@ -8,23 +8,38 @@ import base64
 import contextlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
-from django.contrib.auth.models import AnonymousUser
+from pydantic.fields import Field
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
-from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.organization import (
-    RpcOrganization,
-    RpcOrganizationMember,
-    RpcOrganizationMemberSummary,
-)
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-from sentry.utils.linksign import find_signature
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
+    from sentry.services.hybrid_cloud.organization import (
+        RpcOrganization,
+        RpcOrganizationMember,
+        RpcOrganizationMemberSummary,
+    )
 
 
 class RpcAuthenticatorType(IntEnum):
@@ -36,6 +51,8 @@ class RpcAuthenticatorType(IntEnum):
     def from_authenticator(
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
+        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+
         if auth == ApiKeyAuthentication:
             return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
@@ -43,6 +60,8 @@ class RpcAuthenticatorType(IntEnum):
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
+        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+
         if self == self.API_KEY_AUTHENTICATION:
             return ApiKeyAuthentication()
         if self == self.TOKEN_AUTHENTICATION:
@@ -83,14 +102,12 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
-@dataclass(eq=True)
-class RpcMemberSsoState:
+class RpcMemberSsoState(RpcModel):
     is_required: bool = False
     is_valid: bool = False
 
 
-@dataclass
-class RpcAuthState:
+class RpcAuthState(RpcModel):
     sso_state: RpcMemberSsoState
     permissions: List[str]
 
@@ -114,6 +131,8 @@ class AuthenticationRequest:
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
+    from sentry.utils.linksign import find_signature
+
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
@@ -132,13 +151,14 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
 
 @dataclass(eq=True)
 class AuthenticatedToken:
+    allowed_origins: List[str] = field(default_factory=list)
+    audit_log_data: Dict[str, Any] = field(default_factory=dict)
+    scopes: List[str] = field(default_factory=list)
     entity_id: Optional[int] = None
     kind: str = "system"
     user_id: Optional[int] = None  # only relevant for ApiToken
     organization_id: Optional[int] = None
-    allowed_origins: List[str] = field(default_factory=list)
-    audit_log_data: Dict[str, Any] = field(default_factory=dict)
-    scopes: List[str] = field(default_factory=list)
+    application_id: Optional[int] = None  # only relevant for ApiToken
 
     @classmethod
     def from_token(cls, token: Any) -> Optional["AuthenticatedToken"]:
@@ -155,13 +175,14 @@ class AuthenticatedToken:
             raise KeyError(f"Token {token} is a not a registered AuthenticatedToken type!")
 
         return cls(
+            allowed_origins=token.get_allowed_origins(),
+            scopes=token.get_scopes(),
+            audit_log_data=token.get_audit_log_data(),
             entity_id=getattr(token, "id", None),
             kind=kind,
             user_id=getattr(token, "user_id", None),
             organization_id=getattr(token, "organization_id", None),
-            allowed_origins=token.get_allowed_origins(),
-            audit_log_data=token.get_audit_log_data(),
-            scopes=token.get_scopes(),
+            application_id=getattr(token, "application_id", None),
         )
 
     @classmethod
@@ -200,7 +221,7 @@ class AuthenticationContext:
     auth: Optional[AuthenticatedToken] = None
     user: Optional[RpcUser] = None
 
-    def _get_user(self) -> Union[RpcUser, AnonymousUser]:
+    def _get_user(self) -> Union[RpcUser, "AnonymousUser"]:
         """
         Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
         """
@@ -255,52 +276,64 @@ class MiddlewareAuthenticationResponse(AuthenticationContext):
     user_from_signed_request: bool = False
 
 
-@dataclass(eq=True, frozen=True)
-class RpcAuthProviderFlags:
+class RpcAuthProviderFlags(RpcModel):
     allow_unlinked: bool = False
     scim_enabled: bool = False
 
 
-@dataclass(eq=True, frozen=True)
-class RpcAuthProvider:
+class RpcAuthProvider(RpcModel):
     id: int = -1
     organization_id: int = -1
     provider: str = ""
-    flags: RpcAuthProviderFlags = field(default_factory=lambda: RpcAuthProviderFlags())
+    flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
+
+    def __hash__(self) -> int:
+        return hash((self.id, self.organization_id, self.provider))
 
 
-@dataclass
-class RpcAuthIdentity:
+class RpcAuthIdentity(RpcModel):
     id: int = -1
     user_id: int = -1
     provider_id: int = -1
     ident: str = ""
 
 
-@dataclass(eq=True)
-class RpcOrganizationAuthConfig:
+class RpcOrganizationAuthConfig(RpcModel):
     organization_id: int = -1
     auth_provider: Optional[RpcAuthProvider] = None
     has_api_key: bool = False
 
 
-class AuthService(InterfaceWithLifecycle):
+class AuthService(RpcService):
+    key = "auth"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
+
+        return DatabaseBackedAuthService()
+
+    @rpc_method
     @abc.abstractmethod
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def authenticate_with(
         self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
     ) -> AuthenticationContext:
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def get_user_auth_state(
         self,
@@ -308,57 +341,46 @@ class AuthService(InterfaceWithLifecycle):
         user_id: int,
         is_superuser: bool,
         organization_id: Optional[int],
-        org_member: Optional[RpcOrganizationMemberSummary],
+        org_member: Optional["RpcOrganizationMemberSummary"],
     ) -> RpcAuthState:
         pass
 
     # TODO: Denormalize this scim enabled flag onto organizations?
     # This is potentially a large list
+    @rpc_method
     @abc.abstractmethod
-    def get_org_ids_with_scim(
-        self,
-    ) -> List[int]:
+    def get_org_ids_with_scim(self) -> List[int]:
         """
         This method returns a list of org ids that have scim enabled
         :return:
         """
         pass
 
+    @rpc_method
     @abc.abstractmethod
-    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
+    def get_auth_providers(self, *, organization_id: int) -> List[RpcAuthProvider]:
         """
         This method returns a list of auth providers for an org
         :return:
         """
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def handle_new_membership(
         self,
+        *,
         request: Request,
-        organization: RpcOrganization,
+        organization: "RpcOrganization",
         auth_identity: RpcAuthIdentity,
         auth_provider: RpcAuthProvider,
-    ) -> Tuple[RpcUser, RpcOrganizationMember]:
+    ) -> Tuple[RpcUser, "RpcOrganizationMember"]:
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
         pass
 
 
-def impl_with_db() -> AuthService:
-    from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
-
-    return DatabaseBackedAuthService()
-
-
-auth_service: AuthService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.CONTROL: impl_with_db,  # This eventually must become a DatabaseBackedAuthService, but use the new org member mapping table
-        SiloMode.REGION: stubbed(
-            impl_with_db, SiloMode.CONTROL
-        ),  # this must eventually be purely RPC
-    }
-)
+auth_service: AuthService = cast(AuthService, AuthService.create_delegation())

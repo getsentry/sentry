@@ -24,6 +24,7 @@ import {
   ExampleTransaction,
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 
 import {generateTransactionLink} from '../../utils';
 
@@ -89,22 +90,24 @@ export default function SpanTable(props: Props) {
 
   return (
     <Fragment>
-      <GridEditable
-        isLoading={isLoading}
-        data={data}
-        columnOrder={SPANS_TABLE_COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell: renderBodyCellWithMeta(
-            location,
-            organization,
-            transactionName,
-            suspectSpan
-          ),
-        }}
-        location={location}
-      />
+      <VisuallyCompleteWithData id="SpanDetails-SpanDetailsTable" hasData={!!data.length}>
+        <GridEditable
+          isLoading={isLoading}
+          data={data}
+          columnOrder={SPANS_TABLE_COLUMN_ORDER}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell,
+            renderBodyCell: renderBodyCellWithMeta(
+              location,
+              organization,
+              transactionName,
+              suspectSpan
+            ),
+          }}
+          location={location}
+        />
+      </VisuallyCompleteWithData>
       <Pagination pageLinks={pageLinks ?? null} />
     </Fragment>
   );
@@ -129,7 +132,7 @@ function renderBodyCellWithMeta(
   transactionName: string,
   suspectSpan?: SuspectSpan
 ) {
-  return (column: TableColumn, dataRow: TableDataRow): React.ReactNode => {
+  return function (column: TableColumn, dataRow: TableDataRow): React.ReactNode {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (

@@ -32,7 +32,7 @@ describe('event tags', function () {
       {organization}
     );
 
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -84,7 +84,7 @@ describe('event tags', function () {
     expect(screen.getByText('iOS')).toBeInTheDocument();
 
     expect(screen.getByText('app.device')).toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
 
     expect(
       await screen.findByText(
@@ -93,5 +93,37 @@ describe('event tags', function () {
         )
       ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
+  });
+  it('transacation tag links to transaction overview', function () {
+    const tags = [{key: 'transaction', value: 'mytransaction'}];
+
+    const event = {
+      ...TestStubs.Event(),
+      tags,
+    };
+
+    const {organization, project, router} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        relayPiiConfig: null,
+      },
+    });
+
+    render(
+      <EventTags
+        organization={organization}
+        projectSlug={project.slug}
+        location={router.location}
+        event={event}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('mytransaction')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/performance/summary/`
+    );
   });
 });

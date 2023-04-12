@@ -159,10 +159,19 @@ export type InboxReasonDetails = {
   window?: number | null;
 };
 
+export const enum GroupInboxReason {
+  NEW = 0,
+  UNIGNORED = 1,
+  REGRESSION = 2,
+  MANUAL = 3,
+  REPROCESSED = 4,
+  ESCALATING = 5,
+}
+
 export type InboxDetails = {
   reason_details: InboxReasonDetails;
   date_added?: string;
-  reason?: number;
+  reason?: GroupInboxReason;
 };
 
 export type SuggestedOwnerReason =
@@ -550,6 +559,8 @@ export type ProcessingIssueItem = {
     image_arch: string;
     image_path: string;
     image_uuid: string;
+    dist?: string;
+    release?: string;
   };
   id: string;
   lastSeen: string;

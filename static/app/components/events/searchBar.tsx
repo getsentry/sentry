@@ -20,7 +20,12 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {FieldKey, FieldKind} from 'sentry/utils/fields';
+import {
+  DEVICE_CLASS_TAG_VALUES,
+  FieldKey,
+  FieldKind,
+  isDeviceClass,
+} from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
@@ -158,6 +163,12 @@ function SearchBar(props: SearchBarProps) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
         return Promise.resolve([]);
+      }
+
+      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+      // and low search filter values because discover maps device.class to these values.
+      if (isDeviceClass(tag.key)) {
+        return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
       }
 
       return fetchTagValues({

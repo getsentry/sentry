@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -151,6 +151,9 @@ def handle_owner_assignment(job):
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
             from sentry.models import (
+                ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                ASSIGNEE_EXISTS_DURATION,
+                ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
                 ProjectOwnership,
@@ -186,13 +189,17 @@ def handle_owner_assignment(job):
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
                     # Is the issue already assigned to a team or user?
-                    assignee_key = f"assignee_exists:1:{group.id}"
+                    assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
                     assignees_exists = cache.get(assignee_key)
                     if assignees_exists is None:
                         assignees_exists = group.assignee_set.exists()
                         # Cache for 1 day if it's assigned. We don't need to move that fast.
                         cache.set(
-                            assignee_key, assignees_exists, 60 * 60 * 24 if assignees_exists else 60
+                            assignee_key,
+                            assignees_exists,
+                            ASSIGNEE_EXISTS_DURATION
+                            if assignees_exists
+                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
                         )
 
                     if assignees_exists:
@@ -459,7 +466,9 @@ def post_process_group(
                 return
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
-            event = eventstore.get_event_by_id(project_id, occurrence.event_id, group_id=group_id)
+            event = eventstore.get_event_by_id(
+                project_id, occurrence.event_id, group_id=group_id, skip_transaction_groupevent=True
+            )
 
         set_current_event_project(event.project_id)
 
@@ -537,12 +546,10 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
-    if group_event.group.issue_type.type_id in get_group_types_by_category(
-        GroupCategory.PROFILE.value
-    ) and not features.has(
-        "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
-    ):
+
+    if not group_event.group.issue_type.allow_post_process_group(group_event.group.organization):
         return
+
     if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE
@@ -779,7 +786,7 @@ def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import Commit, Integration
+    from sentry.models import Commit
     from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
@@ -807,13 +814,24 @@ def process_commits(job: PostProcessJob) -> None:
                 event_frames = get_frame_paths(event)
                 sdk_name = get_sdk_name(event.data)
 
-                integrations = Integration.objects.filter(
-                    organizations=event.project.organization,
-                    provider__in=["github", "gitlab"],
+                integration_cache_key = (
+                    f"commit-context-scm-integration:{event.project.organization_id}"
                 )
+                has_integrations = cache.get(integration_cache_key)
+                if has_integrations is None:
+                    from sentry.services.hybrid_cloud.integration import integration_service
+
+                    org_integrations = integration_service.get_organization_integrations(
+                        organization_id=event.project.organization_id,
+                        providers=["github", "gitlab"],
+                    )
+                    has_integrations = len(org_integrations) > 0
+                    # Cache the integrations check for 4 hours
+                    cache.set(integration_cache_key, has_integrations, 14400)
+
                 if (
                     features.has("organizations:commit-context", event.project.organization)
-                    and integrations.exists()
+                    and has_integrations
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):

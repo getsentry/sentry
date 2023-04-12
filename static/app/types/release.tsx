@@ -20,7 +20,7 @@ export type SourceMapsArchive = {
 export type Artifact = {
   dateCreated: string;
   dist: string | null;
-  headers: {'Content-Type': string};
+  headers: {'Content-Type': string} | {};
   id: string;
   name: string;
   sha1: string;
@@ -120,6 +120,7 @@ export type ReleaseProject = {
 };
 
 export type ReleaseMeta = {
+  bundleId: string | null;
   commitCount: number;
   commitFilesChanged: number;
   deployCount: number;

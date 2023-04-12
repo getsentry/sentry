@@ -21,6 +21,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import getPlatformName from 'sentry/utils/getPlatformName';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useProjects from 'sentry/utils/useProjects';
 import useTeams from 'sentry/utils/useTeams';
 
 import {OnboardingState} from '../types';
@@ -31,7 +32,7 @@ import GenericFooter from './genericFooter';
 type Props = {
   clearPlatforms: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
-  onComplete: () => void;
+  onComplete: (selectedPlatforms: PlatformKey[]) => void;
   organization: Organization;
   platforms: PlatformKey[];
 };
@@ -49,12 +50,33 @@ export default function CreateProjectsFooter({
 
   const api = useApi();
   const {teams} = useTeams();
-  const [persistedOnboardingState, setPersistedOnboardingState] =
-    usePersistedOnboardingState();
+  const [clientState, setClientState] = usePersistedOnboardingState();
+  const {projects} = useProjects();
 
   const createProjects = async () => {
-    if (!persistedOnboardingState) {
+    if (!clientState) {
       // Do nothing if client state is not loaded yet.
+      return;
+    }
+
+    const createProjectForPlatforms = platforms
+      .filter(platform => !clientState.platformToProjectIdMap[platform])
+      // filter out platforms that already have a project
+      .filter(platform => !projects.find(p => p.platform === platform));
+
+    if (createProjectForPlatforms.length === 0) {
+      setClientState({
+        platformToProjectIdMap: clientState.platformToProjectIdMap,
+        selectedPlatforms: platforms,
+        state: 'projects_selected',
+        url: 'setup-docs/',
+      });
+      trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
+        platforms: platforms.join(','),
+        platform_count: platforms.length,
+        organization,
+      });
+      onComplete(platforms);
       return;
     }
 
@@ -64,22 +86,20 @@ export default function CreateProjectsFooter({
       );
 
       const responses = await Promise.all(
-        platforms
-          .filter(platform => !persistedOnboardingState.platformToProjectIdMap[platform])
-          .map(platform =>
-            createProject(api, organization.slug, teams[0].slug, platform, platform, {
-              defaultRules: true,
-            })
-          )
+        createProjectForPlatforms.map(platform =>
+          createProject(api, organization.slug, teams[0].slug, platform, platform, {
+            defaultRules: true,
+          })
+        )
       );
       const nextState: OnboardingState = {
-        platformToProjectIdMap: persistedOnboardingState.platformToProjectIdMap,
+        platformToProjectIdMap: clientState.platformToProjectIdMap,
         selectedPlatforms: platforms,
         state: 'projects_selected',
         url: 'setup-docs/',
       };
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
-      setPersistedOnboardingState(nextState);
+      setClientState(nextState);
 
       responses.forEach(data => ProjectsStore.onCreateSuccess(data, organization.slug));
 
@@ -89,7 +109,7 @@ export default function CreateProjectsFooter({
         organization,
       });
       clearIndicators();
-      setTimeout(onComplete);
+      setTimeout(() => onComplete(platforms));
     } catch (err) {
       addErrorMessage(
         singleSelectPlatform

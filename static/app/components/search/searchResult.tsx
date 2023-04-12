@@ -37,6 +37,10 @@ function renderResultType({resultType, model}: Result['item']) {
   }
 }
 
+function HighlightedMarker(p: React.ComponentProps<typeof HighlightMarker>) {
+  return <HighlightMarker data-test-id="highlight" {...p} />;
+}
+
 function SearchResult({item, matches, highlighted}: Props) {
   const params = useParams<{orgId: string}>();
 
@@ -46,11 +50,6 @@ function SearchResult({item, matches, highlighted}: Props) {
     let {title, description} = item;
 
     if (matches) {
-      // TODO(ts) Type this better.
-      const HighlightedMarker = (p: any) => (
-        <HighlightMarker data-test-id="highlight" highlighted={highlighted} {...p} />
-      );
-
       const matchedTitle = matches && matches.find(({key}) => key === 'title');
       const matchedDescription =
         matches && matches.find(({key}) => key === 'description');

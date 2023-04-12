@@ -40,13 +40,13 @@ function initialize({project, features, transaction, query} = {}) {
   return data;
 }
 
-const WrappedComponent = ({organization, ...props}) => {
+function WrappedComponent({organization, ...props}) {
   return (
     <OrganizationContext.Provider value={organization}>
       <TransactionVitals organization={organization} {...props} />
     </OrganizationContext.Provider>
   );
-};
+}
 
 /**
  * These values are what we expect to see on the page based on the
@@ -300,7 +300,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('resets view properly', function () {
+    it('resets view properly', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fidStart: '20',
@@ -317,7 +317,7 @@ describe('Performance > Web Vitals', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.not.objectContaining(

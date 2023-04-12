@@ -56,7 +56,11 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       }
 
       setCurrentProject(
-        unsupportedProjects.find(p => p.id === String(pageFilters.selection.projects[0]))
+        // there's an edge case where an org w/ a single project may be unsupported but for whatever reason there is no project selection so we can't select a project
+        // in those cases we'll simply default to the first unsupportedProject
+        unsupportedProjects.find(
+          p => p.id === String(pageFilters.selection.projects[0])
+        ) ?? unsupportedProjects[0]
       );
       return;
     }
@@ -319,17 +323,21 @@ function OnboardingContent({
   );
 }
 
-const EventReceivedIndicator = () => (
-  <EventIndicator status="received">
-    {t("We've received this project's first profile!")}
-  </EventIndicator>
-);
+function EventReceivedIndicator() {
+  return (
+    <EventIndicator status="received">
+      {t("We've received this project's first profile!")}
+    </EventIndicator>
+  );
+}
 
-const EventWaitingIndicator = () => (
-  <EventIndicator status="waiting">
-    {t("Waiting for this project's first profile.")}
-  </EventIndicator>
-);
+function EventWaitingIndicator() {
+  return (
+    <EventIndicator status="waiting">
+      {t("Waiting for this project's first profile.")}
+    </EventIndicator>
+  );
+}
 
 const Heading = styled('div')`
   display: flex;

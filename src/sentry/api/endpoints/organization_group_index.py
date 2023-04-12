@@ -280,7 +280,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 direct_hit_projects = (
                     set(project_ids) | request.access.project_ids_with_team_membership
                 )
-                groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
+                groups = list(
+                    Group.objects.filter_by_event_id(
+                        direct_hit_projects,
+                        event_id,
+                        tenant_ids={"organization_id": organization.id},
+                    )
+                )
                 if len(groups) == 1:
                     serialized_groups = serialize(groups, request.user, serializer())
                     if event_id:
@@ -417,6 +423,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
+        :param string substatus: the new substatus for the issues. Valid values
+                                 defined in GroupSubStatus.
         :auth: required
         """
         projects = self.get_projects(request, organization)

@@ -19,7 +19,7 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink, IconProfiling} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -29,7 +29,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
+import {CustomProfiler} from 'sentry/utils/performanceForSentry';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -55,9 +55,9 @@ class TransactionDetail extends Component<Props> {
 
   renderTransactionErrors() {
     const {organization, transaction} = this.props;
-    const {errors} = transaction;
+    const {errors, performance_issues} = transaction;
 
-    if (errors.length === 0) {
+    if (errors.length + performance_issues.length === 0) {
       return null;
     }
 
@@ -65,7 +65,7 @@ class TransactionDetail extends Component<Props> {
       <Alert
         system
         type="error"
-        expand={errors.map(error => (
+        expand={[...errors, ...performance_issues].map(error => (
           <ErrorMessageContent key={error.event_id}>
             <ErrorDot level={error.level} />
             <ErrorLevel>{error.level}</ErrorLevel>
@@ -79,9 +79,9 @@ class TransactionDetail extends Component<Props> {
       >
         <ErrorMessageTitle>
           {tn(
-            '%s error event occurred in this transaction.',
-            '%s error events occurred in this transaction.',
-            errors.length
+            '%s issue occurred in this transaction.',
+            '%s issues occurred in this transaction.',
+            errors.length + performance_issues.length
           )}
         </ErrorMessageTitle>
       </Alert>
@@ -148,13 +148,8 @@ class TransactionDetail extends Component<Props> {
     }
 
     return (
-      <StyledButton
-        size="xs"
-        to={target}
-        onClick={handleOnClick}
-        icon={<IconProfiling size="xs" />}
-      >
-        {t('Go to Profile')}
+      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+        {t('View Profile')}
       </StyledButton>
     );
   }
@@ -287,7 +282,7 @@ class TransactionDetail extends Component<Props> {
 
   render() {
     return (
-      <CustomerProfiler id="TransactionDetail">
+      <CustomProfiler id="TransactionDetail">
         <TransactionDetailsContainer
           onClick={event => {
             // prevent toggling the transaction detail
@@ -297,7 +292,7 @@ class TransactionDetail extends Component<Props> {
           {this.renderTransactionErrors()}
           {this.renderTransactionDetail()}
         </TransactionDetailsContainer>
-      </CustomerProfiler>
+      </CustomProfiler>
     );
   }
 }

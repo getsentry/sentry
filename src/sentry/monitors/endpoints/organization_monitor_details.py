@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
+from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -20,7 +21,7 @@ from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorStatus
-from sentry.monitors.serializers import MonitorSerializerResponse
+from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
 
 from .base import MonitorEndpoint
@@ -35,7 +36,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         operation_id="Retrieve a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
@@ -48,13 +49,18 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Retrieves details for a monitor.
         """
-        return self.respond(serialize(monitor, request.user))
+
+        environments = get_environments(request, organization)
+
+        return self.respond(
+            serialize(monitor, request.user, MonitorSerializer(environments=environments))
+        )
 
     @extend_schema(
         operation_id="Update a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -74,6 +80,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             partial=True,
             instance={
                 "name": monitor.name,
+                "slug": monitor.slug,
                 "status": monitor.status,
                 "type": monitor.type,
                 "config": monitor.config,
@@ -118,7 +125,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         operation_id="Delete a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={

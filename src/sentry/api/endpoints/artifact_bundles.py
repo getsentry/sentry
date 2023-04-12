@@ -1,18 +1,41 @@
-from django.db import router
+from typing import Optional
+
+from django.db import transaction
+from django.db.models import Q
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist, SentryAPIException
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializer
 from sentry.models import ArtifactBundle, ProjectArtifactBundle
-from sentry.utils.db import atomic_transaction
+
+
+class InvalidSortByParameter(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "invalid_sort_by_parameter"
+    message = "You can either sort via 'date_added' or '-date_added'"
+
+
+class ArtifactBundlesMixin:
+    @classmethod
+    def derive_order_by(cls, sort_by: str) -> Optional[str]:
+        is_desc = sort_by.startswith("-")
+        sort_by = sort_by.strip("-")
+
+        if sort_by == "date_added":
+            order_by = "date_uploaded"
+            return f"-{order_by}" if is_desc else order_by
+
+        raise InvalidSortByParameter
 
 
 @region_silo_endpoint
-class ArtifactBundlesEndpoint(ProjectEndpoint):
+class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -27,55 +50,27 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to list the
                                      artifact bundles of.
         """
+        query = request.GET.get("query")
+
         try:
-            queryset = ProjectArtifactBundle.objects.filter(
-                organization_id=project.organization_id, project_id=project.id
-            ).values("artifact_bundle_id", "date_added")
+            queryset = ArtifactBundle.objects.filter(
+                organization_id=project.organization_id,
+                projectartifactbundle__project_id=project.id,
+            )
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
 
-        def expose_artifact_bundle(artifact_bundle, artifact_bundle_meta):
-            bundle_id, artifact_count = artifact_bundle_meta
-
-            return {
-                "type": "artifact_bundle",
-                "bundleId": str(bundle_id),
-                "date": artifact_bundle["date_added"],
-                "fileCount": artifact_count,
-            }
-
-        def serialize_results(results):
-            artifact_bundle_counts = ArtifactBundle.get_artifact_counts(
-                [r["artifact_bundle_id"] for r in results]
-            )
-
-            # We want to maintain the -date_added ordering, thus we index the metadata by using the id fetched with the
-            # first query.
-            return serialize(
-                [
-                    expose_artifact_bundle(
-                        artifact_bundle=r,
-                        artifact_bundle_meta=artifact_bundle_counts[r["artifact_bundle_id"]],
-                    )
-                    for r in results
-                    if r["artifact_bundle_id"] in artifact_bundle_counts
-                ],
-                request.user,
-            )
-
-        sort_by = request.GET.get("sortBy", "-date_added")
-        if sort_by not in {"-date_added", "date_added"}:
-            return Response(
-                {"error": "You can either sort via 'date_added' or '-date_added'"}, status=400
-            )
+        if query:
+            query_q = Q(bundle_id__icontains=query)
+            queryset = queryset.filter(query_q)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=sort_by,
+            order_by=self.derive_order_by(sort_by=request.GET.get("sortBy", "-date_added")),
             paginator_cls=OffsetPaginator,
             default_per_page=10,
-            on_results=serialize_results,
+            on_results=lambda r: serialize(r, request.user, ArtifactBundlesSerializer()),
         )
 
     def delete(self, request: Request, project) -> Response:
@@ -97,21 +92,15 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
 
         if bundle_id:
             try:
-                artifact_bundle = ArtifactBundle.objects.get(
-                    organization_id=project.organization_id, bundle_id=bundle_id
-                )
+                with transaction.atomic():
+                    ArtifactBundle.objects.get(
+                        organization_id=project.organization_id, bundle_id=bundle_id
+                    ).delete()
+
+                return Response(status=204)
             except ArtifactBundle.DoesNotExist:
                 return Response(
                     {"error": f"Couldn't find a bundle with bundle_id {bundle_id}"}, status=404
                 )
-
-            with atomic_transaction(using=router.db_for_write(ArtifactBundle)):
-                # We want to delete all the connections to a project.
-                ProjectArtifactBundle.objects.filter(artifact_bundle_id=artifact_bundle.id).delete()
-
-                # We also delete the bundle itself.
-                artifact_bundle.delete()
-
-                return Response(status=204)
 
         return Response({"error": f"Supplied an invalid bundle_id {bundle_id}"}, status=404)

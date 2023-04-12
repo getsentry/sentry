@@ -2,7 +2,6 @@ import pytest
 from django.db import connection
 
 from sentry import deletions
-from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import (
     ApiGrant,
     ApiToken,
@@ -10,6 +9,7 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     ServiceHook,
 )
+from sentry.sentry_apps import SentryAppInstallationCreator
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
@@ -28,7 +28,9 @@ class TestSentryAppIntallationDeletionTask(TestCase):
             events=("issue",),
         )
 
-        self.install = Creator.run(organization=self.org, slug="nulldb", user=self.user)
+        self.install = SentryAppInstallationCreator(organization_id=self.org.id, slug="nulldb").run(
+            user=self.user, request=None
+        )
 
     def test_deletes_grant(self):
         grant = self.install.api_grant
@@ -41,7 +43,7 @@ class TestSentryAppIntallationDeletionTask(TestCase):
         deletions.exec_sync(self.install)
 
     def test_deletes_api_tokens(self):
-        internal_app = self.create_internal_integration(organization=self.org, slug="internal")
+        internal_app = self.create_internal_integration(organization=self.org)
         install = SentryAppInstallation.objects.get(sentry_app_id=internal_app.id)
         api_token = install.api_token
 
@@ -51,7 +53,7 @@ class TestSentryAppIntallationDeletionTask(TestCase):
 
     def test_deletes_installation_provider(self):
         SentryAppInstallationForProvider.objects.create(
-            sentry_app_installation=self.install, organization=self.org, provider="vercel"
+            sentry_app_installation=self.install, organization_id=self.org.id, provider="vercel"
         )
         deletions.exec_sync(self.install)
 

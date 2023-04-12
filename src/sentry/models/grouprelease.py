@@ -19,7 +19,6 @@ from sentry.utils.hashlib import md5_text
 class GroupRelease(Model):
     __include_in_export__ = False
 
-    # TODO: Should be BoundedBigIntegerField
     project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField()
     # TODO: Should be BoundedBigIntegerField

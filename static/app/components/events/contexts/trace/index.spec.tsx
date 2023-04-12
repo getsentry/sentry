@@ -51,7 +51,7 @@ describe('trace event context', function () {
 
     expect(screen.getByText('Operation Name')).toBeInTheDocument(); // subject
     expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

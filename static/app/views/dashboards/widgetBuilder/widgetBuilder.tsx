@@ -161,11 +161,20 @@ function WidgetBuilder({
     defaultTableColumns = [defaultTableColumns];
   }
 
+  const hasReleaseHealthFeature = organization.features.includes('dashboards-rh-widget');
+
+  const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
+    if (widgetType === WidgetType.RELEASE) {
+      return hasReleaseHealthFeature;
+    }
+    return true;
+  });
+
   const isEditing = defined(widgetIndex);
   const widgetIndexNum = Number(widgetIndex);
   const isValidWidgetIndex =
     widgetIndexNum >= 0 &&
-    widgetIndexNum < dashboard.widgets.length &&
+    widgetIndexNum < filteredDashboardWidgets.length &&
     Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
 
@@ -260,7 +269,7 @@ function WidgetBuilder({
     }
 
     if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
+      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
 
       let queries;
       let newDisplayType = widgetFromDashboard.displayType;
@@ -999,6 +1008,7 @@ function WidgetBuilder({
                                 dataSet={state.dataSet}
                                 displayType={state.displayType}
                                 onChange={handleDataSetChange}
+                                hasReleaseHealthFeature={hasReleaseHealthFeature}
                               />
                               {isTabularChart && (
                                 <DashboardsMEPConsumer>

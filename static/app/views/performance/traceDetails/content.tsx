@@ -23,6 +23,7 @@ import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
@@ -175,13 +176,16 @@ class TraceDetailsContent extends Component<Props, State> {
 
   renderTraceHeader(traceInfo: TraceInfo) {
     const {meta} = this.props;
+    const errors = meta?.errors ?? traceInfo.errors.size;
+    const performanceIssues =
+      meta?.performance_issues ?? traceInfo.performanceIssues.size;
     return (
       <TraceDetailHeader>
         <GuideAnchor target="trace_view_guide_breakdown">
           <MetaData
             headingText={t('Event Breakdown')}
             tooltipText={t(
-              'The number of transactions and errors there are in this trace.'
+              'The number of transactions and issues there are in this trace.'
             )}
             bodyText={tct('[transactions]  |  [errors]', {
               transactions: tn(
@@ -189,7 +193,7 @@ class TraceDetailsContent extends Component<Props, State> {
                 '%s Transactions',
                 meta?.transactions ?? traceInfo.transactions.size
               ),
-              errors: tn('%s Error', '%s Errors', meta?.errors ?? traceInfo.errors.size),
+              errors: tn('%s Issue', '%s Issues', errors + performanceIssues),
             })}
             subtext={tn(
               'Across %s project',
@@ -303,16 +307,21 @@ class TraceDetailsContent extends Component<Props, State> {
         {this.renderTraceHeader(traceInfo)}
         {this.renderSearchBar()}
         <Margin>
-          <TraceView
-            filteredTransactionIds={this.state.filteredTransactionIds}
-            traceInfo={traceInfo}
-            location={location}
-            organization={organization}
-            traceEventView={traceEventView}
-            traceSlug={traceSlug}
-            traces={traces}
-            meta={meta}
-          />
+          <VisuallyCompleteWithData
+            id="PerformanceDetails-TraceView"
+            hasData={!!traces.length}
+          >
+            <TraceView
+              filteredTransactionIds={this.state.filteredTransactionIds}
+              traceInfo={traceInfo}
+              location={location}
+              organization={organization}
+              traceEventView={traceEventView}
+              traceSlug={traceSlug}
+              traces={traces}
+              meta={meta}
+            />
+          </VisuallyCompleteWithData>
         </Margin>
       </Fragment>
     );

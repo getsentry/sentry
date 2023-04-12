@@ -17,7 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Environment, Project, ProjectKey
+from sentry.models import Project, ProjectKey
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -26,9 +26,9 @@ from sentry.monitors.models import (
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
@@ -53,11 +53,16 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         },
     )
 
+    allow_auto_create_monitors = True
+    """
+    Creating a checkin supports automatic creation of monitors
+    """
+
     @extend_schema(
         operation_id="Create a new check-in",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorCheckInValidator,
         responses={
@@ -74,7 +79,12 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         },
     )
     def post(
-        self, request: Request, project, monitor, organization_slug: str | None = None
+        self,
+        request: Request,
+        project: Project,
+        monitor_slug: str,
+        monitor: Monitor | None,
+        organization_slug: str | None = None,
     ) -> Response:
         """
         Creates a new check-in for a monitor.
@@ -86,17 +96,26 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
-        if monitor.status in [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]:
+        if monitor and monitor.status in [
+            MonitorStatus.PENDING_DELETION,
+            MonitorStatus.DELETION_IN_PROGRESS,
+        ]:
             return self.respond(status=404)
 
-        serializer = MonitorCheckInValidator(
-            data=request.data, context={"project": project, "request": request}
+        checkin_validator = MonitorCheckInValidator(
+            data=request.data,
+            context={"project": project, "request": request, "monitor_slug": monitor_slug},
         )
-        if not serializer.is_valid():
-            return self.respond(serializer.errors, status=400)
+        if not checkin_validator.is_valid():
+            return self.respond(checkin_validator.errors, status=400)
+
+        if not monitor:
+            ratelimit_key = monitor_slug
+        else:
+            ratelimit_key = monitor.id
 
         if ratelimits.is_limited(
-            f"monitor-checkins:{monitor.id}",
+            f"monitor-checkins:{ratelimit_key}",
             limit=CHECKIN_QUOTA_LIMIT,
             window=CHECKIN_QUOTA_WINDOW,
         ):
@@ -105,23 +124,42 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
             )
 
-        result = serializer.validated_data
+        result = checkin_validator.validated_data
 
         with transaction.atomic():
-            environment_name = result.get("environment")
-            if not environment_name:
-                environment_name = "production"
+            monitor_data = result.get("monitor")
+            create_monitor = monitor_data and not monitor
+            update_monitor = monitor_data and monitor
 
-            environment = Environment.get_or_create(project=project, name=environment_name)
+            # Create a new monitor during checkin. Uses update_or_create to
+            # protect against races.
+            if create_monitor:
+                monitor, created = Monitor.objects.update_or_create(
+                    organization_id=project.organization_id,
+                    slug=monitor_data["slug"],
+                    defaults={
+                        "project_id": project.id,
+                        "name": monitor_data["name"],
+                        "status": monitor_data["status"],
+                        "type": monitor_data["type"],
+                        "config": monitor_data["config"],
+                    },
+                )
 
-            monitorenvironment_defaults = {
-                "status": monitor.status,
-                "next_checkin": monitor.next_checkin,
-                "last_checkin": monitor.last_checkin,
-            }
-            monitor_environment = MonitorEnvironment.objects.get_or_create(
-                monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
-            )[0]
+                if created:
+                    signal_first_monitor_created(project, request.user, True)
+
+            # Monitor does not exist and we have not created one
+            if not monitor:
+                return self.respond(status=404)
+
+            # Update monitor configuration during checkin if config is changed
+            if update_monitor and monitor_data["config"] != monitor.config:
+                monitor.update(config=monitor_data["config"])
+
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, result.get("environment")
+            )
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
@@ -131,15 +169,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
 
-            if not project.flags.has_cron_checkins:
-                # Backfill users that already have cron monitors
-                if not project.flags.has_cron_monitors:
-                    first_cron_monitor_created.send_robust(
-                        project=project, user=None, sender=Project
-                    )
-                first_cron_checkin_received.send_robust(
-                    project=project, monitor_id=str(monitor.guid), sender=Project
-                )
+            signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
@@ -149,18 +179,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
-                monitor_params = {
-                    "last_checkin": checkin.date_added,
-                    "next_checkin": monitor.get_next_scheduled_checkin(checkin.date_added),
-                }
-                if checkin.status == CheckInStatus.OK and monitor.status != MonitorStatus.DISABLED:
-                    monitor_params["status"] = MonitorStatus.OK
-                Monitor.objects.filter(id=monitor.id).exclude(
-                    last_checkin__gt=checkin.date_added
-                ).update(**monitor_params)
-                MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
-                    last_checkin__gt=checkin.date_added
-                ).update(**monitor_params)
+                monitor.mark_ok(checkin, checkin.date_added)
+                monitor_environment.mark_ok(checkin, checkin.date_added)
 
         if isinstance(request.auth, ProjectKey):
             return self.respond({"id": str(checkin.guid)}, status=201)

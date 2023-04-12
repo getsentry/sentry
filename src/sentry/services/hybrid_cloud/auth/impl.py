@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import base64
-import dataclasses
-from typing import List, Mapping, Tuple
+from typing import List, Mapping, Tuple, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -18,7 +17,6 @@ from sentry.models import (
     ApiToken,
     AuthIdentity,
     AuthProvider,
-    Organization,
     OrganizationMember,
     SentryAppInstallationToken,
     User,
@@ -51,8 +49,8 @@ from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
 
-_SSO_BYPASS = RpcMemberSsoState(False, True)
-_SSO_NONMEMBER = RpcMemberSsoState(False, False)
+_SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
+_SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
@@ -78,7 +76,7 @@ def query_sso_state(
         return _SSO_NONMEMBER
 
     try:
-        auth_provider = AuthProvider.objects.get(organization=member.organization_id)
+        auth_provider = AuthProvider.objects.get(organization_id=member.organization_id)
     except AuthProvider.DoesNotExist:
         return _SSO_BYPASS
 
@@ -134,10 +132,10 @@ def query_sso_state(
 
 class DatabaseBackedAuthService(AuthService):
     def _serialize_auth_provider_flags(self, ap: AuthProvider) -> RpcAuthProviderFlags:
-        d: dict[str, bool] = {}
-        for f in dataclasses.fields(RpcAuthProviderFlags):
-            d[f.name] = bool(ap.flags[f.name])
-        return RpcAuthProviderFlags(**d)
+        return cast(
+            RpcAuthProviderFlags,
+            RpcAuthProviderFlags.serialize_by_field_name(ap.flags, value_transform=bool),
+        )
 
     def _serialize_auth_provider(self, ap: AuthProvider) -> RpcAuthProvider:
         return RpcAuthProvider(
@@ -274,15 +272,11 @@ class DatabaseBackedAuthService(AuthService):
         user = User.objects.get(id=auth_identity.user_id)
         serial_user = serialize_rpc_user(user)
 
-        # This raises an AvailabilityError
-        # TODO: Extract ApiInviteHelper methods into new service methods
-        orm_org = Organization.objects.get(id=organization.id)
-
         # If the user is either currently *pending* invite acceptance (as indicated
         # from the invite token and member id in the session) OR an existing invite exists on this
         # organization for the email provided by the identity provider.
         invite_helper = ApiInviteHelper.from_session_or_email(
-            request=request, organization=orm_org, email=user.email
+            request=request, organization_id=organization.id, email=user.email
         )
 
         # If we are able to accept an existing invite for the user for this
@@ -300,12 +294,13 @@ class DatabaseBackedAuthService(AuthService):
         flags = RpcOrganizationMemberFlags(sso__linked=True)
         # if the org doesn't have the ability to add members then anyone who got added
         # this way should be disabled until the org upgrades
-        if not features.has("organizations:invite-members", orm_org):
+        if not features.has("organizations:invite-members", organization):
             flags.member_limit__restricted = True
 
         # Otherwise create a new membership
         om = organization_service.add_organization_member(
-            organization=organization,
+            organization_id=organization.id,
+            default_org_role=organization.default_role,
             role=organization.default_role,
             user=serial_user,
             flags=flags,

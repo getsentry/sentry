@@ -17,16 +17,17 @@ type ThreadInfo = {
 };
 
 function getThreadLabel(details: ThreadInfo) {
-  const threadLabel = details?.label || `<${t('unknown')}>`;
-  return details.state ? `${threadLabel} (${details.state})` : threadLabel;
+  return details?.label || `<${t('unknown')}>`;
 }
 
-const SelectedOption = ({id, details}: Props) => (
-  <Wrapper>
-    <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
-    <Label>{getThreadLabel(details)}</Label>
-  </Wrapper>
-);
+function SelectedOption({id, details}: Props) {
+  return (
+    <Wrapper>
+      <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
+      <Label>{getThreadLabel(details)}</Label>
+    </Wrapper>
+  );
+}
 
 export default SelectedOption;
 

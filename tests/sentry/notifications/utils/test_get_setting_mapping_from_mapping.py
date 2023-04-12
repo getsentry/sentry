@@ -1,18 +1,18 @@
-from unittest import TestCase
-
-from sentry.models import User
 from sentry.notifications.helpers import _get_setting_mapping_from_mapping
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
 
 class GetSettingMappingFromMappingTest(TestCase):
     def setUp(self):
-        self.user = User(id=1)
+
+        self.user = RpcActor.from_orm_user(self.create_user())
 
     def test_get_setting_mapping_from_mapping_issue_alerts(self):
         notification_settings = {

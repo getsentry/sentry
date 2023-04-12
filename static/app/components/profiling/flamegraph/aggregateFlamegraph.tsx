@@ -12,6 +12,8 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
+import {Flex} from 'sentry/components/profiling/flex';
+import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -20,10 +22,12 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {collapseSystemFrameStrategy} from 'sentry/utils/profiling/collapseSystemFrameStrategy';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphProfiles';
+import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {
@@ -35,10 +39,10 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
-  Rect,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
@@ -51,7 +55,7 @@ type FlamegraphCandidate = {
 
 function findLongestMatchingFrame(
   flamegraph: FlamegraphModel,
-  focusFrame: FlamegraphProfiles['highlightFrames']
+  focusFrame: FlamegraphSearch['highlightFrames']
 ): FlamegraphFrame | null {
   if (focusFrame === null) {
     return null;
@@ -64,7 +68,9 @@ function findLongestMatchingFrame(
     const frame = frames.pop()!;
     if (
       focusFrame.name === frame.frame.name &&
-      focusFrame.package === frame.frame.image &&
+      // the image name on a frame is optional treat it the same as the empty string
+      (focusFrame.package === (frame.frame.package || '') ||
+        focusFrame.package === (frame.frame.module || '')) &&
       (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
     ) {
       longestFrame = frame;
@@ -92,14 +98,17 @@ export function AggregateFlamegraph(): ReactElement {
   const setFlamegraphThemeMutation = useMutateFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
+  const {highlightFrames} = useFlamegraphSearch();
   const {colorCoding, sorting, view} = useFlamegraphPreferences();
-  const {threadId, highlightFrames} = profiles;
+  const {threadId} = profiles;
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
 
+  // TODO: this should live in flamegraphState?
+  const [collapseSystemFrames, setCollapseSystemFrames] = useState(true);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -130,11 +139,13 @@ export function AggregateFlamegraph(): ReactElement {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,
+      collapseStrategy: collapseSystemFrames ? collapseSystemFrameStrategy : undefined,
     });
+
     transaction.finish();
 
     return newFlamegraph;
-  }, [profile, sorting, threadId, view]);
+  }, [profile, sorting, threadId, view, collapseSystemFrames]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -214,7 +225,7 @@ export function AggregateFlamegraph(): ReactElement {
       const flamegraphFitTo = canvasHeight / flamegraph.depth;
       const minReadableRatio = 0.8; // this is quite small
       const fitToRatio = flamegraphFitTo / theme.SIZES.BAR_HEIGHT;
-      const barHeightRatio = Math.min(Math.max(minReadableRatio, fitToRatio), 1);
+      const barHeightRatio = Math.min(Math.max(minReadableRatio, fitToRatio), 1.2);
 
       // reduce the offset to leave just enough space for the toolbar
       theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET = 2.5;
@@ -225,7 +236,7 @@ export function AggregateFlamegraph(): ReactElement {
 
     // We skip `flamegraphCanvas` as it causes an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flamegraph, setFlamegraphThemeMutation]);
+  }, [flamegraph, setFlamegraphThemeMutation, flamegraphCanvas?.logicalSpace.height]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
   // any of the children components effects actually run. This way we do not lose events
@@ -399,11 +410,21 @@ export function AggregateFlamegraph(): ReactElement {
         disablePanX
         disableZoom
         disableGrid
+        disableCallOrderSort
       />
       <AggregateFlamegraphToolbar>
-        <Button size="xs" onClick={() => scheduler.dispatch('reset zoom')}>
-          {t('Reset Zoom')}
-        </Button>
+        <Flex justify="space-between" align="center">
+          <Button size="xs" onClick={() => scheduler.dispatch('reset zoom')}>
+            {t('Reset Zoom')}
+          </Button>
+          <Flex align="center" gap={space(1)}>
+            <span>{t('Collapse System Frames')}</span>
+            <SwitchButton
+              toggle={() => setCollapseSystemFrames(v => !v)}
+              isActive={collapseSystemFrames}
+            />
+          </Flex>
+        </Flex>
       </AggregateFlamegraphToolbar>
     </Fragment>
   );

@@ -1,18 +1,27 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, MutableSet, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    MutableSet,
+    Sequence,
+    Union,
+)
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
 from sentry import analytics
 from sentry.db.models.manager import BaseManager
+from sentry.models.actor import get_actor_id_for_user
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
-    get_target_id,
     transform_to_notification_settings_by_recipient,
     validate,
     where_should_recipient_be_notified,
@@ -23,6 +32,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
@@ -45,6 +55,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         type: NotificationSettingTypes,
         user: User | None = None,
         team: Team | None = None,
+        actor: RpcActor | None = None,
         project: Project | None = None,
         organization: Organization | None = None,
     ) -> NotificationSettingOptionValues:
@@ -56,7 +67,18 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         # The `unique_together` constraint should guarantee 0 or 1 rows, but
         # using `list()` rather than `.first()` to prevent Django from adding an
         # ordering that could make the query slow.
-        settings = list(self.find_settings(provider, type, user, team, project, organization))[:1]
+        if actor is None:
+            if user is not None:
+                actor = RpcActor.from_object(user)
+            if team is not None:
+                actor = RpcActor.from_object(team)
+        assert actor
+
+        settings = list(
+            self.find_settings(
+                provider, type, actor=actor, project=project, organization=organization
+            )
+        )[:1]
         return (
             NotificationSettingOptionValues(settings[0].value)
             if settings
@@ -97,8 +119,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         value: NotificationSettingOptionValues,
         user: User | None = None,
         team: Team | None = None,
-        project: Project | None = None,
-        organization: Organization | None = None,
+        actor: RpcActor | None = None,
+        project: Project | int | None = None,
+        organization: Organization | int | None = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -107,10 +130,19 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
           * Updating a user's per-project preferences
           * Updating a user's per-organization preferences
         """
-        target_id = get_target_id(user, team)
+
+        if actor is None:
+            if user is not None:
+                actor = RpcActor.from_object(user)
+            if team is not None:
+                actor = RpcActor.from_object(team)
+        assert actor
+
+        target_id = actor.actor_id
+        assert target_id, "None actor_id cannot have settings updated"
         analytics.record(
             "notifications.settings_updated",
-            target_type="user" if user else "team",
+            target_type="user" if actor.actor_type == ActorType.USER else "team",
             actor_id=target_id,
         )
 
@@ -119,8 +151,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             return self.remove_settings(
                 provider,
                 type,
-                user=user,
-                team=team,
+                actor=actor,
                 project=project,
                 organization=organization,
             )
@@ -128,8 +159,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         if not validate(type, value):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
-        scope_type, scope_identifier = get_scope(user, team, project, organization)
-        self._update_settings(provider, type, value, scope_type, scope_identifier, target_id)
+        scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
+        self._update_settings(
+            provider=provider,
+            type=type,
+            value=value,
+            scope_type=scope_type,
+            scope_identifier=scope_identifier,
+            target_id=target_id,
+        )
 
     def remove_settings(
         self,
@@ -137,15 +175,24 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         type: NotificationSettingTypes,
         user: User | None = None,
         team: Team | None = None,
-        project: Project | None = None,
-        organization: Organization | None = None,
+        actor: RpcActor | None = None,
+        project: Project | int | None = None,
+        organization: Organization | int | None = None,
     ) -> None:
         """
         We don't anticipate this function will be used by the API but is useful
         for tests. This can also be called by `update_settings` when attempting
         to set a notification preference to DEFAULT.
         """
-        self.find_settings(provider, type, user, team, project, organization).delete()
+        if actor is None:
+            if user is not None:
+                actor = RpcActor.from_object(user)
+            if team is not None:
+                actor = RpcActor.from_object(team)
+        assert actor
+        self.find_settings(
+            provider, type, actor=actor, project=project, organization=organization
+        ).delete()
 
     def _filter(
         self,
@@ -213,46 +260,29 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         type: NotificationSettingTypes,
         user: User | None = None,
         team: Team | None = None,
-        project: Project | None = None,
-        organization: Organization | None = None,
+        actor: RpcActor | None = None,
+        project: Project | int | None = None,
+        organization: Organization | int | None = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates object parameters to scopes and targets."""
-        scope_type, scope_identifier = get_scope(user, team, project, organization)
-        target_id = get_target_id(user, team)
-        return self._filter(provider, type, scope_type, scope_identifier, [target_id])
+        if actor is None:
+            if user is not None:
+                actor = RpcActor.from_object(user)
+            if team is not None:
+                actor = RpcActor.from_object(team)
+        assert actor
 
-    def get_for_user_by_projects(
-        self,
-        type: NotificationSettingTypes,
-        user: User,
-        parents: list[Organization | Project],
-    ) -> QuerySet:
-        """
-        Find all of a user's notification settings for a list of projects or
-        organizations. This will include the user's parent-independent setting.
-        """
-        scope_type = get_scope_type(type)
-        return self.filter(
-            Q(
-                scope_type=scope_type.value,
-                scope_identifier__in=[parent.id for parent in parents],
-            )
-            | Q(
-                scope_type=NotificationScopeType.USER.value,
-                scope_identifier=user.id,
-            ),
-            type=type.value,
-            target_id=user.actor_id,
-        )
+        scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
+        target_id = actor.actor_id
+        assert target_id, "Cannot find settings for None actor_id"
+        return self._filter(provider, type, scope_type, scope_identifier, [target_id])
 
     def get_for_recipient_by_parent(
         self,
         type_: NotificationSettingTypes,
         parent: Organization | Project,
-        recipients: Iterable[Team | User | RpcUser],
+        recipients: Iterable[RpcActor | Team | User | RpcUser],
     ) -> QuerySet:
-        from sentry.models import Team
-
         """
         Find all of a project/organization's notification settings for a list of
         users or teams. Note that this WILL work with a mixed list. This will
@@ -262,12 +292,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_ids: MutableSet[int] = set()
         actor_ids: MutableSet[int] = set()
 
-        for recipient in recipients:
-            if type(recipient) == Team:
+        for raw_recipient in recipients:
+            recipient = RpcActor.from_object(raw_recipient)
+            if recipient.actor_type == ActorType.TEAM:
                 team_ids.add(recipient.id)
-            if recipient.class_name() == "User":
+            if recipient.actor_type == ActorType.USER:
                 user_ids.add(recipient.id)
-            actor_ids.add(recipient.actor_id)
+            if recipient.actor_id is not None:
+                actor_ids.add(recipient.actor_id)
 
         # If the list would be empty, don't bother querying.
         if not actor_ids:
@@ -294,23 +326,25 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_accepting_recipients(
         self,
         parent: Union[Organization, Project],
-        recipients: Iterable[Team | RpcUser],
+        recipients: Iterable[RpcActor | Team | RpcUser],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-    ) -> Mapping[ExternalProviders, Iterable[Team | RpcUser]]:
+    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
         Filters a list of teams or users down to the recipients by provider who
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
+        recipient_actors = [RpcActor.from_object(r) for r in recipients]
+
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
-            type=type, parent_id=parent.id, recipients=list(recipients)
+            type=type, parent_id=parent.id, recipients=recipient_actors
         )
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-            notification_settings, recipients
+            notification_settings, recipient_actors
         )
 
         mapping = defaultdict(set)
-        for recipient in recipients:
+        for recipient in recipient_actors:
             providers = where_should_recipient_be_notified(
                 notification_settings_by_recipient, recipient, type
             )
@@ -320,7 +354,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def get_notification_recipients(
         self, project: Project
-    ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
@@ -337,14 +371,23 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def update_settings_bulk(
         self,
         notification_settings: Sequence[NotificationSetting],
-        user: User | None = None,
         team: Team | None = None,
+        user: User | None = None,
+        actor: RpcActor | None = None,
     ) -> None:
         """
         Given a list of _valid_ notification settings as tuples of column
         values, save them to the DB. This does not execute as a transaction.
         """
-        target_id = get_target_id(user, team)
+        if actor is None:
+            if user is not None:
+                actor = RpcActor.from_object(user)
+            if team is not None:
+                actor = RpcActor.from_object(team)
+        assert actor
+
+        target_id = actor.actor_id
+        assert target_id, "Cannot update settings for None actor_id"
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:
@@ -355,24 +398,22 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 )
         analytics.record(
             "notifications.settings_updated",
-            target_type="user" if user else "team",
+            target_type="user" if actor.actor_type == ActorType.USER else "team",
             actor_id=target_id,
         )
 
     def remove_parent_settings_for_organization(
-        self, organization: Organization, provider: ExternalProviders | None = None
+        self, organization_id: int, project_ids: List[int], provider: ExternalProviders
     ) -> None:
         """Delete all parent-specific notification settings referencing this organization."""
         kwargs = {}
-        if provider:
-            kwargs["provider"] = provider.value
+        kwargs["provider"] = provider.value
 
-        project_ids = [project.id for project in organization.project_set.all()]
         self.filter(
             Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier__in=project_ids)
             | Q(
                 scope_type=NotificationScopeType.ORGANIZATION.value,
-                scope_identifier=organization.id,
+                scope_identifier=organization_id,
             ),
             **kwargs,
         ).delete()
@@ -393,13 +434,16 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     type=type.value,
                     scope_type=NotificationScopeType.USER.value,
                     scope_identifier=user.id,
-                    target_id=user.actor_id,
+                    target_id=get_actor_id_for_user(user),
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
 
     def has_any_provider_settings(
-        self, recipient: Team | User, provider: ExternalProviders
+        self, recipient: RpcActor | Team | User, provider: ExternalProviders
     ) -> bool:
+        if recipient.actor_id is None:
+            return False
+
         # Explicitly typing to satisfy mypy.
         has_settings: bool = (
             self._filter(provider=provider, target_ids={recipient.actor_id})
@@ -416,7 +460,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def enable_settings_for_user(
         self,
-        recipient: User,
+        recipient: User | RpcUser,
         provider: ExternalProviders,
         types: set[NotificationSettingTypes] | None = None,
     ) -> None:
@@ -425,5 +469,5 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 provider=provider,
                 type=type_,
                 value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
-                user=recipient,
+                actor=RpcActor.from_object(recipient),
             )

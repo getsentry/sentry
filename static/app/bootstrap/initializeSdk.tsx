@@ -2,12 +2,12 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import {Integrations} from '@sentry/tracing';
+import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
-import {addExtraMeasurements} from 'sentry/utils/performanceForSentry';
+import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const SPA_MODE_ALLOW_URLS = [
@@ -20,7 +20,7 @@ const SPA_MODE_ALLOW_URLS = [
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
-const shouldEnableBrowserProfiling = false; // window?.__initialData?.user?.isSuperuser;
+const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
 /**
  * We accept a routes argument here because importing `static/routes`
  * is expensive in regards to bundle size. Some entrypoints may opt to forgo
@@ -31,7 +31,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
   const extraTracingOrigins = SPA_DSN
     ? SPA_MODE_ALLOW_URLS
     : [...sentryConfig?.whitelistUrls];
-  const partialTracingOptions: Partial<Integrations.BrowserTracing['options']> = {
+  const partialTracingOptions: Partial<BrowserTracing['options']> = {
     tracingOrigins: ['localhost', /^\//, ...extraTracingOrigins],
   };
 
@@ -40,7 +40,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    new Integrations.BrowserTracing({
+    new BrowserTracing({
       ...(typeof routes === 'function'
         ? {
             routingInstrumentation: Sentry.reactRouterV3Instrumentation(
@@ -98,6 +98,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     },
     beforeSendTransaction(event) {
       addExtraMeasurements(event);
+      addUIElementTag(event);
 
       event.spans = event.spans?.filter(span => {
         // Filter analytic timeout spans.

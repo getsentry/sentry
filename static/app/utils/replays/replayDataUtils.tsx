@@ -73,6 +73,11 @@ export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: strin
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags
+  const user = Object.fromEntries(
+    Object.entries(apiResponse.user)
+      .filter(([key, value]) => key !== 'display_name' && value)
+      .map(([key, value]) => [`user.${key}`, [value]])
+  );
   const unorderedTags: ReplayRecord['tags'] = {
     ...apiResponse.tags,
     ...(apiResponse.browser?.name ? {'browser.name': [apiResponse.browser.name]} : {}),
@@ -87,11 +92,12 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
     ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
     ...(apiResponse.releases ? {releases: [...apiResponse.releases]} : {}),
+    ...(apiResponse.replay_type ? {replayType: [apiResponse.replay_type]} : {}),
     ...(apiResponse.os?.name ? {'os.name': [apiResponse.os.name]} : {}),
     ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
     ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
     ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
-    ...(apiResponse.user?.ip ? {'user.ip': [apiResponse.user.ip]} : {}),
+    ...user,
   };
 
   // Sort the tags by key
@@ -216,9 +222,22 @@ export function breadcrumbFactory(
 
   const rawCrumbsWithTimestamp: RawCrumb[] = rawCrumbs
     .filter(crumb => {
-      return !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '');
+      return (
+        !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '') &&
+        // Explicitly include replay breadcrumbs to ensure we have valid UI for them
+        (!crumb.category?.startsWith('replay') || crumb.category === 'replay.mutations')
+      );
     })
     .map(crumb => {
+      if (crumb.category === 'replay.mutations') {
+        return {
+          ...crumb,
+          type: BreadcrumbType.WARNING,
+          level: BreadcrumbLevelType.WARNING,
+          timestamp: new Date(crumb.timestamp * 1000).toISOString(),
+        };
+      }
+
       return {
         ...crumb,
         type: BreadcrumbType.DEFAULT,
@@ -247,6 +266,30 @@ export function spansFactory(spans: ReplaySpan[]) {
 }
 
 /**
+ * Calculate min/max of an array simultaniously.
+ * This prevents two things:
+ * - Avoid extra allocations and iterations, just loop through once.
+ * - Avoid `Maximum call stack size exceeded` when the array is too large
+ *   `Math.min()` & `Math.max()` will throw after about ~10⁷ which is A LOT of items.
+ *   See: https://stackoverflow.com/a/52613386
+ *
+ * `lodash.min()` & `lodash.max()` are also options, they use a while-loop as here,
+ * but that also includes a comparator function
+ */
+function getMinMax(arr) {
+  let len = arr.length;
+  let min = Infinity;
+  let max = -Infinity;
+
+  while (len--) {
+    min = arr[len] < min ? arr[len] : min;
+    max = arr[len] > max ? arr[len] : max;
+  }
+
+  return {min, max};
+}
+
+/**
  * We need to figure out the real start and end timestamps based on when
  * first and last bits of data were collected. In milliseconds.
  *
@@ -259,25 +302,34 @@ export function replayTimestamps(
   rawSpanData: ReplaySpan[]
 ) {
   const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
-  const breadcrumbTimestamps = (
-    rawCrumbs.map(rawCrumb => rawCrumb.timestamp).filter(Boolean) as number[]
-  )
-    .map(timestamp => +new Date(timestamp * 1000))
+  const breadcrumbTimestamps = rawCrumbs
+    .map(rawCrumb => rawCrumb.timestamp)
     .filter(Boolean);
   const rawSpanDataFiltered = rawSpanData.filter(
     ({op}) => op !== 'largest-contentful-paint'
   );
-  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp * 1000);
-  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp * 1000);
+  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp);
+  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp);
+
+  // Calculate min/max of each array individually, to prevent extra allocations.
+  // Also using `getMinMax()` so we can handle any huge arrays.
+  const {min: minRRWeb, max: maxRRWeb} = getMinMax(rrwebTimestamps);
+  const {min: minCrumbs, max: maxCrumbs} = getMinMax(breadcrumbTimestamps);
+  const {min: minSpanStarts} = getMinMax(spanStartTimestamps);
+  const {max: maxSpanEnds} = getMinMax(spanEndTimestamps);
 
   return {
     startTimestampMs: Math.min(
       replayRecord.started_at.getTime(),
-      ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanStartTimestamps]
+      minRRWeb,
+      minCrumbs * 1000,
+      minSpanStarts * 1000
     ),
     endTimestampMs: Math.max(
       replayRecord.finished_at.getTime(),
-      ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanEndTimestamps]
+      maxRRWeb,
+      maxCrumbs * 1000,
+      maxSpanEnds * 1000
     ),
   };
 }

@@ -8,7 +8,7 @@ type Props = {
   sentryApp?: AvatarSentryApp;
 } & BaseAvatar['props'];
 
-const SentryAppAvatar = ({isColor = true, sentryApp, isDefault, ...props}: Props) => {
+function SentryAppAvatar({isColor = true, sentryApp, isDefault, ...props}: Props) {
   const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
   const defaultSentryAppAvatar = (
     <IconGeneric
@@ -31,6 +31,6 @@ const SentryAppAvatar = ({isColor = true, sentryApp, isDefault, ...props}: Props
       backupAvatar={defaultSentryAppAvatar}
     />
   );
-};
+}
 
 export default SentryAppAvatar;

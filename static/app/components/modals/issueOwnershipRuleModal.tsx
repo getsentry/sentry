@@ -1,9 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Event, Organization, Project} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import theme from 'sentry/utils/theme';
 import ProjectOwnershipModal from 'sentry/views/settings/project/projectOwnership/modal';
 
@@ -14,7 +15,7 @@ interface CreateOwnershipRuleProps extends ModalRenderProps {
   eventData?: Event;
 }
 
-const IssueOwnershipRuleModal = ({
+function IssueOwnershipRuleModal({
   Body,
   Header,
   Footer: _Footer,
@@ -23,7 +24,14 @@ const IssueOwnershipRuleModal = ({
   issueId,
   eventData,
   closeModal,
-}: CreateOwnershipRuleProps) => {
+}: CreateOwnershipRuleProps) {
+  useEffect(() => {
+    trackIntegrationAnalytics('project_ownership.modal_opened', {
+      page: 'issue_details',
+      organization,
+    });
+  }, [organization]);
+
   return (
     <Fragment>
       <Header closeButton>
@@ -40,7 +48,7 @@ const IssueOwnershipRuleModal = ({
       </Body>
     </Fragment>
   );
-};
+}
 
 export const modalCss = css`
   @media (min-width: ${theme.breakpoints.small}) {

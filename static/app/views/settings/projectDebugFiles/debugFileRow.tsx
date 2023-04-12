@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
 
-import {getFeatureTooltip, getFileType} from './utils';
+import {getFeatureTooltip, getPrettyFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;
@@ -27,27 +27,16 @@ type Props = {
   showDetails: boolean;
 };
 
-const DebugFileRow = ({
+function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
   downloadRole,
   onDelete,
   orgSlug,
-}: Props) => {
-  const {
-    id,
-    data,
-    debugId,
-    uuid,
-    size,
-    dateCreated,
-    objectName,
-    cpuName,
-    symbolType,
-    codeId,
-  } = debugFile;
-  const fileType = getFileType(debugFile);
+}: Props) {
+  const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
+    debugFile;
   const {features} = data || {};
 
   return (
@@ -71,11 +60,7 @@ const DebugFileRow = ({
             : objectName}
         </Name>
         <Description>
-          <DescriptionText>
-            {symbolType === 'proguard' && cpuName === 'any'
-              ? t('proguard mapping')
-              : `${cpuName} (${symbolType}${fileType ? ` ${fileType}` : ''})`}
-          </DescriptionText>
+          <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
 
           {features && (
             <FeatureTags>
@@ -153,7 +138,7 @@ const DebugFileRow = ({
       </RightColumn>
     </Fragment>
   );
-};
+}
 
 const DescriptionText = styled('span')`
   display: inline-flex;

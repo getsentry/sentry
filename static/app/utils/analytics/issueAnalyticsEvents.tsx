@@ -1,5 +1,7 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import {IntegrationType} from 'sentry/types';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
 type IssueStream = {
   group_id: string;
@@ -12,6 +14,13 @@ type SourceMapDebugParam = {
   group_id?: string;
 } & BaseEventAnalyticsParams;
 
+interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
+
+interface ExternalIssueParams extends CommonGroupAnalyticsData {
+  external_issue_provider: string;
+  external_issue_type: IntegrationType;
+}
+
 export type IssueEventParameters = {
   'event_cause.dismissed': {};
   'event_cause.docs_clicked': {};
@@ -23,12 +32,13 @@ export type IssueEventParameters = {
   'inbox_tab.issue_clicked': {
     group_id: string;
   };
-  'issue.quick_trace_status': {
-    is_performance_issue: boolean;
-    status: string;
-  };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.copy_event_link_clicked': GroupEventParams;
+  'issue_details.event_details_clicked': GroupEventParams;
+  'issue_details.external_issue_created': ExternalIssueParams;
+  'issue_details.external_issue_modal_opened': ExternalIssueParams;
+  'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
@@ -60,6 +70,10 @@ export type IssueEventParameters = {
     error_type: string[];
     group?: string;
     platform?: string;
+  };
+  'issue_group_details.anr_root_cause_detected': {
+    culprit?: string;
+    group?: string;
   };
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked': {
     platform?: string;
@@ -116,6 +130,9 @@ export type IssueEventParameters = {
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
+  'issues_stream.issue_category_dropdown_changed': {
+    category: string;
+  };
   'issues_stream.issue_clicked': IssueStream;
   'issues_stream.paginate': {
     direction: string;
@@ -152,6 +169,9 @@ export type IssueEventParameters = {
   };
   'quick_trace.node.clicked': {
     node_key: string;
+  };
+  'quick_trace.trace_id.clicked': {
+    source: string;
   };
   resolve_issue: {release: string};
   'source_map_debug.docs_link_clicked': SourceMapDebugParam;
@@ -192,18 +212,20 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
+  'issues_stream.issue_category_dropdown_changed':
+    'Issues Stream: Issue Category Dropdown Changed',
   'issue.shared_publicly': 'Issue Shared Publicly',
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
     'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
-  'issue.quick_trace_status': 'Issue Quick Trace Status',
   'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
   'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
   'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
   'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
   'quick_trace.node.clicked': 'Quick Trace: Node clicked',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
+  'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
@@ -223,4 +245,11 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Hidden Spans Expanded',
   'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
+  'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
+  'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
+  'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
+  'issue_details.external_issue_modal_opened':
+    'Issue Details: External Issue Modal Opened',
+  'issue_details.external_issue_created': 'Issue Details: External Issue Created',
 };

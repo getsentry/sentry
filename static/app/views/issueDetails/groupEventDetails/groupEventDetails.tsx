@@ -9,6 +9,7 @@ import {Client} from 'sentry/api';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import GroupSidebar from 'sentry/components/group/sidebar';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
@@ -25,19 +26,25 @@ import {
   Project,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
+import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 
-import GroupEventToolbar from '../eventToolbar';
 import ReprocessingProgress from '../reprocessingProgress';
 import {
   getEventEnvironment,
   getGroupMostRecentActivity,
   ReprocessingStatus,
 } from '../utils';
+
+const IssuePriorityFeedback = HookOrDefault({
+  hookName: 'component:issue-priority-feedback',
+});
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
@@ -55,13 +62,11 @@ export interface GroupEventDetailsProps
 
 type State = {
   eventNavLinks: string;
-  releasesCompletion: any;
 };
 
 class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
   state: State = {
     eventNavLinks: '',
-    releasesCompletion: null,
   };
 
   componentDidMount() {
@@ -110,18 +115,11 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     this.props.api.clear();
   }
 
-  fetchData = async () => {
+  fetchData = () => {
     const {api, project, organization} = this.props;
     const orgSlug = organization.slug;
-    const projSlug = project.slug;
     const projectId = project.id;
 
-    /**
-     * Perform below requests in parallel
-     */
-    const releasesCompletionPromise = api.requestPromise(
-      `/projects/${orgSlug}/${projSlug}/releases/completion/`
-    );
     fetchSentryAppInstallations(api, orgSlug);
 
     // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
@@ -134,9 +132,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         Sentry.captureMessage('Project ID was not set');
       });
     }
-
-    const releasesCompletion = await releasesCompletionPromise;
-    this.setState({releasesCompletion});
   };
 
   renderContent(eventWithMeta?: Event) {
@@ -215,6 +210,8 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
       location,
       event,
       groupReprocessingStatus,
+      loadingEvent,
+      eventError,
     } = this.props;
 
     const eventWithMeta = withMeta(event);
@@ -224,69 +221,74 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     const {activity: activities} = group;
     const mostRecentActivity = getGroupMostRecentActivity(activities);
 
-    const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-
     return (
       <TransactionProfileIdProvider
         projectId={event?.projectID}
         transactionId={event?.type === 'transaction' ? event.id : undefined}
         timestamp={event?.dateReceived}
       >
-        <StyledLayoutBody data-test-id="group-event-details">
-          {hasReprocessingV2Feature &&
-          groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-            <ReprocessingProgress
-              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
-              pendingEvents={
-                (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
-                  .pendingEvents
-              }
-            />
-          ) : (
-            <Fragment>
-              <QuickTraceQuery
-                event={eventWithMeta}
-                location={location}
-                orgSlug={organization.slug}
-              >
-                {results => {
-                  return (
-                    <StyledLayoutMain>
-                      {this.renderGroupStatusBanner()}
-                      <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && (
-                          <GroupEventToolbar
-                            group={group}
-                            event={eventWithMeta}
-                            organization={organization}
-                            location={location}
-                            project={project}
-                            hasReplay={hasReplay}
-                          />
-                        )}
-                        {this.renderReprocessedBox(
-                          groupReprocessingStatus,
-                          mostRecentActivity as GroupActivityReprocess
-                        )}
-                        {this.renderContent(eventWithMeta)}
-                      </QuickTraceContext.Provider>
-                    </StyledLayoutMain>
-                  );
-                }}
-              </QuickTraceQuery>
-
-              <StyledLayoutSide>
-                <GroupSidebar
-                  organization={organization}
-                  project={project}
-                  group={group}
+        <VisuallyCompleteWithData
+          id="IssueDetails-EventBody"
+          hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
+        >
+          <StyledLayoutBody data-test-id="group-event-details">
+            {hasReprocessingV2Feature &&
+            groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+              <ReprocessingProgress
+                totalEvents={
+                  (mostRecentActivity as GroupActivityReprocess).data.eventCount
+                }
+                pendingEvents={
+                  (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
+                    .pendingEvents
+                }
+              />
+            ) : (
+              <Fragment>
+                <QuickTraceQuery
                   event={eventWithMeta}
-                  environments={environments}
-                />
-              </StyledLayoutSide>
-            </Fragment>
-          )}
-        </StyledLayoutBody>
+                  location={location}
+                  orgSlug={organization.slug}
+                >
+                  {results => {
+                    return (
+                      <StyledLayoutMain>
+                        {this.renderGroupStatusBanner()}
+                        <IssuePriorityFeedback
+                          organization={organization}
+                          group={group}
+                        />
+                        <QuickTraceContext.Provider value={results}>
+                          {eventWithMeta && (
+                            <GroupEventHeader
+                              group={group}
+                              event={eventWithMeta}
+                              project={project}
+                            />
+                          )}
+                          {this.renderReprocessedBox(
+                            groupReprocessingStatus,
+                            mostRecentActivity as GroupActivityReprocess
+                          )}
+                          {this.renderContent(eventWithMeta)}
+                        </QuickTraceContext.Provider>
+                      </StyledLayoutMain>
+                    );
+                  }}
+                </QuickTraceQuery>
+                <StyledLayoutSide>
+                  <GroupSidebar
+                    organization={organization}
+                    project={project}
+                    group={group}
+                    event={eventWithMeta}
+                    environments={environments}
+                  />
+                </StyledLayoutSide>
+              </Fragment>
+            )}
+          </StyledLayoutBody>
+        </VisuallyCompleteWithData>
       </TransactionProfileIdProvider>
     );
   }

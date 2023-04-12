@@ -19,55 +19,151 @@ import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
-import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import Version from 'sentry/components/version';
-import {IconArrow, IconDelete} from 'sentry/icons';
+import {IconArrow, IconDelete, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum SORT_BY {
   ASC = 'date_added',
   DESC = '-date_added',
 }
 
-type Props = RouteComponentProps<{}, {}> & {
+enum SourceMapsBundleType {
+  Release,
+  DebugId,
+}
+
+function SourceMapsTableRow({
+  bundleType,
+  onDelete,
+  name,
+  fileCount,
+  link,
+  date,
+  idColumnDetails,
+}: {
+  bundleType: SourceMapsBundleType;
+  date: string;
+  fileCount: number;
+  link: string;
+  name: string;
+  onDelete: (name: string) => void;
+  idColumnDetails?: React.ReactNode;
+}) {
+  const isEmptyReleaseBundle =
+    bundleType === SourceMapsBundleType.Release && fileCount === -1;
+
+  return (
+    <Fragment>
+      <IDColumn>
+        {isEmptyReleaseBundle ? name : <Link to={link}>{name}</Link>}
+        {idColumnDetails}
+      </IDColumn>
+      <ArtifactsTotalColumn>
+        {isEmptyReleaseBundle ? (
+          <Tooltip title={t('No bundle connected to this release')}>
+            <IconWrapper>
+              <IconWarning color="warning" size="sm" />
+            </IconWrapper>
+          </Tooltip>
+        ) : (
+          <Count value={fileCount} />
+        )}
+      </ArtifactsTotalColumn>
+      <Column>
+        {isEmptyReleaseBundle ? t('(no value)') : <DateTime date={date} timeZone />}
+      </Column>
+      <ActionsColumn>
+        {isEmptyReleaseBundle ? (
+          <Button
+            size="sm"
+            icon={<IconDelete size="sm" />}
+            title={t('No bundle to delete')}
+            aria-label={t('No bundle to delete')}
+            disabled
+          />
+        ) : (
+          <Access access={['project:releases']}>
+            {({hasAccess}) => (
+              <Tooltip
+                disabled={hasAccess}
+                title={t('You do not have permission to delete artifacts.')}
+              >
+                <Confirm
+                  onConfirm={() => onDelete(name)}
+                  message={t(
+                    'Are you sure you want to remove all artifacts in this archive?'
+                  )}
+                  disabled={!hasAccess}
+                >
+                  <Button
+                    size="sm"
+                    icon={<IconDelete size="sm" />}
+                    title={t('Remove All Artifacts')}
+                    aria-label={t('Remove All Artifacts')}
+                    disabled={!hasAccess}
+                  />
+                </Confirm>
+              </Tooltip>
+            )}
+          </Access>
+        )}
+      </ActionsColumn>
+    </Fragment>
+  );
+}
+
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-export function ProjectSourceMaps({routes, params, location, router, project}: Props) {
+export function ProjectSourceMaps({location, router, project}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
-  const tabDebugIdBundlesActive = location.pathname.endsWith('debug-id-bundles/');
+
+  // query params
   const query = decodeScalar(location.query.query);
   const sortBy = location.query.sort ?? SORT_BY.DESC;
   const cursor = location.query.cursor ?? '';
+
+  // endpoints
   const sourceMapsEndpoint = `/projects/${organization.slug}/${project.slug}/files/source-maps/`;
   const debugIdBundlesEndpoint = `/projects/${organization.slug}/${project.slug}/files/artifact-bundles/`;
+
+  // tab urls
+  const releaseBundlesUrl = normalizeUrl(
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/release-bundles/`
+  );
+  const debugIdsUrl = normalizeUrl(
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
+  );
+
+  const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
 
   const {
     data: archivesData,
     isLoading: archivesLoading,
     refetch: archivesRefetch,
-  } = useQuery(
+  } = useApiQuery<[SourceMapsArchive[], any, any]>(
     [
       sourceMapsEndpoint,
       {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
       },
     ],
     () => {
       return api.requestPromise(sourceMapsEndpoint, {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
         includeAllArgs: true,
       });
     },
@@ -82,16 +178,16 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
     data: debugIdBundlesData,
     isLoading: debugIdBundlesLoading,
     refetch: debugIdBundlesRefetch,
-  } = useQuery(
+  } = useApiQuery<[DebugIdBundle[], any, any]>(
     [
       debugIdBundlesEndpoint,
       {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
       },
     ],
     () => {
       return api.requestPromise(debugIdBundlesEndpoint, {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
         includeAllArgs: true,
       });
     },
@@ -101,15 +197,6 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
       enabled: tabDebugIdBundlesActive,
     }
   );
-
-  const data = tabDebugIdBundlesActive
-    ? debugIdBundlesData?.[0] ?? []
-    : archivesData?.[0] ?? [];
-  const pageLinks = tabDebugIdBundlesActive
-    ? debugIdBundlesData?.[2]?.getResponseHeader('Link') ?? ''
-    : archivesData?.[2]?.getResponseHeader('Link') ?? '';
-  const loading = tabDebugIdBundlesActive ? debugIdBundlesLoading : archivesLoading;
-  const refetch = tabDebugIdBundlesActive ? debugIdBundlesRefetch : archivesRefetch;
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -136,17 +223,27 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
     async (name: string) => {
       addLoadingMessage(t('Removing artifacts\u2026'));
       try {
-        await api.requestPromise(sourceMapsEndpoint, {
-          method: 'DELETE',
-          query: {name},
-        });
-        refetch();
+        await api.requestPromise(
+          tabDebugIdBundlesActive ? debugIdBundlesEndpoint : sourceMapsEndpoint,
+          {
+            method: 'DELETE',
+            query: tabDebugIdBundlesActive ? {bundleId: name} : {name},
+          }
+        );
+        tabDebugIdBundlesActive ? debugIdBundlesRefetch() : archivesRefetch();
         addSuccessMessage(t('Artifacts removed.'));
       } catch {
         addErrorMessage(t('Unable to remove artifacts. Please try again.'));
       }
     },
-    [api, sourceMapsEndpoint, refetch]
+    [
+      api,
+      sourceMapsEndpoint,
+      tabDebugIdBundlesActive,
+      debugIdBundlesRefetch,
+      archivesRefetch,
+      debugIdBundlesEndpoint,
+    ]
   );
 
   return (
@@ -163,26 +260,26 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
         )}
       </TextBlock>
       <NavTabs underlined>
-        <ListLink to={baseUrl} index isActive={() => !tabDebugIdBundlesActive}>
+        <ListLink to={releaseBundlesUrl} index isActive={() => !tabDebugIdBundlesActive}>
           {t('Release Bundles')}
         </ListLink>
-        <ListLink
-          to={`${baseUrl}debug-id-bundles/`}
-          index
-          isActive={() => tabDebugIdBundlesActive}
-        >
-          {t('Debug ID Bundles')}
+        <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
+          {t('Artifact Bundles')}
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom
-        placeholder={t('Search')}
+        placeholder={
+          tabDebugIdBundlesActive ? t('Filter by Bundle ID') : t('Filter by Name')
+        }
         onSearch={handleSearch}
         query={query}
       />
       <StyledPanelTable
         headers={[
-          t('Bundle'),
-          <ArtifactsColumn key="artifacts">{t('Artifacts')}</ArtifactsColumn>,
+          tabDebugIdBundlesActive ? t('Bundle ID') : t('Name'),
+          <ArtifactsTotalColumn key="artifacts-total">
+            {t('Artifacts')}
+          </ArtifactsTotalColumn>,
           <DateUploadedColumn key="date-uploaded" onClick={handleSortChange}>
             {t('Date Uploaded')}
             <Tooltip
@@ -193,7 +290,10 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
                   : t('Switch to descending order')
               }
             >
-              <IconArrow direction={sortBy === SORT_BY.DESC ? 'down' : 'up'} />
+              <IconArrow
+                direction={sortBy === SORT_BY.DESC ? 'down' : 'up'}
+                data-test-id="icon-arrow"
+              />
             </Tooltip>
           </DateUploadedColumn>,
           '',
@@ -211,60 +311,52 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
                   : t('release bundles'),
               })
         }
-        isEmpty={data.length === 0}
-        isLoading={loading}
+        isEmpty={
+          (tabDebugIdBundlesActive
+            ? debugIdBundlesData?.[0] ?? []
+            : archivesData?.[0] ?? []
+          ).length === 0
+        }
+        isLoading={tabDebugIdBundlesActive ? debugIdBundlesLoading : archivesLoading}
       >
-        {data.map(({name, date, fileCount}) => {
-          return (
-            <Fragment key={name}>
-              <Column>
-                <TextOverflow>
-                  <Link
-                    to={`/settings/${organization.slug}/projects/${
-                      project.slug
-                    }/source-maps/${encodeURIComponent(name)}`}
-                  >
-                    <Version version={name} anchor={false} tooltipRawVersion truncate />
-                  </Link>
-                </TextOverflow>
-              </Column>
-              <ArtifactsColumn>
-                <Count value={fileCount} />
-              </ArtifactsColumn>
-              <Column>
-                <DateTime date={date} timeZone />
-              </Column>
-              <ActionsColumn>
-                <Access access={['project:releases']}>
-                  {({hasAccess}) => (
-                    <Tooltip
-                      disabled={hasAccess}
-                      title={t('You do not have permission to delete artifacts.')}
-                    >
-                      <Confirm
-                        onConfirm={() => handleDelete(name)}
-                        message={t(
-                          'Are you sure you want to remove all artifacts in this archive?'
-                        )}
-                        disabled={!hasAccess}
-                      >
-                        <Button
-                          size="sm"
-                          icon={<IconDelete size="sm" />}
-                          title={t('Remove All Artifacts')}
-                          aria-label={t('Remove All Artifacts')}
-                          disabled={!hasAccess}
-                        />
-                      </Confirm>
-                    </Tooltip>
-                  )}
-                </Access>
-              </ActionsColumn>
-            </Fragment>
-          );
-        })}
+        {tabDebugIdBundlesActive
+          ? debugIdBundlesData?.[0].map(data => (
+              <SourceMapsTableRow
+                key={data.bundleId}
+                bundleType={SourceMapsBundleType.DebugId}
+                date={data.date}
+                fileCount={data.fileCount}
+                name={data.bundleId}
+                onDelete={handleDelete}
+                link={`/settings/${organization.slug}/projects/${
+                  project.slug
+                }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
+                idColumnDetails={
+                  <DebugIdBundlesTags dist={data.dist} release={data.release} />
+                }
+              />
+            ))
+          : archivesData?.[0].map(data => (
+              <SourceMapsTableRow
+                key={data.name}
+                bundleType={SourceMapsBundleType.Release}
+                date={data.date}
+                fileCount={data.fileCount}
+                name={data.name}
+                onDelete={handleDelete}
+                link={`/settings/${organization.slug}/projects/${
+                  project.slug
+                }/source-maps/release-bundles/${encodeURIComponent(data.name)}`}
+              />
+            ))}
       </StyledPanelTable>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination
+        pageLinks={
+          tabDebugIdBundlesActive
+            ? debugIdBundlesData?.[2]?.getResponseHeader('Link') ?? ''
+            : archivesData?.[2]?.getResponseHeader('Link') ?? ''
+        }
+      />
     </Fragment>
   );
 }
@@ -283,13 +375,11 @@ const StyledPanelTable = styled(PanelTable)`
   }
 `;
 
-const SearchBarWithMarginBottom = styled(SearchBar)`
-  margin-bottom: ${space(3)};
-`;
-
-const ArtifactsColumn = styled('div')`
+const ArtifactsTotalColumn = styled('div')`
   text-align: right;
   justify-content: flex-end;
+  align-items: center;
+  display: flex;
 `;
 
 const DateUploadedColumn = styled('div')`
@@ -304,6 +394,23 @@ const Column = styled('div')`
   overflow: hidden;
 `;
 
+const IDColumn = styled(Column)`
+  line-height: 140%;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: ${space(0.5)};
+  word-break: break-word;
+`;
+
 const ActionsColumn = styled(Column)`
   justify-content: flex-end;
+`;
+
+const SearchBarWithMarginBottom = styled(SearchBar)`
+  margin-bottom: ${space(3)};
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
 `;

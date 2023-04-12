@@ -10,13 +10,13 @@ interface GroupPreviewHovercardProps extends ComponentProps<typeof Hovercard> {
   hide?: boolean;
 }
 
-export const GroupPreviewHovercard = ({
+export function GroupPreviewHovercard({
   className,
   children,
   hide,
   body,
   ...props
-}: GroupPreviewHovercardProps) => {
+}: GroupPreviewHovercardProps) {
   const handleStackTracePreviewClick = useCallback(
     (e: React.MouseEvent) => void e.stopPropagation(),
     []
@@ -43,12 +43,12 @@ export const GroupPreviewHovercard = ({
       {children}
     </StyledHovercardWithBodyClass>
   );
-};
+}
 
 // This intermediary is necessary to generate bodyClassName with styled components
-const HovercardWithBodyClass = ({className, ...rest}: GroupPreviewHovercardProps) => {
+function HovercardWithBodyClass({className, ...rest}: GroupPreviewHovercardProps) {
   return <StyledHovercard bodyClassName={className} {...rest} />;
-};
+}
 
 const StyledHovercardWithBodyClass = styled(HovercardWithBodyClass)`
   padding: 0;

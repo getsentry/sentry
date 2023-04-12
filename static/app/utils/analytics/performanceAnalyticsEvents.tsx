@@ -102,6 +102,7 @@ export type PerformanceEventParameters = {
   };
   'performance_views.spans.spans_tab_clicked': PageLayoutParams;
   'performance_views.summary.create_alert_clicked': {};
+  'performance_views.summary.open_issues': {};
   'performance_views.summary.tag_explorer.cell_action': {};
   'performance_views.summary.tag_explorer.change_page': {};
   'performance_views.summary.tag_explorer.sort': {
@@ -110,6 +111,7 @@ export type PerformanceEventParameters = {
   };
   'performance_views.summary.tag_explorer.tag_value': {};
   'performance_views.summary.tag_explorer.visit_tag_key': {};
+  'performance_views.summary.view_in_transaction_events': {};
   'performance_views.tags.change_aggregate_column': {
     value: string;
   };
@@ -118,6 +120,7 @@ export type PerformanceEventParameters = {
     is_other_tag: boolean;
     to_tag: string;
   };
+  'performance_views.tags.interaction': {};
   'performance_views.tags.jump_to_release': {};
   'performance_views.tags.tags_tab_clicked': PageLayoutParams;
   'performance_views.team_key_transaction.set': {
@@ -157,6 +160,12 @@ export type PerformanceEventParameters = {
     value: string;
     widget_type: string;
   };
+  'performance_views.trends.change_function': {
+    function_name: string;
+  };
+  'performance_views.trends.change_parameter': {
+    parameter_name: string;
+  };
   'performance_views.trends.widget_interaction': {
     widget_type: string;
   };
@@ -171,6 +180,10 @@ export type PerformanceEventParameters = {
   'performance_views.vital_detail.view': {
     project_platforms: string;
   };
+  'performance_views.vitals.filter_changed': {value: string};
+  'performance_views.vitals.open_all_events': {vital: string};
+  'performance_views.vitals.open_in_discover': {vital: string};
+  'performance_views.vitals.reset_view': {};
   'performance_views.vitals.vitals_tab_clicked': PageLayoutParams;
 };
 
@@ -277,4 +290,17 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.spans.spans_tab_clicked': 'Performance Views: Spans tab clicked',
   'performance_views.anomalies.anomalies_tab_clicked':
     'Performance Views: Anomalies tab clicked',
+  'performance_views.summary.view_in_transaction_events':
+    'Performance Views: View in All Events from Transaction Summary',
+  'performance_views.summary.open_issues':
+    'Performance Views: Open issues from transaction summary',
+  'performance_views.tags.interaction': 'Performance Views: Tag Page - Interaction',
+  'performance_views.vitals.filter_changed': 'Performance Views: Change vitals filter',
+  'performance_views.vitals.reset_view': 'Performance Views: Reset vitals view',
+  'performance_views.trends.change_parameter': 'Performance Views: Change Parameter',
+  'performance_views.trends.change_function': 'Performance Views: Change Function',
+  'performance_views.vitals.open_in_discover':
+    'Performance Views: Open vitals in discover',
+  'performance_views.vitals.open_all_events':
+    'Performance Views: Open vitals in all events',
 };

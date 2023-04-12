@@ -6,7 +6,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
-import ReplaysList from 'sentry/views/replays/list/replays';
+import ReplaysFilters from 'sentry/views/replays/filters';
+import ReplaysList from 'sentry/views/replays/list/replaysList';
 
 function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
@@ -29,7 +30,12 @@ function ReplaysListContainer() {
         </Layout.HeaderContent>
       </Layout.Header>
       <PageFiltersContainer>
-        <ReplaysList />
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ReplaysFilters />
+            <ReplaysList />
+          </Layout.Main>
+        </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

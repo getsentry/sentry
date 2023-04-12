@@ -410,8 +410,8 @@ describe('WidgetBuilder', function () {
     });
 
     // Switch to line chart for time series
-    userEvent.click(screen.getByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(screen.getByText('Table'));
+    await userEvent.click(screen.getByText('Line Chart'));
 
     // Header - Breadcrumbs
     expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
@@ -467,10 +467,11 @@ describe('WidgetBuilder', function () {
     // EditableText and chart title
     expect(customWidgetLabels).toHaveLength(2);
 
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'Unique Users');
-    userEvent.keyboard('{enter}');
+    await userEvent.click(customWidgetLabels[0]);
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.paste('Unique Users');
+    await userEvent.keyboard('{enter}');
 
     expect(screen.queryByText('Custom Widget')).not.toBeInTheDocument();
 
@@ -485,15 +486,15 @@ describe('WidgetBuilder', function () {
 
     const search = await screen.findByTestId(/smart-search-input/);
 
-    userEvent.click(search);
+    await userEvent.click(search);
 
     // Use fireEvent for performance reasons as this test suite is slow
     fireEvent.paste(search, {
       target: {value: 'color:blue'},
       clipboardData: {getData: () => 'color:blue'},
     });
-    userEvent.keyboard('{enter}');
-    userEvent.click(screen.getByText('Add Widget'));
+    await userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
       expect(router.push).toHaveBeenCalledWith(
@@ -536,7 +537,7 @@ describe('WidgetBuilder', function () {
 
     await selectEvent.select(countFields[1], ['last_seen()']);
 
-    userEvent.click(screen.getByText('Add Widget'));
+    await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
       expect(router.push).toHaveBeenCalledWith(
@@ -567,16 +568,16 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent({onSave: handleSave});
 
-    userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
 
     // Select line chart display
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(screen.getByText('Line Chart'));
 
     // Click the add overlay button
-    userEvent.click(screen.getByLabelText('Add Overlay'));
+    await userEvent.click(screen.getByLabelText('Add Overlay'));
     await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
-    userEvent.click(screen.getByLabelText('Add Widget'));
+    await userEvent.click(screen.getByLabelText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -607,19 +608,20 @@ describe('WidgetBuilder', function () {
     const handleSave = jest.fn();
 
     renderTestComponent({onSave: handleSave});
-    userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
 
     // Select line chart display
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(screen.getByText('Line Chart'));
 
     // Click the add an equation button
-    userEvent.click(screen.getByLabelText('Add an Equation'));
+    await userEvent.click(screen.getByLabelText('Add an Equation'));
 
     expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
 
-    userEvent.paste(screen.getByPlaceholderText('Equation'), 'count() + 100');
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('count() + 100');
 
-    userEvent.click(screen.getByLabelText('Add Widget'));
+    await userEvent.click(screen.getByLabelText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -651,16 +653,16 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent();
 
-    userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
 
     const customWidgetLabels = await screen.findAllByText('Custom Widget');
     // EditableText and chart title
     expect(customWidgetLabels).toHaveLength(2);
 
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.click(customWidgetLabels[0]);
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
 
-    userEvent.keyboard('{enter}');
+    await userEvent.keyboard('{enter}');
 
     expect(indicators.addErrorMessage).toHaveBeenCalledWith('Widget title is required');
   });
@@ -781,12 +783,13 @@ describe('WidgetBuilder', function () {
     const customWidgetLabels = screen.getAllByText(widget.title);
     // EditableText and chart title
     expect(customWidgetLabels).toHaveLength(2);
-    userEvent.click(customWidgetLabels[0]);
+    await userEvent.click(customWidgetLabels[0]);
 
-    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'New Title');
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.paste('New Title');
 
-    userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -864,11 +867,11 @@ describe('WidgetBuilder', function () {
     // Should be in edit 'mode'
     expect(await screen.findByText('Update Widget')).toBeInTheDocument();
     // Add a column, and choose a value,
-    userEvent.click(screen.getByLabelText('Add a Column'));
+    await userEvent.click(screen.getByLabelText('Add a Column'));
     await selectEvent.select(screen.getByText('(Required)'), 'trace');
 
     // Save widget
-    userEvent.click(screen.getByLabelText('Update Widget'));
+    await userEvent.click(screen.getByLabelText('Update Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -918,8 +921,8 @@ describe('WidgetBuilder', function () {
     });
 
     expect(await screen.findByText('Line Chart')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Line Chart'));
-    userEvent.click(screen.getByText('Table'));
+    await userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(screen.getByText('Table'));
 
     await waitFor(() => {
       expect(eventsMock).toHaveBeenLastCalledWith(
@@ -1005,10 +1008,10 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
-    userEvent.click(await screen.findByText('Delete'));
+    await userEvent.click(await screen.findByText('Delete'));
 
     renderGlobalModal();
-    userEvent.click(await screen.findByText('Confirm'));
+    await userEvent.click(await screen.findByText('Confirm'));
 
     await waitFor(() => {
       // The only widget was deleted
@@ -1044,7 +1047,7 @@ describe('WidgetBuilder', function () {
       query: {statsPeriod: '90d'},
     });
 
-    userEvent.click(screen.getByText('Update Widget'));
+    await userEvent.click(screen.getByText('Update Widget'));
 
     await waitFor(() => {
       expect(router.push).toHaveBeenLastCalledWith(
@@ -1140,13 +1143,14 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
-    userEvent.click(await screen.findByLabelText('Add Query'));
+    await userEvent.click(await screen.findByLabelText('Add Query'), {delay: null});
 
     // Triggering the onBlur of the new field should not error
-    userEvent.click(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
+    await userEvent.click(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
+      {delay: null}
     );
-    userEvent.keyboard('{esc}');
+    await userEvent.keyboard('{Escape}', {delay: null});
 
     // Run all timers because the handleBlur contains a setTimeout
     jest.runAllTimers();
@@ -1158,14 +1162,15 @@ describe('WidgetBuilder', function () {
     // widgetIndex: undefined means creating a new widget
     renderTestComponent({params: {widgetIndex: undefined}});
 
-    userEvent.click(await screen.findByLabelText('Add a Column'));
+    await userEvent.click(await screen.findByLabelText('Add a Column'), {delay: null});
     await selectEvent.select(screen.getByText('(Required)'), /project/);
 
     // Triggering the onBlur of the filter should not error
-    userEvent.click(
-      screen.getByPlaceholderText('Search for events, users, tags, and more')
+    await userEvent.click(
+      screen.getByPlaceholderText('Search for events, users, tags, and more'),
+      {delay: null}
     );
-    userEvent.keyboard('{enter}');
+    await userEvent.keyboard('{enter}', {delay: null});
 
     expect(await screen.findAllByText('project')).toHaveLength(2);
   });
@@ -1209,7 +1214,7 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Area Chart')).toBeInTheDocument();
 
     // Add a group by
-    userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Overlay'));
     await selectEvent.select(screen.getByText('Select group'), /project/);
 
     // Change the y-axis
@@ -1258,7 +1263,7 @@ describe('WidgetBuilder', function () {
 
     await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-    userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Overlay'));
     await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
     await waitFor(() => {
@@ -1280,7 +1285,7 @@ describe('WidgetBuilder', function () {
     });
 
     await selectEvent.select(await screen.findByText('Select group'), 'project');
-    userEvent.click(screen.getByText('Add Query'));
+    await userEvent.click(screen.getByText('Add Query'));
 
     await waitFor(() => {
       expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -1324,8 +1329,8 @@ describe('WidgetBuilder', function () {
 
     screen.getByText('Limit to 5 results');
 
-    userEvent.click(screen.getByText('Add Query'));
-    userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Query'));
+    await userEvent.click(screen.getByText('Add Overlay'));
 
     expect(screen.getByText('Limit to 2 results')).toBeInTheDocument();
   });
@@ -1344,13 +1349,14 @@ describe('WidgetBuilder', function () {
     expect(customWidgetLabels).toHaveLength(2);
 
     // Change title text
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'Unique Users');
-    userEvent.keyboard('{enter}');
+    await userEvent.click(customWidgetLabels[0]);
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.paste('Unique Users');
+    await userEvent.keyboard('{Enter}');
 
     // Click Cancel
-    userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(screen.getByText('Cancel'));
 
     // Assert an alert was triggered
     expect(alertMock).toHaveBeenCalled();
@@ -1366,7 +1372,7 @@ describe('WidgetBuilder', function () {
     });
 
     // Click Cancel
-    userEvent.click(await screen.findByText('Cancel'));
+    await userEvent.click(await screen.findByText('Cancel'));
 
     // Assert an alert was triggered
     expect(alertMock).not.toHaveBeenCalled();
@@ -1378,7 +1384,7 @@ describe('WidgetBuilder', function () {
         query: {source: DashboardWidgetSource.DISCOVERV2},
       });
 
-      userEvent.click(await screen.findByText('Add Widget'));
+      await userEvent.click(await screen.findByText('Add Widget'));
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
@@ -1410,7 +1416,7 @@ describe('WidgetBuilder', function () {
         dashboard: testDashboard,
       });
 
-      userEvent.click(await screen.findByText('Add Widget'));
+      await userEvent.click(await screen.findByText('Add Widget'));
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
@@ -1458,10 +1464,11 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Line Chart'));
-      userEvent.click(screen.getByText('Table'));
+      await userEvent.click(await screen.findByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'));
 
-      expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+      expect(screen.getAllByText('count_unique(user)')[0]).toBeInTheDocument();
+
       await waitFor(() => {
         expect(eventsMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/events/',
@@ -1549,13 +1556,15 @@ describe('WidgetBuilder', function () {
       orgFeatures: [...defaultOrgFeatures],
     });
 
-    userEvent.paste(screen.getByPlaceholderText('Alias'), 'First Alias');
+    await userEvent.click(screen.getByPlaceholderText('Alias'));
+    await userEvent.paste('First Alias');
 
-    userEvent.click(screen.getByLabelText('Add a Column'));
+    await userEvent.click(screen.getByLabelText('Add a Column'));
 
-    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias');
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.paste('Second Alias');
 
-    userEvent.click(screen.getByText('Add Widget'));
+    await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -1573,9 +1582,10 @@ describe('WidgetBuilder', function () {
       orgFeatures: [...defaultOrgFeatures],
     });
 
-    userEvent.click(screen.getByText('Add an Equation'));
-    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
-    userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
+    await userEvent.click(screen.getByText('Add an Equation'));
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.paste('This should persist');
+    await userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
 
     expect(await screen.findByText('This should persist')).toBeInTheDocument();
   });
@@ -1585,8 +1595,9 @@ describe('WidgetBuilder', function () {
       orgFeatures: [...defaultOrgFeatures],
     });
 
-    userEvent.click(screen.getByText('Add an Equation'));
-    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
+    await userEvent.click(screen.getByText('Add an Equation'));
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.paste('This should persist');
 
     // 1 for the table, 1 for the the column selector, 1 for the sort
     await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
@@ -1600,8 +1611,8 @@ describe('WidgetBuilder', function () {
       orgFeatures: [...defaultOrgFeatures],
     });
 
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(screen.getByText('Line Chart'));
     await selectEvent.select(screen.getByText('Select group'), 'project');
     await selectEvent.select(screen.getAllByText('count()')[1], 'count_unique(…)');
 
@@ -1611,7 +1622,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    userEvent.click(screen.getByText('Add Query'));
+    await userEvent.click(screen.getByText('Add Query'));
 
     // Assert on two calls, one for each query
     const expectedArgs = expect.objectContaining({
@@ -1636,14 +1647,17 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       orgFeatures: [...defaultOrgFeatures],
     });
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(screen.getByText('Line Chart'));
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
 
-    userEvent.type(screen.getByTestId('smart-search-input'), 'transaction.duration:123a');
+    await userEvent.type(
+      screen.getByTestId('smart-search-input'),
+      'transaction.duration:123a'
+    );
 
     // Unfocus input
-    userEvent.click(screen.getByText('Filter your results'));
+    await userEvent.click(screen.getByText('Filter your results'));
 
     expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
     expect(screen.getByText('Widget query condition is invalid.')).toBeInTheDocument();
@@ -1656,7 +1670,7 @@ describe('WidgetBuilder', function () {
       renderTestComponent();
       await screen.findByText('Widget Library');
 
-      userEvent.click(screen.getByText('Duration Distribution'));
+      await userEvent.click(screen.getByText('Duration Distribution'));
 
       // Widget Library, Builder title, and Chart title
       expect(screen.getAllByText('Duration Distribution')).toHaveLength(3);
@@ -1664,8 +1678,8 @@ describe('WidgetBuilder', function () {
       // Confirm modal doesn't open because no changes were made
       expect(mockModal).not.toHaveBeenCalled();
 
-      userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
-      userEvent.click(screen.getByText('High Throughput Transactions'));
+      await userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+      await userEvent.click(screen.getByText('High Throughput Transactions'));
 
       // Should not have overwritten widget data, and confirm modal should open
       expect(screen.getAllByText('Duration Distribution')).toHaveLength(3);
@@ -1682,7 +1696,7 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findByText('Select group')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Select group'));
+      await userEvent.click(screen.getByText('Select group'));
 
       // Only one f(x) field set in the y-axis selector
       expect(screen.getByText('f(x)')).toBeInTheDocument();
@@ -1694,7 +1708,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
       });
 
-      userEvent.click(await screen.findByText('Add Group'));
+      await userEvent.click(await screen.findByText('Add Group'));
       expect(await screen.findAllByText('Select group')).toHaveLength(2);
     });
 
@@ -1705,8 +1719,12 @@ describe('WidgetBuilder', function () {
       });
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
-      userEvent.click(screen.getAllByText('count()')[0], undefined, {skipHover: true});
-      userEvent.click(screen.getByText(/count_unique/), undefined, {skipHover: true});
+      await userEvent.click(screen.getAllByText('count()')[0], {
+        skipHover: true,
+      });
+      await userEvent.click(screen.getByText(/count_unique/), {
+        skipHover: true,
+      });
 
       expect(await screen.findByText('project')).toBeInTheDocument();
     });
@@ -1719,8 +1737,8 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Area Chart'));
+      await userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Area Chart'));
 
       expect(await screen.findByText('project')).toBeInTheDocument();
     });
@@ -1731,8 +1749,8 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await userEvent.click(await screen.findByText('Group your results'));
+      await userEvent.type(screen.getByText('Select group'), 'project{enter}');
 
       await waitFor(() =>
         expect(eventsStatsMock).toHaveBeenNthCalledWith(
@@ -1757,10 +1775,10 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
       });
 
-      userEvent.click(await screen.findByText('Add Group'));
+      await userEvent.click(await screen.findByText('Add Group'));
       expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
-      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      await userEvent.click(screen.getAllByLabelText('Remove group')[1]);
       await waitFor(() =>
         expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument()
       );
@@ -1779,7 +1797,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getByLabelText('Remove group')).toBeInTheDocument();
       expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Add Group'));
+      await userEvent.click(screen.getByText('Add Group'));
 
       expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
       expect(screen.getAllByLabelText('Drag to reorder')).toHaveLength(2);
@@ -1804,7 +1822,7 @@ describe('WidgetBuilder', function () {
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Add Widget'));
+      await userEvent.click(screen.getByText('Add Widget'));
 
       await waitFor(() =>
         expect(handleSave).toHaveBeenCalledWith([
@@ -1823,8 +1841,8 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-      userEvent.click(screen.getByText('Limit to 5 results'));
-      userEvent.click(screen.getByText('Limit to 2 results'));
+      await userEvent.click(screen.getByText('Limit to 5 results'));
+      await userEvent.click(screen.getByText('Limit to 2 results'));
 
       await waitFor(() =>
         expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -1852,7 +1870,7 @@ describe('WidgetBuilder', function () {
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText('Remove group'));
+      await userEvent.click(screen.getByLabelText('Remove group'));
 
       await waitFor(() =>
         expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument()
@@ -1887,8 +1905,8 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(await screen.findByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
 
       expect(screen.getByText('Limit to 3 results')).toBeInTheDocument();
       expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -1930,8 +1948,8 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Area Chart'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(await screen.findByText('Area Chart'));
+      await userEvent.click(screen.getByText('Line Chart'));
 
       expect(screen.getByText('Limit to 1 result')).toBeInTheDocument();
       expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -1973,8 +1991,8 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Area Chart'));
-      userEvent.click(screen.getByText('Table'));
+      await userEvent.click(await screen.findByText('Area Chart'));
+      await userEvent.click(screen.getByText('Table'));
 
       expect(screen.queryByText('Limit to 1 result')).not.toBeInTheDocument();
       expect(eventsMock).toHaveBeenCalledWith(
