@@ -13,17 +13,15 @@ import {PageFilters, Project} from 'sentry/types';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {getLandingDisplayFromParam} from './landing/utils';
 import {generatePerformanceEventView, getDefaultStatsPeriod} from './data';
 import {StarfishLanding} from './landing';
-import {addRoutePerformanceContext, getSelectedProjectPlatforms} from './utils';
+import {addRoutePerformanceContext} from './utils';
 
 type Props = {
   location: Location;
@@ -90,12 +88,6 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
     'performance_views.overview.view',
     'Performance Views: Transaction overview view'
   );
-
-  useRouteAnalyticsParams({
-    project_platforms: getSelectedProjectPlatforms(location, projects),
-    show_onboarding: onboardingProject !== undefined,
-    tab: getLandingDisplayFromParam(location)?.field,
-  });
 
   useEffect(() => {
     if (!mounted.current) {
