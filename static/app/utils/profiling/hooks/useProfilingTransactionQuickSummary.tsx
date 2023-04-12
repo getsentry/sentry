@@ -63,7 +63,7 @@ export function useProfilingTransactionQuickSummary(
     query: '',
     selection,
     transaction,
-    sort: '-p95',
+    sort: '-sum',
     functionType: 'application',
     enabled: !skipFunctions,
   });
