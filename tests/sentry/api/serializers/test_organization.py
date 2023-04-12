@@ -60,6 +60,8 @@ class OrganizationSerializerTest(TestCase):
             "dashboards-edit",
             "discover-basic",
             "discover-query",
+            "device-class-synthesis",
+            "device-classification",
             "derive-code-mappings",
             "event-attachments",
             "integrations-alert-rule",
