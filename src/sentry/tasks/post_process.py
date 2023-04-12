@@ -760,10 +760,10 @@ def process_code_mappings(job: PostProcessJob) -> None:
             if event.data["platform"] not in SUPPORTED_LANGUAGES:
                 return
 
-            cache_key = f"code-mappings:{project.id}"
-            project_queued = cache.get(cache_key)
+            project_cache_key = f"code-mappings:project:{project.id}:"
+            project_queued = cache.get(project_cache_key)
             if project_queued is None:
-                cache.set(cache_key, True, 3600)
+                cache.set(project_cache_key, True, 3600)
 
             if project_queued:
                 return
