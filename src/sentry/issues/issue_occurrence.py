@@ -86,7 +86,7 @@ class IssueOccurrence:
     detection_time: datetime
     level: str
     culprit: str
-    transaction_duration: int = 0
+    transaction_duration: int | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):

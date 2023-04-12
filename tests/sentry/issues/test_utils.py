@@ -47,6 +47,7 @@ class OccurrenceTestMixin:
             "type": ProfileFileIOGroupType.type_id,
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
+            "transaction_duration": None,
         }
         kwargs.update(overrides)  # type: ignore
         return kwargs

@@ -18,6 +18,12 @@ class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):  # type: ignor
         occurrence = IssueOccurrence.from_dict(occurrence_data)
         assert occurrence.level == DEFAULT_LEVEL
 
+    def test_transaction_duration_default(self) -> None:
+        occurrence_data = self.build_occurrence_data()
+        occurrence_data["transaction_duration"] = None
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.transaction_duration == 0
+
 
 @region_silo_test
 class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):  # type: ignore

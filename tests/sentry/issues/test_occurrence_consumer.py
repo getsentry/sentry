@@ -303,6 +303,16 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["level"] == kwargs["event_data"]["level"]
 
+    def test_occurrence_transaction_duration(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["transaction_duration"] is None
+
+        message.update({"transaction_duration": 10000})
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["transaction_duration"] == 10000
+
     def test_debug_meta(self) -> None:
         debug_meta_cases = [
             {"debug_meta": {}},
