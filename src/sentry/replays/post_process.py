@@ -117,7 +117,7 @@ def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
     return {key: list(value_set) for key, value_set in unique.items()}
 
 
-def _archived_row(replay_id, project_id):
+def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
     return {
         "id": _strip_dashes(replay_id),
         "project_id": str(project_id),
