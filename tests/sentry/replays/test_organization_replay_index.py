@@ -406,10 +406,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
         replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
 
-        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
-        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
-        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
-        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id, segment_id=0))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id, segment_id=1))
+        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id, segment_id=0))
+        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id, segment_id=1))
 
         with self.feature(REPLAYS_FEATURES):
             # First page.

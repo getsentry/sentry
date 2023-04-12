@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Generator, List, Optional, Union
 
 from snuba_sdk import (
@@ -41,7 +41,7 @@ from sentry.utils.snuba import raw_snql_query
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
 DEFAULT_OFFSET = 0
-
+MAX_REPLAY_LENGTH_HOURS = 1
 Paginators = namedtuple("Paginators", ("limit", "offset"))
 
 
@@ -73,7 +73,6 @@ def query_replays_collection(
             and len(search_filters) == 0
             and sort is None
             and len(conditions) == 0
-            and paginators.offset == 0
             and features.has("organizations:session-replay-index-subquery", organization)
         )
 
@@ -98,6 +97,7 @@ def query_replays_collection(
             pagination=paginators,
             tenant_ids=tenant_ids,
         )
+
     else:
         response = query_replays_dataset(
             project_ids=project_ids,
@@ -219,13 +219,14 @@ def query_replays_dataset_with_subquery(
             match=Entity("replays"),
             select=[
                 Column("replay_id"),
+                Column("timestamp"),
                 Function(
                     "identity", parameters=[Column("replay_start_timestamp")], alias="started_at"
                 ),
             ],
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
+                Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("segment_id"), Op.EQ, 0),
             ],
@@ -241,7 +242,19 @@ def query_replays_dataset_with_subquery(
         subquery_snuba_request, "replays.query.query_replays_dataset_subquery"
     )
 
-    replay_ids_to_filter = [r["replay_id"] for r in replay_ids_to_filter_results["data"]]
+    if len(replay_ids_to_filter_results["data"]) == 0:
+        # if no results, no need to carry on
+        return {"data": []}
+
+    max_subquery_ts = 0
+    min_subquery_ts = datetime.now().timestamp()
+    replay_ids_to_filter = []
+
+    for replay in replay_ids_to_filter_results["data"]:
+        ts = int(datetime.fromisoformat(replay["timestamp"]).timestamp())
+        replay_ids_to_filter.append(replay["replay_id"])
+        min_subquery_ts = min(min_subquery_ts, ts)
+        max_subquery_ts = max(max_subquery_ts, ts)
 
     # do the full query to get all aggregated fields
     snuba_request = Request(
@@ -250,28 +263,31 @@ def query_replays_dataset_with_subquery(
         query=Query(
             match=Entity("replays"),
             select=make_select_statement(fields, sorting, []),
+            # these should be the only filters in this query,
+            # as all previous filters should have been done subquery,
+            # so project_id, timestamp and replay_id are only filters
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-                Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("replay_id"), Op.IN, replay_ids_to_filter),
-            ],
-            having=[
-                # Must include the first sequence otherwise the replay is too old.
-                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # "end sort" on this query uses the started at field
-                Condition(Column("started_at"), Op.LT, end),
-                # Require non-archived replays.
-                Condition(Column("isArchived"), Op.EQ, 0),
-                # User conditions.
-                *generate_valid_conditions([], query_config=ReplayQueryConfig()),
-                # Other conditions.
+                # a replay can be up to an hour long, so query past the cutoff by an hour to get
+                # any segments outside the query window but still part of a replay within it.
+                Condition(
+                    Column("timestamp"),
+                    Op.LT,
+                    # end
+                    datetime.fromtimestamp(max_subquery_ts)
+                    + timedelta(hours=MAX_REPLAY_LENGTH_HOURS),
+                ),
+                Condition(
+                    Column("timestamp"),
+                    Op.GTE,
+                    datetime.fromtimestamp(min_subquery_ts),
+                ),
             ],
             orderby=sorting,
             groupby=[Column("project_id"), Column("replay_id")],
             granularity=Granularity(3600),
-            limit=Limit(pagination.limit),
-            offset=Offset(pagination.offset),
+            # this second query doesn't need offsetting / limits, as those are handled by the first query
         ),
         tenant_ids=tenant_ids,
     )
