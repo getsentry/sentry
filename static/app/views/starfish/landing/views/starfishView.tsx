@@ -9,7 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import withApi from 'sentry/utils/withApi';
-import DurationChart from 'sentry/views/starfish/charts/chart';
+import Chart from 'sentry/views/starfish/chart';
 
 import Table from '../../table';
 
@@ -63,7 +63,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             {data => {
               return (
                 <Fragment>
-                  <DurationChart
+                  <Chart
                     statsPeriod={eventView.statsPeriod}
                     height={180}
                     data={data.results as Series[]}
