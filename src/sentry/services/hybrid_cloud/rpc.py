@@ -148,6 +148,13 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
 def regional_rpc_method(
     resolve: RegionResolution,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
+    """Decorate methods to be exposed as part of the RPC interface.
+
+    In addition, resolves the region based on the resolve callback function.
+
+    Should be applied only to methods of an RpcService subclass.
+    """
+
     def decorator(method: Callable[..., _T]) -> Callable[..., _T]:
         setattr(method, _REGION_RESOLUTION_ATTR, resolve)
         return rpc_method(method)

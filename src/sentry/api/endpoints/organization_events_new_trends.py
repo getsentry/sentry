@@ -89,7 +89,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 rollup=rollup,
                 limit=10,
                 organization=organization,
-                referrer=Referrer.API_API_TRENDS_GET_EVENT_STATS_NEW,
+                referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
                 zerofill_results=zerofill_results,
                 orderby=["count()"],
