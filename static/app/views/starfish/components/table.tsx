@@ -18,7 +18,6 @@ import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -74,11 +73,6 @@ class _Table extends Component<Props, State> {
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, projects} = this.props;
-
-      trackAdvancedAnalyticsEvent('performance_views.overview.cellaction', {
-        organization,
-        action,
-      });
 
       if (action === Actions.EDIT_THRESHOLD) {
         const project_threshold = dataRow.project_threshold_config;
@@ -193,11 +187,7 @@ class _Table extends Component<Props, State> {
           handleCellAction={this.handleCellAction(column, dataRow)}
           allowActions={cellActions}
         >
-          <Link
-            to={target}
-            onClick={this.handleSummaryClick}
-            style={{display: `block`, width: `100%`}}
-          >
+          <Link to={target} style={{display: `block`, width: `100%`}}>
             {prefix}
             {dataRow.transaction}
           </Link>
@@ -253,23 +243,6 @@ class _Table extends Component<Props, State> {
     ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow);
   };
 
-  onSortClick(currentSortKind?: string, currentSortField?: string) {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.landingv2.transactions.sort', {
-      organization,
-      field: currentSortField,
-      direction: currentSortKind,
-    });
-  }
-
-  paginationAnalyticsEvent = (direction: string) => {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.landingv3.table_pagination', {
-      organization,
-      direction,
-    });
-  };
-
   renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
@@ -303,7 +276,6 @@ class _Table extends Component<Props, State> {
     const canSort = isFieldSortable(field, aggregateAliasTableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
-    const currentSortField = currentSort ? currentSort.field : undefined;
 
     const sortLink = (
       <SortLink
@@ -312,7 +284,6 @@ class _Table extends Component<Props, State> {
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
-        onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
     if (field.field.startsWith('user_misery')) {
@@ -442,10 +413,7 @@ class _Table extends Component<Props, State> {
                     location={location}
                   />
                 </VisuallyCompleteWithData>
-                <Pagination
-                  pageLinks={pageLinks}
-                  paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                />
+                <Pagination pageLinks={pageLinks} />
               </Fragment>
             )}
           </DiscoverQuery>
