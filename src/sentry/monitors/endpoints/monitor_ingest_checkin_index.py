@@ -26,7 +26,7 @@ from sentry.monitors.models import (
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
-from sentry.monitors.utils import signal_first_checkin
+from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -134,7 +134,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             # Create a new monitor during checkin. Uses update_or_create to
             # protect against races.
             if create_monitor:
-                monitor, _ = Monitor.objects.update_or_create(
+                monitor, created = Monitor.objects.update_or_create(
                     organization_id=project.organization_id,
                     slug=monitor_data["slug"],
                     defaults={
@@ -145,6 +145,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                         "config": monitor_data["config"],
                     },
                 )
+
+                if created:
+                    signal_first_monitor_created(project, request.user, True)
 
             # Monitor does not exist and we have not created one
             if not monitor:

@@ -50,24 +50,30 @@
         // Once our SDK is loaded
         _newScriptTag.addEventListener('load', function () {
             try {
-                // Restore onerror/onunhandledrejection handlers
-                _window[_onerror] = _oldOnerror;
-                _window[_onunhandledrejection] = _oldOnunhandledrejection;
+                // Restore onerror/onunhandledrejection handlers - only if not mutated in the meanwhile
+                if (_window[_onerror] && _window[_onerror].__SENTRY_LOADER__) {
+                    _window[_onerror] = _oldOnerror;
+                }
+                if (_window[_onunhandledrejection] &&
+                    _window[_onunhandledrejection].__SENTRY_LOADER__) {
+                    _window[_onunhandledrejection] = _oldOnunhandledrejection;
+                }
                 // Add loader as SDK source
                 _window.SENTRY_SDK_SOURCE = 'loader';
-                var SDK = _window[_namespace];
-                var oldInit_1 = SDK.init;
+                var SDK_1 = _window[_namespace];
+                var oldInit_1 = SDK_1.init;
                 // Configure it using provided DSN and config object
-                SDK.init = function (options) {
+                SDK_1.init = function (options) {
                     var target = _config;
                     for (var key in options) {
                         if (Object.prototype.hasOwnProperty.call(options, key)) {
                             target[key] = options[key];
                         }
                     }
+                    setupDefaultIntegrations(target, SDK_1);
                     oldInit_1(target);
                 };
-                sdkLoaded(callbacks, SDK);
+                sdkLoaded(callbacks, SDK_1);
             }
             catch (o_O) {
                 console.error(o_O);
@@ -75,23 +81,43 @@
         });
         _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
     }
+    // We want to ensure to only add default integrations if they haven't been added by the user.
+    function setupDefaultIntegrations(config, SDK) {
+        var integrations = config.integrations || [];
+        // integrations can be a function, in which case we will not add any defaults
+        if (!Array.isArray(integrations)) {
+            return;
+        }
+        var integrationNames = integrations.map(function (integration) { return integration.name; });
+        // Add necessary integrations based on config
+        if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
+            integrations.push(new SDK.BrowserTracing());
+        }
+        if ((config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
+            integrationNames.indexOf('Replay') === -1) {
+            integrations.push(new SDK.Replay());
+        }
+        config.integrations = integrations;
+    }
+    function sdkIsLoaded() {
+        var __sentry = _window.__SENTRY__;
+        // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
+        return !!(!(typeof __sentry === 'undefined') &&
+            __sentry.hub &&
+            __sentry.hub.getClient());
+    }
     function sdkLoaded(callbacks, SDK) {
         try {
-            var data = queue.data;
             // We have to make sure to call all callbacks first
             for (var i = 0; i < callbacks.length; i++) {
                 if (typeof callbacks[i] === 'function') {
                     callbacks[i]();
                 }
             }
-            var initAlreadyCalled = false;
-            var __sentry = _window.__SENTRY__;
-            // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
-            if (!(typeof __sentry === 'undefined') &&
-                __sentry.hub &&
-                __sentry.hub.getClient()) {
-                initAlreadyCalled = true;
-            }
+            var data = queue.data;
+            var initAlreadyCalled = sdkIsLoaded();
+            // Call init first, if provided
+            data.sort(function (a) { return (a.f === 'init' ? -1 : 0); });
             // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
             // We replay all calls to `Sentry.*` now
             var calledSentry = false;
@@ -172,6 +198,7 @@
             _oldOnerror.apply(_window, arguments);
         }
     };
+    _window[_onerror].__SENTRY_LOADER__ = true;
     // Do the same store/queue/call operations for `onunhandledrejection` event
     var _oldOnunhandledrejection = _window[_onunhandledrejection];
     _window[_onunhandledrejection] = function (e) {
@@ -186,6 +213,7 @@
             _oldOnunhandledrejection.apply(_window, arguments);
         }
     };
+    _window[_onunhandledrejection].__SENTRY_LOADER__ = true;
     if (!lazy) {
         setTimeout(function () {
             injectSdk(onLoadCallbacks);

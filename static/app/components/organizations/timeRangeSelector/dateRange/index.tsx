@@ -12,7 +12,7 @@ import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   getEndOfDay,
   getStartOfPeriodAgo,
@@ -118,11 +118,11 @@ class BaseDateRange extends Component<Props, State> {
     }
     const newTime = setDateToTime(start, startTime, {local: true});
 
-    analytics('dateselector.time_changed', {
+    trackAdvancedAnalyticsEvent('dateselector.time_changed', {
+      organization,
       field_changed: 'start',
       time: startTime,
       path: getRouteStringFromRoutes(router.routes),
-      org_id: parseInt(organization.id, 10),
     });
 
     onChange({
@@ -147,12 +147,11 @@ class BaseDateRange extends Component<Props, State> {
     }
 
     const newTime = setDateToTime(end, endTime, {local: true});
-
-    analytics('dateselector.time_changed', {
+    trackAdvancedAnalyticsEvent('dateselector.time_changed', {
+      organization,
       field_changed: 'end',
       time: endTime,
       path: getRouteStringFromRoutes(router.routes),
-      org_id: parseInt(organization.id, 10),
     });
 
     onChange({

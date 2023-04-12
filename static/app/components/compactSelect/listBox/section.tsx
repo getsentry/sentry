@@ -14,6 +14,7 @@ import {
   SectionTitle,
   SectionWrap,
 } from '../styles';
+import {SelectSection} from '../types';
 import {SectionToggle} from '../utils';
 
 import {ListBoxOption} from './option';
@@ -22,13 +23,14 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: FormSize;
+  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
 }
 
 /**
  * A <li /> element that functions as a list box section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function ListBoxSection({item, listState, size}: ListBoxSectionProps) {
+export function ListBoxSection({item, listState, onToggle, size}: ListBoxSectionProps) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
     heading: item.rendered,
     'aria-label': item['aria-label'],
@@ -55,7 +57,9 @@ export function ListBoxSection({item, listState, size}: ListBoxSectionProps) {
             {item.rendered && (
               <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>
             )}
-            {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
+            {showToggleAllButton && (
+              <SectionToggle item={item} listState={listState} onToggle={onToggle} />
+            )}
           </SectionHeader>
         )}
         <SectionGroup {...groupProps}>

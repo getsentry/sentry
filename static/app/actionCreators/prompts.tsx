@@ -1,5 +1,5 @@
 import type {Client} from 'sentry/api';
-import {QueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 
 type PromptsUpdateParams = {
   /**
@@ -92,7 +92,7 @@ export const makePromptsCheckQueryKey = ({
   feature,
   organizationId,
   projectId,
-}: PromptCheckParams): QueryKey => [
+}: PromptCheckParams): ApiQueryKey => [
   '/prompts-activity/',
   {query: {feature, organization_id: organizationId, project_id: projectId}},
 ];
