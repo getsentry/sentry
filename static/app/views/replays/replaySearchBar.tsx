@@ -124,11 +124,9 @@ function ReplaySearchBar(props: Props) {
       hasRecentSearches
       fieldDefinitionGetter={getReplayFieldDefinition}
       onSearch={(query: string) => {
-        props?.onSearch?.(query);
+        props.onSearch?.(query);
         const conditions = new MutableSearch(query);
-        const searchKeys = conditions.tokens
-          .map(({key}) => key)
-          .filter(v => typeof v === 'string') as string[];
+        const searchKeys = conditions.tokens.map(({key}) => key).filter(Boolean);
 
         if (searchKeys.length > 0) {
           trackAdvancedAnalyticsEvent('replay.search', {
