@@ -136,4 +136,5 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "duration": None,
         "finished_at": None,
         "started_at": None,
+        "is_archived": True,
     }
