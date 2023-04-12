@@ -14,7 +14,7 @@ type Props = {
   lineNo: number;
 };
 
-const OpenInContextLine = ({lineNo, filename, components}: Props) => {
+function OpenInContextLine({lineNo, filename, components}: Props) {
   const handleRecordInteraction =
     (slug: SentryAppComponent['sentryApp']['slug']) => () => {
       recordInteraction(slug, 'sentry_app_component_interacted', {
@@ -49,7 +49,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
       })}
     </OpenInContainer>
   );
-};
+}
 
 export {OpenInContextLine};
 

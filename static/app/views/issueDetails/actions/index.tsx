@@ -41,7 +41,6 @@ import {
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {analytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -49,6 +48,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -313,12 +313,7 @@ class Actions extends Component<Props> {
     ));
 
   openDiscardModal = () => {
-    const {organization} = this.props;
-
     openModal(this.renderDiscardModal);
-    analytics('feature.discard_group.modal_opened', {
-      org_id: parseInt(organization.id, 10),
-    });
   };
 
   openShareModal = () => {
@@ -351,8 +346,6 @@ class Actions extends Component<Props> {
     const {group, project, organization, disabled, event} = this.props;
     const {status, isBookmarked} = group;
 
-    const orgFeatures = new Set(organization.features);
-
     const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
@@ -369,6 +362,7 @@ class Actions extends Component<Props> {
     } = getConfigForIssueType(group).actions;
 
     const hasDeleteAccess = organization.access.includes('event:admin');
+    const activeSuperUser = isActiveSuperuser();
 
     const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
     return (
@@ -410,6 +404,10 @@ class Actions extends Component<Props> {
             {
               key: 'suggested-fix',
               className: 'hidden-sm hidden-md hidden-lg',
+              disabled: activeSuperUser,
+              tooltip: activeSuperUser
+                ? t("Superusers can't consent to policies")
+                : undefined,
               label: (
                 <Tooltip
                   title={experimentalFeatureTooltipDesc}
@@ -429,7 +427,7 @@ class Actions extends Component<Props> {
                   },
                 });
               },
-              hidden: !orgFeatures.has('open-ai-suggestion'),
+              hidden: !organization.features.includes('open-ai-suggestion'),
             },
             {
               key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
@@ -450,7 +448,7 @@ class Actions extends Component<Props> {
               key: 'share',
               label: t('Share'),
               disabled: disabled || !shareCap.enabled,
-              hidden: !orgFeatures.has('shared-issues'),
+              hidden: !organization.features.includes('shared-issues'),
               onAction: this.openShareModal,
             },
             {
@@ -519,6 +517,7 @@ class Actions extends Component<Props> {
               disabled={disabled}
               groupId={group.id}
               onClick={() => this.trackIssueAction('open_ai_suggested_fix')}
+              activeSuperUser={activeSuperUser}
             />
           </GuideAnchor>
         </Feature>

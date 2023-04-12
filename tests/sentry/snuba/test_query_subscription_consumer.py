@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 import pytz
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies.decoder.json import JsonCodec
+from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -16,7 +16,6 @@ from sentry_kafka_schemas import get_schema
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.query_subscription_consumer import (
-    InvalidMessageError,
     InvalidSchemaError,
     QuerySubscriptionStrategyFactory,
     parse_message_value,
@@ -35,7 +34,7 @@ class BaseQuerySubscriptionTest:
 
     @cached_property
     def jsoncodec(self):
-        return JsonCodec(get_schema(self.topic)["schema"])
+        return JsonCodec(schema=get_schema(self.topic)["schema"])
 
     @cached_property
     def valid_wrapper(self):
@@ -112,6 +111,8 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
         data = deepcopy(data)
         data["payload"]["values"] = data["payload"]["result"]
+        data["payload"].pop("result")
+        data["payload"].pop("request")
         data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
             tzinfo=pytz.utc
         )
@@ -147,9 +148,9 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         self.run_invalid_payload_test(update_fields={"entity": -1})
 
     def test_invalid_version(self):
-        with pytest.raises(InvalidMessageError) as excinfo:
+        with pytest.raises(InvalidSchemaError) as excinfo:
             self.run_test({"version": 50, "payload": self.valid_payload})
-        assert str(excinfo.value) == "Version specified in wrapper has no schema"
+        assert str(excinfo.value) == "Message wrapper does not match schema"
 
     def test_valid(self):
         self.run_test({"version": 3, "payload": self.valid_payload})

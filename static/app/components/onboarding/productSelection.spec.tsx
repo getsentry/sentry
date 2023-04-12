@@ -28,8 +28,11 @@ describe('Onboarding Product Selection', function () {
 
     // Introduction
     expect(
-      screen.getByText(textWithMarkupMatcher(/In this quick guide you’ll use/))
+      screen.getByText(
+        textWithMarkupMatcher(/In this quick guide you’ll use npm or yarn/)
+      )
     ).toBeInTheDocument();
+    expect(screen.queryByText('Prefer to set up Sentry using')).not.toBeInTheDocument();
 
     // Error monitoring shall be checked and disabled by default
     const errorMonitoring = screen.getByTestId(
@@ -38,6 +41,12 @@ describe('Onboarding Product Selection', function () {
     expect(within(errorMonitoring).getByText('Error Monitoring')).toBeInTheDocument();
     expect(within(errorMonitoring).getByRole('checkbox')).toBeChecked();
     expect(within(errorMonitoring).getByRole('checkbox')).toBeDisabled();
+
+    // Tooltip with explanation shall be displayed on hover
+    await userEvent.hover(errorMonitoring);
+    expect(
+      await screen.findByText(/Let's admit it, we all have errors/)
+    ).toBeInTheDocument();
 
     // Try to uncheck error monitoring
     await userEvent.click(errorMonitoring);
@@ -52,6 +61,12 @@ describe('Onboarding Product Selection', function () {
     ).toBeInTheDocument();
     expect(within(performanceMonitoring).getByRole('checkbox')).toBeChecked();
     expect(within(performanceMonitoring).getByRole('checkbox')).toBeEnabled();
+
+    // Tooltip with explanation shall be displayed on hover
+    await userEvent.hover(performanceMonitoring);
+    expect(
+      await screen.findByText(/Automatic performance issue detection/)
+    ).toBeInTheDocument();
 
     // Uncheck performance monitoring
     await userEvent.click(performanceMonitoring);
@@ -78,7 +93,43 @@ describe('Onboarding Product Selection', function () {
     );
 
     // Tooltip with explanation shall be displayed on hover
-    await userEvent.hover(within(sessionReplay).getByTestId('more-information'));
-    expect(await screen.findByRole('link', {name: 'Read the Docs'})).toBeInTheDocument();
+    await userEvent.hover(sessionReplay);
+    expect(
+      await screen.findByText(/Video-like reproductions of user sessions/)
+    ).toBeInTheDocument();
+  });
+
+  it('renders for Loader Script', async function () {
+    const {routerContext} = initializeOrg({
+      ...initializeOrg(),
+      router: {
+        location: {
+          query: {product: ['performance-monitoring', 'session-replay']},
+        },
+        params: {},
+      },
+    });
+
+    const skipLazyLoader = jest.fn();
+
+    render(<ProductSelection lazyLoader skipLazyLoader={skipLazyLoader} />, {
+      context: routerContext,
+    });
+
+    // Introduction
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/In this quick guide you’ll use our Loader Script/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Prefer to set up Sentry using npm or yarn\?/)
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Go here'));
+
+    expect(skipLazyLoader).toHaveBeenCalledTimes(1);
   });
 });

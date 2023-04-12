@@ -22,10 +22,16 @@ const notTags = [
   'device.name',
   'platform',
   'releases',
+  'replayType',
   'os.name',
   'os.version',
   'sdk.name',
   'sdk.version',
+  'user.email',
+  'user.username',
+  // TODO(replay): Remove this when backend changes `name` -> `username`
+  'user.name',
+  'user.id',
   'user.ip',
 ];
 

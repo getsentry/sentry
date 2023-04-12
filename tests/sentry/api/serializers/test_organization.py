@@ -207,10 +207,10 @@ class OnboardingTasksSerializerTest(TestCase):
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.PENDING,
-            user=self.user,
+            user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
@@ -226,10 +226,10 @@ class TrustedRelaySerializer(TestCase):
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.PENDING,
-            user=self.user,
+            user_id=self.user.id,
             completion_seen=completion_seen,
         )
 

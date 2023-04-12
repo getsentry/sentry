@@ -7,12 +7,13 @@ type Props = {
   isLast?: boolean;
 };
 
-const Divider = ({isHover, isLast}: Props) =>
-  isLast ? null : (
+function Divider({isHover, isLast}: Props) {
+  return isLast ? null : (
     <StyledDivider>
       <StyledIconChevron direction={isHover ? 'down' : 'right'} legacySize="14px" />
     </StyledDivider>
   );
+}
 
 const StyledIconChevron = styled(IconChevron)`
   display: block;

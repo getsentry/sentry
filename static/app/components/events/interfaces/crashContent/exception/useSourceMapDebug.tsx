@@ -1,12 +1,13 @@
+import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
-  QueryKey,
+  ApiQueryKey,
   useApiQuery,
+  UseApiQueryOptions,
   useQueries,
-  UseQueryOptions,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -82,7 +83,7 @@ const sourceMapDebugQuery = ({
   eventId,
   frameIdx,
   exceptionIdx,
-}: UseSourceMapDebugProps): QueryKey => [
+}: UseSourceMapDebugProps): ApiQueryKey => [
   `/projects/${orgSlug}/${projectSlug}/events/${eventId}/source-map-debug/`,
   {
     query: {
@@ -104,7 +105,7 @@ export type StacktraceFilenameQuery = {filename: string; query: UseSourceMapDebu
 
 export function useSourceMapDebug(
   props?: UseSourceMapDebugProps,
-  options: Partial<UseQueryOptions<SourceMapDebugResponse>> = {}
+  options: Partial<UseApiQueryOptions<SourceMapDebugResponse>> = {}
 ) {
   return useApiQuery<SourceMapDebugResponse>(props ? sourceMapDebugQuery(props) : [''], {
     staleTime: Infinity,
@@ -124,7 +125,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
     retry: false,
   };
   return useQueries({
-    queries: props.map<UseQueryOptions<SourceMapDebugResponse>>(p => {
+    queries: props.map<UseApiQueryOptions<SourceMapDebugResponse>>(p => {
       const key = sourceMapDebugQuery(p);
       return {
         queryKey: sourceMapDebugQuery(p),
@@ -141,7 +142,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
 }
 
 const ALLOWED_SDKS = Object.keys(sourceMapSdkDocsMap);
-const MAX_FRAMES = 3;
+const MAX_FRAMES = 5;
 
 /**
  * Check we have all required props and platform is supported
@@ -173,26 +174,26 @@ export function getUniqueFilesFromException(
   excValues: ExceptionValue[],
   props: Omit<UseSourceMapDebugProps, 'frameIdx' | 'exceptionIdx'>
 ): StacktraceFilenameQuery[] {
-  // Not using .at(-1) because we need to use the index later
-  const exceptionIdx = excValues.length - 1;
-  const fileFrame = (excValues[exceptionIdx]?.stacktrace?.frames ?? [])
-    // Get the frame numbers before filtering
-    .map<[Frame, number]>((frame, idx) => [frame, idx])
-    .filter(
-      ([frame]) =>
-        // Only debug inApp frames
-        frame.inApp &&
-        // Only debug frames with a filename that are not <anonymous> etc.
-        !isFrameFilenamePathlike(frame) &&
-        // Line number might not work for non-javascript languages
-        defined(frame.lineNo)
-    )
-    .map<StacktraceFilenameQuery>(([frame, idx]) => ({
-      filename: frame.filename!,
-      query: {...props, frameIdx: idx, exceptionIdx},
-    }));
+  const fileFrame = flatten(
+    excValues.map((excValue, exceptionIdx) => {
+      return (excValue.stacktrace?.frames || [])
+        .map<[Frame, number]>((frame, idx) => [frame, idx])
+        .filter(
+          ([frame]) =>
+            // Only debug inApp frames
+            frame.inApp &&
+            // Only debug frames with a filename that are not <anonymous> etc.
+            !isFrameFilenamePathlike(frame) &&
+            // Line number might not work for non-javascript languages
+            defined(frame.lineNo)
+        )
+        .map<StacktraceFilenameQuery>(([frame, idx]) => ({
+          filename: frame.filename!,
+          query: {...props, frameIdx: idx, exceptionIdx},
+        }));
+    })
+  );
 
-  // Return only the first 3 unique filenames
-  // TODO: reverse only applies to newest first
+  // Return only the first MAX_FRAMES unique filenames
   return uniqBy(fileFrame.reverse(), ({filename}) => filename).slice(0, MAX_FRAMES);
 }

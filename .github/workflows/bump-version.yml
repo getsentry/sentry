@@ -8,7 +8,25 @@ on:
       version:
         required: true
         type: string
-        description: desired version such as `1.2.3`
+        description: desired version such as `1.2.3`, or `latest` to pull the latest version from PyPI
+      pr_options:
+        type: string
+        default: ""
+        description: additional options for gh pr create, such as for asking for specific reviewers
+
+  # for use in other (cron/scheduled) workflows to bump specific
+  # company-internal dependencies on a more aggressive schedule
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      pr_options:
+        type: string
+        default: ""
 
 # disable all permissions -- we use the PAT's permissions instead
 permissions: {}
@@ -23,10 +41,18 @@ jobs:
     - run: |
         set -euxo pipefail
 
+        if [ "$VERSION" = latest ]; then
+          VERSION="$(curl -sL https://pypi.org/pypi/$PACKAGE/json | jq -r .info.version)"
+        fi
+
         git checkout -b "bot/bump-version/$PACKAGE/$VERSION"
 
         re="$(sed 's/[_-]/[_-]/g' <<< "$PACKAGE")"
         sed -i "s/^$re==.*/$PACKAGE==$VERSION/g" -- requirements*.txt
+
+        if git diff --exit-code; then
+          exit 0
+        fi
 
         git \
             -c user.name=getsentry-bot \
@@ -38,7 +64,7 @@ jobs:
 
         git push origin HEAD --quiet
 
-        gh pr create --fill
+        gh pr create --fill ${{ inputs.pr_options }}
       env:
         GH_TOKEN: ${{ secrets.BUMP_SENTRY_TOKEN }}
         PACKAGE: ${{ inputs.package }}

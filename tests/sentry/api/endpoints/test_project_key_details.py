@@ -151,7 +151,7 @@ class UpdateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(id=key.id)
         assert key.data["browserSdkVersion"] == "5.x"
 
-    def test_empty_dynamic_sdk_loader_options(self):
+    def test_default_dynamic_sdk_loader_options(self):
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
         self.login_as(user=self.user)
@@ -166,7 +166,11 @@ class UpdateProjectKeyTest(APITestCase):
         response = self.client.put(url, {})
         assert response.status_code == 200
         key = ProjectKey.objects.get(id=key.id)
-        assert "dynamicSdkLoaderOptions" not in key.data
+        assert "dynamicSdkLoaderOptions" in key.data
+        assert key.data["dynamicSdkLoaderOptions"] == {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
 
     def test_dynamic_sdk_loader_options(self):
         project = self.create_project()
@@ -186,20 +190,22 @@ class UpdateProjectKeyTest(APITestCase):
         )
         assert response.status_code == 200
         key = ProjectKey.objects.get(id=key.id)
-        assert key.data.get("dynamicSdkLoaderOptions") is None
+        assert "dynamicSdkLoaderOptions" in key.data
+        assert key.data["dynamicSdkLoaderOptions"] == {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
 
         response = self.client.put(
             url,
-            {
-                "dynamicSdkLoaderOptions": {
-                    "hasReplay": True,
-                }
-            },
+            {"dynamicSdkLoaderOptions": {"hasReplay": False, "hasDebug": True}},
         )
         assert response.status_code == 200
         key = ProjectKey.objects.get(id=key.id)
         assert key.data.get("dynamicSdkLoaderOptions") == {
-            "hasReplay": True,
+            "hasReplay": False,
+            "hasPerformance": True,
+            "hasDebug": True,
         }
 
         response = self.client.put(
@@ -216,18 +222,19 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.data.get("dynamicSdkLoaderOptions") == {
             "hasReplay": False,
             "hasPerformance": True,
+            "hasDebug": True,
         }
 
         response = self.client.put(
             url,
-            {"dynamicSdkLoaderOptions": {"hasDebug": True, "invalid-key": "blah"}},
+            {"dynamicSdkLoaderOptions": {"hasDebug": False, "invalid-key": "blah"}},
         )
         assert response.status_code == 200
         key = ProjectKey.objects.get(id=key.id)
         assert key.data.get("dynamicSdkLoaderOptions") == {
             "hasReplay": False,
             "hasPerformance": True,
-            "hasDebug": True,
+            "hasDebug": False,
         }
 
         response = self.client.put(
@@ -243,7 +250,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.data.get("dynamicSdkLoaderOptions") == {
             "hasReplay": False,
             "hasPerformance": True,
-            "hasDebug": True,
+            "hasDebug": False,
         }
 
         response = self.client.put(
@@ -259,7 +266,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.data.get("dynamicSdkLoaderOptions") == {
             "hasReplay": False,
             "hasPerformance": True,
-            "hasDebug": True,
+            "hasDebug": False,
         }
 
 

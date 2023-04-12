@@ -62,6 +62,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
             response["Content-Length"] = file.size
+            response["Content-Disposition"] = f'attachment; filename="{file.name}"'
             return response
         except OSError:
             raise Http404
@@ -209,6 +210,10 @@ def try_resolve_urls(
     except Exception as exc:
         logger.error("Failed to read", exc_info=exc)
 
+    # TODO: should we rather return an error from the API in case the release is not found?
+    if release is None:
+        return list()
+
     remaining_urls = collect_legacy_artifact_bundles_containing_urls(
         remaining_urls, release, dist, bundle_file_ids
     )
@@ -225,7 +230,9 @@ def collect_release_artifact_bundles_containing_urls(
     releases_with_bundles = ReleaseArtifactBundle.objects.filter(
         organization_id=project.organization.id,
         release_name=release_name,
-        dist_name=dist_name,
+        # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
+        # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
+        dist_name=dist_name or "",
     ).select_related("artifact_bundle__file")[:MAX_SCANNED_BUNDLES]
 
     manifests = []

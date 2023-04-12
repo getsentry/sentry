@@ -153,8 +153,7 @@ class TeamProjects extends Component<Props, State> {
 
   projectPanelContents(projects: Project[]) {
     const {organization} = this.props;
-    const access = new Set(organization.access);
-    const canWrite = access.has('org:write');
+    const canWrite = organization.access.includes('org:write');
 
     return projects.length ? (
       sortProjects(projects).map(project => (
@@ -186,6 +185,7 @@ class TeamProjects extends Component<Props, State> {
   }
 
   render() {
+    const {organization} = this.props;
     const {linkedProjects, unlinkedProjects, error, loading} = this.state;
 
     if (error) {
@@ -195,8 +195,6 @@ class TeamProjects extends Component<Props, State> {
     if (loading) {
       return <LoadingIndicator />;
     }
-
-    const access = new Set(this.props.organization.access);
 
     const otherProjects = unlinkedProjects.map(p => ({
       value: p.id,
@@ -210,7 +208,7 @@ class TeamProjects extends Component<Props, State> {
           <PanelHeader hasButtons>
             <div>{t('Projects')}</div>
             <div style={{textTransform: 'none'}}>
-              {!access.has('org:write') ? (
+              {!organization.access.includes('org:write') ? (
                 <DropdownButton
                   disabled
                   title={t('You do not have enough permission to associate a project.')}
