@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, Mapping
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -16,13 +19,15 @@ logger = logging.getLogger(__name__)
 
 @pending_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraEndpointBase):
-    def handle_exception(self, request: Request, exc: Exception) -> Response:
+    def handle_exception(
+        self, request: Request, exc: Exception, handler_context: Mapping[str, Any] | None = None
+    ) -> Response:
         if isinstance(exc, ApiError):
             response_option = handle_jira_api_error(exc, " to get email")
             if response_option:
                 return self.respond(response_option)
 
-        return super().handle_exception(request, exc)
+        return super().handle_exception(request, exc, handler_context)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)

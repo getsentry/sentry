@@ -183,17 +183,34 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(self, request: Request, exc):
+    def handle_exception(
+        self, request: Request, exc: Exception, handler_context: Mapping[str, Any] | None = None
+    ) -> Response:
+        """
+        Handle exceptions which arise while processing incoming API requests.
+
+        :param request:          The incoming request.
+        :param exc:              The exception raised during handling.
+        :param handler_context:  (Optional) Extra data which will be attached to the event sent
+                                 to Sentry, under the "Request Handler Data" heading.
+
+        :returns: A 500 response including the event id of the captured Sentry event.
+        """
         try:
+            # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
+            # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
+            # and caught below.
             response = super().handle_exception(exc)
-        except Exception:
+        except Exception as err:
             import sys
             import traceback
 
             sys.stderr.write(traceback.format_exc())
-            event_id = capture_exception()
-            context = {"detail": "Internal Error", "errorId": event_id}
-            response = Response(context, status=500)
+            event_id = capture_exception(
+                err, contexts={"Request Handler Data": handler_context} if handler_context else None
+            )
+            response_body = {"detail": "Internal Error", "errorId": event_id}
+            response = Response(response_body, status=500)
             response.exception = True
         return response
 
