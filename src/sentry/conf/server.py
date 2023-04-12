@@ -602,6 +602,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
@@ -800,6 +801,11 @@ CELERYBEAT_SCHEDULE = {
     },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 300},
+    },
+    "clear-expired-rulesnoozes": {
+        "task": "sentry.tasks.clear_expired_rulesnoozes",
         "schedule": timedelta(minutes=5),
         "options": {"expires": 300},
     },
