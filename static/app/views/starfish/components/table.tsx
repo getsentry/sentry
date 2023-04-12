@@ -43,7 +43,6 @@ const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 import {
   createUnnamedTransactionsDiscoverTarget,
   getProjectID,
-  getSelectedProjectPlatforms,
   UNPARAMETERIZED_TRANSACTION,
 } from '../utils';
 
@@ -357,14 +356,6 @@ class _Table extends Component<Props, State> {
       }
       return [];
     };
-  };
-
-  handleSummaryClick = () => {
-    const {organization, location, projects} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.overview.navigate.summary', {
-      organization,
-      project_platforms: getSelectedProjectPlatforms(location, projects),
-    });
   };
 
   handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {

@@ -1,13 +1,10 @@
 import {Location} from 'history';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, PageFilters, Project, ReleaseProject} from 'sentry/types';
+import {NewQuery, Organization, PageFilters, Project} from 'sentry/types';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
-import toArray from 'sentry/utils/toArray';
 
 export const QUERY_KEYS = [
   'environment',
@@ -59,65 +56,6 @@ export function createUnnamedTransactionsDiscoverTarget(props: {
   return target;
 }
 
-/**
- * Performance type can used to determine a default view or which specific field should be used by default on pages
- * where we don't want to wait for transaction data to return to determine how to display aspects of a page.
- */
-export enum PROJECT_PERFORMANCE_TYPE {
-  ANY = 'any', // Fallback to transaction duration
-  FRONTEND = 'frontend',
-  BACKEND = 'backend',
-  FRONTEND_OTHER = 'frontend_other',
-  MOBILE = 'mobile',
-}
-
-// The native SDK is equally used on clients and end-devices as on
-// backend, the default view should be "All Transactions".
-const FRONTEND_PLATFORMS: string[] = [...frontend].filter(
-  platform => platform !== 'javascript-nextjs' // Next has both frontend and backend transactions.
-);
-const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
-const MOBILE_PLATFORMS: string[] = [...mobile];
-
-export function platformToPerformanceType(
-  projects: (Project | ReleaseProject)[],
-  projectIds: readonly number[]
-) {
-  if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
-  }
-
-  const selectedProjects = projects.filter(p =>
-    projectIds.includes(parseInt(`${p.id}`, 10))
-  );
-
-  if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
-  }
-
-  const projectPerformanceTypes = new Set<PROJECT_PERFORMANCE_TYPE>();
-
-  selectedProjects.forEach(project => {
-    if (FRONTEND_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.FRONTEND);
-    }
-    if (BACKEND_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.BACKEND);
-    }
-    if (MOBILE_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.MOBILE);
-    }
-  });
-
-  const uniquePerformanceTypeCount = projectPerformanceTypes.size;
-
-  if (!uniquePerformanceTypeCount || uniquePerformanceTypeCount > 1) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
-  }
-  const [platformType] = projectPerformanceTypes;
-  return platformType;
-}
-
 export function addRoutePerformanceContext(selection: PageFilters) {
   const transaction = getCurrentSentryReactTransaction();
   const days = statsPeriodToDays(
@@ -140,29 +78,6 @@ export function addRoutePerformanceContext(selection: PageFilters) {
     groupedPeriod = '<=30d';
   }
   transaction?.setTag('query.period.grouped', groupedPeriod);
-}
-
-export function getSelectedProjectPlatformsArray(
-  location: Location,
-  projects: Project[]
-) {
-  const projectQuery = location.query.project;
-  const selectedProjectIdSet = new Set(toArray(projectQuery));
-
-  const selectedProjectPlatforms = projects.reduce((acc: string[], project) => {
-    if (selectedProjectIdSet.has(project.id)) {
-      acc.push(project.platform ?? 'undefined');
-    }
-
-    return acc;
-  }, []);
-
-  return selectedProjectPlatforms;
-}
-
-export function getSelectedProjectPlatforms(location: Location, projects: Project[]) {
-  const selectedProjectPlatforms = getSelectedProjectPlatformsArray(location, projects);
-  return selectedProjectPlatforms.join(', ');
 }
 
 export function getProjectID(
