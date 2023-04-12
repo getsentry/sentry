@@ -3208,3 +3208,6 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
+
+# Killswitch to ignore checkins for explicit monitors
+SENTRY_MONITORS_IGNORED_MONITORS = []
