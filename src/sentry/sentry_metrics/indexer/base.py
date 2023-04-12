@@ -17,7 +17,6 @@ from typing import (
     Union,
 )
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils.services import Service
 
 
@@ -412,14 +411,12 @@ class StringIndexer(Service):
         "reverse_shared_org_resolve",
     )
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]) -> KeyResults:
         """
-        Takes in a mapping with org_ids to sets of strings.
+        Takes in a mapping with use case IDs mapped to Org IDs mapped to set of strings.
 
-        Ultimately returns a mapping of those org_ids to a
-        string -> id mapping, for each string in the set.
+        Ultimately returns a mapping of those use case IDs mapped to Org IDs mapped to
+        string -> ID mapping, for each string in the each set.
 
         There are three steps to getting the ids for strings:
             0. ids from static strings (StaticStringIndexer)
@@ -428,20 +425,20 @@ class StringIndexer(Service):
             3. ids that have been rate limited (postgres/spanner)
             4. ids from newly created db records (postgres/spanner)
 
-        Each step will start off with a KeyCollection and KeyResults:
-            keys = KeyCollection(mapping)
-            key_results = KeyResults()
+        Each step will start off with a UseCaseKeyCollection and UseCaseKeyResults:
+            keys = UseCaseKeyCollection(mapping)
+            results = UseCaseKeyResults()
 
         Then the work to get the ids (either from cache, db, etc)
-            .... # work to add results to KeyResults()
+            .... # work to add results to UseCaseKeyResults()
 
         Those results will be added to `mapped_results` which can
         be retrieved
-            key_results.get_mapped_results()
+            results.get_mapped_results()
 
         Remaining unmapped keys get turned into a new
-        KeyCollection for the next step:
-            new_keys = key_results.get_unmapped_keys(mapping)
+        UseCaseKeyCollection for the next step:
+            new_keys = results.get_unmapped_keys(mapping)
 
         When the last step is reached or a step resolves all the remaining
         unmapped keys the key_results objects are merged and returned:
@@ -449,7 +446,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseId, org_id: OrgId, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -457,7 +454,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseId, org_id: OrgId, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -469,7 +466,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseId, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Callers should not rely on the default use_case_id -- it exists only
