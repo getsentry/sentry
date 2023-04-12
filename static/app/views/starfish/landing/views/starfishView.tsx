@@ -7,7 +7,7 @@ import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/perf
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
-import {SingleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
+import {SingleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 type BasePerformanceViewProps = {
@@ -25,14 +25,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
         <SingleChartRow
           {...props}
           allowedCharts={[PerformanceWidgetSetting.DB_HTTP_BREAKDOWN]}
-        />
-        <TripleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.TPM_AREA,
-            PerformanceWidgetSetting.FAILURE_RATE_AREA,
-            PerformanceWidgetSetting.P95_DURATION_AREA,
-          ]}
         />
         <Table {...props} setError={usePageError().setPageError} />
       </div>
