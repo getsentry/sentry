@@ -53,18 +53,18 @@ This document is structured by resource with each resource having actions that c
 
     Additionally, you can filter by these hidden fields.
 
-    | Field                    | Type          | Description                                                    |
-    | ------------------------ | ------------- | -------------------------------------------------------------- |
-    | replay_click.alt         | string        | The alt attribute of the HTML element.                         |
-    | replay_click.class       | array[string] | An array of HTML element classes.                              |
-    | replay_click.id          | string        | The ID of an HTML element.                                     |
-    | replay_click.label       | string        | The aria-label attribute of an HTML element.                   |
-    | replay_click.role        | string        | The role of an HTML element.                                   |
-    | replay_click.tag         | string        | Valid HTML5 tag name.                                          |
-    | replay_click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-    | replay_click.textContent | string        | The text-content of an HTML element.                           |
-    | replay_click.title       | string        | The title attribute of an HTML element.                        |
-    | replay_click.selector    | string        | A valid CSS selector.                                          |
+    | Field             | Type          | Description                                                    |
+    | ----------------- | ------------- | -------------------------------------------------------------- |
+    | click.alt         | string        | The alt attribute of the HTML element.                         |
+    | click.class       | array[string] | An array of HTML element classes.                              |
+    | click.id          | string        | The ID of an HTML element.                                     |
+    | click.label       | string        | The aria-label attribute of an HTML element.                   |
+    | click.role        | string        | The role of an HTML element.                                   |
+    | click.tag         | string        | Valid HTML5 tag name.                                          |
+    | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
+    | click.textContent | string        | The text-content of an HTML element.                           |
+    | click.title       | string        | The title attribute of an HTML element.                        |
+    | click.selector    | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
@@ -90,6 +90,7 @@ Retrieve a collection of replays.
 | error_ids         | array[string]                 | -                                                      |
 | finished_at       | string                        | The **latest** timestamp received.                     |
 | id                | string                        | The ID of the Replay instance.                         |
+| is_archived       | bool                          | Whether the replay was deleted or not.                 |
 | os.name           | optional[string]              | -                                                      |
 | os.version        | optional[string]              | -                                                      |
 | platform          | string                        | -                                                      |
@@ -133,6 +134,7 @@ Retrieve a collection of replays.
         "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "finished_at": "2022-07-07T14:15:33.201019",
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
+        "is_archived": false,
         "os": {
           "name": "iOS",
           "version": "16.2"
@@ -391,7 +393,6 @@ Queryable fields:
 | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
 | click.textContent | string        | The text-content of an HTML element.                           |
 | click.title       | string        | The title attribute of an HTML element.                        |
-
 
 ### Fetch Replay Clicks [GET]
 
