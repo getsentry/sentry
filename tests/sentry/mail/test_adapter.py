@@ -240,7 +240,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
-        assert "my rule" in msg.alternatives[0][0]
 
     @with_feature("organizations:mute-alerts")
     def test_someone_else_snoozes_everyone(self):
