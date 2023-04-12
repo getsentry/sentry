@@ -9,16 +9,17 @@ from datetime import datetime
 from typing import Optional, TypedDict
 
 from django.utils import timezone
+from pydantic.fields import Field
 
 from sentry.models import OrganizationMember
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import RpcModel, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
-@dataclass(frozen=True, eq=True)
-class RpcOrganizationMemberMapping:
+class RpcOrganizationMemberMapping(RpcModel):
     organization_id: int = -1
-    date_added: datetime = field(default_factory=timezone.now)
+    date_added: datetime = Field(default_factory=timezone.now)
 
     role: str = ""
     user_id: Optional[int] = None
