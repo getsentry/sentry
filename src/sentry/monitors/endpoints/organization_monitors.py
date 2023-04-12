@@ -42,7 +42,7 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
     output_field=IntegerField(),
 )
 
-MONITOR_ENVIRONMENT_STATUS = Subquery(
+MONITOR_ENVIRONMENT_TOP_STATUS = Subquery(
     MonitorEnvironment.objects.filter(monitor__id=OuterRef("id"))
     .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
     .order_by("status_ordering", "-last_checkin")
@@ -50,7 +50,7 @@ MONITOR_ENVIRONMENT_STATUS = Subquery(
 )
 
 DEFAULT_ORDERING_CASE = Case(
-    *[When(monitorenvironment_status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
+    *[When(monitorenvironment_top_status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
     output_field=IntegerField(),
 )
 
@@ -76,7 +76,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             Monitor.objects.filter(
                 organization_id=organization.id, project_id__in=filter_params["project_id"]
             )
-            .annotate(monitorenvironment_status=MONITOR_ENVIRONMENT_STATUS)
+            .annotate(monitorenvironment_top_status=MONITOR_ENVIRONMENT_TOP_STATUS)
             .annotate(status_order=DEFAULT_ORDERING_CASE)
             .exclude(
                 status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
