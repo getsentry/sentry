@@ -29,10 +29,12 @@ from snuba_sdk import (
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.api.event_search import SearchFilter
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
-from sentry.search.events.builder.discover import ReleaseHealthQueryBuilder
+from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.types import WhereType
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
@@ -354,6 +356,29 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
         raise InvalidParams(f"Failed to parse query: {e}")
 
     return where
+
+
+class ReleaseHealthQueryBuilder(UnresolvedQuery):
+    def _contains_wildcard_in_query(self, query: Optional[str]) -> bool:
+        parsed_terms = self.parse_query(query)
+        for parsed_term in parsed_terms:
+            # Since wildcards search uses the clickhouse `match` operator that works on strings, we can't
+            # use it for release health, since tags are stored as integers and converted through
+            # the indexer.
+            if isinstance(parsed_term, SearchFilter) and parsed_term.value.is_wildcard():
+                return True
+
+        return False
+
+    def resolve_conditions(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        if not self._contains_wildcard_in_query(query):
+            return super().resolve_conditions(query, use_aggregate_conditions)
+
+        raise InvalidSearchQuery("Release Health Queries don't support wildcards")
 
 
 class QueryDefinition:
