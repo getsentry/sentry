@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import TeamStore from 'sentry/stores/teamStore';
@@ -85,9 +85,10 @@ describe('OrganizationTeams', function () {
 
       createWrapper({access: new Set([])});
       await userEvent.click(screen.getByLabelText('Join Team'));
-      await act(() => tick());
 
-      expect(getOrgMock).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(getOrgMock).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('cannot leave idp-provisioned team', function () {
