@@ -795,22 +795,30 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.get_success_response(
                 self.organization.slug,
                 method="put",
-                providerName=provider,
+                providerKey=provider,
                 providerConfig=old_config,
             )
             auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
             assert auth_provider.provider == provider
-            assert auth_provider.config == {"domains": ["foo.com"], "version": DATA_VERSION}
+            assert auth_provider.config == {
+                "domains": ["foo.com"],
+                "version": DATA_VERSION,
+                "sentry-source": "api-organization-details",
+            }
 
             self.get_success_response(
                 self.organization.slug,
                 method="put",
-                providerName=provider,
+                providerKey=provider,
                 providerConfig=new_config,
             )
             auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
             assert auth_provider.provider == provider
-            assert auth_provider.config == {"domains": ["bar.com"], "version": DATA_VERSION}
+            assert auth_provider.config == {
+                "domains": ["bar.com"],
+                "version": DATA_VERSION,
+                "sentry-source": "api-organization-details",
+            }
 
         self.get_success_response(
             self.organization.slug,
@@ -818,20 +826,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             providerKey=provider,
             providerConfig=old_config,
         )
-        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-        assert auth_provider.provider == provider
-        assert auth_provider.config == {
-            "domains": ["foo.com"],
-            "version": DATA_VERSION,
-            "sentry-source": "api-organization-details",
-        }
-
-        self.get_success_response(
-            self.organization.slug,
-            method="put",
-            providerKey=provider,
-            providerConfig=new_config,
-        )
+        # ensure auth_provider has not been changed
         auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
         assert auth_provider.provider == provider
         assert auth_provider.config == {
@@ -843,7 +838,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_invalid_auth_provider_configuration(self):
         with self.feature("organizations:api-auth-provider"):
             self.get_error_response(
-                self.organization.slug, method="put", providerName="google", status_code=400
+                self.organization.slug, method="put", providerKey="google", status_code=400
             )
             self.get_error_response(
                 self.organization.slug,
@@ -854,7 +849,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.get_error_response(
                 self.organization.slug,
                 method="put",
-                providerName="not_valid",
+                providerKey="not_valid",
                 providerConfig={"domain": "foo.com"},
                 status_code=400,
             )
@@ -871,7 +866,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             }
 
         # succeed if feature is not enabled and passing in anyways
-        self.get_success_response(self.organization.slug, method="put", providerName="google")
+        self.get_success_response(self.organization.slug, method="put", providerKey="google")
         self.get_success_response(
             self.organization.slug,
             method="put",

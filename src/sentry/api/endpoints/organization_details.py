@@ -266,6 +266,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_providerKey(self, value):
         from sentry.auth import manager
 
+        organization = self.context["organization"]
+        has_api_auth_provider = features.has("organizations:api-auth-provider", organization)
+        if not has_api_auth_provider:
+            return
         if not manager.exists(value):
             raise serializers.ValidationError("Invalid providerKey")
         return value
@@ -400,7 +404,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if "slug" in data:
             org.slug = data["slug"]
         if (
-            features.has("organizations:auth-provider-config", org)
+            features.has("organizations:api-auth-provider", org)
             and "providerKey" in data
             and "providerConfig" in data
         ):
