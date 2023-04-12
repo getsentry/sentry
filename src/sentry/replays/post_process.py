@@ -81,7 +81,7 @@ def generate_normalized_output(
         item.pop("agg_urls", None)
         item["urls"] = item.pop("urls_sorted", None)
 
-        item.pop("isArchived")
+        item["is_archived"] = bool(item.pop("isArchived", 0))
 
         item.pop("click_alt", None)
         item.pop("click_aria_label", None)
