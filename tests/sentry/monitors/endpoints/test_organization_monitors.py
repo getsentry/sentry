@@ -45,7 +45,18 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 last_checkin=date or last_checkin,
                 name=status_key,
             )
-            self._create_monitor_environment(monitor, status=status)
+            self._create_monitor_environment(
+                monitor,
+                name="jungle",
+                last_checkin=last_checkin - timedelta(seconds=30),
+                status=status,
+            )
+            self._create_monitor_environment(
+                monitor,
+                name="volcano",
+                last_checkin=last_checkin - timedelta(seconds=15),
+                status=getattr(MonitorStatus, "DISABLED"),
+            )
             return monitor
 
         # Subsort next checkin time

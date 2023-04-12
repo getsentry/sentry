@@ -1,4 +1,4 @@
-from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models import Case, IntegerField, OuterRef, Q, Subquery, Value, When
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -8,7 +8,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import Environment, Organization, Project
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, MonitorType
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
@@ -37,8 +37,20 @@ DEFAULT_ORDERING = [
     MonitorStatus.DISABLED,
 ]
 
+MONITOR_ENVIRONMENT_ORDERING = Case(
+    *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
+    output_field=IntegerField(),
+)
+
+MONITOR_ENVIRONMENT_STATUS = Subquery(
+    MonitorEnvironment.objects.filter(monitor__id=OuterRef("id"))
+    .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
+    .order_by("status_ordering", "-last_checkin")
+    .values("status")[:1]
+)
+
 DEFAULT_ORDERING_CASE = Case(
-    *[When(monitorenvironment__status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
+    *[When(monitorenvironment_status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
     output_field=IntegerField(),
 )
 
@@ -64,6 +76,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             Monitor.objects.filter(
                 organization_id=organization.id, project_id__in=filter_params["project_id"]
             )
+            .annotate(monitorenvironment_status=MONITOR_ENVIRONMENT_STATUS)
             .annotate(status_order=DEFAULT_ORDERING_CASE)
             .exclude(
                 status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]

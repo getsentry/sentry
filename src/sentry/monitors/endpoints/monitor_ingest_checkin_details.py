@@ -90,7 +90,10 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             params["duration"] = duration
 
         monitor_environment = MonitorEnvironment.objects.ensure_environment(
-            project, monitor, params.get("environment")
+            # project, monitor, params.get("environment")
+            project,
+            monitor,
+            result.get("environment"),
         )
 
         if not checkin.monitor_environment:
