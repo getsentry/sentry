@@ -37,6 +37,6 @@ describe('profile event context', function () {
 
     expect(screen.getByText('Profile ID')).toBeInTheDocument();
     expect(screen.getByText(profileId)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Go to Profile'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Profile'})).toBeInTheDocument();
   });
 });
