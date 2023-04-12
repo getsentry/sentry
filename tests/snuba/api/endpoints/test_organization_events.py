@@ -6058,3 +6058,53 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["group_id"] == "this should just get returned"
+
+    def test_floored_epm(self):
+        for _ in range(5):
+            data = self.load_data(
+                timestamp=self.ten_mins_ago,
+                duration=timedelta(seconds=5),
+            )
+            data["transaction"] = "/aggregates/1"
+            event1 = self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["transaction", "floored_epm()", "epm()"],
+            "query": "event.type:transaction",
+            "orderby": ["transaction"],
+            "start": self.eleven_mins_ago_iso,
+            "end": iso_format(self.nine_mins_ago),
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["transaction"] == event1.transaction
+        assert data[0]["floored_epm()"] == 1
+        assert data[0]["epm()"] == 2.5
+
+    def test_floored_epm_more_events(self):
+        for _ in range(25):
+            data = self.load_data(
+                timestamp=self.ten_mins_ago,
+                duration=timedelta(seconds=5),
+            )
+            data["transaction"] = "/aggregates/1"
+            event1 = self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["transaction", "floored_epm()", "epm()"],
+            "query": "event.type:transaction",
+            "orderby": ["transaction"],
+            "start": self.eleven_mins_ago_iso,
+            "end": iso_format(self.nine_mins_ago),
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["transaction"] == event1.transaction
+        assert data[0]["epm()"] == 12.5
+        assert data[0]["floored_epm()"] == 10

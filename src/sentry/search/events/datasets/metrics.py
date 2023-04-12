@@ -551,6 +551,49 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
+                    "floored_epm",
+                    snql_distribution=lambda args, alias: Function(
+                        "pow",
+                        [
+                            10,
+                            Function(
+                                "floor",
+                                [
+                                    Function(
+                                        "log10",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "countIf",
+                                                        [
+                                                            Column("value"),
+                                                            Function(
+                                                                "equals",
+                                                                [
+                                                                    Column("metric_id"),
+                                                                    self.resolve_metric(
+                                                                        "transaction.duration"
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    Function("divide", [args["interval"], 60]),
+                                                ],
+                                            ),
+                                        ],
+                                    )
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
                     "eps",
                     snql_distribution=lambda args, alias: Function(
                         "divide",
