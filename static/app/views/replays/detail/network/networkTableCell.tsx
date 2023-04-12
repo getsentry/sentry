@@ -10,6 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {operationName} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 const EMPTY_CELL = '\u00A0';
@@ -102,12 +103,8 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <Tooltip
-            title={span.op.split('.')?.[1] ?? span.op}
-            isHoverable
-            showOnlyOnOverflow
-          >
-            <Text>{span.op.split('.')?.[1] ?? span.op}</Text>
+          <Tooltip title={operationName(span.op)} isHoverable showOnlyOnOverflow>
+            <Text>{operationName(span.op)}</Text>
           </Tooltip>
         </Cell>
       ),
