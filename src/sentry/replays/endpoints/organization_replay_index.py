@@ -61,7 +61,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
-                tenant_ids={"organization_id": organization.id},
+                organization=organization,
             )
 
         return self.paginate(
