@@ -7,7 +7,7 @@ from pytest import raises
 from requests.models import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, EndpointSiloLimit, resolve_region
+from sentry.api.base import Endpoint, EndpointSiloLimit, FunctionSiloLimit, resolve_region
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.silo import SiloMode
@@ -341,7 +341,7 @@ class CustomerDomainTest(APITestCase):
         assert request_with_subdomain("sentry") is None
 
 
-class SiloModeTest(APITestCase):
+class EndpointSiloLimitTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
         @EndpointSiloLimit(endpoint_mode)
         class DecoratedEndpoint(DummyEndpoint):
@@ -366,6 +366,32 @@ class SiloModeTest(APITestCase):
                     with raises(EndpointSiloLimit.AvailabilityError):
                         DecoratedEndpoint.as_view()(request)
                     # TODO: Make work with EndpointWithDecoratedMethod
+
+    def test_with_active_mode(self):
+        self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
+        self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
+
+    def test_with_inactive_mode(self):
+        self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
+        self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
+
+    def test_with_monolith_mode(self):
+        self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
+        self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
+
+
+class FunctionSiloLimitTest(APITestCase):
+    def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+        @FunctionSiloLimit(endpoint_mode)
+        def decorated_function():
+            pass
+
+        with override_settings(SILO_MODE=active_mode):
+            if expect_to_be_active:
+                decorated_function()
+            else:
+                with raises(ValueError):
+                    decorated_function()
 
     def test_with_active_mode(self):
         self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
