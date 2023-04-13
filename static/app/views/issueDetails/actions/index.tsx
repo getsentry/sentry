@@ -13,6 +13,7 @@ import {
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
@@ -41,7 +42,6 @@ import {
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {analytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -314,12 +314,7 @@ class Actions extends Component<Props> {
     ));
 
   openDiscardModal = () => {
-    const {organization} = this.props;
-
     openModal(this.renderDiscardModal);
-    analytics('feature.discard_group.modal_opened', {
-      org_id: parseInt(organization.id, 10),
-    });
   };
 
   openShareModal = () => {
@@ -367,10 +362,14 @@ class Actions extends Component<Props> {
       share: shareCap,
     } = getConfigForIssueType(group).actions;
 
+    const hasEscalatingIssues = organization.features.includes('escalating-issues');
     const hasDeleteAccess = organization.access.includes('event:admin');
     const activeSuperUser = isActiveSuperuser();
 
     const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
+    const {dropdownItems: archiveDropdownItems} = getArchiveActions({
+      onUpdate: this.onUpdate,
+    });
     return (
       <ActionWrapper>
         <DropdownMenu
@@ -381,7 +380,7 @@ class Actions extends Component<Props> {
             size: 'sm',
           }}
           items={[
-            ...(isIgnored
+            ...(isIgnored || hasEscalatingIssues
               ? []
               : [
                   {
@@ -400,6 +399,20 @@ class Actions extends Component<Props> {
                     ],
                   },
                 ]),
+            ...(hasEscalatingIssues
+              ? isIgnored
+                ? []
+                : [
+                    {
+                      key: 'Archive',
+                      className: 'hidden-sm hidden-md hidden-lg',
+                      label: t('Archive'),
+                      isSubmenu: true,
+                      disabled,
+                      children: archiveDropdownItems,
+                    },
+                  ]
+              : []),
             {
               key: 'open-in-discover',
               className: 'hidden-sm hidden-md hidden-lg',
@@ -548,7 +561,17 @@ class Actions extends Component<Props> {
           </ActionButton>
         ) : (
           <Fragment>
-            <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
+            {hasEscalatingIssues ? (
+              <ArchiveActions
+                className="hidden-xs"
+                size="sm"
+                isArchived={isIgnored}
+                onUpdate={this.onUpdate}
+                disabled={disabled}
+                hideIcon
+                disableTooltip
+              />
+            ) : (
               <IgnoreActions
                 className="hidden-xs"
                 isIgnored={isIgnored}
@@ -558,7 +581,7 @@ class Actions extends Component<Props> {
                 hideIcon
                 disableTooltip
               />
-            </GuideAnchor>
+            )}
             <GuideAnchor target="resolve" position="bottom" offset={20}>
               <ResolveActions
                 disableTooltip

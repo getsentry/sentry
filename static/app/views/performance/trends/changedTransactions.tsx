@@ -68,6 +68,7 @@ type Props = {
   trendView: TrendView;
   previousTrendColumn?: TrendColumnField;
   previousTrendFunction?: TrendFunctionField;
+  withBreakpoint?: boolean;
 };
 
 type TrendsCursorQuery = {
@@ -232,6 +233,7 @@ function ChangedTransactions(props: Props) {
     organization,
     projects,
     setError,
+    withBreakpoint,
   } = props;
   const api = useApi();
 
@@ -258,6 +260,7 @@ function ChangedTransactions(props: Props) {
       cursor={cursor}
       limit={5}
       setError={error => setError(error?.message)}
+      withBreakpoint={withBreakpoint}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
@@ -295,7 +298,7 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle}
+                {chartTitle} {withBreakpoint && '- With Breakpoints'}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
               {isLoading ? (
