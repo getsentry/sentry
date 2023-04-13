@@ -21,10 +21,13 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Group, InviteStatus, NotificationSetting, OrganizationMember
+from sentry.models import Group, InviteStatus, OrganizationMember
 from sentry.models.activity import ActivityIntegration
+from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -447,9 +450,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if not identity_user:
             return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
-        # TODO: hybrid-cloud-ify
-        NotificationSetting.objects.enable_settings_for_user(
-            recipient=identity_user, provider=ExternalProviders.SLACK
+        notifications_service.bulk_update_settings(
+            external_provider=ExternalProviders.SLACK,
+            actor=RpcActor.from_object(identity_user),
+            notification_type_to_value_map=NOTIFICATION_SETTINGS_ALL_SOMETIMES,
         )
         return self.respond_with_text(ENABLE_SLACK_SUCCESS_MESSAGE)
 
