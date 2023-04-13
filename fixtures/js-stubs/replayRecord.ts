@@ -24,7 +24,7 @@ export function ReplayRecord(replayRecord: Partial<TReplayRecord> = {}): TReplay
     error_ids: ['5c83aaccfffb4a708ae893bad9be3a1c'],
     finished_at: new Date('Sep 22, 2022 5:00:03 PM UTC'),
     id: '761104e184c64d439ee1014b72b4d83b',
-    longest_transaction: 0,
+    is_archived: false,
     os: {
       name: 'Other',
       version: '',
