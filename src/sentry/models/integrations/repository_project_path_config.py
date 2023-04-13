@@ -10,6 +10,7 @@ from sentry.db.models import (
 from sentry.models.integrations.organization_integrity_backfill_mixin import (
     OrganizationIntegrityBackfillMixin,
 )
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 @region_silo_only_model
@@ -62,8 +63,8 @@ def process_resource_change(instance, **kwargs):
         cache to reprocess with the new code mapping
         """
 
-        group_ids = Group.objects.filter(project_id=instance.project_id).values_list(
-            "id", flat=True
+        group_ids = RangeQuerySetWrapper(
+            Group.objects.filter(project_id=instance.project_id).values_list("id", flat=True)
         )
         cache_keys = [f"process-commit-context-{group_id}" for group_id in group_ids]
         cache.delete_many(cache_keys)
