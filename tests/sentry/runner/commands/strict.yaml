@@ -7,3 +7,4 @@ data:
   options-strict.yaml:
     github-login.base-domain : "test1"
     github-login.extended-permissions  : ["test1", "test2"]
+    symbolserver.options: {'asap': 'rocky'}

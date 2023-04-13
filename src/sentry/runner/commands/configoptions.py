@@ -1,5 +1,3 @@
-import re
-
 import click
 
 from sentry.runner.decorators import configuration
@@ -71,8 +69,6 @@ def strict(filename: str, dryrun: bool):
     "Deletes everything not in the uploaded file, and applies all of the changes in the file."
     import yaml
 
-    from sentry import options
-
     if dryrun:
         click.echo("Dryrun flag on. ")
 
@@ -80,16 +76,13 @@ def strict(filename: str, dryrun: bool):
         configmap_data = yaml.safe_load(stream)
         data = configmap_data.get("data", {}).get("options-strict.yaml", "")
 
-        db_keys = (opt.name for opt in options.all())
-        for key in db_keys:
-            if not can_change(key):
-                click.echo(f"cannot change key {key}")
-                continue
+        for key in TRACKED:
             if key not in data.keys():
-                _delete(key, dryrun)
+                _delete(key)
 
         for key, val in data.items():
-            _set(key, val, dryrun)
+            if key in TRACKED:
+                _set(key, val, dryrun)
 
 
 @configoptions.command()
@@ -167,6 +160,7 @@ def _set(key: str, val: object, dryrun: bool = False) -> bool:
 )
 @configuration
 def delete(key: str, dryrun: bool = False) -> bool:
+    "Deletes the given key. This resets the keys value to the default."
     return _delete(key, dryrun)
 
 
@@ -190,11 +184,16 @@ def _delete(key: str, dryrun: bool = False) -> bool:
         raise click.ClickException(str(e))
 
 
-tracked = [
-    re.compile("sentry:test_key.+"),
-]
-
-verbose = False
+TRACKED = {
+    "system.admin-email",
+    "system.support-email",
+    "system.security-email",
+    "system.rate-limit",
+    "github-login.base-domain",
+    "github-login.api-domain",
+    "github-login.extended-permissions",
+    "symbolserver.options",
+}
 
 
 def create_key_value_generator(data: str, newline_separator: str, kv_separator: str):
@@ -206,7 +205,9 @@ def can_change(key: str) -> bool:
     from sentry.options import manager
 
     opt = options.lookup_key(key)
-    return not ((opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE))
+    return (key in TRACKED) and not (
+        (opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE)
+    )
 
     # changable = not ((opt.flags & manager.FLAG_NOSTORE) and (opt.flags & manager.FLAG_IMMUTABLE))
     # changable = False
