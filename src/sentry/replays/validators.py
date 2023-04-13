@@ -21,7 +21,6 @@ VALID_FIELD_SET = {
     "sdk",
     "started_at",
     "tags",
-    "title",
     "trace_ids",
     "urls",
     "user",
