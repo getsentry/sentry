@@ -1,5 +1,4 @@
 import datetime
-from enum import Enum
 
 from rest_framework import serializers, status
 from rest_framework.exceptions import AuthenticationFailed
@@ -13,11 +12,6 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Organization, Rule, RuleSnooze, Team
-
-
-class RuleType(Enum):
-    ISSUE_ALERT = 0
-    METRIC_ALERT = 1
 
 
 class RuleSnoozeValidator(CamelSnakeSerializer):
@@ -162,13 +156,11 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
-    rule_type = RuleType.ISSUE_ALERT.value
     rule_model = Rule
     rule_field = "rule"
 
 
 @region_silo_endpoint
 class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
-    rule_type = RuleType.METRIC_ALERT.value
     rule_model = AlertRule
     rule_field = "alert_rule"
