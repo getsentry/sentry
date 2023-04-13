@@ -1,59 +1,27 @@
 import logging
-from random import random
-from typing import Callable, Dict, Mapping
+from typing import Callable, Dict
 
 import pytz
 import sentry_sdk
-from arroyo import Topic, configure_metrics
-from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.codecs import ValidationError
 from arroyo.codecs.json import JsonCodec
-from arroyo.commit import ONCE_PER_SECOND
-from arroyo.processing.processor import StreamProcessor
-from arroyo.processing.strategies import (
-    CommitOffsets,
-    ProcessingStrategy,
-    ProcessingStrategyFactory,
-    RunTask,
-)
-from arroyo.types import BrokerValue, Commit, Message, Partition
 from dateutil.parser import parse as parse_date
-from django.conf import settings
-from sentry_kafka_schemas import get_schema
 from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
     PayloadV3,
     SubscriptionResult,
 )
 
-from sentry import options
 from sentry.incidents.utils.types import SubscriptionUpdate
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.query_subscriptions.constants import topic_to_dataset
 from sentry.snuba.tasks import _delete_from_snuba
-from sentry.utils import kafka_config, metrics
-from sentry.utils.arroyo import MetricsWrapper
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 TQuerySubscriptionCallable = Callable[[SubscriptionUpdate, QuerySubscription], None]
 
 subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
-
-topic_to_dataset: Dict[str, Dataset] = {
-    settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
-    settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
-    settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
-    settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: Dataset.Sessions,
-    settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
-}
-
-dataset_to_logical_topic = {
-    Dataset.Events: "events-subscription-results",
-    Dataset.Transactions: "transactions-subscription-results",
-    Dataset.PerformanceMetrics: "generic-metrics-subscription-results",
-    Dataset.Sessions: "sessions-subscription-results",
-    Dataset.Metrics: "metrics-subscription-results",
-}
 
 
 def register_subscriber(
@@ -215,81 +183,3 @@ class InvalidMessageError(Exception):
 
 class InvalidSchemaError(InvalidMessageError):
     pass
-
-
-class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, topic: str):
-        self.topic = topic
-        self.dataset = topic_to_dataset[self.topic]
-        self.logical_topic = dataset_to_logical_topic[self.dataset]
-        self.jsoncodec: JsonCodec[SubscriptionResult] = JsonCodec(
-            schema=get_schema(self.logical_topic)["schema"]
-        )
-
-    def create_with_partitions(
-        self,
-        commit: Commit,
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        def process_message(message: Message[KafkaPayload]) -> None:
-            with sentry_sdk.start_transaction(
-                op="handle_message",
-                name="query_subscription_consumer_process_message",
-                sampled=random() <= options.get("subscriptions-query.sample-rate"),
-            ), metrics.timer(
-                "snuba_query_subscriber.handle_message", tags={"dataset": self.dataset.value}
-            ):
-                value = message.value
-                assert isinstance(value, BrokerValue)
-                offset = value.offset
-                partition = value.partition.index
-                message_value = value.payload.value
-                try:
-                    handle_message(
-                        message_value,
-                        offset,
-                        partition,
-                        self.topic,
-                        self.dataset.value,
-                        self.jsoncodec,
-                    )
-                except Exception:
-                    # This is a failsafe to make sure that no individual message will block this
-                    # consumer. If we see errors occurring here they need to be investigated to
-                    # make sure that we're not dropping legitimate messages.
-                    logger.exception(
-                        "Unexpected error while handling message in QuerySubscriptionStrategy. Skipping message.",
-                        extra={
-                            "offset": offset,
-                            "partition": partition,
-                            "value": message_value,
-                        },
-                    )
-
-        return RunTask(process_message, CommitOffsets(commit))
-
-
-def get_query_subscription_consumer(
-    topic: str,
-    group_id: str,
-    strict_offset_reset: bool,
-    initial_offset_reset: str,
-) -> StreamProcessor[KafkaPayload]:
-    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-    cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
-    consumer = KafkaConsumer(
-        build_kafka_consumer_configuration(
-            cluster_options,
-            group_id=group_id,
-            strict_offset_reset=strict_offset_reset,
-            auto_offset_reset=initial_offset_reset,
-        )
-    )
-    metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
-    configure_metrics(metrics_wrapper)
-    return StreamProcessor(
-        consumer=consumer,
-        topic=Topic(topic),
-        processor_factory=QuerySubscriptionStrategyFactory(topic),
-        commit_policy=ONCE_PER_SECOND,
-    )

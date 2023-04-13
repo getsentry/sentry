@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 from typing import Mapping
 
 import rapidjson
@@ -13,6 +14,8 @@ from arroyo.processing.strategies import (
     RunTaskWithMultiprocessing,
 )
 from arroyo.types import Commit, Message, Partition
+
+from sentry.snuba.utils import initialize_consumer_state
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +117,7 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.max_batch_time,
             self.input_block_size,
             self.output_block_size,
-            initializer=initialize_consumer_state,
+            initializer=partial(initialize_consumer_state),
         )
 
 
@@ -137,14 +140,3 @@ def process_message(message: Message[KafkaPayload]) -> None:
         Exception,
     ):
         logger.exception("failed to process message payload")
-
-
-def initialize_consumer_state() -> None:
-    """
-    Initialization function for subprocesses spawned by the occurrence ingestion consumer.
-
-    It initializes the Sentry Django app from scratch to avoid multiprocessing issues.
-    """
-    from sentry.runner import configure
-
-    configure()
