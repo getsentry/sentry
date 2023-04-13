@@ -215,10 +215,13 @@
     {% endif %}
 
     <p class="info-box">
-        You are receiving this email due to matching rules:
+        This email was triggered by
         {% for rule in rules %}
             <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
         {% endfor %}
+        {% if mute_alert %}
+         <a class='mute' href="{% absolute_uri mute_alert_url %}">Mute for me</a>
+        {% endif %}
     </p>
 
     {% if not has_integrations %}

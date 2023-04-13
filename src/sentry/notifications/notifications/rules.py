@@ -5,6 +5,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
 
+from sentry import features
 from sentry.db.models import Model
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models import UserOption
@@ -152,6 +153,12 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
+
+        if features.has("organizations:mute-alerts", self.organization) and len(self.rules) > 0:
+            context["mute_alert"] = True
+            context[
+                "mute_alert_url"
+            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/?mute=1"
 
         if getattr(self.event, "occurrence", None):
             context["issue_title"] = self.event.occurrence.issue_title

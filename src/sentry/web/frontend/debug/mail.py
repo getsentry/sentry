@@ -241,16 +241,21 @@ def make_generic_event(project):
 
 
 def get_shared_context(rule, org, project, group, event):
+    rules = get_rules([rule], org, project)
+    mute_alert = len(rules) > 0
+    mute_alert_url = rules[0].status_url + "?mute=1" if mute_alert else ""
     return {
         "rule": rule,
-        "rules": get_rules([rule], org, project),
+        "rules": rules,
         "group": group,
         "event": event,
         "timezone": pytz.timezone("Europe/Vienna"),
         # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
         #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
-        "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+        "link": get_group_settings_link(group, None, rules, 1337),
         "tags": event.tags,
+        "mute_alert": mute_alert,
+        "mute_alert_url": absolute_uri(mute_alert_url),
     }
 
 
