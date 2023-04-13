@@ -27,6 +27,7 @@ import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -48,9 +49,14 @@ type State = AsyncView['state'] & {
 
 function NewMonitorButton(props: ButtonProps) {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+
   return (
     <Button
-      to={`/organizations/${organization.slug}/crons/create/`}
+      to={{
+        pathname: `/organizations/${organization.slug}/crons/create/`,
+        query: {project: selection.projects},
+      }}
       priority="primary"
       {...props}
     >
