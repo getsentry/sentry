@@ -17,5 +17,6 @@ def should_use_symbolicator_for_sourcemaps(project_id: int) -> bool:
 
     return options.get(SYMBOLICATOR_SOURCEMAPS_SAMPLE_RATE_OPTION) > random.random()
 
+
 def do_sourcemaps_processing_ab_test() -> bool:
     return options.get(SYMBOLICATOR_SOURCEMAPS_AB_TEST_OPTION) > random.random()
