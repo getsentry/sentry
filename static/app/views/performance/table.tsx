@@ -211,7 +211,12 @@ class _Table extends Component<Props, State> {
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (
+      tableMeta[fieldName] === 'integer' &&
+      defined(value) &&
+      typeof value === 'number' &&
+      value > 999
+    ) {
       return (
         <Tooltip
           title={value.toLocaleString()}

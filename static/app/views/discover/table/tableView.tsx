@@ -390,7 +390,12 @@ function TableView(props: TableViewProps) {
 
     const fieldName = columnKey;
     const value = dataRow[fieldName];
-    if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (
+      tableData.meta[fieldName] === 'integer' &&
+      defined(value) &&
+      typeof value === 'number' &&
+      value > 999
+    ) {
       return (
         <Tooltip
           title={value.toLocaleString()}
