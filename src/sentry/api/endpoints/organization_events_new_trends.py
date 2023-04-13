@@ -32,7 +32,7 @@ ads_connection_pool = connection_from_url(
 def get_trends(snuba_io):
     response = ads_connection_pool.urlopen(
         "POST",
-        "/trends/breakpoint_detector",
+        "/trends/breakpoint-detector",
         body=json.dumps(snuba_io),
         headers={"content-type": "application/json;charset=utf-8"},
     )
