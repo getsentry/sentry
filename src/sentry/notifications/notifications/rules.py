@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import urllib
 from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
@@ -156,9 +157,10 @@ class AlertRuleNotification(ProjectNotification):
 
         if features.has("organizations:mute-alerts", self.organization) and len(self.rules) > 0:
             context["snooze_alert"] = True
-            context[
-                "snooze_alert_url"
-            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/?mute=1"
+            context["snooze_alert_url"] = (
+                f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/"
+                + urllib.urlencode({"mute": True})
+            )
 
         if getattr(self.event, "occurrence", None):
             context["issue_title"] = self.event.occurrence.issue_title
