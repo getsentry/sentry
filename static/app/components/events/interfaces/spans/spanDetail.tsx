@@ -77,7 +77,7 @@ type Props = {
   relatedErrors: TraceError[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
