@@ -8,11 +8,11 @@ from sentry.lang.java.utils import (
     get_proguard_images,
     has_proguard_file,
 )
+from sentry.lang.javascript.processor import get_source_context, trim_line
 from sentry.models import ArtifactBundleArchive, EventError, ProjectDebugFile
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
-from src.sentry.lang.javascript.processor import get_source_context, trim_line
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
