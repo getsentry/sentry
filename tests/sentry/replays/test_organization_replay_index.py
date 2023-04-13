@@ -1017,6 +1017,29 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     response.content == b'{"detail":"Only the \'=\' operator is supported."}'
                 ), query
 
+    def test_get_replays_field_order(self):
+        """Test replay response with fields requested in production."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            # Invalid field-names error regardless of ordering.
+            response = self.client.get(self.url + "?field=invalid&field=browser")
+            assert response.status_code == 400
+            response = self.client.get(self.url + "?field=browser&field=invalid")
+            assert response.status_code == 400
+
+            # Correct field-names never error.
+            response = self.client.get(self.url + "?field=count_urls&field=browser")
+            assert response.status_code == 200
+            response = self.client.get(self.url + "?field=browser&field=count_urls")
+            assert response.status_code == 200
+
 
 @region_silo_test
 @apply_feature_flag_on_cls("organizations:global-views")
