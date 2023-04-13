@@ -128,12 +128,13 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
   }`;
 
   // TODO(davidenwang): Change accordingly when we have ObjectStatus on monitor
-  const monitorStatus = monitorEnv ? monitorEnv.status : monitor.status;
+  const monitorStatus =
+    monitor.status !== 'disabled' && monitorEnv ? monitorEnv.status : monitor.status;
 
   return (
     <Fragment>
       <MonitorName>
-        <MonitorBadge status={monitorEnv?.status ?? monitor.status} />
+        <MonitorBadge status={monitorStatus} />
         <NameAndSlug>
           <Link to={monitorDetailUrl}>{monitor.name}</Link>
           <MonitorSlug>{monitor.slug}</MonitorSlug>
