@@ -47,10 +47,7 @@ export type ReplayRecord = {
    * The ID of the Replay instance
    */
   id: string;
-  /**
-   * The longest transaction associated with the replay measured in milliseconds.
-   */
-  longest_transaction: number;
+  is_archived: boolean;
   os: {
     name: null | string;
     version: null | string;
