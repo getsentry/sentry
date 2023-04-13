@@ -753,18 +753,19 @@ def process_code_mappings(job: PostProcessJob) -> None:
     try:
         event = job["event"]
         project = event.project
+        group_id = event.group_id
 
         with metrics.timer("post_process.process_code_mappings.duration"):
             # Supported platforms
             if event.data["platform"] not in SUPPORTED_LANGUAGES:
                 return
 
-            cache_key = f"code-mappings:{project.id}"
-            project_queued = cache.get(cache_key)
-            if project_queued is None:
-                cache.set(cache_key, True, 3600)
-
-            if project_queued:
+            # Limit the overall number of tasks by only processing one issue per project
+            # per hour
+            project_cache_key = f"code-mappings:project:{project.id}:"
+            if cache.get(project_cache_key) is None:
+                cache.set(project_cache_key, True, 3600)
+            else:
                 return
 
             org = event.project.organization
@@ -773,7 +774,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
             if features.has("organizations:derive-code-mappings", org):
                 logger.info(
-                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
+                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {group_id=}."
                     + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
                 )
                 derive_code_mappings.delay(project.id, event.data)
