@@ -292,9 +292,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
-        OrganizationIntegration.objects.filter(
+        for oi in OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration=integration
-        ).delete()
+        ):
+            oi.delete()
         integration.delete()
 
         # Try again and should be successful

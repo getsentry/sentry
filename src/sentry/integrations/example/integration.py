@@ -13,7 +13,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
 from sentry.mediators.plugins import Migrator
 from sentry.models import ExternalIssue, Repository
 from sentry.pipeline import PipelineView
@@ -60,7 +60,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
+class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixin):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_outbound"
     inbound_status_key = "sync_status_inbound"

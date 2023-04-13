@@ -52,10 +52,21 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
+
+        try:
+            # We expect there to exist an org_integration
+            org_integration = self.get_organization_integration(organization, config.integration_id)
+        except Http404:
+            # Human friendly error response.
+            return self.respond(
+                "Could not find this integration installed on your organization",
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         serializer = RepositoryProjectPathConfigSerializer(
             context={
                 "organization": organization,
-                "integration_id": config.integration_id,
+                "organization_integration": org_integration,
             },
             instance=config,
             data=request.data,
