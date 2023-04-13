@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple, TypedDict
 
 from django.db import transaction
-from sentry_sdk.crons import monitor
+from sentry_sdk.crons.decorator import monitor
 
 from sentry.issues.escalating import GroupsCountResponse, query_groups_past_counts
 from sentry.issues.escalating_issues_alg import generate_issue_forecast
