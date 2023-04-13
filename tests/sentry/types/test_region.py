@@ -1,6 +1,7 @@
 import pytest
 from django.test import override_settings
 
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
@@ -95,6 +96,14 @@ class RegionMappingTest(TestCase):
         )
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             user = self.create_user()
-            self.create_member(user=user, organization=self.organization)
+            organization_service.add_organization_member(
+                organization_id=self.organization.id,
+                default_org_role=self.organization.default_role,
+                user_id=user.id,
+            )
             actual_regions = find_regions_for_user(user_id=user.id)
             assert actual_regions == {"na"}
+
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            with pytest.raises(ValueError):
+                find_regions_for_user(user_id=user.id)
