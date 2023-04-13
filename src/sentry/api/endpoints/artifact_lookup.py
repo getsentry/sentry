@@ -230,7 +230,9 @@ def collect_release_artifact_bundles_containing_urls(
     releases_with_bundles = ReleaseArtifactBundle.objects.filter(
         organization_id=project.organization.id,
         release_name=release_name,
-        dist_name=dist_name,
+        # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
+        # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
+        dist_name=dist_name or "",
     ).select_related("artifact_bundle__file")[:MAX_SCANNED_BUNDLES]
 
     manifests = []

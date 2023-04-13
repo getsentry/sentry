@@ -71,7 +71,7 @@ class RpcServiceTest(TestCase):
         assert serial_arguments.keys() == {
             "organization_id",
             "default_org_role",
-            "user",
+            "user_id",
             "email",
             "flags",
             "role",
@@ -100,12 +100,11 @@ class RpcServiceTest(TestCase):
         user = self.create_user()
         organization = self.create_organization()
 
-        serial_user = RpcUser(id=user.id)
         serial_org = DatabaseBackedOrganizationService.serialize_organization(organization)
         serial_arguments = dict(
             organization_id=serial_org.id,
             default_org_role=serial_org.default_role,
-            user=serial_user.dict(),
+            user_id=user.id,
             flags=RpcOrganizationMemberFlags().dict(),
             role=None,
         )

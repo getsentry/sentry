@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.monitors.models import (
@@ -300,3 +301,45 @@ class CheckMonitorsTest(TestCase):
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.ERROR
         ).exists()
+
+    def test_killswitch(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        current_datetime = timezone.now() - timedelta(hours=24)
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            next_checkin=current_datetime + timedelta(hours=12, minutes=1),
+            last_checkin=current_datetime + timedelta(hours=12),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "0 0 * * *"},
+            status=MonitorStatus.OK,
+            date_added=current_datetime,
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            next_checkin=monitor.next_checkin,
+            status=monitor.status,
+        )
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=current_datetime,
+            date_updated=current_datetime,
+        )
+
+        # Killswitch on the monitor
+        with override_settings(SENTRY_MONITORS_IGNORED_MONITORS=[monitor.id]):
+            assert checkin.date_added == checkin.date_updated == current_datetime
+
+            check_monitors(current_datetime=current_datetime + timedelta(hours=12, minutes=1))
+
+            # Monitor was untouched and is still in progress
+            assert MonitorCheckIn.objects.filter(
+                id=checkin.id, status=CheckInStatus.IN_PROGRESS
+            ).exists()

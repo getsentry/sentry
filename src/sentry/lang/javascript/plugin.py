@@ -1,4 +1,3 @@
-from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
 from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
@@ -45,7 +44,9 @@ class JavascriptPlugin(Plugin2):
         return []
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        if should_use_symbolicator_for_sourcemaps(data.get("project")):
+        if data.pop("processed_by_symbolicator", False):
+            # TODO: maybe we want to still return the `JavaScriptStacktraceProcessor` for A/B testing,
+            # so that both processors are running after one another?
             return []
 
         if "javascript" in platforms or "node" in platforms:

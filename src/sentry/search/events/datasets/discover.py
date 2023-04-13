@@ -869,6 +869,35 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                 ),
                 SnQLFunction(
+                    "floored_epm",
+                    snql_aggregate=lambda args, alias: Function(
+                        "pow",
+                        [
+                            10,
+                            Function(
+                                "floor",
+                                [
+                                    Function(
+                                        "log10",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function("count", []),
+                                                    Function("divide", [args["interval"], 60]),
+                                                ],
+                                            )
+                                        ],
+                                    )
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                SnQLFunction(
                     "fn_span_exclusive_time",
                     required_args=[
                         SnQLStringArg("spans_op", True, True),
