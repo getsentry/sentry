@@ -7,7 +7,7 @@ from pytest import raises
 from requests.models import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, EndpointSiloLimit, FunctionSiloLimit, resolve_region
+from sentry.api.base import Endpoint, EndpointSiloLimit, resolve_region
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
