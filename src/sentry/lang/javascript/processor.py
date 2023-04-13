@@ -1307,6 +1307,16 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
 
+        self.symbolicator_stacktraces = []
+        if self.data.pop("processed_by_symbolicator", False):
+            self.data["errors"] = []
+            for stacktrace_info in self.stacktrace_infos:
+                self.symbolicator_stacktraces.append(stacktrace_info.container.get("stacktrace"))
+                stacktrace_info.container["stacktrace"] = stacktrace_info.container.get(
+                    "raw_stacktrace"
+                )
+                stacktrace_info.stacktrace["frames"] = stacktrace_info.container["stacktrace"]["frames"]
+
         # Make sure we only fetch organization from cache
         # We don't need to persist it back since we don't want
         # to bloat the Event object.
@@ -2061,6 +2071,37 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # Processing Errors? Do we want to sample those reports?
         # We also need to account for known differences? Like symbolicator not
         # outputting a trailing empty line, whereas the python processor does.
+        if self.symbolicator_stacktraces:
+
+            def frames_differ(a, b):
+                return (
+                    a.get("abs_path") != b.get("abs_path")
+                    or a.get("lineno") != b.get("lineno")
+                    or a.get("colno") != b.get("colno")
+                    or a.get("function") != b.get("function")
+                    or a.get("filename") != b.get("filename")
+                    or a.get("context_line") != b.get("context_line")
+                )
+
+            different_frames = []
+            for symbolicator_stacktrace, stacktrace_info in zip(
+                self.symbolicator_stacktraces, self.stacktrace_infos
+            ):
+                python_stacktrace = stacktrace_info.container.get("stacktrace")
+
+                for symbolicator_frame, python_frame in zip(
+                    symbolicator_stacktrace["frames"], python_stacktrace["frames"]
+                ):
+                    if frames_differ(symbolicator_frame, python_frame):
+                        different_frames.append((symbolicator_frame, python_frame))
+
+            print(different_frames)
+            if different_frames:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_extra("different_frames", different_frames)
+                    scope.set_extra("event_id", self.data.get("event_id"))
+                    scope.set_tag("project_id", self.project.id)
+                    sentry_sdk.capture_message("JS symbolication differences between symbolicator and python.")
 
     def suspected_console_errors(self, frames):
         def is_suspicious_frame(frame) -> bool:
