@@ -152,7 +152,14 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
 
 def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
-    return [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    try:
+        computed_quotas = [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    except BaseException:
+        metrics.incr("sentry.relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
+        raise
+    else:
+        metrics.incr("sentry.relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
+        return computed_quotas
 
 
 def get_project_config(
