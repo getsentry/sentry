@@ -68,9 +68,9 @@ def notify(
         for r in recipients:
             if isinstance(r, RpcActor):
                 if r.actor_type == ActorType.USER:
-                    user_ids.append(r.id)
+                    user_ids.append(r.actor_id)
                 if r.actor_type == ActorType.TEAM:
-                    team_ids.append(r.id)
+                    team_ids.append(r.actor_id)
             elif isinstance(r, RpcUser):
                 user_ids.append(r.id)
             else:
