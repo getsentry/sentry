@@ -57,19 +57,17 @@ def can_edit_alert_rule(rule, organization, user_id, user):
 @region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
-    rule_type = None
 
     def get_rule(self, rule_id):
-        rule_class = Rule if self.rule_type == RuleType.ISSUE_ALERT.value else AlertRule
         try:
-            issue_alert_rule = rule_class.objects.get(id=rule_id)
-        except rule_class.DoesNotExist:
+            rule = self.rule_model.objects.get(id=rule_id)
+        except self.rule_model.DoesNotExist:
             raise serializers.ValidationError("Rule does not exist")
 
-        return issue_alert_rule
+        return rule
 
     def post(self, request: Request, project, rule_id) -> Response:
-        if not features.has("organizations:mute-alerts", project.organization, actor=None):
+        if not features.has("organizations:mute-alerts", project.organization, actor=request.user):
             raise AuthenticationFailed(
                 detail="This feature is not available for this organization.",
                 code=status.HTTP_401_UNAUTHORIZED,
@@ -88,18 +86,16 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
             )
 
-        issue_alert_rule = rule if self.rule_type == RuleType.ISSUE_ALERT.value else None
-        metric_alert_rule = rule if self.rule_type == RuleType.METRIC_ALERT.value else None
+        kwargs = {self.rule_field: rule}
 
         rule_snooze, created = RuleSnooze.objects.get_or_create(
             user_id=user_id,
-            rule=issue_alert_rule,
-            alert_rule=metric_alert_rule,
             defaults={
                 "owner_id": request.user.id,
                 "until": data.get("until"),
                 "date_added": datetime.datetime.now(),
             },
+            **kwargs,
         )
         # don't allow editing of a rulesnooze object for a given rule and user (or no user)
         if not created:
@@ -110,7 +106,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         if not user_id:
             # create an audit log entry if the rule is snoozed for everyone
-            audit_log_event = "RULE_SNOOZE" if issue_alert_rule else "ALERT_RULE_SNOOZE"
+            audit_log_event = "RULE_SNOOZE" if self.rule_model == Rule else "ALERT_RULE_SNOOZE"
 
             self.create_audit_entry(
                 request=request,
@@ -126,7 +122,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         )
 
     def delete(self, request: Request, project, rule_id) -> Response:
-        if not features.has("organizations:mute-alerts", project.organization, actor=None):
+        if not features.has("organizations:mute-alerts", project.organization, actor=request.user):
             raise AuthenticationFailed(
                 detail="This feature is not available for this organization.",
                 code=status.HTTP_401_UNAUTHORIZED,
@@ -145,16 +141,14 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
             )
 
-        issue_alert_rule = rule if self.rule_type == RuleType.ISSUE_ALERT.value else None
-        metric_alert_rule = rule if self.rule_type == RuleType.METRIC_ALERT.value else None
+        kwargs = {self.rule_field: rule}
 
         try:
             rulesnooze = RuleSnooze.objects.get(
                 user_id=user_id,
-                rule=issue_alert_rule,
-                alert_rule=metric_alert_rule,
                 owner_id=request.user.id,
                 until=data.get("until"),
+                **kwargs,
             )
         except RuleSnooze.DoesNotExist:
             return Response(
@@ -169,8 +163,12 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 @region_silo_endpoint
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
     rule_type = RuleType.ISSUE_ALERT.value
+    rule_model = Rule
+    rule_field = "rule"
 
 
 @region_silo_endpoint
 class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
     rule_type = RuleType.METRIC_ALERT.value
+    rule_model = AlertRule
+    rule_field = "alert_rule"
