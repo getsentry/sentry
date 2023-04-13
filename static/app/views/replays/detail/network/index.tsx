@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -95,6 +95,17 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       deps,
     });
 
+  // this is a stop-gap fix for switching to the network tab
+  // we block the main thread to do all the cellMeasurer computation
+  // and since active tab rendering is bound the useLocation, we have no choice but to render this component
+  // to provide a snappier experience, we render the table headers first followed by rows
+  const [didMount, setDidMount] = useState(false);
+  useEffect(() => {
+    setTimeout(() => {
+      setDidMount(true);
+    });
+  }, []);
+
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
 
@@ -172,7 +183,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
                     overscanColumnCount={COLUMN_COUNT}
                     overscanRowCount={5}
-                    rowCount={items.length + 1}
+                    rowCount={didMount ? items.length + 1 : Math.min(items.length + 1, 5)}
                     rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
                     width={width}
                   />
