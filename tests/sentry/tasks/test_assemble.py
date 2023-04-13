@@ -235,7 +235,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             for debug_id in expected_debug_ids:
                 debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
                     organization_id=self.organization.id, debug_id=debug_id
-                )
+                ).order_by("-debug_id", "source_file_type")
                 assert len(debug_id_artifact_bundles) == 2
                 assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
                 # We check if the bundle to which each debug id entry is connected has the correct bundle_id.
