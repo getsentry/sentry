@@ -9,12 +9,14 @@ from sentry.testutils import APITestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 
 @region_silo_test(stable=True)
-class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
+class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-join-request"
     method = "post"
 
@@ -124,7 +126,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         self.create_member(organization=self.organization, user=user2, role="owner")
         self.create_member(organization=self.organization, user=user3, role="member")
 
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 
         members = OrganizationMember.objects.filter(organization=self.organization)
@@ -136,6 +138,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         mock_record.assert_called_with(
             "join_request.created", member_id=join_request.id, organization_id=self.organization.id
         )
+
+        self.assert_org_member_mapping(org_member=join_request)
 
         users_able_to_approve_requests = {user1, user2}
         expected_subject = f"Access request to {self.organization.name}"
@@ -157,6 +161,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         assert join_request.user is None
         assert join_request.role == "member"
         assert not join_request.invite_approved
+
+        self.assert_org_member_mapping(org_member=join_request)
 
         assert mail.outbox[0].subject == f"Access request to {self.organization.name}"
         assert self.organization.absolute_url("/settings/members/") in mail.outbox[0].body
@@ -198,3 +204,5 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
             "member_id": member.id,
             "member_email": self.email,
         }
+
+        self.assert_org_member_mapping(org_member=member)
