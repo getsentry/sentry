@@ -18,7 +18,6 @@ import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -26,7 +25,6 @@ import DiscoverQuery, {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
@@ -39,14 +37,14 @@ import {
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 
-import {getMEPQueryParams} from './landing/widgets/utils';
-import {COLUMN_TITLES} from './data';
+const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
+
+import {getProjectID} from 'sentry/views/performance/utils';
+
 import {
   createUnnamedTransactionsDiscoverTarget,
-  getProjectID,
-  getSelectedProjectPlatforms,
   UNPARAMETERIZED_TRANSACTION,
-} from './utils';
+} from '../utils/createUnnamedTransactionsDiscoverTarget';
 
 type Props = {
   eventView: EventView;
@@ -76,11 +74,6 @@ class _Table extends Component<Props, State> {
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, projects} = this.props;
-
-      trackAdvancedAnalyticsEvent('performance_views.overview.cellaction', {
-        organization,
-        action,
-      });
 
       if (action === Actions.EDIT_THRESHOLD) {
         const project_threshold = dataRow.project_threshold_config;
@@ -195,11 +188,7 @@ class _Table extends Component<Props, State> {
           handleCellAction={this.handleCellAction(column, dataRow)}
           allowActions={cellActions}
         >
-          <Link
-            to={target}
-            onClick={this.handleSummaryClick}
-            style={{display: `block`, width: `100%`}}
-          >
+          <Link to={target} style={{display: `block`, width: `100%`}}>
             {prefix}
             {dataRow.transaction}
           </Link>
@@ -255,23 +244,6 @@ class _Table extends Component<Props, State> {
     ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow);
   };
 
-  onSortClick(currentSortKind?: string, currentSortField?: string) {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.landingv2.transactions.sort', {
-      organization,
-      field: currentSortField,
-      direction: currentSortKind,
-    });
-  }
-
-  paginationAnalyticsEvent = (direction: string) => {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.landingv3.table_pagination', {
-      organization,
-      direction,
-    });
-  };
-
   renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
@@ -305,7 +277,6 @@ class _Table extends Component<Props, State> {
     const canSort = isFieldSortable(field, aggregateAliasTableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
-    const currentSortField = currentSort ? currentSort.field : undefined;
 
     const sortLink = (
       <SortLink
@@ -314,7 +285,6 @@ class _Table extends Component<Props, State> {
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
-        onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
     if (field.field.startsWith('user_misery')) {
@@ -358,14 +328,6 @@ class _Table extends Component<Props, State> {
       }
       return [];
     };
-  };
-
-  handleSummaryClick = () => {
-    const {organization, location, projects} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.overview.navigate.summary', {
-      organization,
-      project_platforms: getSelectedProjectPlatforms(location, projects),
-    });
   };
 
   handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
@@ -418,56 +380,43 @@ class _Table extends Component<Props, State> {
     return (
       <GuideAnchor target="performance_table" position="top-start">
         <div data-test-id="performance-table">
-          <MEPConsumer>
-            {value => {
-              return (
-                <DiscoverQuery
-                  eventView={sortedEventView}
-                  orgSlug={organization.slug}
-                  location={location}
-                  setError={error => setError(error?.message)}
-                  referrer="api.performance.landing-table"
-                  transactionName={transaction}
-                  transactionThreshold={transactionThreshold}
-                  queryExtras={getMEPQueryParams(value)}
+          <DiscoverQuery
+            eventView={sortedEventView}
+            orgSlug={organization.slug}
+            location={location}
+            setError={error => setError(error?.message)}
+            referrer="api.performance.landing-table"
+            transactionName={transaction}
+            transactionThreshold={transactionThreshold}
+            queryExtras={{dataset: 'metrics'}}
+          >
+            {({pageLinks, isLoading, tableData}) => (
+              <Fragment>
+                <VisuallyCompleteWithData
+                  id="PerformanceTable"
+                  hasData={!isLoading && !!tableData?.data && tableData.data.length > 0}
                 >
-                  {({pageLinks, isLoading, tableData}) => (
-                    <Fragment>
-                      <VisuallyCompleteWithData
-                        id="PerformanceTable"
-                        hasData={
-                          !isLoading && !!tableData?.data && tableData.data.length > 0
-                        }
-                      >
-                        <GridEditable
-                          isLoading={isLoading}
-                          data={tableData ? tableData.data : []}
-                          columnOrder={columnOrder}
-                          columnSortBy={columnSortBy}
-                          grid={{
-                            onResizeColumn: this.handleResizeColumn,
-                            renderHeadCell: this.renderHeadCellWithMeta(
-                              tableData?.meta
-                            ) as any,
-                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                            renderPrependColumns: this.renderPrependCellWithData(
-                              tableData
-                            ) as any,
-                            prependColumnWidths,
-                          }}
-                          location={location}
-                        />
-                      </VisuallyCompleteWithData>
-                      <Pagination
-                        pageLinks={pageLinks}
-                        paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                      />
-                    </Fragment>
-                  )}
-                </DiscoverQuery>
-              );
-            }}
-          </MEPConsumer>
+                  <GridEditable
+                    isLoading={isLoading}
+                    data={tableData ? tableData.data : []}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      onResizeColumn: this.handleResizeColumn,
+                      renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                      renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                      renderPrependColumns: this.renderPrependCellWithData(
+                        tableData
+                      ) as any,
+                      prependColumnWidths,
+                    }}
+                    location={location}
+                  />
+                </VisuallyCompleteWithData>
+                <Pagination pageLinks={pageLinks} />
+              </Fragment>
+            )}
+          </DiscoverQuery>
         </div>
       </GuideAnchor>
     );
