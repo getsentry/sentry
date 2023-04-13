@@ -54,6 +54,24 @@ declare const __LOADER__IS_LAZY__: any;
   };
   queue.data = [];
 
+  function onError() {
+    // Use keys as "data type" to save some characters"
+    queue({
+      e: [].slice.call(arguments),
+    });
+  }
+
+  function onUnhandledRejection(e) {
+    queue({
+      p:
+        'reason' in e
+          ? e.reason
+          : 'detail' in e && 'reason' in e.detail
+          ? e.detail.reason
+          : e,
+    });
+  }
+
   function injectSdk(callbacks) {
     if (injected) {
       return;
@@ -74,16 +92,8 @@ declare const __LOADER__IS_LAZY__: any;
     // Once our SDK is loaded
     _newScriptTag.addEventListener('load', function () {
       try {
-        // Restore onerror/onunhandledrejection handlers - only if not mutated in the meanwhile
-        if (_window[_onerror] && _window[_onerror].__SENTRY_LOADER__) {
-          _window[_onerror] = _oldOnerror;
-        }
-        if (
-          _window[_onunhandledrejection] &&
-          _window[_onunhandledrejection].__SENTRY_LOADER__
-        ) {
-          _window[_onunhandledrejection] = _oldOnunhandledrejection;
-        }
+        _window.removeEventListener('error', onError);
+        _window.removeEventListener('unhandledrejection', onUnhandledRejection);
 
         // Add loader as SDK source
         _window.SENTRY_SDK_SOURCE = 'loader';
@@ -239,37 +249,8 @@ declare const __LOADER__IS_LAZY__: any;
     };
   });
 
-  // Store reference to the old `onerror` handler and override it with our own function
-  // that will just push exceptions to the queue and call through old handler if we found one
-  const _oldOnerror = _window[_onerror];
-  _window[_onerror] = function () {
-    // Use keys as "data type" to save some characters"
-    queue({
-      e: [].slice.call(arguments),
-    });
-
-    if (_oldOnerror) {
-      _oldOnerror.apply(_window, arguments);
-    }
-  };
-  _window[_onerror].__SENTRY_LOADER__ = true;
-
-  // Do the same store/queue/call operations for `onunhandledrejection` event
-  const _oldOnunhandledrejection = _window[_onunhandledrejection];
-  _window[_onunhandledrejection] = function (e) {
-    queue({
-      p:
-        'reason' in e
-          ? e.reason
-          : 'detail' in e && 'reason' in e.detail
-          ? e.detail.reason
-          : e,
-    });
-    if (_oldOnunhandledrejection) {
-      _oldOnunhandledrejection.apply(_window, arguments);
-    }
-  };
-  _window[_onunhandledrejection].__SENTRY_LOADER__ = true;
+  _window.addEventListener('error', onError);
+  _window.addEventListener('unhandledrejection', onUnhandledRejection);
 
   if (!lazy) {
     setTimeout(function () {
