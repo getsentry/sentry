@@ -1,5 +1,3 @@
-import logging
-
 import sentry_sdk
 from symbolic import ProguardMapper, SourceView
 
@@ -14,8 +12,7 @@ from sentry.models import ArtifactBundleArchive, EventError, ProjectDebugFile
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
-
-logger = logging.getLogger()
+from src.sentry.lang.javascript.processor import get_source_context, trim_line
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
@@ -130,73 +127,6 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         return
 
 
-def trim_line(line, column=0):
-    """
-    Trims a line down to a goal of 140 characters, with a little
-    wiggle room to be sensible and tries to trim around the given
-    `column`. So it tries to extract 60 characters before and after
-    the provided `column` and yield a better context.
-    """
-    line = line.strip("\n")
-    ll = len(line)
-    if ll <= 150:
-        return line
-    if column > ll:
-        column = ll
-    start = max(column - 60, 0)
-    # Round down if it brings us close to the edge
-    if start < 5:
-        start = 0
-    end = min(start + 140, ll)
-    # Round up to the end if it's close
-    if end > ll - 5:
-        end = ll
-    # If we are bumped all the way to the end,
-    # make sure we still get a full 140 characters in the line
-    if end == ll:
-        start = max(end - 140, 0)
-    line = line[start:end]
-    if end < ll:
-        # we've snipped from the end
-        line += " {snip}"
-    if start > 0:
-        # we've snipped from the beginning
-        line = "{snip} " + line
-    return line
-
-
-def get_source_context(source, lineno, context=5):
-    if not source:
-        return None, None, None
-
-    # lineno's in JS are 1-indexed
-    # just in case. sometimes math is hard
-    if lineno > 0:
-        lineno -= 1
-    else:
-        return None, None, None
-
-    lower_bound = max(0, lineno - context)
-    upper_bound = min(lineno + 1 + context, len(source))
-
-    try:
-        pre_context = source[lower_bound:lineno]
-    except IndexError:
-        pre_context = []
-
-    try:
-        context_line = source[lineno]
-    except IndexError:
-        context_line = ""
-
-    try:
-        post_context = source[(lineno + 1) : upper_bound]
-    except IndexError:
-        post_context = []
-
-    return pre_context or None, context_line, post_context or None
-
-
 # A processor that delegates to JavaStacktraceProcessor for restoring code
 # obfuscated by ProGuard or similar. It then tries to look up source context
 # for either the de-obfuscated stack frame or the stack frame that was passed in.
@@ -206,10 +136,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         self.proguard_processor = JavaStacktraceProcessor(*args, **kwargs)
         self._proguard_processor_handles_frame = None
         self._handles_frame = None
-
-        # logger.warning(json.dumps(dict(self.data)))
         self.images = get_jvm_images(self.data)
-        # logger.warning(f"images sourcelookup found: ({self.images})")
         self.available = len(self.images) > 0
 
     def handles_frame(self, frame, stacktrace_info):
@@ -219,13 +146,8 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
 
         platform = frame.get("platform") or self.data.get("platform")
         self._handles_frame = (
-            platform == "java"
-            and self.available
-            and "abs_path" in frame
-            and "module" in frame
-            and "lineno" in frame
+            platform == "java" and self.available and "module" in frame and "lineno" in frame
         )
-        logger.warning(f"sourcelookup handles frame ({self._handles_frame})")
         return self._proguard_processor_handles_frame or self._handles_frame
 
     def preprocess_step(self, processing_task):
@@ -292,7 +214,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
             if proguard_result:
                 new_frames, raw_frames, processing_errors = proguard_result
 
-        if not self.handles_frame:
+        if not self._handles_frame:
             return new_frames, raw_frames, processing_errors
 
         if not new_frames:
@@ -302,10 +224,8 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         difs = ProjectDebugFile.objects.find_by_debug_ids(self.project, self.images)
 
         for new_frame in new_frames:
-            # logger.warning(f"frame ({json.dumps(new_frame)})")
             lineno = new_frame.get("lineno")
             if not lineno:
-                logger.warning("unable to find lineno, skipping")
                 continue
 
             source_file_name = self._build_source_file_name(new_frame)
@@ -344,7 +264,6 @@ class JavaPlugin(Plugin2):
         return False
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        logger.warning(f"platforms: ({platforms})")
         if "java" in platforms:
             return [JavaSourceLookupStacktraceProcessor]
 
