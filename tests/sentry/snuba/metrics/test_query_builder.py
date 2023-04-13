@@ -349,6 +349,7 @@ def test_timestamps():
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query(mock_now, mock_now2):
     # Your typical release health query querying everything
+    having = [Condition(Column("sum"), Op.GT, 1000)]
     query_definition = MetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -362,6 +363,7 @@ def test_build_snuba_query(mock_now, mock_now2):
         granularity=Granularity(3600),
         where=[Condition(Column("release"), Op.EQ, "staging")],
         groupby=[MetricGroupByField("environment")],
+        having=having,
     )
     snuba_queries, _ = SnubaQueryBuilder(
         [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
@@ -419,6 +421,7 @@ def test_build_snuba_query(mock_now, mock_now2):
                     [resolve_weak(use_case_id, org_id, get_mri(metric_name))],
                 ),
             ],
+            having=having,
             # totals: MAX_POINTS // (90d * 24h)
             # series: totals * (90d * 24h)
             limit=Limit(4) if not extra_groupby else Limit(8644),
@@ -1764,3 +1767,44 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
     )
 
     assert field == expected_field
+
+
+@pytest.mark.parametrize(
+    "include_totals, include_series",
+    [
+        [True, False],
+        [True, True],
+        [False, True],
+    ],
+)
+def test_having_clause(include_totals, include_series):
+    """
+    Tests that the having clause ends up in the snql queries in the expected form
+    """
+    having = [Condition(Column("sum"), Op.GT, 1000)]
+
+    query_definition = MetricsQuery(
+        org_id=1,
+        project_ids=[1],
+        select=[
+            MetricField("sum", SessionMRI.SESSION.value, alias="sum"),
+        ],
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+        groupby=[MetricGroupByField("environment")],
+        having=having,
+        include_totals=include_totals,
+        include_series=include_series,
+    )
+    snuba_queries, _ = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
+    ).get_snuba_queries()
+
+    queries = snuba_queries["metrics_counters"]
+    if include_totals:
+        query = queries["totals"]
+        assert query.having == having
+    if include_series:
+        query = queries["series"]
+        assert query.having == having

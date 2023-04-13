@@ -7,7 +7,7 @@ from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
 from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
-from snuba_sdk.conditions import BooleanCondition, Condition
+from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
@@ -148,6 +148,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     start: Optional[datetime] = None
     end: Optional[datetime] = None
     where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
+    having: Optional[ConditionGroup] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
     limit: Optional[Limit] = None

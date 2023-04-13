@@ -26,7 +26,7 @@ from snuba_sdk import (
     Or,
     Query,
 )
-from snuba_sdk.conditions import BooleanCondition
+from snuba_sdk.conditions import BooleanCondition, ConditionGroup
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import SearchFilter
@@ -404,6 +404,7 @@ class QueryDefinition:
         self.orderby = self._parse_orderby(query_params)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
+        self.having: Optional[ConditionGroup] = query_params.getlist("having")
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -422,6 +423,7 @@ class QueryDefinition:
             start=self.start,
             end=self.end,
             where=self.parsed_query,
+            having=self.having,
             groupby=self.groupby,
             orderby=self.orderby,
             limit=self.limit,
@@ -848,6 +850,7 @@ class SnubaQueryBuilder:
         entity,
         select,
         where,
+        having,
         groupby,
         orderby,
         limit,
@@ -861,6 +864,7 @@ class SnubaQueryBuilder:
             groupby=groupby,
             select=select,
             where=where,
+            having=having,
             limit=limit,
             offset=offset or None,
             granularity=rollup,
@@ -1020,6 +1024,7 @@ class SnubaQueryBuilder:
                 entity=entity,
                 select=select,
                 where=where + where_for_entity,
+                having=self._metrics_query.having,
                 groupby=groupby,  # Empty group by is set to None.
                 orderby=orderby,  # Empty order by is set to None.
                 limit=self._metrics_query.limit,
