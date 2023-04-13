@@ -3,7 +3,6 @@ import {RouteComponentProps} from 'react-router';
 
 import {fetchProjectDetails} from 'sentry/actionCreators/project';
 import {PageFilters} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -34,13 +33,6 @@ function IssueDetailsContainer({selection, ...props}: Props) {
 
     fetchProjectDetails({api, orgSlug: organization.slug, projSlug: project.slug});
   }, [api, organization.slug, project?.slug]);
-
-  useEffect(() => {
-    analytics('issue_page.viewed', {
-      group_id: parseInt(params.groupId, 10),
-      org_id: parseInt(organization.id, 10),
-    });
-  }, [organization, params.groupId]);
 
   return (
     <GroupDetails
