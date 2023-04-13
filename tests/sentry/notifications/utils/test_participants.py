@@ -1,5 +1,4 @@
 from typing import Iterable, Mapping, Optional, Sequence, Set, Union
-from unittest import mock
 
 import pytest
 
@@ -17,7 +16,6 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import (
     FALLTHROUGH_NOTIFICATION_LIMIT,
-    FALLTHROUGH_NOTIFICATION_LIMIT_EA,
     get_fallthrough_recipients,
     get_owner_reason,
     get_owners,
@@ -933,33 +931,3 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
         assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
         assert notified_users.issubset(expected_notified_users)
-
-    @mock.patch("sentry.experiments.manager.get", return_value=1)
-    @with_feature("organizations:issue-alert-fallback-targeting")
-    @with_feature("organizations:issue-alert-fallback-experiment")
-    def test_fallthrough_ea_experiment_limit(self, mock_func):
-        self.organization.flags.early_adopter = True
-
-        notifiable_users = [self.user, self.user2]
-        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT_EA + 5):
-            new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
-            self.create_member(
-                user=new_user, organization=self.organization, role="owner", teams=[self.team2]
-            )
-            notifiable_users.append(new_user)
-
-        for user in notifiable_users:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                user=user,
-            )
-
-        event = self.store_event("admin.lol", self.project)
-        notified_users = self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
-        )[ExternalProviders.EMAIL]
-
-        # Check that we notify all possible folks with the EA experiment limit.
-        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT_EA
