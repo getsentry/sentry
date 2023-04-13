@@ -1,11 +1,9 @@
-import styled from '@emotion/styled';
-
 import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 
 export function ExperimentalFeatureBadge() {
   return (
-    <CapitalizesFeatureBadge
+    <FeatureBadge
       size="sm"
       type="experimental"
       title={t(
@@ -14,7 +12,3 @@ export function ExperimentalFeatureBadge() {
     />
   );
 }
-
-const CapitalizesFeatureBadge = styled(FeatureBadge)`
-  text-transform: capitalize;
-`;
