@@ -6,7 +6,7 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.constants import TOTAL_COUNT_ALIAS
+from sentry.search.events.constants import TOTAL_COUNT_ALIAS, TOTAL_SUM_TRANSACTION_DURATION_ALIAS
 
 # prefix on fields so we know they're equations
 EQUATION_PREFIX = "equation|"
@@ -161,6 +161,7 @@ class ArithmeticVisitor(NodeVisitor):
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
         TOTAL_COUNT_ALIAS,
+        TOTAL_SUM_TRANSACTION_DURATION_ALIAS,
     }
     function_allowlist = {
         "count",
@@ -297,7 +298,10 @@ def parse_arithmetic(
     visitor = ArithmeticVisitor(max_operators, custom_measurements)
     result = visitor.visit(tree)
     # total count is the exception to the no mixing rule
-    if visitor.fields == {TOTAL_COUNT_ALIAS} and len(visitor.functions) > 0:
+    if (
+        visitor.fields == {TOTAL_COUNT_ALIAS}
+        or visitor.fields == {TOTAL_SUM_TRANSACTION_DURATION_ALIAS}
+    ) and len(visitor.functions) > 0:
         return result, list(visitor.fields), list(visitor.functions)
     if len(visitor.fields) > 0 and len(visitor.functions) > 0:
         raise ArithmeticValidationError("Cannot mix functions and fields in arithmetic")

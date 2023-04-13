@@ -60,6 +60,7 @@ from sentry.search.events.constants import (
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
     TOTAL_COUNT_ALIAS,
+    TOTAL_SUM_TRANSACTION_DURATION_ALIAS,
     TRACE_PARENT_SPAN_ALIAS,
     TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
@@ -106,6 +107,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
         self.total_count: Optional[int] = None
+        self.total_sum_transaction_duration: Optional[float] = None
 
     @property
     def search_filter_converter(
@@ -152,6 +154,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
             HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
+            TOTAL_SUM_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
             DEVICE_CLASS_ALIAS: self._resolve_device_class,
         }
 
@@ -1274,6 +1277,30 @@ class DiscoverDatasetConfig(DatasetConfig):
             return Function("toUInt64", [0], alias)
         self.total_count = results["data"][0]["count"]
         return Function("toUInt64", [self.total_count], alias)
+
+    def _resolve_total_sum_transaction_duration(self, alias: str) -> SelectType:
+        """This must be cached since it runs another query"""
+        self.builder.requires_other_aggregates = True
+        if self.total_sum_transaction_duration is not None:
+            return Function("toFloat64", [self.total_sum_transaction_duration], alias)
+        # TODO[Shruthi]: Figure out parametrization of the args to sum()
+        total_query = builder.QueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=["sum(transaction.duration)"],
+        )
+        total_query.columns += self.builder.resolve_groupby()
+        total_query.where = self.builder.where
+        total_results = total_query.run_query(
+            Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value
+        )
+        results = total_query.process_results(total_results)
+        if len(results["data"]) != 1:
+            self.total_sum_transaction_duration = 0
+            return Function("toFloat64", [0], alias)
+        self.total_sum_transaction_duration = results["data"][0]["sum_transaction_duration"]
+        return Function("toFloat64", [self.total_sum_transaction_duration], alias)
 
     def _resolve_device_class(self, _: str) -> SelectType:
         return Function(

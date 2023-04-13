@@ -5981,6 +5981,42 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert len(data) == 1
         assert data[0]["total.count"] == 1
 
+    def test_total_sum_transaction_duration_equation(self):
+        for i in range(3):
+            data = self.load_data(
+                timestamp=self.eleven_mins_ago,
+                duration=timedelta(seconds=5),
+            )
+            data["transaction"] = "/endpoint/1"
+            self.store_event(data, project_id=self.project.id)
+
+        data = self.load_data(
+            timestamp=self.ten_mins_ago,
+            duration=timedelta(seconds=5),
+        )
+        data["transaction"] = "/endpoint/2"
+        self.store_event(data, project_id=self.project.id)
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        query = {
+            "field": [
+                "transaction",
+                "sum(transaction.duration)",
+                "total.sum_transaction_duration",
+                "equation|sum(transaction.duration)/total.sum_transaction_duration",
+            ],
+            "query": "",
+            "orderby": "-equation|sum(transaction.duration)/total.sum_transaction_duration",
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["equation|sum(transaction.duration)/total.sum_transaction_duration"] == 0.75
+        assert data[1]["equation|sum(transaction.duration)/total.sum_transaction_duration"] == 0.25
+
     def test_device_class(self):
         project1 = self.create_project()
         for i in range(3):

@@ -32,6 +32,7 @@ TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 # Named this way in case we want to eventually do stuff like total.p50
 TOTAL_COUNT_ALIAS = "total.count"
+TOTAL_SUM_TRANSACTION_DURATION_ALIAS = "total.sum_transaction_duration"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
@@ -130,7 +131,7 @@ PERCENT_UNITS = {"ratio", "percent"}
 NO_CONVERSION_FIELDS = {"start", "end"}
 # Skip total_count_alias since it queries the total count and therefore doesn't make sense in a filter
 # In these cases we should instead treat it as a tag instead
-SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS}
+SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS, TOTAL_SUM_TRANSACTION_DURATION_ALIAS}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
 ARRAY_FIELDS = {
