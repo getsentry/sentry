@@ -33,6 +33,7 @@ from sentry.event_manager import (
     EventManager,
     EventUser,
     HashDiscarded,
+    _calculate_transaction_duration,
     _get_event_instance,
     _save_grouphash_and_group,
     has_pending_commit_resolution,
@@ -3685,3 +3686,13 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
+
+
+class TestCalculateTransactionDuration(TransactionTestCase):
+    def test(self):
+        perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
+        event = _get_event_instance(perf_data, project_id=self.project.id)
+        assert event.data["start_timestamp"]
+        assert event.data["timestamp"]
+
+        assert _calculate_transaction_duration(event) != 0

@@ -2464,14 +2464,10 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
 
 
-def _calculate_transaction_duration(event) -> int:
+def _calculate_transaction_duration(event: Event) -> int:
     try:
-
-        def __extract_timestamp(int) -> datetime:
-            return datetime.utcfromtimestamp(int)
-
-        start_ts = __extract_timestamp(event["data"]["start_timestamp"])
-        finish_ts = __extract_timestamp(event["data"]["timestamp"])
+        start_ts = datetime.utcfromtimestamp(event.data["start_timestamp"])
+        finish_ts = datetime.utcfromtimestamp(event.data["timestamp"])
         duration_secs = (finish_ts - start_ts).total_seconds()
         return max(int(duration_secs * 1000), 0)
     except Exception:
