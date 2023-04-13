@@ -7,19 +7,13 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArchive, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  GroupStatusResolution,
-  ResolutionStatus,
-  ResolutionStatusDetails,
-} from 'sentry/types';
+import {GroupStatusResolution, ResolutionStatus} from 'sentry/types';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
   className?: string;
   confirmLabel?: string;
-  confirmMessage?: (
-    statusDetails: ResolutionStatusDetails | undefined
-  ) => React.ReactNode;
+  confirmMessage?: () => React.ReactNode;
   disableTooltip?: boolean;
   disabled?: boolean;
   hideIcon?: boolean;
@@ -27,6 +21,16 @@ interface ArchiveActionProps {
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
 }
+
+const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
+  status: ResolutionStatus.IGNORED,
+  statusDetails: {},
+  substatus: 'until_escalating',
+};
+const ARCHIVE_FOREVER: GroupStatusResolution = {
+  status: ResolutionStatus.IGNORED,
+  statusDetails: {},
+};
 
 export function getArchiveActions({
   shouldConfirm,
@@ -45,22 +49,15 @@ export function getArchiveActions({
     confirmMessage,
   });
 
-  const onArchive = (statusDetails: GroupStatusResolution['statusDetails']) => {
+  const onArchive = (resolution: GroupStatusResolution) => {
     if (shouldConfirm && confirmMessage) {
       openConfirmModal({
-        onConfirm: () =>
-          onUpdate({
-            status: ResolutionStatus.IGNORED,
-            statusDetails,
-          }),
-        message: confirmMessage(statusDetails),
+        onConfirm: () => onUpdate(resolution),
+        message: confirmMessage(),
         confirmText: confirmLabel,
       });
     } else {
-      onUpdate({
-        status: ResolutionStatus.IGNORED,
-        statusDetails,
-      });
+      onUpdate(resolution);
     }
   };
 
@@ -70,12 +67,12 @@ export function getArchiveActions({
       {
         key: 'untilEscalating',
         label: t('Until it escalates'),
-        onAction: () => onArchive({untilEscalating: true}),
+        onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
       },
       {
         key: 'forever',
         label: t('Forever'),
-        onAction: () => onArchive({}),
+        onAction: () => onArchive(ARCHIVE_FOREVER),
       },
       ...dropdownItems,
     ],
@@ -123,7 +120,7 @@ function ArchiveActions({
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
         icon={hideIcon ? null : <IconArchive size={size} />}
-        onClick={() => onArchive({untilEscalating: true})}
+        onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >
         {t('Archive')}

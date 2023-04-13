@@ -1,7 +1,7 @@
 import hashlib
 import logging
 from os import path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
@@ -255,8 +255,9 @@ def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
 
 def _extract_debug_ids_from_manifest(
     manifest: dict,
-) -> Tuple[Optional[str], List[Tuple[SourceFileType, str]]]:
-    debug_ids_with_types = []
+) -> Tuple[Optional[str], Set[Tuple[SourceFileType, str]]]:
+    # We use a set, since we might have the same debug_id and file_type.
+    debug_ids_with_types = set()
 
     # We also want to extract the bundle_id which is also known as the bundle debug_id. This id is used to uniquely
     # identify a specific ArtifactBundle in case for example of future deletion.
@@ -278,16 +279,18 @@ def _extract_debug_ids_from_manifest(
                 and file_type is not None
                 and (source_file_type := SourceFileType.from_lowercase_key(file_type)) is not None
             ):
-                debug_ids_with_types.append((source_file_type, debug_id))
+                debug_ids_with_types.add((source_file_type, debug_id))
 
     return bundle_id, debug_ids_with_types
 
 
-def _remove_duplicate_artifact_bundles(except_id: int, bundle_id: str):
+def _remove_duplicate_artifact_bundles(bundle: ArtifactBundle, bundle_id: str):
     with transaction.atomic():
         # Even though we delete via a QuerySet the associated file is also deleted, because django will still
         # fire the on_delete signal.
-        ArtifactBundle.objects.filter(~Q(id=except_id), bundle_id=bundle_id).delete()
+        ArtifactBundle.objects.filter(
+            ~Q(id=bundle.id), bundle_id=bundle_id, organization_id=bundle.organization_id
+        ).delete()
 
 
 def _create_artifact_bundle(
@@ -346,7 +349,7 @@ def _create_artifact_bundle(
                     date_added=now,
                 )
 
-            _remove_duplicate_artifact_bundles(artifact_bundle.id, bundle_id)
+            _remove_duplicate_artifact_bundles(artifact_bundle, bundle_id)
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
