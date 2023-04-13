@@ -16,7 +16,7 @@ import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {
-  generateWebServiceEventView,
+  generatePerformanceEventView,
   getDefaultStatsPeriod,
 } from '../../utils/generatePerformanceEventView';
 
@@ -35,7 +35,7 @@ function WebServiceView({selection, location, router}: Props) {
   const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateWebServiceEventView(
+  const eventView = generatePerformanceEventView(
     location,
     projects,
     {
