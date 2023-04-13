@@ -26,7 +26,6 @@ import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
-  displayCount: React.ReactNode;
   displayReprocessingActions: boolean;
   groupIds: string[];
   onDelete: () => void;

@@ -1134,6 +1134,32 @@ class IssueListOverview extends Component<Props, State> {
     });
   };
 
+  getPageCounts = () => {
+    const {location} = this.props;
+    const {pageLinks, queryCount, groupIds} = this.state;
+    const links = parseLinkHeader(pageLinks);
+    const queryPageInt = parseInt(location.query.page, 10);
+    // Cursor must be present for the page number to be used
+    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+
+    let numPreviousIssues = Math.min(page * MAX_ITEMS, queryCount);
+
+    // Because the query param `page` is not tied to the request, we need to
+    // validate that it's correct at the first and last page
+    if (!links?.next?.results || this.allResultsVisible()) {
+      // On last available page
+      numPreviousIssues = queryCount - groupIds.length;
+    } else if (!links?.previous?.results) {
+      // On first available page
+      numPreviousIssues = 0;
+    }
+
+    return {
+      numPreviousIssues,
+      numIssuesOnPage: groupIds.length,
+    };
+  };
+
   render() {
     if (this.props.savedSearchLoading) {
       return this.renderLoading();
@@ -1153,21 +1179,7 @@ class IssueListOverview extends Component<Props, State> {
     const {organization, selection, router} = this.props;
     const query = this.getQuery();
 
-    const numIssuesOnPage = groupIds.length;
-
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
-    const displayCount = tct('[count] of [total]', {
-      count: numIssuesOnPage,
-      total: (
-        <StyledQueryCount
-          hideParens
-          hideIfEmpty={false}
-          count={modifiedQueryCount}
-          max={queryMaxCount || 100}
-        />
-      ),
-    });
-
     const projectIds = selection?.projects?.map(p => p.toString());
 
     const showReprocessingTab = this.displayReprocessingTab();
@@ -1175,6 +1187,8 @@ class IssueListOverview extends Component<Props, State> {
       showReprocessingTab,
       query
     );
+
+    const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
 
     return (
       <Layout.Page>
@@ -1199,7 +1213,6 @@ class IssueListOverview extends Component<Props, State> {
                 selection={selection}
                 query={query}
                 queryCount={modifiedQueryCount}
-                displayCount={displayCount}
                 onSelectStatsPeriod={this.onSelectStatsPeriod}
                 onMarkReviewed={this.onMarkReviewed}
                 onActionTaken={this.onActionTaken}
@@ -1239,8 +1252,17 @@ class IssueListOverview extends Component<Props, State> {
             <StyledPagination
               caption={
                 !issuesLoading
-                  ? tct('Showing [displayCount] issues', {
-                      displayCount,
+                  ? tct('[start]-[end] of [total]', {
+                      start: numPreviousIssues + 1,
+                      end: numPreviousIssues + numIssuesOnPage,
+                      total: (
+                        <StyledQueryCount
+                          hideParens
+                          hideIfEmpty={false}
+                          count={modifiedQueryCount}
+                          max={queryMaxCount || 100}
+                        />
+                      ),
                     })
                   : null
               }
