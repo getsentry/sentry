@@ -400,6 +400,9 @@ def dispatch_to_local_service(
     return result.dict() if isinstance(result, RpcModel) else result
 
 
+_RPC_CONTENT_CHARSET = "utf-8"
+
+
 def dispatch_remote_call(
     region: Region | None, service_name: str, method_name: str, serial_arguments: ArgumentDict
 ) -> Any:
@@ -432,7 +435,7 @@ def dispatch_remote_call(
     }
 
     with _fire_request(url, request_body, api_token) as response:
-        charset = response.headers.get_content_charset()
+        charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
         response_body = response.read().decode(charset)
     serial_response = json.loads(response_body)
     return service.deserialize_rpc_response(method_name, serial_response)
@@ -441,10 +444,10 @@ def dispatch_remote_call(
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
     # TODO: Performance considerations (persistent connections, pooling, etc.)?
 
-    data = json.dumps(body).encode("utf-8")
+    data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
 
     request = Request(url)
-    request.add_header("Content-Type", "application/json; charset=utf-8")
+    request.add_header("Content-Type", f"application/json; charset={_RPC_CONTENT_CHARSET}")
     request.add_header("Content-Length", str(len(data)))
     request.add_header("Authorization", f"Bearer {api_token}")
     return urlopen(request, data)  # type: ignore
