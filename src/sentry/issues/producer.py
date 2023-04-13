@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from atexit import register
 from collections import deque
 from concurrent import futures
@@ -34,12 +33,11 @@ def get_occurrence_producer() -> KafkaProducer:
 
 def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
-        # If we're not running Kafka then we're just in dev. Skip producing here and just log for
-        # debugging.
-        logging.info(
-            "Attempted to produce occurrence to Kafka, but Kafka isn't running",
-            extra={"occurrence": occurrence},
-        )
+        # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
+        # write to the issue platform directly
+        from sentry.issues.occurrence_consumer import lookup_event_and_process_issue_occurrence
+
+        lookup_event_and_process_issue_occurrence(occurrence.to_dict())
         return
     payload = KafkaPayload(None, json.dumps(occurrence.to_dict()).encode("utf-8"), [])
     occurrence_producer = get_occurrence_producer()

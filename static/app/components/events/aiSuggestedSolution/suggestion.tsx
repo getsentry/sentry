@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 import {InjectedRouter} from 'react-router';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -22,13 +21,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
-import suggestionWheelOfFortuneDarkMode from './suggestion-wheel-of-fortune-dark-mode.mp4';
-import suggestionWheelOfFortuneLightMode from './suggestion-wheel-of-fortune-light-mode.mp4';
 import {SuggestionLoaderMessage} from './suggestionLoaderMessage';
 import {useOpenAISuggestionLocalStorage} from './useOpenAISuggestionLocalStorage';
 
 type Props = {
-  darkMode: boolean;
   event: Event;
   onHideSuggestion: () => void;
   projectSlug: Project['slug'];
@@ -115,7 +111,7 @@ function ErrorDescription({
   return <SuggestionLoadingError onRetry={onRefetch} />;
 }
 
-export function Suggestion({onHideSuggestion, projectSlug, event, darkMode}: Props) {
+export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const organization = useOrganization();
   const router = useRouter();
   const [individualConsent, setIndividualConsent] = useOpenAISuggestionLocalStorage();
@@ -143,7 +139,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event, darkMode}: Pro
   }, [onHideSuggestion]);
 
   return (
-    <Wrapper darkMode={darkMode}>
+    <Panel>
       <Header>
         <div>
           {t('AI Solution')}
@@ -156,17 +152,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event, darkMode}: Pro
       <PanelBody>
         {dataIsLoading ? (
           <LoaderWrapper>
-            <video height="309px" autoPlay loop muted>
-              <source
-                src={
-                  darkMode
-                    ? suggestionWheelOfFortuneDarkMode
-                    : suggestionWheelOfFortuneLightMode
-                }
-                type="video/mp4"
-              />
-              {t('Your browser does not support the video tag.')}
-            </video>
+            <div className="ai-suggestion-wheel-of-fortune" />
             <SuggestionLoaderMessage />
           </LoaderWrapper>
         ) : dataIsError ? (
@@ -252,18 +238,9 @@ export function Suggestion({onHideSuggestion, projectSlug, event, darkMode}: Pro
           </ButtonBar>
         </Feedback>
       </PanelFooter>
-    </Wrapper>
+    </Panel>
   );
 }
-
-const Wrapper = styled(Panel)<{darkMode: boolean}>`
-  ${p =>
-    p.darkMode &&
-    css`
-      /* hack until we update the background of the loading video */
-      background: #2b2031;
-    `}
-`;
 
 const Header = styled(PanelHeader)`
   background: transparent;
