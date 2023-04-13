@@ -39,7 +39,14 @@ function MonitorDetails({params, location}: Props) {
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {staleTime: 0});
 
   function onUpdate(data: Monitor) {
-    setApiQueryData(queryClient, queryKey, data);
+    const updatedMonitor = {
+      ...data,
+      // TODO(davidenwang): This is a bit of a hack, due to the PUT request
+      // which pauses/unpauses a monitor not returning monitor environments
+      // we should reuse the environments retrieved from the initial request
+      environments: monitor?.environments,
+    };
+    setApiQueryData(queryClient, queryKey, updatedMonitor);
   }
 
   if (!monitor) {
