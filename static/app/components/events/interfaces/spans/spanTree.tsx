@@ -469,12 +469,10 @@ class SpanTree extends Component<PropType> {
         const {span, treeDepth, continuingTreeDepths} = payload;
 
         if (payload.type === 'span_group_chain') {
-          const groupingContainsAffectedSpan =
-            isEmbeddedSpanTree &&
-            payload.spanNestedGrouping?.find(
-              ({span: s}) =>
-                !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
-            );
+          const groupingContainsAffectedSpan = payload.spanNestedGrouping?.find(
+            ({span: s}) =>
+              !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+          );
 
           acc.spanTree.push({
             type: SpanTreeNodeType.DESCENDANT_GROUP,
@@ -505,12 +503,10 @@ class SpanTree extends Component<PropType> {
         }
 
         if (payload.type === 'span_group_siblings') {
-          const groupingContainsAffectedSpan =
-            isEmbeddedSpanTree &&
-            payload.spanSiblingGrouping?.find(
-              ({span: s}) =>
-                !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
-            );
+          const groupingContainsAffectedSpan = payload.spanSiblingGrouping?.find(
+            ({span: s}) =>
+              !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+          );
 
           acc.spanTree.push({
             type: SpanTreeNodeType.SIBLING_GROUP,
@@ -572,9 +568,7 @@ class SpanTree extends Component<PropType> {
         }
 
         const isAffectedSpan =
-          !('type' in span) &&
-          isEmbeddedSpanTree &&
-          waterfallModel.affectedSpanIds?.includes(span.span_id);
+          !('type' in span) && waterfallModel.affectedSpanIds?.includes(span.span_id);
 
         let spanBarType: SpanBarType | undefined = undefined;
 

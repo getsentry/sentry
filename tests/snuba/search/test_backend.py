@@ -14,6 +14,7 @@ from sentry.issues.grouptype import (
     NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
@@ -2111,32 +2112,38 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             "culprit": "app/components/events/eventEntries in map",
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         }
+        with self.options({"performance.issues.send_to_issues_platform": True}), self.feature(
+            "organizations:issue-platform"
+        ):
+            transaction_event_1 = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
+                    "tags": {"my_tag": 1},
+                    "fingerprint": [
+                        f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
+                    ],
+                },
+                project_id=self.project.id,
+            )
+            self.perf_group_1 = transaction_event_1.groups[0]
 
-        transaction_event_1 = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
-                "tags": {"my_tag": 1},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=self.project.id,
-        )
-        self.perf_group_1 = transaction_event_1.groups[0]
-
-        transaction_event_2 = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=2)),
-                "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
-                "tags": {"my_tag": 1},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group2"],
-            },
-            project_id=self.project.id,
-        )
-        self.perf_group_2 = transaction_event_2.groups[0]
+            transaction_event_2 = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(before_now(minutes=2)),
+                    "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
+                    "tags": {"my_tag": 1},
+                    "fingerprint": [
+                        f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group2"
+                    ],
+                },
+                project_id=self.project.id,
+            )
+            self.perf_group_2 = transaction_event_2.groups[0]
 
         error_event_data = {
             "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
@@ -2180,6 +2187,16 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_render_blocking_asset_span] my_tag:1"
         )
         assert list(results) == [self.perf_group_1, self.perf_group_2]
+
+    def test_performance_query_no_duplicates(self):
+        # Regression test to catch an issue we had with performance issues showing duplicated in the
+        # issue stream. This was  caused by us dual writing perf issues to transactions and to the
+        # issue platform. We'd end up reading the same issue twice and duplicate it in the response.
+        with self.feature("organizations:issue-platform"), self.options(
+            {"performance.issues.send_to_issues_platform": True}
+        ):
+            results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
+            assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_performance_issue_search_feature_off(self):
         with Feature({"organizations:performance-issues-search": False}):
@@ -2473,15 +2490,15 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         assert list(results) == []
 
     def test_generic_query(self):
-        with self.feature("organizations:issue-platform"):
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
             results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
-        assert list(results) == [self.profile_group_1, self.profile_group_2]
-
-        with self.feature("organizations:issue-platform"):
+            assert list(results) == [self.profile_group_1, self.profile_group_2]
             results = self.make_query(
                 search_filter_query="issue.type:profile_file_io_main_thread my_tag:1"
             )
-        assert list(results) == [self.profile_group_1, self.profile_group_2]
+            assert list(results) == [self.profile_group_1, self.profile_group_2]
 
     def test_generic_query_perf(self):
         event_id = uuid.uuid4().hex
@@ -2522,38 +2539,40 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         assert list(results) == [group_info.group]
 
     def test_error_generic_query(self):
-        with self.feature("organizations:issue-platform"):
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
             results = self.make_query(search_filter_query="my_tag:1")
-        assert list(results) == [
-            self.profile_group_1,
-            self.profile_group_2,
-            self.error_group_2,
-            self.error_group_1,
-        ]
-        with self.feature("organizations:issue-platform"):
+            assert list(results) == [
+                self.profile_group_1,
+                self.profile_group_2,
+                self.error_group_2,
+                self.error_group_1,
+            ]
             results = self.make_query(
                 search_filter_query="issue.category:[profile, error] my_tag:1"
             )
-        assert list(results) == [
-            self.profile_group_1,
-            self.profile_group_2,
-            self.error_group_2,
-            self.error_group_1,
-        ]
+            assert list(results) == [
+                self.profile_group_1,
+                self.profile_group_2,
+                self.error_group_2,
+                self.error_group_1,
+            ]
 
-        with self.feature("organizations:issue-platform"):
             results = self.make_query(
                 search_filter_query="issue.type:[profile_file_io_main_thread, error] my_tag:1"
             )
-        assert list(results) == [
-            self.profile_group_1,
-            self.profile_group_2,
-            self.error_group_2,
-            self.error_group_1,
-        ]
+            assert list(results) == [
+                self.profile_group_1,
+                self.profile_group_2,
+                self.error_group_2,
+                self.error_group_1,
+            ]
 
     def test_cursor_profile_issues(self):
-        with self.feature("organizations:issue-platform"):
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:profile my_tag:1",
@@ -2562,22 +2581,9 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 count_hits=True,
             )
 
-        assert list(results) == [self.profile_group_1]
-        assert results.hits == 2
+            assert list(results) == [self.profile_group_1]
+            assert results.hits == 2
 
-        with self.feature("organizations:issue-platform"):
-            results = self.make_query(
-                projects=[self.project],
-                search_filter_query="issue.category:profile my_tag:1",
-                sort_by="date",
-                limit=1,
-                cursor=results.next,
-                count_hits=True,
-            )
-        assert list(results) == [self.profile_group_2]
-        assert results.hits == 2
-
-        with self.feature("organizations:issue-platform"):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:profile my_tag:1",
@@ -2586,15 +2592,28 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 cursor=results.next,
                 count_hits=True,
             )
-        assert list(results) == []
-        assert results.hits == 2
+            assert list(results) == [self.profile_group_2]
+            assert results.hits == 2
+
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile my_tag:1",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
+            )
+            assert list(results) == []
+            assert results.hits == 2
 
     def test_rejected_filters(self):
         """
         Any queries with `error.handled` or `error.unhandled` filters querying the search_issues dataset
         should be rejected and return empty results.
         """
-        with self.feature("organizations:issue-platform"):
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:profile error.unhandled:0",
