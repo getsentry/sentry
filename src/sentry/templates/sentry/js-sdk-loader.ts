@@ -249,8 +249,8 @@ declare const __LOADER__IS_LAZY__: any;
     };
   });
 
-  window.addEventListener('error', onError);
-  window.addEventListener('unhandledrejection', onUnhandledRejection);
+  _window.addEventListener('error', onError);
+  _window.addEventListener('unhandledrejection', onUnhandledRejection);
 
   if (!lazy) {
     setTimeout(function () {
