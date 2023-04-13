@@ -2464,6 +2464,21 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
 
 
+def _calculate_transaction_duration(event) -> int:
+    try:
+
+        def __extract_timestamp(int) -> datetime:
+            return datetime.utcfromtimestamp(int)
+
+        start_ts = __extract_timestamp(event["data"]["start_timestamp"])
+        finish_ts = __extract_timestamp(event["data"]["timestamp"])
+        duration_secs = (finish_ts - start_ts).total_seconds()
+        return max(int(duration_secs * 1000), 0)
+    except Exception:
+        logger.info("event_manager.save._calculate_transaction_duration")
+        return 0
+
+
 @metrics.wraps("save_event.send_occurrence_to_platform")
 def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
@@ -2488,6 +2503,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                     evidence_display=problem.evidence_display,
                     detection_time=event.datetime,
                     level=job["level"],
+                    transaction_duration=_calculate_transaction_duration(event),
                 )
 
                 produce_occurrence_to_kafka(occurrence)
