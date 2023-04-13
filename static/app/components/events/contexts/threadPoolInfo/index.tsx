@@ -30,7 +30,7 @@ export function ThreadPoolInfoEventContext({data, event}: Props) {
       <ContextBlock
         data={getKnownData<
           ThreadPoolInfoContext,
-          keyof typeof threadPoolInfoKnownDataValues
+          (typeof threadPoolInfoKnownDataValues)[number]
         >({
           data,
           meta,
