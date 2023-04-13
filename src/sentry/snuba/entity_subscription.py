@@ -25,7 +25,6 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment, Organization
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import UseCaseId
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
@@ -325,11 +324,11 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
-    def _get_use_case_key(self) -> UseCaseId:
+    def _get_use_case_key(self) -> UseCaseKey:
         if self.dataset == Dataset.PerformanceMetrics:
-            return UseCaseKey.PERFORMANCE.value
+            return UseCaseKey.PERFORMANCE
         else:
-            return UseCaseKey.RELEASE_HEALTH.value
+            return UseCaseKey.RELEASE_HEALTH
 
     def resolve_tag_key_if_needed(self, string: str) -> str:
         if self.use_metrics_layer:
@@ -446,12 +445,10 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         value_col_name = alias if alias else "value"
         try:
             translated_data: Dict[str, Any] = {}
-            session_status = resolve_tag_key(
-                UseCaseKey.RELEASE_HEALTH.value, org_id, "session.status"
-            )
+            session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
             for row in data:
                 tag_value = reverse_resolve_tag_value(
-                    UseCaseKey.RELEASE_HEALTH.value, org_id, row[session_status]
+                    UseCaseKey.RELEASE_HEALTH, org_id, row[session_status]
                 )
                 if tag_value is None:
                     raise MetricIndexNotFound()
@@ -543,7 +540,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
                 Condition(
                     Column("metric_id"),
                     Op.EQ,
-                    resolve(UseCaseKey.RELEASE_HEALTH.value, self.org_id, self.metric_key.value),
+                    resolve(UseCaseKey.RELEASE_HEALTH, self.org_id, self.metric_key.value),
                 )
             ]
 
