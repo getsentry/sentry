@@ -4,7 +4,7 @@ from random import random
 from typing import Mapping
 
 import sentry_sdk
-from arroyo import Topic
+from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.codecs.json import JsonCodec
@@ -63,7 +63,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 self.max_batch_time,
                 self.input_block_size,
                 self.output_block_size,
-                initializer=initialize_consumer_state,
+                initializer=partial(initialize_consumer_state, [initialize_metrics]),
             )
         else:
             return RunTask(callable, CommitOffsets(commit))
@@ -149,3 +149,11 @@ def get_query_subscription_consumer(
         ),
         commit_policy=ONCE_PER_SECOND,
     )
+
+
+def initialize_metrics() -> None:
+    from sentry.utils import metrics
+    from sentry.utils.arroyo import MetricsWrapper
+
+    metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
+    configure_metrics(metrics_wrapper)

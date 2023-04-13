@@ -3,7 +3,7 @@ from functools import partial
 from typing import Mapping
 
 import rapidjson
-from arroyo import Topic, configure_metrics
+from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, build_kafka_consumer_configuration
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing import StreamProcessor
@@ -117,7 +117,7 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.max_batch_time,
             self.input_block_size,
             self.output_block_size,
-            initializer=partial(initialize_consumer_state, [initialize_metrics]),
+            initializer=partial(initialize_consumer_state),
         )
 
 
@@ -140,11 +140,3 @@ def process_message(message: Message[KafkaPayload]) -> None:
         Exception,
     ):
         logger.exception("failed to process message payload")
-
-
-def initialize_metrics() -> None:
-    from sentry.utils import metrics
-    from sentry.utils.arroyo import MetricsWrapper
-
-    metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
-    configure_metrics(metrics_wrapper)
