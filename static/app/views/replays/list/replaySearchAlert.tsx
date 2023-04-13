@@ -18,9 +18,8 @@ interface ReplaySearchAlertProps {
 
 const MIN_REPLAY_CLICK_SDK = '7.44.0';
 
-export const ReplaySearchAlert = withSdkUpdates(function ReplayTableAlert({
-  sdkUpdates,
-}: ReplaySearchAlertProps) {
+// exported for testing
+export function ReplaySearchMinSdkAlert({sdkUpdates}: ReplaySearchAlertProps) {
   const {selection} = usePageFilters();
   const projects = useProjects();
   const location = useLocation();
@@ -70,7 +69,7 @@ export const ReplaySearchAlert = withSdkUpdates(function ReplayTableAlert({
 
   if (sdkUpdateAction) {
     return (
-      <Alert>
+      <Alert data-test-id="min-sdk-alert">
         {tct(
           'Searching by click requires a minimum SDK version of [sdkName]@v[minSdkVersion]. [action]',
           {
@@ -97,10 +96,12 @@ export const ReplaySearchAlert = withSdkUpdates(function ReplayTableAlert({
   }
 
   return (
-    <Alert>
+    <Alert data-test-id="min-sdk-alert">
       {tct('Searching by click requires a minimum SDK version of v[minSdkVersion].', {
         minSdkVersion: MIN_REPLAY_CLICK_SDK,
       })}
     </Alert>
   );
-});
+}
+
+export const ReplaySearchAlert = withSdkUpdates(ReplaySearchMinSdkAlert);
