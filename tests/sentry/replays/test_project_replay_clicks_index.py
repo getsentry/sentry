@@ -33,16 +33,11 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    # def test_feature_flag_disabled(self):
-    #     response = self.client.get(self.url)
-    #     assert response.status_code == 404
+    def test_feature_flag_disabled(self):
+        response = self.client.get(self.url)
+        assert response.status_code == 404
 
-    # def test_no_replay_found(self):
-    #     with self.feature(REPLAYS_FEATURES):
-    #         response = self.client.get(self.url)
-    #         assert response.status_code == 404
-
-    def test_get_one_replay(self):
+    def test_get_replay_multiple_selectors(self):
         """Test only one replay returned."""
         replay1_id = self.replay_id
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -52,7 +47,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id))
         self.store_replays(
             mock_replay_click(
-                seq2_timestamp,
+                seq1_timestamp,
                 self.project.id,
                 replay1_id,
                 node_id=1,
@@ -82,20 +77,13 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # Assert a node was returned.
-            response = self.client.get(self.url + "?query=click.alt:Alt")
+            response = self.client.get(self.url + "?query=click.tag:div click.tag:button")
             assert response.status_code == 200
 
             response_data = response.json()["data"]
-            assert len(response_data) == 1
+            assert len(response_data) == 2
             assert response_data[0]["node_id"] == 1
-
-            # Assert the other node was returned.
-            response = self.client.get(self.url + "?query=click.alt:NotAlt")
-            assert response.status_code == 200
-
-            response_data = response.json()["data"]
-            assert len(response_data) == 1
-            assert response_data[0]["node_id"] == 2
+            assert response_data[1]["node_id"] == 2
 
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
@@ -187,3 +175,51 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
+
+    def test_get_replay_explicit_and_to_implicit_or(self):
+        """Test explicit AND operation are implicitly converted to OR operations."""
+        replay1_id = self.replay_id
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id))
+        self.store_replays(
+            mock_replay_click(
+                seq1_timestamp,
+                self.project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                self.project.id,
+                replay1_id,
+                node_id=2,
+                tag="button",
+                id="myid",
+                alt="NotAlt",
+                class_=["class1", "class3"],
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            # Assert a node was returned.
+            response = self.client.get(self.url + "?query=click.tag:div AND click.tag:button")
+            assert response.status_code == 200
+
+            response_data = response.json()["data"]
+            assert len(response_data) == 2
+            assert response_data[0]["node_id"] == 1
+            assert response_data[1]["node_id"] == 2

@@ -460,41 +460,6 @@ def generate_valid_conditions(
     return result
 
 
-def generate_pregrouped_conditions(
-    query: List[Union[SearchFilter, ParenExpression, str]], query_config: QueryConfig
-) -> List[Expression]:
-    """Convert search filters to snuba conditions."""
-    result: List[Expression] = []
-    look_back = None
-    for search_filter in query:
-        # SearchFilters are appended to the result set.  If they are top level filters they are
-        # implicitly And'ed in the WHERE/HAVING clause.
-        if isinstance(search_filter, SearchFilter):
-            condition = filter_to_condition(search_filter, query_config)
-            if look_back == "AND":
-                look_back = None
-                attempt_compressed_condition(result, condition, And)
-            elif look_back == "OR":
-                look_back = None
-                attempt_compressed_condition(result, condition, Or)
-            else:
-                result.append(condition)
-        # ParenExpressions are recursively computed.  If more than one condition is returned then
-        # those conditions are And'ed.
-        elif isinstance(search_filter, ParenExpression):
-            conditions = generate_valid_conditions(search_filter.children, query_config)
-            if len(conditions) < 2:
-                result.extend(conditions)
-            else:
-                result.append(And(conditions))
-        # String types are limited to AND and OR... I think?  In the case where its not a valid
-        # look-back it is implicitly ignored.
-        elif isinstance(search_filter, str):
-            look_back = search_filter
-
-    return result
-
-
 def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) -> Condition:
     """Coerce SearchFilter syntax to snuba Condition syntax."""
     # Validate field exists and is filterable.

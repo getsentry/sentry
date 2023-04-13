@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from typing import Union
 
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -14,16 +15,18 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
     Request,
 )
+from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction
 
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.event_search import SearchFilter, parse_search_query
+from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
@@ -32,7 +35,8 @@ from sentry.replays.lib.query import (
     QueryConfig,
     String,
     WhereSelector,
-    generate_pregrouped_conditions,
+    attempt_compressed_condition,
+    filter_to_condition,
 )
 from sentry.utils.snuba import raw_snql_query
 
@@ -102,6 +106,8 @@ def query_replay_clicks(
         search_filters,
         query_config=ReplayClicksQueryConfig(),
     )
+    if len(conditions) > 1:
+        conditions = [Or(conditions)]
 
     snuba_request = Request(
         dataset="replays",
@@ -118,12 +124,13 @@ def query_replay_clicks(
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("replay_id"), Op.EQ, replay_id),
                 # This is a hueristic to only evaluate valid rows. All click events will have
-                # a tag associated.
+                # a tag associated.  This condition allows the endpoint to return all valid click
+                # events if the query parameter was not provided.
                 Condition(Column("click_tag"), Op.NEQ, ""),
                 # Allow for click lookups using a subset of the index query configuration.
                 *conditions,
             ],
-            orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
+            orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
             limit=Limit(limit),
             offset=Offset(offset),
             granularity=Granularity(3600),
@@ -143,3 +150,41 @@ class ReplayClicksQueryConfig(QueryConfig):
     click_text = String(field_alias="click.textContent")
     click_title = String(field_alias="click.title")
     click_selector = WhereSelector(field_alias="click.selector")
+
+
+def generate_pregrouped_conditions(
+    query: list[Union[SearchFilter, ParenExpression, str]],
+    query_config: QueryConfig,
+) -> list[Expression]:
+    """Convert search filters to snuba conditions.
+
+    AND conditions are coerced to OR conditions.  This is because we're operating over a
+    multi-row set but each filter was written under the assumption we were analyzing a single
+    row.  AND conditions are still possible using the selector syntax.
+    """
+    result: list[Expression] = []
+    look_back = None
+    for search_filter in query:
+        # SearchFilters are appended to the result set.  If they are top level filters they are
+        # implicitly And'ed in the WHERE/HAVING clause.
+        if isinstance(search_filter, SearchFilter):
+            condition = filter_to_condition(search_filter, query_config)
+            if look_back == "OR" or look_back == "AND":
+                look_back = None
+                attempt_compressed_condition(result, condition, Or)
+            else:
+                result.append(condition)
+        # ParenExpressions are recursively computed.  If more than one condition is returned then
+        # those conditions are And'ed.
+        elif isinstance(search_filter, ParenExpression):
+            conditions = generate_pregrouped_conditions(search_filter.children, query_config)
+            if len(conditions) < 2:
+                result.extend(conditions)
+            else:
+                result.append(Or(conditions))
+        # String types are limited to AND and OR... I think?  In the case where its not a valid
+        # look-back it is implicitly ignored.
+        elif isinstance(search_filter, str):
+            look_back = search_filter
+
+    return result
