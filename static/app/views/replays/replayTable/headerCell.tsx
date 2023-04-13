@@ -37,6 +37,9 @@ function HeaderCell({column, sort}: Props) {
     case ReplayColumns.replay:
       return <SortableHeader sort={sort} fieldName="started_at" label={t('Replay')} />;
 
+    case ReplayColumns.replay_slim:
+      return <SortableHeader sort={sort} fieldName="started_at" label={t('Replay')} />;
+
     case ReplayColumns.slowestTransaction:
       return (
         <SortableHeader

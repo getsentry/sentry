@@ -45,30 +45,13 @@ export function ReplayCell({
     },
   };
 
-  const subText = replay.urls ? (
+  const subText = (
     <Cols>
-      <StringWalker urls={replay.urls} />
+      <StringWalker urls={replay.urls || []} />
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
           <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-        </Row>
-        <Row gap={0.5}>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
-        </Row>
-      </Row>
-    </Cols>
-  ) : (
-    <Cols>
-      <Row gap={1}>
-        <Row gap={0.5} minWidth={80}>
-          {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-        </Row>
-        <Row gap={0.5} minWidth={80}>
-          <IconLocation color="green400" size="sm" />
-          {tn('%s Page', '%s Pages', replay.count_urls)}
         </Row>
         <Row gap={0.5}>
           <IconCalendar color="gray300" size="xs" />
@@ -84,19 +67,60 @@ export function ReplayCell({
         avatarSize={24}
         displayName={
           <MainLink to={replayDetails}>
-            {replay.user.display_name || t('Unknown User')}
+            {replay.user?.display_name || t('Unknown User')}
           </MainLink>
         }
         user={{
-          username: replay.user.display_name || '',
-          email: replay.user.email || '',
-          id: replay.user.id || '',
-          ip_address: replay.user.ip || '',
-          name: replay.user.username || '',
+          username: replay.user?.display_name || '',
+          email: replay.user?.email || '',
+          id: replay.user?.id || '',
+          ip_address: replay.user?.ip || '',
+          name: replay.user?.username || '',
         }}
         // this is the subheading for the avatar, so displayEmail in this case is a misnomer
         displayEmail={subText}
       />
+    </Item>
+  );
+}
+
+export function ReplaySlimCell({
+  eventView,
+  organization,
+  referrer,
+  replay,
+}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === replay.project_id);
+
+  const replayDetails = {
+    pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+    },
+  };
+
+  return (
+    <Item>
+      <Row gap={1}>
+        {project ? <Avatar size={24} project={project} /> : null}
+        <Cols>
+          <MainLink to={replayDetails}>{getShortEventId(replay.id)}</MainLink>
+          <Row gap={1}>
+            <Row gap={0.5} minWidth={80}>
+              <IconLocation color="green400" size="sm" />
+              {tn('%s Page', '%s Pages', replay.count_urls)}
+            </Row>
+            {replay.started_at ? (
+              <Row gap={0.5}>
+                <IconCalendar color="gray300" size="xs" />
+                <TimeSince date={replay.started_at} />
+              </Row>
+            ) : null}
+          </Row>
+        </Cols>
+      </Row>
     </Item>
   );
 }

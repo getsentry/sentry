@@ -74,7 +74,7 @@ export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: strin
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags
   const user = Object.fromEntries(
-    Object.entries(apiResponse.user)
+    Object.entries(apiResponse.user || {})
       .filter(([key, value]) => key !== 'display_name' && value)
       .map(([key, value]) => [`user.${key}`, [value]])
   );

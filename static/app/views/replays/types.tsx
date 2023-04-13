@@ -111,9 +111,9 @@ export type ReplayListRecord = Pick<
   | 'id'
   | 'project_id'
   | 'started_at'
-  | 'user'
 > &
-  Partial<Pick<ReplayRecord, 'browser' | 'count_urls' | 'os' | 'urls'>>;
+  // These fields are optional becuase they might not exist when `session-replay-slim-table` is enabled
+  Partial<Pick<ReplayRecord, 'browser' | 'count_urls' | 'os' | 'urls' | 'user'>>;
 
 // Sync with ReplayListRecord above
 export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [

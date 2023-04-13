@@ -5,5 +5,6 @@ export enum ReplayColumns {
   duration = 'duration',
   os = 'os',
   replay = 'replay',
+  replay_slim = 'replay_slim',
   slowestTransaction = 'slowestTransaction',
 }

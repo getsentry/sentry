@@ -40,9 +40,16 @@ async function fetchReplayList({
     // ask the server for compound fields like `os.name`.
     payload.field = payload.field.map(field => field.split('.')[0]);
 
-    const hasFullTable = !organization.features.includes('session-replay-slim-table');
-    if (!hasFullTable) {
-      const fieldsToRemove = ['browser', 'os', 'urls'];
+    const hasSlimTable = organization.features.includes('session-replay-slim-table');
+    if (hasSlimTable) {
+      // There is a 'slim table' view that renders less data. When that is
+      // enabled we should not fetch extra fields that won't be rendered.
+      // This helps the server save resources and return data faster.
+      const fieldsToRemove = ['browser', 'os', 'urls', 'user'];
+
+      // TODO(replay): https://github.com/getsentry/sentry/issues/46215
+      fieldsToRemove.push('started_at');
+
       payload.field = payload.field.filter(field => !fieldsToRemove.includes(field));
       payload.field.push('count_urls');
     } else {

@@ -19,6 +19,7 @@ import {
   ErrorCountCell,
   OSCell,
   ReplayCell,
+  ReplaySlimCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
@@ -29,7 +30,7 @@ type Props = {
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
-  visibleColumns: Array<keyof typeof ReplayColumns>;
+  visibleColumns: ReplayColumns[];
 };
 
 function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Props) {
@@ -37,10 +38,21 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
   const location = useLocation();
   const organization = useOrganization();
 
-  const hasFullTable = !organization.features.includes('session-replay-slim-table');
-  visibleColumns = visibleColumns.filter(
-    column => hasFullTable || !['browser', 'os'].includes(column)
-  );
+  const hasSlimTable = organization.features.includes('session-replay-slim-table');
+  if (hasSlimTable) {
+    // There is a 'slim table' view that renders less data. When that is
+    // enabled we should not fetch extra fields that won't be rendered.
+    // This helps the server save resources and return data faster.
+
+    // We're going to remove some data-heavy columns, and instead render something else
+    const columnsToRemove = [
+      ReplayColumns.browser,
+      ReplayColumns.os,
+      ReplayColumns.replay,
+    ];
+    visibleColumns = visibleColumns.filter(column => !columnsToRemove.includes(column));
+    visibleColumns.unshift(ReplayColumns.replay_slim);
+  }
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
@@ -108,6 +120,17 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
                     />
                   );
 
+                case ReplayColumns.replay_slim:
+                  return (
+                    <ReplaySlimCell
+                      key="session"
+                      replay={replay}
+                      eventView={eventView}
+                      organization={organization}
+                      referrer={referrer}
+                    />
+                  );
+
                 case ReplayColumns.slowestTransaction:
                   return (
                     <TransactionCell
@@ -129,12 +152,16 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
 }
 
 const StyledPanelTable = styled(PanelTable)<{
-  visibleColumns: Array<keyof typeof ReplayColumns>;
+  visibleColumns: ReplayColumns[];
 }>`
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
-      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
+      .map(column =>
+        [ReplayColumns.replay, ReplayColumns.replay_slim].includes(column)
+          ? 'minmax(100px, 1fr)'
+          : 'max-content'
+      )
       .join(' ')};
 `;
 
