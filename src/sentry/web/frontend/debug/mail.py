@@ -5,11 +5,11 @@ import itertools
 import logging
 import time
 import traceback
-import urllib
 import uuid
 from datetime import datetime, timedelta
 from random import Random
 from typing import Any, MutableMapping
+from urllib.parse import urlencode
 
 import pytz
 from django.shortcuts import redirect
@@ -244,9 +244,7 @@ def make_generic_event(project):
 def get_shared_context(rule, org, project, group, event):
     rules = get_rules([rule], org, project)
     snooze_alert = len(rules) > 0
-    snooze_alert_url = (
-        rules[0].status_url + urllib.urlencode({"mute": True}) if snooze_alert else ""
-    )
+    snooze_alert_url = rules[0].status_url + urlencode({"mute": True}) if snooze_alert else ""
     return {
         "rule": rule,
         "rules": rules,

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-import urllib
 from typing import Any, Iterable, Mapping, MutableMapping
+from urllib.parse import urlencode
 
 import pytz
 
@@ -159,7 +159,7 @@ class AlertRuleNotification(ProjectNotification):
             context["snooze_alert"] = True
             context["snooze_alert_url"] = (
                 f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/"
-                + urllib.urlencode({"mute": True})
+                + urlencode({"mute": True})
             )
 
         if getattr(self.event, "occurrence", None):
