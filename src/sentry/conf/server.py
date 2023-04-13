@@ -1370,6 +1370,8 @@ SENTRY_FEATURES = {
     "organizations:onboarding-project-loader": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
+    # Enable OpenAI suggestions in the issue details page (New Design)
+    "organizations:open-ai-suggestion-new-design": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
