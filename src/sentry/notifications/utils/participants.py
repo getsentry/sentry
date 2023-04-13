@@ -352,7 +352,7 @@ def determine_eligible_recipients(
                 ]
                 suggested_assignees.extend(suspect_commit_users)
             except Release.DoesNotExist:
-                logger.debug("Skipping suspect committers because release does not exist.")
+                logger.info("Skipping suspect committers because release does not exist.")
             except Exception:
                 logger.exception("Could not get suspect committers. Continuing execution.")
 
