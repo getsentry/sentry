@@ -144,7 +144,7 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
-def protect_hybrid_cloud_deletions(request):
+def protect_hybrid_cloud_writes_and_deletes(request):
     """
     Ensure the deletions on any hybrid cloud foreign keys would be recorded to an outbox
     by preventing any deletes that do not pass through a special 'connection'.
@@ -164,6 +164,7 @@ def protect_hybrid_cloud_deletions(request):
     create Outbox objects in the same transaction that matches what you delete.
     """
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+    from sentry.models import OrganizationMember
     from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
 
     try:
@@ -190,6 +191,8 @@ def protect_hybrid_cloud_deletions(request):
                 continue
             seen_models.add(fk_model)
             restrict_role(role="postgres_unprivileged", model=fk_model, revocation_type="DELETE")
+
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="CREATE")
 
     with get_connection().cursor() as conn:
         conn.execute("SET ROLE 'postgres_unprivileged'")
