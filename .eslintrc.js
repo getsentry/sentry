@@ -30,11 +30,6 @@ module.exports = {
   },
 
   rules: {
-    'react/function-component-definition': [
-      'error',
-      {namedComponents: 'function-declaration'},
-    ],
-
     'react-hooks/exhaustive-deps': [
       'warn',
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
