@@ -47,6 +47,11 @@ export type ReplayRecord = {
    * The ID of the Replay instance
    */
   id: string;
+  /**
+   * Whether the replay was deleted.
+   * When deleted the rrweb data & attachments are removed from blob storage,
+   * but the record of the replay is not removed.
+   */
   is_archived: boolean;
   os: {
     name: null | string;
