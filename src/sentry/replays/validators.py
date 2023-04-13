@@ -50,7 +50,7 @@ class ReplayValidator(serializers.Serializer):
         ),
         required=False,
     )
-    field = serializers.ChoiceField(
+    field = serializers.MultipleChoiceField(
         VALID_FIELD_SET,
         help_text="Specifies a field that should be marshaled in the output. Invalid fields will be rejected.",
         required=False,
