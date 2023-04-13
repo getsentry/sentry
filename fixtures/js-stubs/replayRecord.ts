@@ -37,7 +37,6 @@ export function ReplayRecord(replayRecord: Partial<TReplayRecord> = {}): TReplay
       version: '7.1.1',
     },
     started_at: new Date('Sep 22, 2022 4:58:39 PM UTC'),
-
     trace_ids: [],
     urls: ['http://localhost:3000/'],
     user: {
