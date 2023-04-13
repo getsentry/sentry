@@ -73,10 +73,11 @@ def get_rule(rule_id, rule_type):
 
 
 @region_silo_endpoint
-class RuleSnoozeEndpoint(ProjectEndpoint):
+class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
+    rule_type = None
 
-    def post(self, request: Request, project, rule_id, rule_type) -> Response:
+    def post(self, request: Request, project, rule_id) -> Response:
         if not features.has("organizations:mute-alerts", project.organization, actor=None):
             return Response(
                 {"detail": "This feature is not available for this organization."},
@@ -88,7 +89,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        issue_alert_rule, metric_alert_rule = get_rule(rule_id, int(rule_type))
+        issue_alert_rule, metric_alert_rule = get_rule(rule_id, self.rule_type)
 
         rule = issue_alert_rule or metric_alert_rule
         user_id = request.user.id if data.get("target") == "me" else None
@@ -132,7 +133,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
             status=status.HTTP_201_CREATED,
         )
 
-    def delete(self, request: Request, project, rule_id, rule_type) -> Response:
+    def delete(self, request: Request, project, rule_id) -> Response:
         if not features.has("organizations:mute-alerts", project.organization, actor=None):
             return Response(
                 {"detail": "This feature is not available for this organization."},
@@ -144,7 +145,7 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        issue_alert_rule, metric_alert_rule = get_rule(rule_id, int(rule_type))
+        issue_alert_rule, metric_alert_rule = get_rule(rule_id, self.rule_type)
         rule = issue_alert_rule or metric_alert_rule
         user_id = request.user.id if data.get("target") == "me" else None
 
@@ -169,3 +170,13 @@ class RuleSnoozeEndpoint(ProjectEndpoint):
 
         rulesnooze.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@region_silo_endpoint
+class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+    rule_type = RuleType.ISSUE_ALERT.value
+
+
+@region_silo_endpoint
+class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+    rule_type = RuleType.METRIC_ALERT.value
