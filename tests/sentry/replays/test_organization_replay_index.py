@@ -1028,11 +1028,15 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
 
         with self.feature(REPLAYS_FEATURES):
-            # This order would not 400.
+            # Invalid field-names error regardless of ordering.
+            response = self.client.get(self.url + "?field=invalid&field=browser")
+            assert response.status_code == 400
+            response = self.client.get(self.url + "?field=browser&field=invalid")
+            assert response.status_code == 400
+
+            # Correct field-names never error.
             response = self.client.get(self.url + "?field=count_urls&field=browser")
             assert response.status_code == 200
-
-            # This order would 400.
             response = self.client.get(self.url + "?field=browser&field=count_urls")
             assert response.status_code == 200
 
