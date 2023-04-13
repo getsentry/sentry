@@ -5,8 +5,6 @@ import {Button} from 'sentry/components/button';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Event, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
@@ -22,15 +20,12 @@ type Props = {
 
 export function AiSuggestedSolution({projectSlug, event}: Props) {
   const organization = useOrganization();
-  const config = useLegacyStore(ConfigStore);
   const [showDetails, setShowDetails] = useState(true);
   const [openSuggestion, setOpenSuggestion] = useState(false);
 
   if (!organization.features.includes('open-ai-suggestion-new-design')) {
     return null;
   }
-
-  const darkMode = config.theme === 'dark';
 
   return (
     <StyledEventDataSection
@@ -60,7 +55,6 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
       {showDetails ? (
         !openSuggestion ? (
           <Banner
-            darkMode={darkMode}
             onViewSuggestion={() => {
               trackAdvancedAnalyticsEvent(
                 'ai_suggested_solution.view_suggestion_button_clicked',
@@ -76,7 +70,6 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
           />
         ) : (
           <Suggestion
-            darkMode={darkMode}
             projectSlug={projectSlug}
             event={event}
             onHideSuggestion={() => {
