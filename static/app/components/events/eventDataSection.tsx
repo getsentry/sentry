@@ -32,6 +32,11 @@ type Props = {
    */
   help?: React.ReactNode;
   /**
+   * If true, user is able to hover overlay without it disappearing. (nice if
+   * you want the overlay to be interactive)
+   */
+  isHelpHoverable?: boolean;
+  /**
    * Should the permalink be enabled for this section?
    *
    * @default true
@@ -73,6 +78,7 @@ export function EventDataSection({
   guideTarget,
   wrapTitle = true,
   showPermalink = true,
+  isHelpHoverable = false,
   ...props
 }: Props) {
   let titleNode = wrapTitle ? <h3>{title}</h3> : title;
@@ -100,7 +106,9 @@ export function EventDataSection({
             ) : (
               titleNode
             )}
-            {help && <QuestionTooltip size="xs" title={help} />}
+            {help && (
+              <QuestionTooltip size="xs" title={help} isHoverable={isHelpHoverable} />
+            )}
           </Title>
           {actions && <ActionContainer>{actions}</ActionContainer>}
         </SectionHeader>
