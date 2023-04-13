@@ -188,7 +188,6 @@ def test_save_rules(default_project):
     assert {"bar": 1326542402, "foo": 1326542401, "zap": 1326542402}
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 # From the test -- number of transactions: 30 == 10 * 2 + 5 * 2
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 30)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
@@ -249,7 +248,6 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         }
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
@@ -317,7 +315,6 @@ def test_transaction_clusterer_generates_rules(default_project):
         ]
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
 @mock.patch(
@@ -374,7 +371,6 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         assert _get_rules(project1) == {"/user/*/**": 2}
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch(

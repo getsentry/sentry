@@ -1743,9 +1743,6 @@ SENTRY_RELEASE_MONITOR = (
 )
 SENTRY_RELEASE_MONITOR_OPTIONS = {}
 
-# Whether or not to run transaction clusterer
-SENTRY_TRANSACTION_CLUSTERER_RUN = False
-
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS = {}
