@@ -128,6 +128,7 @@ test-python-ci:
 	@echo "--> Running CI Python tests"
 	pytest tests/integration tests/sentry \
 		--ignore tests/sentry/eventstream/kafka \
+		--ignore tests/sentry/post_process_forwarder \
 		--ignore tests/sentry/snuba \
 		--ignore tests/sentry/search/events \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
@@ -139,6 +140,7 @@ test-snuba:
 	@echo "--> Running snuba tests"
 	pytest tests/snuba \
 		tests/sentry/eventstream/kafka \
+		tests/sentry/post_process_forwarder \
 		tests/sentry/snuba \
 		tests/sentry/search/events \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
