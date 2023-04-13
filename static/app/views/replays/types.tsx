@@ -111,6 +111,7 @@ export type ReplayListRecord = Pick<
   | 'duration'
   | 'finished_at'
   | 'id'
+  | 'is_archived'
   | 'project_id'
   | 'started_at'
   | 'user'
@@ -127,6 +128,7 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'duration',
   'finished_at',
   'id',
+  'is_archived',
   'os.name',
   'os.version',
   'project_id',
