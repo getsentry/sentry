@@ -7,6 +7,7 @@ from typing import Union
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from snuba_sdk import (
+    And,
     Column,
     Condition,
     Entity,
@@ -31,13 +32,14 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.replays.lib.query import (
+    Field,
     ListField,
     QueryConfig,
     String,
-    WhereSelector,
     attempt_compressed_condition,
     filter_to_condition,
 )
+from sentry.replays.lib.selector.parse import QueryType, parse_selector
 from sentry.utils.snuba import raw_snql_query
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
@@ -139,6 +141,58 @@ def query_replay_clicks(
     return raw_snql_query(snuba_request, REFERRER)
 
 
+class Selector(Field):
+    _operators = [Op.EQ, Op.NEQ]
+    _python_type = str
+
+    def as_condition(
+        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
+    ) -> Condition:
+        if operator == Op.NEQ:
+            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+        # This list of queries implies an `OR` operation between each item in the set. To `AND`
+        # selector queries apply them separately.
+        queries: list[QueryType] = parse_selector(value)
+
+        # A valid selector will always return at least one query condition. If this did not occur
+        # then the selector was not well-formed. We return an empty resultset.
+        if len(queries) == 0:
+            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+        # Conditions are pre-made and intended for application in the HAVING clause.
+        conditions: list[Condition] = []
+
+        for query in queries:
+            if query.alt:
+                conditions.append(Condition(Column("click_alt"), operator, query.alt))
+            if query.aria_label:
+                conditions.append(Condition(Column("click_aria_label"), operator, query.aria_label))
+            if query.classes:
+                conditions.append(
+                    Condition(
+                        Function("hasAll", parameters=[Column("click_class"), query.classes]),
+                        Op.EQ,
+                        1,
+                    )
+                )
+            if query.id:
+                conditions.append(Condition(Column("click_id"), operator, query.id))
+            if query.role:
+                conditions.append(Condition(Column("click_role"), operator, query.role))
+            if query.tag:
+                conditions.append(Condition(Column("click_tag"), operator, query.tag))
+            if query.testid:
+                conditions.append(Condition(Column("click_testid"), operator, query.testid))
+            if query.title:
+                conditions.append(Condition(Column("click_title"), operator, query.title))
+
+        if len(conditions) == 1:
+            return conditions[0]
+        else:
+            return And(conditions)
+
+
 class ReplayClicksQueryConfig(QueryConfig):
     click_alt = String(field_alias="click.alt")
     click_class = ListField(field_alias="click.class")
@@ -149,7 +203,7 @@ class ReplayClicksQueryConfig(QueryConfig):
     click_testid = String(field_alias="click.testid")
     click_text = String(field_alias="click.textContent")
     click_title = String(field_alias="click.title")
-    click_selector = WhereSelector(field_alias="click.selector")
+    click_selector = Selector(field_alias="click.selector")
 
 
 def generate_pregrouped_conditions(
