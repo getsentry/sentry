@@ -1,7 +1,6 @@
 from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
-from sentry.lang.javascript.utils import do_sourcemaps_processing_ab_test
 
 from .errorlocale import translate_exception
 from .errormapping import rewrite_exception
@@ -45,7 +44,7 @@ class JavascriptPlugin(Plugin2):
         return []
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        if data.get("processed_by_symbolicator") and not do_sourcemaps_processing_ab_test():
+        if data.pop("processed_by_symbolicator", False):
             return []
 
         if "javascript" in platforms or "node" in platforms:
