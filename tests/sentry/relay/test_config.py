@@ -299,7 +299,6 @@ def test_project_config_with_all_biases_enabled(
     with Feature(
         {
             "organizations:dynamic-sampling": True,
-            "organizations:ds-apply-actual-sample-rate-to-biases": True,
         }
     ):
         with patch(
