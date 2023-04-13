@@ -233,10 +233,12 @@ class TriggersChart extends PureComponent<Props, State> {
     minutesThresholdToDisplaySeconds,
     isQueryValid,
     errored,
+    orgFeatures,
   }: {
     isLoading: boolean;
     isQueryValid: boolean;
     isReloading: boolean;
+    orgFeatures: string[];
     timeseriesData: Series[];
     comparisonData?: Series[];
     comparisonMarkLines?: LineChartSeries[];
@@ -256,7 +258,9 @@ class TriggersChart extends PureComponent<Props, State> {
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
-    const error = errored || !isQueryValid || errorMessage;
+    const error = orgFeatures.includes('alert-allow-indexed')
+      ? false
+      : errored || !isQueryValid || errorMessage;
 
     return (
       <Fragment>
@@ -392,6 +396,7 @@ class TriggersChart extends PureComponent<Props, State> {
             minutesThresholdToDisplaySeconds: MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
             isQueryValid,
             errored,
+            orgFeatures: organization.features,
           });
         }}
       </SessionsRequest>
@@ -440,6 +445,7 @@ class TriggersChart extends PureComponent<Props, State> {
             errorMessage,
             isQueryValid,
             errored,
+            orgFeatures: organization.features,
           });
         }}
       </EventsRequest>
