@@ -13,6 +13,8 @@ import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 const DEFAULT_STATS_PERIOD = '7d';
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
+export const TIME_SPENT_IN_SERVICE =
+  'equation|sum(transaction.duration) / total.transaction_duration * 100';
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
   if (organization?.features?.includes('performance-landing-page-stats-period')) {
@@ -112,6 +114,63 @@ export function generatePerformanceEventView(
   );
   if (isTrends) {
     return eventView;
+  }
+
+  return eventView;
+}
+
+export function generateWebServiceEventView(
+  location: Location,
+  _: Project[],
+  {withStaticFilters = false} = {},
+  organization: Organization
+) {
+  const {query} = location;
+
+  const fields = [
+    'team_key_transaction',
+    'transaction',
+    'http.method',
+    'tpm()',
+    'p50()',
+    'p95()',
+    TIME_SPENT_IN_SERVICE,
+    'total.transaction_duration',
+    'sum(transaction.duration)',
+  ];
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction has:http.method',
+    projects: [],
+    fields,
+    version: 2,
+  };
+
+  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  widths[savedQuery.fields.length - 1] = '110';
+  savedQuery.widths = widths;
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = getDefaultStatsPeriod(organization);
+  }
+  savedQuery.orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
+
+  const searchQuery = decodeScalar(query.query, '');
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+
+  if (query.trendParameter) {
+    // projects and projectIds are not necessary here since trendParameter will always
+    // be present in location and will not be determined based on the project type
+    const trendParameter = getCurrentTrendParameter(location, [], []);
+    if (WEB_VITAL_DETAILS[trendParameter.column]) {
+      eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
+    }
   }
 
   return eventView;

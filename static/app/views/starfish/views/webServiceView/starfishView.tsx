@@ -92,7 +92,17 @@ export function StarfishView(props: BasePerformanceViewProps) {
         </EventsRequest>
       </StyledRow>
 
-      <Table {...props} setError={usePageError().setPageError} />
+      <Table
+        {...props}
+        setError={usePageError().setPageError}
+        columnTitles={[
+          'endpoint',
+          'tpm',
+          'p50(duration)',
+          'p95(duration)',
+          '% time spent in service',
+        ]}
+      />
     </div>
   );
 }

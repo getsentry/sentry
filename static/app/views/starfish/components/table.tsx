@@ -10,7 +10,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
 } from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
+import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -251,8 +251,16 @@ class _Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, location} = this.props;
 
-    const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.name, width: column.width};
+    let align: Alignments = 'left';
+    if (column.column.kind === 'equation') {
+      align = 'right';
+    } else {
+      align = fieldAlignment(column.name, column.type, tableMeta);
+    }
+    const field = {
+      field: column.column.kind === 'equation' ? (column.key as string) : column.name,
+      width: column.width,
+    };
     const aggregateAliasTableMeta: MetaType = {};
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
@@ -338,18 +346,6 @@ class _Table extends Component<Props, State> {
     this.setState({widths});
   };
 
-  getSortedEventView() {
-    const {eventView} = this.props;
-
-    return eventView.withSorts([
-      {
-        field: 'team_key_transaction',
-        kind: 'desc',
-      },
-      ...eventView.sorts,
-    ]);
-  }
-
   render() {
     const {eventView, organization, location, setError} = this.props;
     const {widths, transaction, transactionThreshold} = this.state;
@@ -363,7 +359,9 @@ class _Table extends Component<Props, State> {
           !col.name.startsWith('count_miserable') &&
           col.name !== 'project_threshold_config' &&
           col.name !== 'project' &&
-          col.name !== 'http.method'
+          col.name !== 'http.method' &&
+          col.name !== 'total.transaction_duration' &&
+          col.name !== 'sum(transaction.duration)'
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
@@ -372,8 +370,7 @@ class _Table extends Component<Props, State> {
         return col;
       });
 
-    const sortedEventView = this.getSortedEventView();
-    const columnSortBy = sortedEventView.getSorts();
+    const columnSortBy = eventView.getSorts();
 
     const prependColumnWidths = ['max-content'];
 
@@ -381,14 +378,14 @@ class _Table extends Component<Props, State> {
       <GuideAnchor target="performance_table" position="top-start">
         <div data-test-id="performance-table">
           <DiscoverQuery
-            eventView={sortedEventView}
+            eventView={eventView}
             orgSlug={organization.slug}
             location={location}
             setError={error => setError(error?.message)}
-            referrer="api.performance.landing-table"
+            referrer="api.starfish.landing-table"
             transactionName={transaction}
             transactionThreshold={transactionThreshold}
-            queryExtras={{dataset: 'metrics'}}
+            queryExtras={{dataset: 'discover'}}
           >
             {({pageLinks, isLoading, tableData}) => (
               <Fragment>
