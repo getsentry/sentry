@@ -14,7 +14,6 @@ type BadgeProps = {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   expiresAt?: Date;
   noTooltip?: boolean;
-  size?: 'xs' | 'sm';
   title?: string;
   variant?: 'indicator' | 'badge';
 };
@@ -40,7 +39,6 @@ const labels = {
 function BaseFeatureBadge({
   type,
   variant = 'badge',
-  size = 'xs',
   title,
   noTooltip,
   expiresAt,
@@ -62,16 +60,9 @@ function BaseFeatureBadge({
 
   return (
     <div {...props}>
-      <Tooltip
-        title={title ?? defaultTitles[type]}
-        disabled={noTooltip}
-        position="right"
-        containerDisplayMode="inline-flex"
-      >
+      <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
         <Fragment>
-          {variant === 'badge' && (
-            <StyledBadge size={size} type={type} text={labels[type]} />
-          )}
+          {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
           {variant === 'indicator' && (
             <CircleIndicator color={theme.badge[type].indicatorColor} size={8} />
           )}
@@ -81,14 +72,13 @@ function BaseFeatureBadge({
   );
 }
 
-const StyledBadge = styled(Badge)<{size: 'xs' | 'sm'}>`
+const StyledBadge = styled(Badge)`
   margin: 0;
   padding: 0 ${space(0.75)};
-  line-height: ${p => (p.size === 'xs' ? space(2) : space(3))};
-  height: ${p => (p.size === 'xs' ? space(2) : space(3))};
+  line-height: ${space(2)};
+  height: ${space(2)};
   font-weight: normal;
-  font-size: ${p =>
-    p.size === 'xs' ? p.theme.fontSizeExtraSmall : p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   vertical-align: middle;
 `;
 
