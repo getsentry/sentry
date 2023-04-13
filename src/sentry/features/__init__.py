@@ -69,6 +69,7 @@ default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureH
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:mute-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:custom-event-title", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:customer-domains", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -177,6 +178,7 @@ default_manager.add("organizations:session-replay-sdk", OrganizationFeature, Fea
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-slim-table", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:session-replay-index-subquery", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -200,6 +202,7 @@ default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, Fea
 # also be listed in SubscriptionPlanFeatureHandler in getsentry so that sentry.io
 # behaves correctly.
 default_manager.add("organizations:advanced-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:change-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add('organizations:commit-context', OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -233,6 +236,7 @@ default_manager.add("organizations:onboarding-project-deletion-on-back-click", O
 default_manager.add("organizations:onboarding-remove-multiselect-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding-project-loader", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:open-ai-suggestion", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:open-ai-suggestion-new-design", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-view", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:sso-basic", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

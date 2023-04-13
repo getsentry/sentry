@@ -12,7 +12,7 @@ import {IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 type Props = {
   inputValue: string;
@@ -36,8 +36,8 @@ function ProjectSelectorItem({
   };
 
   const handleBookmarkToggle = (isBookmarked: boolean) => {
-    analytics('projectselector.bookmark_toggle', {
-      org_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('projectselector.bookmark_toggle', {
+      organization,
       bookmarked: isBookmarked,
     });
   };

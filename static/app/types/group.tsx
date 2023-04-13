@@ -75,6 +75,25 @@ export enum IssueType {
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
 }
 
+export const getIssueTypeFromOccurenceType = (
+  typeId: number | undefined
+): IssueType | null => {
+  const occurrenceTypeToIssueIdMap = {
+    1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
+    1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+    1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+    1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+    1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
+    1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+    1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+  };
+  if (!typeId) {
+    return null;
+  }
+  return occurrenceTypeToIssueIdMap[typeId] ?? null;
+};
+
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
@@ -469,6 +488,7 @@ export type ResolutionStatusDetails = {
   inNextRelease?: boolean;
   inRelease?: string;
   repository?: string;
+  untilEscalating?: boolean;
 };
 
 export type GroupStatusResolution = {

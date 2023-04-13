@@ -392,7 +392,8 @@ function EventNodeSelector({
             error,
             organization,
             location,
-            errorDest
+            errorDest,
+            'related-issues-of-trace'
           );
           return (
             <DropdownNodeItem

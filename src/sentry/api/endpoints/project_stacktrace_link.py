@@ -128,6 +128,7 @@ def set_tags(scope: Scope, result: JSONData) -> None:
         scope.set_tag(
             "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
         )
+    scope.set_tag("stacktrace_link.has_integration", len(result["integrations"]) > 0)
 
 
 @region_silo_endpoint

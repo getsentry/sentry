@@ -602,6 +602,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
@@ -800,6 +801,11 @@ CELERYBEAT_SCHEDULE = {
     },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 300},
+    },
+    "clear-expired-rulesnoozes": {
+        "task": "sentry.tasks.clear_expired_rulesnoozes",
         "schedule": timedelta(minutes=5),
         "options": {"expires": 300},
     },
@@ -1062,6 +1068,8 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
+    # Enable auth provider configuration through api
+    "organizations:api-auth-provider": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -1069,6 +1077,8 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
+    # Enable the mute alerts feature
+    "organizations:mute-alerts": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -1302,6 +1312,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slim-table": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enables subquery optimizations for the replay_index page
+    "organizations:session-replay-index-subquery": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1358,6 +1370,8 @@ SENTRY_FEATURES = {
     "organizations:onboarding-project-loader": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
+    # Enable OpenAI suggestions in the issue details page (New Design)
+    "organizations:open-ai-suggestion-new-design": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
@@ -3196,3 +3210,6 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
+
+# Killswitch to ignore checkins for explicit monitors
+SENTRY_MONITORS_IGNORED_MONITORS = []

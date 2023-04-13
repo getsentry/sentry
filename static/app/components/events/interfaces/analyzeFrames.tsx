@@ -52,8 +52,8 @@ const CULPRIT_FRAMES: SuspectFrame[] = [
     ),
   },
   {
-    module: 'android.app.Instrumentation.callApplicationOnCreate',
-    functions: ['onCreate'],
+    module: 'android.app.Instrumentation',
+    functions: ['callApplicationOnCreate'],
     offendingThreadStates: [
       ThreadStates.WAITING,
       ThreadStates.TIMED_WAITING,
@@ -94,7 +94,8 @@ const CULPRIT_FRAMES: SuspectFrame[] = [
     resources: t('Look for heavy resources in the /res or /res/raw folders.'),
   },
   {
-    module: 'android.view.LayoutInflater.inflate',
+    module: 'android.view.LayoutInflater',
+    functions: ['inflate'],
     offendingThreadStates: [
       ThreadStates.WAITING,
       ThreadStates.TIMED_WAITING,
