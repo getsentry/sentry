@@ -79,3 +79,22 @@ class RegionMappingTest(TestCase):
         with override_settings(SENTRY_REGION_CONFIG=region_config_as_json):
             region = get_region_by_name("na")
         assert region.id == 1
+
+    def test_find_regions_for_user(self):
+        from sentry.types.region import find_regions_for_user
+
+        organization = self.create_organization(name="test name")
+        self.create_organization_mapping(
+            self.organization,
+            **{
+                "slug": organization.slug,
+                "name": "test name",
+                "region_name": "na",
+                "idempotency_key": "test",
+            },
+        )
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            user = self.create_user()
+            self.create_member(user=user, organization=self.organization)
+            actual_regions = find_regions_for_user(user_id=user.id)
+            assert actual_regions == {"na"}
