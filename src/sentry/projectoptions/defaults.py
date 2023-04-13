@@ -1,7 +1,7 @@
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 9
+LATEST_EPOCH = 10
 
 # grouping related configs
 #
@@ -125,3 +125,14 @@ register(
 # Contains a mapping from rule to last seen timestamp,
 # for example `{"/organizations/*/**": 1334318402}`
 register(key="sentry:transaction_name_cluster_rules", default={})
+
+# The JavaScript loader dynamic SDK options that are the project defaults.
+register(
+    key="sentry:default_loader_options",
+    epoch_defaults={
+        10: {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
+    },
+)

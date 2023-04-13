@@ -49,6 +49,9 @@ class ReferrerBase(Enum):
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
     API_DASHBOARDS_WORLDMAPWIDGET = "api.dashboards.worldmapwidget"
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
+    API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
+        "api.discover.total-sum-transaction-duration-field"
+    )
     API_DISCOVER_DAILY_CHART = "api.discover.daily-chart"
     API_DISCOVER_DAILYTOP5_CHART_FIND_TOPN = "api.discover.dailytop5-chart.find-topn"
     API_DISCOVER_DAILYTOP5_CHART = "api.discover.dailytop5-chart"
@@ -468,6 +471,7 @@ class ReferrerBase(Enum):
     )
     REPLAYS_QUERY_QUERY_REPLAYS_COUNT = "replays.query.query_replays_count"
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET = "replays.query.query_replays_dataset"
+    REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
