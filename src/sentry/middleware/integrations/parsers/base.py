@@ -14,7 +14,6 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, or
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
-from sentry.utils.sdk import capture_exception
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +80,7 @@ class BaseRequestParser(abc.ABC):
                     region_response = future.result()
                 # This will capture errors from this silo and any 4xx/5xx responses from others
                 except Exception as e:
-                    capture_exception(e)
-                    logger.error("region_proxy_error", extra={"region": region.name})
+                    logger.error("region_proxy_error", extra={"region": region.name, "error": e})
                     region_to_response_map[region.name] = RegionResult(error=e)
                 else:
                     region_to_response_map[region.name] = RegionResult(response=region_response)

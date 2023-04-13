@@ -5,7 +5,6 @@ from typing import List
 
 from django.http import HttpResponse
 from rest_framework.request import Request
-from sentry_sdk import capture_exception
 
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.webhooks.action import SlackActionEndpoint
@@ -86,13 +85,12 @@ class SlackRequestParser(BaseRequestParser):
                 slack_request._authorize()
                 slack_request._validate_integration()
             except SlackRequestError as error:
-                capture_exception(error)
-                logger.error("validation_error", extra={"path": self.request.path})
+                logger.error("validation_error", extra={"path": self.request.path, "error": error})
                 return None
             return Integration.objects.filter(id=slack_request.integration.id).first()
 
         elif view_class_name in DJANGO_VIEW_ENDPOINTS:
-            # Parse the signed params and ensure the organization is associated with the
+            # Parse the signed params to identify the associated integration
             params = unsign(self.match.kwargs.get("signed_params"))
             return Integration.objects.filter(id=params.get("integration_id")).first()
 
@@ -103,9 +101,9 @@ class SlackRequestParser(BaseRequestParser):
         region_result = response_map[first_region.name]
         if region_result.error is not None:
             error = SiloClientError(region_result.error)
-            capture_exception(error)
             logger.error(
-                "region_error", extra={"path": self.request.path, "region": first_region.name}
+                "region_error",
+                extra={"path": self.request.path, "region": first_region.name, "error": error},
             )
             # We want to fail loudly so that devs know this error happened on the region silo (for now)
             raise SiloClientError(error)
