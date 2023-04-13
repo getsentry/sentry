@@ -60,12 +60,7 @@ function BaseFeatureBadge({
 
   return (
     <div {...props}>
-      <Tooltip
-        title={title ?? defaultTitles[type]}
-        disabled={noTooltip}
-        position="right"
-        containerDisplayMode="inline-flex"
-      >
+      <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
         <Fragment>
           {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
           {variant === 'indicator' && (
