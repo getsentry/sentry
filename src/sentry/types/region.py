@@ -7,6 +7,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Iterable, Set
 from urllib.parse import urljoin
 
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode
 from sentry.utils import json
 
@@ -178,6 +179,7 @@ def get_local_region() -> Region:
     return get_region_by_name(settings.SENTRY_REGION)
 
 
+@control_silo_function
 def _find_orgs_for_user(user_id: int) -> Set[int]:
     # TODO: This must be changed to the org member mapping in the control silo eventually.
     from sentry.models import OrganizationMember
@@ -204,6 +206,7 @@ def find_regions_for_orgs(org_ids: Iterable[int]) -> Set[str]:
         }
 
 
+@control_silo_function
 def find_regions_for_user(user_id: int) -> Set[str]:
     org_ids: Set[int]
     if "pytest" in sys.modules:
