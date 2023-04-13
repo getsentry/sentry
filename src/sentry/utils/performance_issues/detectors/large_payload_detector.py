@@ -88,7 +88,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return features.has(
-            "organizations:performance-large-payload-detector", organization, actor=None
+            "organizations:performance-large-http-payload-detector", organization, actor=None
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
