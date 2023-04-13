@@ -7,8 +7,8 @@ declare const __LOADER__IS_LAZY__: any;
   _window,
   _document,
   _script,
-  _onerror,
-  _onunhandledrejection,
+  _errorEvent,
+  _unhandledrejectionEvent,
   _namespace,
   _publicKey,
   _sdkBundleUrl,
@@ -92,8 +92,8 @@ declare const __LOADER__IS_LAZY__: any;
     // Once our SDK is loaded
     _newScriptTag.addEventListener('load', function () {
       try {
-        _window.removeEventListener('error', onError);
-        _window.removeEventListener('unhandledrejection', onUnhandledRejection);
+        _window.removeEventListener(_errorEvent, onError);
+        _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
 
         // Add loader as SDK source
         _window.SENTRY_SDK_SOURCE = 'loader';
@@ -198,8 +198,8 @@ declare const __LOADER__IS_LAZY__: any;
 
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
-      const tracekitErrorHandler = _window[_onerror];
-      const tracekitUnhandledRejectionHandler = _window[_onunhandledrejection];
+      const tracekitErrorHandler = _window.onerror;
+      const tracekitUnhandledRejectionHandler = _window.onunhandledrejection;
 
       // And now capture all previously caught exceptions
       for (let i = 0; i < data.length; i++) {
@@ -249,8 +249,8 @@ declare const __LOADER__IS_LAZY__: any;
     };
   });
 
-  _window.addEventListener('error', onError);
-  _window.addEventListener('unhandledrejection', onUnhandledRejection);
+  _window.addEventListener(_errorEvent, onError);
+  _window.addEventListener(_unhandledrejectionEvent, onUnhandledRejection);
 
   if (!lazy) {
     setTimeout(function () {
@@ -262,8 +262,8 @@ declare const __LOADER__IS_LAZY__: any;
     typeof globalThis & {SENTRY_SDK_SOURCE?: string; Sentry?: any; __SENTRY__?: any},
   document,
   'script',
-  'onerror',
-  'onunhandledrejection',
+  'error',
+  'unhandledrejection',
   'Sentry',
   __LOADER__PUBLIC_KEY__,
   __LOADER_SDK_URL__,
