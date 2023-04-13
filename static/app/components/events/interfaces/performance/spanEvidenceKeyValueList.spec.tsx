@@ -88,6 +88,78 @@ describe('SpanEvidenceKeyValueList', () => {
     });
   });
 
+  describe('N+1 Database Queries with occurences', () => {
+    const builder = new TransactionEventBuilder('a1', '/', undefined, undefined, true);
+    builder.getEvent().projectID = '123';
+
+    const parentSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 0.2,
+      op: 'http.server',
+      problemSpan: ProblemSpan.PARENT,
+    });
+
+    parentSpan.addChild({
+      startTimestamp: 0.01,
+      endTimestamp: 2.1,
+      op: 'db',
+      description: 'SELECT * FROM books',
+      hash: 'aaa',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    parentSpan.addChild({
+      startTimestamp: 2.1,
+      endTimestamp: 4.0,
+      op: 'db',
+      description: 'SELECT * FROM books',
+      hash: 'aaa',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(parentSpan);
+
+    it('Renders relevant fields', () => {
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+
+      expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.parent-span')
+      ).toHaveTextContent('http.server');
+
+      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
+      ).toHaveTextContent('db - SELECT * FROM books');
+      expect(
+        screen.queryByTestId('span-evidence-key-value-list.')
+      ).not.toBeInTheDocument();
+
+      expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('MN+1 Database Queries', () => {
     const builder = new TransactionEventBuilder('a1', '/');
     builder.getEvent().projectID = '123';
