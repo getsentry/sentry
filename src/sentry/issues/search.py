@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import logging
 from copy import deepcopy
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
@@ -213,12 +214,18 @@ def _query_params_for_generic(
     if organization and features.has(
         "organizations:issue-platform", organization=organization, actor=actor
     ):
-        category_ids = {gc.value for gc in categories} if categories else None
+        if categories is None:
+            logging.error("Category is required in _query_params_for_generic")
+            return None
+
+        category_ids = {gc.value for gc in categories}
         group_types = {
             gt.type_id
             for gt in grouptype.registry.get_visible(organization, actor)
-            if not category_ids or gt.category in category_ids
+            if gt.category in category_ids
         }
+        if not group_types:
+            return None
 
         filters = {"occurrence_type_id": list(group_types), **filters}
         if group_ids:
