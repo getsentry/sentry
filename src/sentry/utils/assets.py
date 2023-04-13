@@ -11,7 +11,9 @@ from sentry.utils import json
 @ttl_cache(ttl=60)
 def _frontend_versions() -> dict[str, str]:
     try:
-        with open(os.path.join(settings.CONF_DIR, "settings", "frontend-versions.json")) as f:
+        with open(
+            os.path.join(settings.CONF_DIR, "settings", "frontend", "frontend-versions.json")
+        ) as f:
             return json.load(f)  # type: ignore[no-any-return]  # getsentry path
     except OSError:
         return {}  # common case for self-hosted
