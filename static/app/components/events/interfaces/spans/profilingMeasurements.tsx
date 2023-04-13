@@ -170,7 +170,7 @@ function ProfilingMeasurements({
                       [MEMORY, getChartName(MEMORY)],
                     ]}
                     value={measurementType}
-                    label={t('potato')}
+                    label={t('Profile Measurements Chart Type')}
                     onChange={type => {
                       setMeasurementType(type);
                     }}
