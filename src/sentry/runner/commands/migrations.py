@@ -21,8 +21,8 @@ def run(ctx, app_name, migration_name):
     from django.db.migrations.executor import MigrationExecutor
 
     executor = MigrationExecutor(connections["default"])
-    apps = executor.loader.project_state(migration_name).apps
     migration = executor.loader.get_migration_by_prefix(app_name, migration_name)
+    apps = executor.loader.project_state(migration.migration_name).apps
 
     for op in migration.operations:
         if not isinstance(op, RunPython):
