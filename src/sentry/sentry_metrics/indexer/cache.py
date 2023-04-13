@@ -40,8 +40,9 @@ class StringIndexerCache:
         return int(cache_ttl + jitter)
 
     def make_cache_key(self, key: str) -> str:
-        use_case_id, _, _ = key.split(":")
-        hashed = md5_text(key).hexdigest()
+        use_case_id, org_id, string = key.split(":")
+        org_string = org_id + ":" + string
+        hashed = md5_text(org_string).hexdigest()
         return f"indexer:{self.partition_key}:org:str:{use_case_id}:{hashed}"
 
     def _format_results(
