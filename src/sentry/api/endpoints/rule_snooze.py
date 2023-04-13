@@ -2,6 +2,7 @@ import datetime
 from enum import Enum
 
 from rest_framework import serializers, status
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -53,35 +54,25 @@ def can_edit_alert_rule(rule, organization, user_id, user):
     return True
 
 
-def get_rule(rule_id, rule_type):
-    issue_alert_rule = None
-    metric_alert_rule = None
-
-    if rule_type == RuleType.ISSUE_ALERT.value:
-        try:
-            issue_alert_rule = Rule.objects.get(id=rule_id)
-        except Rule.DoesNotExist:
-            raise serializers.ValidationError("Rule does not exist")
-
-    elif rule_type == RuleType.METRIC_ALERT.value:
-        try:
-            metric_alert_rule = AlertRule.objects.get(id=rule_id)
-        except AlertRule.DoesNotExist:
-            raise serializers.ValidationError("Rule does not exist")
-
-    return issue_alert_rule, metric_alert_rule
-
-
 @region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
     rule_type = None
 
+    def get_rule(self, rule_id):
+        rule_class = Rule if self.rule_type == RuleType.ISSUE_ALERT.value else AlertRule
+        try:
+            issue_alert_rule = rule_class.objects.get(id=rule_id)
+        except rule_class.DoesNotExist:
+            raise serializers.ValidationError("Rule does not exist")
+
+        return issue_alert_rule
+
     def post(self, request: Request, project, rule_id) -> Response:
         if not features.has("organizations:mute-alerts", project.organization, actor=None):
-            return Response(
-                {"detail": "This feature is not available for this organization."},
-                status=status.HTTP_401_UNAUTHORIZED,
+            raise AuthenticationFailed(
+                detail="This feature is not available for this organization.",
+                code=status.HTTP_401_UNAUTHORIZED,
             )
 
         serializer = RuleSnoozeValidator(data=request.data)
@@ -89,15 +80,16 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        issue_alert_rule, metric_alert_rule = get_rule(rule_id, self.rule_type)
+        rule = self.get_rule(rule_id)
 
-        rule = issue_alert_rule or metric_alert_rule
         user_id = request.user.id if data.get("target") == "me" else None
         if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
-            return Response(
-                {"detail": "Requesting user cannot mute this rule."},
-                status=status.HTTP_401_UNAUTHORIZED,
+            raise AuthenticationFailed(
+                detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
             )
+
+        issue_alert_rule = rule if self.rule_type == RuleType.ISSUE_ALERT.value else None
+        metric_alert_rule = rule if self.rule_type == RuleType.METRIC_ALERT.value else None
 
         rule_snooze, created = RuleSnooze.objects.get_or_create(
             user_id=user_id,
@@ -135,9 +127,9 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
     def delete(self, request: Request, project, rule_id) -> Response:
         if not features.has("organizations:mute-alerts", project.organization, actor=None):
-            return Response(
-                {"detail": "This feature is not available for this organization."},
-                status=status.HTTP_401_UNAUTHORIZED,
+            raise AuthenticationFailed(
+                detail="This feature is not available for this organization.",
+                code=status.HTTP_401_UNAUTHORIZED,
             )
 
         serializer = RuleSnoozeValidator(data=request.data)
@@ -145,15 +137,17 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        issue_alert_rule, metric_alert_rule = get_rule(rule_id, self.rule_type)
-        rule = issue_alert_rule or metric_alert_rule
+        rule = self.get_rule(rule_id)
         user_id = request.user.id if data.get("target") == "me" else None
 
         if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
-            return Response(
-                {"detail": "Requesting user cannot unmute this rule."},
-                status=status.HTTP_401_UNAUTHORIZED,
+            raise AuthenticationFailed(
+                detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
             )
+
+        issue_alert_rule = rule if self.rule_type == RuleType.ISSUE_ALERT.value else None
+        metric_alert_rule = rule if self.rule_type == RuleType.METRIC_ALERT.value else None
+
         try:
             rulesnooze = RuleSnooze.objects.get(
                 user_id=user_id,
