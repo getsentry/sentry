@@ -1,23 +1,22 @@
 import styled from '@emotion/styled';
 
+import bannerBackground from 'sentry-images/spot/ai-suggestion-banner-background.svg';
+import bannerSentaur from 'sentry-images/spot/ai-suggestion-banner-sentaur.svg';
+import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
+
 import {Button} from 'sentry/components/button';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import bannerBackground from './banner-background.svg';
-import bannerSentaurDarkMode from './banner-sentaur-dark-mode.svg';
-import bannerSentaurLightMode from './banner-sentaur-light-mode.svg';
-import bannerStars from './banner-stars.svg';
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
 
 type Props = {
-  darkMode: boolean;
   onViewSuggestion: () => void;
 };
 
-export function Banner({onViewSuggestion, darkMode}: Props) {
+export function Banner({onViewSuggestion}: Props) {
   return (
     <Wrapper>
       <Body withPadding>
@@ -33,7 +32,7 @@ export function Banner({onViewSuggestion, darkMode}: Props) {
         <Action>
           <Background src={bannerBackground} />
           <Stars src={bannerStars} />
-          <Sentaur src={darkMode ? bannerSentaurDarkMode : bannerSentaurLightMode} />
+          <Sentaur src={bannerSentaur} />
           <ViewSuggestionButton size="xs" onClick={onViewSuggestion}>
             {t('View Suggestion')}
           </ViewSuggestionButton>
@@ -68,7 +67,7 @@ const Title = styled('div')`
   grid-template-columns: max-content max-content;
   align-items: center;
   /* to be consistent with the feature badge size */
-  line-height: 20px;
+  line-height: ${space(2)};
 `;
 
 const Description = styled(TextBlock)`
