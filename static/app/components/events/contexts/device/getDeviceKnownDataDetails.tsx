@@ -25,7 +25,7 @@ type Output = {
 type Props = {
   data: DeviceContext;
   event: Event;
-  type: keyof typeof deviceKnownDataValues;
+  type: (typeof deviceKnownDataValues)[number];
 };
 
 export function getDeviceKnownDataDetails({

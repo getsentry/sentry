@@ -62,7 +62,7 @@ export function getIgnoreActions({
           status: ResolutionStatus.IGNORED,
           statusDetails,
         }),
-      message: confirmMessage?.(statusDetails) ?? null,
+      message: confirmMessage?.() ?? null,
       confirmText: confirmLabel,
     });
   };
@@ -204,9 +204,7 @@ type IgnoreActionProps = {
   onUpdate: (params: GroupStatusResolution) => void;
   className?: string;
   confirmLabel?: string;
-  confirmMessage?: (
-    statusDetails: ResolutionStatusDetails | undefined
-  ) => React.ReactNode;
+  confirmMessage?: () => React.ReactNode;
   disableTooltip?: boolean;
   disabled?: boolean;
   hideIcon?: boolean;
