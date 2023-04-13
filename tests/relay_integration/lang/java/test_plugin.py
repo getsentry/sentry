@@ -675,11 +675,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "extra": {},
             "project": self.project.id,
             "platform": "java",
-            "debug_meta": {
-                "images": [
-                    {"type": "sourcemap", "code_file": "~/source_bundle.zip", "debug_id": debug_id}
-                ]
-            },
+            "debug_meta": {"images": [{"type": "jvm", "debug_id": debug_id}]},
             "exception": {
                 "values": [
                     {
@@ -863,10 +859,9 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "platform": "java",
             "debug_meta": {
                 "images": [
-                    {"type": "sourcemap", "code_file": "~/source_bundle.zip", "debug_id": debug_id},
+                    {"type": "jvm", "debug_id": debug_id},
                     {
-                        "type": "sourcemap",
-                        "code_file": "~/i-do-not-exist.zip",
+                        "type": "jvm",
                         "debug_id": str(uuid4()),
                     },  # does not exist
                     {"type": "proguard", "uuid": PROGUARD_SOURCE_LOOKUP_UUID},
