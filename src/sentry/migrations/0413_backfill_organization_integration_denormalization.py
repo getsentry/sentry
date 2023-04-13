@@ -11,13 +11,13 @@ def backfill_organization_integration_denormalization(apps, schema_editor):
     RepositoryProjectPathConfig = apps.get_model("sentry", "RepositoryProjectPathConfig")
     OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
 
-    def backfill(self) -> None:
-        if self.organization_id is None or self.integration_id is None:
+    def backfill(inst) -> None:
+        if inst.organization_id is None or inst.integration_id is None:
             # Find the original org integration instance, backfill in the identifiers.
-            oi = OrganizationIntegration.objects.get(id=self.organization_integration_id)
-            self.organization_id = oi.organization_id
-            self.integration_id = oi.integration_id
-        self.save()
+            oi = OrganizationIntegration.objects.get(id=inst.organization_integration_id)
+            type(inst).objects.update(
+                organization_id=oi.organization_id, integration_id=oi.integration_id
+            )
 
     for obj in RangeQuerySetWrapperWithProgressBar(PagerDutyService.objects.all()):
         backfill(obj)
