@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import sys
 import time
 from datetime import datetime, timedelta
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Type
@@ -623,28 +622,3 @@ pending_silo_endpoint = EndpointSiloLimit()
 
 # This should be rarely used, but this should be used for any endpoints that exist in any silo mode.
 all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
-
-
-class FunctionSiloLimit(SiloLimit):
-    def handle_when_unavailable(
-        self,
-        original_method: Callable[..., Any],
-        current_mode: SiloMode,
-        available_modes: Iterable[SiloMode],
-    ) -> Callable[..., Any]:
-        if "pytest" in sys.modules:
-            mode_str = ", ".join(str(m) for m in available_modes)
-            message = (
-                f"Called {original_method.__name__} in "
-                f"{current_mode} mode. This function is available only in: {mode_str}"
-            )
-            raise ValueError(message)
-        return original_method
-
-    def __call__(self, decorated_obj: Any) -> Any:
-        if not callable(decorated_obj):
-            raise TypeError("`@FunctionSiloLimit` must decorate a function")
-        return self.create_override(decorated_obj)
-
-
-region_silo_function = FunctionSiloLimit(SiloMode.REGION)
