@@ -6003,19 +6003,19 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             "field": [
                 "transaction",
                 "sum(transaction.duration)",
-                "total.sum_transaction_duration",
-                "equation|sum(transaction.duration)/total.sum_transaction_duration",
+                "total.transaction_duration",
+                "equation|sum(transaction.duration)/total.transaction_duration",
             ],
             "query": "",
-            "orderby": "-equation|sum(transaction.duration)/total.sum_transaction_duration",
+            "orderby": "-equation|sum(transaction.duration)/total.transaction_duration",
             "statsPeriod": "24h",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["equation|sum(transaction.duration)/total.sum_transaction_duration"] == 0.75
-        assert data[1]["equation|sum(transaction.duration)/total.sum_transaction_duration"] == 0.25
+        assert data[0]["equation|sum(transaction.duration)/total.transaction_duration"] == 0.75
+        assert data[1]["equation|sum(transaction.duration)/total.transaction_duration"] == 0.25
 
     def test_device_class(self):
         project1 = self.create_project()

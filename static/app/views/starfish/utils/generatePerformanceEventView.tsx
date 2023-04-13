@@ -116,3 +116,58 @@ export function generatePerformanceEventView(
 
   return eventView;
 }
+
+export function generateWebServiceEventView(
+  location: Location,
+  _: Project[],
+  {withStaticFilters = false} = {},
+  organization: Organization
+) {
+  const {query} = location;
+
+  const fields = [
+    'team_key_transaction',
+    'transaction',
+    'http.method',
+    'tpm()',
+    'p50()',
+    'p95()',
+    'project',
+  ];
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction has:http.method',
+    projects: [],
+    fields,
+    version: 2,
+  };
+
+  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  widths[savedQuery.fields.length - 1] = '110';
+  savedQuery.widths = widths;
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = getDefaultStatsPeriod(organization);
+  }
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
+
+  const searchQuery = decodeScalar(query.query, '');
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+
+  if (query.trendParameter) {
+    // projects and projectIds are not necessary here since trendParameter will always
+    // be present in location and will not be determined based on the project type
+    const trendParameter = getCurrentTrendParameter(location, [], []);
+    if (WEB_VITAL_DETAILS[trendParameter.column]) {
+      eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
+    }
+  }
+
+  return eventView;
+}

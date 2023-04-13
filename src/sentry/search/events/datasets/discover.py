@@ -60,7 +60,7 @@ from sentry.search.events.constants import (
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
     TOTAL_COUNT_ALIAS,
-    TOTAL_SUM_TRANSACTION_DURATION_ALIAS,
+    TOTAL_TRANSACTION_DURATION_ALIAS,
     TRACE_PARENT_SPAN_ALIAS,
     TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
@@ -154,7 +154,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
             HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
-            TOTAL_SUM_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
+            TOTAL_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
             DEVICE_CLASS_ALIAS: self._resolve_device_class,
         }
 
