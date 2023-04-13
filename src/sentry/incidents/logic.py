@@ -1339,7 +1339,7 @@ def get_available_action_integrations_for_org(organization):
 
 
 def get_pagerduty_services(organization_id, integration_id):
-    return PagerDutyService.find_all_by_org_and_integration(
+    return PagerDutyService.objects.filter(
         organization_id=organization_id,
         integration_id=integration_id,
     )

@@ -89,7 +89,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         return [
             x
             for oi in organization_integrations
-            for x in PagerDutyService.find_all_by_org_and_integration(
+            for x in PagerDutyService.objects.filter(
                 organization_id=self.project.organization_id, integration_id=oi.integration_id
             )
         ]

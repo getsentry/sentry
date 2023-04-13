@@ -8,7 +8,6 @@ from sentry.models import (
     RepositoryProjectPathConfig,
 )
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.tasks.base import instrumented_task, retry
 
 
@@ -75,14 +74,7 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
             return AutoSyncNotification(code_mapping.project).send()
 
         codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
-
-        ois = integration_service.get_organization_integrations(
-            org_integration_ids=[code_mapping.organization_integration_id]
-        )
-        assert (
-            ois
-        ), "Could not find the organization integration for code_mapping by its organization_integration_id!"
-        organization = Organization.objects.get(id=ois[0].organization_id)
+        organization = Organization.objects.get(id=code_mapping.organization_id)
         codeowners.update_schema(
             organization=organization,
             raw=codeowner_contents["raw"],

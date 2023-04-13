@@ -224,7 +224,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         if not service_id:
             pd_service_options = [
                 f"{pds['id']} ({pds['service_name']})"
-                for pds in PagerDutyService.find_all_by_org_and_integration(
+                for pds in PagerDutyService.objects.filter(
                     organization_id=self.context["organization"].id,
                     integration_id=self.integration.id,
                 )
@@ -236,18 +236,18 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                 }
             )
 
-        pds = PagerDutyService.find_all_by_org_and_integration(
+        pds = PagerDutyService.objects.filter(
             organization_id=self.context["organization"].id,
             integration_id=self.integration.id,
-        )
-        if not pds or str(pds[0].id) != service_id:
+        ).first()
+        if not pds or str(pds.id) != service_id:
             raise serializers.ValidationError(
                 {
                     "target_identifier": f"Could not find associated PagerDuty service for the '{self.integration.name}' account. If it exists, ensure Sentry has access."
                 }
             )
-        data["target_display"] = pds[0].service_name
-        data["target_identifier"] = pds[0].id
+        data["target_display"] = pds.service_name
+        data["target_identifier"] = pds.id
         return data
 
     def validate(self, data: NotificationActionInputData) -> NotificationActionInputData:

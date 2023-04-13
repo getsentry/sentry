@@ -52,8 +52,9 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     @property
     def org_integration(self):
-        return integration_service.get_organization_integrations(
-            org_integration_ids=[self.context["organization_integration_id"]]
+        return integration_service.get_organization_integration(
+            organization_id=self.context["organization"].id,
+            integration_id=self.context["integration_id"],
         )[0]
 
     @property
@@ -94,7 +95,10 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         return RepositoryProjectPathConfig.objects.create(
-            organization_integration_id=self.org_integration.id, **validated_data
+            organization_integration_id=self.org_integration.id,
+            organization_id=self.context["organization"].id,
+            integration_id=self.context["integration_id"],
+            **validated_data,
         )
 
     def update(self, instance, validated_data):

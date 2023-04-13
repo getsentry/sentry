@@ -15,9 +15,7 @@ def get_codeowner_contents(config):
     if not config.organization_integration_id:
         raise NotFound(detail="No associated integration")
 
-    integration = integration_service.get_integration(
-        organization_integration_id=config.organization_integration_id
-    )
+    integration = integration_service.get_integration(integration_id=config.integration_id)
     install = integration_service.get_installation(
         integration=integration, organization_id=config.project.organization_id
     )
@@ -31,12 +29,11 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
         organization = kwargs["organization"]
-        ois = integration_service.get_organization_integrations(organization_id=organization.id)
 
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
                 id=config_id,
-                organization_integration_id__in=[oi.id for oi in ois],
+                organization_id=organization.id,
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404
