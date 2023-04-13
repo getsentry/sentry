@@ -124,6 +124,7 @@ describe('GroupReplays', () => {
                 'duration',
                 'finished_at',
                 'id',
+                'is_archived',
                 'os',
                 'project_id',
                 'started_at',
