@@ -4,7 +4,8 @@ from rest_framework import serializers
 
 from sentry.api.fields import ActorField
 from sentry.models import Actor, Team, User
-from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES
+from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.types.substatus import SUBSTATUS_UPDATE_CHOICES
 
 from . import InboxDetailsValidator, StatusDetailsValidator
 

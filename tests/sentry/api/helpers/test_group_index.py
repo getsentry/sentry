@@ -16,6 +16,7 @@ from sentry.models import (
     GroupSubStatus,
     add_group_to_inbox,
 )
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -200,3 +201,6 @@ class UpdateGroupsTest(TestCase):
         assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING
+        ).exists()

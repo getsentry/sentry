@@ -38,6 +38,7 @@ from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
+from sentry.types.substatus import GroupSubStatus
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
@@ -149,12 +150,6 @@ class GroupStatus:
     MUTED = IGNORED
 
 
-class GroupSubStatus:
-    UNTIL_ESCALATING = 1
-    ESCALATING = 2
-    ONGOING = 3
-
-
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
@@ -182,12 +177,6 @@ STATUS_UPDATE_CHOICES = {
     "resolvedInNextRelease": GroupStatus.UNRESOLVED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
-}
-
-SUBSTATUS_UPDATE_CHOICES = {
-    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
-    "escalating": GroupSubStatus.ESCALATING,
-    "ongoing": GroupSubStatus.ONGOING,
 }
 
 

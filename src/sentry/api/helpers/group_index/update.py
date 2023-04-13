@@ -45,7 +45,7 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.models.groupsnooze import GroupSnooze
@@ -62,6 +62,7 @@ from sentry.signals import (
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
+from sentry.types.substatus import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
@@ -495,6 +496,8 @@ def update_groups(
                     created = affected
 
                 group.status = GroupStatus.RESOLVED
+                group.substatus = None
+
                 group.resolved_at = now
                 remove_group_from_inbox(
                     group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
@@ -667,6 +670,7 @@ def update_groups(
 
             for group in group_list:
                 group.status = new_status
+                group.substatus = new_substatus
 
                 activity = Activity.objects.create(
                     project=project_lookup[group.project_id],

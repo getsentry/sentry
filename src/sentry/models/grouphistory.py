@@ -14,6 +14,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.types.activity import ActivityType
+from sentry.types.substatus import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
 if TYPE_CHECKING:
     from sentry.models import Group, Release, Team, User
@@ -38,6 +39,7 @@ class GroupHistoryStatus:
     DELETED_AND_DISCARDED = 9
     REVIEWED = 10
     ESCALATING = 14
+    ARCHIVED_UNTIL_ESCALATING = 15
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
@@ -59,6 +61,8 @@ string_to_status_lookup = {
     "deleted_and_discarded": GroupHistoryStatus.DELETED_AND_DISCARDED,
     "reviewed": GroupHistoryStatus.REVIEWED,
     "new": GroupHistoryStatus.NEW,
+    "escalating": GroupHistoryStatus.ESCALATING,
+    "archived_until_escalating": GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
 }
 status_to_string_lookup = {status: string for string, status in string_to_status_lookup.items()}
 
@@ -206,6 +210,10 @@ def record_group_history_from_activity_type(
     maps to it
     """
     status = ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS.get(activity_type, None)
+    if group.substatus is not None:
+        status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
+        status = string_to_status_lookup.get(status_str, None)
+
     if status is not None:
         return record_group_history(group, status, actor, release)
 
