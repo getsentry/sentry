@@ -22,7 +22,7 @@ export function UnityEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={getKnownData<UnityContext, keyof typeof unityKnownDataValues>({
+        data={getKnownData<UnityContext, (typeof unityKnownDataValues)[number]>({
           data,
           meta,
           knownDataTypes: unityKnownDataValues,

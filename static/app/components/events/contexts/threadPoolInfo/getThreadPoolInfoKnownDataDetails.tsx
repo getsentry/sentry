@@ -11,7 +11,7 @@ type Output = {
 type Props = {
   data: ThreadPoolInfoContext;
   event: Event;
-  type: keyof typeof threadPoolInfoKnownDataValues;
+  type: (typeof threadPoolInfoKnownDataValues)[number];
 };
 
 export function getThreadPoolInfoKnownDataDetails({
