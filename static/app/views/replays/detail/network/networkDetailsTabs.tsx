@@ -12,6 +12,7 @@ type Props = {
 };
 
 const TABS = {
+  general: t('General'),
   request: t('Request'),
   response: t('Response'),
 };

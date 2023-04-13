@@ -3,13 +3,17 @@ import styled from '@emotion/styled';
 import queryString from 'query-string';
 
 import {Button} from 'sentry/components/button';
+import {KeyValueTable} from 'sentry/components/keyValueTable';
 import ObjectInspector from 'sentry/components/objectInspector';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
+import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 import NetworkDetailsTabs, {
   TabKey,
@@ -61,7 +65,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
   }
 
   const visibleTab = getDetailTab();
-  const tabSections = data[visibleTab] ?? data.request;
+  const sections = data[visibleTab] ?? data.request;
 
   return (
     <Fragment>
@@ -83,20 +87,48 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
           />
         </CloseButtonWrapper>
       </StyledStacked>
-      <SectionList height={containerSize}>
-        {Object.entries(tabSections).map(([label, sectionData]) => (
-          <Fragment key={label}>
-            <SectionTitle>{label}</SectionTitle>
-            <SectionData>
-              <ObjectInspector data={sectionData} />
-            </SectionData>
-          </Fragment>
-        ))}
-      </SectionList>
+      {visibleTab === 'general' ? (
+        <KeyValueSections containerSize={containerSize} sections={sections} />
+      ) : (
+        <ObjectSections containerSize={containerSize} sections={sections} />
+      )}
     </Fragment>
   );
 }
 
+type SectionsProps = {
+  containerSize: number;
+  sections: Record<string, any>;
+};
+
+function KeyValueSections({containerSize, sections}: SectionsProps) {
+  return (
+    <FluidHeight style={{height: containerSize}}>
+      <FluidPanel>
+        <KeyValueTable noMargin>
+          {Object.entries(sections).map(([key, values]) => (
+            <ReplayTagsTableRow key={key} name={key} values={[String(values)]} />
+          ))}
+        </KeyValueTable>
+      </FluidPanel>
+    </FluidHeight>
+  );
+}
+
+function ObjectSections({containerSize, sections}: SectionsProps) {
+  return (
+    <SectionList height={containerSize}>
+      {Object.entries(sections).map(([label, sectionData]) => (
+        <Fragment key={label}>
+          <SectionTitle>{label}</SectionTitle>
+          <SectionData>
+            <ObjectInspector expandPaths={[]} data={sectionData} />
+          </SectionData>
+        </Fragment>
+      ))}
+    </SectionList>
+  );
+}
 function getData(
   span: NetworkSpan | null
 ): undefined | Record<TabKey, Record<string, unknown>> {
@@ -105,7 +137,16 @@ function getData(
   }
 
   const queryParams = queryString.parse(span.description?.split('?')?.[1] ?? '');
+
   return {
+    // It would be better if the General tab rendered in a grid, like tags
+    general: {
+      [t('URL')]: span.description,
+      [t('Method')]: span.data.method,
+      [t('Status Code')]: span.data.statusCode,
+      [t('Request Body Size')]: span.data.request?.size ?? 0,
+      [t('Response Body Size')]: span.data.response?.size ?? 0,
+    },
     request: {
       [t('Query String Parameters')]: queryParams,
       [t('Request Payload')]: span.data?.request?.body,
@@ -166,6 +207,7 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
 `;
 
 const SectionList = styled('dl')<{height: number}>`
+  margin: 0;
   height: ${p => p.height}px;
   overflow: scroll;
   padding: ${space(1)};
