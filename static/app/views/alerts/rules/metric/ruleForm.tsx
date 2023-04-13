@@ -786,6 +786,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       dataset,
       showMEPAlertBanner,
       alertType,
+      isQueryValid,
     } = this.state;
 
     const chartProps = {
@@ -804,6 +805,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType,
       comparisonDelta,
       comparisonType,
+      isQueryValid,
     };
 
     const wizardBuilderChart = (

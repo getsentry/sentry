@@ -16,6 +16,7 @@ import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
@@ -479,52 +480,74 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             }}
             flexibleControlStateSize
           >
-            {({onChange, onBlur, onKeyDown, initialData}) => (
-              <SearchContainer>
-                <StyledSearchBar
-                  searchSource="alert_builder"
-                  defaultQuery={initialData?.query ?? ''}
-                  omitTags={datasetOmittedTags(dataset, organization)}
-                  {...(datasetSupportedTags(dataset, organization)
-                    ? {supportedTags: datasetSupportedTags(dataset, organization)}
-                    : {})}
-                  includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                  disabled={disabled}
-                  useFormWrapper={false}
-                  organization={organization}
-                  placeholder={this.searchPlaceholder}
-                  onChange={onChange}
-                  query={initialData.query}
-                  // We only need strict validation for Transaction queries, everything else is fine
-                  highlightUnsupportedTags={
-                    organization.features.includes('alert-allow-indexed')
-                      ? false
-                      : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
-                  }
-                  onKeyDown={e => {
-                    /**
-                     * Do not allow enter key to submit the alerts form since it is unlikely
-                     * users will be ready to create the rule as this sits above required fields.
-                     */
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.stopPropagation();
+            {({onChange, onBlur, onKeyDown, initialData}) => {
+              return (
+                <SearchContainer>
+                  <StyledSearchBar
+                    customInvalidTagMessage={item => {
+                      if (
+                        ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
+                      ) {
+                        return null;
+                      }
+                      return (
+                        <SearchInvalidTag
+                          message={tct(
+                            "The field [field] isn't supported for performance alerts.",
+                            {
+                              field: <code>{item.desc}</code>,
+                            }
+                          )}
+                          docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
+                        />
+                      );
+                    }}
+                    searchSource="alert_builder"
+                    defaultQuery={initialData?.query ?? ''}
+                    omitTags={datasetOmittedTags(dataset, organization)}
+                    {...(datasetSupportedTags(dataset, organization)
+                      ? {supportedTags: datasetSupportedTags(dataset, organization)}
+                      : {})}
+                    includeSessionTagsValues={dataset === Dataset.SESSIONS}
+                    disabled={disabled}
+                    useFormWrapper={false}
+                    organization={organization}
+                    placeholder={this.searchPlaceholder}
+                    onChange={onChange}
+                    query={initialData.query}
+                    // We only need strict validation for Transaction queries, everything else is fine
+                    highlightUnsupportedTags={
+                      organization.features.includes('alert-allow-indexed')
+                        ? false
+                        : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
+                            dataset
+                          )
                     }
+                    onKeyDown={e => {
+                      /**
+                       * Do not allow enter key to submit the alerts form since it is unlikely
+                       * users will be ready to create the rule as this sits above required fields.
+                       */
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
 
-                    onKeyDown?.(e);
-                  }}
-                  onClose={(query, {validSearch}) => {
-                    onFilterSearch(query, validSearch);
-                    onBlur(query);
-                  }}
-                  onSearch={query => {
-                    onFilterSearch(query, true);
-                    onChange(query, {});
-                  }}
-                  hasRecentSearches={dataset !== Dataset.SESSIONS}
-                />
-              </SearchContainer>
-            )}
+                      onKeyDown?.(e);
+                    }}
+                    onClose={(query, {validSearch}) => {
+                      onFilterSearch(query, validSearch);
+                      onBlur(query);
+                    }}
+                    onSearch={query => {
+                      onFilterSearch(query, true);
+                      onChange(query, {});
+                    }}
+                    hasRecentSearches={dataset !== Dataset.SESSIONS}
+                  />
+                </SearchContainer>
+              );
+            }}
           </FormField>
         </FormRow>
       </Fragment>
