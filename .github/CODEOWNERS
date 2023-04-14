@@ -218,6 +218,10 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/components/dashboards/                                   @getsentry/discover-n-dashboards
 ## Endof Discover/Dashboards
 
+## Starfish
+/static/app/views/starfish/     @getsentry/starfish
+## Endof Starfish
+
 
 ## Profiling
 /static/app/components/profiling                                      @getsentry/profiling
