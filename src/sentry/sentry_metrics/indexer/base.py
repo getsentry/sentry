@@ -128,10 +128,10 @@ class UseCaseKeyCollection:
     of keys used to fetch ids, whose results are stored in UseCaseKeyResults.
 
     A key is a use_case_id, org_id, string pair, either represented as a
-    tuple e.g ("performance", 1, "a"), or a string "performance:1:a".
+    tuple e.g (UseCaseID.TRANSACTIONS, 1, "a"), or a string "transactions:1:a".
 
     Initial mapping is org_id's to sets of strings:
-        {"performance": { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
+        {UseCaseID.TRANSACTIONS: { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
     """
 
     def __init__(self, mapping: Mapping[UseCaseID, Union[Mapping[OrgId, Set[str]], KeyCollection]]):
@@ -274,7 +274,7 @@ class UseCaseKeyResults:
 
     It stores mapping of strings and their indexed ID, keyed by use case ID and org ID
     E.g
-        {"performance": { 1: {"a": 1, "b": 2}, 2: {"f": 7} }}
+        {UseCaseID.TRANSACTIONS: { 1: {"a": 1, "b": 2}, 2: {"f": 7} }}
     """
 
     def __init__(self) -> None:
