@@ -1608,27 +1608,35 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert len(frame_list) == 6
 
-        assert frame_list[0].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        def assert_abs_path(abs_path):
+            # This makes the test assertion forward compatible with percent-encoded URLs
+            # See https://github.com/getsentry/symbolicator/pull/1137
+            assert abs_path in (
+                "webpack:///webpack/bootstrap d9a5a31d9276b73873d3",
+                "webpack:///webpack/bootstrap%20d9a5a31d9276b73873d3",
+            )
+
+        assert_abs_path(frame_list[0].abs_path)
         assert frame_list[0].function == "bar"
         assert frame_list[0].lineno == 8
 
-        assert frame_list[1].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[1].abs_path)
         assert frame_list[1].function == "foo"
         assert frame_list[1].lineno == 2
 
-        assert frame_list[2].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[2].abs_path)
         assert frame_list[2].function == "App"
         assert frame_list[2].lineno == 2
 
-        assert frame_list[3].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[3].abs_path)
         assert frame_list[3].function == "Object.<anonymous>"
         assert frame_list[3].lineno == 1
 
-        assert frame_list[4].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[4].abs_path)
         assert frame_list[4].function == "__webpack_require__"
         assert frame_list[4].lineno == 19
 
-        assert frame_list[5].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[5].abs_path)
         assert frame_list[5].function == "<unknown>"
         assert frame_list[5].lineno == 16
 
