@@ -304,6 +304,28 @@ describe('IssueList', function () {
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
     });
 
+    it('shows archived tab', async function () {
+      render(
+        <IssueListWithStores
+          {...routerProps}
+          {...defaultProps}
+          organization={{...organization, features: ['escalating-issues']}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
+
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalled();
+      });
+
+      expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
+
+      // TODO(workflow): remove this test when we remove the feature flag
+      expect(screen.getByRole('tab', {name: 'Archived'})).toBeInTheDocument();
+    });
+
     it('loads with a saved query', async function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
