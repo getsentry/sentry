@@ -8,6 +8,9 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.endpoints.notifications.notification_actions_index import (
+    NotificationActionsPermission,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
@@ -25,6 +28,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     PUT: Update the entire NotificationAction, overwriting previous values
     DELETE: Delete the NotificationAction
     """
+
+    permission_classes = (NotificationActionsPermission,)
 
     def convert_args(self, request: Request, action_id: int, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)

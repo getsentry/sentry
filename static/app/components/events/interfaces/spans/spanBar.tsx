@@ -131,7 +131,7 @@ export type SpanBarProps = {
   resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:

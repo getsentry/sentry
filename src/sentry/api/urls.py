@@ -476,7 +476,7 @@ from .endpoints.relay import (
 )
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.rpc import RpcServiceEndpoint
-from .endpoints.rule_snooze import RuleSnoozeEndpoint
+from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.source_map_debug import SourceMapDebugEndpoint
@@ -2070,6 +2070,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/snooze/$",
         RuleSnoozeEndpoint.as_view(),
         name="sentry-api-0-rule-snooze",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/(?P<rule_id>[^\/]+)/snooze/$",
+        MetricRuleSnoozeEndpoint.as_view(),
+        name="sentry-api-0-metric-rule-snooze",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",

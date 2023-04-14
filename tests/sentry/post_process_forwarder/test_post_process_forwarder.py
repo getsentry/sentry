@@ -1,8 +1,7 @@
 import os
-import subprocess
 import time
 import uuid
-from contextlib import contextmanager
+from typing import Any
 from unittest.mock import patch
 
 from arroyo.utils import metrics
@@ -11,7 +10,8 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.eventstream.kafka import KafkaEventStream
+from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
+from sentry.post_process_forwarder import PostProcessForwarder
 from sentry.testutils import TestCase
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
@@ -21,32 +21,7 @@ SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:218
 settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
 
 
-@contextmanager
-def create_topic(partitions=1, replication_factor=1):
-    command = ["docker", "exec", "sentry_kafka", "kafka-topics"] + [
-        "--zookeeper",
-        SENTRY_ZOOKEEPER_HOSTS,
-    ]
-    topic = f"test-{uuid.uuid1().hex}"
-    subprocess.check_call(
-        command
-        + [
-            "--create",
-            "--topic",
-            topic,
-            "--partitions",
-            f"{partitions}",
-            "--replication-factor",
-            f"{replication_factor}",
-        ]
-    )
-    try:
-        yield topic
-    finally:
-        subprocess.check_call(command + ["--delete", "--topic", topic])
-
-
-def kafka_message_payload():
+def kafka_message_payload() -> Any:
     return [
         2,
         "insert",
@@ -68,8 +43,8 @@ def kafka_message_payload():
     ]
 
 
-class PostProcessForwarderTest(TestCase):
-    def _get_producer(self, cluster_name):
+class PostProcessForwarderTest(TestCase):  # type: ignore
+    def _get_producer(self, cluster_name: str) -> Producer:
         conf = {
             "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
                 "bootstrap.servers"
@@ -78,7 +53,7 @@ class PostProcessForwarderTest(TestCase):
         }
         return Producer(conf)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.events_topic = f"events-{uuid.uuid4().hex}"
         self.commit_log_topic = f"events-commit-{uuid.uuid4().hex}"
@@ -97,16 +72,16 @@ class PostProcessForwarderTest(TestCase):
         self.admin_client = AdminClient(cluster_options)
         wait_for_topics(self.admin_client, [self.events_topic, self.commit_log_topic])
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
         metrics._metrics_backend = None
 
-    @patch(
-        "sentry.eventstream.kafka.consumer_strategy.dispatch_post_process_group_task", autospec=True
-    )
-    def test_post_process_forwarder_streaming_consumer(self, dispatch_post_process_group_task):
+    @patch("sentry.eventstream.kafka.dispatch.dispatch_post_process_group_task", autospec=True)
+    def test_post_process_forwarder_streaming_consumer(
+        self, dispatch_post_process_group_task: Any
+    ) -> None:
         consumer_group = f"consumer-{uuid.uuid1().hex}"
         synchronize_commit_group = f"sync-consumer-{uuid.uuid1().hex}"
 
@@ -114,8 +89,8 @@ class PostProcessForwarderTest(TestCase):
         commit_log_producer = self._get_producer("default")
         message = json.dumps(kafka_message_payload()).encode()
 
-        eventstream = KafkaEventStream()
-        consumer = eventstream._build_streaming_consumer(
+        ppf = PostProcessForwarder(_get_task_kwargs_and_dispatch)
+        consumer = ppf._build_streaming_consumer(
             consumer_group=consumer_group,
             topic=self.events_topic,
             commit_log_topic=self.commit_log_topic,

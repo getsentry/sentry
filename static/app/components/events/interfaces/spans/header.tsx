@@ -117,15 +117,18 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderViewHandles({
-    isDragging,
-    onLeftHandleDragStart,
-    leftHandlePosition,
-    onRightHandleDragStart,
-    rightHandlePosition,
-    viewWindowStart,
-    viewWindowEnd,
-  }: DragManagerChildrenProps) {
+  renderViewHandles(
+    {
+      isDragging,
+      onLeftHandleDragStart,
+      leftHandlePosition,
+      onRightHandleDragStart,
+      rightHandlePosition,
+      viewWindowStart,
+      viewWindowEnd,
+    }: DragManagerChildrenProps,
+    hasProfileMeasurementsChart: boolean
+  ) {
     const leftHandleGhost = isDragging ? (
       <Handle
         left={viewWindowStart}
@@ -133,6 +136,7 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     ) : null;
 
@@ -141,6 +145,7 @@ class TraceViewHeader extends Component<PropType, State> {
         left={leftHandlePosition}
         onMouseDown={onLeftHandleDragStart}
         isDragging={isDragging}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     );
 
@@ -149,6 +154,7 @@ class TraceViewHeader extends Component<PropType, State> {
         left={rightHandlePosition}
         onMouseDown={onRightHandleDragStart}
         isDragging={isDragging}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     );
 
@@ -159,6 +165,7 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     ) : null;
 
@@ -172,13 +179,25 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderFog(dragProps: DragManagerChildrenProps) {
+  renderFog(
+    dragProps: DragManagerChildrenProps,
+    hasProfileMeasurementsChart: boolean = false
+  ) {
     return (
       <Fragment>
-        <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
         <Fog
           style={{
-            height: '100%',
+            height: hasProfileMeasurementsChart
+              ? `calc(100% - ${TIME_AXIS_HEIGHT}px)`
+              : '100%',
+            width: toPercent(dragProps.viewWindowStart),
+          }}
+        />
+        <Fog
+          style={{
+            height: hasProfileMeasurementsChart
+              ? `calc(100% - ${TIME_AXIS_HEIGHT}px)`
+              : '100%',
             width: toPercent(1 - dragProps.viewWindowEnd),
             left: toPercent(dragProps.viewWindowEnd),
           }}
@@ -309,12 +328,14 @@ class TraceViewHeader extends Component<PropType, State> {
   renderTimeAxis({
     showCursorGuide,
     mouseLeft,
+    hasProfileMeasurementsChart,
   }: {
+    hasProfileMeasurementsChart: boolean;
     mouseLeft: number | undefined;
     showCursorGuide: boolean;
   }) {
     return (
-      <TimeAxis>
+      <TimeAxis hasProfileMeasurementsChart={hasProfileMeasurementsChart}>
         {this.renderTicks()}
         {this.renderCursorGuide({
           showCursorGuide,
@@ -515,12 +536,16 @@ class TraceViewHeader extends Component<PropType, State> {
                                 mouseLeft,
                                 cursorGuideHeight: MINIMAP_HEIGHT,
                               })}
-                              {this.renderViewHandles(this.props.dragProps)}
+                              {this.renderViewHandles(
+                                this.props.dragProps,
+                                hasProfileMeasurementsChart
+                              )}
                               {this.renderWindowSelection(this.props.dragProps)}
                             </MinimapContainer>
                             {this.renderTimeAxis({
                               showCursorGuide,
                               mouseLeft,
+                              hasProfileMeasurementsChart,
                             })}
                           </RightSidePane>
                         )}
@@ -529,7 +554,7 @@ class TraceViewHeader extends Component<PropType, State> {
                         <ProfilingMeasurements
                           profileData={profiles.data}
                           renderCursorGuide={this.renderCursorGuide}
-                          renderFog={() => this.renderFog(this.props.dragProps)}
+                          renderFog={() => this.renderFog(this.props.dragProps, true)}
                           renderWindowSelection={() =>
                             this.renderWindowSelection(this.props.dragProps)
                           }
@@ -674,11 +699,14 @@ class ActualMinimap extends PureComponent<{
   }
 }
 
-const TimeAxis = styled('div')`
+const TimeAxis = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   width: 100%;
   position: absolute;
   left: 0;
-  top: ${MINIMAP_HEIGHT}px;
+  top: ${p =>
+    p.hasProfileMeasurementsChart
+      ? MINIMAP_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
+      : MINIMAP_HEIGHT}px;
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.background};
@@ -803,6 +831,7 @@ const ViewHandleContainer = styled('div')`
   position: absolute;
   top: 0;
   height: 100%;
+  z-index: 1;
 `;
 
 const ViewHandleLine = styled('div')`
@@ -864,7 +893,9 @@ function Handle({
   left,
   onMouseDown,
   isDragging,
+  hasProfileMeasurementsChart,
 }: {
+  hasProfileMeasurementsChart: boolean;
   isDragging: boolean;
   left: number;
   onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
@@ -873,6 +904,11 @@ function Handle({
     <ViewHandleContainer
       style={{
         left: toPercent(left),
+        height: `${
+          hasProfileMeasurementsChart
+            ? MINIMAP_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
+            : MINIMAP_HEIGHT
+        }px`,
       }}
     >
       <ViewHandleLine />

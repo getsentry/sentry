@@ -44,7 +44,7 @@ export function Banner({onViewSuggestion}: Props) {
 
 const Wrapper = styled(Panel)`
   margin-bottom: 0;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     height: 80px;
   }
 `;
@@ -54,7 +54,7 @@ const Body = styled(PanelBody)`
   grid-template-columns: 1fr max-content;
   align-items: center;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 42% 1fr;
   }
 `;
@@ -82,7 +82,7 @@ const Action = styled('div')`
 
 const Sentaur = styled('img')`
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     display: block;
     height: 8.563rem;
     position: absolute;
@@ -95,7 +95,7 @@ const Sentaur = styled('img')`
 
 const Background = styled('img')`
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     display: block;
     position: absolute;
     top: 0;
@@ -109,7 +109,7 @@ const Background = styled('img')`
 
 const Stars = styled('img')`
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     display: block;
     height: 8.563rem;
     position: absolute;
@@ -122,7 +122,7 @@ const Stars = styled('img')`
 `;
 
 const ViewSuggestionButton = styled(Button)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     position: absolute;
     right: 1rem;
     top: 1.5rem;
