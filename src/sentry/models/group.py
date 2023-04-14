@@ -150,10 +150,28 @@ class GroupStatus:
 
 
 class GroupSubStatus:
+    # GroupStatus.IGNORED
     UNTIL_ESCALATING = 1
+    FOREVER = 2
+
+    # GroupStatus.UNRESOVLED
     ESCALATING = 2
     ONGOING = 3
+    REGRESSED = 4
+    NEW = 5
 
+
+UNRESOLVED_SUBSTATUS_CHOICES = {
+    GroupSubStatus.ONGOING,
+    GroupSubStatus.ESCALATING,
+    GroupSubStatus.REGRESSED,
+    GroupSubStatus.NEW,
+}
+
+IGNORED_SUBSTATUS_CHOICES = {
+    GroupSubStatus.UNTIL_ESCALATING,
+    GroupSubStatus.FOREVER,
+}
 
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
