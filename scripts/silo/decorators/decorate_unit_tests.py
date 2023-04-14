@@ -15,12 +15,12 @@ business in order to apply the decorators.
 Instructions for use:
 
 From the Sentry project root, do
-    pytest --collect-only | ./scripts/silo/decorate_unit_tests.py
+    pytest --collect-only | ./scripts/decorators/silo/decorate_unit_tests.py
 
 Running `pytest` to collect unit test cases can be quite slow. To speed up
 repeated runs, you can instead do
     pytest --collect-only > pytest-collect.txt
-    ./scripts/silo/decorate_unit_tests.py < pytest-collect.txt
+    ./scripts/decorators/silo/decorate_unit_tests.py < pytest-collect.txt
 """
 
 if __name__ == "__main__":

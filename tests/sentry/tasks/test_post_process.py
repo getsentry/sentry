@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import time
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
@@ -201,6 +202,139 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             self._call_post_process_group(event)
 
             assert mock_derive_code_mappings.delay.call_count == 1
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_only_maps_a_given_project_once_per_hour(self, mock_derive_code_mappings):
+        dogs_project = self.create_project()
+        maisey_event = self._create_event(
+            {
+                "fingerprint": ["themaiseymasieydog"],
+            },
+            dogs_project.id,
+        )
+        charlie_event = self._create_event(
+            {
+                "fingerprint": ["charliebear"],
+            },
+            dogs_project.id,
+        )
+        cory_event = self._create_event(
+            {
+                "fingerprint": ["thenudge"],
+            },
+            dogs_project.id,
+        )
+        bodhi_event = self._create_event(
+            {
+                "fingerprint": ["theescapeartist"],
+            },
+            dogs_project.id,
+        )
+
+        self._call_post_process_group(maisey_event)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # second event from project should bail (no increase in call count)
+        self._call_post_process_group(charlie_event)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # advance the clock 59 minutes, and it should still bail
+        with patch("time.time", return_value=time.time() + 60 * 59):
+            self._call_post_process_group(cory_event)
+            assert mock_derive_code_mappings.delay.call_count == 1
+
+        # now advance the clock 61 minutes, and this time it should go through
+        with patch("time.time", return_value=time.time() + 60 * 61):
+            self._call_post_process_group(bodhi_event)
+            assert mock_derive_code_mappings.delay.call_count == 2
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_only_maps_a_given_issue_once_per_day(self, mock_derive_code_mappings):
+        dogs_project = self.create_project()
+        maisey_event1 = self._create_event(
+            {
+                "fingerprint": ["themaiseymaiseydog"],
+            },
+            dogs_project.id,
+        )
+        maisey_event2 = self._create_event(
+            {
+                "fingerprint": ["themaiseymaiseydog"],
+            },
+            dogs_project.id,
+        )
+        maisey_event3 = self._create_event(
+            {
+                "fingerprint": ["themaiseymaiseydog"],
+            },
+            dogs_project.id,
+        )
+        maisey_event4 = self._create_event(
+            {
+                "fingerprint": ["themaiseymaiseydog"],
+            },
+            dogs_project.id,
+        )
+        # because of the fingerprint, the events should always end up in the same group,
+        # but the rest of the test is bogus if they aren't, so let's be sure
+        assert maisey_event1.group_id == maisey_event2.group_id
+        assert maisey_event2.group_id == maisey_event3.group_id
+        assert maisey_event3.group_id == maisey_event4.group_id
+
+        self._call_post_process_group(maisey_event1)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # second event from group should bail (no increase in call count)
+        self._call_post_process_group(maisey_event2)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # advance the clock 23 hours and 59 minutes, and it should still bail
+        with patch("time.time", return_value=time.time() + (60 * 60 * 23) + (60 * 59)):
+            self._call_post_process_group(maisey_event3)
+            assert mock_derive_code_mappings.delay.call_count == 1
+
+        # now advance the clock 24 hours and 1 minute, and this time it should go through
+        with patch("time.time", return_value=time.time() + (60 * 60 * 24) + (60 * 1)):
+            self._call_post_process_group(maisey_event4)
+            assert mock_derive_code_mappings.delay.call_count == 2
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_skipping_an_issue_doesnt_mark_it_processed(self, mock_derive_code_mappings):
+        dogs_project = self.create_project()
+        maisey_event = self._create_event(
+            {
+                "fingerprint": ["themaiseymasieydog"],
+            },
+            dogs_project.id,
+        )
+        charlie_event1 = self._create_event(
+            {
+                "fingerprint": ["charliebear"],
+            },
+            dogs_project.id,
+        )
+        charlie_event2 = self._create_event(
+            {
+                "fingerprint": ["charliebear"],
+            },
+            dogs_project.id,
+        )
+        # because of the fingerprint, the two Charlie events should always end up in the same group,
+        # but the rest of the test is bogus if they aren't, so let's be sure
+        assert charlie_event1.group_id == charlie_event2.group_id
+
+        self._call_post_process_group(maisey_event)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # second event from project should bail (no increase in call count)
+        self._call_post_process_group(charlie_event1)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # now advance the clock 61 minutes (so the project should clear the cache), and another
+        # event from the Charlie group should go through
+        with patch("time.time", return_value=time.time() + 60 * 61):
+            self._call_post_process_group(charlie_event2)
+            assert mock_derive_code_mappings.delay.call_count == 2
 
 
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
