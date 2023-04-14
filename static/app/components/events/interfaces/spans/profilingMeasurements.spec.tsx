@@ -12,7 +12,7 @@ const mockProfileData = {
           value: 0,
         },
         {
-          elapsed_since_start_ns: 1000000000,
+          elapsed_since_start_ns: 1000,
           value: 12.0,
         },
       ],
@@ -25,7 +25,7 @@ const mockProfileData = {
           value: 20000,
         },
         {
-          elapsed_since_start_ns: 1000000000,
+          elapsed_since_start_ns: 1000,
           value: 123456,
         },
       ],
@@ -34,14 +34,18 @@ const mockProfileData = {
 } as Profiling.ProfileInput;
 
 it('renders CPU Usage as a chart', function () {
-  render(<ProfilingMeasurements profileData={mockProfileData} />);
+  render(
+    <ProfilingMeasurements profileData={mockProfileData} transactionDuration={2000} />
+  );
 
   expect(screen.getByText('CPU Usage')).toBeInTheDocument();
   expect(screen.getByTestId('profile-measurements-chart-cpu_usage')).toBeInTheDocument();
 });
 
 it('can toggle between CPU Usage and Memory charts', async function () {
-  render(<ProfilingMeasurements profileData={mockProfileData} />);
+  render(
+    <ProfilingMeasurements profileData={mockProfileData} transactionDuration={2000} />
+  );
 
   await userEvent.click(screen.getByText('CPU Usage'));
   await userEvent.click(screen.getByText('Memory'));
