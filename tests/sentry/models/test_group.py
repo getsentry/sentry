@@ -322,11 +322,16 @@ class GroupTest(TestCase, SnubaTestCase):
             self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING)
             self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ESCALATING)
 
+        group = self.create_group(status=GroupStatus.RESOLVED)
+        assert group.substatus is None
+
+        group = self.create_group(
+            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
+        )
+        assert group.substatus is GroupSubStatus.ESCALATING
+
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         assert group.substatus is GroupSubStatus.ONGOING
-
-        group = self.create_group(status=GroupStatus.RESOLVED, substatus=GroupSubStatus.ONGOING)
-        assert group.substatus is None
 
 
 @region_silo_test
