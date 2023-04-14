@@ -5,6 +5,7 @@ from typing import Any, Mapping
 import pytest
 from django.utils.functional import cached_property
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.incidents.models import IncidentActivityType
 from sentry.models import (
@@ -120,10 +121,12 @@ class Fixtures:
         return self.integration.add_organization(self.organization, self.user)
 
     def create_organization(self, *args, **kwargs):
-        return Factories.create_organization(*args, **kwargs)
+        with in_test_psql_role_override("postgres"):
+            return Factories.create_organization(*args, **kwargs)
 
     def create_member(self, *args, **kwargs):
-        return Factories.create_member(*args, **kwargs)
+        with in_test_psql_role_override("postgres"):
+            return Factories.create_member(*args, **kwargs)
 
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
