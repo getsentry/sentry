@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
+from typing import Iterable, List, MutableMapping, Optional, Set, cast
 
 from django.db import transaction
 
@@ -34,9 +34,6 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
 )
 from sentry.services.hybrid_cloud.util import flags_to_bits
-
-if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def escape_flag_name(flag_name: str) -> str:
@@ -282,18 +279,20 @@ class DatabaseBackedOrganizationService(OrganizationService):
         *,
         organization_id: int,
         default_org_role: str,
-        user: RpcUser | None = None,
+        user_id: int | None = None,
         email: str | None = None,
         flags: RpcOrganizationMemberFlags | None = None,
         role: str | None = None,
         inviter_id: int | None = None,
         invite_status: int | None = InviteStatus.APPROVED.value,
     ) -> RpcOrganizationMember:
-        assert (user is None and email) or (user and email is None), "Must set either user or email"
+        assert (user_id is None and email) or (
+            user_id and email is None
+        ), "Must set either user_id or email"
         with transaction.atomic():
             org_member: OrganizationMember = OrganizationMember.objects.create(
                 organization_id=organization_id,
-                user_id=user.id if user else None,
+                user_id=user_id,
                 email=email,
                 flags=self._deserialize_member_flags(flags) if flags else 0,
                 role=role or default_org_role,

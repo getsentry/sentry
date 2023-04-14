@@ -914,7 +914,7 @@ CELERYBEAT_SCHEDULE = {
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
-        "schedule": timedelta(hours=6),
+        "schedule": crontab(minute=0, hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1223,14 +1223,10 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
-    # Enable fast CODEOWNERS path matching
-    "organizations:scaleable-codeowners-search": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Test 10 member fallback vs 10 members
-    "organizations:issue-alert-fallback-experiment": False,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
     # Enable SQL formatting for breadcrumb items
@@ -1326,8 +1322,6 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
-    # Enable apply actual sample rate to dynamic sampling biases
-    "organizations:ds-apply-actual-sample-rate-to-biases": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
     # Enable version 2 of reprocessing (completely distinct from v1)
@@ -1370,6 +1364,8 @@ SENTRY_FEATURES = {
     "organizations:onboarding-project-loader": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
+    # Enable OpenAI suggestions in the issue details page (New Design)
+    "organizations:open-ai-suggestion-new-design": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
@@ -1742,9 +1738,6 @@ SENTRY_RELEASE_MONITOR = (
     "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
 )
 SENTRY_RELEASE_MONITOR_OPTIONS = {}
-
-# Whether or not to run transaction clusterer
-SENTRY_TRANSACTION_CLUSTERER_RUN = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -3140,6 +3133,7 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 # Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS = []
 
@@ -3150,7 +3144,7 @@ SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: Iterable[Region] = ()
+SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
@@ -3208,3 +3202,6 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
+
+# Killswitch to ignore checkins for explicit monitors
+SENTRY_MONITORS_IGNORED_MONITORS = []

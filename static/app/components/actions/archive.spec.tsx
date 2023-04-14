@@ -6,6 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ArchiveActions from 'sentry/components/actions/archive';
+import {ResolutionStatus} from 'sentry/types';
 
 describe('ArchiveActions', () => {
   const onUpdate = jest.fn();
@@ -17,8 +18,9 @@ describe('ArchiveActions', () => {
     render(<ArchiveActions onUpdate={onUpdate} />);
     await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
     expect(onUpdate).toHaveBeenCalledWith({
-      status: 'ignored',
-      statusDetails: {untilEscalating: true},
+      status: ResolutionStatus.IGNORED,
+      statusDetails: {},
+      substatus: 'until_escalating',
     });
   });
 
@@ -50,8 +52,9 @@ describe('ArchiveActions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(onUpdate).toHaveBeenCalledWith({
-      status: 'ignored',
-      statusDetails: {untilEscalating: true},
+      status: ResolutionStatus.IGNORED,
+      statusDetails: {},
+      substatus: 'until_escalating',
     });
   });
 

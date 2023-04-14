@@ -42,6 +42,7 @@ MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
 DEFAULT_OFFSET = 0
 MAX_REPLAY_LENGTH_HOURS = 1
+ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 Paginators = namedtuple("Paginators", ("limit", "offset"))
 
 
@@ -56,6 +57,7 @@ def query_replays_collection(
     offset: Optional[str],
     search_filters: List[SearchFilter],
     organization: Optional[Organization] = None,
+    actor: Optional[Any] = None,
 ) -> dict:
     """Query aggregated replay collection."""
 
@@ -65,15 +67,23 @@ def query_replays_collection(
         tenant_ids = {}
 
     def _should_use_subquery():
+        def _sort_eligible_for_subquery(sort):
+            if sort.startswith("-"):
+                sort = sort[1:]
+            return sort in ELIGIBLE_SUBQUERY_SORTS
+
         # TODO: determine what orderings are subquery eligible
         # TODO: determine what conditions/search filters are subquery eligible
         # TODO: determine how/if we can handle offsetting correctly with subquerying.
+
         return (
             organization
             and len(search_filters) == 0
-            and sort is None
+            and (sort is None or _sort_eligible_for_subquery(sort))
             and len(conditions) == 0
-            and features.has("organizations:session-replay-index-subquery", organization)
+            and features.has(
+                "organizations:session-replay-index-subquery", organization, actor=actor
+            )
         )
 
     conditions = []
