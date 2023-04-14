@@ -1272,6 +1272,8 @@ SENTRY_FEATURES = {
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
     "organizations:performance-consecutive-http-detector": False,
+    # Enable consecutive http performance issue type
+    "organizations:performance-large-http-payload-detector": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
