@@ -13,7 +13,6 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
-from sentry.models.group import GroupSubStatus
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -700,7 +699,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             )
 
             snooze.delete()
-            group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+            group.update(status=GroupStatus.UNRESOLVED)
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,
