@@ -48,6 +48,7 @@ class ConfigOptionsTest(CliTestCase):
         rv = self.invoke("get", "github-login.base-domain")
         assert rv.exit_code == 0, rv.output
         assert "testVal" in rv.output
+        self.invoke("delete", "github-login.base-domain")
 
     def test_bad_set(self):
         rv = self.invoke("set", "badKey", "val")
@@ -75,6 +76,10 @@ class ConfigOptionsTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         assert "['test1', 'test2']" in rv.output
 
+        self.invoke("delete", "github-login.base-domain")
+        self.invoke("delete", "github-login.extended-permissions")
+        self.invoke("delete", "symbolserver.options")
+
     def test_bad_strict(self):
         rv = self.invoke("strict", "tests/sentry/runner/commands/badstrict.yaml")
         assert rv.exit_code != 0, rv.output
@@ -90,6 +95,8 @@ class ConfigOptionsTest(CliTestCase):
         rv = self.invoke("get", "github-login.api-domain")
         assert rv.exit_code == 0, rv.output
         assert "testing" in rv.output
+        self.invoke("delete", "github-login.api-domain")
+        self.invoke("nodedata.cache-sample-rate")
 
     def test_bad_patch(self):
         rv = self.invoke("patch", "tests/sentry/runner/commands/badpatch.yaml")
