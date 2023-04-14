@@ -26,7 +26,7 @@ from snuba_sdk.orderby import Direction
 
 from sentry import features
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
@@ -45,20 +45,8 @@ from sentry.utils.snuba import raw_snql_query
 REFERRER = "replays.query.query_replay_clicks_dataset"
 
 
-class ReplayDetailsPermission(ProjectPermission):
-    scope_map = {
-        "GET": ["project:read", "project:write", "project:admin"],
-        "POST": ["project:write", "project:admin"],
-        "PUT": ["project:write", "project:admin"],
-        "DELETE": ["project:read", "project:write", "project:admin"],
-    }
-
-
 @region_silo_endpoint
 class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
-
-    permission_classes = (ReplayDetailsPermission,)
-
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
