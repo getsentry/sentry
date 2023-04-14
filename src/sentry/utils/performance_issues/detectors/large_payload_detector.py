@@ -20,9 +20,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         self.consecutive_http_spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        span_id = span.get("span_id", None)
-
-        if not span_id or not self._is_eligible_http_span(span):
+        if not LargeHTTPPayloadDetector._is_span_eligible(span):
             return
 
         data = span.get("data", None)
@@ -56,7 +54,8 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             },
         )
 
-    def _is_eligible_http_span(self, span: Span) -> bool:
+    @classmethod
+    def _is_span_eligible(cls, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op: str = span.get("op", "") or ""
         hash = span.get("hash", None)
