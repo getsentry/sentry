@@ -175,7 +175,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 <PageHeadingQuestionTooltip
                   docsUrl="https://docs.sentry.io/product/profiling/"
                   title={t(
-                    'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production.'
+                    'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
                   )}
                 />
                 <FeatureBadge type="beta" />
