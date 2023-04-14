@@ -43,9 +43,7 @@ export const Breadcrumb = memo(function Breadcrumb({
   const {type, description, color, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
 
-  const resizeObserverOnResize = useCallback(() => {
-    onResize();
-  }, [onResize]);
+  const resizeObserverOnResize = useCallback(onResize, [onResize]);
 
   useResizeObserver({
     ref: sizingRef,
