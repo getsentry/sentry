@@ -1223,8 +1223,6 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
-    # Enable fast CODEOWNERS path matching
-    "organizations:scaleable-codeowners-search": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
@@ -1740,9 +1738,6 @@ SENTRY_RELEASE_MONITOR = (
     "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
 )
 SENTRY_RELEASE_MONITOR_OPTIONS = {}
-
-# Whether or not to run transaction clusterer
-SENTRY_TRANSACTION_CLUSTERER_RUN = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -3138,6 +3133,7 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 # Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS = []
 
@@ -3148,7 +3144,7 @@ SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: Iterable[Region] = ()
+SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None

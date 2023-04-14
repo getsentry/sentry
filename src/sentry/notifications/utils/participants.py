@@ -15,6 +15,7 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
+    Release,
     Team,
     User,
 )
@@ -350,6 +351,8 @@ def determine_eligible_recipients(
                     for user in get_suspect_commit_users(project, event)
                 ]
                 suggested_assignees.extend(suspect_commit_users)
+            except Release.DoesNotExist:
+                logger.info("Skipping suspect committers because release does not exist.")
             except Exception:
                 logger.exception("Could not get suspect committers. Continuing execution.")
 

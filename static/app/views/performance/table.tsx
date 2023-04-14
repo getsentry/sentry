@@ -17,7 +17,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
   TableData,
@@ -211,7 +210,7 @@ class _Table extends Component<Props, State> {
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (tableMeta[fieldName] === 'integer' && typeof value === 'number' && value > 999) {
       return (
         <Tooltip
           title={value.toLocaleString()}

@@ -475,7 +475,8 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
-from .endpoints.rule_snooze import RuleSnoozeEndpoint
+from .endpoints.rpc import RpcServiceEndpoint
+from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.source_map_debug import SourceMapDebugEndpoint
@@ -2071,6 +2072,11 @@ PROJECT_URLS = [
         name="sentry-api-0-rule-snooze",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/(?P<rule_id>[^\/]+)/snooze/$",
+        MetricRuleSnoozeEndpoint.as_view(),
+        name="sentry-api-0-metric-rule-snooze",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",
         ProjectRulePreviewEndpoint.as_view(),
         name="sentry-api-0-project-rule-preview",
@@ -2521,6 +2527,11 @@ INTERNAL_URLS = [
         r"^project-config/$",
         AdminRelayProjectConfigsEndpoint.as_view(),
         name="sentry-api-0-internal-project-config",
+    ),
+    url(
+        r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
+        RpcServiceEndpoint.as_view(),
+        name="sentry-api-0-rpc-service",
     ),
 ]
 
