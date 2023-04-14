@@ -137,12 +137,16 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         self._proguard_processor_handles_frame = None
         self._handles_frame = None
         self.images = get_jvm_images(self.data)
-        self.available = len(self.images) > 0
         difs = ProjectDebugFile.objects.find_by_debug_ids(self.project, self.images)
         self._archives = {}
         for key, dif in difs.items():
-            file = dif.file.getfile(prefetch=True)
-            self._archives[key] = ArtifactBundleArchive(file)
+            try:
+                file = dif.file.getfile(prefetch=True)
+                self._archives[key] = ArtifactBundleArchive(file)
+            except Exception:
+                pass
+
+        self.available = len(self._archives) > 0
 
     def close(self):
         for key, archive in self._archives.items():
