@@ -17,6 +17,8 @@ from typing import (
     Union,
 )
 
+from use_case_id_registry import UseCaseID
+
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils.services import Service
 
@@ -33,7 +35,6 @@ class FetchTypeExt(NamedTuple):
     is_global: bool
 
 
-UseCaseId = str
 OrgId = int
 
 
@@ -61,15 +62,15 @@ class KeyResult:
 
 @dataclass(frozen=True)
 class UseCaseKeyResult:
-    use_case_id: UseCaseId
+    use_case_id: UseCaseID
     org_id: OrgId
     string: str
     id: Optional[int]
 
     @classmethod
     def from_string(cls: Type[UR], key: str, id: int) -> UR:
-        use_case_id, org_id, string = key.split(":", 1)
-        return cls(use_case_id, int(org_id), string, id)
+        use_case_id, org_id, string = key.split(":")
+        return cls(UseCaseID(use_case_id), int(org_id), string, id)
 
 
 class KeyCollection:
@@ -134,7 +135,7 @@ class UseCaseKeyCollection:
         {"performance": { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
     """
 
-    def __init__(self, mapping: Mapping[UseCaseId, Union[Mapping[OrgId, Set[str]], KeyCollection]]):
+    def __init__(self, mapping: Mapping[UseCaseID, Union[Mapping[OrgId, Set[str]], KeyCollection]]):
         self.mapping = {
             use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
             for use_case_id, keys in mapping.items()
@@ -151,7 +152,7 @@ class UseCaseKeyCollection:
     def _size(self) -> int:
         return sum(key_collection.size for key_collection in self.mapping.values())
 
-    def as_tuples(self) -> Sequence[Tuple[UseCaseId, OrgId, str]]:
+    def as_tuples(self) -> Sequence[Tuple[UseCaseID, OrgId, str]]:
         return [
             (use_case_id, org_id, s)
             for use_case_id, key_collection in self.mapping.items()
@@ -160,7 +161,7 @@ class UseCaseKeyCollection:
 
     def as_strings(self) -> Sequence[str]:
         return [
-            f"{use_case_id}:{s}"
+            f"{use_case_id.value}:{s}"
             for use_case_id, key_collection in self.mapping.items()
             for s in key_collection.as_strings()
         ]
@@ -278,7 +279,7 @@ class UseCaseKeyResults:
     """
 
     def __init__(self) -> None:
-        self.results: MutableMapping[UseCaseId, KeyResults] = defaultdict(lambda: KeyResults())
+        self.results: MutableMapping[UseCaseID, KeyResults] = defaultdict(lambda: KeyResults())
 
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, self.__class__) and self.results == __value.results
@@ -319,7 +320,7 @@ class UseCaseKeyResults:
                 fetch_type_ext,
             )
 
-    def get_mapped_results(self) -> Mapping[UseCaseId, Mapping[OrgId, Mapping[str, Optional[int]]]]:
+    def get_mapped_results(self) -> Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]]:
         """
         Only return results that string/int mappings, keyed by use case ID, then org ID.
         """
@@ -360,14 +361,14 @@ class UseCaseKeyResults:
         This is for when we use indexer_cache.set_many()
         """
         return {
-            f"{use_case_id}:{string}": id
+            f"{use_case_id.value}:{string}": id
             for use_case_id, key_results in self.results.items()
             for string, id in key_results.get_mapped_key_strings_to_ints().items()
         }
 
     def get_fetch_metadata(
         self,
-    ) -> Mapping[UseCaseId, Mapping[OrgId, Mapping[str, Metadata]]]:
+    ) -> Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]]:
         return {
             use_case_id: key_results.get_fetch_metadata()
             for use_case_id, key_results in self.results.items()
@@ -375,7 +376,7 @@ class UseCaseKeyResults:
         }
 
     def merge(self, other: "UseCaseKeyResults") -> "UseCaseKeyResults":
-        def merge_use_case(use_case_id: UseCaseId) -> KeyResults:
+        def merge_use_case(use_case_id: UseCaseID) -> KeyResults:
             if use_case_id in self.results and use_case_id in other.results:
                 return self.results[use_case_id].merge(other.results[use_case_id])
             if use_case_id in self.results:
@@ -391,7 +392,7 @@ class UseCaseKeyResults:
 
         return new_results
 
-    def __getitem__(self, use_case_id: UseCaseId) -> KeyResults:
+    def __getitem__(self, use_case_id: UseCaseID) -> KeyResults:
         return self.results[use_case_id]
 
 
