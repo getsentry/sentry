@@ -1229,8 +1229,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Test 10 member fallback vs 10 members
-    "organizations:issue-alert-fallback-experiment": False,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
     # Enable SQL formatting for breadcrumb items
@@ -1742,9 +1740,6 @@ SENTRY_RELEASE_MONITOR = (
     "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
 )
 SENTRY_RELEASE_MONITOR_OPTIONS = {}
-
-# Whether or not to run transaction clusterer
-SENTRY_TRANSACTION_CLUSTERER_RUN = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
