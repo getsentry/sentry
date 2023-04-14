@@ -1334,19 +1334,17 @@ describe('IssueList', function () {
       location: {
         query: {
           cursor: 'some cursor',
-          page: 0,
+          page: 1,
         },
       },
     };
 
     const {routerContext: newRouterContext} = initializeOrg();
-    render(<IssueListOverview {...props} />, {
+    const {rerender} = render(<IssueListOverview {...props} />, {
       context: newRouterContext,
     });
 
-    expect(
-      screen.getByText(textWithMarkupMatcher('Showing 25 of 500 issues'))
-    ).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('1-25 of 500'))).toBeInTheDocument();
 
     parseLinkHeaderSpy.mockReturnValue({
       next: {
@@ -1356,10 +1354,9 @@ describe('IssueList', function () {
         results: true,
       },
     });
+    rerender(<IssueListOverview {...props} />);
 
-    expect(
-      screen.getByText(textWithMarkupMatcher('Showing 25 of 500 issues'))
-    ).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
   });
 
   describe('project low priority queue alert', function () {

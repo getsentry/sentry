@@ -154,8 +154,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {start, end} = getTraceTimeRangeFromEvent(event);
 
     const hasProfilingFeature = organization.features.includes('profiling');
-    const hasProfilingPreviewsFeature =
-      hasProfilingFeature && organization.features.includes('profiling-previews');
 
     const profileId = (event as EventTransaction).contexts?.profile?.profile_id ?? null;
 
@@ -240,7 +238,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           }}
                         >
                           <QuickTraceContext.Provider value={results}>
-                            {hasProfilingPreviewsFeature ? (
+                            {hasProfilingFeature ? (
                               <ProfilesProvider
                                 orgSlug={organization.slug}
                                 projectSlug={this.projectId}

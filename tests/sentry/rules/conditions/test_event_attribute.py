@@ -32,6 +32,7 @@ class EventAttributeConditionTest(RuleTestCase):
                                 }
                             ]
                         },
+                        "thread_id": 1,
                     }
                 ]
             },
@@ -56,6 +57,14 @@ class EventAttributeConditionTest(RuleTestCase):
                 "unreal": {
                     "crash_type": "crash",
                 },
+            },
+            "threads": {
+                "values": [
+                    {
+                        "id": 1,
+                        "main": True,
+                    },
+                ],
             },
         }
         data.update(kwargs)

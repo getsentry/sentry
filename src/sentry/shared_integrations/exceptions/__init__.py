@@ -33,7 +33,7 @@ class ApiHostError(ApiError):
     @classmethod
     def from_request(cls, request: Request) -> ApiHostError:
         host = urlparse(request.url).netloc
-        return cls(f"Unable to reach host: {host}")
+        return cls(f"Unable to reach host: {host}", url=request.url)
 
 
 class ApiTimeoutError(ApiError):
@@ -48,7 +48,7 @@ class ApiTimeoutError(ApiError):
     @classmethod
     def from_request(cls, request: Request) -> ApiTimeoutError:
         host = urlparse(request.url).netloc
-        return cls(f"Timed out attempting to reach host: {host}")
+        return cls(f"Timed out attempting to reach host: {host}", url=request.url)
 
 
 class ApiUnauthorized(ApiError):

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List, Tuple, TypedDict
 
 from snuba_sdk import (
     Column,
@@ -16,15 +16,19 @@ from snuba_sdk import (
 )
 
 from sentry.models import Group
-from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
 
 QUERY_LIMIT = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
 SEVEN_DAYS_IN_HOURS = 7 * 24
 
+GroupsCountResponse = TypedDict(
+    "GroupsCountResponse",
+    {"group_id": int, "hourBucket": str, "count()": int},
+)
 
-def query_groups_past_counts(groups: List[Group]) -> JSONData:
+
+def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
     """Query Snuba for the counts for every group bucketed into hours"""
     offset = 0
     all_results = []

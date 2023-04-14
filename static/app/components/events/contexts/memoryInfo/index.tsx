@@ -26,12 +26,14 @@ export function MemoryInfoEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={getKnownData<MemoryInfoContext, keyof typeof memoryInfoKnownDataValues>({
-          data,
-          meta,
-          knownDataTypes: memoryInfoKnownDataValues,
-          onGetKnownDataDetails: v => getMemoryInfoKnownDataDetails({...v, event}),
-        })}
+        data={getKnownData<MemoryInfoContext, (typeof memoryInfoKnownDataValues)[number]>(
+          {
+            data,
+            meta,
+            knownDataTypes: memoryInfoKnownDataValues,
+            onGetKnownDataDetails: v => getMemoryInfoKnownDataDetails({...v, event}),
+          }
+        )}
       />
       <ContextBlock
         data={getUnknownData({

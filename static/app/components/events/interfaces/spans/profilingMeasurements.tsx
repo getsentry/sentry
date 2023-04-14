@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
@@ -10,25 +10,34 @@ import {
   TIME_AXIS_HEIGHT,
 } from 'sentry/components/events/interfaces/spans/constants';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
-import {
-  OpsDot,
-  OpsLine,
-  OpsName,
-  OpsNameContainer,
-} from 'sentry/components/events/opsBreakdown';
+import {OpsLine} from 'sentry/components/events/opsBreakdown';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SeriesDataUnit} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 
 const NS_PER_MS = 1000000;
+const CPU_USAGE = 'cpu_usage';
+const MEMORY = 'memory_footprint';
 
 function toMilliseconds(nanoseconds: number) {
   return nanoseconds / NS_PER_MS;
+}
+
+function getChartName(op: string) {
+  switch (op) {
+    case CPU_USAGE:
+      return t('CPU Usage');
+    case MEMORY:
+      return t('Memory');
+    default:
+      return '';
+  }
 }
 
 type ChartProps = {
@@ -36,13 +45,14 @@ type ChartProps = {
     unit: string;
     values: Profiling.MeasurementValue[];
   };
+  type: typeof CPU_USAGE | typeof MEMORY;
 };
 
-function Chart({data}: ChartProps) {
+function Chart({data, type}: ChartProps) {
   const theme = useTheme();
   const series: LineChartSeries[] = [
     {
-      seriesName: t('CPU Usage'),
+      seriesName: getChartName(type),
       // Use uniqBy since we can't guarantee the interval between recordings and
       // we're converting to lower fidelity (ns -> ms). This can result in duplicate entries
       data: uniqBy<SeriesDataUnit>(
@@ -61,7 +71,7 @@ function Chart({data}: ChartProps) {
 
   return (
     <LineChart
-      data-test-id="profile-measurements-chart"
+      data-test-id={`profile-measurements-chart-${type}`}
       height={PROFILE_MEASUREMENTS_CHART_HEIGHT}
       yAxis={{
         show: false,
@@ -89,10 +99,14 @@ function Chart({data}: ChartProps) {
       seriesOptions={{
         showSymbol: false,
       }}
-      colors={[theme.green200] as string[]}
+      colors={[theme.red300] as string[]}
       tooltip={{
         valueFormatter: (value, _seriesName) => {
-          return `${value.toFixed(2)}%`;
+          if (type === CPU_USAGE) {
+            return `${value.toFixed(2)}%`;
+          }
+
+          return formatBytesBase10(value);
         },
       }}
     />
@@ -100,7 +114,10 @@ function Chart({data}: ChartProps) {
 }
 
 // Memoized to prevent re-rendering when the cursor guide is displayed
-const MemoizedChart = React.memo(Chart);
+const MemoizedChart = React.memo(
+  Chart,
+  (prevProps, nextProps) => prevProps.type === nextProps.type
+);
 
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
@@ -125,13 +142,18 @@ function ProfilingMeasurements({
   renderFog,
   renderWindowSelection,
 }: ProfilingMeasurementsProps) {
-  const theme = useTheme();
+  const [measurementType, setMeasurementType] = useState<
+    typeof CPU_USAGE | typeof MEMORY
+  >(CPU_USAGE);
 
-  if (!('measurements' in profileData) || !defined(profileData.measurements?.cpu_usage)) {
+  if (
+    !('measurements' in profileData) ||
+    profileData.measurements?.[measurementType] === undefined
+  ) {
     return null;
   }
 
-  const cpuUsageData = profileData.measurements!.cpu_usage!;
+  const data = profileData.measurements[measurementType]!;
 
   return (
     <CursorGuideHandler.Consumer>
@@ -141,10 +163,18 @@ function ProfilingMeasurements({
             <MeasurementContainer>
               <ChartOpsLabel dividerPosition={dividerPosition}>
                 <OpsLine>
-                  <OpsNameContainer>
-                    <OpsDot style={{backgroundColor: theme.green200}} />
-                    <OpsName>{t('CPU Usage')}</OpsName>
-                  </OpsNameContainer>
+                  <RadioGroup
+                    style={{overflowX: 'visible'}}
+                    choices={[
+                      [CPU_USAGE, getChartName(CPU_USAGE)],
+                      [MEMORY, getChartName(MEMORY)],
+                    ]}
+                    value={measurementType}
+                    label={t('Profile Measurements Chart Type')}
+                    onChange={type => {
+                      setMeasurementType(type);
+                    }}
+                  />
                 </OpsLine>
               </ChartOpsLabel>
               <DividerSpacer />
@@ -160,7 +190,7 @@ function ProfilingMeasurements({
                 }}
                 onMouseDown={onStartWindowSelection}
               >
-                <MemoizedChart data={cpuUsageData} />
+                <MemoizedChart data={data} type={measurementType} />
                 <Overlays>
                   {renderFog?.()}
                   {renderCursorGuide?.({
@@ -192,12 +222,13 @@ const Overlays = styled('div')`
 const ChartContainer = styled('div')`
   position: relative;
   flex: 1;
-  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const ChartOpsLabel = styled('div')<{dividerPosition: number}>`
+  display: flex;
+  align-items: center;
   width: calc(${p => toPercent(p.dividerPosition)} - 0.5px);
-  height: 100%;
+  height: ${PROFILE_MEASUREMENTS_CHART_HEIGHT + TIME_AXIS_HEIGHT}px;
   padding-left: ${space(3)};
 `;
 
@@ -205,5 +236,6 @@ const MeasurementContainer = styled('div')`
   display: flex;
   position: absolute;
   width: 100%;
-  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  top: ${MINIMAP_HEIGHT}px;
+  border-top: 1px solid ${p => p.theme.border};
 `;

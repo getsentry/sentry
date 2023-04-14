@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import (
@@ -160,7 +161,7 @@ def test_symbolicate_event_call_process_inline(
 
     symbolicated_data = {"type": "error"}
 
-    mock_get_symbolication_function.return_value = lambda _: symbolicated_data
+    mock_get_symbolication_function.return_value = lambda _symbolicator, _event: symbolicated_data
 
     with mock.patch("sentry.tasks.store.do_process_event") as mock_do_process_event:
         symbolicate_event(cache_key="e:1", start_time=1)
@@ -244,9 +245,9 @@ def test_submit_symbolicate_queue_switch(
     is_low_priority = mock_should_demote_symbolication(default_project.id)
     assert is_low_priority
     with TaskRunner():
+        task_kind = SymbolicatorTaskKind(is_low_priority=is_low_priority)
         mock_submit_symbolicate(
-            is_low_priority=is_low_priority,
-            from_reprocessing=False,
+            task_kind,
             cache_key="e:1",
             event_id=EVENT_ID,
             start_time=0,
