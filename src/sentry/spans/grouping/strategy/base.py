@@ -1,3 +1,4 @@
+import functools
 import re
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Sequence, TypedDict, Union
@@ -88,7 +89,11 @@ def span_op(op_name: Union[str, Sequence[str]]) -> Callable[[CallableStrategy], 
     permitted_ops = [op_name] if isinstance(op_name, str) else op_name
 
     def wrapped(fn: CallableStrategy) -> CallableStrategy:
-        return lambda span: fn(span) if span.get("op") in permitted_ops else None
+        @functools.wraps(fn)
+        def inner(span):
+            return fn(span) if span.get("op") in permitted_ops else None
+
+        return inner
 
     return wrapped
 
