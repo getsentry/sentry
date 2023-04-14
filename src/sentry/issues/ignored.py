@@ -19,6 +19,8 @@ def handle_archived_until_escalating(
 
     Issues that are marked as ignored with `archiveDuration: until_escalating`
     in the statusDetail are treated as `archived_until_escalating`.
+
+    Returns: a dict with `None` values for the keys. These keys are expected by the caller, `update_groups`.
     """
     metrics.incr("group.archived_until_escalating", skip_internal=True)
     for group in group_list:
@@ -42,6 +44,13 @@ def handle_ignored(
     acting_user: User | None,
     user: User,
 ) -> Dict[str, Any]:
+    """
+    Handle issues that are ignored and create a snooze for them.
+
+    Evaluate ignored issues according to the statusDetails and create a snooze as needed.
+
+    Returns: a dict with the statusDetails for ignore conditions.
+    """
     metrics.incr("group.ignored", skip_internal=True)
     for group in group_ids:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)

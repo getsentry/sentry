@@ -29,6 +29,11 @@ def handle_status_update(
     activity_type: str | None,
     sender: Any,
 ) -> Tuple[str | None, Dict[str, Any]]:
+    """
+    Update the status for a list of groups and create entries for Activity and GroupHistory.
+
+    Returns a tuple of (activity_type, activity_data) for the activity that was created.
+    """
     activity_data = {}
     if new_status == GroupStatus.UNRESOLVED:
         activity_type = ActivityType.SET_UNRESOLVED.value
