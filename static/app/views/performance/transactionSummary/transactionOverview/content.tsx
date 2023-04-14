@@ -182,10 +182,7 @@ function SummaryContent({
 
   function generateActionBarItems(_org: Organization, _location: Location) {
     let items: ActionBarItem[] | undefined = undefined;
-    if (
-      _org.features.includes('performance-metrics-backed-transaction-summary') &&
-      !canUseTransactionMetricsData(_org, _location)
-    ) {
+    if (!canUseTransactionMetricsData(_org, _location)) {
       items = [
         {
           key: 'alert',
@@ -419,7 +416,6 @@ function SummaryContent({
       </Layout.Main>
       <Layout.Side>
         <TransactionPercentage
-          organization={organization}
           isLoading={isLoading}
           error={error}
           totals={totalValues}

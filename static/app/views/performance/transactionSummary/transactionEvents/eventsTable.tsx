@@ -17,7 +17,6 @@ import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvid
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {IssueAttachment, Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
   TableData,
@@ -220,7 +219,7 @@ class EventsTable extends Component<Props, State> {
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (tableMeta[fieldName] === 'integer' && typeof value === 'number' && value > 999) {
       return (
         <Tooltip
           title={value.toLocaleString()}
