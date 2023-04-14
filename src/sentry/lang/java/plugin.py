@@ -138,6 +138,15 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         self._handles_frame = None
         self.images = get_jvm_images(self.data)
         self.available = len(self.images) > 0
+        difs = ProjectDebugFile.objects.find_by_debug_ids(self.project, self.images)
+        self._archives = {}
+        for key, dif in difs.items():
+            file = dif.file.getfile(prefetch=True)
+            self._archives[key] = ArtifactBundleArchive(file)
+
+    def close(self):
+        for key, archive in self._archives.items():
+            archive.close()
 
     def handles_frame(self, frame, stacktrace_info):
         self._proguard_processor_handles_frame = self.proguard_processor.handles_frame(
@@ -220,9 +229,6 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         if not new_frames:
             new_frames = [dict(processable_frame.frame)]
 
-        # TODO unable to use dif cache as file can't be recognized as ZIP by ArtifactBundleArchive(file)
-        difs = ProjectDebugFile.objects.find_by_debug_ids(self.project, self.images)
-
         for new_frame in new_frames:
             lineno = new_frame.get("lineno")
             if not lineno:
@@ -230,9 +236,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
 
             source_file_name = self._build_source_file_name(new_frame)
 
-            for key, dif in difs.items():
-                file = dif.file.getfile(prefetch=True)
-                archive = ArtifactBundleArchive(file)
+            for key, archive in self._archives.items():
                 try:
                     result, _ = archive.get_file_by_url(source_file_name)
                     source_view = SourceView.from_bytes(result.read())
@@ -251,8 +255,6 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                 except KeyError:
                     # file not available in source bundle, proceed
                     pass
-                finally:
-                    archive.close()
 
         return new_frames, raw_frames, processing_errors
 
