@@ -7,13 +7,11 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
@@ -64,7 +62,6 @@ type Props = {
   project: Project;
   projects: Project[];
   router: InjectedRouter;
-  showMEPAlertBanner: boolean;
   thresholdChart: React.ReactNode;
   timeWindow: number;
   allowChangeEventTypes?: boolean;
@@ -402,14 +399,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      disabled,
-      onFilterSearch,
-      allowChangeEventTypes,
-      dataset,
-      showMEPAlertBanner,
-    } = this.props;
+    const {organization, disabled, onFilterSearch, allowChangeEventTypes, dataset} =
+      this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -421,27 +412,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
-    const hasMetricDataset = organization.features.includes('mep-rollout-flag');
-
     return (
       <Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        {showMEPAlertBanner && hasMetricDataset && (
-          <AlertContainer>
-            <Alert type="info" showIcon>
-              {tct(
-                'Based on your search criteria and sample rate, the events available may be limited. [link:Learn more].',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#filters" />
-                  ),
-                }
-              )}
-            </Alert>
-          </AlertContainer>
-        )}
         {this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
@@ -564,10 +539,6 @@ const StyledListTitle = styled('div')`
 
 const ChartPanel = styled(Panel)`
   margin-bottom: ${space(1)};
-`;
-
-const AlertContainer = styled('div')`
-  margin-bottom: ${space(2)};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
