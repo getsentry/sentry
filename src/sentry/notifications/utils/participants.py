@@ -404,12 +404,9 @@ def get_send_to(
                 muted_user_ids.append(rule_snooze.user_id)
 
         if muted_user_ids:
-            to_remove = filter(
-                lambda x: x.id in muted_user_ids and x.actor_type == ActorType.USER, recipients
+            recipients = filter(
+                lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
             )
-            for actor in to_remove:
-                recipients.remove(actor)
-
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
