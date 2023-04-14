@@ -7,15 +7,14 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
@@ -63,7 +62,6 @@ type Props = {
   project: Project;
   projects: Project[];
   router: InjectedRouter;
-  showMEPAlertBanner: boolean;
   thresholdChart: React.ReactNode;
   timeWindow: number;
   allowChangeEventTypes?: boolean;
@@ -401,14 +399,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      disabled,
-      onFilterSearch,
-      allowChangeEventTypes,
-      dataset,
-      showMEPAlertBanner,
-    } = this.props;
+    const {organization, disabled, onFilterSearch, allowChangeEventTypes, dataset} =
+      this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -420,27 +412,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
-    const hasMetricDataset = organization.features.includes('mep-rollout-flag');
-
     return (
       <Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        {showMEPAlertBanner && hasMetricDataset && (
-          <AlertContainer>
-            <Alert type="info" showIcon>
-              {tct(
-                'Based on your search criteria and sample rate, the events available may be limited. [link:Learn more].',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#filters" />
-                  ),
-                }
-              )}
-            </Alert>
-          </AlertContainer>
-        )}
         {this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
@@ -479,52 +455,74 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             }}
             flexibleControlStateSize
           >
-            {({onChange, onBlur, onKeyDown, initialData}) => (
-              <SearchContainer>
-                <StyledSearchBar
-                  searchSource="alert_builder"
-                  defaultQuery={initialData?.query ?? ''}
-                  omitTags={datasetOmittedTags(dataset, organization)}
-                  {...(datasetSupportedTags(dataset, organization)
-                    ? {supportedTags: datasetSupportedTags(dataset, organization)}
-                    : {})}
-                  includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                  disabled={disabled}
-                  useFormWrapper={false}
-                  organization={organization}
-                  placeholder={this.searchPlaceholder}
-                  onChange={onChange}
-                  query={initialData.query}
-                  // We only need strict validation for Transaction queries, everything else is fine
-                  highlightUnsupportedTags={
-                    organization.features.includes('alert-allow-indexed')
-                      ? false
-                      : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
-                  }
-                  onKeyDown={e => {
-                    /**
-                     * Do not allow enter key to submit the alerts form since it is unlikely
-                     * users will be ready to create the rule as this sits above required fields.
-                     */
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.stopPropagation();
+            {({onChange, onBlur, onKeyDown, initialData}) => {
+              return (
+                <SearchContainer>
+                  <StyledSearchBar
+                    customInvalidTagMessage={item => {
+                      if (
+                        ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
+                      ) {
+                        return null;
+                      }
+                      return (
+                        <SearchInvalidTag
+                          message={tct(
+                            "The field [field] isn't supported for performance alerts.",
+                            {
+                              field: <code>{item.desc}</code>,
+                            }
+                          )}
+                          docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
+                        />
+                      );
+                    }}
+                    searchSource="alert_builder"
+                    defaultQuery={initialData?.query ?? ''}
+                    omitTags={datasetOmittedTags(dataset, organization)}
+                    {...(datasetSupportedTags(dataset, organization)
+                      ? {supportedTags: datasetSupportedTags(dataset, organization)}
+                      : {})}
+                    includeSessionTagsValues={dataset === Dataset.SESSIONS}
+                    disabled={disabled}
+                    useFormWrapper={false}
+                    organization={organization}
+                    placeholder={this.searchPlaceholder}
+                    onChange={onChange}
+                    query={initialData.query}
+                    // We only need strict validation for Transaction queries, everything else is fine
+                    highlightUnsupportedTags={
+                      organization.features.includes('alert-allow-indexed')
+                        ? false
+                        : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
+                            dataset
+                          )
                     }
+                    onKeyDown={e => {
+                      /**
+                       * Do not allow enter key to submit the alerts form since it is unlikely
+                       * users will be ready to create the rule as this sits above required fields.
+                       */
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
 
-                    onKeyDown?.(e);
-                  }}
-                  onClose={(query, {validSearch}) => {
-                    onFilterSearch(query, validSearch);
-                    onBlur(query);
-                  }}
-                  onSearch={query => {
-                    onFilterSearch(query, true);
-                    onChange(query, {});
-                  }}
-                  hasRecentSearches={dataset !== Dataset.SESSIONS}
-                />
-              </SearchContainer>
-            )}
+                      onKeyDown?.(e);
+                    }}
+                    onClose={(query, {validSearch}) => {
+                      onFilterSearch(query, validSearch);
+                      onBlur(query);
+                    }}
+                    onSearch={query => {
+                      onFilterSearch(query, true);
+                      onChange(query, {});
+                    }}
+                    hasRecentSearches={dataset !== Dataset.SESSIONS}
+                  />
+                </SearchContainer>
+              );
+            }}
           </FormField>
         </FormRow>
       </Fragment>
@@ -541,10 +539,6 @@ const StyledListTitle = styled('div')`
 
 const ChartPanel = styled(Panel)`
   margin-bottom: ${space(1)};
-`;
-
-const AlertContainer = styled('div')`
-  margin-bottom: ${space(2)};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
