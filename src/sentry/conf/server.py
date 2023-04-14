@@ -1102,7 +1102,7 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
-    # Enable archive/escalating issue workflow UI
+    # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
