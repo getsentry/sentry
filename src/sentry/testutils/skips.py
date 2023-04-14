@@ -85,7 +85,7 @@ def symbolicator_is_available():
     if "symbolicator" in _service_status:
         return _service_status["symbolicator"]
     try:
-        parsed = urlparse(options.get("symbolicator.options")["url"])
+        parsed = urlparse(options.get("symbolicator.options", True)["url"])
         with socket.create_connection((parsed.hostname, parsed.port), 1.0):
             pass
     except OSError:
