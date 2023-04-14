@@ -128,7 +128,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         made_delete = False
         kwargs = {self.rule_field: rule, "user_id": None}
         try:
-            shared_snooze = RuleSnooze.objects.filter(**kwargs)
+            shared_snooze = RuleSnooze.objects.get(**kwargs)
         except RuleSnooze.DoesNotExist:
             pass
 
