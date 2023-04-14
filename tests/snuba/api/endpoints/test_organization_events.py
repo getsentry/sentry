@@ -625,6 +625,29 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        event, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group2"],
+            "prod",
+            before_now(hours=1).replace(tzinfo=timezone.utc),
+            user=user_data,
+        )
+
+        query = {
+            "field": ["title", "release", "environment", "user.display", "timestamp"],
+            "statsPeriod": "90d",
+            "query": f"issue.id:{group_info.group.id}",
+            "dataset": "issuePlatform",
+        }
+        with self.feature(["organizations:profiling"]):
+            response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["title"] == group_info.group.title
+        assert response.data["data"][0]["environment"] == "prod"
+        assert response.data["data"][0]["user.display"] == user_data["email"]
+        assert response.data["data"][0]["timestamp"] == event.timestamp
 
         query = {
             "field": ["title", "release", "environment", "user.display", "timestamp"],
@@ -632,13 +655,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             "query": f"issue:{group_info.group.qualified_short_id}",
             "dataset": "issuePlatform",
         }
-        with self.feature(
-            [
-                "organizations:profiling",
-            ]
-        ):
+        with self.feature(["organizations:profiling"]):
             response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
         assert response.data["data"][0]["title"] == group_info.group.title
         assert response.data["data"][0]["environment"] == "prod"
         assert response.data["data"][0]["user.display"] == user_data["email"]

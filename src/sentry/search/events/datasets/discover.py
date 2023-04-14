@@ -1602,10 +1602,10 @@ class DiscoverDatasetConfig(DatasetConfig):
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
-        error_group_filter_values = ["" for v in value if not v or v == "unknown"]
+        general_group_filter_values = ["" for v in value if not v or v == "unknown"]
         perf_group_filter_values = ["" for v in value if not v or v == "unknown"]
 
-        error_groups = []
+        general_groups = []
         performance_groups = []
 
         if group_short_ids and self.builder.params.organization is not None:
@@ -1618,26 +1618,26 @@ class DiscoverDatasetConfig(DatasetConfig):
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
                 for group in groups:
-                    if group.issue_category == GroupCategory.ERROR:
-                        error_groups.append(group.id)
-                    elif group.issue_category == GroupCategory.PERFORMANCE:
+                    if group.issue_category == GroupCategory.PERFORMANCE:
                         performance_groups.append(group.id)
-                error_groups = sorted(error_groups)
+                    else:
+                        general_groups.append(group.id)
+                general_groups = sorted(general_groups)
                 performance_groups = sorted(performance_groups)
 
-                error_group_filter_values.extend(error_groups)
+                general_group_filter_values.extend(general_groups)
                 perf_group_filter_values.extend(performance_groups)
 
         # TODO (udameli): if both groups present, return data for both
-        if error_group_filter_values:
+        if general_group_filter_values:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
                     SearchKey("issue.id"),
                     operator,
                     SearchValue(
-                        error_group_filter_values
+                        general_group_filter_values
                         if search_filter.is_in_filter
-                        else error_group_filter_values[0]
+                        else general_group_filter_values[0]
                     ),
                 )
             )
