@@ -320,6 +320,7 @@ export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParam
 }
 
 export type CommonGroupAnalyticsData = {
+  days_since_last_seen: number;
   error_count: number;
   group_has_replay: boolean;
   group_id: number;
@@ -350,6 +351,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     issue_type: group?.issueType ?? IssueType.ERROR,
     issue_status: group?.status,
     issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
+    days_since_last_seen: group?.lastSeen ? getDaysSinceDate(group.lastSeen) : -1,
     issue_level: group?.level,
     is_assigned: !!group?.assignedTo,
     error_count: Number(group?.count || -1),
