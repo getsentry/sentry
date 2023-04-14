@@ -9,4 +9,4 @@ data:
     update :
       github-login.api-domain  : "testing"
       nodedata.cache-sample-rate : 4.0
-    delete : ["relay.transaction-metrics-org-sample-rate"]
+    delete : ["symbolserver.options"]

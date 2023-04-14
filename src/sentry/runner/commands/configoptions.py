@@ -193,6 +193,7 @@ TRACKED = {
     "github-login.api-domain",
     "github-login.extended-permissions",
     "symbolserver.options",
+    "nodedata.cache-sample-rate",
 }
 
 
