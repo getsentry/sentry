@@ -166,7 +166,7 @@ def get_select_column(query: str) -> tuple[str, list[Any]]:
 
 
 def _get_project_id_to_slug_map(replay_snuba_results: list[dict[str, Any]]) -> dict[int, str]:
-    project_ids = list({row["project_id"] for row in replay_snuba_results})
+    project_ids = {row["project_id"] for row in replay_snuba_results}
     slug_query_results = Project.objects.filter(id__in=project_ids).values_list(
         "id",
         "slug",

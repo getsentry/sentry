@@ -259,9 +259,9 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
 
         expected = {
             event_a.group.id: sorted(
-                [[replay1_id, self.project.slug], [replay2_id, self.project.slug]]
+                [(replay1_id, self.project.slug), (replay2_id, self.project.slug)]
             ),
-            event_c.group.id: sorted([[replay3_id, self.project.slug]]),
+            event_c.group.id: sorted([(replay3_id, self.project.slug)]),
         }
         assert response.status_code == 200, response.content
         self.assertCountEqual(
