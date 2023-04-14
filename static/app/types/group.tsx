@@ -68,6 +68,7 @@ export enum IssueType {
   PERFORMANCE_SLOW_DB_QUERY = 'performance_slow_db_query',
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'performance_render_blocking_asset_span',
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
 
   // Profile
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
@@ -87,6 +88,7 @@ export const getIssueTypeFromOccurenceType = (
     1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
     1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+    1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   };
   if (!typeId) {
     return null;

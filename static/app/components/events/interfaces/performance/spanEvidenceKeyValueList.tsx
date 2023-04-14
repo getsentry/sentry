@@ -85,6 +85,7 @@ export function SpanEvidenceKeyValueList({
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
+      [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
     }[issueType] ?? DefaultSpanEvidence;
 
   return (
@@ -142,6 +143,28 @@ function ConsecutiveHTTPSpanEvidence({
           makeRow(
             'Offending Spans',
             offendingSpans.map(span => span.description)
+          ),
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+}
+
+function LargeHTTPPayloadSpanEvidence({
+  event,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event, orgSlug, projectSlug),
+          makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0])),
+          makeRow(
+            t('Payload Size'),
+            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
           ),
         ].filter(Boolean) as KeyValueListData
       }
