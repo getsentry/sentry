@@ -220,7 +220,7 @@ describe('rrwebEventListFactory', () => {
       rrwebEventListFactory(replayRecord, [
         {type: 0, timestamp: 5_000, data: {}},
         {type: 1, timestamp: 1_000, data: {}},
-        {type: 2, timestamp: 3_000, data: {}},
+        {type: 2, timestamp: 3_000, data: {} as any},
       ])
     ).toEqual([
       {type: 1, timestamp: 0, data: {}},

@@ -129,7 +129,7 @@ export function rrwebEventListFactory(
     data: {
       tag: 'replay-end',
     },
-  });
+  } as RecordingEvent);
 
   events.sort((a, b) => a.timestamp - b.timestamp);
 
