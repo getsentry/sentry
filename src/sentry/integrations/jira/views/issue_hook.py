@@ -114,8 +114,15 @@ class JiraIssueHookView(JiraBaseHook):
         with configure_scope() as scope:
             try:
                 integration = get_integration_from_request(request, "jira")
-            except AtlassianConnectValidationError:
+            except AtlassianConnectValidationError as e:
                 scope.set_tag("failure", "AtlassianConnectValidationError")
+                logger.info(
+                    "issue_hook.validation_error",
+                    extra={
+                        "issue_key": issue_key,
+                        "error": str(e),
+                    },
+                )
                 return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
             except ExpiredSignatureError:
                 scope.set_tag("failure", "ExpiredSignatureError")
