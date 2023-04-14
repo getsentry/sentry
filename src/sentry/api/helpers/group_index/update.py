@@ -495,6 +495,7 @@ def update_groups(
                     created = affected
 
                 group.status = GroupStatus.RESOLVED
+                group.substatus = None
                 group.resolved_at = now
                 remove_group_from_inbox(
                     group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
@@ -667,6 +668,7 @@ def update_groups(
 
             for group in group_list:
                 group.status = new_status
+                group.substatus = new_substatus
 
                 activity = Activity.objects.create(
                     project=project_lookup[group.project_id],

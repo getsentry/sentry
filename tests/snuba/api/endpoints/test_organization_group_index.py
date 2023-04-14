@@ -2826,6 +2826,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=event.group.id)
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
 
         self.login_as(user=self.user)
