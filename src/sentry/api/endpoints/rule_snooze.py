@@ -121,37 +121,46 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 detail="This feature is not available for this organization.",
                 code=status.HTTP_401_UNAUTHORIZED,
             )
-
-        serializer = RuleSnoozeValidator(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        data = serializer.validated_data
         rule = self.get_rule(rule_id)
-        user_id = request.user.id if data.get("target") == "me" else None
 
-        if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
+        # find if there is a mute for all that I can remove
+        shared_snooze = None
+        made_delete = False
+        kwargs = {self.rule_field: rule, "user_id": None}
+        try:
+            shared_snooze = RuleSnooze.objects.filter(**kwargs)
+        except RuleSnooze.DoesNotExist:
+            pass
+
+        # if user can edit then delete it
+        if shared_snooze and can_edit_alert_rule(rule, project.organization, None, request.user):
+            shared_snooze.delete()
+            made_delete = True
+
+        # next check if there is a mute for me that I can remove
+        kwargs = {self.rule_field: rule, "user_id": request.user.id}
+        my_snooze = None
+        try:
+            my_snooze = RuleSnooze.objects.get(**kwargs)
+        except RuleSnooze.DoesNotExist:
+            pass
+        else:
+            my_snooze.delete()
+            made_delete = True
+
+        if made_delete:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        # didn't find a match but there is a shared snooze
+        if shared_snooze:
             raise AuthenticationFailed(
                 detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
             )
-
-        kwargs = {self.rule_field: rule}
-
-        try:
-            rulesnooze = RuleSnooze.objects.get(
-                user_id=user_id,
-                owner_id=request.user.id,
-                until=data.get("until"),
-                **kwargs,
-            )
-        except RuleSnooze.DoesNotExist:
-            return Response(
-                {"detail": "This rulesnooze object doesn't exist."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        rulesnooze.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        # no snooze at all found
+        return Response(
+            {"detail": "This rulesnooze object doesn't exist."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
 
 @region_silo_endpoint
