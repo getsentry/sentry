@@ -93,7 +93,7 @@ def span_op(op_name: Union[str, Sequence[str]]) -> Callable[[CallableStrategy], 
 
     def wrapped(fn: CallableStrategy) -> CallableStrategy:
         @functools.wraps(fn)
-        def inner(span):
+        def inner(span: Span) -> Optional[Sequence[str]]:
             return fn(span) if span.get("op") in permitted_ops else None
 
         return inner
@@ -279,8 +279,8 @@ class BaseSpanStrategy:
     that can accept event data.
     """
 
-    def __init__(self, event_data=None):
+    def __init__(self, event_data: Any = None) -> None:
         self.event_data = event_data
 
-    def __call__(self):
+    def __call__(self, span: Span) -> Optional[Sequence[str]]:
         raise NotImplementedError

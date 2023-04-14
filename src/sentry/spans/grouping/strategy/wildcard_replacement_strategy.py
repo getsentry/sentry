@@ -29,11 +29,11 @@ class WildcardReplacementStrategy(BaseSpanStrategy):
             return None
 
         method, url = parts
-        url = urlparse(url)
+        parsed_url = urlparse(url)
 
         for rule in rules:
-            parameterized_path = glob_replace(url.path, rule)
-            if parameterized_path != url.path:
-                return [method, url.scheme, url.netloc, parameterized_path]
+            parameterized_path = glob_replace(parsed_url.path, rule)
+            if parameterized_path != parsed_url.path:
+                return [method, parsed_url.scheme, parsed_url.netloc, parameterized_path]
 
         return None
