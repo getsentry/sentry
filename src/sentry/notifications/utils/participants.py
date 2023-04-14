@@ -396,20 +396,19 @@ def get_send_to(
 
     if rules:
         rule_snoozes = RuleSnooze.objects.filter(Q(rule__in=rules))
-        muted_user_id = []
+        muted_user_ids = []
         for rule_snooze in rule_snoozes:
             if rule_snooze.user_id is None:
                 return {}
             else:
-                muted_user_id.append(rule_snooze.user_id)
+                muted_user_ids.append(rule_snooze.user_id)
 
-        if muted_user_id:
-            recipients = list(
-                filter(
-                    lambda x: x.actor_id not in muted_user_id and x.actor_type == ActorType.USER,
-                    recipients,
-                )
+        if muted_user_ids:
+            to_remove = filter(
+                lambda x: x.id in muted_user_ids and x.actor_type == ActorType.USER, recipients
             )
+            for actor in to_remove:
+                recipients.remove(actor)
 
     return get_recipients_by_provider(project, recipients, notification_type)
 
