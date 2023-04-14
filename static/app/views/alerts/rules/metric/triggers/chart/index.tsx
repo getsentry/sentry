@@ -258,20 +258,21 @@ class TriggersChart extends PureComponent<Props, State> {
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
+
     const error = orgFeatures.includes('alert-allow-indexed')
-      ? false
-      : errored || !isQueryValid || errorMessage;
+      ? errored || errorMessage
+      : errored || errorMessage || !isQueryValid;
 
     return (
       <Fragment>
         {header}
         <TransparentLoadingMask visible={isReloading} />
-        {isLoading ? (
+        {isLoading && !error ? (
           <ChartPlaceholder />
         ) : error ? (
           <ChartErrorWrapper>
             <PanelAlert type="error">
-              {!isQueryValid
+              {!orgFeatures.includes('alert-allow-indexed') && !isQueryValid
                 ? t(
                     'Your filter conditions contain an unsupported field - please review.'
                   )
