@@ -17,9 +17,8 @@ from typing import (
     Union,
 )
 
-from use_case_id_registry import UseCaseID
-
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils.services import Service
 
 
