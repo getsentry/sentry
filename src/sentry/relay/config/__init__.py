@@ -155,10 +155,10 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
     try:
         computed_quotas = [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
     except BaseException:
-        metrics.incr("sentry.relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
+        metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
         raise
     else:
-        metrics.incr("sentry.relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
+        metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
         return computed_quotas
 
 
