@@ -192,7 +192,7 @@ def protect_hybrid_cloud_writes_and_deletes(request):
             seen_models.add(fk_model)
             restrict_role(role="postgres_unprivileged", model=fk_model, revocation_type="DELETE")
 
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="CREATE")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
 
     with get_connection().cursor() as conn:
