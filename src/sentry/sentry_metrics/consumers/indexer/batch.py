@@ -30,6 +30,7 @@ from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageB
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,6 @@ MAX_TAG_VALUE_LENGTH = 200
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
 MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
-UseCaseId = str
 OrgId = int
 
 
@@ -76,12 +76,14 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
 
 
 # TODO: Move this to where we do use case registration
-def extract_use_case_id(mri: str) -> Optional[UseCaseId]:
+def extract_use_case_id(mri: str) -> Optional[UseCaseID]:
     """
     Returns the use case ID given the MRI, returns None if MRI is invalid.
     """
-    if (matched := MRI_RE_PATTERN.match(mri)) is not None:
-        return matched.group(2)
+    if matched := MRI_RE_PATTERN.match(mri):
+        use_case_str = matched.group(2)
+        if use_case_str in {id.value for id in UseCaseID}:
+            return UseCaseID(use_case_str)
     return None
 
 
@@ -166,8 +168,8 @@ class IndexerBatch:
         self.skipped_offsets.update(keys_to_remove)
 
     @metrics.wraps("process_messages.extract_strings")
-    def extract_strings(self) -> Mapping[UseCaseId, Mapping[OrgId, Set[str]]]:
-        strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]] = defaultdict(
+    def extract_strings(self) -> Mapping[UseCaseID, Mapping[OrgId, Set[str]]]:
+        strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]] = defaultdict(
             lambda: defaultdict(set)
         )
 
@@ -387,7 +389,7 @@ class IndexerBatch:
                     # XXX: relay actually sends this value unconditionally
                     "retention_days": old_payload_value.get("retention_days", 90),
                     "mapping_meta": output_message_meta,
-                    "use_case_id": old_payload_value["use_case_id"],
+                    "use_case_id": old_payload_value["use_case_id"].value,
                     "metric_id": numeric_metric_id,
                     "org_id": old_payload_value["org_id"],
                     "timestamp": old_payload_value["timestamp"],
@@ -406,7 +408,7 @@ class IndexerBatch:
                     "version": 2,
                     "retention_days": old_payload_value.get("retention_days", 90),
                     "mapping_meta": output_message_meta,
-                    "use_case_id": old_payload_value["use_case_id"],
+                    "use_case_id": old_payload_value["use_case_id"].value,
                     "metric_id": numeric_metric_id,
                     "org_id": old_payload_value["org_id"],
                     "timestamp": old_payload_value["timestamp"],

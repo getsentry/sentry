@@ -2,11 +2,13 @@ from typing import Dict, List, Literal, TypedDict, Union
 
 from typing_extensions import Required
 
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+
 
 class ParsedMessage(TypedDict, total=False):
     """Internal representation of a parsed ingest metric message for indexer to support generic metrics"""
 
-    use_case_id: Required[str]
+    use_case_id: Required[UseCaseID]
     org_id: Required[int]
     project_id: Required[int]
     name: Required[str]
