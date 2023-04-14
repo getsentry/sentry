@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Optional, TypedDict, cast
+from typing import Optional, cast
 
 from django.utils import timezone
 from pydantic.fields import Field
@@ -28,7 +28,7 @@ class RpcOrganizationMemberMapping(RpcModel):
     invite_status: Optional[int] = None
 
 
-class RpcOrganizationMemberMappingUpdate(TypedDict, total=False):
+class RpcOrganizationMemberMappingUpdate(RpcModel):
     """
     A set of values to be updated on an OrganizationMemberMapping.
 
