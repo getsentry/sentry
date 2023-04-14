@@ -25,7 +25,7 @@ const PANEL_INITIAL_HEIGHT = 400;
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
-  minHeight: 39,
+  defaultHeight: 38,
 });
 
 type Props = Pick<
@@ -93,6 +93,8 @@ function Breadcrumbs({
         {({measure}) => (
           <BreadcrumbRow style={style} error={breadcrumb.type === BreadcrumbType.ERROR}>
             <Breadcrumb
+              index={index}
+              cache={cache}
               isLastItem={isLastItem}
               style={style}
               onResize={measure}

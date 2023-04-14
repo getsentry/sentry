@@ -1,4 +1,5 @@
 import {memo, useCallback, useRef} from 'react';
+import {CellMeasurerCache} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
@@ -15,8 +16,10 @@ import Type from './type';
 
 type Props = {
   breadcrumb: Crumb;
+  cache: CellMeasurerCache;
   displayRelativeTime: boolean;
   event: Event;
+  index: number;
   isLastItem: boolean;
   onResize: () => void;
   organization: Organization;
@@ -28,6 +31,7 @@ type Props = {
 };
 
 export const Breadcrumb = memo(function Breadcrumb({
+  index,
   organization,
   event,
   breadcrumb,
@@ -38,12 +42,21 @@ export const Breadcrumb = memo(function Breadcrumb({
   scrollbarSize,
   meta,
   isLastItem,
+  cache,
 }: Props) {
   const sizingRef = useRef<HTMLDivElement | null>(null);
   const {type, description, color, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
 
-  const resizeObserverOnResize = useCallback(onResize, [onResize]);
+  const resizeObserverOnResize = useCallback(() => {
+    const height = sizingRef.current?.offsetHeight ?? 0;
+
+    // Values in cache are sometimes slightly off
+    // This fuzzy check prevents overly aggressive height recalcs
+    if (Math.abs(cache.getHeight(index, 0) - height) > 1) {
+      onResize();
+    }
+  }, [cache, index, onResize]);
 
   useResizeObserver({
     ref: sizingRef,
