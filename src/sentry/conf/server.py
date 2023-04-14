@@ -1337,8 +1337,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable a banner on the issue details page guiding the user to setup source maps
-    "organizations:source-maps-cta": False,
     # Enable a UI where users can see bundles and their artifacts which only have debug IDs
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
