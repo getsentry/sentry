@@ -10,8 +10,8 @@ from sentry.spans.grouping.strategy.base import (
     parametrize_db_span_strategy,
     remove_http_client_query_string_strategy,
     remove_redis_command_arguments_strategy,
-    wildcard_replacement_strategy,
 )
+from sentry.spans.grouping.strategy.wildcard_replacement_strategy import WildcardReplacementStrategy
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,7 @@ register_configuration(
     "clustering:2023-04-03",
     strategies=[
         parametrize_db_span_strategy,
-        wildcard_replacement_strategy,
+        WildcardReplacementStrategy,
         remove_http_client_query_string_strategy,
         remove_redis_command_arguments_strategy,
     ],
