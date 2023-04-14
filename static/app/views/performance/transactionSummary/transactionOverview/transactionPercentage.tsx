@@ -5,52 +5,40 @@ import clamp from 'lodash/clamp';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 interface TransactionPercentageProps {
   error: QueryError | null;
   isLoading: boolean;
-  organization: Organization;
   totals: Record<string, number> | null;
   unfilteredTotals?: Record<string, number> | null;
 }
 
 export function TransactionPercentage({
-  organization,
   isLoading,
   error,
   totals,
   unfilteredTotals,
 }: TransactionPercentageProps) {
-  const showTPMAsPercentage = organization.features.includes(
-    'performance-metrics-backed-transaction-summary'
-  );
-
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
-    if (totalValues) {
-      if (unfilteredTotalValues) {
-        // clamp handles rare cases when % > 1
-        const volumeRatio = clamp(
-          // handles 0 case to avoid diving by 0
-          unfilteredTotalValues[field] > 0
-            ? totalValues[field] / unfilteredTotalValues[field]
-            : 0,
-          0,
-          1
-        );
-        const formattedPercentage =
-          volumeRatio > 0 && volumeRatio < 0.0001
-            ? '<0.01%'
-            : formatPercentage(volumeRatio);
-        return tct('[tpm]', {
-          tpm: formattedPercentage,
-        });
-      }
-      return tct('[tpm] tpm', {
-        tpm: formatFloat(totalValues[field], 4),
+    if (totalValues && unfilteredTotalValues) {
+      // clamp handles rare cases when % > 1
+      const volumeRatio = clamp(
+        // handles 0 case to avoid diving by 0
+        unfilteredTotalValues[field] > 0
+          ? totalValues[field] / unfilteredTotalValues[field]
+          : 0,
+        0,
+        1
+      );
+      const formattedPercentage =
+        volumeRatio > 0 && volumeRatio < 0.0001
+          ? '<0.01%'
+          : formatPercentage(volumeRatio);
+      return tct('[value]', {
+        value: formattedPercentage,
       });
     }
     return null;
@@ -58,9 +46,7 @@ export function TransactionPercentage({
 
   return (
     <Fragment>
-      <SectionHeading>
-        {showTPMAsPercentage ? t('Percentage of Total Transactions') : t('TPM')}
-      </SectionHeading>
+      <SectionHeading>{t('Percentage of Total Transactions')}</SectionHeading>
       <SectionSummaryValue
         data-test-id="tpm-summary-value"
         isLoading={isLoading}
