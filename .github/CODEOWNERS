@@ -219,7 +219,7 @@ yarn.lock                                                @getsentry/owners-js-de
 ## Endof Discover/Dashboards
 
 ## Starfish
-/static/app/views/starfish/     @getsentry/team-starfish
+/static/app/views/starfish/                                          @getsentry/team-starfish
 ## Endof Starfish
 
 
