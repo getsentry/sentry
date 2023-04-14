@@ -212,6 +212,7 @@ default_manager.add("organizations:discover-query", OrganizationFeature, Feature
 default_manager.add("organizations:dynamic-sampling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:dynamic-sampling-transaction-name-priority", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:escalating-issues-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:event-attachments", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:global-views", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:incidents", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
