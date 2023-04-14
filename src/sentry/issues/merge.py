@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Sequence
+from typing import Dict, Sequence, TypedDict
 from uuid import uuid4
 
 import rest_framework
@@ -11,11 +11,21 @@ from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
 
 
+class MergedGroup(TypedDict):
+    parent: str
+    children: list[str]
+
+
 def handle_merge(
     group_list: Sequence[Group],
     project_lookup: Dict[int, Project],
     acting_user: User | None,
-) -> Dict[str, str | list[str]]:
+) -> MergedGroup:
+    """
+    Merge a list of groups into a single group.
+
+    Returns a dict with the primary group id and a list of the merged group ids.
+    """
     if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
         raise rest_framework.exceptions.ValidationError(
             detail="Only error issues can be merged.", code=400
@@ -47,7 +57,7 @@ def handle_merge(
         data={"issues": [{"id": c.id} for c in groups_to_merge]},
     )
 
-    return {
-        "parent": str(primary_group.id),
-        "children": [str(g.id) for g in groups_to_merge],
-    }
+    return MergedGroup(
+        parent=str(primary_group.id),
+        children=[str(g.id) for g in groups_to_merge],
+    )
