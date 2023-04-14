@@ -598,6 +598,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                         [resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
                     ),
                 ],
+                having=[],
                 limit=Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT),
                 offset=None,
                 granularity=Granularity(query_definition.rollup),
@@ -628,6 +629,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                         [resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
                     ),
                 ],
+                having=[],
                 limit=Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT),
                 offset=None,
                 granularity=Granularity(query_definition.rollup),
@@ -701,6 +703,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
                 Column("metric_id"), Op.IN, [resolve(use_case_id, org_id, get_mri(metric_name))]
             ),
         ],
+        having=[],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3),
         offset=None,
@@ -729,6 +732,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
                 Column("metric_id"), Op.IN, [resolve(use_case_id, org_id, get_mri(metric_name))]
             ),
         ],
+        having=[],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3 * 25),  # 25 intervals so 25 times the limit for totals
         offset=None,
@@ -819,6 +823,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
                 [resolve(use_case_id, org_id, SessionMRI.RAW_DURATION.value)],
             ),
         ],
+        having=[],
         limit=Limit(3),
         offset=None,
         granularity=Granularity(query_definition.rollup),
@@ -848,6 +853,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
                 [resolve(use_case_id, org_id, SessionMRI.RAW_DURATION.value)],
             ),
         ],
+        having=[],
         limit=Limit(3 * 25),  # 25 intervals so 25 * limit for totals
         offset=None,
         granularity=Granularity(query_definition.rollup),
