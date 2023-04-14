@@ -736,5 +736,21 @@ class Group(Model):
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
 def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
     if instance:
-        if instance.status == GroupStatus.UNRESOLVED and instance.substatus is None:
-            instance.substatus = GroupSubStatus.ONGOING
+        # We only support substatuses for UNRESOLVED and IGNORED groups
+        if instance.status not in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]:
+            instance.substatus = None
+
+        # IGNORED groups may have no substatus
+        if instance.status == GroupStatus.IGNORED and instance.substatus not in [
+            None,
+            *IGNORED_SUBSTATUS_CHOICES,
+        ]:
+            raise ValueError(f"Invalid substatus for IGNORED group: {instance.substatus}")
+
+        if instance.status == GroupStatus.UNRESOLVED:
+            if instance.substatus is None:
+                instance.substatus = GroupSubStatus.ONGOING
+
+            # UNRESOLVED groups must have a substatus
+            if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
+                raise ValueError(f"Invalid substatus for UNRESOLVED group: {instance.substatus}")
