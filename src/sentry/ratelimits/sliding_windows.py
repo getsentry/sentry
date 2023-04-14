@@ -344,11 +344,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
 
             results = iter(pipeline.execute())
 
-            ordered_keys_results = []
-            for _ in range(len(ordered_keys_to_fetch)):
-                ordered_keys_results.append(next(results))
-
-            redis_results = dict(zip(ordered_keys_to_fetch, ordered_keys_results))
+            redis_results = dict(zip(ordered_keys_to_fetch, results))
 
         results = []
 
