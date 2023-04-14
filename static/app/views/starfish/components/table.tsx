@@ -251,6 +251,10 @@ class _Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, location} = this.props;
 
+    // Hack to get equations to align and sort properly because
+    // some of the functions called below aren't set up to handle
+    // equations. Fudging code here to keep minimal footprint of
+    // code changes.
     let align: Alignments = 'left';
     if (column.column.kind === 'equation') {
       align = 'right';
