@@ -63,7 +63,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detect_large_asset(self):
+    def test_does_not_issue_if_url_is_an_asset(self):
         spans = [
             create_span(
                 "resource.script",

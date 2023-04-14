@@ -288,7 +288,7 @@ class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
 class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1015
     slug = "performance_large_http_payload"
-    description = "Large http payload"
+    description = "Large HTTP payload"
     category = GroupCategory.PERFORMANCE.value
 
 
