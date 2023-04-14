@@ -4,6 +4,8 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence, Tuple
 
+from django.db.models import Q
+
 from sentry import features
 from sentry.models import (
     ActorTuple,
@@ -16,6 +18,8 @@ from sentry.models import (
     Project,
     ProjectOwnership,
     Release,
+    Rule,
+    RuleSnooze,
     Team,
     User,
 )
@@ -384,10 +388,25 @@ def get_send_to(
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
+    rules: Iterable[Rule] | None = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     recipients = determine_eligible_recipients(
         project, target_type, target_identifier, event, fallthrough_choice
     )
+
+    if rules:
+        rule_snoozes = RuleSnooze.objects.filter(Q(rule__in=rules))
+        muted_user_ids = []
+        for rule_snooze in rule_snoozes:
+            if rule_snooze.user_id is None:
+                return {}
+            else:
+                muted_user_ids.append(rule_snooze.user_id)
+
+        if muted_user_ids:
+            recipients = filter(
+                lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
+            )
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
