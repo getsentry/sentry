@@ -146,4 +146,4 @@ yarl==1.8.2
 zstandard==0.18.0
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==56.0.0
+setuptools==65.5.1
