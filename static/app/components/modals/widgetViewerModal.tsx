@@ -177,9 +177,7 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const router = useRouter();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
-  const [widgetContentLoadingStatus, setWidgetContentLoadingStatus] = useState<
-    boolean | undefined
-  >(undefined);
+  let widgetContentLoadingStatus: boolean | undefined = undefined;
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -802,7 +800,7 @@ function WidgetViewerModal(props: Props) {
           >
             {({tableResults, loading, pageLinks}) => {
               // small hack that improves the concurrency render of the warning triangle
-              setWidgetContentLoadingStatus(loading);
+              widgetContentLoadingStatus = loading;
               return (
                 <DiscoverTable
                   tableResults={tableResults}
