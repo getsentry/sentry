@@ -914,7 +914,7 @@ CELERYBEAT_SCHEDULE = {
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
-        "schedule": crontab(minute=0, hour="*/6"),
+        "schedule": crontab(minute=0, hour="*/1"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1272,6 +1272,8 @@ SENTRY_FEATURES = {
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
     "organizations:performance-consecutive-http-detector": False,
+    # Enable consecutive http performance issue type
+    "organizations:performance-large-http-payload-detector": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
