@@ -92,6 +92,33 @@ def query_replay_clicks(
     offset: int,
     search_filters: SearchFilter,
 ):
+    """Query replay clicks.
+
+    This query is atypical in that it does not aggregate by replay_id and it is not exposed as a
+    user facing endpoint.  This query enables the replays client to fetch click information for
+    queries that were written for the replays index endpoint.  In other words, we need to translate
+    a list of conditions meant for an aggregated query into a list of conditions against a
+    non-aggregated query.  This means most of our ANDs become logical ORs and negation queries do
+    not logically filter any results.
+
+    Why do most ANDs become logical ORs?  Our query has been pre-validated to contain the result.
+    We know this replay matches the query now we just need to find the component parts that
+    created the match.  Because the filter (tag = "div" AND id = "button") works in an aggregated
+    context every row in the aggregation contributes to the result.  So in our query of a
+    pre-fetched result we know a single row could match both conditions or multiple rows could
+    match either condition independently.  Either case constitutes a successful response.  In the
+    case of selector matches those "AND" conditions will apply because they require a single row
+    matches all the conditions to produce the aggregated result set.
+
+    Why do negation queries have no impact?  Because if the aggregated result does not contain a
+    condition (e.g. tag = "button") then no row in the subset of the aggregation can logically
+    contain it.  We could remove these conditions but it is irrelevant to the output.  They are
+    logically disabled by the nature of the context they operate in.
+
+    If these conditions only apply to aggregated results why do we not aggregate here and simplify
+    our implementation?  Because aggregation precludes the ability to paginate.  There is no other
+    reason.
+    """
     conditions = generate_pregrouped_conditions(
         search_filters,
         query_config=ReplayClicksQueryConfig(),
