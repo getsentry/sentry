@@ -998,7 +998,7 @@ function WidgetViewerModal(props: Props) {
                       <DashboardsMEPConsumer>
                         {({isMetricsData}) => {
                           if (
-                            !widgetContentLoadingStatus &&
+                            widgetContentLoadingStatus === false &&
                             widget.widgetType === WidgetType.DISCOVER &&
                             isMetricsData === false
                           ) {
