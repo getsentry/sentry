@@ -1,10 +1,8 @@
-from django.conf import settings
-
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.silo.base import SiloMode
 
-PROXY_ADDRESS = "https://proxy-leeandher.ngrok.io"
+PROXY_ADDRESS = "http://localhost:1540"
 
 
 class IntegrationProxyClient(ApiClient):
@@ -19,6 +17,8 @@ class IntegrationProxyClient(ApiClient):
 
     def __init__(self) -> None:
         super().__init__()
+        # TODO(Leander): Figure out certificate validation
+        self.verify_ssl = False
         if SiloMode.get_current_mode() != SiloMode.REGION:
             self.active = False
 

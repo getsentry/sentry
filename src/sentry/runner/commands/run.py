@@ -687,6 +687,6 @@ def last_seen_updater(**options):
 
 @run.command("silo-proxy")
 def silo_proxy():
-    from sentry.silo.runner import start_proxy_server
+    from sentry.silo.proxy.runner import start_proxy_server
 
     start_proxy_server()

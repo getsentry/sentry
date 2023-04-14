@@ -5,7 +5,7 @@ from sentry_sdk.tracing import Transaction
 
 from sentry.shared_integrations.client import BaseApiResponse
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo.proxy import IntegrationProxyClient
+from sentry.silo.proxy.client import IntegrationProxyClient
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
@@ -16,6 +16,10 @@ class SlackClient(IntegrationProxyClient):  # type: ignore
     integration_name = "slack"
     base_url = "https://slack.com/api"
     metrics_prefix = "integrations.slack"
+
+    def __init__(self, organization_integration_id: int):
+        self.organization_integration_id = organization_integration_id
+        super.__init__()
 
     def track_response_data(
         self,
