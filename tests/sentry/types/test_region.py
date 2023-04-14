@@ -16,6 +16,7 @@ from sentry.types.region import (
     get_region_by_name,
     get_region_for_organization,
 )
+from sentry.utils import json
 
 
 class RegionMappingTest(TestCase):
@@ -66,3 +67,15 @@ class RegionMappingTest(TestCase):
                 invalid_region.validate()
             valid_region = Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT)
             valid_region.validate()
+
+    def test_json_config_injection(self):
+        region_config = {
+            "name": "na",
+            "id": 1,
+            "address": "http://na.testserver",
+            "category": RegionCategory.MULTI_TENANT.name,
+        }
+        region_config_as_json = json.dumps([region_config])
+        with override_settings(SENTRY_REGION_CONFIG=region_config_as_json):
+            region = get_region_by_name("na")
+        assert region.id == 1
