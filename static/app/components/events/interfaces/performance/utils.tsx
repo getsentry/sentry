@@ -5,7 +5,6 @@ import {
   EntrySpans,
   EntryType,
   EventTransaction,
-  getIssueTypeFromOccurenceType,
   IssueCategory,
   IssueType,
 } from 'sentry/types';
@@ -17,16 +16,10 @@ import {TraceContextSpanProxy} from './spanEvidence';
 export function getSpanInfoFromTransactionEvent(
   event: Pick<
     EventTransaction,
-    | 'entries'
-    | 'perfProblem'
-    | 'issueCategory'
-    | 'endTimestamp'
-    | 'contexts'
-    | 'occurrence'
+    'entries' | 'perfProblem' | 'issueCategory' | 'endTimestamp' | 'contexts'
   >
 ) {
-  const perfEvidenceData = event.perfProblem ?? event?.occurrence?.evidenceData;
-  if (!perfEvidenceData) {
+  if (!event.perfProblem) {
     if (
       event.issueCategory === IssueCategory.PERFORMANCE &&
       event.endTimestamp > 1663560000 //  (Sep 19, 2022 onward), Some events could have been missing evidence before EA
@@ -50,9 +43,11 @@ export function getSpanInfoFromTransactionEvent(
     spans.push(event.contexts.trace as TraceContextSpanProxy);
   }
   const spansById = keyBy(spans, 'span_id');
-  const parentSpanIDs = perfEvidenceData?.parentSpanIds ?? [];
-  const offendingSpanIDs = perfEvidenceData?.offenderSpanIds ?? [];
-  const causeSpanIDs = perfEvidenceData?.causeSpanIds ?? [];
+
+  const parentSpanIDs = event?.perfProblem?.parentSpanIds ?? [];
+  const offendingSpanIDs = event?.perfProblem?.offenderSpanIds ?? [];
+  const causeSpanIDs = event?.perfProblem?.causeSpanIds ?? [];
+
   return {
     parentSpan: spansById[parentSpanIDs[0]],
     offendingSpans: offendingSpanIDs.map(spanID => spansById[spanID]),
@@ -72,25 +67,21 @@ export function getProblemSpansForSpanTree(event: EventTransaction): {
   affectedSpanIds: string[];
   focusedSpanIds: string[];
 } {
-  const perfEvidenceData = event.perfProblem ?? event?.occurrence?.evidenceData;
-
-  const issueType =
-    event.perfProblem?.issueType ??
-    getIssueTypeFromOccurenceType(event?.occurrence?.type);
+  const issueType = event.perfProblem?.issueType;
   const affectedSpanIds: string[] = [];
   const focusedSpanIds: string[] = [];
 
   // By default, offender spans will always be `affected spans`
-  const offenderSpanIds = perfEvidenceData?.offenderSpanIds ?? [];
+  const offenderSpanIds = event.perfProblem?.offenderSpanIds ?? [];
   affectedSpanIds.push(...offenderSpanIds);
 
   if (issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    const parentSpanIds = perfEvidenceData?.parentSpanIds ?? [];
+    const parentSpanIds = event.perfProblem?.parentSpanIds ?? [];
     affectedSpanIds.push(...parentSpanIds);
   }
 
   if (issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES) {
-    const consecutiveSpanIds = perfEvidenceData?.causeSpanIds ?? [];
+    const consecutiveSpanIds = event.perfProblem?.causeSpanIds ?? [];
 
     if (consecutiveSpanIds.length < 11) {
       focusedSpanIds.push(...consecutiveSpanIds);
@@ -98,7 +89,7 @@ export function getProblemSpansForSpanTree(event: EventTransaction): {
   }
 
   if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES) {
-    const precedingSpans = perfEvidenceData?.causeSpanIds ?? [];
+    const precedingSpans = event.perfProblem?.causeSpanIds ?? [];
     focusedSpanIds.push(...precedingSpans);
   }
 

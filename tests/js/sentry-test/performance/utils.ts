@@ -34,14 +34,8 @@ export class TransactionEventBuilder {
     id?: string,
     title?: string,
     problemType?: IssueType,
-    transactionSettings?: TransactionSettings,
-    occurenceBasedEvent?: boolean
+    transactionSettings?: TransactionSettings
   ) {
-    const perfEvidenceData = {
-      causeSpanIds: [],
-      offenderSpanIds: [],
-      parentSpanIds: [],
-    };
     this.#event = {
       id: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       eventID: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -64,7 +58,12 @@ export class TransactionEventBuilder {
           type: EntryType.SPANS,
         },
       ],
-
+      perfProblem: {
+        causeSpanIds: [],
+        offenderSpanIds: [],
+        parentSpanIds: [],
+        issueType: problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      },
       // For the purpose of mock data, we don't care as much about the properties below.
       // They're here to satisfy the type constraints, but in the future if we need actual values here
       // for testing purposes, we can add methods on the builder to set them.
@@ -82,7 +81,6 @@ export class TransactionEventBuilder {
           unit: 'millisecond',
         },
       },
-      perfProblem: undefined,
       metadata: {
         current_level: undefined,
         current_tree_label: undefined,
@@ -105,24 +103,6 @@ export class TransactionEventBuilder {
       tags: [],
       user: null,
     };
-    if (occurenceBasedEvent) {
-      this.#event.occurrence = {
-        evidenceData: perfEvidenceData,
-        eventId: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        detectionTime: '100',
-        evidenceDisplay: [],
-        fingerprint: ['fingerprint123'],
-        id: 'id123',
-        issueTitle: 'N + 1 Query',
-        resourceId: '',
-        subtitle: 'SELECT * FROM TABLE',
-        type: 1006,
-      };
-    } else {
-      this.#event.perfProblem = perfEvidenceData;
-      this.#event.perfProblem.issueType =
-        problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES;
-    }
   }
 
   generateSpanId() {
@@ -150,19 +130,16 @@ export class TransactionEventBuilder {
         ? mockSpan.problemSpan
         : [mockSpan.problemSpan];
 
-      const perfEvidenceData =
-        this.#event.perfProblem ?? this.#event.occurrence?.evidenceData;
-
       problemSpans.forEach(problemSpan => {
         switch (problemSpan) {
           case ProblemSpan.PARENT:
-            perfEvidenceData?.parentSpanIds.push(spanId);
+            this.#event.perfProblem?.parentSpanIds.push(spanId);
             break;
           case ProblemSpan.OFFENDER:
-            perfEvidenceData?.offenderSpanIds.push(spanId);
+            this.#event.perfProblem?.offenderSpanIds.push(spanId);
             break;
           case ProblemSpan.CAUSE:
-            perfEvidenceData?.causeSpanIds.push(spanId);
+            this.#event.perfProblem?.causeSpanIds.push(spanId);
             break;
           default:
             break;

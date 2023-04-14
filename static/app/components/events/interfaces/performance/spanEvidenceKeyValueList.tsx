@@ -16,7 +16,6 @@ import {
   EntryType,
   Event,
   EventTransaction,
-  getIssueTypeFromOccurenceType,
   IssueType,
   KeyValueListData,
   KeyValueListDataItem,
@@ -59,11 +58,9 @@ export function SpanEvidenceKeyValueList({
 }) {
   const {slug: orgSlug} = useOrganization();
   const spanInfo = getSpanInfoFromTransactionEvent(event);
+  const performanceProblem = event?.perfProblem;
 
-  const issueType =
-    event.perfProblem?.issueType ?? getIssueTypeFromOccurenceType(event.occurrence?.type);
-
-  if (!issueType || !spanInfo) {
+  if (!performanceProblem?.issueType || !spanInfo) {
     return (
       <DefaultSpanEvidence
         event={event}
@@ -85,7 +82,7 @@ export function SpanEvidenceKeyValueList({
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
-    }[issueType] ?? DefaultSpanEvidence;
+    }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
   return (
     <ClippedBox clipHeight={300}>
