@@ -160,6 +160,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == "You"
+        assert not response.data["snoozeForEveryone"]
 
     def test_with_snooze_rule_everyone(self):
         user2 = self.create_user("user2@example.com")
@@ -176,6 +177,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
+        assert response.data["snoozeForEveryone"]
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
