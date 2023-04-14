@@ -843,11 +843,17 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
-        debug_id = str(uuid4())
+        debug_id1 = str(uuid4())
         self.upload_jvm_bundle(
-            debug_id,
+            debug_id1,
             {
                 "io/sentry/samples/instrumentation/ui/EditActivity.jvm": EDIT_ACTIVITY_SOURCE,
+            },
+        )
+        debug_id2 = str(uuid4())
+        self.upload_jvm_bundle(
+            debug_id2,
+            {
                 "io/sentry/samples/instrumentation/ui/SomeService.jvm": SOME_SERVICE_SOURCE,
             },
         )
@@ -859,7 +865,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "platform": "java",
             "debug_meta": {
                 "images": [
-                    {"type": "jvm", "debug_id": debug_id},
+                    {"type": "jvm", "debug_id": debug_id1},
+                    {"type": "jvm", "debug_id": debug_id2},
                     {
                         "type": "jvm",
                         "debug_id": str(uuid4()),
