@@ -117,6 +117,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     __include_in_export__ = True
 
     slug = models.SlugField(null=True)
+    # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey("sentry.Organization")
