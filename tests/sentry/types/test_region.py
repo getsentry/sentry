@@ -94,7 +94,17 @@ class RegionMappingTest(TestCase):
                 "idempotency_key": "test",
             },
         )
-        with override_settings(SILO_MODE=SiloMode.CONTROL):
+        region_config = [
+            {
+                "name": "na",
+                "id": 1,
+                "address": "http://na.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            }
+        ]
+        with override_settings(
+            SILO_MODE=SiloMode.CONTROL, SENTRY_REGION_CONFIG=json.dumps(region_config)
+        ):
             user = self.create_user()
             organization_service.add_organization_member(
                 organization_id=self.organization.id,
