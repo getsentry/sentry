@@ -28,6 +28,7 @@ export type BaseEventAnalyticsParams = {
   num_stack_frames: number;
   num_threads_with_names: number;
   error_has_replay?: boolean;
+  error_has_user_feedback?: boolean;
   event_errors?: string;
   event_platform?: string;
   event_type?: string;
@@ -108,6 +109,10 @@ export type TeamInsightsEventParameters = {
   'project_detail.performance_tour.close': BaseTour;
   'project_detail.releases_tour.advance': ReleasesTour;
   'project_detail.releases_tour.close': ReleasesTour;
+  'release_detail.pagination': {direction: string};
+  'releases_list.click_add_release_health': {
+    project_id: number;
+  };
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -160,4 +165,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
   'project_detail.releases_tour.advance': 'Project Detail: Releases Tour Advance',
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
+  'release_detail.pagination': 'Release Detail: Pagination',
+  'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
 };

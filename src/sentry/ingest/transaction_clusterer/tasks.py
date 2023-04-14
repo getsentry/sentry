@@ -2,7 +2,6 @@ from itertools import islice
 from typing import Any, Sequence
 
 import sentry_sdk
-from django.conf import settings
 
 from sentry import features
 from sentry.models import Project
@@ -34,8 +33,6 @@ PROJECTS_PER_TASK = 100
 )  # type: ignore
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
-    if not settings.SENTRY_TRANSACTION_CLUSTERER_RUN:
-        return
     with sentry_sdk.start_span(op="txcluster_spawn"):
         project_count = 0
         project_iter = redis.get_active_projects()

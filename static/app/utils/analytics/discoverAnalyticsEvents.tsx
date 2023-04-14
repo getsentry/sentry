@@ -25,6 +25,11 @@ export type SaveQueryEventParameters = {
 };
 
 export type DiscoverEventParameters = SaveQueryEventParameters & {
+  'discover_search.failed': {
+    error: string;
+    search_source: string;
+    search_type: string;
+  };
   'discover_v2.add_equation': {};
   'discover_v2.build_new_query': {};
   'discover_v2.change_sort': {sort: string};
@@ -117,4 +122,5 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.results.cellaction': 'Discoverv2: Cell Action Clicked',
   'discover_v2.results.drilldown': 'Discoverv2: Click aggregate drilldown',
   'discover_v2.update_columns': 'Discoverv2: Update columns',
+  'discover_search.failed': 'Discover Search: Failed',
 };
