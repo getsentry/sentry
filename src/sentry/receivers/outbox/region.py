@@ -29,6 +29,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
 )
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
+    rpc_update_organizationmember_mapping_from_instance,
 )
 
 
@@ -79,8 +80,16 @@ def process_organization_member_updates(
         )
         return
 
-    # TODO: replace with organizationmember_mapping_service.update_with_organization_member(org_member=org_member)
-    org_member
+    rpc_org_member_update = rpc_update_organizationmember_mapping_from_instance(
+        organization_member=org_member
+    )
+
+    organizationmember_mapping_service.update_with_organization_member(
+        organization_id=shard_identifier,
+        user_id=rpc_org_member_update.user_id,
+        email=rpc_org_member_update.email,
+        rpc_update_org_member=rpc_org_member_update,
+    )
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)
