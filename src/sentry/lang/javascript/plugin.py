@@ -45,8 +45,6 @@ class JavascriptPlugin(Plugin2):
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if data.pop("processed_by_symbolicator", False):
-            # TODO: maybe we want to still return the `JavaScriptStacktraceProcessor` for A/B testing,
-            # so that both processors are running after one another?
             return []
 
         if "javascript" in platforms or "node" in platforms:
