@@ -44,7 +44,7 @@ class RpcOrganizationMemberMappingUpdate(RpcModel):
     invite_status: Optional[int]
 
 
-def update_organizationmember_mapping_from_instance(
+def rpc_update_organizationmember_mapping_from_instance(
     organization_member: OrganizationMember,
 ) -> RpcOrganizationMemberMappingUpdate:
     attributes = {
@@ -85,6 +85,17 @@ class OrganizationMemberMappingService(RpcService):
     @abstractmethod
     def create_with_organization_member(
         self, *, org_member: OrganizationMember
+    ) -> RpcOrganizationMemberMapping:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def update_with_organization_member(
+        self,
+        *,
+        organizationmember_id: int,
+        organization_id: int,
+        rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
         pass
 
