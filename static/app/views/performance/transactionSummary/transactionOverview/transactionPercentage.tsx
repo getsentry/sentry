@@ -48,7 +48,7 @@ export function TransactionPercentage({
     <Fragment>
       <SectionHeading>{t('Percentage of Total Transactions')}</SectionHeading>
       <SectionSummaryValue
-        data-test-id="tpm-summary-value"
+        data-test-id="count-percentage-summary-value"
         isLoading={isLoading}
         error={error}
         value={getValueFromTotals('count()', totals, unfilteredTotals)}
