@@ -90,7 +90,7 @@ class ConfigOptionsTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         assert "Fetched Key: github-login.api-domain" in rv.output
         assert "Updated key: github-login.api-domain" in rv.output
-        assert "Deleted key: relay.transaction-metrics-org-sample-rate" in rv.output
+        assert "Deleted key: symbolserver.options" in rv.output
 
         rv = self.invoke("get", "github-login.api-domain")
         assert rv.exit_code == 0, rv.output
