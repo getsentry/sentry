@@ -23,7 +23,11 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {
+  ColumnType,
+  fieldAlignment,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
@@ -39,11 +43,19 @@ import {
 const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 
 import {getProjectID} from 'sentry/views/performance/utils';
+import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 
 import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
 } from '../utils/createUnnamedTransactionsDiscoverTarget';
+
+// HACK: Overrides ColumnType for TIME_SPENT_IN_SERVICE which is
+// returned as a number because it's an equation, but we
+// want formatted as a percentage
+const TABLE_META_OVERRIDES: Record<string, ColumnType> = {
+  [TIME_SPENT_IN_SERVICE]: 'percentage',
+};
 
 type Props = {
   eventView: EventView;
@@ -140,7 +152,7 @@ class _Table extends Component<Props, State> {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
-    const tableMeta = tableData.meta;
+    const tableMeta = {...tableData.meta, ...TABLE_META_OVERRIDES};
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);

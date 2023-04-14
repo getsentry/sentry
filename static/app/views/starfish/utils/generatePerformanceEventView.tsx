@@ -14,7 +14,7 @@ const DEFAULT_STATS_PERIOD = '7d';
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 export const TIME_SPENT_IN_SERVICE =
-  'equation|sum(transaction.duration) / total.transaction_duration * 100';
+  'equation|sum(transaction.duration) / total.transaction_duration';
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
   if (organization?.features?.includes('performance-landing-page-stats-period')) {
