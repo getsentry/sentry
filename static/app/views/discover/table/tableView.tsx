@@ -17,7 +17,6 @@ import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -390,7 +389,11 @@ function TableView(props: TableViewProps) {
 
     const fieldName = columnKey;
     const value = dataRow[fieldName];
-    if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (
+      tableData.meta[fieldName] === 'integer' &&
+      typeof value === 'number' &&
+      value > 999
+    ) {
       return (
         <Tooltip
           title={value.toLocaleString()}

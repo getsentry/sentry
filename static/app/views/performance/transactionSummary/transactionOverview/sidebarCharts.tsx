@@ -152,8 +152,9 @@ function SidebarCharts({
                   epmSeries.markPoint = MarkPoint({
                     data: results.data.anomalies.map(a => ({
                       name: a.id,
-                      yAxis: epmSeries.data.find(({name}) => name > (a.end + a.start) / 2)
-                        ?.value,
+                      yAxis: epmSeries.data.find(
+                        ({name}) => (name as number) > (a.end + a.start) / 2
+                      )?.value,
                       // TODO: the above is O(n*m), remove after we change the api to include the midpoint of y.
                       xAxis: a.start,
                       itemStyle: {
