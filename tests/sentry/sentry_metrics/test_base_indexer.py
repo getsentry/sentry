@@ -86,21 +86,23 @@ class UseCaseCollectionTest(TestCase):
             (MockUseCaseID.USE_CASE_3, 5, "k"),
         ]
         collection_strings = [
-            "use_case_1:1:a",
-            "use_case_1:1:b",
-            "use_case_1:1:c",
-            "use_case_1:2:e",
-            "use_case_1:2:f",
-            "use_case_2:1:a",
-            "use_case_2:1:b",
-            "use_case_2:1:c",
-            "use_case_2:4:g",
-            "use_case_2:4:f",
-            "use_case_3:5:k",
+            "uc_1:1:a",
+            "uc_1:1:b",
+            "uc_1:1:c",
+            "uc_1:2:e",
+            "uc_1:2:f",
+            "uc_2:1:a",
+            "uc_2:1:b",
+            "uc_2:1:c",
+            "uc_2:4:g",
+            "uc_2:4:f",
+            "uc_3:5:k",
         ]
 
         assert collection.size == 11
-        assert sorted(list(collection.as_tuples())) == sorted(collection_tuples)
+        assert sorted(list(collection.as_tuples()), key=lambda x: x[0].value) == sorted(
+            collection_tuples, key=lambda x: x[0].value
+        )
         assert sorted(list(collection.as_strings())) == sorted(collection_strings)
 
 
