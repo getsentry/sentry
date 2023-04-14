@@ -301,7 +301,7 @@ function DropdownItem({
   } else if (item.type === ItemType.INVALID_TAG) {
     children = customInvalidTagMessage?.(item) ?? (
       <SearchInvalidTag
-        message={tct("The field [field] isn't supported here. ", {
+        message={tct("The field [field] isn't supported here.", {
           field: <code>{item.desc}</code>,
         })}
       />
