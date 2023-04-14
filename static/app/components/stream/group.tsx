@@ -225,7 +225,7 @@ function BaseGroupRow({
         name: group.title || group.type,
         fields: ['title', 'release', 'environment', 'user', 'timestamp'],
         orderby: '-timestamp',
-        query: `issue.id:${group.id}${filteredQuery}`,
+        query: `issue:${group.shortId}${filteredQuery}`,
         version: 2,
       };
 

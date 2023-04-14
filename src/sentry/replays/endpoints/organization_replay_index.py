@@ -62,6 +62,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 offset=offset,
                 search_filters=search_filters,
                 organization=organization,
+                actor=request.user,
             )
 
         return self.paginate(

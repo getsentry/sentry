@@ -22,7 +22,6 @@ from sentry.dynamic_sampling.rules.utils import (
 )
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers import Feature
 from sentry.utils import json
 
 DEFAULT_FACTOR_RULE = lambda factor: {
@@ -786,14 +785,13 @@ def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
         f"{default_project.id}",
         default_factor,
     )
-    with Feature({"organizations:ds-apply-actual-sample-rate-to-biases": True}):
-        assert generate_rules(default_project) == [
-            DEFAULT_FACTOR_RULE(default_factor),
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1000,
-                "samplingValue": {"type": "sampleRate", "value": 0.1},
-                "type": "trace",
-            },
-        ]
+    assert generate_rules(default_project) == [
+        DEFAULT_FACTOR_RULE(default_factor),
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.1},
+            "type": "trace",
+        },
+    ]
     _validate_rules(default_project)
