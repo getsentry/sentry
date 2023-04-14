@@ -128,7 +128,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixi
             "description": "This is a test external issue description",
         }
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         return [{"name": "repo", "identifier": "user/repo"}]
 
     def get_unmigratable_repositories(self):
