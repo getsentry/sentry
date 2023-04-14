@@ -156,70 +156,72 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
           />
         )}
       </PanelBody>
-      <PanelFooter>
-        <Feedback>
-          <strong>{t('Was this helpful?')}</strong>
-          <ButtonBar gap={1}>
-            <Button
-              icon={<IconSad color="red300" size="xs" />}
-              size="xs"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'ai_suggested_solution.feedback_helpful_nope_button_clicked',
-                  {
-                    organization,
-                    project_id: event.projectID,
-                    group_id: event.groupID,
-                    ...getAnalyticsDataForEvent(event),
-                  }
-                );
+      {!dataIsLoading && !dataIsError && (
+        <PanelFooter>
+          <Feedback>
+            <strong>{t('Was this helpful?')}</strong>
+            <ButtonBar gap={1}>
+              <Button
+                icon={<IconSad color="red300" size="xs" />}
+                size="xs"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'ai_suggested_solution.feedback_helpful_nope_button_clicked',
+                    {
+                      organization,
+                      project_id: event.projectID,
+                      group_id: event.groupID,
+                      ...getAnalyticsDataForEvent(event),
+                    }
+                  );
 
-                handleFeedbackClick();
-              }}
-            >
-              {t('Nope')}
-            </Button>
-            <Button
-              icon={<IconMeh color="yellow300" size="xs" />}
-              size="xs"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'ai_suggested_solution.feedback_helpful_kinda_button_clicked',
-                  {
-                    organization,
-                    project_id: event.projectID,
-                    group_id: event.groupID,
-                    ...getAnalyticsDataForEvent(event),
-                  }
-                );
+                  handleFeedbackClick();
+                }}
+              >
+                {t('Nope')}
+              </Button>
+              <Button
+                icon={<IconMeh color="yellow300" size="xs" />}
+                size="xs"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'ai_suggested_solution.feedback_helpful_kinda_button_clicked',
+                    {
+                      organization,
+                      project_id: event.projectID,
+                      group_id: event.groupID,
+                      ...getAnalyticsDataForEvent(event),
+                    }
+                  );
 
-                handleFeedbackClick();
-              }}
-            >
-              {t('Kinda')}
-            </Button>
-            <Button
-              icon={<IconHappy color="green300" size="xs" />}
-              size="xs"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'ai_suggested_solution.feedback_helpful_yes_button_clicked',
-                  {
-                    organization,
-                    project_id: event.projectID,
-                    group_id: event.groupID,
-                    ...getAnalyticsDataForEvent(event),
-                  }
-                );
+                  handleFeedbackClick();
+                }}
+              >
+                {t('Kinda')}
+              </Button>
+              <Button
+                icon={<IconHappy color="green300" size="xs" />}
+                size="xs"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'ai_suggested_solution.feedback_helpful_yes_button_clicked',
+                    {
+                      organization,
+                      project_id: event.projectID,
+                      group_id: event.groupID,
+                      ...getAnalyticsDataForEvent(event),
+                    }
+                  );
 
-                handleFeedbackClick();
-              }}
-            >
-              {t('Yes, Surprisingly\u2026')}
-            </Button>
-          </ButtonBar>
-        </Feedback>
-      </PanelFooter>
+                  handleFeedbackClick();
+                }}
+              >
+                {t('Yes, Surprisingly\u2026')}
+              </Button>
+            </ButtonBar>
+          </Feedback>
+        </PanelFooter>
+      )}
     </Panel>
   );
 }
