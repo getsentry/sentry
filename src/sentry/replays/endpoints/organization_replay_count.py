@@ -14,6 +14,7 @@ from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBas
 from sentry.api.event_search import parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
+from sentry.models.project import Project
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, SnubaParams
@@ -69,7 +70,10 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if request.GET.get("returnIds"):
-            return self.respond(get_replay_ids(replay_results, replay_ids_mapping))
+            include_projects = bool(request.GET.get("includeProjects"))
+            return self.respond(
+                get_replay_ids(replay_results, replay_ids_mapping, include_projects)
+            )
         else:
             return self.respond(get_counts(replay_results, replay_ids_mapping))
 
@@ -84,14 +88,24 @@ def get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) ->
 
 
 def get_replay_ids(
-    replay_results: Any, replay_ids_mapping: dict[str, list[str]]
-) -> dict[str, list[str]]:
-    ret: dict[str, list[str]] = defaultdict(list)
+    replay_results: Any, replay_ids_mapping: dict[str, list[str]], include_projects: bool = False
+) -> dict[str, list[str | tuple[str, str]]]:
+    ret: dict[str, list[str | tuple[str, str]]] = defaultdict(list)
+
+    if include_projects:
+        project_id_to_slug_map = _get_project_id_to_slug_map(replay_results["data"])
+    else:
+        project_id_to_slug_map = {}  # so pyright doesnt think this is unbounded
+
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[row["replay_id"]]
         for identifier in identifiers:
             if len(ret[identifier]) < MAX_REPLAY_COUNT:
-                ret[identifier].append(row["replay_id"])
+                if include_projects:
+                    slug = project_id_to_slug_map[row["project_id"]]
+                    ret[identifier].append((row["replay_id"], slug))
+                else:
+                    ret[identifier].append(row["replay_id"])
     return ret
 
 
@@ -149,3 +163,12 @@ def get_select_column(query: str) -> tuple[str, list[Any]]:
         raise ValueError("Too many values provided")
 
     return condition.key.name, condition.value.raw_value
+
+
+def _get_project_id_to_slug_map(replay_snuba_results: list[dict[str, Any]]) -> dict[int, str]:
+    project_ids = list({row["project_id"] for row in replay_snuba_results})
+    slug_query_results = Project.objects.filter(id__in=project_ids).values_list(
+        "id",
+        "slug",
+    )
+    return {p[0]: p[1] for p in slug_query_results}
