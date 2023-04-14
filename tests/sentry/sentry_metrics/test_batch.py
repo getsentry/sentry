@@ -59,7 +59,7 @@ set_payload = {
 }
 
 extracted_string_output = {
-    "release-health": {
+    "sessions": {
         1: {
             "c:sessions/session@none",
             "d:sessions/duration@second",
@@ -176,7 +176,7 @@ def _get_string_indexer_log_records(caplog):
         pytest.param(
             True,
             {
-                "release-health": {
+                "sessions": {
                     1: {
                         "c:sessions/session@none",
                         "d:sessions/duration@second",
@@ -195,7 +195,7 @@ def _get_string_indexer_log_records(caplog):
         pytest.param(
             False,
             {
-                "release-health": {
+                "sessions": {
                     1: {
                         "c:sessions/session@none",
                         "d:sessions/duration@second",
@@ -232,59 +232,8 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
 
 
 def test_extract_strings_with_multiple_use_case_ids():
-    perf_distribution_payload = {
-        "name": TransactionMRI.MEASUREMENTS_FCP.value,
-        "tags": {
-            "environment": "production",
-            "session.status": "healthy",
-        },
-        "timestamp": ts,
-        "type": "d",
-        "value": [4, 5, 6],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-    outer_message = _construct_outer_message(
-        [
-            (counter_payload, []),
-            (perf_distribution_payload, []),
-            (set_payload, []),
-        ]
-    )
-    batch = IndexerBatch(
-        outer_message,
-        True,
-        False,
-        arroyo_input_codec=_INGEST_SCHEMA,
-    )
-    assert batch.extract_strings() == {
-        "release-health": {
-            1: {
-                "c:sessions/session@none",
-                "environment",
-                "errored",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
-            }
-        },
-        "performance": {
-            1: {
-                "d:transactions/measurements.fcp@millisecond",
-                "environment",
-                "production",
-                "session.status",
-                "healthy",
-            }
-        },
-    }
-
-
-def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
-    rh_counter_payload = {
-        "name": SessionMRI.SESSION.value,
+    counter_payload = {
+        "name": "c:use_case_1/session@none",
         "tags": {
             "environment": "production",
             "session.status": "init",
@@ -296,8 +245,23 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         "retention_days": 90,
         "project_id": 3,
     }
-    rh_set_payload = {
-        "name": SessionMRI.ERROR.value,
+
+    distribution_payload = {
+        "name": "d:use_case_2/duration@second",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    set_payload = {
+        "name": "s:use_case_2/error@none",
         "tags": {
             "environment": "production",
             "session.status": "errored",
@@ -305,7 +269,62 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         "timestamp": ts,
         "type": "s",
         "value": [3],
-        "org_id": 2,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
+    assert batch.extract_strings() == {
+        "use_case_1": {
+            1: {
+                "c:use_case_1/session@none",
+                "environment",
+                "production",
+                "session.status",
+                "init",
+            }
+        },
+        "use_case_2": {
+            1: {
+                "d:use_case_2/duration@second",
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
+                "s:use_case_2/error@none",
+                "environment",
+                "production",
+                "session.status",
+                "errored",
+            }
+        },
+    }
+
+
+def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
+    custom_uc_counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
         "retention_days": 90,
         "project_id": 3,
     }
@@ -322,8 +341,8 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         "retention_days": 90,
         "project_id": 3,
     }
-    rh_set_payload = {
-        "name": SessionMRI.ERROR.value,
+    custom_uc_set_payload = {
+        "name": "s:use_case_1/error@none",
         "tags": {
             "environment": "production",
             "session.status": "errored",
@@ -338,9 +357,9 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
 
     outer_message = _construct_outer_message(
         [
-            (rh_counter_payload, []),
+            (custom_uc_counter_payload, []),
             (perf_distribution_payload, []),
-            (rh_set_payload, []),
+            (custom_uc_set_payload, []),
         ]
     )
     batch = IndexerBatch(
@@ -350,23 +369,23 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         arroyo_input_codec=_INGEST_SCHEMA,
     )
     assert batch.extract_strings() == {
-        "release-health": {
+        "use_case_1": {
             1: {
-                SessionMRI.SESSION.value,
+                "c:use_case_1/session@none",
                 "environment",
                 "production",
                 "session.status",
                 "init",
             },
             2: {
-                SessionMRI.ERROR.value,
+                "s:use_case_1/error@none",
                 "environment",
                 "production",
                 "session.status",
                 "errored",
             },
         },
-        "performance": {
+        "transactions": {
             1: {
                 TransactionMRI.MEASUREMENTS_FCP.value,
                 "environment",
@@ -396,7 +415,7 @@ def test_all_resolved(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "release-health": {
+            "sessions": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -462,7 +481,7 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": 1.0,
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
@@ -485,7 +504,7 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -508,7 +527,7 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
@@ -534,7 +553,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "release-health": {
+            "sessions": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -601,7 +620,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": 1.0,
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
@@ -625,7 +644,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -649,7 +668,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
@@ -683,7 +702,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "release-health": {
+            "sessions": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -749,7 +768,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": 1.0,
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
@@ -772,7 +791,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -795,7 +814,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
@@ -830,7 +849,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "release-health": {
+            "sessions": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -883,7 +902,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "init"},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": 1.0,
             },
             [("mapping_sources", b"c"), ("metric_type", "c")],
@@ -905,7 +924,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "healthy"},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"c"), ("metric_type", "d")],
@@ -927,7 +946,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "errored"},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [3],
             },
             [("mapping_sources", b"c"), ("metric_type", "s")],
@@ -948,7 +967,7 @@ def test_metric_id_rate_limited(caplog, settings):
     batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            "release-health": {
+            "sessions": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -1014,7 +1033,7 @@ def test_metric_id_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
@@ -1046,7 +1065,7 @@ def test_tag_key_rate_limited(caplog, settings):
     batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            "release-health": {
+            "sessions": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -1126,7 +1145,7 @@ def test_tag_value_rate_limited(caplog, settings):
     batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            "release-health": {
+            "sessions": {
                 1: {
                     "c:sessions/session@none",
                     "d:sessions/duration@second",
@@ -1201,7 +1220,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": 1.0,
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
@@ -1224,7 +1243,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -1249,7 +1268,7 @@ def test_one_org_limited(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            "release-health": {
+            "sessions": {
                 1: {
                     "c:sessions/session@none",
                     "environment",
@@ -1334,7 +1353,7 @@ def test_one_org_limited(caplog, settings):
                 "tags": {"2": 4, "5": 3},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
@@ -1376,7 +1395,7 @@ def test_cardinality_limiter(caplog, settings):
     ]
     batch.filter_messages(keys_to_remove)
     assert batch.extract_strings() == {
-        "release-health": {
+        "sessions": {
             1: {
                 "environment",
                 "errored",
@@ -1429,7 +1448,7 @@ def test_cardinality_limiter(caplog, settings):
                 "tags": {"1": 3, "5": 2},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "release-health",
+                "use_case_id": "sessions",
                 "value": [3],
             },
             [

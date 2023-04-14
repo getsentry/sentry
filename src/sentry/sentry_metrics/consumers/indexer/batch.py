@@ -75,16 +75,13 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
+# TODO: Move this to where we do use case registration
 def extract_use_case_id(mri: str) -> Optional[UseCaseId]:
     """
     Returns the use case ID given the MRI, returns None if MRI is invalid.
     """
-    use_case_mapping = {"transactions": "performance", "sessions": "release-health"}
     if (matched := MRI_RE_PATTERN.match(mri)) is not None:
-        use_case_str = matched.group(2)
-        if use_case_str in use_case_mapping:
-            return use_case_mapping[use_case_str]
-        return use_case_str
+        return matched.group(2)
     return None
 
 
