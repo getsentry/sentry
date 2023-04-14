@@ -1,24 +1,13 @@
 import datetime
-from unittest import mock
 from uuid import uuid4
 
-import pytest
 from django.urls import reverse
 
-from sentry.replays import tasks
 from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import kafka_config
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
-
-
-@pytest.fixture(autouse=True)
-def setup():
-    with mock.patch.object(kafka_config, "get_kafka_producer_cluster_options"):
-        with mock.patch.object(tasks, "KafkaPublisher"):
-            yield
 
 
 @region_silo_test
@@ -36,6 +25,12 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     def test_feature_flag_disabled(self):
         response = self.client.get(self.url)
         assert response.status_code == 404
+
+    def test_invalid_uuid_404s(self):
+        with self.feature(REPLAYS_FEATURES):
+            url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug, "abc"))
+            response = self.client.get(url)
+            assert response.status_code == 404
 
     def test_get_replay_multiple_selectors(self):
         """Test only one replay returned."""
@@ -135,6 +130,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 "click.testid:1",
                 "click.textContent:Hello",
                 "click.title:MyTitle",
+                "click.selector:div",
                 "click.selector:div#id1",
                 "click.selector:div[alt=Alt]",
                 "click.selector:div[title=MyTitle]",
@@ -215,8 +211,26 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         )
 
         with self.feature(REPLAYS_FEATURES):
-            # Assert a node was returned.
+            # Explicit AND becomes logical OR
             response = self.client.get(self.url + "?query=click.tag:div AND click.tag:button")
+            assert response.status_code == 200
+
+            response_data = response.json()["data"]
+            assert len(response_data) == 2
+            assert response_data[0]["node_id"] == 1
+            assert response_data[1]["node_id"] == 2
+
+            # ParenExpression implicit AND becomes logical OR
+            response = self.client.get(self.url + "?query=(click.tag:div click.tag:button)")
+            assert response.status_code == 200
+
+            response_data = response.json()["data"]
+            assert len(response_data) == 2
+            assert response_data[0]["node_id"] == 1
+            assert response_data[1]["node_id"] == 2
+
+            # ParenExpression explicit AND becomes logical OR
+            response = self.client.get(self.url + "?query=(click.tag:div AND click.tag:button)")
             assert response.status_code == 200
 
             response_data = response.json()["data"]
