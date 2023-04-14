@@ -100,9 +100,9 @@ class UseCaseCollectionTest(TestCase):
         ]
 
         assert collection.size == 11
-        assert sorted(list(collection.as_tuples()), key=lambda x: x[0].value) == sorted(
-            collection_tuples, key=lambda x: x[0].value
-        )
+        assert sorted(
+            list(collection.as_tuples()), key=lambda x: (x[0].value, x[1], x[2])
+        ) == sorted(collection_tuples, key=lambda x: (x[0].value, x[1], x[2]))
         assert sorted(list(collection.as_strings())) == sorted(collection_strings)
 
 
