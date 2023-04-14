@@ -154,9 +154,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         )
 
         platform = frame.get("platform") or self.data.get("platform")
-        self._handles_frame = (
-            platform == "java" and self.available and "module" in frame and "lineno" in frame
-        )
+        self._handles_frame = platform == "java" and self.available and "module" in frame
         return self._proguard_processor_handles_frame or self._handles_frame
 
     def preprocess_step(self, processing_task):
