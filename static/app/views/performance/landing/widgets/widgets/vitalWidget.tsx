@@ -255,22 +255,13 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           _eventView.query = initialConditions.formatString();
 
           const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
-          const transactionTarget = organization.features.includes(
-            'performance-metrics-backed-transaction-summary'
-          )
-            ? transactionSummaryRouteWithQuery({
-                orgSlug: props.organization.slug,
-                projectID: listItem['project.id'],
-                transaction: listItem.transaction,
-                query: _eventView.generateQueryStringObject(),
-                display: DisplayModes.VITALS,
-              })
-            : vitalDetailRouteWithQuery({
-                orgSlug: organization.slug,
-                query: _eventView.generateQueryStringObject(),
-                vitalName: vital,
-                projectID: decodeList(location.query.project),
-              });
+          const transactionTarget = transactionSummaryRouteWithQuery({
+            orgSlug: props.organization.slug,
+            projectID: listItem['project.id'],
+            transaction: listItem.transaction,
+            query: _eventView.generateQueryStringObject(),
+            display: DisplayModes.VITALS,
+          });
 
           const target = isUnparameterizedRow
             ? createUnnamedTransactionsDiscoverTarget({

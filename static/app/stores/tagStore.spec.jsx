@@ -69,6 +69,21 @@ describe('TagStore', function () {
       expect(tags.is.key).toBe('is');
       expect(tags.assigned).toBeTruthy();
     });
+
+    it('should replace ignore with archive', () => {
+      TagStore.loadTagsSuccess([
+        {
+          key: 'is',
+          name: 'Custom Assigned To',
+        },
+      ]);
+
+      const tags = TagStore.getIssueAttributes(
+        TestStubs.Organization({features: ['escalating-issues']})
+      );
+      expect(tags.is.values).toContain('archived');
+      expect(tags.is.values).not.toContain('ignored');
+    });
   });
 
   describe('getIssueTags()', function () {

@@ -7,7 +7,7 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.db.models import (
     DefaultFieldsModel,
     FlexibleForeignKey,
@@ -95,7 +95,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
         3. convert the ownership syntax to the schema
         """
         from sentry.api.validators.project_codeowners import validate_codeowners_associations
-        from sentry.utils.codeowners import HIGHER_MAX_RAW_LENGTH, MAX_RAW_LENGTH
+        from sentry.utils.codeowners import MAX_RAW_LENGTH
 
         if raw and self.raw != raw:
             self.raw = raw
@@ -103,16 +103,12 @@ class ProjectCodeOwners(DefaultFieldsModel):
         if not self.raw:
             return
 
-        has_higher_max_length = features.has(
-            "organizations:scaleable-codeowners-search", organization
-        )
-        max_length = HIGHER_MAX_RAW_LENGTH if has_higher_max_length else MAX_RAW_LENGTH
-        if len(self.raw) > max_length:
+        if len(self.raw) > MAX_RAW_LENGTH:
             analytics.record(
                 "codeowners.max_length_exceeded",
                 organization_id=organization.id,
             )
-            logger.warning({"raw": f"Raw needs to be <= {max_length} characters in length"})
+            logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return
 
         associations, _ = validate_codeowners_associations(self.raw, self.project)

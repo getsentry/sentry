@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
@@ -18,6 +18,15 @@ from sentry.models.organization import Organization
 logger = logging.getLogger(__name__)
 
 
+class NotificationActionsPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin"],
+    }
+
+
 @region_silo_endpoint
 class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     """
@@ -25,6 +34,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     GET: Returns paginated, serialized NotificationActions for an organization
     POST: Create a new NotificationAction
     """
+
+    permission_classes = (NotificationActionsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
