@@ -723,9 +723,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
                     project_id=self.project.id,
                 )
             )
-        events[0].group.update(status=GroupStatus.PENDING_DELETION)
-        events[2].group.update(status=GroupStatus.DELETION_IN_PROGRESS)
-        events[3].group.update(status=GroupStatus.PENDING_MERGE)
+        events[0].group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+        events[2].group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
+        events[3].group.update(status=GroupStatus.PENDING_MERGE, substatus=None)
 
         self.login_as(user=self.user)
 
@@ -821,7 +821,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assigned_groups = groups[:2]
         for ag in assigned_groups:
-            ag.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
+            ag.update(
+                status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5), substatus=None
+            )
             GroupAssignee.objects.assign(ag, self.user)
 
         # This side_effect is meant to override the `calculate_hits` snuba query specifically.
@@ -1730,7 +1732,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        event.group.update(status=GroupStatus.RESOLVED)
+        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="!is:unresolved", expand="inbox", collapse="stats"

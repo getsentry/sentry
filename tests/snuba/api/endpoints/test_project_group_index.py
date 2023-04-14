@@ -349,7 +349,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        event.group.update(status=GroupStatus.RESOLVED)
+        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
         self.login_as(user=self.user)
         response = self.client.get(f"{self.path}?query=!is:unresolved", format="json")
         assert response.status_code == 200
