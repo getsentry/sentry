@@ -1,4 +1,4 @@
-import {CSSProperties, MouseEvent, useCallback, useMemo} from 'react';
+import {CSSProperties, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import beautify from 'js-beautify';
@@ -13,18 +13,15 @@ import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml'
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
+import {OnDimensionChange} from '../useVirtualizedInspector';
+
 type Props = {
   currentHoverTime: number | undefined;
   currentTime: number;
   expandPaths: string[];
   index: number;
   mutation: Extraction;
-  onDimensionChange: (
-    index: number,
-    path: string,
-    expandedState: Record<string, boolean>,
-    event: MouseEvent<HTMLDivElement>
-  ) => void;
+  onDimensionChange: OnDimensionChange;
   startTimestampMs: number;
   style: CSSProperties;
 };
@@ -63,7 +60,7 @@ function DomMutationRow({
   );
   const hasOccurred = currentTime >= crumbTime;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
-  const handleDimensionChange = useCallback(
+  const handleExpand = useCallback(
     (path, expandedState, e) =>
       onDimensionChange && onDimensionChange(index, path, expandedState, e),
     [index, onDimensionChange]
@@ -100,7 +97,7 @@ function DomMutationRow({
           <ObjectInspector
             data={html}
             expandPaths={expandPaths}
-            onExpand={handleDimensionChange}
+            onExpand={handleExpand}
           />
         </CodeContainer>
       </List>
