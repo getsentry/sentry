@@ -77,7 +77,7 @@ type Props = {
   relatedErrors: TraceError[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
@@ -340,7 +340,7 @@ function SpanDetail(props: Props) {
   function renderProfileMessage() {
     const {organization, span, event} = props;
 
-    if (!organization.features.includes('profiling-span-previews') || isGapSpan(span)) {
+    if (!organization.features.includes('profiling') || isGapSpan(span)) {
       return null;
     }
 
@@ -353,7 +353,7 @@ function SpanDetail(props: Props) {
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
-          {organization.features.includes('profiling-previews') ? (
+          {organization.features.includes('profiling') ? (
             <GapSpanDetails
               event={event}
               span={span}

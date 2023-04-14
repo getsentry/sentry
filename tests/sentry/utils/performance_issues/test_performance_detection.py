@@ -88,6 +88,7 @@ class PerformanceDetectionTest(TestCase):
         super().setUp()
         patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
         self.project_option_mock = patch_project_option_get.start()
+        self.project_option_mock.return_value = {}
         self.addCleanup(patch_project_option_get.stop)
 
         patch_project = patch("sentry.models.Project.objects.get_from_cache")

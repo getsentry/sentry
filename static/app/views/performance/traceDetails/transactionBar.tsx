@@ -294,7 +294,7 @@ class TransactionBar extends Component<Props, State> {
       this.props;
     const left = this.getCurrentOffset();
     const errored = isTraceFullDetailed(transaction)
-      ? transaction.errors.length > 0
+      ? transaction.errors.length + transaction.performance_issues.length > 0
       : false;
 
     const content = isTraceFullDetailed(transaction) ? (

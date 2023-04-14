@@ -1,4 +1,4 @@
-import {CSSProperties, memo, MouseEvent, useCallback} from 'react';
+import {CSSProperties, isValidElement, memo, MouseEvent, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -104,7 +104,7 @@ function BreadcrumbItem({
           ) : null}
         </TitleContainer>
 
-        {typeof description === 'string' ? (
+        {typeof description === 'string' || isValidElement(description) ? (
           <Description title={description} showOnlyOnOverflow>
             {description}
           </Description>

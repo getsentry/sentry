@@ -14,7 +14,10 @@ import {EventTransaction} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceError,
+  TracePerformanceIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Filter from './filter';
@@ -34,27 +37,36 @@ function TraceErrorAlerts({
   isLoading,
   errors,
   parsedTrace,
+  performanceIssues,
 }: {
   errors: TraceError[] | undefined;
   isLoading: boolean;
   parsedTrace: ParsedTraceType;
+  performanceIssues: TracePerformanceIssue[] | undefined;
 }) {
   if (isLoading) {
     return null;
   }
 
-  if (!errors || errors.length <= 0) {
+  const traceErrors: (TraceError | TracePerformanceIssue)[] = [];
+  if (errors && errors.length > 0) {
+    traceErrors.push(...errors);
+  }
+  if (performanceIssues && performanceIssues.length > 0) {
+    traceErrors.push(...performanceIssues);
+  }
+  if (traceErrors.length === 0) {
     return null;
   }
 
   // This is intentional as unbalanced string formatters in `tn()` are problematic
   const label =
-    errors.length === 1
-      ? t('There is an error event associated with this transaction event.')
+    traceErrors.length === 1
+      ? t('There is an issue associated with this transaction event.')
       : tn(
-          `There are %s error events associated with this transaction event.`,
-          `There are %s error events associated with this transaction event.`,
-          errors.length
+          `There are %s issues associated with this transaction event.`,
+          `There are %s issues associated with this transaction event.`,
+          traceErrors.length
         );
 
   return (
@@ -62,7 +74,7 @@ function TraceErrorAlerts({
       <Alert type={getCumulativeAlertLevelFromErrors(errors)}>
         <ErrorLabel>{label}</ErrorLabel>
 
-        <TraceErrorList trace={parsedTrace} errors={errors} onClickSpan={() => {}} />
+        <TraceErrorList trace={parsedTrace} errors={traceErrors} onClickSpan={() => {}} />
       </Alert>
     </AlertContainer>
   );
@@ -92,6 +104,7 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
             <TraceErrorAlerts
               isLoading={quickTrace?.isLoading ?? false}
               errors={quickTrace?.currentEvent?.errors}
+              performanceIssues={quickTrace?.currentEvent?.performance_issues}
               parsedTrace={parsedTrace}
             />
             <Observer>
@@ -118,6 +131,7 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
                 {() => {
                   return (
                     <TraceView
+                      performanceIssues={quickTrace?.currentEvent?.performance_issues}
                       waterfallModel={waterfallModel}
                       organization={organization}
                     />

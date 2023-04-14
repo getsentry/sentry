@@ -184,6 +184,12 @@ STATUS_UPDATE_CHOICES = {
     "muted": GroupStatus.IGNORED,
 }
 
+SUBSTATUS_UPDATE_CHOICES = {
+    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
+    "escalating": GroupSubStatus.ESCALATING,
+    "ongoing": GroupSubStatus.ONGOING,
+}
+
 
 class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
@@ -714,5 +720,3 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
     if instance:
         if instance.status == GroupStatus.UNRESOLVED and instance.substatus is None:
             instance.substatus = GroupSubStatus.ONGOING
-        if instance.status == GroupStatus.IGNORED and instance.substatus is None:
-            instance.substatus = GroupSubStatus.UNTIL_ESCALATING

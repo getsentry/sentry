@@ -140,7 +140,7 @@ class ConfigValidator(serializers.Serializer):
             if not croniter.is_valid(schedule):
                 raise ValidationError({"schedule": "Schedule was not parseable"})
             # Do not support 6 or 7 field crontabs
-            if schedule.count(" ") > 4:
+            if len(schedule.split()) > 5:
                 raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
 
         attrs["schedule"] = schedule

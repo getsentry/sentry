@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 8
     strategy:
       matrix:
-        pg-version: ['9.6']
+        pg-version: ['14']
 
     needs: did-migration-change
     if: needs.did-migration-change.outputs.added == 'true'

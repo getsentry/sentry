@@ -182,7 +182,10 @@ type Props = WithRouterProps &
      */
     actionBarItems?: ActionBarItem[];
     className?: string;
-
+    /**
+     * A function that provides the current search item and can return a custom invalid tag error message for the drop-down.
+     */
+    customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
     /**
      * Custom Performance Metrics for query string unit parsing
      */
@@ -267,6 +270,7 @@ type Props = WithRouterProps &
      * Indicates the usage of the search bar for analytics
      */
     searchSource?: string;
+
     /**
      * Type of supported tags
      */
@@ -1905,6 +1909,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             maxMenuHeight={maxMenuHeight}
             customPerformanceMetrics={customPerformanceMetrics}
             supportedTags={supportedTags}
+            customInvalidTagMessage={this.props.customInvalidTagMessage}
           />
         )}
       </Container>

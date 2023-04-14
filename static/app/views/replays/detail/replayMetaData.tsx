@@ -79,6 +79,7 @@ const KeyMetrics = styled('dl')`
   grid-auto-flow: column;
   gap: 0 ${space(3)};
   align-items: center;
+  align-self: end;
   color: ${p => p.theme.gray300};
   margin: 0;
 

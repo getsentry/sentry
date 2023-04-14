@@ -9,8 +9,8 @@ import React, {
 import {useMutation} from '@tanstack/react-query';
 
 import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
 import {OnboardingState} from 'sentry/views/onboarding/types';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import OrganizationStore from './organizationStore';
 import {useLegacyStore} from './useLegacyStore';
@@ -89,10 +89,10 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
   category: C
 ): UsePersistedCategory<PersistedStore[C]> {
   const api = useApi({persistInFlight: true});
-  const organization = useOrganization();
+  const organization = useContext(OrganizationContext);
   const [state, setState] = usePersistedStore();
 
-  const endpointLocation = `/organizations/${organization.slug}/client-state/${category}/`;
+  const endpointLocation = `/organizations/${organization?.slug}/client-state/${category}/`;
   const {mutate: clearState} = useMutation({
     mutationFn: () =>
       api.requestPromise(endpointLocation, {
@@ -111,6 +111,10 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
 
   const setCategoryState = useCallback(
     (val: PersistedStore[C] | null) => {
+      if (!organization) {
+        return;
+      }
+
       setState(oldState => ({...oldState, [category]: val}));
 
       // If a state is set with null, we can clear it from the server.
@@ -122,7 +126,7 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
       // Else we want to sync our state with the server
       syncState(val);
     },
-    [setState, syncState, category, clearState]
+    [setState, syncState, category, clearState, organization]
   );
 
   const result = state[category];

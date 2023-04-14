@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
+import ArchiveActions from 'sentry/components/actions/archive';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -227,13 +228,27 @@ function ActionSet({
         />
       )}
 
-      <IgnoreActions
-        onUpdate={onUpdate}
-        shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={() => confirm({action: ConfirmAction.IGNORE, canBeUndone: true})}
-        confirmLabel={label('ignore')}
-        disabled={ignoreDisabled}
-      />
+      {organization.features.includes('escalating-issues') ? (
+        <ArchiveActions
+          onUpdate={onUpdate}
+          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          confirmMessage={() =>
+            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+          }
+          confirmLabel={label('archive')}
+          disabled={ignoreDisabled}
+        />
+      ) : (
+        <IgnoreActions
+          onUpdate={onUpdate}
+          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          confirmMessage={() =>
+            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+          }
+          confirmLabel={label('ignore')}
+          disabled={ignoreDisabled}
+        />
+      )}
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}

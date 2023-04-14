@@ -54,6 +54,24 @@ declare const __LOADER__IS_LAZY__: any;
   };
   queue.data = [];
 
+  function onError() {
+    // Use keys as "data type" to save some characters"
+    queue({
+      e: [].slice.call(arguments),
+    });
+  }
+
+  function onUnhandledRejection(e) {
+    queue({
+      p:
+        'reason' in e
+          ? e.reason
+          : 'detail' in e && 'reason' in e.detail
+          ? e.detail.reason
+          : e,
+    });
+  }
+
   function injectSdk(callbacks) {
     if (injected) {
       return;
@@ -74,16 +92,8 @@ declare const __LOADER__IS_LAZY__: any;
     // Once our SDK is loaded
     _newScriptTag.addEventListener('load', function () {
       try {
-        // Restore onerror/onunhandledrejection handlers - only if not mutated in the meanwhile
-        if (_window[_onerror] && _window[_onerror].__SENTRY_LOADER__) {
-          _window[_onerror] = _oldOnerror;
-        }
-        if (
-          _window[_onunhandledrejection] &&
-          _window[_onunhandledrejection].__SENTRY_LOADER__
-        ) {
-          _window[_onunhandledrejection] = _oldOnunhandledrejection;
-        }
+        _window.removeEventListener('error', onError);
+        _window.removeEventListener('unhandledrejection', onUnhandledRejection);
 
         // Add loader as SDK source
         _window.SENTRY_SDK_SOURCE = 'loader';
@@ -91,20 +101,6 @@ declare const __LOADER__IS_LAZY__: any;
         const SDK = _window[_namespace];
 
         const oldInit = SDK.init;
-
-        // Add necessary integrations based on config
-        const integrations: unknown[] = [];
-        if (_config.tracesSampleRate) {
-          integrations.push(new SDK.BrowserTracing());
-        }
-
-        if (_config.replaysSessionSampleRate || _config.replaysOnErrorSampleRate) {
-          integrations.push(new SDK.Replay());
-        }
-
-        if (integrations.length) {
-          _config.integrations = integrations;
-        }
 
         // Configure it using provided DSN and config object
         SDK.init = function (options) {
@@ -114,6 +110,8 @@ declare const __LOADER__IS_LAZY__: any;
               target[key] = options[key];
             }
           }
+
+          setupDefaultIntegrations(target, SDK);
           oldInit(target);
         };
 
@@ -124,6 +122,32 @@ declare const __LOADER__IS_LAZY__: any;
     });
 
     _currentScriptTag.parentNode!.insertBefore(_newScriptTag, _currentScriptTag);
+  }
+
+  // We want to ensure to only add default integrations if they haven't been added by the user.
+  function setupDefaultIntegrations(config: any, SDK: any) {
+    const integrations: {name: string}[] = config.integrations || [];
+
+    // integrations can be a function, in which case we will not add any defaults
+    if (!Array.isArray(integrations)) {
+      return;
+    }
+
+    const integrationNames = integrations.map(integration => integration.name);
+
+    // Add necessary integrations based on config
+    if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
+      integrations.push(new SDK.BrowserTracing());
+    }
+
+    if (
+      (config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
+      integrationNames.indexOf('Replay') === -1
+    ) {
+      integrations.push(new SDK.Replay());
+    }
+
+    config.integrations = integrations;
   }
 
   function sdkIsLoaded() {
@@ -225,37 +249,8 @@ declare const __LOADER__IS_LAZY__: any;
     };
   });
 
-  // Store reference to the old `onerror` handler and override it with our own function
-  // that will just push exceptions to the queue and call through old handler if we found one
-  const _oldOnerror = _window[_onerror];
-  _window[_onerror] = function () {
-    // Use keys as "data type" to save some characters"
-    queue({
-      e: [].slice.call(arguments),
-    });
-
-    if (_oldOnerror) {
-      _oldOnerror.apply(_window, arguments);
-    }
-  };
-  _window[_onerror].__SENTRY_LOADER__ = true;
-
-  // Do the same store/queue/call operations for `onunhandledrejection` event
-  const _oldOnunhandledrejection = _window[_onunhandledrejection];
-  _window[_onunhandledrejection] = function (e) {
-    queue({
-      p:
-        'reason' in e
-          ? e.reason
-          : 'detail' in e && 'reason' in e.detail
-          ? e.detail.reason
-          : e,
-    });
-    if (_oldOnunhandledrejection) {
-      _oldOnunhandledrejection.apply(_window, arguments);
-    }
-  };
-  _window[_onunhandledrejection].__SENTRY_LOADER__ = true;
+  _window.addEventListener('error', onError);
+  _window.addEventListener('unhandledrejection', onUnhandledRejection);
 
   if (!lazy) {
     setTimeout(function () {
