@@ -22,6 +22,7 @@ import {formatBytesBase10} from 'sentry/utils';
 import * as CursorGuideHandler from './cursorGuideHandler';
 
 export const MIN_DATA_POINTS = 3;
+export const MS_PER_S = 1000;
 const NS_PER_MS = 1000000;
 const CPU_USAGE = 'cpu_usage';
 const MEMORY = 'memory_footprint';
@@ -50,11 +51,11 @@ export function getDataPoints(
   return data.values
     .map(value => {
       return {
-        name: toMilliseconds(value.elapsed_since_start_ns).toFixed(2),
+        name: parseFloat(toMilliseconds(value.elapsed_since_start_ns).toFixed(2)),
         value: value.value,
       };
     })
-    .filter(({name}) => parseFloat(name) <= maxDurationInMs + 1);
+    .filter(({name}) => name <= maxDurationInMs + 1); // Add 1ms to account for rounding
 }
 
 type ChartProps = {
@@ -77,9 +78,9 @@ function Chart({data, type, transactionDuration}: ChartProps) {
         [
           // Zerofill the start and end so the chart is aligned properly with the
           // transaction timeline
-          {name: '0', value: 0},
+          {name: 0, value: 0},
           ...getDataPoints(data, transactionDuration),
-          {name: transactionDuration.toFixed(2), value: 0},
+          {name: parseFloat(transactionDuration.toFixed(2)), value: 0},
         ],
         'name'
       ),
@@ -120,7 +121,7 @@ function Chart({data, type, transactionDuration}: ChartProps) {
       }}
       colors={[theme.red300] as string[]}
       tooltip={{
-        nameFormatter: (value: string) => `${value}ms`,
+        formatAxisLabel: (value: number) => `${value}ms`,
         valueFormatter: (value, _seriesName) => {
           if (type === CPU_USAGE) {
             return `${value.toFixed(2)}%`;
@@ -176,7 +177,7 @@ function ProfilingMeasurements({
   }
 
   const data = profileData.measurements[measurementType]!;
-  const transactionDurationInMs = transactionDuration * 1000;
+  const transactionDurationInMs = transactionDuration * MS_PER_S;
 
   return (
     <CursorGuideHandler.Consumer>

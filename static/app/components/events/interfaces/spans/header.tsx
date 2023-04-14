@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {
   getDataPoints,
   MIN_DATA_POINTS,
+  MS_PER_S,
   ProfilingMeasurements,
 } from 'sentry/components/events/interfaces/spans/profilingMeasurements';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
@@ -474,7 +475,7 @@ class TraceViewHeader extends Component<PropType, State> {
             // Check that this profile has enough data points
             getDataPoints(
               profiles.data.measurements!.cpu_usage,
-              transactionDuration * 1000
+              transactionDuration * MS_PER_S
             ).length > MIN_DATA_POINTS;
 
           return (
