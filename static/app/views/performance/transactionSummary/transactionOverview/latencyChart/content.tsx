@@ -9,7 +9,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/formatters';
 import Histogram from 'sentry/utils/performance/histogram';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
@@ -57,9 +57,6 @@ function Content({
   totalCount,
 }: Props) {
   const [zoomError, setZoomError] = useState(false);
-  const displayCountAsPercentage = organization.features.includes(
-    'performance-metrics-backed-transaction-summary'
-  );
 
   function handleMouseOver() {
     // Hide the zoom error tooltip on the next hover.
@@ -70,7 +67,7 @@ function Content({
 
   function parseHistogramData(data: HistogramData): HistogramData {
     // display each bin's count as a % of total count
-    if (displayCountAsPercentage && totalCount) {
+    if (totalCount) {
       return data.map(({bin, count}) => ({bin, count: count / totalCount}));
     }
     return data;
@@ -100,10 +97,8 @@ function Content({
         if (!zoomError) {
           // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
           contents = seriesData.map(item => {
-            const label = displayCountAsPercentage ? t('Transactions') : item.seriesName;
-            const value = displayCountAsPercentage
-              ? formatPercentage(item.value[1])
-              : item.value[1].toLocaleString();
+            const label = t('Transactions');
+            const value = formatPercentage(item.value[1]);
 
             return [
               '<div class="tooltip-series">',
@@ -149,10 +144,7 @@ function Content({
             yAxis={{
               type: 'value',
               axisLabel: {
-                formatter: value =>
-                  displayCountAsPercentage
-                    ? formatPercentage(value, 0)
-                    : formatAbbreviatedNumber(value),
+                formatter: value => formatPercentage(value, 0),
               },
             }}
             series={[series]}

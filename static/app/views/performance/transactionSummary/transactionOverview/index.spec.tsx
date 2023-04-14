@@ -578,8 +578,12 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
 
       // Renders TPM widget
-      expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
-      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
+      expect(
+        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
+        '100%'
+      );
     });
 
     it('fetches transaction threshold', function () {
@@ -993,8 +997,12 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
 
       // Renders TPM widget
-      expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
-      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
+      expect(
+        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
+        '100%'
+      );
     });
 
     it('fetches transaction threshold', function () {
