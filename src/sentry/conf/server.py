@@ -920,6 +920,33 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
+# We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
+TIMEDELTA_ALLOW_LIST = {
+    "check-auth",
+    "enqueue-scheduled-jobs",
+    "send-beacon",
+    "send-ping",
+    "flush-buffers",
+    "sync-options",
+    "schedule-digests",
+    "check-monitors",
+    "clear-expired-snoozes",
+    "clear-expired-rulesnoozes",
+    "clear-expired-raw-events",
+    "deliver-from-outbox",
+    "update-user-reports",
+    "schedule-auto-resolution",
+    "auto-remove-inbox",
+    "schedule-deletions",
+    "schedule-hybrid-cloud-foreign-key-jobs",
+    "fetch-release-registry-data",
+    "fetch-appstore-builds",
+    "snuba-subscription-checker",
+    "hybrid-cloud-repair-mappings",
+    "dynamic-sampling-prioritize-projects",
+    "dynamic-sampling-prioritize-transactions",
+}
+
 BGTASKS = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
     "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
