@@ -397,7 +397,7 @@ class _Table extends Component<Props, State> {
             orgSlug={organization.slug}
             location={location}
             setError={error => setError(error?.message)}
-            referrer="api.starfish.landing-table"
+            referrer="api.performance.landing-table"
             transactionName={transaction}
             transactionThreshold={transactionThreshold}
             queryExtras={{dataset: 'discover'}}
