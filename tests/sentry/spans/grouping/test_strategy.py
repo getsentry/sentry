@@ -3,6 +3,7 @@ from typing import List, Mapping, Optional
 import pytest
 
 from sentry.spans.grouping.strategy.base import (
+    BaseSpanStrategy,
     Span,
     SpanGroupingStrategy,
     loose_normalized_db_span_in_condition_strategy,
@@ -570,4 +571,40 @@ def test_default_2022_10_27_strategy(spans: List[Span], expected: Mapping[str, L
     assert configuration.execute_strategy(event).results == {
         key: hash_values(values)
         for key, values in {**expected, "a" * 16: ["transaction name"]}.items()
+    }
+
+
+def test_supports_class_strategies():
+    def dummy_function_strategy(span):
+        if span.get("op") != "function":
+            return None
+
+        return ["function dummy"]
+
+    class DummyClassStrategy(BaseSpanStrategy):
+        def __call__(self, span):
+            if span.get("op") != "class":
+                return None
+
+            return ["class dummy"]
+
+    strategy = SpanGroupingStrategy("dummy", [dummy_function_strategy, DummyClassStrategy])
+
+    event_data = {
+        "transaction": "transaction name",
+        "contexts": {
+            "trace": {
+                "span_id": "a" * 16,
+            },
+        },
+        "spans": [
+            SpanBuilder().with_span_id("b" * 16).with_op("class").build(),
+            SpanBuilder().with_span_id("c" * 16).with_op("function").build(),
+        ],
+    }
+
+    assert strategy.execute(event_data) == {
+        "bbbbbbbbbbbbbbbb": "28a33587cab88bd1",
+        "cccccccccccccccc": "8c0df3a025a1489c",
+        "aaaaaaaaaaaaaaaa": "2c3ddca9ed68beca",
     }

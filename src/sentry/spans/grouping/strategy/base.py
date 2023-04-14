@@ -26,7 +26,7 @@ class Span(TypedDict):
 # should return `None` to indicate that the strategy should not be used
 # and to try a different strategy. If the strategy does apply, it should
 # return a list of strings that will serve as the span fingerprint.
-CallableStrategy = Callable[[Span], Optional[Sequence[str]]]
+CallableStrategy = Union[Callable[[Span], Optional[Sequence[str]]], type]
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ class SpanGroupingStrategy:
 
     def execute(self, event_data: Any) -> Dict[str, str]:
         spans = event_data.get("spans", [])
-        span_groups = {span["span_id"]: self.get_span_group(span) for span in spans}
+        span_groups = {span["span_id"]: self.get_span_group(span, event_data) for span in spans}
 
         # make sure to get the group id for the transaction root span
         span_id = event_data["contexts"]["trace"]["span_id"]
@@ -50,7 +50,7 @@ class SpanGroupingStrategy:
         result.update(event_data["transaction"])
         return result.hexdigest()
 
-    def get_span_group(self, span: Span) -> str:
+    def get_span_group(self, span: Span, event_data: Any) -> str:
         fingerprints = span.get("fingerprint") or ["{{ default }}"]
 
         result = Hash()
@@ -60,19 +60,22 @@ class SpanGroupingStrategy:
 
             var = parse_fingerprint_var(fingerprint)
             if var == "default":
-                values = self.handle_default_fingerprint(span)
+                values = self.handle_default_fingerprint(span, event_data)
 
             result.update(values)
 
         return result.hexdigest()
 
-    def handle_default_fingerprint(self, span: Span) -> Sequence[str]:
+    def handle_default_fingerprint(self, span: Span, event_data: Any) -> Sequence[str]:
         span_group = None
 
         # Try using all of the strategies in order to generate
         # the appropriate span group. The first strategy that
         # successfully generates a span group will be chosen.
         for strategy in self.strategies:
+            if isinstance(strategy, type):
+                strategy = strategy(event_data)
+
             span_group = strategy(span)
             if span_group is not None:
                 break
@@ -272,3 +275,17 @@ def remove_redis_command_arguments_strategy(span: Span) -> Optional[Sequence[str
 
     # the redis command name is the first word in the description
     return [parts[0]]
+
+
+class BaseSpanStrategy:
+    """
+    A callable span strategy class. Works like the simple function strategies
+    above, and has the same calling signature. Includes an `__init__` method
+    that can accept event data.
+    """
+
+    def __init__(self, event_data=None):
+        self.event_data = event_data
+
+    def __call__(self):
+        raise NotImplementedError
