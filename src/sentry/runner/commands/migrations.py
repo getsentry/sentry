@@ -22,7 +22,7 @@ def run(ctx, app_name, migration_name):
 
     executor = MigrationExecutor(connections["default"])
     migration = executor.loader.get_migration_by_prefix(app_name, migration_name)
-    apps = executor.loader.project_state(migration.migration_name).apps
+    apps = executor.loader.project_state(nodes=[(app_name, migration.name)]).apps
 
     for op in migration.operations:
         if not isinstance(op, RunPython):
