@@ -14,6 +14,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
@@ -62,8 +63,7 @@ class ExternalIssue(Model):
     # The foreign key here is an `int`, not `bigint`.
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
 
-    # The foreign key here is an `int`, not `bigint`.
-    integration = FlexibleForeignKey("sentry.Integration", db_constraint=False)
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
 
     key = models.CharField(max_length=256)  # example APP-123 in jira
     date_added = models.DateTimeField(default=timezone.now)
@@ -76,7 +76,7 @@ class ExternalIssue(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externalissue"
-        unique_together = (("organization", "integration", "key"),)
+        unique_together = (("organization", "integration_id", "key"),)
 
     __repr__ = sane_repr("organization_id", "integration_id", "key")
 

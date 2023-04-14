@@ -6,5 +6,5 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 nodestore: 0002_nodestore_no_dictfield
-sentry: 0421_rule_set_null_owner_deleted
+sentry: 0422_break_fks_on_external_actor_and_issue
 social_auth: 0001_initial

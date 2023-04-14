@@ -9,6 +9,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 
@@ -21,7 +22,7 @@ class ExternalActor(DefaultFieldsModel):
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")
-    integration = FlexibleForeignKey("sentry.Integration")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),
