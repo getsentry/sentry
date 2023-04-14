@@ -353,7 +353,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         self.post_and_retrieve_event(data)
 
         mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
-        # mock_from_bytes.assert_called_once()
+        mock_from_bytes.assert_called_once()
 
     @requires_symbolicator
     @pytest.mark.symbolicator
