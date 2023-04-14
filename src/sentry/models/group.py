@@ -366,13 +366,19 @@ class GroupManager(BaseManager):
         ).select_related("project")
 
     def update_group_status(
-        self, groups: Sequence[Group], status: GroupStatus, activity_type: ActivityType
+        self,
+        groups: Sequence[Group],
+        status: GroupStatus,
+        substatus: GroupSubStatus | None,
+        activity_type: ActivityType,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
         updated_count = (
-            self.filter(id__in=[g.id for g in groups]).exclude(status=status).update(status=status)
+            self.filter(id__in=[g.id for g in groups])
+            .exclude(status=status)
+            .update(status=status, substatus=substatus)
         )
         if updated_count:
             for group in groups:
@@ -737,8 +743,13 @@ class Group(Model):
 def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
     if instance:
         # We only support substatuses for UNRESOLVED and IGNORED groups
-        if instance.status not in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]:
-            instance.substatus = None
+        if (
+            instance.status not in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]
+            and instance.substatus is not None
+        ):
+            raise ValueError(
+                f"No substatus allowed for group with status={instance.status}: substatus={instance.substatus}"
+            )
 
         # IGNORED groups may have no substatus
         if instance.status == GroupStatus.IGNORED and instance.substatus not in [

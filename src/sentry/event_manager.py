@@ -112,6 +112,7 @@ from sentry.models import (
     UserReport,
     get_crashreport_key,
 )
+from sentry.models.group import GroupSubStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
@@ -1778,6 +1779,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # at the value
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
         )
     )
     issue_unresolved.send_robust(
@@ -1790,6 +1792,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
+    group.substatus = GroupSubStatus.REGRESSED
 
     if is_regression and release:
         resolution = None

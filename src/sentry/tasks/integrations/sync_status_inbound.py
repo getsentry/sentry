@@ -2,6 +2,7 @@ from typing import Any, Mapping
 
 from sentry import analytics
 from sentry.models import Group, GroupStatus, Integration, Organization
+from sentry.models.group import GroupSubStatus
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
 
@@ -37,7 +38,7 @@ def sync_status_inbound(
 
     if action == ResolveSyncAction.RESOLVE:
         Group.objects.update_group_status(
-            affected_groups, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED
+            affected_groups, GroupStatus.RESOLVED, None, ActivityType.SET_RESOLVED
         )
 
         for group in affected_groups:
@@ -53,5 +54,8 @@ def sync_status_inbound(
             )
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(
-            affected_groups, GroupStatus.UNRESOLVED, ActivityType.SET_UNRESOLVED
+            affected_groups,
+            GroupStatus.UNRESOLVED,
+            GroupSubStatus.ONGOING,
+            ActivityType.SET_UNRESOLVED,
         )

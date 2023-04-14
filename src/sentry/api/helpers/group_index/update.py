@@ -489,7 +489,7 @@ def update_groups(
                     )
 
                 affected = Group.objects.filter(id=group.id).update(
-                    status=GroupStatus.RESOLVED, resolved_at=now
+                    status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
                 )
                 if not resolution:
                     created = affected
@@ -856,7 +856,9 @@ def update_groups(
             primary_group.project_id, group_ids_to_merge, primary_group.id
         )
 
-        Group.objects.filter(id__in=group_ids_to_merge).update(status=GroupStatus.PENDING_MERGE)
+        Group.objects.filter(id__in=group_ids_to_merge).update(
+            status=GroupStatus.PENDING_MERGE, substatus=None
+        )
 
         transaction_id = uuid4().hex
         merge_groups.delay(
