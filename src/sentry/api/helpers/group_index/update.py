@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Sequence
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -655,29 +655,10 @@ def update_groups(
     elif result.get("isBookmarked") is False:
         GroupBookmark.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
 
-    # TODO(dcramer): we could make these more efficient by first
-    # querying for rich rows are present (if N > 2), flipping the flag
-    # on those rows, and then creating the missing rows
     if result.get("isSubscribed") in (True, False):
-        is_subscribed = result["isSubscribed"]
-        for group in group_list:
-            # NOTE: Subscribing without an initiating event (assignment,
-            # commenting, etc.) clears out the previous subscription reason
-            # to avoid showing confusing messaging as a result of this
-            # action. It'd be jarring to go directly from "you are not
-            # subscribed" to "you were subscribed due since you were
-            # assigned" just by clicking the "subscribe" button (and you
-            # may no longer be assigned to the issue anyway.)
-            GroupSubscription.objects.create_or_update(
-                user_id=acting_user.id,
-                group=group,
-                project=project_lookup[group.project_id],
-                values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
-            )
-
-        result["subscriptionDetails"] = {
-            "reason": SUBSCRIPTION_REASON_MAP.get(GroupSubscriptionReason.unknown, "unknown")
-        }
+        result["subscriptionDetails"] = handle_is_subscribed(
+            result["isSubscribed"], group_list, project_lookup, acting_user
+        )
 
     if "isPublic" in result:
         # We always want to delete an existing share, because triggering
@@ -738,3 +719,30 @@ def update_groups(
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def handle_is_subscribed(
+    is_subscribed: Any,
+    group_list: Sequence[Group],
+    project_lookup: Dict[int, Any],
+    acting_user: User | None,
+) -> Dict[str, str]:
+    # TODO(dcramer): we could make these more efficient by first
+    # querying for rich rows are present (if N > 2), flipping the flag
+    # on those rows, and then creating the missing rows
+    for group in group_list:
+        # NOTE: Subscribing without an initiating event (assignment,
+        # commenting, etc.) clears out the previous subscription reason
+        # to avoid showing confusing messaging as a result of this
+        # action. It'd be jarring to go directly from "you are not
+        # subscribed" to "you were subscribed due since you were
+        # assigned" just by clicking the "subscribe" button (and you
+        # may no longer be assigned to the issue anyway.)
+        GroupSubscription.objects.create_or_update(
+            user_id=acting_user.id if acting_user else None,
+            group=group,
+            project=project_lookup[group.project_id],
+            values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
+        )
+
+    return {"reason": SUBSCRIPTION_REASON_MAP.get(GroupSubscriptionReason.unknown, "unknown")}

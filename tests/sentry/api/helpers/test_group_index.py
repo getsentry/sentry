@@ -8,11 +8,13 @@ from sentry.api.helpers.group_index import (
     update_groups,
     validate_search_filter_permissions,
 )
+from sentry.api.helpers.group_index.update import handle_is_subscribed
 from sentry.api.issue_search import parse_search_query
 from sentry.models import (
     GroupInbox,
     GroupInboxReason,
     GroupStatus,
+    GroupSubscription,
     GroupSubStatus,
     add_group_to_inbox,
 )
@@ -200,3 +202,15 @@ class UpdateGroupsTest(TestCase):
         assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
+
+
+class TestHandleIsSubscribed(TestCase):
+    def test_is_subscribed(self):
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+        resp = handle_is_subscribed(True, self.group_list, self.project_lookup, self.user)
+
+        assert GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert resp["reason"] == "unknown"
