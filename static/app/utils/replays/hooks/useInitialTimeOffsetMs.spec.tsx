@@ -170,7 +170,7 @@ describe('useInitialTimeOffsetMs', () => {
       MockFetchReplayClicks.mockResolvedValue({
         fetchError: undefined,
         pageLinks: '',
-        clicks: [{node_id: 7, timestamp: new Date(FIVE_PAST_NOON).getTime() / 1000}],
+        clicks: [{node_id: 7, timestamp: FIVE_PAST_NOON}],
       });
 
       const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
@@ -192,7 +192,7 @@ describe('useInitialTimeOffsetMs', () => {
       MockFetchReplayClicks.mockResolvedValue({
         fetchError: undefined,
         pageLinks: '',
-        clicks: [{node_id: 7, timestamp: new Date(FIVE_PAST_NOON).getTime() / 1000}],
+        clicks: [{node_id: 7, timestamp: FIVE_PAST_NOON}],
       });
 
       const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(

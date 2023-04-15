@@ -12,7 +12,7 @@ type Props = {
 
 type NodeMarker = {
   node_id: number;
-  timestamp: number;
+  timestamp: string;
 };
 
 async function fetchReplayClicks({api, orgSlug, projectSlug, query, replayId}: Props) {
