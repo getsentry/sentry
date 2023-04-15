@@ -10,7 +10,7 @@ from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 
 
-class IgnoredStatusDetails(TypedDict):
+class IgnoredStatusDetails(TypedDict, total=False):
     ignoreCount: int | None
     ignoreUntil: datetime | None
     ignoreUserCount: int | None
@@ -55,14 +55,7 @@ def handle_ignored(
     for group in group_ids:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
 
-    new_status_details = IgnoredStatusDetails(
-        ignoreCount=None,
-        ignoreUntil=None,
-        ignoreUserCount=None,
-        ignoreUserWindow=None,
-        ignoreWindow=None,
-        actor=None,
-    )
+    new_status_details: IgnoredStatusDetails = {}
     ignore_duration = (
         status_details.pop("ignoreDuration", None) or status_details.pop("snoozeDuration", None)
     ) or None

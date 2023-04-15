@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import Any, Dict, Sequence, Tuple
+from collections import defaultdict, namedtuple
+from typing import Any, Dict, Sequence
 
 from sentry.models import (
     Activity,
@@ -17,6 +17,8 @@ from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 
+ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
+
 
 def handle_status_update(
     group_list: Sequence[Group],
@@ -28,7 +30,7 @@ def handle_status_update(
     acting_user: User | None,
     activity_type: str | None,
     sender: Any,
-) -> Tuple[str | None, Dict[str, Any]]:
+) -> ActivityInfo:
     """
     Update the status for a list of groups and create entries for Activity and GroupHistory.
 
@@ -112,4 +114,4 @@ def handle_status_update(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
             )
 
-    return activity_type, activity_data
+    return ActivityInfo(activity_type, activity_data)

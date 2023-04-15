@@ -14,7 +14,7 @@ class HandleIgnoredTest(TestCase):  # type: ignore
 
     def test_ignored_forever(self) -> None:
         status_details = handle_ignored(self.group_ids, self.group_list, {}, self.user, self.user)
-        assert list(status_details.values()) == [None] * 6
+        assert status_details == {}
         assert not GroupInbox.objects.filter(group=self.group).exists()
         assert not GroupSnooze.objects.filter(group=self.group).exists()
 
