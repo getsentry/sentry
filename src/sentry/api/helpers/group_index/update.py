@@ -17,6 +17,7 @@ from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
+from sentry.issues.mark_reviewed import mark_reviewed
 from sentry.issues.merge import handle_merge
 from sentry.issues.status_change import handle_status_update
 from sentry.models import (
@@ -27,7 +28,6 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupHash,
-    GroupInboxReason,
     GroupLink,
     GroupRelease,
     GroupResolution,
@@ -47,11 +47,11 @@ from sentry.models import (
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
-from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
+from sentry.models.groupinbox import GroupInboxRemoveAction
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
-from sentry.signals import issue_mark_reviewed, issue_resolved
+from sentry.signals import issue_resolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
@@ -715,26 +715,15 @@ def update_groups(
 
         result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 
-    # Support moving groups in or out of the inbox
     inbox = result.get("inbox", None)
     if inbox is not None:
-        if inbox:
-            for group in group_list:
-                add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        elif not inbox:
-            for group in group_list:
-                remove_group_from_inbox(
-                    group,
-                    action=GroupInboxRemoveAction.MARK_REVIEWED,
-                    user=acting_user,
-                    referrer=request.META.get("HTTP_REFERER"),
-                )
-                issue_mark_reviewed.send_robust(
-                    project=project_lookup[group.project_id],
-                    user=acting_user,
-                    group=group,
-                    sender=update_groups,
-                )
-        result["inbox"] = inbox
+        result["inbox"] = mark_reviewed(
+            inbox,
+            group_list,
+            project_lookup,
+            acting_user,
+            http_referrer=request.META.get("HTTP_REFERER"),
+            sender=update_groups,
+        )
 
     return Response(result)
