@@ -4,11 +4,12 @@ from typing import List
 from unittest.mock import patch
 
 from sentry.issues.escalating import GroupsCountResponse
-from sentry.models.group import Group, GroupStatus, GroupSubStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupforecast import GroupForecast
 from sentry.models.project import Project
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.types.group import GroupSubStatus
 
 
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):

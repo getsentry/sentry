@@ -14,6 +14,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.types.activity import ActivityType
+from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS, GroupSubStatus
 
 if TYPE_CHECKING:
     from sentry.models import Group, Release, Team, User
