@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, List, Mapping, MutableMapping, Sequence
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -680,32 +680,9 @@ def update_groups(
         }
 
     if "isPublic" in result:
-        # We always want to delete an existing share, because triggering
-        # an isPublic=True even when it's already public, should trigger
-        # regenerating.
-        for group in group_list:
-            if GroupShare.objects.filter(group=group).delete():
-                result["shareId"] = None
-                Activity.objects.create(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    type=ActivityType.SET_PRIVATE.value,
-                    user_id=acting_user.id,
-                )
-
-    if result.get("isPublic"):
-        for group in group_list:
-            share, created = GroupShare.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
-            )
-            if created:
-                result["shareId"] = share.uuid
-                Activity.objects.create(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    type=ActivityType.SET_PUBLIC.value,
-                    user_id=acting_user.id,
-                )
+        result["shareId"] = handle_is_public(
+            result.get("isPublic"), group_list, project_lookup, acting_user
+        )
 
     # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
     if result.get("merge") and len(group_list) > 1:
@@ -738,3 +715,40 @@ def update_groups(
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def handle_is_public(
+    is_public: bool,
+    group_list: List[Group],
+    project_lookup,
+    acting_user: User | None,
+) -> str:
+    # We always want to delete an existing share, because triggering
+    # an isPublic=True even when it's already public, should trigger
+    # regenerating.
+    share_id = None
+    for group in group_list:
+        if GroupShare.objects.filter(group=group).delete():
+            share_id = None
+            Activity.objects.create(
+                project=project_lookup[group.project_id],
+                group=group,
+                type=ActivityType.SET_PRIVATE.value,
+                user_id=acting_user.id,
+            )
+
+    if is_public:
+        for group in group_list:
+            share, created = GroupShare.objects.get_or_create(
+                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
+            )
+            if created:
+                share_id = share.uuid
+                Activity.objects.create(
+                    project=project_lookup[group.project_id],
+                    group=group,
+                    type=ActivityType.SET_PUBLIC.value,
+                    user_id=acting_user.id,
+                )
+
+    return share_id
