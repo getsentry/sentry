@@ -8,6 +8,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -16,6 +17,7 @@ import {Monitor} from './types';
 
 export default function EditMonitor() {
   const {monitorSlug} = useParams();
+  const {selection} = usePageFilters();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -33,7 +35,10 @@ export default function EditMonitor() {
   function onSubmitSuccess(data: Monitor) {
     setApiQueryData(queryClient, [queryKeyUrl], data);
     browserHistory.push(
-      normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`)
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        query: {environment: selection.environments},
+      })
     );
   }
 
