@@ -2759,6 +2759,7 @@ class CdcEventsSnubaSearchTest(SharedSnubaTest):
 
     def test_resolved_group(self):
         self.group2.status = GroupStatus.RESOLVED
+        self.group2.substatus = None
         self.group2.save()
         self.store_group(self.group2)
         self.run_test("is:unresolved", [self.group1], None)
@@ -2928,6 +2929,7 @@ class CdcEventsSnubaSearchTest(SharedSnubaTest):
 
     def test_rechecking(self):
         self.group2.status = GroupStatus.RESOLVED
+        self.group2.substatus = None
         self.group2.save()
         # Explicitly avoid calling `store_group` here. This means that Clickhouse will still see
         # this group as `UNRESOLVED` and it will be returned in the snuba results. This group
