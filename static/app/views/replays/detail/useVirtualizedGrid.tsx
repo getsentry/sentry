@@ -30,6 +30,9 @@ type Opts = {
    */
   gridRef: RefObject<MultiGrid>;
 };
+
+const globalCellMeasurerCache = new WeakMap<CellMeasurerCacheParams, CellMeasurerCache>();
+
 function useVirtualizedGrid({
   cellMeasurer,
   columnCount,
@@ -37,7 +40,14 @@ function useVirtualizedGrid({
   dynamicColumnIndex,
   gridRef,
 }: Opts) {
-  const cache = useMemo(() => new CellMeasurerCache(cellMeasurer), [cellMeasurer]);
+  const cache = useMemo(() => {
+    if (globalCellMeasurerCache.has(cellMeasurer)) {
+      return globalCellMeasurerCache.get(cellMeasurer)!;
+    }
+    const newCellMeasurer = new CellMeasurerCache(cellMeasurer);
+    globalCellMeasurerCache.set(cellMeasurer, newCellMeasurer);
+    return newCellMeasurer;
+  }, [cellMeasurer]);
   const [scrollBarWidth, setScrollBarWidth] = useState(0);
 
   const onWrapperResize = useCallback(() => {

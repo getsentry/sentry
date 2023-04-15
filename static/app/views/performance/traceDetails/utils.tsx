@@ -30,6 +30,9 @@ function traceVisitor() {
     for (const error of event.errors ?? []) {
       accumulator.errors.add(error.event_id);
     }
+    for (const performanceIssue of event.performance_issues ?? []) {
+      accumulator.errors.add(performanceIssue.event_id);
+    }
 
     accumulator.transactions.add(event.event_id);
     accumulator.projects.add(event.project_slug);
@@ -50,6 +53,7 @@ export function getTraceInfo(traces: TraceFullDetailed[]) {
   const initial = {
     projects: new Set<string>(),
     errors: new Set<string>(),
+    performanceIssues: new Set<string>(),
     transactions: new Set<string>(),
     startTimestamp: Number.MAX_SAFE_INTEGER,
     endTimestamp: 0,

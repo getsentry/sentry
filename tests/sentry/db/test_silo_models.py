@@ -24,7 +24,7 @@ from sentry.testutils.silo import (
 )
 
 decorator_exemptions = set()
-fk_emeptions = {
+fk_exemptions = {
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
     (Integration, AlertRuleTriggerAction),
@@ -43,12 +43,12 @@ def test_models_have_silos():
 
 
 def test_silo_foreign_keys():
-    for unused in fk_emeptions - validate_no_cross_silo_foreign_keys(fk_emeptions):
+    for unused in fk_exemptions - validate_no_cross_silo_foreign_keys(fk_exemptions):
         raise ValueError(f"fk_exemptions includes non conflicting relation {unused!r}")
 
 
 def test_cross_silo_deletions():
-    validate_no_cross_silo_deletions(fk_emeptions)
+    validate_no_cross_silo_deletions(fk_exemptions)
 
 
 # We really should not be using api serializers with the hybrid cloud data classes.

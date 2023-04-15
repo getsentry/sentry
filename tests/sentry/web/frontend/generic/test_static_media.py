@@ -58,12 +58,12 @@ class StaticMediaTest(TestCase):
         response = self.client.get("/_static/dist/sentry/invalid.js")
         assert response.status_code == 404, response
 
-        dist_path = os.path.join("src", "sentry", "static", "sentry", "dist")
+        dist_path = os.path.join("src", "sentry", "static", "sentry", "dist", "entrypoints")
         os.makedirs(dist_path, exist_ok=True)
 
         try:
             with open(os.path.join(dist_path, "test.js"), "a"):
-                url = get_frontend_app_asset_url("sentry", "test.js")
+                url = get_frontend_app_asset_url("sentry", "entrypoints/test.js")
 
                 response = self.client.get(url)
                 close_streaming_response(response)

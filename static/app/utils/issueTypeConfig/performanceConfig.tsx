@@ -139,7 +139,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
-
+  [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
+    resources: {
+      description: t(
+        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold'
+      ),
+      links: [
+        {
+          text: t('Sentry Docs: Large HTTP Payload'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/large-http-payload/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: {
     resources: {
       description: t(

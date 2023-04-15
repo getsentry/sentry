@@ -547,7 +547,7 @@ describe('Platform Integrations', () => {
 
       expect(
         await screen.findByRole('heading', {
-          name: /suspect root issues/i,
+          name: /suspect root cause/i,
         })
       ).toBeInTheDocument();
       expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
