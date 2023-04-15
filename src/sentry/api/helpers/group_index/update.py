@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Sequence
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -644,16 +644,10 @@ def update_groups(
     elif result.get("hasSeen") is False:
         GroupSeen.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
 
-    if result.get("isBookmarked"):
-        for group in group_list:
-            GroupBookmark.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
-            )
-            GroupSubscription.objects.subscribe(
-                user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
-            )
-    elif result.get("isBookmarked") is False:
-        GroupBookmark.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
+    if "isBookmarked" in result:
+        handle_is_bookmarked(
+            result.get("isBookmarked"), group_list, group_ids, project_lookup, acting_user
+        )
 
     # TODO(dcramer): we could make these more efficient by first
     # querying for rich rows are present (if N > 2), flipping the flag
@@ -738,3 +732,27 @@ def update_groups(
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def handle_is_bookmarked(
+    is_bookmarked: Any,
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    project_lookup: Dict[int, Project],
+    acting_user: User | None,
+) -> None:
+    if is_bookmarked:
+        for group in group_list:
+            GroupBookmark.objects.get_or_create(
+                project=project_lookup[group.project_id],
+                group=group,
+                user_id=acting_user.id if acting_user else None,
+            )
+            GroupSubscription.objects.subscribe(
+                user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
+            )
+    elif is_bookmarked is False:
+        GroupBookmark.objects.filter(
+            group__in=group_ids,
+            user_id=acting_user.id if acting_user else None,
+        ).delete()
