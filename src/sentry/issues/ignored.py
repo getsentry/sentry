@@ -13,28 +13,19 @@ from sentry.utils import metrics
 def handle_archived_until_escalating(
     group_list: Sequence[Group],
     acting_user: User | None,
-) -> Dict[str, Any]:
+) -> None:
     """
     Handle issues that are archived until escalating and create a forecast for them.
 
     Issues that are marked as ignored with `archiveDuration: until_escalating`
     in the statusDetail are treated as `archived_until_escalating`.
-
-    Returns: a dict with `None` values for the keys. These keys are expected by the caller, `update_groups`.
     """
     metrics.incr("group.archived_until_escalating", skip_internal=True)
     for group in group_list:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
     # TODO(snigdha): create a forecast for this group
 
-    # TODO(snigdha): we should be able to remove this in a future refactor
-    return {
-        "ignoreCount": None,
-        "ignoreUntil": None,
-        "ignoreUserCount": None,
-        "ignoreUserWindow": None,
-        "ignoreWindow": None,
-    }
+    return
 
 
 def handle_ignored(

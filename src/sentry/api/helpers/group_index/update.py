@@ -545,9 +545,7 @@ def update_groups(
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
                 if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
-                    result["statusDetails"] = handle_archived_until_escalating(
-                        group_list, acting_user
-                    )
+                    handle_archived_until_escalating(group_list, acting_user)
                 else:
                     result["statusDetails"] = handle_ignored(
                         group_ids, group_list, status_details, acting_user, user
@@ -563,7 +561,7 @@ def update_groups(
                 new_status=new_status,
                 is_bulk=is_bulk,
                 acting_user=acting_user,
-                status_details=result["statusDetails"],
+                status_details=result.get("statusDetails", {}),
                 sender=update_groups,
                 activity_type=activity_type,
             )

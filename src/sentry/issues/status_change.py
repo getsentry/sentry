@@ -61,12 +61,12 @@ def handle_status_update(
         ) or None
         activity_type = ActivityType.SET_IGNORED.value
         activity_data = {
-            "ignoreCount": status_details.get("ignoreCount"),
+            "ignoreCount": status_details.get("ignoreCount", None),
             "ignoreDuration": ignore_duration,
-            "ignoreUntil": status_details.get("ignoreUntil"),
-            "ignoreUserCount": status_details.get("ignoreUserCount"),
-            "ignoreUserWindow": status_details.get("ignoreUserWindow"),
-            "ignoreWindow": status_details.get("ignoreWindow"),
+            "ignoreUntil": status_details.get("ignoreUntil", None),
+            "ignoreUserCount": status_details.get("ignoreUserCount", None),
+            "ignoreUserWindow": status_details.get("ignoreUserWindow", None),
+            "ignoreWindow": status_details.get("ignoreWindow", None),
         }
 
         groups_by_project_id = defaultdict(list)
