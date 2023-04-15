@@ -1,13 +1,22 @@
 from __future__ import annotations
 
-from datetime import timedelta
-from typing import Any, Dict, Sequence
+from datetime import datetime, timedelta
+from typing import Any, Dict, Sequence, TypedDict
 
 from django.utils import timezone
 
 from sentry.models import Group, GroupInboxRemoveAction, GroupSnooze, User, remove_group_from_inbox
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
+
+
+class IgnoredStatusDetails(TypedDict):
+    ignoreCount: int | None
+    ignoreUntil: datetime | None
+    ignoreUserCount: int | None
+    ignoreUserWindow: int | None
+    ignoreWindow: int | None
+    actor: User | None
 
 
 def handle_archived_until_escalating(
@@ -34,7 +43,7 @@ def handle_ignored(
     status_details: Dict[str, Any],
     acting_user: User | None,
     user: User,
-) -> Dict[str, Any]:
+) -> IgnoredStatusDetails:
     """
     Handle issues that are ignored and create a snooze for them.
 
@@ -46,7 +55,14 @@ def handle_ignored(
     for group in group_ids:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
 
-    new_status_details = {}
+    new_status_details = IgnoredStatusDetails(
+        ignoreCount=None,
+        ignoreUntil=None,
+        ignoreUserCount=None,
+        ignoreUserWindow=None,
+        ignoreWindow=None,
+        actor=None,
+    )
     ignore_duration = (
         status_details.pop("ignoreDuration", None) or status_details.pop("snoozeDuration", None)
     ) or None
@@ -80,15 +96,14 @@ def handle_ignored(
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
             )
-            new_status_details = {
-                "ignoreCount": ignore_count,
-                "ignoreUntil": ignore_until,
-                "ignoreUserCount": ignore_user_count,
-                "ignoreUserWindow": ignore_user_window,
-                "ignoreWindow": ignore_window,
-            }
-            if serialized_user:
-                new_status_details["actor"] = serialized_user[0]
+            new_status_details = IgnoredStatusDetails(
+                ignoreCount=ignore_count,
+                ignoreUntil=ignore_until,
+                ignoreUserCount=ignore_user_count,
+                ignoreUserWindow=ignore_user_window,
+                ignoreWindow=ignore_window,
+                actor=serialized_user[0] if serialized_user else None,
+            )
     else:
         GroupSnooze.objects.filter(group__in=group_ids).delete()
         ignore_until = None
