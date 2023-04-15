@@ -106,9 +106,13 @@ async function fromListPageQuery({
   if (!results.clicks.length) {
     return 0;
   }
-  const clickTimesStampMs = first(results.clicks)!.timestamp * 1000;
-  const offsetTimeMs = clickTimesStampMs - replayStartTimestampMs;
-  return offsetTimeMs;
+  try {
+    const firstTimestamp = first(results.clicks)!.timestamp;
+    const firstTimestmpMs = new Date(firstTimestamp).getTime();
+    return firstTimestmpMs - replayStartTimestampMs;
+  } catch {
+    return 0;
+  }
 }
 
 function useInitialTimeOffsetMs({orgSlug, replaySlug, replayStartTimestampMs}: Opts) {
