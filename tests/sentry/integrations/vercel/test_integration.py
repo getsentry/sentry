@@ -147,15 +147,6 @@ class VercelIntegrationTest(IntegrationTestCase):
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
-            "SENTRY_DSN": {
-                "type": "encrypted",
-                "value": enabled_dsn,
-                "target": [
-                    "production",
-                    "preview",
-                    "development",
-                ],
-            },
             "SENTRY_ORG": {
                 "type": "encrypted",
                 "value": org.slug,
@@ -165,6 +156,15 @@ class VercelIntegrationTest(IntegrationTestCase):
                 "type": "encrypted",
                 "value": self.project.slug,
                 "target": ["production", "preview"],
+            },
+            "SENTRY_DSN": {
+                "type": "encrypted",
+                "value": enabled_dsn,
+                "target": [
+                    "production",
+                    "preview",
+                    "development",
+                ],
             },
             "SENTRY_AUTH_TOKEN": {
                 "type": "encrypted",
@@ -257,11 +257,35 @@ class VercelIntegrationTest(IntegrationTestCase):
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
-            "SENTRY_ORG": {"type": "encrypted", "value": org.slug},
-            "SENTRY_PROJECT": {"type": "encrypted", "value": self.project.slug},
-            "SENTRY_DSN": {"type": "encrypted", "value": enabled_dsn},
-            "SENTRY_AUTH_TOKEN": {"type": "secret", "value": sentry_auth_token},
-            "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
+            "SENTRY_ORG": {
+                "type": "encrypted",
+                "value": org.slug,
+                "target": ["production", "preview"],
+            },
+            "SENTRY_PROJECT": {
+                "type": "encrypted",
+                "value": self.project.slug,
+                "target": ["production", "preview"],
+            },
+            "SENTRY_DSN": {
+                "type": "encrypted",
+                "value": enabled_dsn,
+                "target": [
+                    "production",
+                    "preview",
+                    "development",
+                ],
+            },
+            "SENTRY_AUTH_TOKEN": {
+                "type": "encrypted",
+                "value": sentry_auth_token,
+                "target": ["production", "preview"],
+            },
+            "VERCEL_GIT_COMMIT_SHA": {
+                "type": "system",
+                "value": "VERCEL_GIT_COMMIT_SHA",
+                "target": ["production", "preview"],
+            },
         }
 
         # mock get_project API call
@@ -294,7 +318,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 json={
                     "key": env_var,
                     "value": details["value"],
-                    "target": ["production", "preview", "development"],
+                    "target": details["target"],
                     "type": details["type"],
                 },
             )

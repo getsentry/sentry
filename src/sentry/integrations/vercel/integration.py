@@ -232,15 +232,6 @@ class VercelIntegration(IntegrationInstallation):
             )
 
             env_var_map = {
-                dsn_env_name: {
-                    "type": "encrypted",
-                    "value": sentry_project_dsn,
-                    "target": [
-                        "production",
-                        "preview",
-                        "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
-                    ],
-                },
                 "SENTRY_ORG": {
                     "type": "encrypted",
                     "value": sentry_project.organization.slug,
@@ -250,6 +241,15 @@ class VercelIntegration(IntegrationInstallation):
                     "type": "encrypted",
                     "value": sentry_project.slug,
                     "target": ["production", "preview"],
+                },
+                dsn_env_name: {
+                    "type": "encrypted",
+                    "value": sentry_project_dsn,
+                    "target": [
+                        "production",
+                        "preview",
+                        "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
+                    ],
                 },
                 "SENTRY_AUTH_TOKEN": {
                     "type": "encrypted",
