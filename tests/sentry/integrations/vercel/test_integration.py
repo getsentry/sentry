@@ -147,11 +147,35 @@ class VercelIntegrationTest(IntegrationTestCase):
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
-            "SENTRY_ORG": {"type": "encrypted", "value": org.slug},
-            "SENTRY_PROJECT": {"type": "encrypted", "value": self.project.slug},
-            "SENTRY_DSN": {"type": "encrypted", "value": enabled_dsn},
-            "SENTRY_AUTH_TOKEN": {"type": "encrypted", "value": sentry_auth_token},
-            "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
+            "SENTRY_DSN": {
+                "type": "encrypted",
+                "value": enabled_dsn,
+                "target": [
+                    "production",
+                    "preview",
+                    "development",
+                ],
+            },
+            "SENTRY_ORG": {
+                "type": "encrypted",
+                "value": org.slug,
+                "target": ["production", "preview"],
+            },
+            "SENTRY_PROJECT": {
+                "type": "encrypted",
+                "value": self.project.slug,
+                "target": ["production", "preview"],
+            },
+            "SENTRY_AUTH_TOKEN": {
+                "type": "encrypted",
+                "value": sentry_auth_token,
+                "target": ["production", "preview"],
+            },
+            "VERCEL_GIT_COMMIT_SHA": {
+                "type": "system",
+                "value": "VERCEL_GIT_COMMIT_SHA",
+                "target": ["production", "preview"],
+            },
         }
 
         # mock get_project API call
@@ -169,7 +193,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 json={
                     "key": env_var,
                     "value": details["value"],
-                    "target": ["production", "preview", "development"],
+                    "target": details["target"],
                     "type": details["type"],
                 },
             )
@@ -192,13 +216,13 @@ class VercelIntegrationTest(IntegrationTestCase):
         req_params = json.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
-        assert req_params["target"] == ["production", "preview", "development"]
+        assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
         req_params = json.loads(responses.calls[6].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
-        assert req_params["target"] == ["production", "preview", "development"]
+        assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
         req_params = json.loads(responses.calls[7].request.body)
@@ -209,13 +233,13 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         req_params = json.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
-        assert req_params["target"] == ["production", "preview", "development"]
+        assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
         req_params = json.loads(responses.calls[9].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
-        assert req_params["target"] == ["production", "preview", "development"]
+        assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "system"
 
     @responses.activate
@@ -292,13 +316,13 @@ class VercelIntegrationTest(IntegrationTestCase):
         req_params = json.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
-        assert req_params["target"] == ["production", "preview", "development"]
+        assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
         req_params = json.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
-        assert req_params["target"] == ["production", "preview", "development"]
+        assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
         req_params = json.loads(responses.calls[11].request.body)
@@ -309,13 +333,13 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         req_params = json.loads(responses.calls[14].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
-        assert req_params["target"] == ["production", "preview", "development"]
+        assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
         req_params = json.loads(responses.calls[17].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
-        assert req_params["target"] == ["production", "preview", "development"]
+        assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "system"
 
     @responses.activate
