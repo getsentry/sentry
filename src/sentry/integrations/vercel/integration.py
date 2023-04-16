@@ -212,16 +212,6 @@ class VercelIntegration(IntegrationInstallation):
             sentry_project_dsn = enabled_dsn.get_dsn(public=True)
 
             vercel_project = vercel_client.get_project(vercel_project_id)
-            source_code_provider = vercel_project.get("link", {}).get("type")
-
-            if not source_code_provider:
-                raise ValidationError(
-                    {
-                        "project_mappings": [
-                            "You must connect your Vercel project to a Git repository to continue!"
-                        ]
-                    }
-                )
 
             is_next_js = vercel_project.get("framework") == "nextjs"
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
