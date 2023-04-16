@@ -256,7 +256,7 @@ class VercelIntegration(IntegrationInstallation):
         data = {
             "key": key,
             "value": value,
-            "target": ["production"],
+            "target": ["production", "preview", "development"],
             "type": type,
         }
         try:
