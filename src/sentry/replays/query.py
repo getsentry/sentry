@@ -317,7 +317,6 @@ def query_replays_count(
             match=Entity("replays"),
             select=[
                 _strip_uuid_dashes("replay_id", Column("replay_id")),
-                Column("project_id"),
                 Function(
                     "ifNull",
                     parameters=[
@@ -343,7 +342,7 @@ def query_replays_count(
                 Condition(Column("is_archived"), Op.EQ, 0),
             ],
             orderby=[],
-            groupby=[Column("replay_id"), Column("project_id")],
+            groupby=[Column("replay_id")],
             granularity=Granularity(3600),
         ),
         tenant_ids=tenant_ids,
