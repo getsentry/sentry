@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, TypedDict, cast
 
 from sentry import nodestore
 from sentry.utils.dates import parse_timestamp
 
-TWO_WEEKS_IN_SECONDS = 1209600
+TWO_WEEKS_IN_DAYS = 14
 
 
 class EscalatingGroupForecastData(TypedDict):
@@ -57,7 +57,7 @@ class EscalatingGroupForecast:
         nodestore.set(
             self.build_storage_identifier(self.project_id, self.group_id),
             self.to_dict(),
-            ttl=TWO_WEEKS_IN_SECONDS,
+            ttl=timedelta(TWO_WEEKS_IN_DAYS),
         )
 
     @classmethod
