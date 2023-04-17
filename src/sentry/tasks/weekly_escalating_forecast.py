@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 )  # type: ignore
 @monitor(monitor_slug="escalating-issue-forecast-job-monitor")
 def run_escalating_forecast() -> None:
+    """
+    Run the escalating forecast algorithm on archived until escalating issues.
+    """
+    logger.info("Starting task for sentry.tasks.weekly_escalating_forecast.run_escalating_forecast")
     # TODO: Do not limit to project id = 1 and limit 10 once these topics are clarified
     # TODO: If possible, fetch group_id instead of the entire group model
     until_escalating_groups = list(
@@ -41,6 +45,10 @@ def run_escalating_forecast() -> None:
             substatus=GroupSubStatus.UNTIL_ESCALATING,
             project__id=1,
         )[:10]
+    )
+    logger.info(
+        "Checking for archived until escalating groups",
+        extra={"has_groups": len(until_escalating_groups) > 0},
     )
     if not until_escalating_groups:
         return

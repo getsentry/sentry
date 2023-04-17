@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -17,7 +16,6 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import useTeams from 'sentry/utils/useTeams';
 
 import {StarfishView} from './starfishView';
 
@@ -32,10 +30,6 @@ type Props = {
 };
 
 export function StarfishLanding(props: Props) {
-  const {organization, eventView} = props;
-
-  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
-
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
       <ProjectPageFilter />
@@ -60,18 +54,7 @@ export function StarfishLanding(props: Props) {
                 {pageFilters}
               </SearchContainerWithFilterAndMetrics>
 
-              {initiallyLoaded ? (
-                <TeamKeyTransactionManager.Provider
-                  organization={organization}
-                  teams={teams}
-                  selectedTeams={['myteams']}
-                  selectedProjects={eventView.project.map(String)}
-                >
-                  <StarfishView {...props} />
-                </TeamKeyTransactionManager.Provider>
-              ) : (
-                <LoadingIndicator />
-              )}
+              <StarfishView {...props} />
             </Fragment>
           </Layout.Main>
         </Layout.Body>

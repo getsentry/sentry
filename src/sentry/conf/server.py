@@ -738,9 +738,7 @@ CELERY_QUEUES = [
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
-    Queue(
-        "transactions.name_clusterer", routing_key="transactions.name_clusterer"
-    ),  # TODO: add workers
+    Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
     Queue(
         "dynamicsampling",
@@ -1102,6 +1100,8 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
+    # Enable archive/escalating issue workflow UI, enable everything except post processing
+    "organizations:escalating-issues-ui": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1165,7 +1165,7 @@ SENTRY_FEATURES = {
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
     # Normalize URL transaction names during ingestion.
-    "organizations:transaction-name-normalize": False,
+    "organizations:transaction-name-normalize": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
@@ -1223,8 +1223,6 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
-    # Enable fast CODEOWNERS path matching
-    "organizations:scaleable-codeowners-search": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
@@ -1274,6 +1272,8 @@ SENTRY_FEATURES = {
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
     "organizations:performance-consecutive-http-detector": False,
+    # Enable consecutive http performance issue type
+    "organizations:performance-large-http-payload-detector": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
@@ -1364,6 +1364,8 @@ SENTRY_FEATURES = {
     "organizations:onboarding-remove-multiselect-platform": False,
     # Enable the project loader feature in the onboarding
     "organizations:onboarding-project-loader": False,
+    # Enable the SDK selection feature in the onboarding
+    "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
     # Enable OpenAI suggestions in the issue details page (New Design)
@@ -3135,6 +3137,7 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 # Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS = []
 
@@ -3145,7 +3148,7 @@ SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: Iterable[Region] = ()
+SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None

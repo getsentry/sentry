@@ -43,7 +43,7 @@ function ErrorDescription({
 }) {
   if (restriction === 'subprocessor') {
     return (
-      <EmptyState
+      <EmptyMessage
         icon={<IconFile size="xl" />}
         title={t('OpenAI Subprocessor Acknowledgment')}
         description={t(
@@ -64,7 +64,7 @@ function ErrorDescription({
   if (restriction === 'individual_consent') {
     const activeSuperUser = isActiveSuperuser();
     return (
-      <EmptyState
+      <EmptyMessage
         icon={<IconFlag size="xl" />}
         title={t('We need your consent')}
         description={t(
@@ -97,7 +97,8 @@ function ErrorDescription({
 
 export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const organization = useOrganization();
-  const [individualConsent, setIndividualConsent] = useOpenAISuggestionLocalStorage();
+  const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
+    useOpenAISuggestionLocalStorage();
 
   const {
     data,
@@ -108,7 +109,11 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   } = useApiQuery<{suggestion: string}>(
     [
       `/projects/${organization.slug}/${projectSlug}/events/${event.eventID}/ai-fix-suggest/`,
-      {query: {consent: individualConsent ? 'yes' : undefined}},
+      {
+        query: {
+          consent: suggestedSolutionLocalConfig.individualConsent ? 'yes' : undefined,
+        },
+      },
     ],
     {
       staleTime: Infinity,
@@ -123,10 +128,10 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   return (
     <Panel>
       <Header>
-        <div>
+        <Title>
           {t('AI Solution')}
           <ExperimentalFeatureBadge />
-        </div>
+        </Title>
         <Button size="xs" onClick={onHideSuggestion}>
           {t('Hide Suggestion')}
         </Button>
@@ -141,7 +146,9 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
           <ErrorDescription
             onRefetch={dataRefetch}
             organizationSlug={organization.slug}
-            onSetIndividualConsent={setIndividualConsent}
+            onSetIndividualConsent={() =>
+              setSuggestedSolutionLocalConfig({individualConsent: true})
+            }
             restriction={error?.responseJSON?.restriction}
             onHideSuggestion={onHideSuggestion}
           />
@@ -252,9 +259,9 @@ const SuggestionLoadingError = styled(LoadingError)`
   margin-bottom: 0;
   border: none;
   /* This is just to be consitent with other */
-  /* padding-top and padding-bottom we are using in this panel */
-  padding-top: ${space(2)};
-  padding-bottom: ${space(2)};
+  /* padding-top and padding-bottom we are using in the empty state component */
+  padding-top: ${space(4)};
+  padding-bottom: ${space(4)};
 `;
 
 const LoaderWrapper = styled('div')`
@@ -274,9 +281,10 @@ const Content = styled('div')`
   }
 `;
 
-const EmptyState = styled(EmptyMessage)`
-  /* This is just to be consitent with other */
-  /* padding-top and padding-bottom we are using in this panel */
-  padding-top: ${space(2)};
-  padding-bottom: ${space(2)};
+const Title = styled('div')`
+  /* to be consistent with the feature badge size */
+  height: ${space(2)};
+  line-height: ${space(2)};
+  display: flex;
+  align-items: center;
 `;

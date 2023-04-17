@@ -15,7 +15,7 @@ import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
 import FailureRateChart from 'sentry/views/starfish/components/failureRateChart';
 
-import Table from '../../components/table';
+import EndpointList from './endpointList';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -24,7 +24,6 @@ type BasePerformanceViewProps = {
   location: Location;
   organization: Organization;
   projects: Project[];
-  withStaticFilters: boolean;
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
@@ -150,7 +149,18 @@ export function StarfishView(props: BasePerformanceViewProps) {
         {renderFailureRateChart()}
       </StyledRow>
 
-      <Table {...props} setError={usePageError().setPageError} />
+      <EndpointList
+        {...props}
+        setError={usePageError().setPageError}
+        dataset="discover" // Metrics dataset can't do equations yet
+        columnTitles={[
+          'endpoint',
+          'tpm',
+          'p50(duration)',
+          'p95(duration)',
+          '% time spent',
+        ]}
+      />
     </div>
   );
 }
