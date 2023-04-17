@@ -2070,8 +2070,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # - python resolves a `module`, whereas symbolicator does not
                     # - python adds `data.sourcemap` whereas symbolicator does not
                     # - symbolicator does not add trailing empty lines to `post_context`
-                    # a.get("abs_path") != b.get("abs_path") or
-                    a.get("lineno") != b.get("lineno")
+                    a.get("abs_path") != b.get("abs_path")
+                    or a.get("lineno") != b.get("lineno")
                     or a.get("colno") != b.get("colno")
                     or a.get("function") != b.get("function")
                     or a.get("filename") != b.get("filename")
