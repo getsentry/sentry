@@ -127,9 +127,9 @@ function GroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
       <Resources {...{event, group}} />
-      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <AiSuggestedSolution event={event} projectSlug={project.slug} />
+      <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
+      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />

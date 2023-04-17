@@ -3,24 +3,32 @@ import {useCallback} from 'react';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
+type LocalState = {
+  hideDetails: boolean;
+  individualConsent: boolean;
+};
+
 export function useOpenAISuggestionLocalStorage(): [
-  boolean,
-  (agreedForwardDataToOpenAI: boolean) => void
+  LocalState,
+  (newState: Partial<LocalState>) => void
 ] {
   const user = ConfigStore.get('user');
 
-  const [localStorageState, setLocalStorageState] = useLocalStorageState<{
-    agreedForwardDataToOpenAI: boolean;
-  }>(`open-ai-suggestion:${user.id}`, {
-    agreedForwardDataToOpenAI: false,
-  });
-
-  const setAgreedForwardDataToOpenAI = useCallback(
-    (agreedForwardDataToOpenAI: boolean) => {
-      setLocalStorageState({agreedForwardDataToOpenAI});
-    },
-    [setLocalStorageState]
+  const [localStorageState, setLocalStorageState] = useLocalStorageState<LocalState>(
+    `open-ai-suggestion:${user.id}`,
+    {
+      // agree forward data to OpenAI
+      individualConsent: false,
+      hideDetails: false,
+    }
   );
 
-  return [localStorageState.agreedForwardDataToOpenAI, setAgreedForwardDataToOpenAI];
+  const setSuggestedSolutionLocalConfig = useCallback(
+    (newState: Partial<LocalState>) => {
+      setLocalStorageState({...localStorageState, ...newState});
+    },
+    [localStorageState, setLocalStorageState]
+  );
+
+  return [localStorageState, setSuggestedSolutionLocalConfig];
 }

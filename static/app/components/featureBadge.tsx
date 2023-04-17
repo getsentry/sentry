@@ -6,7 +6,7 @@ import type {SeverityLevel} from '@sentry/types';
 
 import Badge from 'sentry/components/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
+import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space, {ValidSize} from 'sentry/styles/space';
 
@@ -15,6 +15,7 @@ type BadgeProps = {
   expiresAt?: Date;
   noTooltip?: boolean;
   title?: string;
+  tooltipProps?: Partial<InternalTooltipProps>;
   variant?: 'indicator' | 'badge';
 };
 
@@ -40,8 +41,9 @@ function BaseFeatureBadge({
   type,
   variant = 'badge',
   title,
-  noTooltip,
+  tooltipProps,
   expiresAt,
+  noTooltip,
   ...props
 }: Props) {
   const theme = useTheme();
@@ -60,7 +62,12 @@ function BaseFeatureBadge({
 
   return (
     <div {...props}>
-      <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
+      <Tooltip
+        title={title ?? defaultTitles[type]}
+        position="right"
+        disabled={noTooltip}
+        {...tooltipProps}
+      >
         <Fragment>
           {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
           {variant === 'indicator' && (
