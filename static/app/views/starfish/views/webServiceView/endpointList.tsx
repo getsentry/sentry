@@ -48,7 +48,7 @@ import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerform
 import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
-} from '../utils/createUnnamedTransactionsDiscoverTarget';
+} from '../../utils/createUnnamedTransactionsDiscoverTarget';
 
 // HACK: Overrides ColumnType for TIME_SPENT_IN_SERVICE which is
 // returned as a number because it's an equation, but we
@@ -75,7 +75,8 @@ type State = {
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
   widths: number[];
 };
-class _Table extends Component<Props, State> {
+
+class _EndpointList extends Component<Props, State> {
   state: State = {
     widths: [],
     transaction: undefined,
@@ -436,11 +437,13 @@ class _Table extends Component<Props, State> {
   }
 }
 
-function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}) {
+function EndpointList(
+  props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}
+) {
   const summaryConditions =
     props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
 
-  return <_Table {...props} summaryConditions={summaryConditions} />;
+  return <_EndpointList {...props} summaryConditions={summaryConditions} />;
 }
 
 // Align the contained IconStar with the IconStar buttons in individual table
@@ -449,4 +452,4 @@ const TeamKeyTransactionWrapper = styled('div')`
   padding: 3px;
 `;
 
-export default Table;
+export default EndpointList;

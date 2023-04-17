@@ -10,7 +10,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
 
-import Table from '../../components/table';
+import EndpointList from './endpointList';
 
 const EventsRequest = withApi(_EventsRequest);
 import {Fragment} from 'react';
@@ -92,7 +92,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         </EventsRequest>
       </StyledRow>
 
-      <Table
+      <EndpointList
         {...props}
         setError={usePageError().setPageError}
         dataset="discover" // Metrics dataset can't do equations yet
