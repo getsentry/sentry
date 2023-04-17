@@ -9,6 +9,8 @@ config:
     scrubData: true
     scrubDefaults: true
     sensitiveFields: []
+  features:
+  - organizations:transaction-name-normalize
   measurements:
     builtinMeasurements:
     - name: app_start_cold
