@@ -3,7 +3,7 @@ import {Location} from 'history';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 
-const HOST = 'http://localhost:8000';
+const HOST = 'http://localhost:8080';
 
 const ENDPOINT_QUERY = `SELECT description, count() AS count
  FROM spans_experimental_starfish
