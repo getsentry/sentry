@@ -13,7 +13,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
-import FailureRateChart from 'sentry/views/starfish/components/failureRateChart';
+import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 
 import EndpointList from './endpointList';
 
