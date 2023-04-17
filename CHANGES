@@ -1,3 +1,51 @@
+23.4.0
+------
+
+### Codecov Integration V2
+
+This is the work post-MVP release for the Codecov Integration, with UI and performance improvements and a new CTA.
+
+By: @snigdhas (#46523, #46463, #46460, #46420, #46421, #46416, #46414, #46401, #46294), @scttcper (#46234), @armenzg (#46257)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @mydea (#46996, #46995, #46994)
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @jangjodi (#47333, #46636), @snigdhas (#47129, #47039, #46845), @barkbarkimashark (#47101, #47100, #47094, #47058, #47053), @armenzg (#46517), @scttcper (#46705, #46639), @NisanthanNanthakumar (#46205, #45971)
+
+### Various fixes & improvements
+
+- fix(crons): Pass environment to edit monitor page (#47435) by @davidenwang
+- chore(js): Convert PackageLink to a FC (#47299) by @evanpurkhiser
+- chore(deps): bump cronstrue from 2.23.0 to 2.26.0 (#47431) by @dependabot
+- feat(worflow): Track unmerge issue usage (#47423) by @scttcper
+- feat(rulesnooze): Update endpoint to include info about if snooze is for all (#47414) by @roggenkemper
+- feat(analytics): Add user feedback info to issue analytics (#47296) by @malwilley
+- fix(issue-platform): Fix bug where searching by issue shortname in discover returns too many results (#47406) by @wedamija
+- feat(perf-issues): initialize giant http payload detector (#47264) by @DominikB2014
+- feat(rulesnooze): Don't notify if rule is snoozed (#47197) by @roggenkemper
+- feat(trends): Update the breakpoint endpoint and request shape (#47412) by @udameli
+- Document 'download' query parameter (#47247) by @alyssa-glean
+- feat(replays): Add replays/:id/clicks/ endpoint for searching for click node and timestamp metadata (#47332) by @cmanallen
+- feat(code mapping): Derive code mappings for more distinct issues (#47345) by @lobsterkatie
+- chore(profiling): End profiling beta alert (#47249) by @Zylphrex
+- feat(profiling): Link from profile summary to transaction summary (#47328) by @Zylphrex
+- chore(perf): Remove old feature flag (#47394) by @udameli
+- feat(releasehealth): Switch mget to get for Redis Cluster compatibility (#46210) by @ayirr7
+- fix(breadcrumbs): Resize breadcrumb rows when expanding object properties (#47369) by @malwilley
+- ref(escalating-issues): Add logs and increase freq of cron job (#47403) by @jangjodi
+- deps(ui): Upgrade to TypeScript v5 (#47405) by @scttcper
+- feat(email): Add X-SMTPAPI category to email headers (#47352) by @mbauer404
+- chore(js): Add comment to js-sdk-loader eslint config (#47340) by @evanpurkhiser
+- fix(ui): Check type is number when using `>` `<` (#47360) by @scttcper
+- feat(hc): Send and receive RPCs over network (#47046) by @RyanSkonnord
+
+_Plus 745 more_
+
 23.3.1
 ------
 
