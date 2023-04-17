@@ -10,7 +10,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
 } from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
+import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -23,7 +23,11 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {
+  ColumnType,
+  fieldAlignment,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
@@ -39,11 +43,19 @@ import {
 const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 
 import {getProjectID} from 'sentry/views/performance/utils';
+import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 
 import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
 } from '../utils/createUnnamedTransactionsDiscoverTarget';
+
+// HACK: Overrides ColumnType for TIME_SPENT_IN_SERVICE which is
+// returned as a number because it's an equation, but we
+// want formatted as a percentage
+const TABLE_META_OVERRIDES: Record<string, ColumnType> = {
+  [TIME_SPENT_IN_SERVICE]: 'percentage',
+};
 
 type Props = {
   eventView: EventView;
@@ -53,6 +65,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
   columnTitles?: string[];
+  dataset?: 'discover' | 'metrics';
   summaryConditions?: string;
 };
 
@@ -140,7 +153,7 @@ class _Table extends Component<Props, State> {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
-    const tableMeta = tableData.meta;
+    const tableMeta = {...tableData.meta, ...TABLE_META_OVERRIDES};
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
@@ -250,8 +263,20 @@ class _Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, location} = this.props;
 
-    const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.name, width: column.width};
+    // Hack to get equations to align and sort properly because
+    // some of the functions called below aren't set up to handle
+    // equations. Fudging code here to keep minimal footprint of
+    // code changes.
+    let align: Alignments = 'left';
+    if (column.column.kind === 'equation') {
+      align = 'right';
+    } else {
+      align = fieldAlignment(column.name, column.type, tableMeta);
+    }
+    const field = {
+      field: column.column.kind === 'equation' ? (column.key as string) : column.name,
+      width: column.width,
+    };
     const aggregateAliasTableMeta: MetaType = {};
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
@@ -337,18 +362,6 @@ class _Table extends Component<Props, State> {
     this.setState({widths});
   };
 
-  getSortedEventView() {
-    const {eventView} = this.props;
-
-    return eventView.withSorts([
-      {
-        field: 'team_key_transaction',
-        kind: 'desc',
-      },
-      ...eventView.sorts,
-    ]);
-  }
-
   render() {
     const {eventView, organization, location, setError} = this.props;
     const {widths, transaction, transactionThreshold} = this.state;
@@ -362,7 +375,9 @@ class _Table extends Component<Props, State> {
           !col.name.startsWith('count_miserable') &&
           col.name !== 'project_threshold_config' &&
           col.name !== 'project' &&
-          col.name !== 'http.method'
+          col.name !== 'http.method' &&
+          col.name !== 'total.transaction_duration' &&
+          col.name !== 'sum(transaction.duration)'
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
@@ -371,8 +386,7 @@ class _Table extends Component<Props, State> {
         return col;
       });
 
-    const sortedEventView = this.getSortedEventView();
-    const columnSortBy = sortedEventView.getSorts();
+    const columnSortBy = eventView.getSorts();
 
     const prependColumnWidths = ['max-content'];
 
@@ -380,14 +394,14 @@ class _Table extends Component<Props, State> {
       <GuideAnchor target="performance_table" position="top-start">
         <div data-test-id="performance-table">
           <DiscoverQuery
-            eventView={sortedEventView}
+            eventView={eventView}
             orgSlug={organization.slug}
             location={location}
             setError={error => setError(error?.message)}
             referrer="api.performance.landing-table"
             transactionName={transaction}
             transactionThreshold={transactionThreshold}
-            queryExtras={{dataset: 'metrics'}}
+            queryExtras={{dataset: this.props.dataset ?? 'metrics'}}
           >
             {({pageLinks, isLoading, tableData}) => (
               <Fragment>

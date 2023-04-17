@@ -92,7 +92,18 @@ export function StarfishView(props: BasePerformanceViewProps) {
         </EventsRequest>
       </StyledRow>
 
-      <Table {...props} setError={usePageError().setPageError} />
+      <Table
+        {...props}
+        setError={usePageError().setPageError}
+        dataset="discover" // Metrics dataset can't do equations yet
+        columnTitles={[
+          'endpoint',
+          'tpm',
+          'p50(duration)',
+          'p95(duration)',
+          '% time spent',
+        ]}
+      />
     </div>
   );
 }
