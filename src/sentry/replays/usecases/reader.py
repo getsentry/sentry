@@ -247,7 +247,6 @@ def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[b
         op="http.server",
         name="ProjectReplayRecordingSegmentIndexEndpoint.download_segments",
     )
-    transaction.set_measurement("number_of_segments", len(segments))  # type: ignore
 
     download_segment_with_fixed_args = functools.partial(
         download_segment, transaction=transaction, current_hub=sentry_sdk.Hub.current
