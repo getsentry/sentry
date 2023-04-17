@@ -8,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -37,6 +38,7 @@ export function StarfishLanding(props: Props) {
 
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
+      <ProjectPageFilter />
       <DatePageFilter alignDropdown="left" />
     </PageFilterBar>
   );
