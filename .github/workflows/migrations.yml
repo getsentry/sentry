@@ -44,7 +44,7 @@ jobs:
       - name: Failure because of modified migration
         run: |
           echo "If you have a valid reason to modify a migration please get approval"
-          echo "from @getsentry/owners-migrations, then ask a Github admin to merge." && exit 1
+          echo "from @getsentry/owners-migrations." && exit 1
 
   sql:
     name: Generate SQL
