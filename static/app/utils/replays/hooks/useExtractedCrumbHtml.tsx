@@ -69,7 +69,10 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
         // crumb we will extract the referenced HTML.
         const crumbs = replay
           .getRawCrumbs()
-          .filter(crumb => crumb.data && 'nodeId' in crumb.data);
+          .filter(
+            crumb =>
+              crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
+          );
 
         const rrwebEvents = replay.getRRWebEvents();
 
