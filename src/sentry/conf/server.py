@@ -1364,6 +1364,8 @@ SENTRY_FEATURES = {
     "organizations:onboarding-remove-multiselect-platform": False,
     # Enable the project loader feature in the onboarding
     "organizations:onboarding-project-loader": False,
+    # Enable the SDK selection feature in the onboarding
+    "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
     # Enable OpenAI suggestions in the issue details page (New Design)
