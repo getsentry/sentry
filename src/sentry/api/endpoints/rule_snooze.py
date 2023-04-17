@@ -5,7 +5,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import analytics, audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
@@ -110,6 +110,17 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 data=rule.get_audit_log_data(),
             )
 
+        analytics.record(
+            "rule.snoozed",
+            user_id=request.user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            rule_id=rule_id,
+            rule_type=self.rule_field,
+            target=data.get("target"),
+            until=data.get("until"),
+        )
+
         return Response(
             serialize(rule_snooze, request.user, RuleSnoozeSerializer()),
             status=status.HTTP_201_CREATED,
@@ -149,6 +160,14 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             made_delete = True
 
         if made_delete:
+            analytics.record(
+                "rule.unsnoozed",
+                user_id=request.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                rule_id=rule_id,
+                rule_type=self.rule_field,
+            )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # didn't find a match but there is a shared snooze
