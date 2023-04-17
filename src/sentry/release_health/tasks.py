@@ -75,6 +75,10 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
             for environment, environment_totals in project_totals.items():
                 total_releases = len(environment_totals["releases"])
                 for release_version in environment_totals["releases"]:
+                    # Ignore versions that were saved with an empty string
+                    if not Release.is_valid_version(release_version):
+                        continue
+
                     threshold = 0.1 / total_releases
                     if (
                         environment

@@ -533,6 +533,25 @@ class BaseTestReleaseMonitor:
         no_env_project.refresh_from_db()
         assert not no_env_project.flags.has_releases
 
+    def test_invalid_version(self):
+        invalid_release_version = self.create_release(project=self.project, version="")
+
+        # If environment is None, we shouldn't make any changes
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    project_id=self.project,
+                    release=invalid_release_version,
+                    environment="somenvname",
+                )
+            ]
+        )
+        process_projects_with_sessions(
+            invalid_release_version.organization_id, [invalid_release_version.id]
+        )
+        invalid_release_version.refresh_from_db()
+        assert not invalid_release_version.flags.has_releases
+
 
 class TestSessionReleaseMonitor(BaseTestReleaseMonitor, TestCase, SnubaTestCase):
     backend_class = SessionReleaseMonitorBackend
