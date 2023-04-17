@@ -43,6 +43,7 @@ function BaseFeatureBadge({
   title,
   tooltipProps,
   expiresAt,
+  noTooltip,
   ...props
 }: Props) {
   const theme = useTheme();
@@ -61,7 +62,12 @@ function BaseFeatureBadge({
 
   return (
     <div {...props}>
-      <Tooltip title={title ?? defaultTitles[type]} position="right" {...tooltipProps}>
+      <Tooltip
+        title={title ?? defaultTitles[type]}
+        position="right"
+        disabled={noTooltip}
+        {...tooltipProps}
+      >
         <Fragment>
           {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
           {variant === 'indicator' && (
