@@ -2080,9 +2080,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             different_frames = []
             for symbolicator_stacktrace, stacktrace_info in zip(
-                symbolicator_stacktraces, self.stacktrace_infos
+                symbolicator_stacktraces,
+                filter(
+                    # only include `stacktrace_infos` that have a stacktrace with frames
+                    lambda sinfo: get_path(sinfo, "stacktrace", "frames", filter=True),
+                    self.stacktrace_infos,
+                ),
             ):
-                # NOTE: lets hope that `stacktrace_info` has the already processed frames
                 python_stacktrace = stacktrace_info.container.get("stacktrace")
 
                 for symbolicator_frame, python_frame in zip(
