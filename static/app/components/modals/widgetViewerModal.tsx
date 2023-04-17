@@ -27,6 +27,8 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -67,6 +69,7 @@ import WidgetCardChart, {
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboards/widgetCard/chart';
 import {
+  DashboardsMEPConsumer,
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -174,6 +177,7 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const router = useRouter();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
+  let widgetContentLoadingStatus: boolean | undefined = undefined;
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -794,13 +798,17 @@ function WidgetViewerModal(props: Props) {
             cursor={cursor}
             dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
           >
-            {({tableResults, loading, pageLinks}) => (
-              <DiscoverTable
-                tableResults={tableResults}
-                loading={loading}
-                pageLinks={pageLinks}
-              />
-            )}
+            {({tableResults, loading, pageLinks}) => {
+              // small hack that improves the concurrency render of the warning triangle
+              widgetContentLoadingStatus = loading;
+              return (
+                <DiscoverTable
+                  tableResults={tableResults}
+                  loading={loading}
+                  pageLinks={pageLinks}
+                />
+              );
+            }}
           </WidgetQueries>
         );
     }
@@ -983,7 +991,31 @@ function WidgetViewerModal(props: Props) {
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <Header closeButton>
-                    <h3>{widget.title}</h3>
+                    <WidgetTitle>
+                      <h3>{widget.title}</h3>
+                      <DashboardsMEPConsumer>
+                        {({isMetricsData}) => {
+                          if (
+                            widgetContentLoadingStatus === false &&
+                            widget.widgetType === WidgetType.DISCOVER &&
+                            isMetricsData === false
+                          ) {
+                            return (
+                              <Tooltip
+                                containerDisplayMode="inline-flex"
+                                title={t(
+                                  'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
+                                )}
+                              >
+                                <IconWarning color="warningText" size="md" />
+                              </Tooltip>
+                            );
+                          }
+
+                          return null;
+                        }}
+                      </DashboardsMEPConsumer>
+                    </WidgetTitle>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
                   <Footer>
@@ -1159,6 +1191,12 @@ const ResultsContainer = styled('div')`
 
 const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
+`;
+
+const WidgetTitle = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 export default withPageFilters(WidgetViewerModal);
