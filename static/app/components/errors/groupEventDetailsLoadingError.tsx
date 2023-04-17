@@ -9,7 +9,7 @@ type Props = {
   onRetry?: (e: React.MouseEvent) => void;
 };
 
-const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
+function GroupEventDetailsLoadingError({onRetry, environments}: Props) {
   const reasons = [
     t('The events are still processing and are on their way'),
     t('The events have been deleted'),
@@ -43,6 +43,6 @@ const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
       message={message}
     />
   );
-};
+}
 
 export default GroupEventDetailsLoadingError;

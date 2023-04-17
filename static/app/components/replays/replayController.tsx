@@ -151,10 +151,10 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   );
 }
 
-const ReplayControls = ({
+function ReplayControls({
   toggleFullscreen,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
-}: Props) => {
+}: Props) {
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
   const barRef = useRef<HTMLDivElement>(null);
@@ -213,7 +213,7 @@ const ReplayControls = ({
       </ButtonBar>
     </ButtonGrid>
   );
-};
+}
 
 const ButtonGrid = styled('div')<{isCompact: boolean}>`
   display: flex;

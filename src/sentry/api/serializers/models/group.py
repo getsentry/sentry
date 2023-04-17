@@ -435,6 +435,8 @@ class GroupSerializerBase(Serializer, ABC):
                 organization_id=obj.project.organization_id,
                 group_id=obj.id,
                 resolution_type="automatic",
+                issue_type=obj.issue_type.slug,
+                issue_category=obj.issue_category.name.lower(),
             )
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"

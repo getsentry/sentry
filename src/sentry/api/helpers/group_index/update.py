@@ -18,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.ignored import handle_archived_until_escalating
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -32,7 +33,6 @@ from sentry.models import (
     GroupResolution,
     GroupSeen,
     GroupShare,
-    GroupSnooze,
     GroupStatus,
     GroupSubscription,
     GroupTombstone,
@@ -45,9 +45,10 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
@@ -251,7 +252,7 @@ def update_groups(
 
         return handle_discard(request, list(queryset), projects, acting_user)
 
-    statusDetails = result.pop("statusDetails", result)
+    status_details = result.pop("statusDetails", result)
     status = result.get("status")
     release = None
     commit = None
@@ -260,7 +261,7 @@ def update_groups(
     activity_data: MutableMapping[str, Any | None] | None = None
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
-        if status == "resolvedInNextRelease" or statusDetails.get("inNextRelease"):
+        if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
             # TODO(jess): We may want to support this for multi project, but punting on it for now
             if len(projects) > 1:
                 return Response(
@@ -268,7 +269,7 @@ def update_groups(
                     status=400,
                 )
             release = (
-                statusDetails.get("inNextRelease")
+                status_details.get("inNextRelease")
                 or Release.objects.filter(
                     projects=projects[0], organization_id=projects[0].organization_id
                 )
@@ -284,15 +285,15 @@ def update_groups(
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
             )
-            status_details = {
+            new_status_details = {
                 "inNextRelease": True,
             }
             if serialized_user:
-                status_details["actor"] = serialized_user[0]
+                new_status_details["actor"] = serialized_user[0]
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
             res_status = GroupResolution.Status.pending
-        elif statusDetails.get("inRelease"):
+        elif status_details.get("inRelease"):
             # TODO(jess): We could update validation to check if release
             # applies to multiple projects, but I think we agreed to punt
             # on this for now
@@ -300,7 +301,7 @@ def update_groups(
                 return Response(
                     {"detail": "Cannot set resolved in release for multiple projects."}, status=400
                 )
-            release = statusDetails["inRelease"]
+            release = status_details["inRelease"]
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
                 # no version yet
@@ -310,39 +311,39 @@ def update_groups(
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
             )
-            status_details = {
+            new_status_details = {
                 "inRelease": release.version,
             }
             if serialized_user:
-                status_details["actor"] = serialized_user[0]
+                new_status_details["actor"] = serialized_user[0]
             res_type = GroupResolution.Type.in_release
             res_type_str = "in_release"
             res_status = GroupResolution.Status.resolved
-        elif statusDetails.get("inCommit"):
+        elif status_details.get("inCommit"):
             # TODO(jess): Same here, this is probably something we could do, but
             # punting for now.
             if len(projects) > 1:
                 return Response(
                     {"detail": "Cannot set resolved in commit for multiple projects."}, status=400
                 )
-            commit = statusDetails["inCommit"]
+            commit = status_details["inCommit"]
             activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
             activity_data = {"commit": commit.id}
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
             )
 
-            status_details = {
+            new_status_details = {
                 "inCommit": serialize(commit, user),
             }
             if serialized_user:
-                status_details["actor"] = serialized_user[0]
+                new_status_details["actor"] = serialized_user[0]
             res_type_str = "in_commit"
         else:
             res_type_str = "now"
             activity_type = ActivityType.SET_RESOLVED.value
             activity_data = {}
-            status_details = {}
+            new_status_details = {}
 
         now = timezone.now()
         metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
@@ -533,10 +534,16 @@ def update_groups(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
             )
 
-        result.update({"status": "resolved", "statusDetails": status_details})
+        result.update({"status": "resolved", "statusDetails": new_status_details})
 
     elif status:
         new_status = STATUS_UPDATE_CHOICES[result["status"]]
+        new_substatus = (
+            SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
+        )
+        has_escalating_issues = features.has(
+            "organizations:escalating-issues", group_list[0].organization
+        )
         ignore_duration = None
         ignore_count = None
         ignore_window = None
@@ -545,64 +552,69 @@ def update_groups(
         ignore_until = None
 
         with transaction.atomic():
-            happened = queryset.exclude(status=new_status).update(status=new_status)
+            happened = queryset.exclude(status=new_status).update(
+                status=new_status, substatus=new_substatus
+            )
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
-                metrics.incr("group.ignored", skip_internal=True)
-                for group in group_ids:
-                    remove_group_from_inbox(
-                        group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
-                    )
-                result["inbox"] = None
-
-                ignore_duration = (
-                    statusDetails.pop("ignoreDuration", None)
-                    or statusDetails.pop("snoozeDuration", None)
-                ) or None
-                ignore_count = statusDetails.pop("ignoreCount", None) or None
-                ignore_window = statusDetails.pop("ignoreWindow", None) or None
-                ignore_user_count = statusDetails.pop("ignoreUserCount", None) or None
-                ignore_user_window = statusDetails.pop("ignoreUserWindow", None) or None
-                if ignore_duration or ignore_count or ignore_user_count:
-                    if ignore_duration:
-                        ignore_until = timezone.now() + timedelta(minutes=ignore_duration)
-                    else:
-                        ignore_until = None
-                    for group in group_list:
-                        state = {}
-                        if ignore_count and not ignore_window:
-                            state["times_seen"] = group.times_seen
-                        if ignore_user_count and not ignore_user_window:
-                            state["users_seen"] = group.count_users_seen()
-                        GroupSnooze.objects.create_or_update(
-                            group=group,
-                            values={
-                                "until": ignore_until,
-                                "count": ignore_count,
-                                "window": ignore_window,
-                                "user_count": ignore_user_count,
-                                "user_window": ignore_user_window,
-                                "state": state,
-                                "actor_id": user.id if user.is_authenticated else None,
-                            },
-                        )
-                        serialized_user = user_service.serialize_many(
-                            filter=dict(user_ids=[user.id]), as_user=user
-                        )
-                        result["statusDetails"] = {
-                            "ignoreCount": ignore_count,
-                            "ignoreUntil": ignore_until,
-                            "ignoreUserCount": ignore_user_count,
-                            "ignoreUserWindow": ignore_user_window,
-                            "ignoreWindow": ignore_window,
-                        }
-                        if serialized_user:
-                            result["statusDetails"]["actor"] = serialized_user[0]
+                if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
+                    handle_archived_until_escalating(group_list, acting_user)
                 else:
-                    GroupSnooze.objects.filter(group__in=group_ids).delete()
-                    ignore_until = None
-                    result["statusDetails"] = {}
+                    metrics.incr("group.ignored", skip_internal=True)
+                    for group in group_ids:
+                        remove_group_from_inbox(
+                            group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
+                        )
+
+                    ignore_duration = (
+                        status_details.pop("ignoreDuration", None)
+                        or status_details.pop("snoozeDuration", None)
+                    ) or None
+                    ignore_count = status_details.pop("ignoreCount", None) or None
+                    ignore_window = status_details.pop("ignoreWindow", None) or None
+                    ignore_user_count = status_details.pop("ignoreUserCount", None) or None
+                    ignore_user_window = status_details.pop("ignoreUserWindow", None) or None
+                    if ignore_duration or ignore_count or ignore_user_count:
+                        if ignore_duration:
+                            ignore_until = timezone.now() + timedelta(minutes=ignore_duration)
+                        else:
+                            ignore_until = None
+                        for group in group_list:
+                            state = {}
+                            if ignore_count and not ignore_window:
+                                state["times_seen"] = group.times_seen
+                            if ignore_user_count and not ignore_user_window:
+                                state["users_seen"] = group.count_users_seen()
+                            GroupSnooze.objects.create_or_update(
+                                group=group,
+                                values={
+                                    "until": ignore_until,
+                                    "count": ignore_count,
+                                    "window": ignore_window,
+                                    "user_count": ignore_user_count,
+                                    "user_window": ignore_user_window,
+                                    "state": state,
+                                    "actor_id": user.id if user.is_authenticated else None,
+                                },
+                            )
+                            serialized_user = user_service.serialize_many(
+                                filter=dict(user_ids=[user.id]), as_user=user
+                            )
+                            result["statusDetails"] = {
+                                "ignoreCount": ignore_count,
+                                "ignoreUntil": ignore_until,
+                                "ignoreUserCount": ignore_user_count,
+                                "ignoreUserWindow": ignore_user_window,
+                                "ignoreWindow": ignore_window,
+                            }
+                            if serialized_user:
+                                result["statusDetails"]["actor"] = serialized_user[0]
+                    else:
+                        GroupSnooze.objects.filter(group__in=group_ids).delete()
+                        ignore_until = None
+                        result["statusDetails"] = {}
+                result["inbox"] = None
             else:
                 result["statusDetails"] = {}
         if group_list and happened:

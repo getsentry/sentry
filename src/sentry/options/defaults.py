@@ -358,6 +358,8 @@ register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unuse
 register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[])
 # Enable use of Symbolicator Source Maps processing for fraction of projects.
 register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
+# Use a fraction of Symbolicator Source Maps processing events for A/B testing.
+register("symbolicator.sourcemaps-processing-ab-test", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -428,6 +430,9 @@ register("store.nodestore-stats-sample-rate", default=0.0)  # unused
 register("store.reprocessing-force-disable", default=False)
 
 register("store.race-free-group-creation-force-disable", default=False)
+
+# Option to enable dart deobfuscation on ingest
+register("processing.view-hierarchies-dart-deobfuscation", default=0.0)
 
 
 # ## sentry.killswitches

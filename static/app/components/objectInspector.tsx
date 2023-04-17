@@ -25,7 +25,7 @@ function ObjectInspector({data, theme, ...props}: Props) {
       // Reset some theme values
       BASE_COLOR: 'inherit',
       ERROR_COLOR: emotionTheme.red400,
-      TREENODE_FONT_FAMILY: 'inherit',
+      TREENODE_FONT_FAMILY: emotionTheme.text.familyMono,
       TREENODE_FONT_SIZE: 'inherit',
       TREENODE_LINE_HEIGHT: 'inherit',
       BASE_BACKGROUND_COLOR: 'none',
@@ -34,7 +34,7 @@ function ObjectInspector({data, theme, ...props}: Props) {
       OBJECT_PREVIEW_OBJECT_MAX_PROPERTIES: 1,
       ...theme,
     }),
-    [isDark, theme, emotionTheme.red400]
+    [isDark, theme, emotionTheme.red400, emotionTheme.text]
   );
 
   return (

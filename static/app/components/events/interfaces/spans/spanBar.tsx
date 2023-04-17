@@ -131,7 +131,7 @@ export type SpanBarProps = {
   resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
@@ -918,7 +918,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   renderMissingInstrumentationProfileBadge(): React.ReactNode {
     const {organization, span} = this.props;
 
-    if (!organization.features.includes('profiling-previews')) {
+    if (!organization.features.includes('profiling')) {
       return null;
     }
 

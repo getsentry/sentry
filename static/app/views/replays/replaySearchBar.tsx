@@ -12,8 +12,15 @@ import {
   TagCollection,
   TagValue,
 } from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import {FieldKind, getFieldDefinition, REPLAY_FIELDS} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  getFieldDefinition,
+  REPLAY_CLICK_FIELDS,
+  REPLAY_FIELDS,
+} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import useTags from 'sentry/utils/useTags';
 
@@ -37,15 +44,16 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
       {
         key,
         name: key,
-        kind: getReplayFieldDefinition(key)?.kind,
+        ...getReplayFieldDefinition(key),
       },
     ])
   );
 }
 
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
+const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
 
-function getSupportedTags(supportedTags: TagCollection) {
+function getSupportedTags(supportedTags: TagCollection, organization: Organization) {
   return {
     ...Object.fromEntries(
       Object.keys(supportedTags).map(key => [
@@ -56,6 +64,9 @@ function getSupportedTags(supportedTags: TagCollection) {
         },
       ])
     ),
+    ...(organization && organization.features.includes('session-replay-dom-search')
+      ? REPLAY_CLICK_FIELDS_AS_TAGS
+      : {}),
     ...REPLAY_FIELDS_AS_TAGS,
   };
 }
@@ -103,7 +114,7 @@ function ReplaySearchBar(props: Props) {
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={getSupportedTags(tags)}
+      supportedTags={getSupportedTags(tags, organization)}
       placeholder={t('Search for users, duration, count_errors, and more')}
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
@@ -112,6 +123,18 @@ function ReplaySearchBar(props: Props) {
       maxMenuHeight={500}
       hasRecentSearches
       fieldDefinitionGetter={getReplayFieldDefinition}
+      onSearch={(query: string) => {
+        props.onSearch?.(query);
+        const conditions = new MutableSearch(query);
+        const searchKeys = conditions.tokens.map(({key}) => key).filter(Boolean);
+
+        if (searchKeys.length > 0) {
+          trackAdvancedAnalyticsEvent('replay.search', {
+            search_keys: searchKeys.join(','),
+            organization,
+          });
+        }
+      }}
     />
   );
 }

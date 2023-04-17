@@ -83,7 +83,7 @@ type Props = {
   to?: string;
 };
 
-const SidebarItem = ({
+function SidebarItem({
   id,
   href,
   to,
@@ -102,7 +102,7 @@ const SidebarItem = ({
   organization,
   onClick,
   ...props
-}: Props) => {
+}: Props) {
   const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
@@ -145,9 +145,9 @@ const SidebarItem = ({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" noTooltip />}
-      {isBeta && <FeatureBadge type="beta" noTooltip />}
-      {isAlpha && <FeatureBadge type="alpha" noTooltip />}
+      {showIsNew && <FeatureBadge type="new" tooltipProps={{disabled: true}} />}
+      {isBeta && <FeatureBadge type="beta" tooltipProps={{disabled: true}} />}
+      {isAlpha && <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />}
     </Fragment>
   );
 
@@ -182,9 +182,27 @@ const SidebarItem = ({
               </LabelHook>
             </SidebarItemLabel>
           )}
-          {collapsed && showIsNew && <CollapsedFeatureBadge type="new" />}
-          {collapsed && isBeta && <CollapsedFeatureBadge type="beta" />}
-          {collapsed && isAlpha && <CollapsedFeatureBadge type="alpha" />}
+          {collapsed && showIsNew && (
+            <CollapsedFeatureBadge
+              type="new"
+              variant="indicator"
+              tooltipProps={{disabled: true}}
+            />
+          )}
+          {collapsed && isBeta && (
+            <CollapsedFeatureBadge
+              type="beta"
+              variant="indicator"
+              tooltipProps={{disabled: true}}
+            />
+          )}
+          {collapsed && isAlpha && (
+            <CollapsedFeatureBadge
+              type="alpha"
+              variant="indicator"
+              tooltipProps={{disabled: true}}
+            />
+          )}
           {badge !== undefined && badge > 0 && (
             <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
           )}
@@ -192,7 +210,7 @@ const SidebarItem = ({
       </StyledSidebarItem>
     </Tooltip>
   );
-};
+}
 
 export default SidebarItem;
 
@@ -342,8 +360,3 @@ const CollapsedFeatureBadge = styled(FeatureBadge)`
   top: 0;
   right: 0;
 `;
-
-CollapsedFeatureBadge.defaultProps = {
-  variant: 'indicator',
-  noTooltip: true,
-};

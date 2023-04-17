@@ -8,13 +8,16 @@ type QueryKeyEndpointOptions = {
   query?: Record<string, any>;
 };
 
-export type QueryKey =
+export type ApiQueryKey =
   | readonly [url: string]
   | readonly [url: string, options: QueryKeyEndpointOptions];
 
-interface UseQueryOptions<TQueryFnData, TError = RequestError, TData = TQueryFnData>
-  extends Omit<
-    reactQuery.UseQueryOptions<TQueryFnData, TError, TData, QueryKey>,
+export interface UseApiQueryOptions<
+  TQueryFnData,
+  TError = RequestError,
+  TData = TQueryFnData
+> extends Omit<
+    reactQuery.UseQueryOptions<TQueryFnData, TError, TData, ApiQueryKey>,
     'queryKey' | 'queryFn'
   > {
   /**
@@ -47,9 +50,9 @@ const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
 
 function isQueryFn<TQueryFnData, TError, TData>(
   queryFnOrQueryOptions?:
-    | reactQuery.QueryFunction<TQueryFnData, QueryKey>
-    | UseQueryOptions<TQueryFnData, TError, TData>
-): queryFnOrQueryOptions is reactQuery.QueryFunction<TQueryFnData, QueryKey> {
+    | reactQuery.QueryFunction<TQueryFnData, ApiQueryKey>
+    | UseApiQueryOptions<TQueryFnData, TError, TData>
+): queryFnOrQueryOptions is reactQuery.QueryFunction<TQueryFnData, ApiQueryKey> {
   return typeof queryFnOrQueryOptions === 'function';
 }
 
@@ -68,9 +71,9 @@ function isQueryFn<TQueryFnData, TError, TData>(
  *   {staleTime: 0}
  * );
  */
-function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
-  queryKey: QueryKey,
-  queryOptions: UseQueryOptions<TQueryFnData, TError, TData>
+function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+  queryKey: ApiQueryKey,
+  queryOptions: UseApiQueryOptions<TQueryFnData, TError, TData>
 ): reactQuery.UseQueryResult<TData, TError>;
 /**
  * Example usage with custom query function:
@@ -81,17 +84,17 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
  *   {staleTime: 0}
  * )
  */
-function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
-  queryKey: QueryKey,
-  queryFn: reactQuery.QueryFunction<TQueryFnData, QueryKey>,
-  queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
+function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+  queryKey: ApiQueryKey,
+  queryFn: reactQuery.QueryFunction<TQueryFnData, ApiQueryKey>,
+  queryOptions?: UseApiQueryOptions<TQueryFnData, TError, TData>
 ): reactQuery.UseQueryResult<TData, TError>;
-function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
-  queryKey: QueryKey,
+function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+  queryKey: ApiQueryKey,
   queryFnOrQueryOptions:
-    | reactQuery.QueryFunction<TQueryFnData, QueryKey>
-    | UseQueryOptions<TQueryFnData, TError, TData>,
-  queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
+    | reactQuery.QueryFunction<TQueryFnData, ApiQueryKey>
+    | UseApiQueryOptions<TQueryFnData, TError, TData>,
+  queryOptions?: UseApiQueryOptions<TQueryFnData, TError, TData>
 ): reactQuery.UseQueryResult<TData, TError> {
   // XXX: We need to set persistInFlight to disable query cancellation on unmount.
   // The current implementation of our API client does not reject on query
@@ -101,7 +104,7 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
 
   const [path, endpointOptions] = queryKey;
 
-  const defaultQueryFn: reactQuery.QueryFunction<TQueryFnData, QueryKey> = () =>
+  const defaultQueryFn: reactQuery.QueryFunction<TQueryFnData, ApiQueryKey> = () =>
     api.requestPromise(path, {
       method: 'GET',
       query: endpointOptions?.query,
@@ -118,8 +121,17 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   return reactQuery.useQuery(queryKey, queryFn, options);
 }
 
+function setApiQueryData<TResponseData>(
+  queryClient: reactQuery.QueryClient,
+  queryKey: ApiQueryKey,
+  updater: reactQuery.Updater<TResponseData | undefined, TResponseData | undefined>,
+  options?: reactQuery.SetDataOptions
+): TResponseData | undefined {
+  return queryClient.setQueryData(queryKey, updater, options);
+}
+
 // eslint-disable-next-line import/export
 export * from '@tanstack/react-query';
 
 // eslint-disable-next-line import/export
-export {DEFAULT_QUERY_CLIENT_CONFIG, useQuery, UseQueryOptions};
+export {DEFAULT_QUERY_CLIENT_CONFIG, useApiQuery, setApiQueryData};

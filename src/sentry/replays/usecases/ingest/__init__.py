@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import zlib
 from datetime import datetime, timezone
-from typing import TypedDict, Union
+from typing import Optional, TypedDict, Union
 
 from django.conf import settings
 from sentry_sdk import Hub
@@ -258,9 +258,13 @@ def decompress(data: bytes) -> bytes:
         return zlib.decompress(data, zlib.MAX_WBITS | 32)
 
 
-def _report_size_metrics(size_compressed: int, size_uncompressed: int) -> None:
-    metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
-    metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
+def _report_size_metrics(
+    size_compressed: Optional[int] = None, size_uncompressed: Optional[int] = None
+) -> None:
+    if size_compressed:
+        metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
+    if size_uncompressed:
+        metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
 
 
 def replay_click_post_processor(
@@ -274,6 +278,7 @@ def replay_click_post_processor(
         options.get("replay.ingest.dom-click-search"),
         settings.SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST,
     ):
+        _report_size_metrics(size_compressed=len(segment_bytes))
         return None
 
     try:

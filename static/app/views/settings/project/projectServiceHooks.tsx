@@ -145,14 +145,13 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
       hookList && hookList.length > 0 ? this.renderResults() : this.renderEmpty();
 
     const {organization, params} = this.props;
-    const access = new Set(organization.access);
 
     return (
       <Fragment>
         <SettingsPageHeader
           title={t('Service Hooks')}
           action={
-            access.has('project:write') ? (
+            organization.access.includes('project:write') ? (
               <Button
                 data-test-id="new-service-hook"
                 to={`/settings/${organization.slug}/projects/${params.projectId}/hooks/new/`}

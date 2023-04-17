@@ -24,6 +24,9 @@ export enum FieldKey {
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
   DEVICE_CHARGING = 'device.charging',
+  // device.class is a synthesized field calculated based off device info found in context such
+  // as model (for iOS devices), and device specs like processor_frequency (for Android devices).
+  // https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/device_class.rs
   DEVICE_CLASS = 'device.class',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
@@ -45,6 +48,7 @@ export enum FieldKey {
   ERROR_UNHANDLED = 'error.unhandled',
   ERROR_VALUE = 'error.value',
   ERROR_RECEIVED = 'error.received',
+  ERROR_MAIN_THREAD = 'error.main_thread',
   EVENT_TIMESTAMP = 'event.timestamp',
   EVENT_TYPE = 'event.type',
   FIRST_RELEASE = 'firstRelease',
@@ -622,6 +626,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
+  [FieldKey.ERROR_MAIN_THREAD]: {
+    desc: t('Indicates if the error occurred on the main thread'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [FieldKey.EVENT_TIMESTAMP]: {
     desc: t('Date and time of the event'),
     kind: FieldKind.FIELD,
@@ -968,6 +977,7 @@ export const ISSUE_FIELDS = [
   FieldKey.BOOKMARKS,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_CLASS,
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_LOCALE,
   FieldKey.DEVICE_LOCALE,
@@ -980,6 +990,7 @@ export const ISSUE_FIELDS = [
   FieldKey.ERROR_TYPE,
   FieldKey.ERROR_UNHANDLED,
   FieldKey.ERROR_VALUE,
+  FieldKey.ERROR_MAIN_THREAD,
   FieldKey.EVENT_TIMESTAMP,
   FieldKey.EVENT_TYPE,
   FieldKey.FIRST_RELEASE,
@@ -1093,6 +1104,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.ERROR_HANDLED,
   FieldKey.ERROR_UNHANDLED,
   FieldKey.ERROR_RECEIVED,
+  FieldKey.ERROR_MAIN_THREAD,
   FieldKey.LEVEL,
   FieldKey.STACK_ABS_PATH,
   FieldKey.STACK_FILENAME,
@@ -1135,7 +1147,7 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SpansUi,
 ];
 
-enum ReplayFieldKey {
+export enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
@@ -1147,6 +1159,19 @@ enum ReplayFieldKey {
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   URLS = 'urls',
+}
+
+export enum ReplayClickFieldKey {
+  CLICK_ALT = 'click.alt',
+  CLICK_CLASS = 'click.class',
+  CLICK_ID = 'click.id',
+  CLICK_LABEL = 'click.label',
+  CLICK_ROLE = 'click.role',
+  CLICK_SELECTOR = 'click.selector',
+  CLICK_TAG = 'click.tag',
+  CLICK_TESTID = 'click.testid',
+  CLICK_TEXT_CONTENT = 'click.textContent',
+  CLICK_TITLE = 'click.title',
 }
 
 /**
@@ -1169,6 +1194,7 @@ export const REPLAY_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
+
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
@@ -1244,14 +1270,86 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
 };
 
+export const REPLAY_CLICK_FIELDS = [
+  ReplayClickFieldKey.CLICK_ALT,
+  ReplayClickFieldKey.CLICK_CLASS,
+  ReplayClickFieldKey.CLICK_ID,
+  ReplayClickFieldKey.CLICK_LABEL,
+  ReplayClickFieldKey.CLICK_ROLE,
+  ReplayClickFieldKey.CLICK_SELECTOR,
+  ReplayClickFieldKey.CLICK_TAG,
+  ReplayClickFieldKey.CLICK_TEXT_CONTENT,
+  ReplayClickFieldKey.CLICK_TITLE,
+  ReplayClickFieldKey.CLICK_TESTID,
+];
+
+// This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
+const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinition> = {
+  [ReplayClickFieldKey.CLICK_ALT]: {
+    desc: t('`alt` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_CLASS]: {
+    desc: t('`class` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_ID]: {
+    desc: t('`id` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_LABEL]: {
+    desc: t('`aria-label` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_ROLE]: {
+    desc: t('`role` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_SELECTOR]: {
+    desc: t(
+      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TAG]: {
+    desc: t('`tag` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TESTID]: {
+    desc: t('`data-testid` or `data-test-id` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TEXT_CONTENT]: {
+    desc: t('textContent of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_TITLE]: {
+    desc: t('`title` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' = 'event'
+  type: 'event' | 'replay' | 'replay_click' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
       if (key in REPLAY_FIELD_DEFINITIONS) {
         return REPLAY_FIELD_DEFINITIONS[key];
+      }
+      if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
+        return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key];

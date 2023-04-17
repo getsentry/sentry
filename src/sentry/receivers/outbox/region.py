@@ -12,11 +12,15 @@ from sentry.models import (
     process_region_outbox,
 )
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
 from sentry.services.hybrid_cloud.log.impl import DatabaseBackedLogService
 from sentry.services.hybrid_cloud.organization_mapping import (
     organization_mapping_service,
     update_organization_mapping_from_instance,
+)
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    organizationmember_mapping_service,
 )
 
 
@@ -25,7 +29,7 @@ def process_organization_mapping_verifications(object_identifier: int, **kwds: A
     if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
         return
 
-    organization_mapping_service.verify_mappings(org.id, org.slug)
+    organization_mapping_service.verify_mappings(organization_id=org.id, slug=org.slug)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
@@ -43,10 +47,18 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
-def process_organization_member_updates(object_identifier: int, **kwds: Any):
+def process_organization_member_updates(
+    object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
+):
     if (org_member := maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
+        # Delete all identities that may have been associated.  This is an implicit cascade.
+        if payload and "user_id" in payload:
+            identity_service.delete_identities(
+                user_id=payload["user_id"], organization_id=shard_identifier
+            )
         return
-    org_member  # TODO: When we get the org member mapping table in place, here is where we'll sync it.
+
+    organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_UPDATE)
@@ -55,7 +67,7 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
         return
 
     update = update_organization_mapping_from_instance(org)
-    organization_mapping_service.update(org.id, update)
+    organization_mapping_service.update(organization_id=org.id, update=update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)

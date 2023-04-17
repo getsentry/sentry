@@ -19,7 +19,7 @@ import {Image} from 'sentry/types/debugImage';
 import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
@@ -101,7 +101,7 @@ const useFetchProguardMappingFiles = ({
     data: proguardMappingFiles,
     isSuccess,
     isLoading,
-  } = useQuery<DebugFile[]>(
+  } = useApiQuery<DebugFile[]>(
     [
       `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       {
@@ -208,7 +208,7 @@ const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Proje
   }, [event, organization, project.platform]);
 };
 
-export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
+export function EventErrors({event, project, isShare}: EventErrorsProps) {
   const organization = useOrganization();
   useRecordAnalyticsEvent({event, project});
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
@@ -287,7 +287,7 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
       </StyledAlert>
     </StyledDataSection>
   );
-};
+}
 
 const HiddenDiv = styled('div')`
   display: none;

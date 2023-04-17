@@ -12,7 +12,7 @@ from sentry.api.validators.project_codeowners import validate_codeowners_associa
 from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
-from sentry.utils.codeowners import HIGHER_MAX_RAW_LENGTH, MAX_RAW_LENGTH
+from sentry.utils.codeowners import MAX_RAW_LENGTH
 
 from .analytics import *  # NOQA
 
@@ -27,11 +27,6 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         fields = ["raw", "code_mapping_id", "organization_integration_id"]
 
     def get_max_length(self) -> int:
-        if features.has(
-            "organizations:scaleable-codeowners-search",
-            self.context["project"].organization,
-        ):
-            return int(HIGHER_MAX_RAW_LENGTH)
         # typecast needed for typing, though these will always be ints
         return int(MAX_RAW_LENGTH)
 
@@ -71,12 +66,20 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         )
 
         # Convert IssueOwner syntax into schema syntax
+        has_targeting_context = features.has(
+            "organizations:streamline-targeting-context", self.context["project"].organization
+        )
         try:
-            validated_data = create_schema_from_issue_owners(
-                issue_owners=issue_owner_rules,
-                project_id=self.context["project"].id,
-                add_owner_ids=True,
-            )
+            if has_targeting_context:
+                validated_data = create_schema_from_issue_owners(
+                    issue_owners=issue_owner_rules,
+                    project_id=self.context["project"].id,
+                    add_owner_ids=True,
+                )
+            else:
+                validated_data = create_schema_from_issue_owners(
+                    issue_owners=issue_owner_rules, project_id=self.context["project"].id
+                )
             return {
                 **attrs,
                 "schema": validated_data,

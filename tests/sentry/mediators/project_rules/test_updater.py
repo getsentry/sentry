@@ -1,4 +1,6 @@
 from sentry.mediators.project_rules import Updater
+from sentry.models.actor import get_actor_id_for_user
+from sentry.models.user import User
 from sentry.testutils import TestCase
 
 
@@ -18,8 +20,10 @@ class TestUpdater(TestCase):
         assert self.rule.label == "Cool New Rule"
 
     def test_update_owner(self):
-        self.updater.owner = self.user.actor.id
+
+        self.updater.owner = get_actor_id_for_user(self.user)
         self.updater.call()
+        self.user = User.objects.get(id=self.user.id)
         assert self.rule.owner == self.user.actor
 
         team = self.create_team()

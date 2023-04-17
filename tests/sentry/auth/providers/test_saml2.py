@@ -27,7 +27,7 @@ class DummySAML2Provider(SAML2Provider):
 class SAML2ProviderTest(TestCase):
     def setUp(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider="saml2", organization=self.organization
+            provider="saml2", organization_id=self.organization.id
         )
         self.provider = DummySAML2Provider(key=self.auth_provider.provider)
         super().setUp()

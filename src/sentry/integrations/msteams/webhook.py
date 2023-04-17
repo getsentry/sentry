@@ -10,13 +10,14 @@ from rest_framework.response import Response
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
 from sentry.api.base import Endpoint, pending_silo_endpoint
-from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Project, Rule
+from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Rule
 from sentry.models.activity import ActivityIntegration
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
+from ...services.hybrid_cloud.integration import integration_service
 from .card_builder import AdaptiveCard
 from .card_builder.help import (
     build_help_command_card,
@@ -255,10 +256,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # this is different than Vercel, for example, which can have multiple installations
         # for the same team in Vercel with different auth tokens
 
-        for org in integration.organizations.all():
+        for org_id in integration.organizationintegration_set.values_list(
+            "organization_id", flat=True
+        ):
             create_audit_entry(
                 request=request,
-                organization=org,
+                organization_id=org_id,
                 target_object=integration.id,
                 event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                 actor_label="Teams User",
@@ -306,7 +309,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     def issue_state_change(self, group, identity, data):
         event_write_key = ApiKey(
-            organization=group.project.organization, scope_list=["event:write"]
+            organization_id=group.project.organization_id, scope_list=["event:write"]
         )
 
         # undoing the enum structure of ACTION_TYPE to
@@ -362,14 +365,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
         team_id = integration.external_id
         client = MsTeamsClient(integration)
 
-        try:
-            group = Group.objects.select_related("project__organization").get(
-                project__in=Project.objects.filter(
-                    organization__in=integration.organizations.all()
-                ),
-                id=group_id,
+        group = Group.objects.select_related("project__organization").filter(id=group_id).first()
+        if group:
+            integration = integration_service.get_organization_integration(
+                integration_id=integration.id, organization_id=group.project.organization_id
             )
-        except Group.DoesNotExist:
+            if integration is None:
+                group = None
+
+        if not group:
             logger.info(
                 "msteams.action.invalid-issue",
                 extra={"team_id": team_id, "integration_id": integration.id},

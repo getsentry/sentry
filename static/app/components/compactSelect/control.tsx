@@ -1,4 +1,4 @@
-import {createContext, Fragment, useCallback, useMemo, useState} from 'react';
+import {createContext, Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -19,15 +19,10 @@ import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
 
+import {SingleListProps} from './list';
 import {SelectOption} from './types';
 
 export interface SelectContextValue {
-  /**
-   * Filter function to determine whether an option should be rendered in the select
-   * list. A true return value means the option should be rendered. This function is
-   * automatically updated based on the current search string.
-   */
-  filterOption: (opt: SelectOption<React.Key>) => boolean;
   overlayIsOpen: boolean;
   /**
    * Function to be called once when a list is initialized, to register its state in
@@ -46,6 +41,10 @@ export interface SelectContextValue {
     newSelectedOptions: SelectOption<React.Key> | SelectOption<React.Key>[]
   ) => void;
   /**
+   * Search string to determine whether an option should be rendered in the select list.
+   */
+  search: string;
+  /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
@@ -55,11 +54,20 @@ export interface SelectContextValue {
 export const SelectContext = createContext<SelectContextValue>({
   registerListState: () => {},
   saveSelectedOptions: () => {},
-  filterOption: () => true,
   overlayIsOpen: false,
+  search: '',
 });
 
-export interface ControlProps extends UseOverlayProps {
+export interface ControlProps
+  extends Omit<
+      React.BaseHTMLAttributes<HTMLDivElement>,
+      // omit keys from SingleListProps because those will be passed to <List /> instead
+      keyof Omit<
+        SingleListProps<React.Key>,
+        'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+      >
+    >,
+    UseOverlayProps {
   children?: React.ReactNode;
   className?: string;
   /**
@@ -149,6 +157,7 @@ export function Control({
   triggerProps,
   isOpen,
   onClose,
+  onInteractOutside,
   disabled,
   position = 'bottom-start',
   offset,
@@ -188,19 +197,13 @@ export function Control({
    * Search/filter value, used to filter out the list of displayed elements
    */
   const [search, setSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
   const updateSearch = useCallback(
     (newValue: string) => {
       setSearch(newValue);
       onSearch?.(newValue);
     },
     [onSearch]
-  );
-  const filterOption = useCallback<SelectContextValue['filterOption']>(
-    opt =>
-      String(opt.label ?? '')
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    [search]
   );
 
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
@@ -240,11 +243,18 @@ export function Control({
     position,
     offset,
     isOpen,
+    onInteractOutside,
     onOpenChange: async open => {
       // On open
       if (open) {
         // Wait for overlay to appear/disappear
         await new Promise(resolve => resolve(null));
+
+        // Focus on search box if present
+        if (searchable) {
+          searchRef.current?.focus();
+          return;
+        }
 
         const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
           `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
@@ -341,15 +351,20 @@ export function Control({
     },
   });
 
+  const showClearButton = useMemo(
+    () => selectedOptions.flat().length > 0,
+    [selectedOptions]
+  );
+
   const contextValue = useMemo(
     () => ({
       registerListState,
       saveSelectedOptions,
       overlayState,
       overlayIsOpen,
-      filterOption,
+      search,
     }),
-    [registerListState, saveSelectedOptions, overlayState, overlayIsOpen, filterOption]
+    [registerListState, saveSelectedOptions, overlayState, overlayIsOpen, search]
   );
 
   const theme = useTheme();
@@ -389,12 +404,12 @@ export function Control({
             data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
-              {(menuTitle || clearable) && (
+              {(menuTitle || (clearable && showClearButton)) && (
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
-                    {clearable && (
+                    {clearable && showClearButton && (
                       <ClearButton onClick={clearSelection} size="zero" borderless>
                         {t('Clear')}
                       </ClearButton>
@@ -404,6 +419,7 @@ export function Control({
               )}
               {searchable && (
                 <SearchInput
+                  ref={searchRef}
                   placeholder={searchPlaceholder}
                   value={search}
                   onFocus={onSearchFocus}

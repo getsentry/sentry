@@ -79,7 +79,12 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 type=PerformanceUncompressedAssetsGroupType,
                 cause_span_ids=[],
                 offender_span_ids=[span.get("span_id", None)],
-                evidence_data={},
+                evidence_data={
+                    "op": op,
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [span.get("span_id", None)],
+                },
                 evidence_display=[],
             )
 
@@ -98,7 +103,12 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_event_eligible(cls, event):
         tags = event.get("tags", [])
         browser_name = next(
-            (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
+            (
+                tag[1]
+                for tag in tags
+                if tag is not None and tag[0] == "browser.name" and len(tag) == 2
+            ),
+            "",
         )
         if browser_name.lower() in [
             "chrome",

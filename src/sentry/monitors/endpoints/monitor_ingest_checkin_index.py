@@ -26,7 +26,7 @@ from sentry.monitors.models import (
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
-from sentry.monitors.utils import signal_first_checkin
+from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -62,7 +62,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         operation_id="Create a new check-in",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorCheckInValidator,
         responses={
@@ -82,7 +82,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         self,
         request: Request,
         project: Project,
-        monitor_id: str,
+        monitor_slug: str,
         monitor: Monitor | None,
         organization_slug: str | None = None,
     ) -> Response:
@@ -104,13 +104,13 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
         checkin_validator = MonitorCheckInValidator(
             data=request.data,
-            context={"project": project, "request": request, "monitor_id": monitor_id},
+            context={"project": project, "request": request, "monitor_slug": monitor_slug},
         )
         if not checkin_validator.is_valid():
             return self.respond(checkin_validator.errors, status=400)
 
         if not monitor:
-            ratelimit_key = monitor_id
+            ratelimit_key = monitor_slug
         else:
             ratelimit_key = monitor.id
 
@@ -134,7 +134,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             # Create a new monitor during checkin. Uses update_or_create to
             # protect against races.
             if create_monitor:
-                monitor, _ = Monitor.objects.update_or_create(
+                monitor, created = Monitor.objects.update_or_create(
                     organization_id=project.organization_id,
                     slug=monitor_data["slug"],
                     defaults={
@@ -145,6 +145,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                         "config": monitor_data["config"],
                     },
                 )
+
+                if created:
+                    signal_first_monitor_created(project, request.user, True)
 
             # Monitor does not exist and we have not created one
             if not monitor:

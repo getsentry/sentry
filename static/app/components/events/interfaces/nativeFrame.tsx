@@ -9,7 +9,6 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
-  isDotnet,
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
@@ -219,7 +218,7 @@ function NativeFrame({
   const status = getStatus();
 
   return (
-    <li data-test-id="stack-trace-frame">
+    <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader expandable={expandable} expanded={expanded}>
           <div>
@@ -312,7 +311,6 @@ function NativeFrame({
             {expandable && (
               <ToggleButton
                 size="zero"
-                css={isDotnet(platform) && {display: 'block !important'}} // remove important once we get rid of css files
                 title={t('Toggle Context')}
                 aria-label={t('Toggle Context')}
                 tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
@@ -341,7 +339,7 @@ function NativeFrame({
           frameMeta={frameMeta}
         />
       )}
-    </li>
+    </StackTraceFrame>
   );
 }
 
@@ -416,7 +414,6 @@ const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
   align-items: center;
   align-content: center;
   column-gap: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.bodyBackground};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
@@ -429,5 +426,13 @@ const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
     ${p => p.expandable && `grid-template-columns: auto 150px 120px 4fr auto auto 16px;`};
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
+  }
+`;
+
+const StackTraceFrame = styled('li')`
+  :not(:last-child) {
+    ${RowHeader} {
+      border-bottom: 1px solid ${p => p.theme.border};
+    }
   }
 `;

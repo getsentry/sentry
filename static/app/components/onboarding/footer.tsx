@@ -16,7 +16,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, OnboardingStatus, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
@@ -72,7 +72,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   const projectData = projectId ? onboardingContext.data[projectId] : undefined;
   const selectedProject = projects.find(project => project.slug === projectSlug);
 
-  useQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
+  useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
     staleTime: 0,
     refetchInterval: DEFAULT_POLL_INTERVAL,
     enabled:
@@ -86,7 +86,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   // *not* include sample events, while just looking at the issues list will.
   // We will wait until the project.firstEvent is set and then locate the
   // event given that event datetime
-  useQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
+  useApiQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
     staleTime: 0,
     enabled:
       !!firstError && !firstIssue && projectData?.status === OnboardingStatus.PROCESSING, // Only fetch if an error event is received and we have not yet located the first issue,

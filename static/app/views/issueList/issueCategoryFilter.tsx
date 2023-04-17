@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -29,16 +30,16 @@ function IssueCategoryFilter({
     (issueCategory?: IssueCategory, isTriggerLabel?: boolean) => {
       switch (issueCategory) {
         case IssueCategory.ERROR:
-          return t('Errors');
+          return <LabelWrapper>{t('Errors')}</LabelWrapper>;
         case IssueCategory.PERFORMANCE:
           return (
-            <React.Fragment>
+            <LabelWrapper>
               {t('Performance')}
               {!isTriggerLabel && !isPerformanceSeen && <FeatureBadge type="new" />}
-            </React.Fragment>
+            </LabelWrapper>
           );
         default:
-          return t('All Categories');
+          return <LabelWrapper>{t('All Categories')}</LabelWrapper>;
       }
     },
     [isPerformanceSeen]
@@ -117,5 +118,10 @@ function IssueCategoryFilter({
     />
   );
 }
+
+const LabelWrapper = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
 
 export default IssueCategoryFilter;

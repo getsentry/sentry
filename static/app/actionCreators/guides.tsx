@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
@@ -71,6 +72,7 @@ export function recordFinish(
   if (isDemoWalkthrough() && tourTask && org) {
     const {tour, task} = tourTask;
     updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
+    fetchOrganizationDetails(api, org.slug, true, false);
     demoEndModal({tour, orgSlug});
   }
 

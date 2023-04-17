@@ -170,7 +170,9 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             and ownership.schema.get("rules")
             and "id" not in ownership.schema["rules"][0]["owners"][0].keys()
         ):
-            ownership.schema = create_schema_from_issue_owners(ownership.raw, project.id, True)
+            ownership.schema = create_schema_from_issue_owners(
+                ownership.raw, project.id, add_owner_ids=True, remove_deleted_owners=True
+            )
             ownership.save()
 
     def rename_schema_identifier_for_parsing(self, ownership: ProjectOwnership) -> None:

@@ -6,7 +6,7 @@ import {Node} from '@react-types/shared';
 
 import {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from '../control';
+import {SelectFilterContext} from '../list';
 import {
   SectionGroup,
   SectionHeader,
@@ -14,6 +14,7 @@ import {
   SectionTitle,
   SectionWrap,
 } from '../styles';
+import {SelectSection} from '../types';
 import {SectionToggle} from '../utils';
 
 import {ListBoxOption} from './option';
@@ -22,13 +23,14 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: FormSize;
+  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
 }
 
 /**
  * A <li /> element that functions as a list box section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function ListBoxSection({item, listState, size}: ListBoxSectionProps) {
+export function ListBoxSection({item, listState, onToggle, size}: ListBoxSectionProps) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
     heading: item.rendered,
     'aria-label': item['aria-label'],
@@ -36,16 +38,15 @@ export function ListBoxSection({item, listState, size}: ListBoxSectionProps) {
 
   const {separatorProps} = useSeparator({elementType: 'li'});
 
-  const {filterOption} = useContext(SelectContext);
-  const filteredOptions = useMemo(() => {
-    return [...item.childNodes].filter(child => {
-      return filterOption(child.props);
-    });
-  }, [item.childNodes, filterOption]);
-
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&
     item.value.showToggleAllButton;
+
+  const hiddenOptions = useContext(SelectFilterContext);
+  const childItems = useMemo(
+    () => [...item.childNodes].filter(child => !hiddenOptions.has(child.props.value)),
+    [item.childNodes, hiddenOptions]
+  );
 
   return (
     <Fragment>
@@ -56,11 +57,13 @@ export function ListBoxSection({item, listState, size}: ListBoxSectionProps) {
             {item.rendered && (
               <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>
             )}
-            {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
+            {showToggleAllButton && (
+              <SectionToggle item={item} listState={listState} onToggle={onToggle} />
+            )}
           </SectionHeader>
         )}
         <SectionGroup {...groupProps}>
-          {filteredOptions.map(child => (
+          {childItems.map(child => (
             <ListBoxOption
               key={child.key}
               item={child}

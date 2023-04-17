@@ -17,7 +17,10 @@ type BaseProps = {
 };
 
 interface SingleProps
-  extends Omit<SingleSelectProps<string>, 'onChange' | 'defaultValue' | 'multiple'>,
+  extends Omit<
+      SingleSelectProps<string>,
+      'onChange' | 'defaultValue' | 'multiple' | 'title'
+    >,
     BaseProps {
   onChange: (value: string) => void;
   selected: string;
@@ -26,7 +29,10 @@ interface SingleProps
 }
 
 interface MultipleProps
-  extends Omit<MultipleSelectProps<string>, 'onChange' | 'defaultValue' | 'multiple'>,
+  extends Omit<
+      MultipleSelectProps<string>,
+      'onChange' | 'defaultValue' | 'multiple' | 'title'
+    >,
     BaseProps {
   multiple: true;
   onChange: (value: string[]) => void;

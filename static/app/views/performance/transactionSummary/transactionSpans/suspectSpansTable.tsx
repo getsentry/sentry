@@ -98,7 +98,10 @@ function renderBodyCellWithMeta(
   transactionName: string,
   project?: Project
 ) {
-  return (column: TableColumn, dataRow: TableDataRowWithExtras): React.ReactNode => {
+  return function (
+    column: TableColumn,
+    dataRow: TableDataRowWithExtras
+  ): React.ReactNode {
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
 
     if (column.key === 'description') {

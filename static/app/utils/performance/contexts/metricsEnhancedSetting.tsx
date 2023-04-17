@@ -85,7 +85,7 @@ export function canUseMetricsData(organization: Organization) {
   return isDevFlagOn || isInternalViewOn || isRollingOut;
 }
 
-export const MEPSettingProvider = ({
+export function MEPSettingProvider({
   children,
   location,
   _hasMEPState,
@@ -95,7 +95,7 @@ export const MEPSettingProvider = ({
   _hasMEPState?: MEPState;
   forceTransactions?: boolean;
   location?: Location;
-}) => {
+}) {
   const organization = useOrganization();
 
   const canUseMEP = canUseMetricsData(organization);
@@ -169,6 +169,6 @@ export const MEPSettingProvider = ({
       {children}
     </_MEPSettingProvider>
   );
-};
+}
 
 export const useMEPSettingContext = _useMEPSettingContext;

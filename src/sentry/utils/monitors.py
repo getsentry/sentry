@@ -34,9 +34,9 @@ def connect(app):
         if hasattr(app.conf, "beat_schedule")
         else app.conf["CELERYBEAT_SCHEDULE"]
     )
-    for schedule_name, monitor_id in settings.SENTRY_CELERYBEAT_MONITORS.items():
+    for schedule_name, monitor_slug in settings.SENTRY_CELERYBEAT_MONITORS.items():
         schedule[schedule_name].setdefault("options", {}).setdefault("headers", {}).setdefault(
-            "X-Sentry-Monitor", monitor_id
+            "X-Sentry-Monitor", monitor_slug
         )
 
 
@@ -63,16 +63,16 @@ def report_monitor_begin(task, **kwargs):
     if not headers:
         return
 
-    monitor_id = headers.get("X-Sentry-Monitor")
-    if not monitor_id:
+    monitor_slug = headers.get("X-Sentry-Monitor")
+    if not monitor_slug:
         return
 
     with configure_scope() as scope:
-        scope.set_context("monitor", {"id": monitor_id})
+        scope.set_context("monitor", {"id": monitor_slug})
 
     with SafeSession() as session:
         req = session.post(
-            f"{API_ROOT}/api/0/monitors/{monitor_id}/checkins/",
+            f"{API_ROOT}/api/0/monitors/{monitor_slug}/checkins/",
             headers={"Authorization": f"DSN {SENTRY_DSN}"},
             json={"status": "in_progress"},
         )
@@ -90,8 +90,8 @@ def report_monitor_complete(task, retval, **kwargs):
     if not headers:
         return
 
-    monitor_id = headers.get("X-Sentry-Monitor")
-    if not monitor_id:
+    monitor_slug = headers.get("X-Sentry-Monitor")
+    if not monitor_slug:
         return
 
     try:
@@ -103,7 +103,7 @@ def report_monitor_complete(task, retval, **kwargs):
 
     with SafeSession() as session:
         session.put(
-            f"{API_ROOT}/api/0/monitors/{monitor_id}/checkins/{checkin_id}/",
+            f"{API_ROOT}/api/0/monitors/{monitor_slug}/checkins/{checkin_id}/",
             headers={"Authorization": f"DSN {SENTRY_DSN}"},
             json={
                 "status": "error" if isinstance(retval, Exception) else "ok",

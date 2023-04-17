@@ -1,5 +1,7 @@
+import {collapseSystemFrameStrategy} from 'sentry/utils/profiling/collapseSystemFrameStrategy';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
+import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
@@ -365,4 +367,100 @@ describe('flamegraph', () => {
   it('Empty', () => {
     expect(Flamegraph.Empty().configSpace.equals(new Rect(0, 0, 1_000, 0))).toBe(true);
   });
+
+  it('collapseSystemFrames', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1, 1],
+      samples: [
+        [0, 1, 2, 2, 3], // -> 0,1,3
+        [0, 2, 2, 1, 2, 3], // ->  0,2,1,3
+        [0, 3, 4, 1], // -> 0,4,1
+      ],
+    };
+
+    const flamegraph = new Flamegraph(
+      SampledProfile.FromProfile(
+        trace,
+        createFrameIndex('mobile', [
+          {
+            name: 'f0',
+          },
+          {name: 'f1', is_application: true},
+          {name: 'f2'},
+          {name: 'f3'},
+          {name: 'f4'},
+        ]),
+        {
+          type: 'flamegraph',
+        }
+      ),
+      0,
+      {
+        sort: 'alphabetical',
+        collapseStrategy: collapseSystemFrameStrategy,
+      }
+    );
+
+    expect(flamegraph.root).toMatchObject(
+      expectFrame('sentry root', {
+        children: [
+          expectFrame('f0', {
+            children: [
+              expectFrame('f1', {
+                children: [
+                  expectFrame('f3', {
+                    collapsed: [expectFrame('f2'), expectFrame('f2')],
+                  }),
+                ],
+              }),
+              expectFrame('f2', {
+                collapsed: [expectFrame('f2')],
+                children: [
+                  expectFrame('f1', {
+                    children: [
+                      expectFrame('f3', {
+                        collapsed: [expectFrame('f2')],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              expectFrame('f4', {
+                collapsed: [expectFrame('f3')],
+              }),
+            ],
+          }),
+        ],
+      })
+    );
+  });
 });
+
+function expectFrame(
+  name: string,
+  {
+    collapsed,
+    children,
+  }: {
+    children?: any[];
+    collapsed?: any[];
+  } = {}
+) {
+  const frame = {
+    frame: expect.objectContaining({
+      name,
+    }),
+    children: children ? expect.arrayContaining(children) : expect.any(Array),
+  };
+  if (collapsed) {
+    // @ts-ignore
+    frame.collapsed = expect.arrayContaining(collapsed);
+  }
+  return expect.objectContaining(frame);
+}
