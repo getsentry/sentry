@@ -723,9 +723,13 @@ def handle_is_public(
     project_lookup: Dict[int, Project],
     acting_user: User | None,
 ) -> str | None:
-    # We always want to delete an existing share, because triggering
-    # an isPublic=True even when it's already public, should trigger
-    # regenerating.
+    """
+    Handle the isPublic flag on a group update.
+
+    This deletes the existing share ID and creates a new share ID if isPublic is True.
+    We always want to delete an existing share, because triggering an isPublic=True
+    even when it's already public, should trigger regenerating.
+    """
     user_id = acting_user.id if acting_user else None
     share_id = None
     for group in group_list:
