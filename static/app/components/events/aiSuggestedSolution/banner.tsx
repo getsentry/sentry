@@ -63,10 +63,10 @@ const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   text-transform: uppercase;
   color: ${p => p.theme.gray300};
-  display: grid;
-  grid-template-columns: max-content max-content;
+  display: flex;
   align-items: center;
   /* to be consistent with the feature badge size */
+  height: ${space(2)};
   line-height: ${space(2)};
 `;
 

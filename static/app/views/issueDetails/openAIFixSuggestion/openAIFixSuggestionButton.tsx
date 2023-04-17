@@ -54,7 +54,7 @@ export function OpenAIFixSuggestionButton({
         ) : (
           <div>
             {experimentalFeatureTooltipDesc}
-            <FeatureBadge type="experimental" noTooltip />
+            <FeatureBadge type="experimental" tooltipProps={{disabled: true}} />
           </div>
         )
       }

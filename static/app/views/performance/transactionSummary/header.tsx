@@ -203,7 +203,7 @@ function TransactionHeader({
                 hidden={!hasAnomalyDetection}
               >
                 {t('Anomalies')}
-                <FeatureBadge type="alpha" noTooltip />
+                <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
               </TabList.Item>
               <TabList.Item
                 key={Tab.WebVitals}
@@ -219,7 +219,7 @@ function TransactionHeader({
               >
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
-                <ReplaysFeatureBadge noTooltip />
+                <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
               </TabList.Item>
               <TabList.Item
                 key={Tab.Profiling}
@@ -227,7 +227,7 @@ function TransactionHeader({
                 hidden={!hasProfiling}
               >
                 {t('Profiling')}
-                <FeatureBadge type="beta" noTooltip />
+                <FeatureBadge type="beta" tooltipProps={{disabled: true}} />
               </TabList.Item>
             </TabList>
           );
