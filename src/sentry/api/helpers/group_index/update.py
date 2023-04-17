@@ -741,6 +741,9 @@ def handle_is_bookmarked(
     project_lookup: Dict[int, Project],
     acting_user: User | None,
 ) -> None:
+    """
+    Creates bookmarks and subscriptions for a user, or deletes the exisitng bookmarks.
+    """
     if is_bookmarked:
         for group in group_list:
             GroupBookmark.objects.get_or_create(
