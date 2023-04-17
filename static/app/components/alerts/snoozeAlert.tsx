@@ -12,12 +12,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   api: Client;
+  isSnoozed: boolean;
   organization: Organization;
   projectId: string;
+  ruleId: string;
   setSnooze: (nextState: boolean) => void;
   setSnoozeCreatedBy: (nextState: string) => void;
-  isSnoozed?: boolean;
-  ruleId?: string;
 };
 
 function SnoozeAlert(props: Props) {

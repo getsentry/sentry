@@ -41,7 +41,7 @@ type Props = AsyncComponent['props'] & {
 } & RouteComponentProps<{projectId: string; ruleId: string}, {}>;
 
 type State = AsyncComponent['state'] & {
-  isSnoozed: boolean | undefined;
+  isSnoozed: boolean;
   memberList: Member[];
   rule: IssueAlertRule | null;
   snoozeCreatedBy: string | undefined;
