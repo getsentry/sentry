@@ -18,6 +18,7 @@ import type {ExperimentKey} from './experiments';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {Member, Organization} from './organization';
 import type {Project} from './project';
+import type {User} from './user';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -182,6 +183,7 @@ export type CustomizationHooks = {
  * Analytics / tracking / and operational metrics backend hooks.
  */
 export type AnalyticsHooks = {
+  'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
   'metrics:event': MetricsEvent;
@@ -351,6 +353,11 @@ type FeatureDisabledHook = (opts: {
    */
   project?: Project;
 }) => React.ReactNode;
+
+/**
+ * Called when the app is mounted.
+ */
+type AnalyticsInitUser = (user: User) => void;
 
 /**
  * Trigger analytics tracking in the hook store.
