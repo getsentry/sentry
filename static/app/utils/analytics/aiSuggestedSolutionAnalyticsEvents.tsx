@@ -13,7 +13,15 @@ export type AiSuggestedSolutionEventParameters = {
     project_id: string;
     group_id?: string;
   } & BaseEventAnalyticsParams;
+  'ai_suggested_solution.hide_details_button_clicked': {
+    project_id: string;
+    group_id?: string;
+  } & BaseEventAnalyticsParams;
   'ai_suggested_solution.hide_suggestion_button_clicked': {
+    project_id: string;
+    group_id?: string;
+  } & BaseEventAnalyticsParams;
+  'ai_suggested_solution.show_details_button_clicked': {
     project_id: string;
     group_id?: string;
   } & BaseEventAnalyticsParams;
@@ -37,4 +45,8 @@ export const aiSuggestedSolutionEventMap: Record<
     'AI Suggested Solution: Helpful - Nope Button Clicked',
   'ai_suggested_solution.hide_suggestion_button_clicked':
     'AI Suggested Solution: Hide Suggestion Button Clicked',
+  'ai_suggested_solution.hide_details_button_clicked':
+    'AI Suggested Solution: Hide Details Button Clicked',
+  'ai_suggested_solution.show_details_button_clicked':
+    'AI Suggested Solution: Show Details Button Clicked',
 };

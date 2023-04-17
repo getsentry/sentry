@@ -50,6 +50,17 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
             setSuggestedSolutionLocalConfig({
               hideDetails: !suggestedSolutionLocalConfig.hideDetails,
             });
+            trackAdvancedAnalyticsEvent(
+              !suggestedSolutionLocalConfig.hideDetails === false
+                ? 'ai_suggested_solution.show_details_button_clicked'
+                : 'ai_suggested_solution.hide_details_button_clicked',
+              {
+                organization,
+                project_id: event.projectID,
+                group_id: event.groupID,
+                ...getAnalyticsDataForEvent(event),
+              }
+            );
           }}
           priority="link"
         >
