@@ -179,23 +179,27 @@ def collect_artifact_bundles_containing_debug_ids(
         entries_by_debug_id = archive._entries_by_debug_id
         archive.close()
 
-        remaining_debug_ids = list(
-            filter(lambda debug_id: debug_id not in entries_by_debug_id, remaining_debug_ids)
-        )
-        remaining_urls = list(
-            filter(lambda url: not url_exists_in_manifest(manifest, url), remaining_urls)
-        )
+        remaining_debug_ids = [
+            debug_id for debug_id in remaining_debug_ids if debug_id not in entries_by_debug_id
+        ]
+        remaining_urls = [
+            url for url in remaining_urls if not url_exists_in_manifest(manifest, url)
+        ]
 
         bundle_file_ids.add(file.id)
 
         if not remaining_debug_ids:
-            return bundle_file_ids
+            return bundle_file_ids, remaining_urls
 
     return bundle_file_ids, remaining_urls
 
 
 def try_resolve_urls(
-    urls: List[str], project: Project, release_name: str, dist_name: str, bundle_file_ids: Set[int]
+    urls: List[str],
+    project: Project,
+    release_name: Optional[str],
+    dist_name: Optional[str],
+    bundle_file_ids: Set[int],
 ) -> Sequence[File]:
     if not urls:
         return list()
@@ -246,7 +250,11 @@ def try_resolve_urls(
 
 
 def collect_release_artifact_bundles_containing_urls(
-    urls: List[str], project: Project, release_name: str, dist_name: str, bundle_file_ids: Set[int]
+    urls: List[str],
+    project: Project,
+    release_name: str,
+    dist_name: Optional[str],
+    bundle_file_ids: Set[int],
 ) -> List[str]:
     releases_with_bundles = (
         ReleaseArtifactBundle.objects.filter(
@@ -270,13 +278,13 @@ def collect_release_artifact_bundles_containing_urls(
         manifest = archive.manifest
         archive.close()
 
-        def url_in_manifest(url):
+        def url_in_manifest(url: str):
             if url_exists_in_manifest(manifest, url):
                 bundle_file_ids.add(file_id)
                 return True
             return False
 
-        remaining_urls = list(filter(lambda url: not url_in_manifest(url), remaining_urls))
+        remaining_urls = [url for url in remaining_urls if not url_in_manifest(url)]
 
         if not remaining_urls:
             return remaining_urls
@@ -297,7 +305,7 @@ def collect_legacy_artifact_bundles_containing_urls(
 
     artifact_archives = dict()
 
-    def url_in_any_artifact_index(url):
+    def url_in_any_artifact_index(url: str):
         file = find_file_in_archive_index(artifact_index, url)
         if file is not None:
             ident = file["archive_ident"]
@@ -314,7 +322,7 @@ def collect_legacy_artifact_bundles_containing_urls(
             return True
         return False
 
-    return list(filter(lambda url: not url_in_any_artifact_index(url), urls))
+    return [url for url in urls if not url_in_any_artifact_index(url)]
 
 
 def get_releasefiles_matching_urls(urls: List[str], release: Release) -> Sequence[ReleaseFile]:
