@@ -5,7 +5,7 @@ from psycopg2.extras import execute_values
 
 from sentry.models import GroupStatus, GroupSubStatus
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper
 
 BATCH_SIZE = 100
 
@@ -20,7 +20,7 @@ UPDATE_QUERY = """
 def backfill_substatus(apps, schema_editor):
     Group = apps.get_model("sentry", "Group")
 
-    queryset = RangeQuerySetWrapperWithProgressBar(
+    queryset = RangeQuerySetWrapper(
         Group.objects.filter(status__in=(GroupStatus.UNRESOLVED, GroupStatus.IGNORED)).values_list(
             "id", "status", "substatus"
         ),
