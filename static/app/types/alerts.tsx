@@ -86,6 +86,7 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   errors?: {detail: string}[];
   lastTriggered?: string;
   snoozeCreatedBy?: string;
+  snoozeForEveryone?: string;
 }
 
 // Project's alert rule stats

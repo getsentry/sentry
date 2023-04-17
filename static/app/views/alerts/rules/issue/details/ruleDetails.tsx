@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
+import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -25,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 
@@ -33,6 +35,7 @@ import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
 
 type Props = AsyncComponent['props'] & {
+  api: Client;
   organization: Organization;
   project: Project;
 } & RouteComponentProps<{projectId: string; ruleId: string}, {}>;
@@ -41,6 +44,7 @@ type State = AsyncComponent['state'] & {
   isSnoozed: boolean | undefined;
   memberList: Member[];
   rule: IssueAlertRule | null;
+  snoozeCreatedBy: string | undefined;
 };
 
 const PAGE_QUERY_PARAMS = [
@@ -60,7 +64,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       organization,
       rule_id: parseInt(params.ruleId, 10),
     });
-    this.setState({isSnoozed: this.state.rule?.snooze});
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -76,12 +79,19 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     }
   }
 
+  onRequestSuccess = ({stateKey, data}) => {
+    if (stateKey === 'rule') {
+      this.setSnooze(data.snooze);
+      this.setSnoozeCreatedBy(data.snoozeCreatedBy);
+    }
+  };
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       rule: null,
       memberList: [],
       isSnoozed: false,
+      snoozeCreatedBy: '',
     };
   }
 
@@ -165,6 +175,10 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     this.setState({isSnoozed: snooze});
   };
 
+  setSnoozeCreatedBy = (createdBy: string) => {
+    this.setState({snoozeCreatedBy: createdBy});
+  };
+
   handleUpdateDatetime = (datetime: ChangeData) => {
     const {start, end, relative, utc} = datetime;
 
@@ -231,7 +245,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     const {ruleId, projectId} = params;
     const {cursor} = location.query;
     const {period, start, end, utc} = this.getDataDatetime();
-    const {rule, memberList} = this.state;
+    const {rule, memberList, isSnoozed} = this.state;
 
     if (!rule) {
       return (
@@ -248,6 +262,8 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         />
       );
     }
+
+    const hasSnoozeFeature = organization.features.includes('mute-alerts');
 
     const duplicateLink = {
       pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
@@ -298,7 +314,15 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <SnoozeAlert isSnoozed={this.state.isSnoozed} setSnooze={this.setSnooze} />
+              {hasSnoozeFeature && (
+                <SnoozeAlert
+                  isSnoozed={isSnoozed}
+                  setSnooze={this.setSnooze}
+                  setSnoozeCreatedBy={this.setSnoozeCreatedBy}
+                  ruleId={rule.id}
+                  projectId={projectId}
+                />
+              )}
               <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
                 {t('Duplicate')}
               </Button>
@@ -321,15 +345,14 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         <Layout.Body>
           <Layout.Main>
             {this.renderIncompatibleAlert()}
-            {this.state.isSnoozed && (
+            {hasSnoozeFeature && isSnoozed && (
               <Alert showIcon>
-                {/* {tct(
-                "[creator] muted this alert so you won't get these notifications in the future.",
-                {creator: rule.snoozeCreatedBy}
-              )} */}
                 {tct(
-                  "[creator] muted this alert so you won't get these notifications in the future.",
-                  {creator: 'You'}
+                  "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                  {
+                    creator: this.state.snoozeCreatedBy,
+                    forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                  }
                 )}
               </Alert>
             )}
@@ -370,7 +393,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
   }
 }
 
-export default AlertRuleDetails;
+export default withApi(AlertRuleDetails);
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};
