@@ -53,6 +53,7 @@ const Body = styled(PanelBody)`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
+  gap: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 42% 1fr;
@@ -63,10 +64,10 @@ const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   text-transform: uppercase;
   color: ${p => p.theme.gray300};
-  display: grid;
-  grid-template-columns: max-content max-content;
+  display: flex;
   align-items: center;
   /* to be consistent with the feature badge size */
+  height: ${space(2)};
   line-height: ${space(2)};
 `;
 

@@ -99,6 +99,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
+  children?: React.ReactNode;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   onSetNewWidget?: () => void;

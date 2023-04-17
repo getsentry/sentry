@@ -76,7 +76,7 @@ const createSelectOptions = (
       plainTextLabel: node.prompt ?? node.label,
       label: (
         <Fragment>
-          {isNew && <StyledFeatureBadge type="new" noTooltip />}
+          {isNew && <StyledFeatureBadge type="new" tooltipProps={{disabled: true}} />}
           {node.prompt ?? node.label}
         </Fragment>
       ),
