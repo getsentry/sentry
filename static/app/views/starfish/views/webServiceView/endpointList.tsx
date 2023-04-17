@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -14,7 +13,6 @@ import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery, {
@@ -211,10 +209,6 @@ class EndpointList extends Component<Props, State> {
     if (field === 'project') {
       return null;
     }
-    if (field.startsWith('team_key_transaction')) {
-      // don't display per cell actions for team_key_transaction
-      return rendered;
-    }
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
@@ -327,33 +321,6 @@ class EndpointList extends Component<Props, State> {
       this.renderHeadCell(tableMeta, column, columnTitles[index]);
   };
 
-  renderPrependCellWithData = (tableData: TableData | null) => {
-    const {eventView} = this.props;
-
-    const teamKeyTransactionColumn = eventView
-      .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
-    return (isHeader: boolean, dataRow?: any) => {
-      if (teamKeyTransactionColumn) {
-        if (isHeader) {
-          const star = (
-            <TeamKeyTransactionWrapper>
-              <IconStar
-                key="keyTransaction"
-                color="yellow400"
-                isSolid
-                data-test-id="team-key-transaction-header"
-              />
-            </TeamKeyTransactionWrapper>
-          );
-          return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
-        }
-        return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
-      }
-      return [];
-    };
-  };
-
   handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
     const widths: number[] = [...this.state.widths];
     widths[columnIndex] = nextColumn.width
@@ -367,11 +334,8 @@ class EndpointList extends Component<Props, State> {
     const {widths, transaction, transactionThreshold} = this.state;
     const columnOrder = eventView
       .getColumns()
-      // remove team_key_transactions from the column order as we'll be rendering it
-      // via a prepended column
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          col.name !== 'team_key_transaction' &&
           !col.name.startsWith('count_miserable') &&
           col.name !== 'project_threshold_config' &&
           col.name !== 'project' &&
@@ -387,8 +351,6 @@ class EndpointList extends Component<Props, State> {
       });
 
     const columnSortBy = eventView.getSorts();
-
-    const prependColumnWidths = ['max-content'];
 
     return (
       <GuideAnchor target="performance_table" position="top-start">
@@ -418,10 +380,6 @@ class EndpointList extends Component<Props, State> {
                       onResizeColumn: this.handleResizeColumn,
                       renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
                       renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                      renderPrependColumns: this.renderPrependCellWithData(
-                        tableData
-                      ) as any,
-                      prependColumnWidths,
                     }}
                     location={location}
                   />
@@ -435,11 +393,5 @@ class EndpointList extends Component<Props, State> {
     );
   }
 }
-
-// Align the contained IconStar with the IconStar buttons in individual table
-// rows, which have 2px padding + 1px border.
-const TeamKeyTransactionWrapper = styled('div')`
-  padding: 3px;
-`;
 
 export default EndpointList;
