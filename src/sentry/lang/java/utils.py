@@ -17,7 +17,7 @@ def is_valid_proguard_image(image):
 
 
 def is_valid_jvm_image(image):
-    return bool(image) and image.get("type") == "sourcemap" and image.get("debug_id") is not None
+    return bool(image) and image.get("type") == "jvm" and image.get("debug_id") is not None
 
 
 def has_proguard_file(data):
