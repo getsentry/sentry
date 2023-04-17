@@ -7,6 +7,7 @@ class RuleSnoozeAction(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
         analytics.Attribute("rule_type"),
+        analytics.Attribute("target"),
         # maps to AlertRule or Rule
         analytics.Attribute("rule_id"),
     )
@@ -14,7 +15,6 @@ class RuleSnoozeAction(analytics.Event):
 
 class RuleSnoozed(RuleSnoozeAction):
     type = "rule.snoozed"
-    analytics.Attribute("target"),
     attributes = RuleSnoozeAction.attributes + (analytics.Attribute("until", required=False),)
 
 

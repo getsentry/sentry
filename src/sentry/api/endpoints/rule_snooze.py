@@ -136,7 +136,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         # find if there is a mute for all that I can remove
         shared_snooze = None
-        made_delete = False
+        deletion_type = None
         kwargs = {self.rule_field: rule, "user_id": None}
         try:
             shared_snooze = RuleSnooze.objects.get(**kwargs)
@@ -146,7 +146,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         # if user can edit then delete it
         if shared_snooze and can_edit_alert_rule(rule, project.organization, None, request.user):
             shared_snooze.delete()
-            made_delete = True
+            deletion_type = "everyone"
 
         # next check if there is a mute for me that I can remove
         kwargs = {self.rule_field: rule, "user_id": request.user.id}
@@ -157,9 +157,11 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             pass
         else:
             my_snooze.delete()
-            made_delete = True
+            # everyone takes priority over me
+            if not deletion_type:
+                deletion_type = "me"
 
-        if made_delete:
+        if deletion_type:
             analytics.record(
                 "rule.unsnoozed",
                 user_id=request.user.id,
@@ -167,6 +169,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 project_id=project.id,
                 rule_id=rule_id,
                 rule_type=self.rule_field,
+                target=deletion_type,
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
