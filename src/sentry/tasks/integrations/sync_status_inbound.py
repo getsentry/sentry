@@ -38,7 +38,10 @@ def sync_status_inbound(
 
     if action == ResolveSyncAction.RESOLVE:
         Group.objects.update_group_status(
-            affected_groups, GroupStatus.RESOLVED, None, ActivityType.SET_RESOLVED
+            groups=affected_groups,
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
         )
 
         for group in affected_groups:
@@ -54,8 +57,8 @@ def sync_status_inbound(
             )
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(
-            affected_groups,
-            GroupStatus.UNRESOLVED,
-            GroupSubStatus.ONGOING,
-            ActivityType.SET_UNRESOLVED,
+            groups=affected_groups,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            activity_type=ActivityType.SET_UNRESOLVED,
         )

@@ -745,7 +745,7 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
                 f"No substatus allowed for group with status={instance.status}: substatus={instance.substatus}"
             )
 
-        # IGNORED groups may have no substatus
+        # IGNORED groups may have no substatus for now. We will be adding two more substatusesin the future to simplify this.
         if instance.status == GroupStatus.IGNORED and instance.substatus not in [
             None,
             *IGNORED_SUBSTATUS_CHOICES,
