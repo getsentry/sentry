@@ -1,7 +1,12 @@
 import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import {ProfilingMeasurements} from 'sentry/components/events/interfaces/spans/profilingMeasurements';
+import {
+  getDataPoints,
+  MIN_DATA_POINTS,
+  MS_PER_S,
+  ProfilingMeasurements,
+} from 'sentry/components/events/interfaces/spans/profilingMeasurements';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import {
   DividerSpacer,
@@ -438,7 +443,7 @@ class TraceViewHeader extends Component<PropType, State> {
   }
 
   render() {
-    const {organization} = this.props;
+    const {organization, trace} = this.props;
     const handleStartWindowSelection = (event: React.MouseEvent<HTMLDivElement>) => {
       const target = event.target;
 
@@ -457,6 +462,9 @@ class TraceViewHeader extends Component<PropType, State> {
     return (
       <ProfileContext.Consumer>
         {profiles => {
+          const transactionDuration = Math.abs(
+            trace.traceEndTimestamp - trace.traceStartTimestamp
+          );
           const hasProfileMeasurementsChart =
             organization.features.includes('mobile-cpu-memory-in-transactions') &&
             profiles?.type === 'resolved' &&
@@ -465,7 +473,12 @@ class TraceViewHeader extends Component<PropType, State> {
             profiles.data.metadata.platform === 'android' &&
             // Check that this profile has measurements
             'measurements' in profiles?.data &&
-            defined(profiles.data.measurements?.cpu_usage);
+            defined(profiles.data.measurements?.cpu_usage) &&
+            // Check that this profile has enough data points
+            getDataPoints(
+              profiles.data.measurements!.cpu_usage,
+              transactionDuration * MS_PER_S
+            ).length > MIN_DATA_POINTS;
 
           return (
             <HeaderContainer
@@ -552,6 +565,7 @@ class TraceViewHeader extends Component<PropType, State> {
                       </CursorGuideHandler.Consumer>
                       {hasProfileMeasurementsChart && (
                         <ProfilingMeasurements
+                          transactionDuration={transactionDuration}
                           profileData={profiles.data}
                           renderCursorGuide={this.renderCursorGuide}
                           renderFog={() => this.renderFog(this.props.dragProps, true)}
