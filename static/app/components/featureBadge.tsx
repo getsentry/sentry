@@ -13,7 +13,6 @@ import space, {ValidSize} from 'sentry/styles/space';
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   expiresAt?: Date;
-  noTooltip?: boolean;
   title?: string;
   tooltipProps?: Partial<InternalTooltipProps>;
   variant?: 'indicator' | 'badge';
@@ -43,7 +42,6 @@ function BaseFeatureBadge({
   title,
   tooltipProps,
   expiresAt,
-  noTooltip,
   ...props
 }: Props) {
   const theme = useTheme();
@@ -62,12 +60,7 @@ function BaseFeatureBadge({
 
   return (
     <div {...props}>
-      <Tooltip
-        title={title ?? defaultTitles[type]}
-        position="right"
-        disabled={noTooltip}
-        {...tooltipProps}
-      >
+      <Tooltip title={title ?? defaultTitles[type]} position="right" {...tooltipProps}>
         <Fragment>
           {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
           {variant === 'indicator' && (
