@@ -181,6 +181,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             end=datetime.datetime(2022, 6, 22, 11, 11, 35, 447729),
             granularity=Granularity(granularity=86400),
             where=None,
+            having=[],
             groupby=[MetricGroupByField("transaction")],
             limit=Limit(limit=51),
             offset=Offset(offset=0),
@@ -348,6 +349,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     rhs=1,
                 )
             ],
+            having=[],
             groupby=[
                 MetricGroupByField("transaction.status"),
                 MetricGroupByField(
@@ -526,6 +528,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     ),
                 ),
             ],
+            having=[],
             orderby=[
                 MetricOrderByField(
                     field=MetricField(
@@ -672,6 +675,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     rhs=1,
                 )
             ],
+            having=[],
             groupby=[
                 MetricGroupByField(
                     MetricField(
@@ -825,6 +829,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             end=datetime.datetime(2022, 6, 22, 11, 11, 37, 278535),
             granularity=Granularity(granularity=86400),
             where=None,
+            having=[],
             groupby=[
                 MetricGroupByField("transaction", alias=None),
                 MetricGroupByField("project_id", alias=None),
@@ -942,6 +947,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     ),
                 ),
             ],
+            having=[],
             groupby=[
                 MetricGroupByField("project_id", alias=None),
                 MetricGroupByField("transaction", alias=None),
@@ -1032,6 +1038,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             end=datetime.datetime(2022, 6, 21, 12, 0, tzinfo=None),
             granularity=Granularity(granularity=60),
             where=None,
+            having=[],
             groupby=None,
             include_series=True,
             include_totals=True,
@@ -1112,6 +1119,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
             where=None,
+            having=[],
             groupby=None,
             include_series=False,
             include_totals=True,
@@ -1211,6 +1219,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
             where=None,
+            having=[],
             groupby=None,
             include_series=False,
             include_totals=True,
@@ -1313,6 +1322,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     rhs=1,
                 )
             ],
+            having=[],
             groupby=None,
             include_series=False,
             include_totals=True,
@@ -1392,6 +1402,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
             groupby=[MetricGroupByField(field="project_id")],
+            having=[],
             orderby=[MetricOrderByField(field="project_id", direction=Direction.ASC)],
             include_series=False,
             include_totals=True,
@@ -1425,6 +1436,8 @@ def _construct_snuba_sdk_query(
         orderby = []
     if where is None:
         where = []
+    if having is None:
+        having = []
 
     return Query(
         match=Entity(entity),
@@ -1743,31 +1756,6 @@ INVALID_QUERIES_INTEGRATION_TEST_CASES = [
         ),
         "Unsupported function 'p95' in where",
         id="Unsupported function/operation in where clause",
-    ),
-    # Validate having clause
-    pytest.param(
-        _construct_snuba_sdk_query(
-            select=[
-                Function(
-                    function="count_transaction_name",
-                    parameters=[Column("d:transactions/duration@millisecond"), "has_value"],
-                    alias="has_value_transaction_count",
-                ),
-            ],
-            having=[
-                Condition(
-                    lhs=Function(
-                        function="count_transaction_name",
-                        parameters=[Column("d:transactions/duration@millisecond"), "has_value"],
-                        alias="has_value_transaction_count",
-                    ),
-                    op=Op.EQ,
-                    rhs=1,
-                )
-            ],
-        ),
-        "Having clauses are not supported by the metrics layer",
-        id="Unsupported having clause",
     ),
     # Validate OrderBy statements
     pytest.param(
