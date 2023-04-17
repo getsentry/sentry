@@ -1168,8 +1168,6 @@ SENTRY_FEATURES = {
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
     "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
-    # Try to derive normalization rules by clustering transaction names.
-    "organizations:transaction-name-clusterer": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
