@@ -196,9 +196,9 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     }
 
     const transactionTimestamp = new Date(tableRow.timestamp).getTime();
-
-    const transactionStartTimestamp =
-      transactionTimestamp - (tableRow['transaction.duration'] as number);
+    const transactionStartTimestamp = tableRow['transaction.duration']
+      ? transactionTimestamp - (tableRow['transaction.duration'] as number)
+      : undefined;
 
     return {
       pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,

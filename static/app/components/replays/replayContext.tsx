@@ -192,7 +192,7 @@ type Props = {
   /**
    * Time, in seconds, when the video should start
    */
-  initialTimeOffset?: number;
+  initialTimeOffsetMs?: number;
 
   /**
    * Override return fields for testing
@@ -212,7 +212,7 @@ function updateSavedReplayConfig(config: ReplayConfig) {
 
 export function Provider({
   children,
-  initialTimeOffset = 0,
+  initialTimeOffsetMs = 0,
   isFetching,
   replay,
   value = {},
@@ -495,8 +495,8 @@ export function Provider({
 
   // Only on pageload: set the initial playback timestamp
   useEffect(() => {
-    if (initialTimeOffset && events && replayerRef.current) {
-      setCurrentTime(initialTimeOffset * 1000);
+    if (initialTimeOffsetMs && events && replayerRef.current) {
+      setCurrentTime(initialTimeOffsetMs);
     }
 
     return () => {
