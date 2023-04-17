@@ -2063,32 +2063,41 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # outputting a trailing empty line, whereas the python processor does.
         if symbolicator_stacktraces := self.data.pop("symbolicator_stacktraces", None):
 
-            def frames_differ(a, b):
-                return (
-                    # TODO: we currently have known differences:
-                    # - abs_path is absolute in python, but relative in symbolicator
-                    # - python resolves a `module`, whereas symbolicator does not
-                    # - python adds `data.sourcemap` whereas symbolicator does not
-                    # - symbolicator does not add trailing empty lines to `post_context`
-                    a.get("abs_path") != b.get("abs_path")
-                    or a.get("lineno") != b.get("lineno")
-                    or a.get("colno") != b.get("colno")
-                    or a.get("function") != b.get("function")
-                    or a.get("filename") != b.get("filename")
-                    or a.get("context_line") != b.get("context_line")
-                )
+            # TODO: we currently have known differences:
+            # - small `abs_path`/`filename` differences because of different url joining
+            # - python resolves a `module` in the processor, whereas symbolicator does that
+            #   indirectly in the Plugin preprocessor
+            # - python adds `data.sourcemap` whereas symbolicator does not
+            # - symbolicator does not add trailing empty lines to `post_context`
+            interesting_keys = {
+                "abs_path",
+                "filename",
+                "lineno",
+                "colno",
+                "function",
+                "context_line",
+            }
+
+            def filtered_frame(frame: dict) -> dict:
+                {key: value for key, value in frame.items() if key in interesting_keys}
 
             different_frames = []
             for symbolicator_stacktrace, stacktrace_info in zip(
-                symbolicator_stacktraces, self.stacktrace_infos
+                symbolicator_stacktraces,
+                filter(
+                    # only include `stacktrace_infos` that have a stacktrace with frames
+                    lambda sinfo: get_path(sinfo, "stacktrace", "frames", filter=True),
+                    self.stacktrace_infos,
+                ),
             ):
-                # NOTE: lets hope that `stacktrace_info` has the already processed frames
                 python_stacktrace = stacktrace_info.container.get("stacktrace")
 
                 for symbolicator_frame, python_frame in zip(
                     symbolicator_stacktrace, python_stacktrace["frames"]
                 ):
-                    if frames_differ(symbolicator_frame, python_frame):
+                    symbolicator_frame = filtered_frame(symbolicator_frame)
+                    python_frame = filtered_frame(python_frame)
+                    if symbolicator_frame != python_frame:
                         different_frames.append((symbolicator_frame, python_frame))
 
             if different_frames:
