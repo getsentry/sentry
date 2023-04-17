@@ -373,3 +373,16 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             method="DELETE",
         )
         assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
+
+    def test_delete_success_as_manager(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="manager")
+        self.login_as(user)
+        assert NotificationAction.objects.filter(id=self.notif_action.id).exists()
+        self.get_success_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_204_NO_CONTENT,
+            method="DELETE",
+        )
+        assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()

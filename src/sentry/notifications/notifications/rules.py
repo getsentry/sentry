@@ -26,11 +26,7 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
-from sentry.notifications.utils.participants import (
-    get_owner_reason,
-    get_send_to,
-    should_use_smaller_issue_alert_fallback,
-)
+from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
@@ -77,6 +73,7 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             notification_type=self.notification_setting_type,
             fallthrough_choice=self.fallthrough_choice,
+            rules=self.rules,
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -113,10 +110,6 @@ class AlertRuleNotification(ProjectNotification):
             fallthrough_choice=self.fallthrough_choice,
         )
         fallback_params: MutableMapping[str, str] = {}
-        # Piggybacking off of notification_reason that already determines if we're using the fallback
-        if notification_reason and self.fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-            _, fallback_experiment = should_use_smaller_issue_alert_fallback(org=self.organization)
-            fallback_params = {"ref_fallback": fallback_experiment}
 
         context = {
             "project_label": self.project.get_full_name(),
@@ -225,10 +218,8 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
-        _, fallback_experiment = should_use_smaller_issue_alert_fallback(org=self.organization)
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "fallback_experiment": fallback_experiment,
             **super().get_log_params(recipient),
         }

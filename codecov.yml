@@ -50,22 +50,22 @@ flags:
     paths:
     - "static/app/"
     carryforward: true
-    # FE uploads 5 coverage reports. This property ensures codecov waits
+    # FE uploads 4 coverage reports. This property ensures codecov waits
     #  for all reports to be uploaded before creating a GitHub status check.
-    after_n_builds: 5
+    after_n_builds: 4
   backend:
     paths:
     - "src/sentry/**/*.py"
     carryforward: true
     # Do not send any status checks until N coverage reports are uploaded
-    after_n_builds: 11
+    after_n_builds: 16
 
 # Read more here: https://docs.codecov.com/docs/pull-request-comments
 comment:
   # after_n_builds declared in flags cannot control when to make comments
-  # A value of 11 will mean that only BE PRs will get a comment (only if the score changes)
+  # A value of 16 will mean that only BE PRs will get a comment (only if the score changes)
   # XXX: Once commenting pays attention to the value in flags we can add comments to FE PRs
-  after_n_builds: 11
+  after_n_builds: 16
   layout: "diff, files"
   # Update, if comment exists. Otherwise post new.
   behavior: default

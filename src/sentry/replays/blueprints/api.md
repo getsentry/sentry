@@ -150,7 +150,6 @@ Retrieve a collection of replays.
         "tags": {
           "hello": ["world", "Lionel Richie"]
         },
-        "title": "My cool replay",
         "trace_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "urls": ["/organizations/abc123/issues"],
         "user": {
