@@ -151,7 +151,7 @@ class AlertRuleNotification(ProjectNotification):
             context["snooze_alert"] = True
             context["snooze_alert_url"] = (
                 f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/"
-                + urlencode({"mute": True})
+                + urlencode({"mute": "1"})
             )
 
         if getattr(self.event, "occurrence", None):

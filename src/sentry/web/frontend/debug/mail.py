@@ -244,7 +244,7 @@ def make_generic_event(project):
 def get_shared_context(rule, org, project, group, event):
     rules = get_rules([rule], org, project)
     snooze_alert = len(rules) > 0
-    snooze_alert_url = rules[0].status_url + urlencode({"mute": True}) if snooze_alert else ""
+    snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
     return {
         "rule": rule,
         "rules": rules,
