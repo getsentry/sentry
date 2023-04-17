@@ -13,7 +13,7 @@ type Props = {
   location: Location;
 };
 
-export default function APIModule({location}: Props) {
+export default function APIModule(props: Props) {
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -26,7 +26,7 @@ export default function APIModule({location}: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <APIModuleView location={location} />
+            <APIModuleView {...props} />
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>

@@ -134,7 +134,7 @@ export function generateWebServiceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction has:http.method',
+    query: 'event.type:transaction has:http.method transaction.op:http.server',
     projects: [],
     fields,
     version: 2,
@@ -150,10 +150,12 @@ export function generateWebServiceEventView(
   savedQuery.orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
 
   const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
+  savedQuery.query = `${savedQuery.query} ${prepareQueryForLandingPage(
+    searchQuery,
+    withStaticFilters
+  )}`;
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
