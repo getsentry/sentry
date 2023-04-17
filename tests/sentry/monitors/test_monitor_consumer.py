@@ -234,3 +234,14 @@ class MonitorConsumerTest(TestCase):
         assert monitor.status == MonitorStatus.OK
         assert monitor.last_checkin == checkin.date_added
         assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+    def test_rate_limit(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        with mock.patch("sentry.monitors.consumers.check_in.CHECKIN_QUOTA_LIMIT", 1):
+            # Try to ingest two the second will be rate limited
+            _process_message(self.get_message("my-monitor"))
+            _process_message(self.get_message("my-monitor"))
+
+        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        assert len(checkins) == 1
