@@ -1,4 +1,4 @@
-import {ComponentProps, useMemo} from 'react';
+import {ComponentProps, MouseEvent, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {
   chromeDark,
@@ -46,5 +46,11 @@ function ObjectInspector({data, theme, ...props}: Props) {
     />
   );
 }
+
+export type OnExpand = (
+  path: string,
+  expandedState: Record<string, boolean>,
+  event: MouseEvent<HTMLDivElement>
+) => void;
 
 export default ObjectInspector;

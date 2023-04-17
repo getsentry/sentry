@@ -3,6 +3,7 @@ import isObject from 'lodash/isObject';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {OnExpand} from 'sentry/components/objectInspector';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {objectIsEmpty} from 'sentry/utils';
 
@@ -11,13 +12,13 @@ import Format from './format';
 interface Props {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
   expandPaths?: string[];
-  onDimensionChange?: (path: string, expandedState: Record<string, boolean>) => void;
+  onExpand?: OnExpand;
 }
 
 /**
  * Attempt to emulate the browser console as much as possible
  */
-function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onDimensionChange}: Props) {
+function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onExpand}: Props) {
   let args = breadcrumb.data?.arguments;
 
   if (!args) {
@@ -74,7 +75,7 @@ function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onDimensionChange}
     args = [fakeError];
   }
 
-  return <Format expandPaths={expandPaths} onExpand={onDimensionChange} args={args} />;
+  return <Format expandPaths={expandPaths} onExpand={onExpand} args={args} />;
 }
 
 const MessageFormatter = memo(UnmemoizedMessageFormatter);

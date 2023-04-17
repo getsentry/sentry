@@ -13,6 +13,8 @@ import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
 import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
+import {OnDimensionChange} from '../useVirtualizedInspector';
+
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
   index: number;
@@ -21,11 +23,7 @@ type Props = {
   startTimestampMs: number;
   style: CSSProperties;
   expandPaths?: string[];
-  onDimensionChange?: (
-    index: number,
-    path: string,
-    expandedState: Record<string, boolean>
-  ) => void;
+  onDimensionChange?: OnDimensionChange;
 };
 
 function UnmemoizedConsoleLogRow({
@@ -56,8 +54,8 @@ function UnmemoizedConsoleLogRow({
     [handleMouseLeave, breadcrumb]
   );
   const handleDimensionChange = useCallback(
-    (path, expandedState) =>
-      onDimensionChange && onDimensionChange(index, path, expandedState),
+    (path, expandedState, e) =>
+      onDimensionChange && onDimensionChange(index, path, expandedState, e),
     [onDimensionChange, index]
   );
 
@@ -85,7 +83,7 @@ function UnmemoizedConsoleLogRow({
           <MessageFormatter
             expandPaths={expandPaths}
             breadcrumb={breadcrumb}
-            onDimensionChange={handleDimensionChange}
+            onExpand={handleDimensionChange}
           />
         </ErrorBoundary>
       </Message>
