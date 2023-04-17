@@ -362,7 +362,7 @@ class Actions extends Component<Props> {
       share: shareCap,
     } = getConfigForIssueType(group).actions;
 
-    const hasEscalatingIssues = organization.features.includes('escalating-issues');
+    const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     const hasDeleteAccess = organization.access.includes('event:admin');
     const activeSuperUser = isActiveSuperuser();
 
@@ -433,7 +433,7 @@ class Actions extends Component<Props> {
                   containerDisplayMode="inline-flex"
                 >
                   {t('Suggested Fix')}
-                  <FeatureBadge type="experimental" noTooltip />
+                  <FeatureBadge type="experimental" tooltipProps={{disabled: true}} />
                 </Tooltip>
               ),
               onAction: () => {
