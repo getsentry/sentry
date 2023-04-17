@@ -15,13 +15,13 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
+  chartColors: string[];
   data: Series[];
   end: DateString;
   loading: boolean;
   start: DateString;
   statsPeriod: string | null | undefined;
   utc: boolean;
-  chartColors?: string[];
   definedAxisTicks?: number;
   disableXAxis?: boolean;
   grid?: AreaChartProps['grid'];
@@ -56,7 +56,7 @@ function FailureRateChart({
     return null;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4);
+  const colors = chartColors;
   const dataMax = computeMax(data);
   const durationUnit = getDurationUnit(data);
 

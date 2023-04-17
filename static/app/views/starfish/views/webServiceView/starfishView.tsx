@@ -4,6 +4,7 @@ import {Location} from 'history';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -102,14 +103,26 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
+        yAxis="equation|(count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500)))*100"
       >
         {data => {
+          const transformedData: Series[] | undefined = data.timeseriesData?.map(
+            series => ({
+              data: series.data,
+              seriesName: t('Failure Rate'),
+              color: CHART_PALETTE[5][3],
+            })
+          );
+
+          if (!transformedData) {
+            return null;
+          }
+
           return (
             <FailureRateChart
               statsPeriod={eventView.statsPeriod}
               height={180}
-              data={data.timeseriesData as Series[]}
+              data={transformedData}
               start={eventView.start as string}
               end={eventView.end as string}
               loading={data.loading}
