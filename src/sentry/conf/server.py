@@ -738,9 +738,7 @@ CELERY_QUEUES = [
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
-    Queue(
-        "transactions.name_clusterer", routing_key="transactions.name_clusterer"
-    ),  # TODO: add workers
+    Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
     Queue(
         "dynamicsampling",
