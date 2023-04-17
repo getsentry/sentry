@@ -3,15 +3,9 @@ import {Location} from 'history';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 
-const HOST = 'http://localhost:8080';
+import {ENDPOINT_LIST_QUERY} from './queries';
 
-const ENDPOINT_QUERY = `SELECT description, count() AS count
- FROM spans_experimental_starfish
- WHERE module = 'http'
- GROuP BY description
- ORDER BY count DESC
- LIMIT 10
-`;
+const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
@@ -37,7 +31,7 @@ const COLUMN_ORDER = [
 export default function APIModuleView({location}: Props) {
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
     queryKey: ['endpoints'],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_QUERY}`).then(res => res.json()),
+    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_LIST_QUERY}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
