@@ -60,8 +60,6 @@ export function ReplaySegmentFullsnapshot({
         node: {
           type: 0, // NodeType.DocumentType
           id: 0,
-          tagName: 'html',
-          attributes: {},
           childNodes: [
             ReplayRRWebNode({
               tagName: 'body',

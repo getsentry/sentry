@@ -92,7 +92,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
                 zerofill_results=zerofill_results,
-                orderby=["count()"],
+                orderby=["-count()"],
             )
 
             return results
@@ -110,12 +110,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 )
             )
 
-            trends_request = {"data": None}
-            data = response.data
+            trends_request = {"data": None, "sort": None, "trendFunction": None}
 
-            data["sort"] = request.GET.get("sort", "trend_percentage()")
-            data["trendFunction"] = trend_function
-            trends_request["data"] = data
+            trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
+            trends_request["trendFunction"] = trend_function
+            trends_request["data"] = response.data
 
             # send the data to microservice
             trends = get_trends(trends_request)
