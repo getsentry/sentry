@@ -102,7 +102,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="equation|(count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500)))*100"
+        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
       >
         {data => {
           const transformedData: Series[] | undefined = data.timeseriesData?.map(
@@ -132,8 +132,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '16px',
                 bottom: '8px',
               }}
-              definedAxisTicks={4}
-              chartColors={[CHART_PALETTE[5][4]]}
             />
           );
         }}

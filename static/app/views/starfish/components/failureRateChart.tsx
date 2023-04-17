@@ -1,21 +1,18 @@
 import {useTheme} from '@emotion/react';
+import {YAXisOption} from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 
 import {AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {
-  axisLabelFormatter,
-  getDurationUnit,
-  tooltipFormatter,
-} from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import {formatPercentage} from 'sentry/utils/formatters';
 import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
-  chartColors: string[];
   data: Series[];
   end: DateString;
   loading: boolean;
@@ -46,8 +43,6 @@ function FailureRateChart({
   height,
   grid,
   disableXAxis,
-  definedAxisTicks,
-  chartColors,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -56,49 +51,30 @@ function FailureRateChart({
     return null;
   }
 
-  const colors = chartColors;
+  const colors = [CHART_PALETTE[5][4]];
   const dataMax = computeMax(data);
-  const durationUnit = getDurationUnit(data);
 
-  const yAxes = [
-    {
-      minInterval: durationUnit,
-      splitNumber: definedAxisTicks,
-      max: dataMax,
-      type: 'value',
-      axisLabel: {
-        color: theme.chartLabel,
-        formatter(value: number) {
-          return axisLabelFormatter(
-            value,
-            aggregateOutputType(data[0].seriesName),
-            undefined,
-            durationUnit
-          );
-        },
-      },
+  const yAxis: YAXisOption = {
+    max: dataMax,
+    type: 'value',
+    axisLabel: {
+      color: theme.chartLabel,
+      formatter: (value: number) => formatPercentage(value, 1),
     },
-  ];
+  };
 
   const chartProps = {
     seriesOptions: {
       showSymbol: false,
     },
     grid,
-    yAxes,
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
     colors,
     tooltip: {
-      valueFormatter: (value, seriesName) => {
-        return tooltipFormatter(
-          value,
-          aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
-        );
-      },
-      nameFormatter(value: string) {
-        return value === 'epm()' ? 'tpm()' : value;
+      valueFormatter: value => {
+        return tooltipFormatter(value, 'percentage');
       },
     },
   } as Omit<AreaChartProps, 'series'>;
@@ -106,11 +82,6 @@ function FailureRateChart({
   if (loading) {
     return <LineChart height={height} series={[]} {...chartProps} />;
   }
-  const series = data.map((values, _) => ({
-    ...values,
-    yAxisIndex: 0,
-    xAxisIndex: 0,
-  }));
 
   const xAxis = disableXAxis
     ? {
@@ -126,10 +97,10 @@ function FailureRateChart({
         <LineChart
           height={height}
           {...zoomRenderProps}
-          series={series}
+          series={data}
           previousPeriod={previousData}
           xAxis={xAxis}
-          yAxis={chartProps.yAxes ? chartProps.yAxes[0] : []}
+          yAxis={yAxis}
           tooltip={chartProps.tooltip}
         />
       )}
