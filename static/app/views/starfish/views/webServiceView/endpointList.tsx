@@ -26,7 +26,6 @@ import {
   fieldAlignment,
   getAggregateAlias,
 } from 'sentry/utils/discover/fields';
-import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import TransactionThresholdModal, {
@@ -367,23 +366,18 @@ class EndpointList extends Component<Props, State> {
           >
             {({pageLinks, isLoading, tableData}) => (
               <Fragment>
-                <VisuallyCompleteWithData
-                  id="PerformanceTable"
-                  hasData={!isLoading && !!tableData?.data && tableData.data.length > 0}
-                >
-                  <GridEditable
-                    isLoading={isLoading}
-                    data={tableData ? tableData.data : []}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      onResizeColumn: this.handleResizeColumn,
-                      renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                      renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                    }}
-                    location={location}
-                  />
-                </VisuallyCompleteWithData>
+                <GridEditable
+                  isLoading={isLoading}
+                  data={tableData ? tableData.data : []}
+                  columnOrder={columnOrder}
+                  columnSortBy={columnSortBy}
+                  grid={{
+                    onResizeColumn: this.handleResizeColumn,
+                    renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                    renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                  }}
+                  location={location}
+                />
                 <Pagination pageLinks={pageLinks} />
               </Fragment>
             )}
