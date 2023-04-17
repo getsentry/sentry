@@ -464,7 +464,7 @@ class DetailedEventSerializerTest(TestCase):
         assert result["perfProblem"] is None
 
     def test_event_breadcrumb_formatting(self):
-        with self.feature("organizations:issue-breadcrumbs-sql-format"):
+        with self.feature("organizations:sql-format"):
             event = self.store_event(
                 data={
                     "breadcrumbs": [
@@ -493,7 +493,7 @@ class DetailedEventSerializerTest(TestCase):
             assert breadcrumbs[1]["messageFormat"] == "sql"
 
     def test_event_breadcrumb_formatting_remove_quotes(self):
-        with self.feature("organizations:issue-breadcrumbs-sql-format"):
+        with self.feature("organizations:sql-format"):
             event = self.store_event(
                 data={
                     "breadcrumbs": [

@@ -385,7 +385,7 @@ class DetailedEventSerializer(EventSerializer):
             )
 
             if not breadcrumbs or not features.has(
-                "organizations:issue-breadcrumbs-sql-format", event.project.organization, actor=user
+                "organizations:sql-format", event.project.organization, actor=user
             ):
                 return event_data
 
