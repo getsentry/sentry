@@ -1,9 +1,6 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -13,7 +10,6 @@ import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
@@ -26,16 +22,8 @@ import {
   fieldAlignment,
   getAggregateAlias,
 } from 'sentry/utils/discover/fields';
-import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import TransactionThresholdModal, {
-  modalCss,
-  TransactionThresholdMetric,
-} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
-import {
-  normalizeSearchConditionsWithTransactionName,
-  transactionSummaryRouteWithQuery,
-} from 'sentry/views/performance/transactionSummary/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 
@@ -60,84 +48,17 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
-  withStaticFilters: boolean;
   columnTitles?: string[];
   dataset?: 'discover' | 'metrics';
 };
 
 type State = {
-  transaction: string | undefined;
-  transactionThreshold: number | undefined;
-  transactionThresholdMetric: TransactionThresholdMetric | undefined;
   widths: number[];
 };
 
 class EndpointList extends Component<Props, State> {
   state: State = {
     widths: [],
-    transaction: undefined,
-    transactionThreshold: undefined,
-    transactionThresholdMetric: undefined,
-  };
-
-  handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
-    return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization, projects} = this.props;
-
-      if (action === Actions.EDIT_THRESHOLD) {
-        const project_threshold = dataRow.project_threshold_config;
-        const transactionName = dataRow.transaction as string;
-        const projectID = getProjectID(dataRow, projects);
-
-        openModal(
-          modalProps => (
-            <TransactionThresholdModal
-              {...modalProps}
-              organization={organization}
-              transactionName={transactionName}
-              eventView={eventView}
-              project={projectID}
-              transactionThreshold={project_threshold[1]}
-              transactionThresholdMetric={project_threshold[0]}
-              onApply={(threshold, metric) => {
-                if (
-                  threshold !== project_threshold[1] ||
-                  metric !== project_threshold[0]
-                ) {
-                  this.setState({
-                    transaction: transactionName,
-                    transactionThreshold: threshold,
-                    transactionThresholdMetric: metric,
-                  });
-                }
-                addSuccessMessage(
-                  tct('[transactionName] updated successfully', {
-                    transactionName,
-                  })
-                );
-              }}
-            />
-          ),
-          {modalCss, closeEvents: 'escape-key'}
-        );
-        return;
-      }
-
-      const searchConditions = normalizeSearchConditionsWithTransactionName(
-        eventView.query
-      );
-
-      updateQuery(searchConditions, action, column, value);
-
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchConditions.formatString(),
-        },
-      });
-    };
   };
 
   renderBodyCell(
@@ -145,7 +66,7 @@ class EndpointList extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location, withStaticFilters} = this.props;
+    const {eventView, organization, projects, location} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -155,16 +76,6 @@ class EndpointList extends Component<Props, State> {
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
     const rendered = fieldRenderer(dataRow, {organization, location});
-
-    const allowActions = [
-      Actions.ADD,
-      Actions.EXCLUDE,
-      Actions.SHOW_GREATER_THAN,
-      Actions.SHOW_LESS_THAN,
-      Actions.EDIT_THRESHOLD,
-    ];
-
-    const cellActions = withStaticFilters ? [] : allowActions;
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -191,17 +102,10 @@ class EndpointList extends Component<Props, State> {
           });
 
       return (
-        <CellAction
-          column={column}
-          dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column, dataRow)}
-          allowActions={cellActions}
-        >
-          <Link to={target} style={{display: `block`, width: `100%`}}>
-            {prefix}
-            {dataRow.transaction}
-          </Link>
-        </CellAction>
+        <Link to={target} style={{display: `block`, width: `100%`}}>
+          {prefix}
+          {dataRow.transaction}
+        </Link>
       );
     }
 
@@ -218,28 +122,12 @@ class EndpointList extends Component<Props, State> {
           containerDisplayMode="block"
           position="right"
         >
-          <CellAction
-            column={column}
-            dataRow={dataRow}
-            handleCellAction={this.handleCellAction(column, dataRow)}
-            allowActions={cellActions}
-          >
-            {rendered}
-          </CellAction>
+          {rendered}
         </Tooltip>
       );
     }
 
-    return (
-      <CellAction
-        column={column}
-        dataRow={dataRow}
-        handleCellAction={this.handleCellAction(column, dataRow)}
-        allowActions={cellActions}
-      >
-        {rendered}
-      </CellAction>
-    );
+    return rendered;
   }
 
   renderBodyCellWithData = (tableData: TableData | null) => {
@@ -270,6 +158,7 @@ class EndpointList extends Component<Props, State> {
       field: column.column.kind === 'equation' ? (column.key as string) : column.name,
       width: column.width,
     };
+
     const aggregateAliasTableMeta: MetaType = {};
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
@@ -304,13 +193,7 @@ class EndpointList extends Component<Props, State> {
         generateSortLink={generateSortLink}
       />
     );
-    if (field.field.startsWith('user_misery')) {
-      return (
-        <GuideAnchor target="project_transaction_threshold" position="top">
-          {sortLink}
-        </GuideAnchor>
-      );
-    }
+
     return sortLink;
   }
 
@@ -330,7 +213,7 @@ class EndpointList extends Component<Props, State> {
 
   render() {
     const {eventView, organization, location, setError} = this.props;
-    const {widths, transaction, transactionThreshold} = this.state;
+    const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
       .filter(
@@ -353,36 +236,33 @@ class EndpointList extends Component<Props, State> {
 
     return (
       <GuideAnchor target="performance_table" position="top-start">
-        <div data-test-id="performance-table">
-          <DiscoverQuery
-            eventView={eventView}
-            orgSlug={organization.slug}
-            location={location}
-            setError={error => setError(error?.message)}
-            referrer="api.performance.landing-table"
-            transactionName={transaction}
-            transactionThreshold={transactionThreshold}
-            queryExtras={{dataset: this.props.dataset ?? 'metrics'}}
-          >
-            {({pageLinks, isLoading, tableData}) => (
-              <Fragment>
-                <GridEditable
-                  isLoading={isLoading}
-                  data={tableData ? tableData.data : []}
-                  columnOrder={columnOrder}
-                  columnSortBy={columnSortBy}
-                  grid={{
-                    onResizeColumn: this.handleResizeColumn,
-                    renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                    renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                  }}
-                  location={location}
-                />
-                <Pagination pageLinks={pageLinks} />
-              </Fragment>
-            )}
-          </DiscoverQuery>
-        </div>
+        <DiscoverQuery
+          eventView={eventView}
+          orgSlug={organization.slug}
+          location={location}
+          setError={error => setError(error?.message)}
+          referrer="api.starfish.endpoint-list"
+          queryExtras={{dataset: this.props.dataset ?? 'metrics'}}
+        >
+          {({pageLinks, isLoading, tableData}) => (
+            <Fragment>
+              <GridEditable
+                isLoading={isLoading}
+                data={tableData ? tableData.data : []}
+                columnOrder={columnOrder}
+                columnSortBy={columnSortBy}
+                grid={{
+                  onResizeColumn: this.handleResizeColumn,
+                  renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                  renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                }}
+                location={location}
+              />
+
+              <Pagination pageLinks={pageLinks} />
+            </Fragment>
+          )}
+        </DiscoverQuery>
       </GuideAnchor>
     );
   }

@@ -22,7 +22,6 @@ type BasePerformanceViewProps = {
   location: Location;
   organization: Organization;
   projects: Project[];
-  withStaticFilters: boolean;
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
