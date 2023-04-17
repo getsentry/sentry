@@ -54,15 +54,7 @@ function generateGenericPerformanceEventView(
 ): EventView {
   const {query} = location;
 
-  const fields = [
-    'team_key_transaction',
-    'transaction',
-    'http.method',
-    'tpm()',
-    'p50()',
-    'p95()',
-    'project',
-  ];
+  const fields = ['transaction', 'http.method', 'tpm()', 'p50()', 'p95()', 'project'];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -128,7 +120,6 @@ export function generateWebServiceEventView(
   const {query} = location;
 
   const fields = [
-    'team_key_transaction',
     'transaction',
     'http.method',
     'tpm()',
