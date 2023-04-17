@@ -433,7 +433,7 @@ class Actions extends Component<Props> {
                   containerDisplayMode="inline-flex"
                 >
                   {t('Suggested Fix')}
-                  <FeatureBadge type="experimental" noTooltip />
+                  <FeatureBadge type="experimental" tooltipProps={{disabled: true}} />
                 </Tooltip>
               ),
               onAction: () => {

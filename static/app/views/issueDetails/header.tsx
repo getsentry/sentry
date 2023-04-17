@@ -164,7 +164,7 @@ function GroupHeaderTabs({
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
-        <ReplaysFeatureBadge noTooltip />
+        <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
       </TabList.Item>
     </StyledTabList>
   );
