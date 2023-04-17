@@ -1,17 +1,14 @@
+import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import {Series} from 'sentry/types/echarts';
+import Chart from 'sentry/views/starfish/components/chart';
+
+import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
 
 const HOST = 'http://localhost:8080';
-
-const ENDPOINT_QUERY = `SELECT description, count() AS count
- FROM spans_experimental_starfish
- WHERE module = 'http'
- GROuP BY description
- ORDER BY count DESC
- LIMIT 10
-`;
 
 type Props = {
   location: Location;
@@ -37,23 +34,73 @@ const COLUMN_ORDER = [
 export default function APIModuleView({location}: Props) {
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
     queryKey: ['endpoints'],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_QUERY}`).then(res => res.json()),
+    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_LIST_QUERY}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
+  const {isLoading: isGraphLoading, data: graphData} = useQuery({
+    queryKey: ['graph'],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${ENDPOINT_GRAPH_QUERY}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const quantiles = ['p50', 'p75', 'p95', 'p99'];
+
+  const seriesByQuantile: {[quantile: string]: Series} = {};
+  quantiles.forEach(quantile => {
+    seriesByQuantile[quantile] = {
+      seriesName: quantile,
+      data: [],
+    };
+  });
+
+  graphData.forEach(datum => {
+    quantiles.forEach(quantile => {
+      seriesByQuantile[quantile].data.push({
+        value: datum[quantile],
+        name: datum.interval,
+      });
+    });
+  });
+
+  const data = Object.values(seriesByQuantile);
+
   return (
-    <GridEditable
-      isLoading={areEndpointsLoading}
-      data={endpointsData}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-      location={location}
-    />
+    <Fragment>
+      <Chart
+        statsPeriod="24h"
+        height={180}
+        data={data}
+        start=""
+        end=""
+        loading={isGraphLoading}
+        utc={false}
+        grid={{
+          left: '0',
+          right: '0',
+          top: '16px',
+          bottom: '8px',
+        }}
+        disableMultiAxis
+        definedAxisTicks={4}
+        stacked
+      />
+
+      <GridEditable
+        isLoading={areEndpointsLoading}
+        data={endpointsData}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+        location={location}
+      />
+    </Fragment>
   );
 }
 
