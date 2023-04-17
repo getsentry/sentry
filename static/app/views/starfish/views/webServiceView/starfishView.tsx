@@ -102,7 +102,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/count_if(http.status_code,equals,200)"
+        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
       >
         {data => {
           return (
