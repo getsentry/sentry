@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, List, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, List, Mapping, MutableMapping, Sequence
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -718,14 +718,15 @@ def update_groups(
 
 
 def handle_is_public(
-    is_public: bool,
+    is_public: Any,
     group_list: List[Group],
-    project_lookup,
+    project_lookup: Dict[int, Project],
     acting_user: User | None,
-) -> str:
+) -> str | None:
     # We always want to delete an existing share, because triggering
     # an isPublic=True even when it's already public, should trigger
     # regenerating.
+    user_id = acting_user.id if acting_user else None
     share_id = None
     for group in group_list:
         if GroupShare.objects.filter(group=group).delete():
@@ -734,13 +735,13 @@ def handle_is_public(
                 project=project_lookup[group.project_id],
                 group=group,
                 type=ActivityType.SET_PRIVATE.value,
-                user_id=acting_user.id,
+                user_id=user_id,
             )
 
     if is_public:
         for group in group_list:
             share, created = GroupShare.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
+                project=project_lookup[group.project_id], group=group, user_id=user_id
             )
             if created:
                 share_id = share.uuid
@@ -748,7 +749,7 @@ def handle_is_public(
                     project=project_lookup[group.project_id],
                     group=group,
                     type=ActivityType.SET_PUBLIC.value,
-                    user_id=acting_user.id,
+                    user_id=user_id,
                 )
 
     return share_id
