@@ -124,7 +124,7 @@
     "mobx-react": "~7.6.0",
     "mockdate": "3.0.5",
     "moment": "2.29.4",
-    "moment-timezone": "0.5.37",
+    "moment-timezone": "0.5.43",
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
     "pegjs-loader": "^0.5.6",
