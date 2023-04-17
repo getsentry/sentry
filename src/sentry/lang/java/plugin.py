@@ -137,19 +137,11 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         self._proguard_processor_handles_frame = None
         self._handles_frame = None
         self.images = get_jvm_images(self.data)
-        difs = ProjectDebugFile.objects.find_by_debug_ids(self.project, self.images)
-        self._archives = {}
-        for key, dif in difs.items():
-            try:
-                file = dif.file.getfile(prefetch=True)
-                self._archives[key] = ArtifactBundleArchive(file)
-            except Exception:
-                pass
-
-        self.available = len(self._archives) > 0
+        self._archives = []
+        self.available = len(self.images) > 0
 
     def close(self):
-        for key, archive in self._archives.items():
+        for archive in self._archives:
             archive.close()
 
     def handles_frame(self, frame, stacktrace_info):
@@ -167,6 +159,18 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
             proguard_processor_preprocess_rv = self.proguard_processor.preprocess_step(
                 processing_task
             )
+
+        if not self.available:
+            return proguard_processor_preprocess_rv
+
+        difs = ProjectDebugFile.objects.find_by_debug_ids(self.project, self.images)
+        for key, dif in difs.items():
+            try:
+                file = dif.file.getfile(prefetch=True)
+                self._archives.append(ArtifactBundleArchive(file))
+            except Exception:
+                pass
+
         return proguard_processor_preprocess_rv or self.available
 
     def process_exception(self, exception):
@@ -238,7 +242,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
 
             source_file_name = self._build_source_file_name(new_frame)
 
-            for key, archive in self._archives.items():
+            for archive in self._archives:
                 try:
                     result, _ = archive.get_file_by_url(source_file_name)
                     source_view = SourceView.from_bytes(result.read())
@@ -249,9 +253,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                     if pre_context is not None and len(pre_context) > 0:
                         new_frame["pre_context"] = [trim_line(x) for x in pre_context]
                     if context_line is not None:
-                        new_frame["context_line"] = trim_line(
-                            context_line, new_frame.get("colno") or 0
-                        )
+                        new_frame["context_line"] = trim_line(context_line)
                     if post_context is not None and len(post_context) > 0:
                         new_frame["post_context"] = [trim_line(x) for x in post_context]
                 except KeyError:

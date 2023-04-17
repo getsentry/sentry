@@ -1,4 +1,3 @@
-import logging
 import zipfile
 from io import BytesIO
 from uuid import uuid4
@@ -7,7 +6,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import File, ProjectDebugFile, Release
+from sentry.models import File, ProjectDebugFile
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
@@ -374,7 +373,7 @@ class AnotherClassInSameFile {
 
     class AnotherInnerClass {
         fun helloOtherInner() {
-            throw RuntimeException("thrown also asdf qwer adsfaaa on purpose to test ProGuard Android source context")
+            throw RuntimeException("thrown on purpose to test ProGuard Android source context")
         }
     }
 }
@@ -662,11 +661,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         )
 
     def test_basic_source_lookup(self):
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="abc"
-        )
-        release.add_project(self.project)
-
         debug_id = str(uuid4())
         self.upload_jvm_bundle(debug_id, {"io/sentry/samples/MainActivity.jvm": JVM_SOURCE})
 
@@ -1056,13 +1050,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
         frames = bt.frames
-
-        for frame in frames:
-            logging.getLogger().warning(f"frame function ({frame.function})")
-            logging.getLogger().warning(f"frame module ({frame.module})")
-            logging.getLogger().warning(f"frame abs_path ({frame.abs_path})")
-            logging.getLogger().warning(f"frame lineno ({frame.lineno})")
-            logging.getLogger().warning(f"frame context_line ({frame.context_line})")
 
         assert exc.type == "RuntimeException"
         assert exc.value == "thrown on purpose to test ProGuard Android source context"
