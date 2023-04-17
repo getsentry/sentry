@@ -1,3 +1,5 @@
+import {Location} from 'history';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {
@@ -7,7 +9,11 @@ import {
 
 import APIModuleView from './APIModuleView';
 
-export default function APIModule() {
+type Props = {
+  location: Location;
+};
+
+export default function APIModule({location}: Props) {
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -20,7 +26,7 @@ export default function APIModule() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <APIModuleView />
+            <APIModuleView location={location} />
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
