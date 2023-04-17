@@ -7,7 +7,7 @@ import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
   organization: Organization;
 };
 

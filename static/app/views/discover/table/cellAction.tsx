@@ -147,6 +147,7 @@ type CellActionsOpts = {
    * allow list of actions to display on the context menu
    */
   allowActions?: Actions[];
+  children?: React.ReactNode;
 };
 
 function makeCellActions({

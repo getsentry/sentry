@@ -7,7 +7,7 @@ import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnal
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
   projects: Project[];
 };
 

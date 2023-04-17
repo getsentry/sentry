@@ -13,6 +13,7 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
+  children?: React.ReactNode;
   // To add context for better UX
   className?: string;
   customComponent?: React.ReactNode;
