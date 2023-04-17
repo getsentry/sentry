@@ -512,7 +512,7 @@ class SqlFormatEventSerializerTest(TestCase):
                 },
                 project_id=self.project.id,
             )
-            result = serialize(event, None, IssueEventSerializer())
+            result = serialize(event, None, SqlFormatEventSerializer())
 
             # Should remove quotes from all terms except the one that contains a space ("column name")
             assert (
