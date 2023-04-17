@@ -91,7 +91,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
     tooltipDescription?: string | React.ReactNode;
     tooltipText?: string;
   } {
-    const hasEscalatingIssues = organization.features.includes('escalating-issues');
+    const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     switch (reason) {
       case GroupInboxReason.UNIGNORED:
         return {
