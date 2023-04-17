@@ -249,9 +249,8 @@ def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[b
     )
     transaction.set_measurement("number_of_segments", len(segments))  # type: ignore
 
-    current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
     download_segment_with_fixed_args = functools.partial(
-        download_segment, transaction=transaction, current_hub=current_hub
+        download_segment, transaction=transaction, current_hub=sentry_sdk.Hub.current
     )
 
     # Map all of the segments to a worker process for download.
