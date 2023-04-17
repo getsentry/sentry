@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Sequence, Set
+from typing import List, Optional, Sequence, Set, Tuple
 
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
@@ -20,10 +20,6 @@ from sentry.models.project import Project
 from sentry.models.releasefile import read_artifact_index
 
 logger = logging.getLogger("sentry.api")
-
-
-# The number of bundles we want to return based on a `debug_id` query.
-MAX_BUNDLES_BY_DEBUG_ID = 4
 
 
 # The number of ArtifactBundles we open up and parse to look for files inside.
@@ -115,8 +111,12 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # the file names we are querying for, and also leave us with the remaining
         # set of file names that are not covered by any bundle, to look up below
 
-        bundle_file_ids = collect_artifact_bundles_containing_debug_ids(debug_ids, project)
-        individual_files = try_resolve_urls(urls, project, release_name, dist_name, bundle_file_ids)
+        bundle_file_ids, remaining_urls = collect_artifact_bundles_containing_debug_ids(
+            debug_ids, project, urls
+        )
+        individual_files = try_resolve_urls(
+            remaining_urls, project, release_name, dist_name, bundle_file_ids
+        )
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
@@ -151,26 +151,47 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
 
 def collect_artifact_bundles_containing_debug_ids(
-    debug_ids: List[str], project: Project
-) -> Set[int]:
-    # For debug_ids, we will query for the artifact_bundle/file_id directly
-    bundle_file_ids = set(
+    debug_ids: List[str], project: Project, urls: List[str]
+) -> Tuple[Set[int], List[str]]:
+    # We want to have the newest `File` for each `debug_id`.
+    # Hopefully that will end up being only a single `File` in the end containing all the `debug_id`s.
+    debug_artifact_bundles = (
         DebugIdArtifactBundle.objects.filter(
             organization_id=project.organization.id,
             debug_id__in=debug_ids,
         )
-        .select_related("artifact_bundle")
-        .values_list("artifact_bundle__file_id", flat=True)
-        .distinct("artifact_bundle__file_id")[: MAX_BUNDLES_BY_DEBUG_ID + 1]
+        .select_related("artifact_bundle__file")
+        .distinct("debug_id")
+        .order_by("debug_id", "-date_added")
     )
 
-    if len(bundle_file_ids) > MAX_BUNDLES_BY_DEBUG_ID:
-        logger.error(
-            "querying for artifact bundles by `debug_id` yielded more than %s results",
-            MAX_BUNDLES_BY_DEBUG_ID,
+    # The query could potentially return more than one `File`, but we could still have a single `File` that satisfies all the `debug_id`s.
+    # We also want to already filter out any `url` that is covered by this `File`.
+    remaining_debug_ids = debug_ids
+    remaining_urls = urls
+    bundle_file_ids = set()
+
+    for debug_artifact_bundle in debug_artifact_bundles:
+        file = debug_artifact_bundle.artifact_bundle.file
+
+        archive = ArtifactBundleArchive(file.getfile())
+        manifest = archive.manifest
+        entries_by_debug_id = archive._entries_by_debug_id
+        archive.close()
+
+        remaining_debug_ids = list(
+            filter(lambda debug_id: debug_id not in entries_by_debug_id, remaining_debug_ids)
+        )
+        remaining_urls = list(
+            filter(lambda url: not url_exists_in_manifest(manifest, url), remaining_urls)
         )
 
-    return bundle_file_ids
+        bundle_file_ids.add(file.id)
+
+        if not remaining_debug_ids:
+            return bundle_file_ids
+
+    return bundle_file_ids, remaining_urls
 
 
 def try_resolve_urls(
@@ -227,31 +248,40 @@ def try_resolve_urls(
 def collect_release_artifact_bundles_containing_urls(
     urls: List[str], project: Project, release_name: str, dist_name: str, bundle_file_ids: Set[int]
 ) -> List[str]:
-    releases_with_bundles = ReleaseArtifactBundle.objects.filter(
-        organization_id=project.organization.id,
-        release_name=release_name,
-        # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
-        # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
-        dist_name=dist_name or "",
-    ).select_related("artifact_bundle__file")[:MAX_SCANNED_BUNDLES]
+    releases_with_bundles = (
+        ReleaseArtifactBundle.objects.filter(
+            organization_id=project.organization.id,
+            release_name=release_name,
+            # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
+            # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
+            dist_name=dist_name or "",
+        )
+        .select_related("artifact_bundle__file")
+        .order_by("-date_added")[:MAX_SCANNED_BUNDLES]
+    )
 
-    manifests = []
+    remaining_urls = urls
+
     for release in releases_with_bundles:
         file_id = release.artifact_bundle.file.id
         file = release.artifact_bundle.file.getfile()
+
         archive = ArtifactBundleArchive(file)
         manifest = archive.manifest
-        manifests.append((file_id, manifest))
         archive.close()
 
-    def url_in_any_manifest(url):
-        for (file_id, manifest) in manifests:
+        def url_in_manifest(url):
             if url_exists_in_manifest(manifest, url):
                 bundle_file_ids.add(file_id)
                 return True
-        return False
+            return False
 
-    return list(filter(lambda url: not url_in_any_manifest(url), urls))
+        remaining_urls = list(filter(lambda url: not url_in_manifest(url), remaining_urls))
+
+        if not remaining_urls:
+            return remaining_urls
+
+    return remaining_urls
 
 
 def collect_legacy_artifact_bundles_containing_urls(
