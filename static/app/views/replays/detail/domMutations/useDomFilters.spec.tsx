@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {INode} from '@sentry-internal/rrweb-snapshot';
 import type {Location} from 'history';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -17,6 +18,15 @@ const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
   typeof browserHistory.push
 >;
 
+// Attempt to parse an html string to a DOM node
+//
+// Note this is not an `INode`, because there's no serialization information,
+// but it should not affect this current suite of tests for now
+function parseHtml(html: string) {
+  return new DOMParser().parseFromString(html, 'text/html').body
+    .childNodes[0] as unknown as INode;
+}
+
 const ACTION_1_DEBUG = {
   crumb: {
     type: BreadcrumbType.DEBUG,
@@ -34,7 +44,9 @@ const ACTION_1_DEBUG = {
     color: 'purple300',
     description: 'Debug',
   },
-  html: '<div class="css-vruter e1weinmj3">HTTP 400 (invalid_grant): The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.</div>',
+  html: parseHtml(
+    '<div class="css-vruter e1weinmj3">HTTP 400 (invalid_grant): The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.</div>'
+  ),
   timestamp: 1663691559961,
 } as Extraction;
 
@@ -52,7 +64,9 @@ const ACTION_2_UI = {
     description: 'User Action',
     level: BreadcrumbLevelType.UNDEFINED,
   },
-  html: '<span aria-describedby="tooltip-nxf8deymg3" class="css-507rzt e1lk5gpt0">Ignored <span type="default" class="css-2uol17 e1gotaso0"><span><!-- 1 descendents --></span></span></span>',
+  html: parseHtml(
+    '<span aria-describedby="tooltip-nxf8deymg3" class="css-507rzt e1lk5gpt0">Ignored <span type="default" class="css-2uol17 e1gotaso0"><span><!-- 1 descendents --></span></span></span>'
+  ),
   timestamp: 1663691570812,
 } as Extraction;
 
@@ -70,7 +84,7 @@ const ACTION_3_UI = {
     description: 'User Action',
     level: BreadcrumbLevelType.UNDEFINED,
   },
-  html: '<div class="loadmore" style="display: block;">Load more..</div>',
+  html: parseHtml('<div class="loadmore" style="display: block;">Load more..</div>'),
   timestamp: 1663691634529,
 } as Extraction;
 

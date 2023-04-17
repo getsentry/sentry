@@ -1,4 +1,5 @@
 import {RefObject, useCallback, useMemo, useRef} from 'react';
+import {INode} from '@sentry-internal/rrweb-snapshot';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
@@ -24,12 +25,21 @@ type Return = {
   type: string[];
 };
 
+// Only Element nodes have `outerHTML`. INode comes from rrweb, it is a `Node`
+// with rrweb serialization property `__sn`.
+type SerializedElement = Element & Pick<INode, '__sn'>;
+function isElement(n: INode): n is SerializedElement {
+  return n.nodeType === n.ELEMENT_NODE;
+}
+
 const FILTERS = {
   type: (item: Extraction, type: string[]) =>
     type.length === 0 || type.includes(item.crumb.type),
 
   searchTerm: (item: Extraction, searchTerm: string) =>
-    JSON.stringify(item.html).toLowerCase().includes(searchTerm),
+    isElement(item.html)
+      ? JSON.stringify(item.html.outerHTML).toLowerCase().includes(searchTerm)
+      : false,
 };
 
 function useDomFilters({actions}: Options): Return {
