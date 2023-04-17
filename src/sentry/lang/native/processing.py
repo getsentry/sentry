@@ -366,7 +366,7 @@ def get_frames_for_symbolication(
     return rv
 
 
-def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
+def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktrace_infos = [
         stacktrace
         for stacktrace in find_stacktraces_in_data(data)
@@ -444,13 +444,13 @@ def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_symbolication_function(data) -> Callable[[Symbolicator, Any], Any]:
+def get_native_symbolication_function(data) -> Callable[[Symbolicator, Any], Any]:
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
         return process_applecrashreport
     elif is_native_event(data):
-        return process_payload
+        return process_native_stacktraces
 
 
 def get_required_attachment_types(data) -> Set[str]:

@@ -139,11 +139,15 @@ def _do_preprocess_event(
 
     is_js = False
     if data["platform"] in ("javascript", "node"):
-        from sentry.lang.javascript.processing import get_symbolication_function
+        from sentry.lang.javascript.processing import (
+            get_js_symbolication_function as get_symbolication_function,
+        )
 
         is_js = True
     else:
-        from sentry.lang.native.processing import get_symbolication_function
+        from sentry.lang.native.processing import (
+            get_native_symbolication_function as get_symbolication_function,
+        )
 
     symbolication_function = get_symbolication_function(data)
     if symbolication_function:

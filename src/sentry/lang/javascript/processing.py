@@ -132,7 +132,7 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
-def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
+def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     project = symbolicator.project
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
@@ -208,7 +208,7 @@ def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
+def get_js_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
     if should_use_symbolicator_for_sourcemaps(data.get("project")):
-        return process_payload
+        return process_js_stacktraces
     return None
