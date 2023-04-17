@@ -207,6 +207,10 @@ export function AggregateFlamegraph(): ReactElement {
         newView.setConfigView(position.view, {width: {min: 0}});
       }
 
+      // Set to 3/4 of the view up, magic number... Would be best to comput some weighted visual score
+      // based on the number of frames and the depth of the frames, but lets see if we can make it work
+      // with this for now
+      newView.setConfigView(newView.configView.withY(newView.configView.height * 0.75));
       return newView;
     },
 
