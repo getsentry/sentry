@@ -1733,7 +1733,7 @@ function buildRoutes() {
 
       <Route
         path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
+        component={make(() => import('sentry/views/starfish/'))}
         key="org-starfish"
       >
         {starfishChildRoutes}

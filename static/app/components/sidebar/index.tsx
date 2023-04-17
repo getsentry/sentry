@@ -234,6 +234,27 @@ function Sidebar({location, organization}: Props) {
         to={`/organizations/${organization.slug}/starfish/`}
         id="starfish"
       />
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconStar size="md" />}
+        label={<GuideAnchor target="starfish">{t('Api')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/starfish/api/`}
+        id="starfish"
+      />
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconStar size="md" />}
+        label={<GuideAnchor target="starfish">{t('Cache')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/starfish/cache/`}
+        id="starfish"
+      />
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconStar size="md" />}
+        label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/starfish/database/`}
+        id="starfish"
+      />
     </Feature>
   );
 
