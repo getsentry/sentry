@@ -146,7 +146,7 @@ class TimeseriesCardinalityLimiterFactory:
     The TimeseriesCardinalityLimiterFactory is in charge of initializing the
     TimeseriesCardinalityLimiter based on a configuration's namespace and
     options. Ideally this logic would live in the initialization of the
-    backends (postgres, cloudspanner etc) but since each backend supports
+    backends (postgres, etc) but since each backend supports
     multiple use cases dynamically we just keep the mapping of rate limiters in
     this factory.
 

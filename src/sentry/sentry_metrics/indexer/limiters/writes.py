@@ -177,7 +177,7 @@ class WritesLimiterFactory:
     """
     The WritesLimiterFactory is in charge of initializing the WritesLimiter
     based on a configuration's namespace and options. Ideally this logic would
-    live in the initialization of the backends (postgres, cloudspanner etc) but
+    live in the initialization of the backends (postgres etc) but
     since each backend supports multiple use cases dynamically we just keep the
     mapping of rate limiters in this factory.
     """
