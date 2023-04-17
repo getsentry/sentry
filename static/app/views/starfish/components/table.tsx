@@ -65,6 +65,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
   columnTitles?: string[];
+  dataset?: 'discover' | 'metrics';
   summaryConditions?: string;
 };
 
@@ -400,7 +401,7 @@ class _Table extends Component<Props, State> {
             referrer="api.performance.landing-table"
             transactionName={transaction}
             transactionThreshold={transactionThreshold}
-            queryExtras={{dataset: 'discover'}}
+            queryExtras={{dataset: this.props.dataset ?? 'metrics'}}
           >
             {({pageLinks, isLoading, tableData}) => (
               <Fragment>

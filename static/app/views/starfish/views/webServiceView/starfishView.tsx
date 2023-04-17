@@ -95,6 +95,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <Table
         {...props}
         setError={usePageError().setPageError}
+        dataset="discover" // Metrics dataset can't do equations yet
         columnTitles={[
           'endpoint',
           'tpm',
