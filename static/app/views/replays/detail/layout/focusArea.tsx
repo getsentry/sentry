@@ -8,6 +8,7 @@ import IssueList from 'sentry/views/replays/detail/issueList';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace/index';
+import Transactions from 'sentry/views/replays/detail/transactions/index';
 
 type Props = {};
 
@@ -27,9 +28,11 @@ function FocusArea({}: Props) {
       );
     case TabKey.trace:
       if (!replay) {
-        return <Placeholder height="150px" />;
+        return <Placeholder height="100%" />;
       }
       return <Trace organization={organization} replayRecord={replay.getReplay()} />;
+    case TabKey.trace2:
+      return <Transactions replayRecord={replay?.getReplay()} />;
     case TabKey.issues:
       if (!replay) {
         return <Placeholder height="150px" />;

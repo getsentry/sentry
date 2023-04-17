@@ -17,6 +17,7 @@ import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
+import ReplayTransactionContext from 'sentry/views/replays/detail/transactions/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 import {getInitialTimeOffset} from 'sentry/views/replays/utils';
 
@@ -116,7 +117,9 @@ function ReplayDetails({
         startTimestampMs,
       })}
     >
-      <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
+      <ReplayTransactionContext replayRecord={replayRecord}>
+        <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
+      </ReplayTransactionContext>
     </ReplayContextProvider>
   );
 }
