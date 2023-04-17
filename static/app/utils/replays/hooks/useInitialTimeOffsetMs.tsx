@@ -83,7 +83,7 @@ async function fromListPageQuery({
 
   // Check if there is even any `click.*` fields in the query string
   const search = new MutableSearch(listPageQuery);
-  const isClickSearch = search.tokens.some(token => token.key?.startsWith?.('click.'));
+  const isClickSearch = search.getFilterKeys().some(key => key.startsWith('click.'));
   if (!isClickSearch) {
     // There was a search, but not for clicks, so lets skip this strategy.
     return undefined;
