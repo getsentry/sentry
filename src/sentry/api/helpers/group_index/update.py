@@ -560,6 +560,7 @@ def update_groups(
                 projects=projects,
                 project_lookup=project_lookup,
                 new_status=new_status,
+                new_substatus=new_substatus,
                 is_bulk=is_bulk,
                 acting_user=acting_user,
                 status_details=result.get("statusDetails", {}),
