@@ -82,6 +82,7 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "performance-issues-search",
+            "transaction-name-normalize",
         }
 
     @mock.patch("sentry.features.batch_has")
