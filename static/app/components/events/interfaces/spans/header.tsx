@@ -462,7 +462,9 @@ class TraceViewHeader extends Component<PropType, State> {
     return (
       <ProfileContext.Consumer>
         {profiles => {
-          const transactionDuration = trace.traceEndTimestamp - trace.traceStartTimestamp;
+          const transactionDuration = Math.abs(
+            trace.traceEndTimestamp - trace.traceStartTimestamp
+          );
           const hasProfileMeasurementsChart =
             organization.features.includes('mobile-cpu-memory-in-transactions') &&
             profiles?.type === 'resolved' &&
