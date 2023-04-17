@@ -1,59 +1,53 @@
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
-import GridEditable from 'sentry/components/gridEditable';
+import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 
-const ENDPOINT_QUERY = `select description, count() as count
- from spans_experimental_starfish
- where module = 'http'
- group by description
- order by count desc
- limit 10
+const HOST = 'http://localhost:8000';
+
+const ENDPOINT_QUERY = `SELECT description, count() AS count
+ FROM spans_experimental_starfish
+ WHERE module = 'http'
+ GROuP BY description
+ ORDER BY count DESC
+ LIMIT 10
 `;
 
 type Props = {
   location: Location;
 };
 
+type DataRow = {
+  count: number;
+  description: string;
+};
+
+const COLUMN_ORDER = [
+  {
+    key: 'description',
+    name: 'Transaction',
+    width: 600,
+  },
+  {
+    key: 'count',
+    name: 'Count',
+  },
+];
+
 export default function APIModuleView({location}: Props) {
-  const {
-    isLoading: areEndpointsLoading,
-    error: endpointsError,
-    data: endpointsData,
-  } = useQuery({
-    queryKey: ['URLs'],
-    queryFn: () =>
-      fetch(`http://localhost:8000/?query=${ENDPOINT_QUERY}`).then(res => res.json()),
+  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
+    queryKey: ['endpoints'],
+    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_QUERY}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
-
-  if (areEndpointsLoading) {
-    return 'LOADING';
-  }
-
-  if (endpointsError) {
-    return 'ERROR';
-  }
-
-  const columnOrder = [
-    {
-      key: 'description',
-      name: 'Transaction',
-    },
-    {
-      key: 'count',
-      name: 'Count',
-    },
-  ];
-  const columnSortBy = [];
 
   return (
     <GridEditable
       isLoading={areEndpointsLoading}
       data={endpointsData}
-      columnOrder={columnOrder}
-      columnSortBy={columnSortBy}
+      columnOrder={COLUMN_ORDER}
+      columnSortBy={[]}
       grid={{
         renderHeadCell,
         renderBodyCell,
@@ -63,12 +57,10 @@ export default function APIModuleView({location}: Props) {
   );
 }
 
-function renderHeadCell(column): React.ReactNode {
-  console.log('rendering head', arguments);
-
+function renderHeadCell(column: GridColumnHeader): React.ReactNode {
   return <span>{column.name}</span>;
 }
 
-function renderBodyCell(column: GridColumn, row: DataRow): React.ReactNode {
+function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
   return <span>{row[column.key]}</span>;
 }
