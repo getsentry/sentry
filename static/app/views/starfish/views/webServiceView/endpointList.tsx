@@ -66,7 +66,6 @@ type Props = {
   withStaticFilters: boolean;
   columnTitles?: string[];
   dataset?: 'discover' | 'metrics';
-  summaryConditions?: string;
 };
 
 type State = {
@@ -76,7 +75,7 @@ type State = {
   widths: number[];
 };
 
-class _EndpointList extends Component<Props, State> {
+class EndpointList extends Component<Props, State> {
   state: State = {
     widths: [],
     transaction: undefined,
@@ -435,15 +434,6 @@ class _EndpointList extends Component<Props, State> {
       </GuideAnchor>
     );
   }
-}
-
-function EndpointList(
-  props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}
-) {
-  const summaryConditions =
-    props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
-
-  return <_EndpointList {...props} summaryConditions={summaryConditions} />;
 }
 
 // Align the contained IconStar with the IconStar buttons in individual table
