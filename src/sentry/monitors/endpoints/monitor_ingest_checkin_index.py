@@ -119,7 +119,10 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             limit=CHECKIN_QUOTA_LIMIT,
             window=CHECKIN_QUOTA_WINDOW,
         ):
-            metrics.incr("monitors.checkin.dropped.ratelimited")
+            metrics.incr(
+                "monitors.checkin.dropped.ratelimited",
+                tags={"source": "api"},
+            )
             raise Throttled(
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
             )
