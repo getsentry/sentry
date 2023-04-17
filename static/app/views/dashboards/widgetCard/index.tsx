@@ -310,7 +310,7 @@ class WidgetCard extends Component<Props, State> {
                               'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
                             )}
                           >
-                            <IconWarning color="gray300" />
+                            <IconWarning color="warningText" />
                           </Tooltip>
                         );
                       }

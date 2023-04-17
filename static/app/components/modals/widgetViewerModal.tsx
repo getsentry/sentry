@@ -1007,7 +1007,7 @@ function WidgetViewerModal(props: Props) {
                                   'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
                                 )}
                               >
-                                <IconWarning color="gray300" size="md" />
+                                <IconWarning color="warningText" size="md" />
                               </Tooltip>
                             );
                           }
