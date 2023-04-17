@@ -578,12 +578,8 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         RuleSnooze.objects.create(
             user_id=self.user.id, alert_rule=self.metric_alert_rule, owner_id=self.user.id
         )
-        data = {"target": "me"}
         response = self.get_response(
-            self.organization.slug,
-            self.project.slug,
-            self.metric_alert_rule.id,
-            **data,
+            self.organization.slug, self.project.slug, self.metric_alert_rule.id
         )
         assert not RuleSnooze.objects.filter(
             alert_rule=self.metric_alert_rule.id, user_id=self.user.id
@@ -594,12 +590,10 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
     def test_delete_metric_alert_rule_mute_everyone(self):
         """Test that a user can unsnooze a metric rule they've snoozed for everyone"""
         RuleSnooze.objects.create(alert_rule=self.metric_alert_rule, owner_id=self.user.id)
-        data = {"target": "everyone"}
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
             self.metric_alert_rule.id,
-            **data,
         )
         assert not RuleSnooze.objects.filter(
             alert_rule=self.metric_alert_rule.id, user_id=self.user.id
@@ -616,12 +610,8 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
             owner=ActorTuple.from_actor_identifier(f"team:{other_team.id}"),
         )
         RuleSnooze.objects.create(alert_rule=other_metric_alert_rule)
-        data = {"target": "everyone"}
         response = self.get_response(
-            self.organization.slug,
-            self.project.slug,
-            other_metric_alert_rule.id,
-            **data,
+            self.organization.slug, self.project.slug, other_metric_alert_rule.id
         )
         assert RuleSnooze.objects.filter(alert_rule=other_metric_alert_rule.id).exists()
         assert response.status_code == 401
