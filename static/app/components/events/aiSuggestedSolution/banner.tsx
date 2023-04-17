@@ -53,6 +53,7 @@ const Body = styled(PanelBody)`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
+  gap: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 42% 1fr;
