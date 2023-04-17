@@ -121,8 +121,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 bottom: '8px',
               }}
               definedAxisTicks={4}
-              isLineChart
-              chartColors={CHART_PALETTE[5]}
+              chartColors={[CHART_PALETTE[5][4]]}
             />
           );
         }}
