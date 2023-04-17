@@ -7,10 +7,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
-ORG_MEMBER = settings.SENTRY_ROLES[0]
-ORG_ADMIN = settings.SENTRY_ROLES[1]
-ORG_MANAGER = settings.SENTRY_ROLES[2]
-ORG_OWNER = settings.SENTRY_ROLES[3]
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
