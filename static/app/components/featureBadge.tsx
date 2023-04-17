@@ -13,6 +13,7 @@ import space, {ValidSize} from 'sentry/styles/space';
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   expiresAt?: Date;
+  noTooltip?: boolean;
   title?: string;
   tooltipProps?: Partial<InternalTooltipProps>;
   variant?: 'indicator' | 'badge';
