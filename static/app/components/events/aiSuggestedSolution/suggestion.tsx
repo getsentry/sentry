@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -18,7 +17,6 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import marked from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
 import {SuggestionLoaderMessage} from './suggestionLoaderMessage';
@@ -33,19 +31,19 @@ type Props = {
 function ErrorDescription({
   restriction,
   organizationSlug,
-  router,
   onRefetch,
   onSetIndividualConsent,
+  onHideSuggestion,
 }: {
+  onHideSuggestion: () => void;
   onRefetch: () => void;
   onSetIndividualConsent: (consent: boolean) => void;
   organizationSlug: string;
-  router: InjectedRouter;
   restriction?: 'subprocessor' | 'individual_consent';
 }) {
   if (restriction === 'subprocessor') {
     return (
-      <EmptyState
+      <EmptyMessage
         icon={<IconFile size="xl" />}
         title={t('OpenAI Subprocessor Acknowledgment')}
         description={t(
@@ -53,14 +51,7 @@ function ErrorDescription({
         )}
         action={
           <ButtonBar gap={2}>
-            <Button
-              to={{
-                pathname: router.location.pathname,
-                query: {...router.location.query, showSuggestedFix: undefined},
-              }}
-            >
-              {t('Dismiss')}
-            </Button>
+            <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
             <Button priority="primary" to={`/settings/${organizationSlug}/legal/`}>
               {t('Accept in Settings')}
             </Button>
@@ -73,7 +64,7 @@ function ErrorDescription({
   if (restriction === 'individual_consent') {
     const activeSuperUser = isActiveSuperuser();
     return (
-      <EmptyState
+      <EmptyMessage
         icon={<IconFlag size="xl" />}
         title={t('We need your consent')}
         description={t(
@@ -81,14 +72,7 @@ function ErrorDescription({
         )}
         action={
           <ButtonBar gap={2}>
-            <Button
-              to={{
-                pathname: router.location.pathname,
-                query: {...router.location.query, showSuggestedFix: undefined},
-              }}
-            >
-              {t('Dismiss')}
-            </Button>
+            <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
             <Button
               priority="primary"
               onClick={() => {
@@ -113,8 +97,8 @@ function ErrorDescription({
 
 export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const organization = useOrganization();
-  const router = useRouter();
-  const [individualConsent, setIndividualConsent] = useOpenAISuggestionLocalStorage();
+  const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
+    useOpenAISuggestionLocalStorage();
 
   const {
     data,
@@ -125,7 +109,11 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   } = useApiQuery<{suggestion: string}>(
     [
       `/projects/${organization.slug}/${projectSlug}/events/${event.eventID}/ai-fix-suggest/`,
-      {query: {consent: individualConsent ? 'yes' : undefined}},
+      {
+        query: {
+          consent: suggestedSolutionLocalConfig.individualConsent ? 'yes' : undefined,
+        },
+      },
     ],
     {
       staleTime: Infinity,
@@ -135,16 +123,15 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
 
   const handleFeedbackClick = useCallback(() => {
     addSuccessMessage('Thank you for your feedback!');
-    onHideSuggestion();
-  }, [onHideSuggestion]);
+  }, []);
 
   return (
     <Panel>
       <Header>
-        <div>
+        <Title>
           {t('AI Solution')}
           <ExperimentalFeatureBadge />
-        </div>
+        </Title>
         <Button size="xs" onClick={onHideSuggestion}>
           {t('Hide Suggestion')}
         </Button>
@@ -159,9 +146,11 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
           <ErrorDescription
             onRefetch={dataRefetch}
             organizationSlug={organization.slug}
-            router={router}
-            onSetIndividualConsent={setIndividualConsent}
+            onSetIndividualConsent={() =>
+              setSuggestedSolutionLocalConfig({individualConsent: true})
+            }
             restriction={error?.responseJSON?.restriction}
+            onHideSuggestion={onHideSuggestion}
           />
         ) : (
           <Content
@@ -174,70 +163,72 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
           />
         )}
       </PanelBody>
-      <PanelFooter>
-        <Feedback>
-          <strong>{t('Was this helpful?')}</strong>
-          <ButtonBar gap={1}>
-            <Button
-              icon={<IconSad color="red300" size="xs" />}
-              size="xs"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'ai_suggested_solution.feedback_helpful_nope_button_clicked',
-                  {
-                    organization,
-                    project_id: event.projectID,
-                    group_id: event.groupID,
-                    ...getAnalyticsDataForEvent(event),
-                  }
-                );
+      {!dataIsLoading && !dataIsError && (
+        <PanelFooter>
+          <Feedback>
+            <strong>{t('Was this helpful?')}</strong>
+            <ButtonBar gap={1}>
+              <Button
+                icon={<IconSad color="red300" size="xs" />}
+                size="xs"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'ai_suggested_solution.feedback_helpful_nope_button_clicked',
+                    {
+                      organization,
+                      project_id: event.projectID,
+                      group_id: event.groupID,
+                      ...getAnalyticsDataForEvent(event),
+                    }
+                  );
 
-                handleFeedbackClick();
-              }}
-            >
-              {t('Nope')}
-            </Button>
-            <Button
-              icon={<IconMeh color="yellow300" size="xs" />}
-              size="xs"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'ai_suggested_solution.feedback_helpful_kinda_button_clicked',
-                  {
-                    organization,
-                    project_id: event.projectID,
-                    group_id: event.groupID,
-                    ...getAnalyticsDataForEvent(event),
-                  }
-                );
+                  handleFeedbackClick();
+                }}
+              >
+                {t('Nope')}
+              </Button>
+              <Button
+                icon={<IconMeh color="yellow300" size="xs" />}
+                size="xs"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'ai_suggested_solution.feedback_helpful_kinda_button_clicked',
+                    {
+                      organization,
+                      project_id: event.projectID,
+                      group_id: event.groupID,
+                      ...getAnalyticsDataForEvent(event),
+                    }
+                  );
 
-                handleFeedbackClick();
-              }}
-            >
-              {t('Kinda')}
-            </Button>
-            <Button
-              icon={<IconHappy color="green300" size="xs" />}
-              size="xs"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'ai_suggested_solution.feedback_helpful_yes_button_clicked',
-                  {
-                    organization,
-                    project_id: event.projectID,
-                    group_id: event.groupID,
-                    ...getAnalyticsDataForEvent(event),
-                  }
-                );
+                  handleFeedbackClick();
+                }}
+              >
+                {t('Kinda')}
+              </Button>
+              <Button
+                icon={<IconHappy color="green300" size="xs" />}
+                size="xs"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'ai_suggested_solution.feedback_helpful_yes_button_clicked',
+                    {
+                      organization,
+                      project_id: event.projectID,
+                      group_id: event.groupID,
+                      ...getAnalyticsDataForEvent(event),
+                    }
+                  );
 
-                handleFeedbackClick();
-              }}
-            >
-              {t('Yes, Surprisingly\u2026')}
-            </Button>
-          </ButtonBar>
-        </Feedback>
-      </PanelFooter>
+                  handleFeedbackClick();
+                }}
+              >
+                {t('Yes, Surprisingly\u2026')}
+              </Button>
+            </ButtonBar>
+          </Feedback>
+        </PanelFooter>
+      )}
     </Panel>
   );
 }
@@ -268,9 +259,9 @@ const SuggestionLoadingError = styled(LoadingError)`
   margin-bottom: 0;
   border: none;
   /* This is just to be consitent with other */
-  /* padding-top and padding-bottom we are using in this panel */
-  padding-top: ${space(2)};
-  padding-bottom: ${space(2)};
+  /* padding-top and padding-bottom we are using in the empty state component */
+  padding-top: ${space(4)};
+  padding-bottom: ${space(4)};
 `;
 
 const LoaderWrapper = styled('div')`
@@ -290,9 +281,10 @@ const Content = styled('div')`
   }
 `;
 
-const EmptyState = styled(EmptyMessage)`
-  /* This is just to be consitent with other */
-  /* padding-top and padding-bottom we are using in this panel */
-  padding-top: ${space(2)};
-  padding-bottom: ${space(2)};
+const Title = styled('div')`
+  /* to be consistent with the feature badge size */
+  height: ${space(2)};
+  line-height: ${space(2)};
+  display: flex;
+  align-items: center;
 `;

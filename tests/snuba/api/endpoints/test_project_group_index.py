@@ -1177,9 +1177,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert "inbox" in response.data
         assert response.data["inbox"] is None
 
-    @patch("sentry.api.helpers.group_index.update.uuid4")
-    @patch("sentry.api.helpers.group_index.update.merge_groups")
-    @patch("sentry.api.helpers.group_index.update.eventstream")
+    @patch("sentry.issues.merge.uuid4")
+    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.eventstream")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -1211,9 +1211,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             eventstream_state=eventstream_state,
         )
 
-    @patch("sentry.api.helpers.group_index.update.uuid4")
-    @patch("sentry.api.helpers.group_index.update.merge_groups")
-    @patch("sentry.api.helpers.group_index.update.eventstream")
+    @patch("sentry.issues.merge.uuid4")
+    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.eventstream")
     def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)

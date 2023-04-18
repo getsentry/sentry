@@ -716,4 +716,60 @@ describe('SpanEvidenceKeyValueList', () => {
       ).toHaveTextContent('52% (487ms/931ms)');
     });
   });
+
+  describe('Large HTTP Payload', () => {
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD
+    );
+    builder.getEvent().projectID = '123';
+
+    const offenderSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 0.487, // in seconds
+      op: 'http.client',
+      description: 'https://example.com/api/users',
+      problemSpan: ProblemSpan.OFFENDER,
+      data: {
+        'Encoded Body Size': 31041901,
+      },
+    });
+
+    builder.addSpan(offenderSpan);
+
+    it('Renders relevant fields', () => {
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
+      expect(
+        screen.getByRole('button', {
+          name: /view full event/i,
+        })
+      ).toHaveAttribute('href', '/organizations/org-slug/performance/project:a1/?');
+
+      expect(
+        screen.getByRole('cell', {name: 'Large HTTP Payload Span'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.large-http-payload-span')
+      ).toHaveTextContent('http.client - https://example.com/api/users');
+
+      expect(screen.getByRole('cell', {name: 'Payload Size'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.payload-size')
+      ).toHaveTextContent('29.6 MiB (31041901 B)');
+    });
+  });
 });
