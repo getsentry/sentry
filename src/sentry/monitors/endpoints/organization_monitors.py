@@ -46,12 +46,7 @@ MONITOR_ENVIRONMENT_TOP_STATUS = Subquery(
     MonitorEnvironment.objects.filter(monitor__id=OuterRef("id"))
     .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
     .order_by("status_ordering", "-last_checkin")
-    .values("status")[:1]
-)
-
-DEFAULT_ORDERING_CASE = Case(
-    *[When(monitorenvironment_top_status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
-    output_field=IntegerField(),
+    .values("status_ordering")[:1]
 )
 
 
@@ -77,7 +72,6 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                 organization_id=organization.id, project_id__in=filter_params["project_id"]
             )
             .annotate(monitorenvironment_top_status=MONITOR_ENVIRONMENT_TOP_STATUS)
-            .annotate(status_order=DEFAULT_ORDERING_CASE)
             .exclude(
                 status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
             )
@@ -128,7 +122,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("status_order", "-last_checkin"),
+            order_by=("monitorenvironment_top_status", "-last_checkin"),
             on_results=lambda x: serialize(
                 x, request.user, MonitorSerializer(environments=environments)
             ),
