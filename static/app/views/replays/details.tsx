@@ -118,13 +118,13 @@ function ReplayDetails({
       })}
     >
       <ReplayTransactionContext replayRecord={replayRecord}>
-        <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
+        <DetailsInsideContext orgSlug={orgSlug} replayRecord={replayRecord} />
       </ReplayTransactionContext>
     </ReplayContextProvider>
   );
 }
 
-function LoadedDetails({
+function DetailsInsideContext({
   orgSlug,
   replayRecord,
 }: {

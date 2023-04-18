@@ -7,12 +7,14 @@ import {
   useMemo,
   useState,
 } from 'react';
+import {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,
@@ -29,18 +31,22 @@ type Options = {
 };
 
 type State = {
+  detailsComplete: boolean;
+  detailsRequests: number;
+  detailsResponses: number;
   error: null | Error;
+  indexComplete: boolean;
   isFetching: boolean;
-  requests: number;
-  responses: number;
   traces: undefined | TraceFullDetailed[];
 };
 
 const INITIAL_STATE: State = {
+  detailsComplete: true,
+  detailsRequests: 0,
+  detailsResponses: 0,
   error: null,
+  indexComplete: true,
   isFetching: false,
-  requests: 0,
-  responses: 0,
   traces: undefined,
 };
 
@@ -65,6 +71,9 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const orgSlug = organization.slug;
 
   const listEventView = useMemo(() => {
+    if (!replayRecord) {
+      return null;
+    }
     const replayId = replayRecord?.id;
     const projectId = replayRecord?.project_id;
     const start = getUtcDateString(replayRecord?.started_at.getTime());
@@ -91,61 +100,96 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     return getTraceRequestPayload({eventView: traceEventView, location});
   }, [replayRecord, location]);
 
+  const fetchTraceIdData = useCallback(
+    async (traceIds: string[]) => {
+      setState(prev => ({
+        ...prev,
+        detailsRequests: prev.detailsRequests + traceIds.length,
+      }));
+
+      await Promise.allSettled(
+        traceIds.map(traceId => {
+          const promise = doDiscoverQuery(
+            api,
+            `/organizations/${orgSlug}/events-trace/${traceId}/`,
+            tracePayload
+          );
+          promise.then(([trace, , _traceResp]) => {
+            // TODO: we need to iterate over any pages of data
+            setState(prev => ({
+              ...prev,
+              detailsResponses: prev.detailsResponses + 1,
+              traces: sortBy(
+                (prev.traces || []).concat(trace as TraceFullDetailed),
+                'start_timestamp'
+              ),
+            }));
+          });
+          return promise;
+        })
+      );
+
+      setState(prev => ({
+        ...prev,
+        detailsComplete: prev.detailsRequests === prev.detailsResponses,
+      }));
+    },
+    [api, orgSlug, tracePayload]
+  );
+
   const fetchTransactionData = useCallback(async () => {
-    if (state.traces) {
+    if (state.traces || !listEventView) {
       return;
     }
+    const start = getUtcDateString(replayRecord?.started_at.getTime());
+    const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
     setState({
       error: null,
       isFetching: true,
-      requests: 0,
-      responses: 0,
+      indexComplete: false,
+      detailsRequests: 0,
+      detailsResponses: 0,
+      detailsComplete: false,
       traces: [],
     });
 
-    const [{data}, , _listResp] = await doDiscoverQuery<TableData>(
-      api,
-      `/organizations/${orgSlug}/events/`,
-      listEventView.getEventsAPIPayload(location)
-    );
+    let cursor = {
+      cursor: '0:0:0',
+      results: true,
+      href: '',
+    } as ParsedHeader;
+    while (cursor.results) {
+      const payload = {
+        ...listEventView.getEventsAPIPayload({
+          start,
+          end,
+          limit: 10,
+        } as unknown as Location),
+        cursor: cursor.cursor,
+      };
 
-    // TODO: need to iterate over all pages of data
-    const traceIds = data.map(({trace}) => trace).filter(trace => trace);
+      const [{data}, , listResp] = await doDiscoverQuery<TableData>(
+        api,
+        `/organizations/${orgSlug}/events/`,
+        payload
+      );
 
-    setState(prev => ({
-      ...prev,
-      requests: traceIds.length,
-    }));
+      const traceIds = data.map(({trace}) => String(trace)).filter(trace => trace);
 
-    await Promise.allSettled(
-      traceIds.map(traceId => {
-        const promise = doDiscoverQuery(
-          api,
-          `/organizations/${orgSlug}/events-trace/${traceId}/`,
-          tracePayload
-        );
-        promise.then(([trace, , _traceResp]) => {
-          // TODO: we need to iterate over any pages of data
-          setState(prev => ({
-            ...prev,
-            responses: prev.responses + 1,
-            traces: sortBy(
-              (prev.traces || []).concat(trace as TraceFullDetailed),
-              'start_timestamp'
-            ),
-          }));
-        });
-        return promise;
-      })
-    );
+      // Do not await this, send off the requests and keep working on the while-loop here
+      fetchTraceIdData(traceIds);
+
+      const pageLinks = listResp?.getResponseHeader('Link') ?? null;
+      cursor = parseLinkHeader(pageLinks)?.next;
+    }
 
     setState(prev => ({
       ...prev,
+      indexComplete: true,
       error: null,
-      isFetching: false,
     }));
-  }, [api, listEventView, location, orgSlug, state, tracePayload]);
+  }, [api, fetchTraceIdData, listEventView, orgSlug, replayRecord, state]);
 
   return (
     <TxnContext.Provider value={{eventView: listEventView, fetchTransactionData, state}}>
