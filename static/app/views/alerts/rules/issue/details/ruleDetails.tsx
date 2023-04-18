@@ -1,5 +1,6 @@
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
@@ -62,7 +63,34 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     const {organization: prevOrg, params: prevParams} = prevProps;
-    const {organization: currOrg, params: currParams} = this.props;
+    const {organization: currOrg, params: currParams, location} = this.props;
+
+    const {ruleId, projectId} = currParams;
+
+    const rule = this.state.rule;
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('mute') === '1' && rule && !rule.snooze) {
+      try {
+        this.api.requestPromise(
+          `/projects/${currOrg.slug}/${projectId}/rules/${ruleId}/snooze/`,
+          {
+            method: 'POST',
+            data: {
+              target: 'me',
+            },
+          }
+        );
+
+        this.onSnooze({
+          snooze: !rule.snooze,
+          snoozeCreatedBy: 'You',
+          snoozeForEveryone: false,
+        });
+      } catch (err) {
+        Sentry.captureException(err);
+        return;
+      }
+    }
 
     if (
       prevParams.ruleId !== currParams.ruleId ||
