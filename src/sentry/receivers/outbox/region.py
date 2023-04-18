@@ -80,14 +80,22 @@ def process_organization_member_updates(
         )
         return
 
+    prev_user_id = org_member.user_id
+    if payload and "user_id" in payload:
+        prev_user_id = payload["user_id"]
+
+    prev_email = org_member.email
+    if payload and "email" in payload:
+        prev_email = payload["email"]
+
     rpc_org_member_update = rpc_update_organizationmember_mapping_from_instance(
         organization_member=org_member
     )
 
     organizationmember_mapping_service.update_with_organization_member(
         organization_id=shard_identifier,
-        user_id=rpc_org_member_update.user_id,
-        email=rpc_org_member_update.email,
+        user_id=prev_user_id,
+        email=prev_email,
         rpc_update_org_member=rpc_org_member_update,
     )
 
