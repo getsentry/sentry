@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import logging
 
@@ -67,8 +69,9 @@ class OrganizationComplianceTask(abc.ABC):
         """Prompt a member to comply with the new requirement."""
         raise NotImplementedError()
 
-    def remove_non_compliant_members(self, org_id, actor_id, actor_key_id, ip_address):
-        org = Organization.objects.get_from_cache(id=org_id)
+    def remove_non_compliant_members(
+        self, org_id: int, actor_id: int | None, actor_key_id: int | None, ip_address: str | None
+    ):
         actor = User.objects.get(id=actor_id) if actor_id else None
         actor_key = ApiKey.objects.get(id=actor_key_id) if actor_key_id else None
 
