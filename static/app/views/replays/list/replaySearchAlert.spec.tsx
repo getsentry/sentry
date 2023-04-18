@@ -1,5 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {PageFilters} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -40,17 +41,26 @@ function mockLocationReturn(query: string = ''): ReturnType<typeof useLocation> 
 
 describe('ReplaySearchAlert', () => {
   beforeEach(() => {
-    // @ts-expect-error
     mockUseProjects.mockReturnValue({
       projects: [project],
+      fetching: false,
+      hasMore: false,
+      onSearch: () => Promise.resolve(),
+      fetchError: null,
+      initiallyLoaded: false,
+      placeholders: [],
     });
 
     mockUsePageFilters.mockReturnValue({
-      // @ts-expect-error
       selection: {
         // for some reason project.id selections are numbers, but elsewhere project.id is string
         projects: [Number(project.id)],
+        datetime: {} as PageFilters['datetime'],
+        environments: [],
       },
+      isReady: true,
+      desyncedFilters: new Set(),
+      pinnedFilters: new Set(),
     });
 
     mockUseLocation.mockReturnValue(mockLocationReturn());
