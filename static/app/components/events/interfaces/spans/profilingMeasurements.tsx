@@ -48,14 +48,15 @@ export function getDataPoints(
   data: {unit: string; values: Profiling.MeasurementValue[]},
   maxDurationInMs: number
 ) {
-  return data.values
-    .map(value => {
+  return uniqBy(
+    data.values.map(value => {
       return {
         name: parseFloat(toMilliseconds(value.elapsed_since_start_ns).toFixed(2)),
         value: value.value,
       };
-    })
-    .filter(({name}) => name <= maxDurationInMs + 1); // Add 1ms to account for rounding
+    }),
+    'name'
+  ).filter(({name}) => name <= maxDurationInMs + 1); // Add 1ms to account for rounding
 }
 
 type ChartProps = {

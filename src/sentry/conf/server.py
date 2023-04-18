@@ -1239,7 +1239,7 @@ SENTRY_FEATURES = {
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
-    "organizations:project-stats": False,
+    "organizations:project-stats": True,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for anomaly detection

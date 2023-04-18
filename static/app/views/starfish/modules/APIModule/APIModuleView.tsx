@@ -1,11 +1,14 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
 
@@ -69,23 +72,9 @@ export default function APIModuleView({location, onSelect}: Props) {
     });
   });
 
-  const data = Object.values(seriesByQuantile);
-
-  // TODO: Moved these into the component for easy acces to onSelect. Clean this up later.
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    return <span>{column.name}</span>;
-  }
-
-  function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-    if (column.key === 'description') {
-      return (
-        <Link onClick={() => onSelect(row)} to="">
-          {row[column.key]}
-        </Link>
-      );
-    }
-    return <span>{row[column.key]}</span>;
-  }
+  const data = Object.values(seriesByQuantile).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   return (
     <Fragment>
@@ -115,10 +104,36 @@ export default function APIModuleView({location, onSelect}: Props) {
         columnSortBy={[]}
         grid={{
           renderHeadCell,
-          renderBodyCell,
+          renderBodyCell: (column: GridColumnHeader, row: DataRow) =>
+            renderBodyCell(column, row, onSelect),
         }}
         location={location}
       />
     </Fragment>
   );
 }
+
+export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
+}
+
+export function renderBodyCell(
+  column: GridColumnHeader,
+  row: DataRow,
+  onSelect?: (row: DataRow) => void
+): React.ReactNode {
+  if (column.key === 'description' && onSelect) {
+    return (
+      <Link onClick={() => onSelect(row)} to="">
+        {row[column.key]}
+      </Link>
+    );
+  }
+  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
+}
+
+const OverflowEllipsisTextContainer = styled('span')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+`;
