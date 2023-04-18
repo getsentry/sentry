@@ -19,7 +19,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
 
 from ..utils import handle_jira_api_error, set_badge
-from . import UNABLE_TO_VERIFY_INSTALLATION, JiraBaseHook
+from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ def build_context(group: Group) -> Mapping[str, Any]:
     }
 
 
-class JiraIssueHookView(JiraBaseHook):
+class JiraIssueHookView(JiraSentryUIBaseView):
     html_file = "sentry/integrations/jira-issue.html"
 
     def handle_groups(self, groups: Sequence[Group]) -> Response:
