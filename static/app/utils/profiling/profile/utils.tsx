@@ -11,28 +11,45 @@ type FrameIndex = Record<string | number, Frame>;
 export function createSentrySampleProfileFrameIndex(
   frames: Profiling.SentrySampledProfile['profile']['frames']
 ): FrameIndex {
-  const frameIndex: FrameIndex = {};
+  const framesList: Frame[] = [];
+  const framesIndex: Record<string, number> = {};
+  const indices: number[] = [];
 
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i];
+    const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${
+      String(frame.lineno) ?? ''
+    }:${frame.instruction_addr ?? ''}`;
 
-    frameIndex[i] = new Frame({
-      key: i,
-      is_application: frame.in_app,
-      file: frame.filename,
-      path: frame.abs_path,
-      module: frame.module,
-      package: frame.package,
-      name: frame.function ?? 'unknown',
-      line: frame.lineno,
-      column: frame.colno,
-      instructionAddr: frame.instruction_addr,
-      symbol: frame.symbol,
-      symbolAddr: frame.sym_addr,
-      symbolicatorStatus: frame.status,
-    });
+    let index = framesIndex[frameKey];
+    if (!defined(index)) {
+      index = framesList.length;
+      framesIndex[frameKey] = index;
+      framesList.push(
+        new Frame({
+          key: i,
+          is_application: frame.in_app,
+          file: frame.filename,
+          path: frame.abs_path,
+          module: frame.module,
+          package: frame.package,
+          name: frame.function ?? 'unknown',
+          line: frame.lineno,
+          column: frame.colno,
+          instructionAddr: frame.instruction_addr,
+          symbol: frame.symbol,
+          symbolAddr: frame.sym_addr,
+          symbolicatorStatus: frame.status,
+        })
+      );
+    }
+    indices.push(index);
   }
 
+  const frameIndex: FrameIndex = {};
+  for (let i = 0; i < indices.length; i++) {
+    frameIndex[i] = framesList[indices[i]];
+  }
   return frameIndex;
 }
 
