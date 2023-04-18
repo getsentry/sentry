@@ -30,7 +30,7 @@ const statusToLabel: Record<MonitorStatus, string> = {
   missed_checkin: t('Missed'),
 };
 
-const MonitorHeader = ({monitor, monitorEnv, orgId, onUpdate}: Props) => {
+function MonitorHeader({monitor, monitorEnv, orgId, onUpdate}: Props) {
   const crumbs = [
     {
       label: t('Crons'),
@@ -98,7 +98,7 @@ const MonitorHeader = ({monitor, monitorEnv, orgId, onUpdate}: Props) => {
       </Layout.HeaderActions>
     </Layout.Header>
   );
-};
+}
 
 const MonitorSlug = styled('div')`
   margin-top: ${space(1)};

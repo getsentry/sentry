@@ -5,12 +5,14 @@ import IssueDiff from 'sentry/components/issueDiff';
 
 type Props = ModalRenderProps & React.ComponentProps<typeof IssueDiff>;
 
-const DiffModal = ({className, Body, CloseButton, ...props}: Props) => (
-  <Body>
-    <CloseButton />
-    <IssueDiff className={className} {...props} />
-  </Body>
-);
+function DiffModal({className, Body, CloseButton, ...props}: Props) {
+  return (
+    <Body>
+      <CloseButton />
+      <IssueDiff className={className} {...props} />
+    </Body>
+  );
+}
 
 const modalCss = css`
   position: absolute;

@@ -15,6 +15,7 @@ export type SearchEventParameters = {
   'command_palette.open': OpenEvent;
   'command_palette.query': QueryEvent;
   'command_palette.select': SelectEvent;
+  'omnisearch.open': {};
   'organization_saved_search.selected': {
     id: number;
     is_global: boolean;
@@ -94,4 +95,5 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.saved_search_open_create_modal': 'Search: Saved Search Modal Opened',
   'search.saved_search_sidebar_toggle_clicked':
     'Search: Saved Search Sidebar Toggle Clicked',
+  'omnisearch.open': 'Omnisearch: Open',
 };

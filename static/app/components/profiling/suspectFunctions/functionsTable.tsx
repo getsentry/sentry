@@ -42,7 +42,7 @@ function FunctionsTable(props: FunctionsTableProps) {
     }
 
     if (!SORTABLE_COLUMNS.has(column as any)) {
-      column = 'p75';
+      column = 'sum';
     }
 
     return {
@@ -131,7 +131,13 @@ function FunctionsTable(props: FunctionsTableProps) {
   );
 }
 
-const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p95', 'p99', 'count']);
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>([
+  'p75',
+  'p95',
+  'p99',
+  'sum',
+  'count',
+]);
 const SORTABLE_COLUMNS = RIGHT_ALIGNED_COLUMNS;
 
 function renderFunctionsTableCell(
@@ -177,6 +183,7 @@ function ProfilingFunctionsTableCell({
     case 'p75':
     case 'p95':
     case 'p99':
+    case 'sum':
       return (
         <NumberContainer>
           <PerformanceDuration nanoseconds={value} abbreviation />
@@ -199,7 +206,14 @@ type TableDataRow = Record<TableColumnKey, any>;
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
 
-const COLUMN_ORDER: TableColumnKey[] = ['name', 'package', 'count', 'p75', 'examples'];
+const COLUMN_ORDER: TableColumnKey[] = [
+  'name',
+  'package',
+  'count',
+  'p75',
+  'sum',
+  'examples',
+];
 
 const COLUMNS: Record<TableColumnKey, TableColumn> = {
   name: {
@@ -214,17 +228,22 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   p75: {
     key: 'p75',
-    name: t('P75 Duration'),
+    name: t('P75 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   p95: {
     key: 'p95',
-    name: t('P95 Duration'),
+    name: t('P95 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   p99: {
     key: 'p99',
-    name: t('P99 Duration'),
+    name: t('P99 Self Time'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  sum: {
+    key: 'sum',
+    name: t('Total Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   count: {

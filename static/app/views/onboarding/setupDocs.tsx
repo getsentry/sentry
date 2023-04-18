@@ -47,13 +47,13 @@ type Props = {
   search: string;
 } & StepProps;
 
-const MissingExampleWarning = ({
+function MissingExampleWarning({
   platformDocs,
   platform,
 }: {
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
-}) => {
+}) {
   const missingExample = platformDocs?.html.includes(INCOMPLETE_DOC_FLAG);
 
   if (!missingExample) {
@@ -74,7 +74,7 @@ const MissingExampleWarning = ({
       )}
     </Alert>
   );
-};
+}
 
 export function ProjectDocsReact({
   organization,
@@ -269,10 +269,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     'onboarding-docs-with-product-selection'
   );
 
-  const loaderOnboarding = !!organization.features?.includes('onboarding-project-loader');
-
-  const jsDynamicLoader = !!organization.features?.includes('js-sdk-dynamic-loader');
-
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
@@ -322,7 +318,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    loaderOnboarding && jsDynamicLoader && currentPlatform === 'javascript'
+    currentPlatform === 'javascript'
   );
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;

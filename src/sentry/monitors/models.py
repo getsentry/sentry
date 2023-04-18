@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 import pytz
 from croniter import croniter
@@ -23,8 +24,11 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import Environment, Project
+from sentry.models import Environment
 from sentry.utils.retries import TimedRetryPolicy
+
+if TYPE_CHECKING:
+    from sentry.models import Project
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -393,9 +397,9 @@ class MonitorEnvironment(Model):
                 "contexts": {"monitor": get_monitor_environment_context(self)},
                 "fingerprint": ["monitor", str(self.monitor.guid), reason],
                 "environment": self.environment.name,
-                "tags": {
-                    "monitor.id": str(self.monitor.guid),
-                },
+                # TODO: Both of these values should be get transformed from context to tags
+                # We should understand why that is not happening and remove these when it correctly is
+                "tags": {"monitor.id": str(self.monitor.guid), "monitor.slug": self.monitor.slug},
             },
             project=Project(id=self.monitor.project_id),
         )

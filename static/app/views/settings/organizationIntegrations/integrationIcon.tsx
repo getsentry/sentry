@@ -42,11 +42,12 @@ class Icon extends Component<Props, State> {
   }
 }
 
-const IntegrationIcon = ({integration, size = 32}: Props) =>
-  integration.icon ? (
+function IntegrationIcon({integration, size = 32}: Props) {
+  return integration.icon ? (
     <Icon size={size} integration={integration} />
   ) : (
     <PluginIcon size={size} pluginId={integration.provider.key} />
   );
+}
 
 export default IntegrationIcon;

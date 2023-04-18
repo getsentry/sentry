@@ -13,13 +13,13 @@ type Props = {
   onEnablePlugin?: (plugin: Plugin) => void;
 };
 
-const PluginList = ({
+function PluginList({
   organization,
   project,
   pluginList,
   onDisablePlugin = () => {},
   onEnablePlugin = () => {},
-}: Props) => {
+}: Props) {
   const handleEnablePlugin = (plugin: Plugin) => {
     enablePlugin({
       projectId: project.slug,
@@ -70,6 +70,6 @@ const PluginList = ({
       />
     </div>
   );
-};
+}
 
 export default PluginList;

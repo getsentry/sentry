@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Mapping, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
@@ -148,10 +150,22 @@ class GroupStatus:
 
 
 class GroupSubStatus:
-    ARCHIVED_UNTIL_ESCALATING = 1
+    # GroupStatus.IGNORED
+    UNTIL_ESCALATING = 1
+
+    # GroupStatus.UNRESOLVED
     ESCALATING = 2
     ONGOING = 3
 
+
+UNRESOLVED_SUBSTATUS_CHOICES = {
+    GroupSubStatus.ONGOING,
+    GroupSubStatus.ESCALATING,
+}
+
+IGNORED_SUBSTATUS_CHOICES = {
+    GroupSubStatus.UNTIL_ESCALATING,
+}
 
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
@@ -180,6 +194,12 @@ STATUS_UPDATE_CHOICES = {
     "resolvedInNextRelease": GroupStatus.UNRESOLVED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
+}
+
+SUBSTATUS_UPDATE_CHOICES = {
+    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
+    "escalating": GroupSubStatus.ESCALATING,
+    "ongoing": GroupSubStatus.ONGOING,
 }
 
 
@@ -340,13 +360,19 @@ class GroupManager(BaseManager):
         ).select_related("project")
 
     def update_group_status(
-        self, groups: Sequence[Group], status: GroupStatus, activity_type: ActivityType
+        self,
+        groups: Sequence[Group],
+        status: GroupStatus,
+        substatus: GroupSubStatus | None,
+        activity_type: ActivityType,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
         updated_count = (
-            self.filter(id__in=[g.id for g in groups]).exclude(status=status).update(status=status)
+            self.filter(id__in=[g.id for g in groups])
+            .exclude(status=status)
+            .update(status=status, substatus=substatus)
         )
         if updated_count:
             for group in groups:
@@ -425,7 +451,7 @@ class Group(Model):
     substatus = BoundedIntegerField(
         null=True,
         choices=(
-            (GroupSubStatus.ARCHIVED_UNTIL_ESCALATING, _("Archived until escalating")),
+            (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
         ),
@@ -705,3 +731,38 @@ class Group(Model):
     @property
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
+
+
+@receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
+def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
+    # TODO(snigdha): Replace the logging with a ValueError once we are confident that this is working as expected.
+    if instance:
+        # We only support substatuses for UNRESOLVED and IGNORED groups
+        if (
+            instance.status not in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]
+            and instance.substatus is not None
+        ):
+            logger.exception(
+                "No substatus allowed for group",
+                extra={"status": instance.status, "substatus": instance.substatus},
+            )
+
+        # IGNORED groups may have no substatus for now. We will be adding two more substatusesin the future to simplify this.
+        if instance.status == GroupStatus.IGNORED and instance.substatus not in [
+            None,
+            *IGNORED_SUBSTATUS_CHOICES,
+        ]:
+            logger.exception(
+                "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
+            )
+
+        if instance.status == GroupStatus.UNRESOLVED:
+            if instance.substatus is None:
+                instance.substatus = GroupSubStatus.ONGOING
+
+            # UNRESOLVED groups must have a substatus
+            if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
+                logger.exception(
+                    "Invalid substatus for UNRESOLVED group",
+                    extra={"substatus": instance.substatus},
+                )

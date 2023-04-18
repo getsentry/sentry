@@ -1,3 +1,7 @@
+import {
+  aiSuggestedSolutionEventMap,
+  AiSuggestedSolutionEventParameters,
+} from './aiSuggestedSolutionAnalyticsEvents';
 import {coreUIEventMap, CoreUIEventParameters} from './coreuiAnalyticsEvents';
 import {dashboardsEventMap, DashboardsEventParameters} from './dashboardsAnalyticsEvents';
 import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEvents';
@@ -5,7 +9,9 @@ import {
   dynamicSamplingEventMap,
   DynamicSamplingEventParameters,
 } from './dynamicSamplingAnalyticsEvents';
+import {ecosystemEventMap, EcosystemEventParameters} from './ecosystemAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
+import {integrationEventMap, IntegrationEventParameters} from './integrations';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
 import {monitorsEventMap, MonitorsEventParameters} from './monitorsAnalyticsEvents';
@@ -37,7 +43,10 @@ type EventParameters = GrowthEventParameters &
   TeamInsightsEventParameters &
   DynamicSamplingEventParameters &
   OnboardingEventParameters &
-  StackTraceEventParameters;
+  StackTraceEventParameters &
+  AiSuggestedSolutionEventParameters &
+  EcosystemEventParameters &
+  IntegrationEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -56,6 +65,9 @@ const allEventMap: Record<string, string | null> = {
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
   ...stackTraceEventMap,
+  ...aiSuggestedSolutionEventMap,
+  ...ecosystemEventMap,
+  ...integrationEventMap,
 };
 
 /**

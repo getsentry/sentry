@@ -81,12 +81,14 @@ interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
  * Creates a ModalHeader that includes props to enable the close button
  */
 const makeClosableHeader = (closeModal: () => void) => {
-  const ClosableHeader = ({closeButton, children, ...props}: ClosableHeaderProps) => (
-    <ModalHeader {...props}>
-      {children}
-      {closeButton ? <CloseButton onClick={closeModal} /> : null}
-    </ModalHeader>
-  );
+  function ClosableHeader({closeButton, children, ...props}: ClosableHeaderProps) {
+    return (
+      <ModalHeader {...props}>
+        {children}
+        {closeButton ? <CloseButton onClick={closeModal} /> : null}
+      </ModalHeader>
+    );
+  }
 
   return ClosableHeader;
 };
@@ -94,8 +96,9 @@ const makeClosableHeader = (closeModal: () => void) => {
 /**
  * Creates a CloseButton component that is connected to the provided closeModal trigger
  */
-const makeCloseButton =
-  (closeModal: () => void) => (props: Omit<ButtonProps, 'aria-label'>) =>
-    <CloseButton {...props} onClick={closeModal} />;
+const makeCloseButton = (closeModal: () => void) =>
+  function (props: Omit<ButtonProps, 'aria-label'>) {
+    return <CloseButton {...props} onClick={closeModal} />;
+  };
 
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter};

@@ -46,6 +46,9 @@ export type ReplayEventParameters = {
      */
     scale_bucket: 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
   };
+  'replay.search': {
+    search_keys: string;
+  };
   'replay.toggle-fullscreen': {
     fullscreen: boolean;
     user_email: string;
@@ -66,5 +69,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
   'replay.render-player': 'Rendered ReplayPlayer',
+  'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
 };

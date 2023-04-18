@@ -2,7 +2,6 @@ import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -163,10 +162,9 @@ describe('Discover > Homepage', () => {
       />,
       {context: initialData.routerContext, organization: initialData.organization}
     );
-    await act(tick);
     renderGlobalModal();
 
-    await userEvent.click(screen.getByText('Columns'));
+    await userEvent.click(await screen.findByText('Columns'));
 
     await userEvent.click(screen.getByTestId('label'));
     await userEvent.click(screen.getByText('event.type'));

@@ -10,6 +10,7 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.db import transaction
 
+from sentry import ratelimits
 from sentry.models import Project
 from sentry.monitors.models import (
     CheckInStatus,
@@ -19,12 +20,15 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.monitors.utils import signal_first_checkin
+from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import ConfigValidator
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
+
+CHECKIN_QUOTA_LIMIT = 5
+CHECKIN_QUOTA_WINDOW = 60
 
 
 def _ensure_monitor_with_config(
@@ -66,6 +70,7 @@ def _ensure_monitor_with_config(
                 "config": validated_config,
             },
         )
+        signal_first_monitor_created(project, None, True)
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
@@ -81,6 +86,20 @@ def _process_message(wrapper: Dict) -> None:
     project_id = int(wrapper["project_id"])
 
     project = Project.objects.get_from_cache(id=project_id)
+
+    ratelimit_key = params["monitor_slug"]
+
+    if ratelimits.is_limited(
+        f"monitor-checkins:{ratelimit_key}",
+        limit=CHECKIN_QUOTA_LIMIT,
+        window=CHECKIN_QUOTA_WINDOW,
+    ):
+        metrics.incr(
+            "monitors.checkin.dropped.ratelimited",
+            tags={"source": "consumer"},
+        )
+        logger.debug("monitor check in rate limited: %s", params["monitor_slug"])
+        return
 
     try:
         with transaction.atomic():

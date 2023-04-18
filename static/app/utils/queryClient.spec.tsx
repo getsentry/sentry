@@ -20,7 +20,7 @@ describe('queryClient', function () {
         body: {value: 5},
       });
 
-      const TestComponent = () => {
+      function TestComponent() {
         const {data} = useApiQuery<ResponseData>(['/some/test/path/'], {staleTime: 0});
 
         if (!data) {
@@ -28,7 +28,7 @@ describe('queryClient', function () {
         }
 
         return <div>{data.value}</div>;
-      };
+      }
 
       render(<TestComponent />);
 
@@ -43,7 +43,7 @@ describe('queryClient', function () {
         body: {value: 5},
       });
 
-      const TestComponent = () => {
+      function TestComponent() {
         const {data} = useApiQuery<ResponseData>(
           ['/some/test/path/', {query: {filter: 'red'}}],
           {staleTime: 0}
@@ -54,7 +54,7 @@ describe('queryClient', function () {
         }
 
         return <div>{data.value}</div>;
-      };
+      }
 
       render(<TestComponent />);
 
@@ -67,7 +67,7 @@ describe('queryClient', function () {
     });
 
     it('can fetch with custom query function', async function () {
-      const TestComponent = () => {
+      function TestComponent() {
         const {data} = useApiQuery<ResponseData>(['some-key'], () => ({value: 5}));
 
         if (!data) {
@@ -75,7 +75,7 @@ describe('queryClient', function () {
         }
 
         return <div>{data.value}</div>;
-      };
+      }
 
       render(<TestComponent />);
 
@@ -92,7 +92,7 @@ describe('queryClient', function () {
       jest.spyOn(useApi, 'default').mockReturnValue(api);
       jest.spyOn(api, 'requestPromise').mockRejectedValue(requestError);
 
-      const TestComponent = () => {
+      function TestComponent() {
         const {isError, error} = useApiQuery<ResponseData>(['/some/test/path'], {
           staleTime: 0,
         });
@@ -102,7 +102,7 @@ describe('queryClient', function () {
         }
 
         return <div>{error.message}</div>;
-      };
+      }
 
       render(<TestComponent />);
 

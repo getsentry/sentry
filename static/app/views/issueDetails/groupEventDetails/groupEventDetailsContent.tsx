@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -41,7 +42,7 @@ type GroupEventEntryProps = {
   project: Project;
 };
 
-const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProps) => {
+function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProps) {
   const organization = useOrganization();
   const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
@@ -57,13 +58,13 @@ const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProp
       {...{organization, event}}
     />
   );
-};
+}
 
-const GroupEventDetailsContent = ({
+function GroupEventDetailsContent({
   group,
   event,
   project,
-}: GroupEventDetailsContentProps) => {
+}: GroupEventDetailsContentProps) {
   const organization = useOrganization();
   const location = useLocation();
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
@@ -126,8 +127,9 @@ const GroupEventDetailsContent = ({
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
       <Resources {...{event, group}} />
-      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
+      <AiSuggestedSolution event={event} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
+      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
@@ -155,7 +157,7 @@ const GroupEventDetailsContent = ({
       )}
     </Fragment>
   );
-};
+}
 
 const NotFoundMessage = styled('div')`
   padding: ${space(2)} ${space(4)};
