@@ -172,7 +172,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       index
-      icon={<IconProject size="md" />}
+      icon={<IconProject />}
       label={sidebarAnchor}
       to={`/organizations/${organization.slug}/projects/`}
       id="projects"
@@ -182,7 +182,7 @@ function Sidebar({location, organization}: Props) {
   const issues = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconIssues size="md" />}
+      icon={<IconIssues />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
       to={`/organizations/${organization.slug}/issues/?referrer=sidebar`}
       id="issues"
@@ -197,7 +197,7 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconTelescope size="md" />}
+        icon={<IconTelescope />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
@@ -213,7 +213,7 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconLightning size="md" />}
+        icon={<IconLightning />}
         label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/performance/`}
         id="performance"
@@ -229,28 +229,29 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconStar size="md" />}
+        icon={<IconStar />}
         label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/`}
         id="starfish"
+        exact
       />
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconStar size="md" />}
+        icon={<IconStar />}
         label={<GuideAnchor target="starfish">{t('Api')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/api/`}
         id="starfish"
       />
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconStar size="md" />}
+        icon={<IconStar />}
         label={<GuideAnchor target="starfish">{t('Cache')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/cache/`}
         id="starfish"
       />
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconStar size="md" />}
+        icon={<IconStar />}
         label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/database/`}
         id="starfish"
@@ -261,7 +262,7 @@ function Sidebar({location, organization}: Props) {
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconReleases size="md" />}
+      icon={<IconReleases />}
       label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
       to={`/organizations/${organization.slug}/releases/`}
       id="releases"
@@ -271,7 +272,7 @@ function Sidebar({location, organization}: Props) {
   const userFeedback = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconSupport size="md" />}
+      icon={<IconSupport />}
       label={t('User Feedback')}
       to={`/organizations/${organization.slug}/user-feedback/`}
       id="user-feedback"
@@ -281,18 +282,18 @@ function Sidebar({location, organization}: Props) {
   const alerts = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconSiren size="md" />}
+      icon={<IconSiren />}
       label={t('Alerts')}
       to={`/organizations/${organization.slug}/alerts/rules/`}
       id="alerts"
     />
   );
-
+  1;
   const monitors = hasOrganization && (
     <Feature features={['monitors']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconTimer size="md" />}
+        icon={<IconTimer />}
         label={t('Crons')}
         to={`/organizations/${organization.slug}/crons/`}
         id="crons"
@@ -310,7 +311,7 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconPlay size="md" />}
+        icon={<IconPlay />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -329,7 +330,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<IconDashboard size="md" />}
+        icon={<IconDashboard />}
         label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
@@ -347,7 +348,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<IconProfiling size="md" />}
+        icon={<IconProfiling />}
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
@@ -360,7 +361,7 @@ function Sidebar({location, organization}: Props) {
   const stats = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconStats size="md" />}
+      icon={<IconStats />}
       label={t('Stats')}
       to={`/organizations/${organization.slug}/stats/`}
       id="stats"
@@ -370,7 +371,7 @@ function Sidebar({location, organization}: Props) {
   const settings = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconSettings size="md" />}
+      icon={<IconSettings />}
       label={t('Settings')}
       to={`/settings/${organization.slug}/`}
       id="settings"
@@ -599,7 +600,7 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   noPadding?: boolean;
 }>`
   ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  ${p => !p.noPadding && 'padding: 0 19px'};
+  ${p => !p.noPadding && `padding: 0 ${space(2)}`};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
