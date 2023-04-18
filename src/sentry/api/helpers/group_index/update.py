@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -722,24 +722,24 @@ def update_groups(
 
 
 def handle_is_subscribed(
-    is_subscribed: Any,
+    is_subscribed: bool,
     group_list: Sequence[Group],
-    project_lookup: Dict[int, Any],
-    acting_user: User | None,
-) -> Dict[str, str]:
+    project_lookup: dict[int, Any],
+    acting_user: User,
+) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
-    # querying for rich rows are present (if N > 2), flipping the flag
-    # on those rows, and then creating the missing rows
+    # querying for which `GroupSubscription` rows are present (if N > 2),
+    # flipping the flag on those rows, and then creating the missing rows
     for group in group_list:
         # NOTE: Subscribing without an initiating event (assignment,
         # commenting, etc.) clears out the previous subscription reason
         # to avoid showing confusing messaging as a result of this
         # action. It'd be jarring to go directly from "you are not
-        # subscribed" to "you were subscribed due since you were
+        # subscribed" to "you were subscribed since you were
         # assigned" just by clicking the "subscribe" button (and you
-        # may no longer be assigned to the issue anyway.)
+        # may no longer be assigned to the issue anyway).
         GroupSubscription.objects.create_or_update(
-            user_id=acting_user.id if acting_user else None,
+            user_id=acting_user.id,
             group=group,
             project=project_lookup[group.project_id],
             values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},

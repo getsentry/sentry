@@ -205,12 +205,25 @@ class UpdateGroupsTest(TestCase):
 
 
 class TestHandleIsSubscribed(TestCase):
-    def test_is_subscribed(self):
+    def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
         self.project_lookup = {self.group.project_id: self.group.project}
 
+    def test_is_subscribed(self) -> None:
         resp = handle_is_subscribed(True, self.group_list, self.project_lookup, self.user)
 
         assert GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert resp["reason"] == "unknown"
+
+    def test_is_subscribed_updates(self) -> None:
+        GroupSubscription.objects.create(
+            group=self.group, project=self.group.project, user_id=self.user.id, is_active=False
+        )
+
+        resp = handle_is_subscribed(True, self.group_list, self.project_lookup, self.user)
+
+        subscription = GroupSubscription.objects.filter(group=self.group, user_id=self.user.id)
+        assert subscription.exists()
+        assert subscription.first().is_active
         assert resp["reason"] == "unknown"
