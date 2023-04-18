@@ -10,7 +10,7 @@ from .webhooks import (
     JiraIssueUpdatedWebhook,
     JiraSearchEndpoint,
     JiraSentryInstalledWebhook,
-    JiraUninstalledEndpoint,
+    JiraSentryUninstalledWebhook,
 )
 
 urlpatterns = [
@@ -29,7 +29,7 @@ urlpatterns = [
     ),
     url(
         r"^uninstalled/$",
-        JiraUninstalledEndpoint.as_view(),
+        JiraSentryUninstalledWebhook.as_view(),
     ),
     url(
         r"^issue-updated/$",
