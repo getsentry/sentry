@@ -84,7 +84,7 @@ def build_context(group: Group) -> Mapping[str, Any]:
     }
 
 
-class JiraIssueHookView(JiraSentryUIBaseView):
+class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
     html_file = "sentry/integrations/jira-issue.html"
 
     def handle_groups(self, groups: Sequence[Group]) -> Response:

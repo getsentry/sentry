@@ -1,6 +1,6 @@
 from django.conf.urls import url
 
-from .views import JiraExtensionConfigurationView, JiraIssueHookView, JiraUiHookView
+from .views import JiraExtensionConfigurationView, JiraSentryIssueDetailsView, JiraUiHookView
 from .webhooks import (
     JiraDescriptorEndpoint,
     JiraInstalledEndpoint,
@@ -43,7 +43,7 @@ urlpatterns = [
     ),
     url(
         r"^issue/(?P<issue_key>[^\/]+)/$",
-        JiraIssueHookView.as_view(),
+        JiraSentryIssueDetailsView.as_view(),
         name="sentry-extensions-jira-issue-hook",
     ),
 ]
