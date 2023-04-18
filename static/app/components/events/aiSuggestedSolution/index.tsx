@@ -12,6 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {Banner} from './banner';
 import {Suggestion} from './suggestion';
+import {useOpenAISuggestionLocalStorage} from './useOpenAISuggestionLocalStorage';
 
 type Props = {
   event: Event;
@@ -20,8 +21,10 @@ type Props = {
 
 export function AiSuggestedSolution({projectSlug, event}: Props) {
   const organization = useOrganization();
-  const [showDetails, setShowDetails] = useState(true);
+
   const [openSuggestion, setOpenSuggestion] = useState(false);
+  const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
+    useOpenAISuggestionLocalStorage();
 
   if (!organization.features.includes('open-ai-suggestion-new-design')) {
     return null;
@@ -44,15 +47,30 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
       actions={
         <ToggleButton
           onClick={() => {
-            setShowDetails(!showDetails);
+            setSuggestedSolutionLocalConfig({
+              hideDetails: !suggestedSolutionLocalConfig.hideDetails,
+            });
+            trackAdvancedAnalyticsEvent(
+              !suggestedSolutionLocalConfig.hideDetails === false
+                ? 'ai_suggested_solution.show_details_button_clicked'
+                : 'ai_suggested_solution.hide_details_button_clicked',
+              {
+                organization,
+                project_id: event.projectID,
+                group_id: event.groupID,
+                ...getAnalyticsDataForEvent(event),
+              }
+            );
           }}
           priority="link"
         >
-          {showDetails ? t('Hide Details') : t('Show Details')}
+          {suggestedSolutionLocalConfig.hideDetails
+            ? t('Show Details')
+            : t('Hide Details')}
         </ToggleButton>
       }
     >
-      {showDetails ? (
+      {!suggestedSolutionLocalConfig.hideDetails ? (
         !openSuggestion ? (
           <Banner
             onViewSuggestion={() => {

@@ -79,7 +79,7 @@ describe('TagStore', function () {
       ]);
 
       const tags = TagStore.getIssueAttributes(
-        TestStubs.Organization({features: ['escalating-issues']})
+        TestStubs.Organization({features: ['escalating-issues-ui']})
       );
       expect(tags.is.values).toContain('archived');
       expect(tags.is.values).not.toContain('ignored');

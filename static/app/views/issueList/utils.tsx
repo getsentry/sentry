@@ -62,7 +62,7 @@ export function getTabs(organization: Organization) {
           Issues are automatically marked reviewed in 7 days.`),
       },
     ],
-    organization.features.includes('escalating-issues')
+    organization.features.includes('escalating-issues-ui')
       ? [
           Query.ARCHIVED,
           {
