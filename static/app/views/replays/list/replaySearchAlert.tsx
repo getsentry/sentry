@@ -7,7 +7,6 @@ import {IconClose, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project, ProjectSdkUpdates} from 'sentry/types';
-import {semverCompare} from 'sentry/utils/profiling/units/versions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -16,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
+import {semverCompare} from 'sentry/utils/versions';
 
 const MIN_REPLAY_CLICK_SDK = '7.44.0';
 const LOCAL_STORAGE_KEY = 'replay-player-min-sdk-alert-dismissed';
