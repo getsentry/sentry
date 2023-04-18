@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import Placeholder from 'sentry/components/placeholder';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,7 +18,7 @@ function Trace({replayRecord}: Props) {
   const {state, eventView} = useTransactionData();
 
   if (!replayRecord || !state.traces?.length) {
-    return <Placeholder height="100%" />;
+    return <StyledPlaceholder height="100%" />;
   }
 
   return (
@@ -32,5 +34,10 @@ function Trace({replayRecord}: Props) {
     </FluidHeight>
   );
 }
+
+const StyledPlaceholder = styled(Placeholder)`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
 
 export default Trace;
