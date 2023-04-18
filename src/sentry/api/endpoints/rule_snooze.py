@@ -1,7 +1,7 @@
 import datetime
 
 from rest_framework import serializers, status
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -76,7 +76,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         user_id = request.user.id if data.get("target") == "me" else None
         if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
-            raise AuthenticationFailed(
+            raise PermissionDenied(
                 detail="Requesting user cannot mute this rule.", code=status.HTTP_403_FORBIDDEN
             )
 
@@ -175,8 +175,8 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         # didn't find a match but there is a shared snooze
         if shared_snooze:
-            raise AuthenticationFailed(
-                detail="Requesting user cannot mute this rule.", code=status.HTTP_403_FORBIDDEN
+            raise PermissionDenied(
+                detail="Requesting user cannot unmute this rule.", code=status.HTTP_403_FORBIDDEN
             )
         # no snooze at all found
         return Response(
