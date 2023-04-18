@@ -119,7 +119,7 @@ class EndpointList extends Component<Props, State> {
       return (
         <Tooltip
           title={t(
-            'This endpoint accounts for %s of the cumulative load on your web service',
+            'This endpoint accounts for %s of the cumulative time on your web service',
             formatPercentage(cumulativeTimePercentage)
           )}
           containerDisplayMode="block"
