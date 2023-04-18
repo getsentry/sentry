@@ -12,13 +12,13 @@ from sentry.integrations.utils import get_integration_from_jwt
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import handle_assignee_change, handle_jira_api_error, handle_status_change
-from .base import JiraEndpointBase
+from .base import JiraWebhookBase
 
 logger = logging.getLogger(__name__)
 
 
 @pending_silo_endpoint
-class JiraIssueUpdatedWebhook(JiraEndpointBase):
+class JiraIssueUpdatedWebhook(JiraWebhookBase):
     """
     Webhook hit by Jira whenever an issue is updated in Jira's database.
     """
