@@ -9,7 +9,7 @@ import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/analytics/trackAnalytics');
+jest.mock('sentry/utils/analytics');
 
 describe('AlertRulesList', () => {
   const {routerContext, organization, router} = initializeOrg({
