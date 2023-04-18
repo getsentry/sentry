@@ -27,6 +27,7 @@ class Migration(CheckedMigration):
             """
             DROP TABLE "sentry_groupforecast";
             """,
+            hints={"tables": ["sentry_groupforecast"]},
             reverse_sql="CREATE TABLE sentry_groupforecast (fake_col int)",  # We just create a fake table here so that the DROP will work if we roll back the migration.
         )
     ]
