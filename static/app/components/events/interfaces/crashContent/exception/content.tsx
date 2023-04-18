@@ -1,4 +1,4 @@
-import {Fragment, useContext} from 'react';
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -13,7 +13,6 @@ import {defined} from 'sentry/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {Mechanism} from './mechanism';
-import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
 import {SourceMapDebug} from './sourceMapDebug';
 import StackTrace from './stackTrace';
 import {debugFramesEnabled, getUniqueFilesFromException} from './useSourceMapDebug';
@@ -92,12 +91,9 @@ export function Content({
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
         <ErrorBoundary mini>
-          <Fragment>
-            {!shouldDebugFrames && excIdx === 0 && <SetupSourceMapsAlert event={event} />}
-            {hasSourcemapDebug && (
-              <SourceMapDebug debugFrames={debugFrames} event={event} />
-            )}
-          </Fragment>
+          {hasSourcemapDebug && (
+            <SourceMapDebug debugFrames={debugFrames} event={event} />
+          )}
         </ErrorBoundary>
         <StackTrace
           data={
