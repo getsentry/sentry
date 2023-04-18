@@ -84,4 +84,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
             num_clustered += 1
     finally:
         unclustered = len(projects) - num_clustered
-        metrics.incr("txcluster.cluster_projects.unclustered", amount=unclustered, sample_rate=1.0)
+        if unclustered > 0:
+            metrics.incr(
+                "txcluster.cluster_projects.unclustered", amount=unclustered, sample_rate=1.0
+            )
