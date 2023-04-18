@@ -17,7 +17,7 @@ import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -93,7 +93,7 @@ function StacktraceLinkModal({
     : t('source code');
 
   const onManualSetup = () => {
-    trackIntegrationAnalytics('integrations.stacktrace_manual_option_clicked', {
+    trackAdvancedAnalyticsEvent('integrations.stacktrace_manual_option_clicked', {
       view: 'stacktrace_issue_details',
       setup_type: 'manual',
       provider:
@@ -105,9 +105,10 @@ function StacktraceLinkModal({
   };
 
   const handleSubmit = async () => {
-    trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
+    trackAdvancedAnalyticsEvent('integrations.stacktrace_submit_config', {
       setup_type: 'automatic',
       view: 'stacktrace_issue_details',
+      provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
       organization,
     });
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
@@ -131,7 +132,7 @@ function StacktraceLinkModal({
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
-      trackIntegrationAnalytics('integrations.stacktrace_complete_setup', {
+      trackAdvancedAnalyticsEvent('integrations.stacktrace_complete_setup', {
         setup_type: 'automatic',
         provider: configData.config?.provider.key,
         view: 'stacktrace_issue_details',
