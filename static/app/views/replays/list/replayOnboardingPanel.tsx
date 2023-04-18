@@ -1,8 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -19,7 +21,9 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 
 type Breakpoints = {
   large: string;
@@ -82,6 +86,40 @@ export default function ReplayOnboardingPanel() {
         large: '1375px',
         xlarge: '1450px',
       };
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (allProjectsUnsupported) {
+      return;
+    }
+
+    const didUndo = sessionStorage.getItem('replay-project-redirect') === '1';
+
+    if (didUndo) {
+      return;
+    }
+
+    if (allSelectedProjectsUnsupported) {
+      const prevProjects = pageFilters.selection.projects;
+      updateProjects([], router, {});
+      addMessage(
+        <Fragment>{tct(`Automatically selecting supported projects`, {})}</Fragment>,
+        'undo',
+        {
+          undo: () => {
+            sessionStorage.setItem('replay-project-redirect', '1');
+            updateProjects(prevProjects, router, {});
+          },
+        }
+      );
+    }
+  }, [
+    allProjectsUnsupported,
+    allSelectedProjectsUnsupported,
+    router,
+    pageFilters.selection.projects,
+  ]);
 
   return (
     <Fragment>
