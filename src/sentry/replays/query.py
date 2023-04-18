@@ -125,7 +125,7 @@ def query_replay_instance(
         ],
         having=[Condition(Column("isArchived"), Op.EQ, 0)],
         fields=[],
-        sorting=[],
+        sort=None,
         pagination=None,
         search_filters=[],
         tenant_ids=tenant_ids,
