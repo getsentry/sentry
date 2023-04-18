@@ -49,13 +49,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import {OpenAIFixSuggestionButton} from 'sentry/views/issueDetails/openAIFixSuggestion/openAIFixSuggestionButton';
-import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
@@ -112,7 +109,6 @@ class Actions extends Component<Props> {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
-      | 'open_ai_suggested_fix'
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
@@ -364,7 +360,6 @@ class Actions extends Component<Props> {
 
     const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     const hasDeleteAccess = organization.access.includes('event:admin');
-    const activeSuperUser = isActiveSuperuser();
 
     const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
     const {dropdownItems: archiveDropdownItems} = getArchiveActions({
@@ -419,34 +414,6 @@ class Actions extends Component<Props> {
               label: t('Open in Discover'),
               to: disabled ? '' : this.getDiscoverUrl(),
               onAction: () => this.trackIssueAction('open_in_discover'),
-            },
-            {
-              key: 'suggested-fix',
-              className: 'hidden-sm hidden-md hidden-lg',
-              disabled: activeSuperUser,
-              tooltip: activeSuperUser
-                ? t("Superusers can't consent to policies")
-                : undefined,
-              label: (
-                <Tooltip
-                  title={experimentalFeatureTooltipDesc}
-                  containerDisplayMode="inline-flex"
-                >
-                  {t('Suggested Fix')}
-                  <FeatureBadge type="experimental" tooltipProps={{disabled: true}} />
-                </Tooltip>
-              ),
-              onAction: () => {
-                this.trackIssueAction('open_ai_suggested_fix');
-                browserHistory.push({
-                  pathname: browserHistory.getCurrentLocation().pathname,
-                  query: {
-                    ...browserHistory.getCurrentLocation().query,
-                    showSuggestedFix: true,
-                  },
-                });
-              },
-              hidden: !organization.features.includes('open-ai-suggestion'),
             },
             {
               key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
@@ -527,18 +494,6 @@ class Actions extends Component<Props> {
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
-        </Feature>
-        <Feature features={['open-ai-suggestion']} organization={organization}>
-          <GuideAnchor target="suggested-fix" position="bottom" offset={20}>
-            <OpenAIFixSuggestionButton
-              className="hidden-xs"
-              size="sm"
-              disabled={disabled}
-              groupId={group.id}
-              onClick={() => this.trackIssueAction('open_ai_suggested_fix')}
-              activeSuperUser={activeSuperUser}
-            />
-          </GuideAnchor>
         </Feature>
         {isResolved || isIgnored ? (
           <ActionButton

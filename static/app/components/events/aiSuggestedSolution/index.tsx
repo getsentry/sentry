@@ -26,7 +26,7 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
 
-  if (!organization.features.includes('open-ai-suggestion-new-design')) {
+  if (!organization.features.includes('open-ai-suggestion')) {
     return null;
   }
 
