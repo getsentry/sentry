@@ -646,7 +646,7 @@ def update_groups(
 
     if "isBookmarked" in result:
         handle_is_bookmarked(
-            result.get("isBookmarked"), group_list, group_ids, project_lookup, acting_user
+            result["isBookmarked"], group_list, group_ids, project_lookup, acting_user
         )
 
     # TODO(dcramer): we could make these more efficient by first
@@ -735,7 +735,7 @@ def update_groups(
 
 
 def handle_is_bookmarked(
-    is_bookmarked: Any,
+    is_bookmarked: bool,
     group_list: Sequence[Group],
     group_ids: Sequence[Group],
     project_lookup: Dict[int, Project],
