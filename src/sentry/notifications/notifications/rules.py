@@ -152,6 +152,8 @@ class AlertRuleNotification(ProjectNotification):
             context["snooze_alert_url"] = (
                 f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/"
                 + urlencode({"mute": "1"})
+                + "?"
+                + self.get_sentry_query_params(ExternalProviders.EMAIL)
             )
 
         if getattr(self.event, "occurrence", None):
