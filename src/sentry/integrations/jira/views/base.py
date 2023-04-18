@@ -5,7 +5,16 @@ from sentry.web.helpers import render_to_response
 
 
 class JiraSentryUIBaseView(View):
+    """
+    Base class for the UI of the Sentry integration in Jira.
+    """
+
     def get_response(self, context):
+        """
+        Wrap the HTML rendered using the template at `self.html_file` in a Response and
+        add the requisite CSP headers before returning it.
+        """
+
         context["ac_js_src"] = "https://connect-cdn.atl-paas.net/all.js"
         response = render_to_response(self.html_file, context, self.request)
         sources = [

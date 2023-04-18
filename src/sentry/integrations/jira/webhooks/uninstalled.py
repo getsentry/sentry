@@ -10,6 +10,10 @@ from .base import JiraEndpointBase
 
 @pending_silo_endpoint
 class JiraSentryUninstalledWebhook(JiraEndpointBase):
+    """
+    Webhook hit by Jira whenever someone uninstalls the Sentry integration from their Jira instance.
+    """
+
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
         integration = get_integration_from_jwt(

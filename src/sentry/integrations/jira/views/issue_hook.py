@@ -85,6 +85,11 @@ def build_context(group: Group) -> Mapping[str, Any]:
 
 
 class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
+    """
+    Handles requests (from the Sentry integration in Jira) for HTML to display when you
+    click on "Sentry -> Linked Issues" in the RH sidebar of an issue in the Jira UI.
+    """
+
     html_file = "sentry/integrations/jira-issue.html"
 
     def handle_groups(self, groups: Sequence[Group]) -> Response:

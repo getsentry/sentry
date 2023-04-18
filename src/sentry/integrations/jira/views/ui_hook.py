@@ -12,6 +12,11 @@ from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
 
 
 class JiraSentryInstallationView(JiraSentryUIBaseView):
+    """
+    Handles requests (from the Sentry integration in Jira) for HTML to display when
+    setting up the integration in the Jira UI.
+    """
+
     html_file = "sentry/integrations/jira-config.html"
 
     def get(self, request: Request, *args, **kwargs) -> Response:

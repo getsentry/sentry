@@ -14,6 +14,10 @@ from .base import JiraEndpointBase
 
 @pending_silo_endpoint
 class JiraSentryInstalledWebhook(JiraEndpointBase):
+    """
+    Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
+    """
+
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
 
