@@ -14,6 +14,8 @@ UNRESOLVED_SUBSTATUS_CHOICES = {
 
 IGNORED_SUBSTATUS_CHOICES = {
     GroupSubStatus.UNTIL_ESCALATING,
+    # IGNORED groups may have no substatus for now. We will be adding two more substatusesin the future to simplify this.
+    None,
 }
 
 SUBSTATUS_UPDATE_CHOICES = {
