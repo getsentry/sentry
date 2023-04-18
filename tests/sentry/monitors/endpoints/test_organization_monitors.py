@@ -68,7 +68,9 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_error = add_status_monitor("ERROR")
         monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
 
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(
+            self.organization.slug, params={"environment": "jungle"}
+        )
         self.check_valid_response(
             response,
             [

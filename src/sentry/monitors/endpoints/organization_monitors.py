@@ -42,13 +42,6 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
     output_field=IntegerField(),
 )
 
-MONITOR_ENVIRONMENT_TOP_STATUS = Subquery(
-    MonitorEnvironment.objects.filter(monitor__id=OuterRef("id"))
-    .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
-    .order_by("status_ordering", "-last_checkin")
-    .values("status_ordering")[:1]
-)
-
 
 @region_silo_endpoint
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
@@ -67,15 +60,9 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return self.respond([])
 
-        queryset = (
-            Monitor.objects.filter(
-                organization_id=organization.id, project_id__in=filter_params["project_id"]
-            )
-            .annotate(monitorenvironment_top_status=MONITOR_ENVIRONMENT_TOP_STATUS)
-            .exclude(
-                status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
-            )
-        )
+        queryset = Monitor.objects.filter(
+            organization_id=organization.id, project_id__in=filter_params["project_id"]
+        ).exclude(status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS])
         query = request.GET.get("query")
 
         environments = None
@@ -89,6 +76,18 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                 queryset = queryset.filter(monitorenvironment__environment__in=environments)
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
+
+        # sort monitors by top monitor environment
+        monitorenvironment_top_status = Subquery(
+            MonitorEnvironment.objects.filter(
+                monitor__id=OuterRef("id"), environment__in=environments
+            )
+            .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
+            .order_by("status_ordering", "-last_checkin")
+            .values("status_ordering")[:1],
+            output_field=IntegerField(),
+        )
+        queryset = queryset.annotate(monitorenvironment_top_status=monitorenvironment_top_status)
 
         if query:
             tokens = tokenize_query(query)
