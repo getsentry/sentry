@@ -2,7 +2,7 @@ import {CSSProperties, forwardRef, Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconInfo} from 'sentry/icons';
+import {IconArrow, IconFix, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
@@ -16,7 +16,11 @@ type Props = {
 };
 
 // `block` so that it's vertically centered :lolsob:
-const SizeInfo = styled(IconInfo)`
+const TypeConfigIcon = styled(IconFix)`
+  display: block;
+`;
+
+const SizeInfoIcon = styled(IconInfo)`
   display: block;
 `;
 
@@ -26,7 +30,24 @@ const COLUMNS: {
 }[] = [
   {field: 'status', label: t('Status')},
   {field: 'description', label: t('Path')},
-  {field: 'op', label: t('Type')},
+  {
+    field: 'op',
+    label: (
+      <Fragment>
+        {t('Type')}
+        <Tooltip
+          title={
+            <Fragment>
+              <code>Fetch</code> and <code>XHR</code> requests may include request and
+              response bodies along with header data. <a>Read the Docs</a> to set it up.
+            </Fragment>
+          }
+        >
+          <TypeConfigIcon size="xs" />
+        </Tooltip>
+      </Fragment>
+    ),
+  },
   {
     field: 'size',
     label: (
@@ -37,7 +58,7 @@ const COLUMNS: {
             'The number used for fetch/xhr is the response body size. It is possible the network transfer size is smaller due to compression.'
           )}
         >
-          <SizeInfo size="xs" />
+          <SizeInfoIcon size="xs" />
         </Tooltip>
       </Fragment>
     ),

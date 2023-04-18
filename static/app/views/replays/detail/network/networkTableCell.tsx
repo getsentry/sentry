@@ -5,6 +5,7 @@ import FileSize from 'sentry/components/fileSize';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconFile} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -14,6 +15,17 @@ import {operationName} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 const EMPTY_CELL = '\u00A0';
+
+// `block` so that it's vertically centered :lolsob:
+const DetailsOpenIcon = styled(IconFile)`
+  margin-right: ${space(0.5)};
+  margin-top: -4px;
+`;
+const DetailsCloseIcon = styled(IconFile)`
+  margin-right: ${space(0.5)};
+  margin-top: -4px;
+  fill: black;
+`;
 
 type Props = {
   columnIndex: number;
@@ -104,7 +116,18 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Tooltip title={operationName(span.op)} isHoverable showOnlyOnOverflow>
-            <Text>{operationName(span.op)}</Text>
+            <Text>
+              {['resource.xhr', 'resource.fetch'].includes(span.op) ? (
+                isDetailsOpen ? (
+                  <DetailsCloseIcon size="xs" />
+                ) : (
+                  <DetailsOpenIcon size="xs" />
+                )
+              ) : (
+                <DetailsOpenIcon size="xs" color="white" />
+              )}
+              {operationName(span.op)}
+            </Text>
           </Tooltip>
         </Cell>
       ),
