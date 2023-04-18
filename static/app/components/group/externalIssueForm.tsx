@@ -34,6 +34,7 @@ type State = AbstractExternalIssueForm['state'];
 export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
   submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
+  trackedLoadStatus = false;
 
   constructor(props) {
     super(props, {});
@@ -90,12 +91,29 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.submitTransaction?.finish();
   };
 
+  trackLoadStatus = (success: boolean) => {
+    if (this.trackedLoadStatus) {
+      return;
+    }
+
+    this.trackedLoadStatus = true;
+    trackAdvancedAnalyticsEvent('issue_details.external_issue_loaded', {
+      organization: this.props.organization,
+      ...getAnalyticsDataForGroup(this.props.group),
+      external_issue_provider: this.props.integration.provider.key,
+      external_issue_type: 'first_party',
+      success,
+    });
+  };
+
   onLoadAllEndpointsSuccess = () => {
     this.loadTransaction?.finish();
+    this.trackLoadStatus(true);
   };
 
   onRequestError = () => {
     this.loadTransaction?.finish();
+    this.trackLoadStatus(false);
   };
 
   getEndPointString() {

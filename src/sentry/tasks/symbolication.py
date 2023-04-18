@@ -145,9 +145,13 @@ def _do_symbolicate_event(
         )
 
     if data["platform"] in ("javascript", "node"):
-        from sentry.lang.javascript.processing import get_symbolication_function
+        from sentry.lang.javascript.processing import (
+            get_js_symbolication_function as get_symbolication_function,
+        )
     else:
-        from sentry.lang.native.processing import get_symbolication_function
+        from sentry.lang.native.processing import (
+            get_native_symbolication_function as get_symbolication_function,
+        )
 
     symbolication_function = get_symbolication_function(data)
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")

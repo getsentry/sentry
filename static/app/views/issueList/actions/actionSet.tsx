@@ -228,7 +228,7 @@ function ActionSet({
         />
       )}
 
-      {organization.features.includes('escalating-issues') ? (
+      {organization.features.includes('escalating-issues-ui') ? (
         <ArchiveActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
