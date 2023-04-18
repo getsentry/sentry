@@ -2,10 +2,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics/trackAnalytics');
 
 describe('MetricAlertDetails', () => {
   const project = TestStubs.Project({slug: 'earth', platform: 'javascript'});
@@ -71,7 +71,7 @@ describe('MetricAlertDetails', () => {
     // Related issues
     expect(screen.getByTestId('group')).toBeInTheDocument();
 
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_rule_details.viewed',
       expect.objectContaining({
         rule_id: Number(rule.id),
@@ -119,7 +119,7 @@ describe('MetricAlertDetails', () => {
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
     // Related issues
     expect(screen.getByTestId('group')).toBeInTheDocument();
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_rule_details.viewed',
       expect.objectContaining({
         rule_id: Number(rule.id),
