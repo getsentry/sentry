@@ -45,7 +45,7 @@ class GroupHistoryStatus:
     NEW = 20
 
 
-string_to_status_lookup = {
+STRING_TO_STATUS_LOOKUP = {
     "unresolved": GroupHistoryStatus.UNRESOLVED,
     "resolved": GroupHistoryStatus.RESOLVED,
     "set_resolved_in_release": GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
@@ -64,7 +64,7 @@ string_to_status_lookup = {
     "escalating": GroupHistoryStatus.ESCALATING,
     "archived_until_escalating": GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
 }
-status_to_string_lookup = {status: string for string, status in string_to_status_lookup.items()}
+STATUS_TO_STRING_LOOKUP = {status: string for string, status in STRING_TO_STATUS_LOOKUP.items()}
 
 
 ACTIONED_STATUSES = [
@@ -220,7 +220,7 @@ def record_group_history_from_activity_type(
     # Substatus-based GroupHistory should overritde activity-based GroupHistory since it's more specific.
     if group.substatus:
         status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
-        status = string_to_status_lookup.get(status_str, status)
+        status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
 
     if status is not None:
         return record_group_history(group, status, actor, release)
