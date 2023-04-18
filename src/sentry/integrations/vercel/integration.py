@@ -232,19 +232,45 @@ class VercelIntegration(IntegrationInstallation):
             )
 
             env_var_map = {
-                "SENTRY_ORG": {"type": "encrypted", "value": sentry_project.organization.slug},
-                "SENTRY_PROJECT": {"type": "encrypted", "value": sentry_project.slug},
-                dsn_env_name: {"type": "encrypted", "value": sentry_project_dsn},
+                "SENTRY_ORG": {
+                    "type": "encrypted",
+                    "value": sentry_project.organization.slug,
+                    "target": ["production", "preview"],
+                },
+                "SENTRY_PROJECT": {
+                    "type": "encrypted",
+                    "value": sentry_project.slug,
+                    "target": ["production", "preview"],
+                },
+                dsn_env_name: {
+                    "type": "encrypted",
+                    "value": sentry_project_dsn,
+                    "target": [
+                        "production",
+                        "preview",
+                        "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
+                    ],
+                },
                 "SENTRY_AUTH_TOKEN": {
                     "type": "encrypted",
                     "value": sentry_auth_token,
+                    "target": ["production", "preview"],
                 },
-                "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
+                "VERCEL_GIT_COMMIT_SHA": {
+                    "type": "system",
+                    "value": "VERCEL_GIT_COMMIT_SHA",
+                    "target": ["production", "preview"],
+                },
             }
 
             for env_var, details in env_var_map.items():
                 self.create_env_var(
-                    vercel_client, vercel_project_id, env_var, details["value"], details["type"]
+                    vercel_client,
+                    vercel_project_id,
+                    env_var,
+                    details["value"],
+                    details["type"],
+                    details["target"],
                 )
         config.update(data)
         self.org_integration = integration_service.update_organization_integration(
@@ -252,11 +278,11 @@ class VercelIntegration(IntegrationInstallation):
             config=config,
         )
 
-    def create_env_var(self, client, vercel_project_id, key, value, type):
+    def create_env_var(self, client, vercel_project_id, key, value, type, target):
         data = {
             "key": key,
             "value": value,
-            "target": ["production"],
+            "target": target,
             "type": type,
         }
         try:
