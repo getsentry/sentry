@@ -3,7 +3,7 @@ This is later used for generating group forecasts for determining when a group m
 """
 
 from datetime import datetime, timedelta
-from typing import List, Tuple, TypedDict
+from typing import Dict, List, Tuple, TypedDict
 
 from snuba_sdk import (
     Column,
@@ -62,11 +62,10 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
     projects_count = len(group_ids_by_project)
 
     for proj_id in group_ids_by_project.keys():
-        # breakpoint()
-        _group_ids = group_ids_by_project[proj_id]
+        _group_ids: List[int] = group_ids_by_project[proj_id]
         # Add them to the list of projects and groups to query
         proj_ids.append(proj_id)
-        group_ids.append(_group_ids)
+        group_ids += _group_ids
         # We still have room for more projects and groups
         if counter < projects_count and len(_group_ids) < QUERY_LIMIT / BUCKETS_PER_GROUP:
             continue
@@ -127,9 +126,9 @@ def _start_and_end_dates(hours: int = BUCKETS_PER_GROUP) -> Tuple[datetime, date
     return end_datetime - timedelta(hours=hours), end_datetime
 
 
-def _extract_project_and_group_ids(groups: List[Group]) -> Tuple[List[int], List[int]]:
+def _extract_project_and_group_ids(groups: List[Group]) -> Dict[int, List[int]]:
     """Return all project and group IDs from a list of Group"""
-    group_ids_by_project = {}
+    group_ids_by_project: Dict[int, List[int]] = {}
     for group in groups:
         if not group_ids_by_project.get(group.project_id):
             group_ids_by_project[group.project_id] = []
