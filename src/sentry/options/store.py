@@ -11,7 +11,6 @@ from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.models.options import OptionsTypes
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
@@ -215,7 +214,7 @@ class OptionsStore(AbstractOptionsStore):
                     )
         return value
 
-    def set(self, key, value, source=OptionsTypes.LEGACY):
+    def set(self, key, value, source="legacy"):
         """
         Store a value in the option store. Value must get persisted to database first,
         then attempt caches. If it fails database, the entire operation blows up.
@@ -227,7 +226,7 @@ class OptionsStore(AbstractOptionsStore):
         self.set_store(key, value, source)
         return self.set_cache(key, value)
 
-    def set_store(self, key, value, source=OptionsTypes.LEGACY):
+    def set_store(self, key, value, source="legacy"):
         from sentry.db.models.query import create_or_update
 
         create_or_update(

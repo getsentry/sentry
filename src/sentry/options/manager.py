@@ -3,7 +3,6 @@ import sys
 
 from django.conf import settings
 
-from sentry.models.options import OptionsTypes
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, type_from_value
 
@@ -78,7 +77,8 @@ class OptionsManager:
         self.store = store
         self.registry = {}
 
-    def set(self, key, value, coerce=True, source=OptionsTypes.LEGACY):
+    # TODO: Find out why `from sentry.models.options import OptionsTypes` doesn't work at top level
+    def set(self, key, value, coerce=True, source="legacy"):
         """
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
@@ -115,9 +115,7 @@ class OptionsManager:
                 logger.debug("Using legacy key: %s", key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.make_key(
-                    key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None, OptionsTypes.LEGACY
-                )
+                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None, "legacy")
             raise UnknownOption(key)
 
     def make_key(self, name, default, type, flags, ttl, grace, grouping_info, source):
@@ -284,7 +282,7 @@ class OptionsManager:
         settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
         self.registry[key] = self.make_key(
-            key, default, type, flags, ttl, grace, grouping_info, OptionsTypes.legacy
+            key, default, type, flags, ttl, grace, grouping_info, "legacy"
         )
 
     def unregister(self, key):
