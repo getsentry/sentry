@@ -246,6 +246,7 @@ def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[b
     transaction = sentry_sdk.start_transaction(
         op="http.server",
         name="ProjectReplayRecordingSegmentIndexEndpoint.download_segments",
+        sampled=True,
     )
 
     download_segment_with_fixed_args = functools.partial(
