@@ -36,9 +36,9 @@ export function ReplaySearchAlert() {
   });
   const conditions = useMemo(() => {
     return new MutableSearch(decodeScalar(location.query.query, ''));
-  }, [location.query]);
+  }, [location.query.query]);
 
-  const hasReplayClick = conditions.getFilterKeys().some(k => k.includes('click'));
+  const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
   if (sdkUpdates.type !== 'resolved') {
     return null;
@@ -77,13 +77,18 @@ export function ReplaySearchAlert() {
   if (hasReplayClick) {
     return (
       <Alert data-test-id="min-sdk-alert">
-        {tct(
-          'Search field [click] requires a minimum SDK version of >= [minSdkVersion].',
-          {
-            click: <strong>'click'</strong>,
-            minSdkVersion: <strong>{MIN_REPLAY_CLICK_SDK}</strong>,
-          }
-        )}
+        <AlertContent>
+          <IconInfo />
+          <AlertText>
+            {tct(
+              'Search field [click] requires a minimum SDK version of >= [minSdkVersion].',
+              {
+                click: <strong>'click'</strong>,
+                minSdkVersion: <strong>{MIN_REPLAY_CLICK_SDK}</strong>,
+              }
+            )}
+          </AlertText>
+        </AlertContent>
       </Alert>
     );
   }
