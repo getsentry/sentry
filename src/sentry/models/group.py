@@ -153,7 +153,6 @@ class GroupStatus:
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
 
-
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
@@ -716,22 +715,26 @@ class Group(Model):
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
 def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
+    # TODO(snigdha): Replace the logging with a ValueError once we are confident that this is working as expected.
     if instance:
         # We only support substatuses for UNRESOLVED and IGNORED groups
         if (
             instance.status not in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]
             and instance.substatus is not None
         ):
-            raise ValueError(
-                f"No substatus allowed for group with status={instance.status}: substatus={instance.substatus}"
+            logger.exception(
+                "No substatus allowed for group",
+                extra={"status": instance.status, "substatus": instance.substatus},
             )
 
-        # IGNORED groups may have no substatus
+        # IGNORED groups may have no substatus for now. We will be adding two more substatusesin the future to simplify this.
         if instance.status == GroupStatus.IGNORED and instance.substatus not in [
             None,
             *IGNORED_SUBSTATUS_CHOICES,
         ]:
-            raise ValueError(f"Invalid substatus for IGNORED group: {instance.substatus}")
+            logger.exception(
+                "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
+            )
 
         if instance.status == GroupStatus.UNRESOLVED:
             if instance.substatus is None:
@@ -739,4 +742,7 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
 
             # UNRESOLVED groups must have a substatus
             if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
-                raise ValueError(f"Invalid substatus for UNRESOLVED group: {instance.substatus}")
+                logger.exception(
+                    "Invalid substatus for UNRESOLVED group",
+                    extra={"substatus": instance.substatus},
+                )

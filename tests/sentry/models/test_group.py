@@ -1,5 +1,6 @@
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.core.cache import cache
@@ -314,14 +315,8 @@ class GroupTest(TestCase, SnubaTestCase):
         ):
             assert self.create_group(status=nullable_status).substatus is None
 
-    def test_group_invalid_substatus(self):
-        with pytest.raises(ValueError):
-            self.create_group(
-                status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.UNTIL_ESCALATING
-            )
-            self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING)
-            self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ESCALATING)
-
+    @patch("sentry.models.group.logger")
+    def test_group_invalid_substatus(self, logger):
         group = self.create_group(status=GroupStatus.RESOLVED)
         assert group.substatus is None
 
@@ -332,6 +327,12 @@ class GroupTest(TestCase, SnubaTestCase):
 
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         assert group.substatus is GroupSubStatus.ONGOING
+
+        # Test that we log an error when we try to set an invalid substatus
+        self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.UNTIL_ESCALATING)
+        self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING)
+        self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ESCALATING)
+        assert logger.exception.call_count == 3
 
 
 @region_silo_test
