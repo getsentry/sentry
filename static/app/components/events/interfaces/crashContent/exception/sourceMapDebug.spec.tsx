@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Event, ExceptionValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {SourceMapDebug} from './sourceMapDebug';
 import {
@@ -11,7 +11,7 @@ import {
   SourceMapProcessingIssueType,
 } from './useSourceMapDebug';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics/trackAnalytics');
 
 describe('SourceMapDebug', () => {
   const organization = TestStubs.Organization({});
@@ -172,7 +172,7 @@ describe('SourceMapDebug', () => {
     ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
