@@ -5,11 +5,10 @@ import useUrlParams from 'sentry/utils/useUrlParams';
 export enum TabKey {
   console = 'console',
   dom = 'dom',
-  issues = 'issues',
-  memory = 'memory',
   network = 'network',
   trace = 'trace',
-  trace2 = 'trace2',
+  issues = 'issues',
+  memory = 'memory',
 }
 
 function isReplayTab(tab: string): tab is TabKey {
