@@ -34,6 +34,7 @@ type Props = {
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   customPerformanceMetrics?: CustomMeasurementCollection;
   maxMenuHeight?: number;
+  mergeSearchGroupWith?: Record<string, SearchItem>;
   onIconClick?: (value: string) => void;
   runShortcut?: (shortcut: Shortcut) => void;
   supportedTags?: TagCollection;
@@ -53,6 +54,7 @@ function SearchDropdown({
   customPerformanceMetrics,
   supportedTags,
   customInvalidTagMessage,
+  mergeSearchGroupWith,
 }: Props) {
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
@@ -70,22 +72,31 @@ function SearchDropdown({
               <Fragment key={item.title}>
                 {item.type === 'header' && <HeaderItem group={item} />}
                 {item.children &&
-                  item.children.map(child => (
-                    <DropdownItem
-                      key={getDropdownItemKey(child)}
-                      item={child}
-                      searchSubstring={searchSubstring}
-                      onClick={onClick}
-                      onIconClick={onIconClick}
-                      additionalSearchConfig={{
-                        ...getSearchConfigFromCustomPerformanceMetrics(
-                          customPerformanceMetrics
-                        ),
-                        supportedTags,
-                      }}
-                      customInvalidTagMessage={customInvalidTagMessage}
-                    />
-                  ))}
+                  item.children.map(child => {
+                    if (
+                      mergeSearchGroupWith &&
+                      child.title &&
+                      mergeSearchGroupWith[child.title]
+                    ) {
+                      Object.assign(child, mergeSearchGroupWith[child.title]);
+                    }
+                    return (
+                      <DropdownItem
+                        key={getDropdownItemKey(child)}
+                        item={child}
+                        searchSubstring={searchSubstring}
+                        onClick={onClick}
+                        onIconClick={onIconClick}
+                        additionalSearchConfig={{
+                          ...getSearchConfigFromCustomPerformanceMetrics(
+                            customPerformanceMetrics
+                          ),
+                          supportedTags,
+                        }}
+                        customInvalidTagMessage={customInvalidTagMessage}
+                      />
+                    );
+                  })}
                 {isEmpty && <Info>{t('No items found')}</Info>}
               </Fragment>
             );
@@ -230,6 +241,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
               hasSplit={words.length > 1}
             />
           )}
+          {item.titleBadge}
         </SearchItemTitleWrapper>
       );
     }

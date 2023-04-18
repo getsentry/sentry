@@ -231,6 +231,12 @@ type Props = WithRouterProps &
      * trigger re-renders.
      */
     members?: User[];
+
+    /**
+     * Extend search group items with additional props
+     * Useful for providing descriptions to field parents with many children
+     */
+    mergeSearchGroupWith?: Record<string, SearchItem>;
     /**
      * Called when the search input is blurred.
      * Note that the input may be blurred when the user selects an autocomplete
@@ -266,6 +272,7 @@ type Props = WithRouterProps &
      * Prepare query value before filtering dropdown items
      */
     prepareQuery?: (query: string) => string;
+
     /**
      * Indicates the usage of the search bar for analytics
      */
@@ -1910,6 +1917,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             customPerformanceMetrics={customPerformanceMetrics}
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
+            mergeSearchGroupWith={this.props.mergeSearchGroupWith}
           />
         )}
       </Container>
