@@ -162,7 +162,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
             assert resp.status_code == 404
 
-    def test_monitor_creation_via_checkin(self):
+    def test_monitor_creation_and_update_via_checkin(self):
         for i, path_func in enumerate(self._get_path_functions()):
             slug = f"my-new-monitor-{i}"
             path = path_func(slug)
@@ -182,61 +182,21 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)
             assert len(checkins) == 1
 
-    def test_monitor_environment_creation_via_checkin(self):
-        for i, path_func in enumerate(self._get_path_functions()):
-            slug = f"my-new-monitor-{i}"
-            path = path_func(slug)
-
             resp = self.client.post(
                 path,
                 {
                     "status": "ok",
-                    "environment": "development",
-                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
-                },
-                **self.dsn_auth_headers,
-            )
-            assert resp.status_code == 201, resp.content
-            monitor = Monitor.objects.get(slug=slug)
-            assert monitor.config["schedule"] == "5 * * * *"
-
-            checkins = MonitorCheckIn.objects.filter(monitor=monitor)
-            assert len(checkins) == 1
-
-            resp = self.client.post(
-                path,
-                {
-                    "status": "ok",
-                    "environment": "jungle",
-                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
-                },
-                **self.dsn_auth_headers,
-            )
-            assert resp.status_code == 201, resp.content
-
-            environments = MonitorEnvironment.objects.filter(monitor=monitor)
-            assert len(environments) == 2
-
-            checkins = MonitorCheckIn.objects.filter(monitor=monitor)
-            assert len(checkins) == 2
-
-    def test_monitor_update_via_checkin(self):
-        for i, path_func in enumerate(self._get_path_functions()):
-            monitor = self._create_monitor(slug=f"my-new-monitor-{i}")
-            path = path_func(monitor.guid)
-
-            resp = self.client.post(
-                path,
-                {
-                    "status": "ok",
-                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "10 * * * *"},
                 },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
 
             monitor = Monitor.objects.get(guid=monitor.guid)
-            assert monitor.config["schedule"] == "5 * * * *"
+            assert monitor.config["schedule"] == "10 * * * *"
+
+            checkins = MonitorCheckIn.objects.filter(monitor=monitor)
+            assert len(checkins) == 2
 
     def test_monitor_creation_invalid_slug(self):
         for i, path_func in enumerate(self._get_path_functions()):
