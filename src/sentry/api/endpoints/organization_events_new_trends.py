@@ -36,7 +36,7 @@ def get_trends(snuba_io):
         body=json.dumps(snuba_io),
         headers={"content-type": "application/json;charset=utf-8"},
     )
-    return Response(json.loads(response.data), status=200)
+    return json.loads(response.data)
 
 
 @region_silo_endpoint
@@ -87,7 +87,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 user_query=query,
                 params=params,
                 rollup=rollup,
-                limit=11,
+                limit=20,
                 organization=organization,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
@@ -103,7 +103,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     request,
                     organization,
                     get_event_stats,
-                    top_events=11,
+                    top_events=20,
                     query_column=trend_function,
                     params=params,
                     query=_query,
@@ -128,9 +128,24 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             # send the data to microservice
             trends = get_trends(trends_request)
+            trending_transaction_names_stats = {}
+            trending_events = trends["data"]
+            for t in trending_events:
+                transaction_name = t["transaction"]
+                project = t["project"]
+                t_p_key = project + "," + transaction_name
+                trending_transaction_names_stats[t_p_key] = response.data[t_p_key]
 
             # send the results back to the client
-            return trends
+            return Response(
+                {
+                    "events": self.handle_results_with_meta(
+                        request, organization, params["project_id"], {"data": trending_events}
+                    ),
+                    "stats": trending_transaction_names_stats,
+                },
+                status=200,
+            )
         # TODO check if this is applicable here
         except ValidationError:
             return Response({"detail": "Comparison period is outside retention window"}, status=400)
