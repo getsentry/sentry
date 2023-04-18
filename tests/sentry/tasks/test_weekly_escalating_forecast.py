@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from typing import List
 from unittest.mock import patch
 
+import pytz
+
 from sentry.issues.escalating import GroupsCountResponse
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models.group import Group, GroupStatus, GroupSubStatus
@@ -73,10 +75,15 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         )
 
         run_escalating_forecast()
+        approximate_date_added = datetime.now(pytz.utc)
         fetched_forecast = EscalatingGroupForecast.fetch(group_list[0].project.id, group_list[0].id)
         assert fetched_forecast.project_id == group_list[0].project.id
         assert fetched_forecast.group_id == group_list[0].id
         assert fetched_forecast.forecast == FORECAST_LIST_MOCK
+        assert fetched_forecast.date_added.replace(
+            second=0, microsecond=0
+        ) == approximate_date_added.replace(second=0, microsecond=0)
+        assert fetched_forecast.date_added < approximate_date_added
 
     @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
     def test_multiple_groups_escalating_forecast(self, mock_query_groups_past_counts):
@@ -87,6 +94,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         )
 
         run_escalating_forecast()
+        approximate_date_added = datetime.now(pytz.utc)
         for i in range(len(group_list)):
             fetched_forecast = EscalatingGroupForecast.fetch(
                 group_list[i].project.id, group_list[i].id
@@ -94,6 +102,10 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             assert fetched_forecast.project_id == group_list[i].project.id
             assert fetched_forecast.group_id == group_list[i].id
             assert fetched_forecast.forecast == FORECAST_LIST_MOCK
+            assert fetched_forecast.date_added.replace(
+                second=0, microsecond=0
+            ) == approximate_date_added.replace(second=0, microsecond=0)
+            assert fetched_forecast.date_added < approximate_date_added
 
     @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
     def test_update_group_escalating_forecast(self, mock_query_groups_past_counts):
