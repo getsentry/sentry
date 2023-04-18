@@ -1,6 +1,8 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -23,9 +25,13 @@ type Props = {
 function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
   const organization = useOrganization();
   const api = useApi();
-  function handleMute(target: string) {
+
+  const [disabled, setDisabled] = useState(false);
+
+  async function handleMute(target: 'me' | 'everyone') {
+    setDisabled(true);
     try {
-      api.requestPromise(
+      await api.requestPromise(
         `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
         {
           method: 'POST',
@@ -34,30 +40,40 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
           },
         }
       );
+
+      setDisabled(false);
+      onSnooze({
+        snooze: !isSnoozed,
+        snoozeCreatedBy: 'You',
+        snoozeForEveryone: target === 'me' ? false : true,
+      });
     } catch (err) {
+      if (err.status === 403) {
+        addErrorMessage(t('You do not have permission to mute this alert'));
+      }
       Sentry.captureException(err);
-      return;
     }
-    onSnooze({
-      snooze: !isSnoozed,
-      snoozeCreatedBy: 'You',
-      snoozeForEveryone: target === 'me' ? false : true,
-    });
   }
 
-  function handleUnmute() {
+  async function handleUnmute() {
+    setDisabled(true);
+
     try {
-      api.requestPromise(
+      await api.requestPromise(
         `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
         {
           method: 'DELETE',
         }
       );
+
+      setDisabled(false);
+      onSnooze({snooze: !isSnoozed});
     } catch (err) {
+      if (err.status === 403) {
+        addErrorMessage(t('You do not have permission to unmute this alert'));
+      }
       Sentry.captureException(err);
-      return;
     }
-    onSnooze({snooze: !isSnoozed});
   }
 
   const dropdownItems: MenuItemProps[] = [
@@ -75,14 +91,24 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
 
   if (isSnoozed) {
     return (
-      <Button size="sm" icon={<IconMute />} onClick={() => handleUnmute()}>
+      <Button
+        size="sm"
+        icon={<IconMute />}
+        disabled={disabled}
+        onClick={() => handleUnmute()}
+      >
         {t('Unmute')}
       </Button>
     );
   }
   return (
     <ButtonBar>
-      <MuteButton size="sm" icon={<IconSound />} onClick={() => handleMute('me')}>
+      <MuteButton
+        size="sm"
+        icon={<IconSound />}
+        disabled={disabled}
+        onClick={() => handleMute('me')}
+      >
         {t('Mute')}
       </MuteButton>
       <DropdownMenu
@@ -95,7 +121,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
           />
         )}
         items={dropdownItems}
-        isDisabled={false}
+        isDisabled={disabled}
       />
     </ButtonBar>
   );
