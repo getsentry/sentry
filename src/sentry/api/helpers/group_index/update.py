@@ -45,7 +45,7 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
@@ -54,6 +54,7 @@ from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.signals import issue_mark_reviewed, issue_resolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
@@ -627,24 +628,10 @@ def update_groups(
                     assigned_by=assigned_by,
                     had_to_deassign=True,
                 )
-    is_member_map = {
-        project.id: (
-            project.member_set.filter(user_id=acting_user.id).exists() if acting_user else False
-        )
-        for project in projects
-    }
-    if result.get("hasSeen"):
-        for group in group_list:
-            if is_member_map.get(group.project_id):
-                instance, created = create_or_update(
-                    GroupSeen,
-                    group=group,
-                    user_id=acting_user.id,
-                    project=project_lookup[group.project_id],
-                    values={"last_seen": timezone.now()},
-                )
-    elif result.get("hasSeen") is False:
-        GroupSeen.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
+
+    handle_has_seen(
+        result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
+    )
 
     if "isBookmarked" in result:
         handle_is_bookmarked(
@@ -738,6 +725,35 @@ def handle_is_bookmarked(
             group__in=group_ids,
             user_id=acting_user.id if acting_user else None,
         ).delete()
+
+
+def handle_has_seen(
+    has_seen: Any,
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    project_lookup: dict[int, Project],
+    projects: Sequence[Project],
+    acting_user: User | None,
+) -> None:
+    is_member_map = {
+        project.id: (
+            project.member_set.filter(user_id=acting_user.id).exists() if acting_user else False
+        )
+        for project in projects
+    }
+    user_id = acting_user.id if acting_user else None
+    if has_seen:
+        for group in group_list:
+            if is_member_map.get(group.project_id):
+                instance, created = create_or_update(
+                    GroupSeen,
+                    group=group,
+                    user_id=user_id,
+                    project=project_lookup[group.project_id],
+                    values={"last_seen": timezone.now()},
+                )
+    elif has_seen is False:
+        GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
 
 
 def handle_is_public(

@@ -8,13 +8,14 @@ from sentry.api.helpers.group_index import (
     update_groups,
     validate_search_filter_permissions,
 )
-from sentry.api.helpers.group_index.update import handle_is_bookmarked, handle_is_public
+from sentry.api.helpers.group_index.update import handle_has_seen, handle_is_bookmarked, handle_is_public
 from sentry.api.issue_search import parse_search_query
 from sentry.models import (
     Activity,
     GroupBookmark,
     GroupInbox,
     GroupInboxReason,
+    GroupSeen,
     GroupShare,
     GroupStatus,
     GroupSubStatus,
@@ -227,6 +228,32 @@ class TestHandleIsBookmarked(TestCase):
         handle_is_bookmarked(False, self.group_list, self.group_ids, self.project_lookup, self.user)
 
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
+        
+        
+class TestHandleHasSeen(TestCase):
+    def setUp(self):
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.group_ids = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+    def test_has_seen(self):
+        handle_has_seen(
+            True, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
+        )
+
+        assert GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+    def test_not_has_seen(self):
+        GroupSeen.objects.create(
+            group=self.group, user_id=self.user.id, project_id=self.group.project_id
+        )
+
+        handle_has_seen(
+            False, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
+        )
+
+        assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
 class TestHandleIsPublic(TestCase):
