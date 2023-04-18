@@ -3,20 +3,23 @@ import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
 
 import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
 
-const HOST = 'http://localhost:8080';
+export const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
+  onSelect: (row: DataRow) => void;
 };
 
-type DataRow = {
+export type DataRow = {
   count: number;
   description: string;
+  domain: string;
 };
 
 const COLUMN_ORDER = [
@@ -31,7 +34,7 @@ const COLUMN_ORDER = [
   },
 ];
 
-export default function APIModuleView({location}: Props) {
+export default function APIModuleView({location, onSelect}: Props) {
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
     queryKey: ['endpoints'],
     queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_LIST_QUERY}`).then(res => res.json()),
@@ -68,6 +71,22 @@ export default function APIModuleView({location}: Props) {
 
   const data = Object.values(seriesByQuantile);
 
+  // TODO: Moved these into the component for easy acces to onSelect. Clean this up later.
+  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+    return <span>{column.name}</span>;
+  }
+
+  function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
+    if (column.key === 'description') {
+      return (
+        <Link onClick={() => onSelect(row)} to="">
+          {row[column.key]}
+        </Link>
+      );
+    }
+    return <span>{row[column.key]}</span>;
+  }
+
   return (
     <Fragment>
       <Chart
@@ -102,12 +121,4 @@ export default function APIModuleView({location}: Props) {
       />
     </Fragment>
   );
-}
-
-function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  return <span>{column.name}</span>;
-}
-
-function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-  return <span>{row[column.key]}</span>;
 }

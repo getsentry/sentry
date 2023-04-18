@@ -17,3 +17,16 @@ export const ENDPOINT_GRAPH_QUERY = `SELECT
  GROUP BY interval
  ORDER BY interval asc
  `;
+
+export const getEndpointDetailQuery = description => {
+  return `SELECT
+  toStartOfInterval(start_timestamp, INTERVAL 5 MINUTE) as interval,
+  quantile(0.5)(exclusive_time) as p50,
+  count() as count
+  FROM spans_experimental_starfish
+  WHERE module = 'http'
+  AND description = '${description}'
+  GROUP BY interval
+  ORDER BY interval asc
+`;
+};
