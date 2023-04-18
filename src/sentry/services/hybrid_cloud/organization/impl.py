@@ -6,6 +6,7 @@ from typing import Iterable, List, MutableMapping, Optional, Set, cast
 from django.db import transaction
 
 from sentry import roles
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -308,7 +309,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             user_id and email is None
         ), "Must set either user_id or email"
         region_outbox = None
-        with transaction.atomic():
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: OrganizationMember = OrganizationMember.objects.create(
                 organization_id=organization_id,
                 user_id=user_id,
