@@ -7,11 +7,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -179,7 +181,12 @@ export function LoaderSettings({keyId, organizationId, projectId, projectKey}: P
             <TextCopyInput>
               {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
             </TextCopyInput>
+
+            <FieldHelp style={{paddingTop: space(1)}}>
+              {t('Note that it can take a few minutes until changed options are live.')}
+            </FieldHelp>
           </FieldGroup>
+
           <SelectField
             name="browserSdkVersion"
             label={t('SDK Version')}
