@@ -3,7 +3,6 @@ import {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Hooks} from 'sentry/types/hooks';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 /**
  * Analytics and metric tracking functionality.
@@ -22,16 +21,6 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
  *
  *       https://github.com/getsentry/reload/blob/master/reload_app/metrics/__init__.py
  */
-
-/**
- * This should be with all analytics events regardless of the analytics destination
- * which includes Reload, Amplitude, and Google Analytics.
- * All events go to Reload. If eventName is defined, events also go to Amplitude.
- * For more details, refer to makeAnalyticsFunction.
- *
- * Should be used for all analytics that are defined in Sentry.
- */
-export const trackAnalytics = trackAdvancedAnalyticsEvent;
 
 /**
  * This should be with all analytics events regardless of the analytics destination
