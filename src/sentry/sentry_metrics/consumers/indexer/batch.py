@@ -239,14 +239,12 @@ class IndexerBatch:
 
             strings[use_case_id][org_id].update(strings_in_message)
 
-        metrics.gauge(
-            "process_messages.lookups_per_batch",
-            value=sum(
-                len(parsed_strings)
-                for use_case in strings.values()
-                for parsed_strings in use_case.values()
-            ),
-        )
+        for use_case_id, org_mapping in strings.items():
+            metrics.gauge(
+                "process_messages.lookups_per_batch",
+                value=sum(len(parsed_strings) for parsed_strings in org_mapping.values()),
+                tags={"use_case": use_case_id.value},
+            )
 
         return strings
 
