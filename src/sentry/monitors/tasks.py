@@ -65,7 +65,7 @@ def check_monitors(current_datetime=None):
             "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
         )
         # add missed checkin
-        checkin = MonitorCheckIn.objects.create(
+        MonitorCheckIn.objects.create(
             project_id=monitor_environment.monitor.project_id,
             monitor=monitor_environment.monitor,
             monitor_environment=monitor_environment,
@@ -81,20 +81,26 @@ def check_monitors(current_datetime=None):
     )
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
-    for checkin in RangeQuerySetWrapper(qs):
-        timeout = timedelta(minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT)
+    for (
+        checkin_id,
+        checkin_monitor,
+        checkin_monitor_environment,
+        checkin_date_added,
+        checkin_date_updated,
+    ) in qs.values_list("id", "monitor", "monitor_environment", "date_added", "date_updated"):
+        timeout = timedelta(minutes=(checkin_monitor.config or {}).get("max_runtime") or TIMEOUT)
         # Check against date_updated to allow monitors to run for longer as
         # long as they continute to send heart beats updating the checkin
-        if checkin.date_updated > current_datetime - timeout:
+        if checkin_date_updated > current_datetime - timeout:
             continue
 
-        monitor_environment = checkin.monitor_environment
+        monitor_environment = checkin_monitor_environment
         logger.info(
             "monitor_environment.checkin-timeout",
-            extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
+            extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin_id},
         )
         affected = MonitorCheckIn.objects.filter(
-            id=checkin.id, status=CheckInStatus.IN_PROGRESS
+            id=checkin_id, status=CheckInStatus.IN_PROGRESS
         ).update(status=CheckInStatus.ERROR)
         if not affected:
             continue
@@ -103,7 +109,7 @@ def check_monitors(current_datetime=None):
         # change
         has_newer_result = MonitorCheckIn.objects.filter(
             monitor=monitor_environment.id,
-            date_added__gt=checkin.date_added,
+            date_added__gt=checkin_date_added,
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
         ).exists()
         if not has_newer_result:
