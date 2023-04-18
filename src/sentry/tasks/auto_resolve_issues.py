@@ -72,7 +72,9 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
 
     for group in queryset:
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
-            status=GroupStatus.RESOLVED, resolved_at=timezone.now()
+            status=GroupStatus.RESOLVED,
+            resolved_at=timezone.now(),
+            substatus=None,
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 

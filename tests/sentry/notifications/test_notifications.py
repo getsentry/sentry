@@ -286,6 +286,7 @@ class ActivityNotificationTest(APITestCase):
 
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
         assert group.is_resolved()
 

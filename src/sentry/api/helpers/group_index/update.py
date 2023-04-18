@@ -481,12 +481,13 @@ def update_groups(
                     )
 
                 affected = Group.objects.filter(id=group.id).update(
-                    status=GroupStatus.RESOLVED, resolved_at=now
+                    status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
                 )
                 if not resolution:
                     created = affected
 
                 group.status = GroupStatus.RESOLVED
+                group.substatus = None
                 group.resolved_at = now
                 remove_group_from_inbox(
                     group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
@@ -558,6 +559,7 @@ def update_groups(
                 projects=projects,
                 project_lookup=project_lookup,
                 new_status=new_status,
+                new_substatus=new_substatus,
                 is_bulk=is_bulk,
                 acting_user=acting_user,
                 status_details=result.get("statusDetails", {}),

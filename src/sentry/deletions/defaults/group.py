@@ -155,4 +155,4 @@ class GroupDeletionTask(ModelDeletionTask):
 
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
-        ).update(status=GroupStatus.DELETION_IN_PROGRESS)
+        ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)

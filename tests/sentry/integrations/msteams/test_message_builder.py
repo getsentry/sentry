@@ -346,6 +346,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_resolved_issue_message(self):
         self.group1.status = GroupStatus.RESOLVED
+        self.group1.substatus = None
         self.group1.save()
 
         issue_card = MSTeamsIssueMessageBuilder(
@@ -360,6 +361,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_ignored_issue_message(self):
         self.group1.status = GroupStatus.IGNORED
+        self.group1.substatus = None
 
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration

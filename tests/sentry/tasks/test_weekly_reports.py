@@ -228,10 +228,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         group2 = event2.group
 
         group1.status = GroupStatus.RESOLVED
+        group1.substatus = None
         group1.resolved_at = two_days_ago
         group1.save()
 
         group2.status = GroupStatus.RESOLVED
+        group2.substatus = None
         group2.resolved_at = two_days_ago
         group2.save()
 
@@ -299,6 +301,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         group1 = event1.group
 
         group1.status = GroupStatus.RESOLVED
+        group1.substatus = None
         group1.resolved_at = two_days_ago
         group1.save()
 
