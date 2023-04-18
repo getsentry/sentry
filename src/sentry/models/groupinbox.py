@@ -32,6 +32,7 @@ class GroupInboxReason(Enum):
     MANUAL = 3
     REPROCESSED = 4
     ESCALATING = 5
+    ONGOING = 6
 
 
 class GroupInboxRemoveAction(Enum):
