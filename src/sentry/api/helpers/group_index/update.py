@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -730,7 +730,7 @@ def handle_has_seen(
     has_seen: Any,
     group_list: Sequence[Group],
     group_ids: Sequence[Group],
-    project_lookup: Dict[int, Project],
+    project_lookup: dict[int, Project],
     projects: Sequence[Project],
     acting_user: User | None,
 ) -> None:
