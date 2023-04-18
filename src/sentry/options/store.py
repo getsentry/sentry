@@ -38,6 +38,7 @@ class Key:
     grace: int
     cache_key: str
     grouping_info: Optional[GroupingInfo]
+    source: str
 
 
 def _make_cache_value(key, value):

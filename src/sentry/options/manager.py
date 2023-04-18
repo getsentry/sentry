@@ -3,6 +3,7 @@ import sys
 
 from django.conf import settings
 
+from sentry.models.options import OptionsTypes
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, type_from_value
 
@@ -77,7 +78,7 @@ class OptionsManager:
         self.store = store
         self.registry = {}
 
-    def set(self, key, value, coerce=True):
+    def set(self, key, value, coerce=True, source=OptionsTypes.LEGACY):
         """
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
@@ -101,7 +102,7 @@ class OptionsManager:
         elif not opt.type.test(value):
             raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
 
-        return self.store.set(opt, value)
+        return self.store.set(opt, value, source=source)
 
     def lookup_key(self, key):
         try:
@@ -114,14 +115,24 @@ class OptionsManager:
                 logger.debug("Using legacy key: %s", key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+                return self.make_key(
+                    key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None, OptionsTypes.LEGACY
+                )
             raise UnknownOption(key)
 
-    def make_key(self, name, default, type, flags, ttl, grace, grouping_info):
+    def make_key(self, name, default, type, flags, ttl, grace, grouping_info, source):
         from sentry.options.store import Key
 
         return Key(
-            name, default, type, flags, int(ttl), int(grace), _make_cache_key(name), grouping_info
+            name,
+            default,
+            type,
+            flags,
+            int(ttl),
+            int(grace),
+            _make_cache_key(name),
+            grouping_info,
+            source,
         )
 
     def isset(self, key):
@@ -272,7 +283,9 @@ class OptionsManager:
 
         settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
-        self.registry[key] = self.make_key(key, default, type, flags, ttl, grace, grouping_info)
+        self.registry[key] = self.make_key(
+            key, default, type, flags, ttl, grace, grouping_info, OptionsTypes.legacy
+        )
 
     def unregister(self, key):
         try:
