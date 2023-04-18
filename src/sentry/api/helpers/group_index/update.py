@@ -682,32 +682,9 @@ def update_groups(
         }
 
     if "isPublic" in result:
-        # We always want to delete an existing share, because triggering
-        # an isPublic=True even when it's already public, should trigger
-        # regenerating.
-        for group in group_list:
-            if GroupShare.objects.filter(group=group).delete():
-                result["shareId"] = None
-                Activity.objects.create(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    type=ActivityType.SET_PRIVATE.value,
-                    user_id=acting_user.id,
-                )
-
-    if result.get("isPublic"):
-        for group in group_list:
-            share, created = GroupShare.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
-            )
-            if created:
-                result["shareId"] = share.uuid
-                Activity.objects.create(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    type=ActivityType.SET_PUBLIC.value,
-                    user_id=acting_user.id,
-                )
+        result["shareId"] = handle_is_public(
+            result["isPublic"], group_list, project_lookup, acting_user
+        )
 
     # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
     if result.get("merge") and len(group_list) > 1:
@@ -740,3 +717,45 @@ def update_groups(
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def handle_is_public(
+    is_public: bool,
+    group_list: list[Group],
+    project_lookup: dict[int, Project],
+    acting_user: User | None,
+) -> str | None:
+    """
+    Handle the isPublic flag on a group update.
+
+    This deletes the existing share ID and creates a new share ID if isPublic is True.
+    We always want to delete an existing share, because triggering an isPublic=True
+    when it's already public should trigger regenerating.
+    """
+    user_id = acting_user.id if acting_user else None
+    share_id = None
+    for group in group_list:
+        if GroupShare.objects.filter(group=group).delete():
+            share_id = None
+            Activity.objects.create(
+                project=project_lookup[group.project_id],
+                group=group,
+                type=ActivityType.SET_PRIVATE.value,
+                user_id=user_id,
+            )
+
+    if is_public:
+        for group in group_list:
+            share, created = GroupShare.objects.get_or_create(
+                project=project_lookup[group.project_id], group=group, user_id=user_id
+            )
+            if created:
+                share_id = share.uuid
+                Activity.objects.create(
+                    project=project_lookup[group.project_id],
+                    group=group,
+                    type=ActivityType.SET_PUBLIC.value,
+                    user_id=user_id,
+                )
+
+    return share_id
