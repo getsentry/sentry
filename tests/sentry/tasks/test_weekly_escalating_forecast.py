@@ -56,7 +56,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             group_list.append(group)
         return group_list
 
-    @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
+    @patch("sentry.issues.escalating.query_groups_past_counts")
     def test_empty_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_archived_until_escalating_groups(num_groups=1)
 
@@ -66,7 +66,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         fetched_forecast = EscalatingGroupForecast.fetch(group_list[0].project.id, group_list[0].id)
         assert fetched_forecast is None
 
-    @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
+    @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_single_group_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_archived_until_escalating_groups(num_groups=1)
 
@@ -85,7 +85,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         ) == approximate_date_added.replace(second=0, microsecond=0)
         assert fetched_forecast.date_added < approximate_date_added
 
-    @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
+    @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_multiple_groups_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_archived_until_escalating_groups(num_groups=3)
 
@@ -107,7 +107,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             ) == approximate_date_added.replace(second=0, microsecond=0)
             assert fetched_forecast.date_added < approximate_date_added
 
-    @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
+    @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_update_group_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_archived_until_escalating_groups(num_groups=1)
 
