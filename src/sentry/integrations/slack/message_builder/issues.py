@@ -150,7 +150,7 @@ def build_actions(
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
-        text += get_action_text(text, actions, identity)
+        text = get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
     ignore_button = MessageAction(
