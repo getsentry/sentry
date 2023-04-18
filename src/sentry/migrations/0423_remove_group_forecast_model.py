@@ -23,7 +23,8 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.DeleteModel(
-            name="GroupForecast",
-        ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[migrations.DeleteModel(name="GroupForecast")],
+            database_operations=[],
+        )
     ]
