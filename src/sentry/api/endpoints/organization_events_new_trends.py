@@ -65,7 +65,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         selected_columns = self.get_field_list(organization, request)
 
-        top_columns = ["count()", "transaction", "project"]
+        top_columns = ["tpm()", "transaction", "project"]
         # TODO use user query and remove trends-specific aliases
         _query = (
             "tpm():>0.01 transaction.duration:>0 transaction.duration:<15min event.type:transaction"
@@ -87,12 +87,12 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 user_query=query,
                 params=params,
                 rollup=rollup,
-                limit=1,
+                limit=10,
                 organization=organization,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
                 zerofill_results=zerofill_results,
-                orderby=["-count()"],
+                orderby=["-tpm()"],
             )
 
             return results
@@ -103,7 +103,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     request,
                     organization,
                     get_event_stats,
-                    top_events=1,
+                    top_events=10,
                     query_column=trend_function,
                     params=params,
                     query=_query,
