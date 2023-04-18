@@ -7,14 +7,15 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+// import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
+// import {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   api: Client;
   isSnoozed: boolean;
-  organization: Organization;
+  // organization: Organization;
   projectId: string;
   ruleId: string;
   setSnooze: (nextState: boolean) => void;
@@ -26,10 +27,11 @@ function SnoozeAlert({
   setSnooze,
   setSnoozeCreatedBy,
   api,
-  organization,
+  // organization,
   projectId,
   ruleId,
 }: Props) {
+  const organization = useOrganization();
   function handleMute(target: string) {
     try {
       api.requestPromise(
@@ -105,7 +107,7 @@ function SnoozeAlert({
   );
 }
 
-export default withOrganization(withApi(SnoozeAlert));
+export default withApi(SnoozeAlert);
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
