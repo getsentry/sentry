@@ -1,7 +1,6 @@
 from django.utils import timezone
 
 from sentry.models import Group, GroupSnooze, GroupStatus
-from sentry.models.group import GroupSubStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import issue_unignored
 from sentry.tasks.base import instrumented_task

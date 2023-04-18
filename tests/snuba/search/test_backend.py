@@ -29,7 +29,6 @@ from sentry.models import (
     Integration,
     record_group_history,
 )
-from sentry.models.group import GroupSubStatus
 from sentry.models.groupowner import GroupOwner
 from sentry.search.snuba.backend import (
     CdcEventsDatasetSnubaSearchBackend,
