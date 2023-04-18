@@ -11,6 +11,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {useQuery} from 'sentry/utils/queryClient';
 import Chart from 'sentry/views/starfish/components/chart';
+import {
+  ModuleButtonType,
+  ModuleLinkButton,
+} from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
 import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
 
 import EndpointList from './endpointList';
@@ -75,6 +79,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
+      <ModuleLinkButton type={ModuleButtonType.API} />
+      <ModuleLinkButton type={ModuleButtonType.CACHE} />
+      <ModuleLinkButton type={ModuleButtonType.DB} />
       <StyledRow minSize={200}>
         <Fragment>
           <Chart
