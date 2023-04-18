@@ -12,7 +12,7 @@ from sentry.models.project import Project
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
-FORECAST_LIST_MOCK = [200] * 14
+DEFAULT_MINIMUM_CEILING_FORECAST = [200] * 14
 
 
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
@@ -79,7 +79,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         fetched_forecast = EscalatingGroupForecast.fetch(group_list[0].project.id, group_list[0].id)
         assert fetched_forecast.project_id == group_list[0].project.id
         assert fetched_forecast.group_id == group_list[0].id
-        assert fetched_forecast.forecast == FORECAST_LIST_MOCK
+        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
         assert fetched_forecast.date_added.replace(
             second=0, microsecond=0
         ) == approximate_date_added.replace(second=0, microsecond=0)
@@ -101,7 +101,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             )
             assert fetched_forecast.project_id == group_list[i].project.id
             assert fetched_forecast.group_id == group_list[i].id
-            assert fetched_forecast.forecast == FORECAST_LIST_MOCK
+            assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
             assert fetched_forecast.date_added.replace(
                 second=0, microsecond=0
             ) == approximate_date_added.replace(second=0, microsecond=0)
