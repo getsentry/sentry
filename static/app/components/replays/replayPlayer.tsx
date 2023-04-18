@@ -8,6 +8,7 @@ import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay'
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import PlayerDOMAlert from './playerDOMAlert';
@@ -41,8 +42,9 @@ function useVideoSizeLogger({
       windowDimensions.height / videoDimensions.height,
       1
     );
+    // TODO: replace trackAdvancedAnalyticsEvent with trackAnalytics
     const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
-      typeof trackAnalytics<'replay.render-player'>
+      typeof trackAdvancedAnalyticsEvent<'replay.render-player'>
     >[1]['scale_bucket'];
 
     trackAnalytics('replay.render-player', {
