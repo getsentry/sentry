@@ -45,9 +45,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
     };
   });
 
-  // Attempt at zerofilling data so that the charts stack properly and
-  // don't look like abstract art. Only works if the primary orderby
-  // is timestamp.
+  // cross-reference the series, and makes sure
+  // they have the same number of points by backfilling
+  // missing timestamps for each other series with a 0
   let lastInterval = undefined;
   modules.forEach(module => {
     moduleDurationData.forEach(value => {
