@@ -3,14 +3,12 @@ from typing import Optional
 from unittest.mock import patch
 from uuid import uuid4
 
-import pytest
-
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import _start_and_end_dates, query_groups_past_counts
 from sentry.models import Group
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
-from sentry.utils.snuba import SnubaError, to_start_of_hour
+from sentry.utils.snuba import to_start_of_hour
 
 
 class HistoricGroupCounts(TestCase):  # type: ignore
@@ -146,8 +144,7 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         ]
 
     def test_query_no_groups(self) -> None:
-        with pytest.raises(SnubaError):
-            assert query_groups_past_counts([]) == []
+        assert query_groups_past_counts([]) == []
 
 
 def test_datetime_number_of_hours() -> None:

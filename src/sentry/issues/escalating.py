@@ -68,6 +68,7 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
         group_ids += _group_ids
         # We still have room for more projects and groups
         if counter < projects_count and len(_group_ids) < QUERY_LIMIT / BUCKETS_PER_GROUP:
+            counter += 1
             continue
 
         query = _generate_query(proj_ids, group_ids, offset, start_date, end_date)
