@@ -6,7 +6,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {Organization, Project} from 'sentry/types';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
-import {DynamicSDKLoaderOption, KeySettings, sdkLoaderOptions} from './keySettings';
+import {KeySettings} from './keySettings';
+import {DynamicSDKLoaderOption, sdkLoaderOptions} from './loaderSettings';
 
 const dynamicSdkLoaderOptions = {
   [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
