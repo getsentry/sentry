@@ -11,11 +11,10 @@ import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingStatus} from 'sentry/types';
+import {OnboardingSelectedPlatform, OnboardingStatus} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
@@ -80,7 +79,8 @@ function Onboarding(props: Props) {
   const [clientState, setClientState] = usePersistedOnboardingState();
   const onboardingContext = useContext(OnboardingContext);
   const selectedPlatforms = clientState?.selectedPlatforms || [];
-  const selectedProjectSlug = selectedPlatforms[0];
+  const selectedPlatform = selectedPlatforms[0];
+  const selectedProjectSlug = selectedPlatform?.key;
 
   const {
     params: {step: stepId},
@@ -144,7 +144,7 @@ function Onboarding(props: Props) {
   };
 
   const goNextStep = useCallback(
-    (step: StepDescriptor, platforms?: PlatformKey[]) => {
+    (step: StepDescriptor, platforms?: OnboardingSelectedPlatform[]) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1];
 
@@ -235,7 +235,7 @@ function Onboarding(props: Props) {
       setClientState({
         url: 'select-platform/',
         state: 'projects_selected',
-        selectedPlatforms: [selectedProjectSlug as PlatformKey],
+        selectedPlatforms: [selectedPlatform],
         platformToProjectIdMap,
       });
     }
@@ -252,6 +252,7 @@ function Onboarding(props: Props) {
     clientState,
     setClientState,
     selectedProjectSlug,
+    selectedPlatform,
     props.router,
     deleteProject,
     projectDeletionOnBackClick,

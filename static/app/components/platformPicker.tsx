@@ -18,7 +18,10 @@ import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
+export const PLATFORM_CATEGORIES = [
+  ...categoryList,
+  {id: 'all', name: t('All')},
+] as const;
 
 const PlatformList = styled('div')`
   display: grid;
@@ -27,10 +30,18 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+export type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
 
 interface PlatformPickerProps {
-  setPlatform: (key: PlatformKey | null) => void;
+  setPlatform: (
+    props:
+      | (PlatformIntegration & {
+          category: Category;
+          key: PlatformKey;
+          type: string;
+        })
+      | null
+  ) => void;
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -157,7 +168,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
                     source: this.props.source,
                     organization: this.props.organization ?? null,
                   });
-                  setPlatform(platform.id as PlatformKey);
+                  setPlatform({...platform, key: platform.id as PlatformKey, category});
                 }}
               />
             );
