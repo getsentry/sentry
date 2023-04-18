@@ -17,12 +17,9 @@ export function createSentrySampleProfileFrameIndex(
 
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i];
-    const frameKey = [
-      frame.filename ?? '',
-      frame.function ?? 'unknown',
-      String(frame.lineno) ?? '',
-      frame.instruction_addr ?? '',
-    ].join(':');
+    const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${
+      String(frame.lineno) ?? ''
+    }:${frame.instruction_addr ?? ''}`;
 
     let index = framesIndex[frameKey];
     if (!defined(index)) {
