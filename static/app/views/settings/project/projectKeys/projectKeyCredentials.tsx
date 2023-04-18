@@ -52,7 +52,7 @@ function ProjectKeyCredentials({
             ) : null,
           })}
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('DSN URL')}>
             {getDynamicText({
               value: data.dsn.public,
               fixed: '__DSN__',
@@ -110,7 +110,7 @@ function ProjectKeyCredentials({
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.security,
               fixed: '__SECURITY_HEADER_ENDPOINT__',
@@ -135,7 +135,7 @@ function ProjectKeyCredentials({
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.minidump,
               fixed: '__MINIDUMP_ENDPOINT__',
@@ -151,7 +151,7 @@ function ProjectKeyCredentials({
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Unreal Engine 4 Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.unreal || '',
               fixed: '__UNREAL_ENDPOINT__',
