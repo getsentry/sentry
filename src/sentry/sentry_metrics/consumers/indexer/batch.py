@@ -84,7 +84,7 @@ def extract_use_case_id(mri: str) -> Optional[UseCaseID]:
         use_case_str = matched.group(2)
         if use_case_str in {id.value for id in UseCaseID}:
             return UseCaseID(use_case_str)
-    return None
+    raise ValidationError(f"Invalid mri: {mri}")
 
 
 class IndexerBatch:
@@ -121,6 +121,15 @@ class IndexerBatch:
                 )
                 continue
             try:
+                parsed_payload["use_case_id"] = extract_use_case_id(parsed_payload["name"])
+            except ValidationError:
+                logger.error(
+                    "process_messages.invalid_metric_resource_identifier",
+                    extra={"payload_value": str(msg.payload.value)},
+                    exc_info=True,
+                )
+                continue
+            try:
                 if self.__input_codec:
                     self.__input_codec.validate(parsed_payload)
             except ValidationError:
@@ -131,15 +140,6 @@ class IndexerBatch:
                     extra={"payload_value": str(msg.payload.value)},
                     exc_info=True,
                 )
-            if use_case_id := extract_use_case_id(parsed_payload["name"]):
-                parsed_payload["use_case_id"] = use_case_id
-            else:
-                logger.error(
-                    "process_messages.invalid_metric_resource_identifier",
-                    extra={"payload_value": str(msg.payload.value)},
-                    exc_info=True,
-                )
-                continue
             self.parsed_payloads_by_offset[partition_offset] = parsed_payload
 
     @metrics.wraps("process_messages.filter_messages")

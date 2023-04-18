@@ -327,6 +327,104 @@ def test_extract_strings_with_multiple_use_case_ids():
 
 
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_extract_strings_with_invalid_mri():
+    bad_counter_payload = {
+        "name": "invalid_MRI",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 100,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    distribution_payload = {
+        "name": "d:use_case_2/duration@second",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    set_payload = {
+        "name": "s:use_case_2/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (bad_counter_payload, []),
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
+    assert batch.extract_strings() == {
+        MockUseCaseID.USE_CASE_1: {
+            1: {
+                "c:use_case_1/session@none",
+                "environment",
+                "production",
+                "session.status",
+                "init",
+            }
+        },
+        MockUseCaseID.USE_CASE_2: {
+            1: {
+                "d:use_case_2/duration@second",
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
+                "s:use_case_2/error@none",
+                "environment",
+                "production",
+                "session.status",
+                "errored",
+            }
+        },
+    }
+
+
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     custom_uc_counter_payload = {
         "name": "c:use_case_1/session@none",
