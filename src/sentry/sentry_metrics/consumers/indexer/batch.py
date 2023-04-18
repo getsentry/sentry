@@ -123,6 +123,7 @@ class IndexerBatch:
             try:
                 parsed_payload["use_case_id"] = extract_use_case_id(parsed_payload["name"])
             except ValidationError:
+                self.skipped_offsets.add(partition_offset)
                 logger.error(
                     "process_messages.invalid_metric_resource_identifier",
                     extra={"payload_value": str(msg.payload.value)},
