@@ -1,43 +1,39 @@
-import styled from '@emotion/styled';
-
-import Placeholder from 'sentry/components/placeholder';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import TraceView from 'sentry/views/performance/traceDetails/traceView';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
+import Trace from 'sentry/views/replays/detail/trace/trace';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  organization: Organization;
   replayRecord: undefined | ReplayRecord;
 };
 
-function Trace({replayRecord}: Props) {
-  const location = useLocation();
-  const organization = useOrganization();
-  const {state, eventView} = useTransactionData();
+const features = ['organizations:performance-view'];
 
-  if (!replayRecord || !state.traces?.length) {
-    return <StyledPlaceholder height="100%" />;
-  }
-
+function PerfDisabled() {
   return (
-    <FluidHeight>
-      <TraceView
-        meta={null}
-        traces={state.traces ?? null}
-        location={location}
-        organization={organization}
-        traceEventView={eventView!}
-        traceSlug="Replay"
-      />
-    </FluidHeight>
+    <FeatureDisabled
+      featureName={t('Performance Monitoring')}
+      features={features}
+      hideHelpToggle
+      message={t('Requires performance monitoring.')}
+    />
   );
 }
 
-const StyledPlaceholder = styled(Placeholder)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
+function TraceFeature({organization, replayRecord}: Props) {
+  return (
+    <Feature
+      features={features}
+      hookName={undefined}
+      organization={organization}
+      renderDisabled={PerfDisabled}
+    >
+      <Trace replayRecord={replayRecord} />
+    </Feature>
+  );
+}
 
-export default Trace;
+export default TraceFeature;

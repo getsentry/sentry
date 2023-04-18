@@ -1,6 +1,7 @@
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useOrganization from 'sentry/utils/useOrganization';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
 import IssueList from 'sentry/views/replays/detail/issueList';
@@ -14,6 +15,7 @@ function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
+  const organization = useOrganization();
 
   switch (getActiveTab()) {
     case TabKey.network:
@@ -24,7 +26,7 @@ function FocusArea({}: Props) {
         />
       );
     case TabKey.trace:
-      return <Trace replayRecord={replay?.getReplay()} />;
+      return <Trace organization={organization} replayRecord={replay?.getReplay()} />;
     case TabKey.issues:
       if (!replay) {
         return <Placeholder height="150px" />;
