@@ -211,7 +211,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
             **data,
         )
         assert not RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
-        assert response.status_code == 401
+        assert response.status_code == 403
         assert "Requesting user cannot mute this rule" in response.data["detail"]
 
     @with_feature("organizations:mute-alerts")
@@ -326,7 +326,7 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
             **data,
         )
         assert RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
-        assert response.status_code == 401
+        assert response.status_code == 403
 
 
 @region_silo_test
@@ -519,7 +519,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
             **data,
         )
         assert not RuleSnooze.objects.filter(alert_rule=other_metric_alert_rule).exists()
-        assert response.status_code == 401
+        assert response.status_code == 403
         assert "Requesting user cannot mute this rule" in response.data["detail"]
 
     @with_feature("organizations:mute-alerts")
@@ -614,4 +614,4 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
             self.organization.slug, self.project.slug, other_metric_alert_rule.id
         )
         assert RuleSnooze.objects.filter(alert_rule=other_metric_alert_rule.id).exists()
-        assert response.status_code == 401
+        assert response.status_code == 403
