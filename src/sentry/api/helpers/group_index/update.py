@@ -628,24 +628,10 @@ def update_groups(
                     assigned_by=assigned_by,
                     had_to_deassign=True,
                 )
-    is_member_map = {
-        project.id: (
-            project.member_set.filter(user_id=acting_user.id).exists() if acting_user else False
-        )
-        for project in projects
-    }
-    if result.get("hasSeen"):
-        for group in group_list:
-            if is_member_map.get(group.project_id):
-                instance, created = create_or_update(
-                    GroupSeen,
-                    group=group,
-                    user_id=acting_user.id,
-                    project=project_lookup[group.project_id],
-                    values={"last_seen": timezone.now()},
-                )
-    elif result.get("hasSeen") is False:
-        GroupSeen.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
+
+    handle_has_seen(
+        result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
+    )
 
     if result.get("isBookmarked"):
         for group in group_list:
@@ -718,6 +704,35 @@ def update_groups(
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def handle_has_seen(
+    has_seen: Any,
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    project_lookup: dict[int, Project],
+    projects: Sequence[Project],
+    acting_user: User | None,
+) -> None:
+    is_member_map = {
+        project.id: (
+            project.member_set.filter(user_id=acting_user.id).exists() if acting_user else False
+        )
+        for project in projects
+    }
+    user_id = acting_user.id if acting_user else None
+    if has_seen:
+        for group in group_list:
+            if is_member_map.get(group.project_id):
+                instance, created = create_or_update(
+                    GroupSeen,
+                    group=group,
+                    user_id=user_id,
+                    project=project_lookup[group.project_id],
+                    values={"last_seen": timezone.now()},
+                )
+    elif has_seen is False:
+        GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
 
 
 def handle_is_public(
