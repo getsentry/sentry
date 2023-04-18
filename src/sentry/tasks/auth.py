@@ -11,6 +11,7 @@ from sentry import audit_log, features, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import ApiKey, AuditLogEntry, Organization, OrganizationMember, User, UserEmail
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -80,8 +81,7 @@ class OrganizationComplianceTask(abc.ABC):
             logging_data = {"organization_id": org_id, "user_id": user.id, "member_id": member.id}
 
             try:
-                member.remove_user()
-                member.save()
+                organization_service.remove_user(organization_id=org_id, user_id=user.id)
             except (AssertionError, IntegrityError):
                 logger.warning(
                     f"Could not remove {self.log_label} noncompliant user from org",
