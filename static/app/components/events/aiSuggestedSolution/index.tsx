@@ -39,7 +39,7 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
         'This is an OpenAI generated solution that suggests a fix for this issue. Be aware that this may not be accurate. [learnMore:Learn more]',
         {
           learnMore: (
-            <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/suggested-fix/" />
+            <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/ai-suggested-solution/" />
           ),
         }
       )}
