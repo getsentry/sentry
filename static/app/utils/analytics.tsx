@@ -31,7 +31,15 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
  *
  * Should be used for all analytics that are defined in Sentry.
  */
-export const trackAnalytics = trackAdvancedAnalyticsEvent;
+
+export function trackAnalyticsEvent(
+  eventKey: Parameters<typeof trackAdvancedAnalyticsEvent>[0],
+  analyticsParams: Parameters<typeof trackAdvancedAnalyticsEvent>[1],
+  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[2]
+) {
+  // TODO: Stop using trackAdvancedAnalyticsEvent
+  return trackAdvancedAnalyticsEvent(eventKey, analyticsParams, options);
+}
 
 /**
  * This should be with all analytics events regardless of the analytics destination
