@@ -34,7 +34,10 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 
 import {IconSize} from './theme';
 
-// TODO: remove alias once all usages are updated
+/**
+ * TODO: remove alias once all usages are updated
+ * @deprecated Use trackAdvancedAnalyticsEvent instead
+ */
 export const trackIntegrationAnalytics = trackAdvancedAnalyticsEvent;
 
 /**
