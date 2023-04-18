@@ -1,7 +1,7 @@
 export const ENDPOINT_LIST_QUERY = `SELECT description, count() AS count, domain
  FROM spans_experimental_starfish
  WHERE module = 'http'
- GROUP BY description
+ GROUP BY description, domain
  ORDER BY count DESC
  LIMIT 10
 `;
