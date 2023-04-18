@@ -11,7 +11,7 @@ import {
   SourceMapProcessingIssueType,
 } from './useSourceMapDebug';
 
-jest.mock('sentry/utils/analytics/trackAnalytics');
+jest.mock('sentry/utils/analytics');
 
 describe('SourceMapDebug', () => {
   const organization = TestStubs.Organization({});
