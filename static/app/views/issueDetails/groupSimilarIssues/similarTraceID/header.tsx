@@ -10,21 +10,23 @@ type Props = {
   traceID?: string;
 };
 
-const Header = ({traceID}: Props) => (
-  <Wrapper>
-    <h4>{t('Issues with the same trace ID')}</h4>
-    {traceID ? (
-      <Clipboard value={traceID}>
-        <ClipboardWrapper>
-          <span>{getShortEventId(traceID)}</span>
-          <IconCopy />
-        </ClipboardWrapper>
-      </Clipboard>
-    ) : (
-      <span>{'-'}</span>
-    )}
-  </Wrapper>
-);
+function Header({traceID}: Props) {
+  return (
+    <Wrapper>
+      <h4>{t('Issues with the same trace ID')}</h4>
+      {traceID ? (
+        <Clipboard value={traceID}>
+          <ClipboardWrapper>
+            <span>{getShortEventId(traceID)}</span>
+            <IconCopy />
+          </ClipboardWrapper>
+        </Clipboard>
+      ) : (
+        <span>{'-'}</span>
+      )}
+    </Wrapper>
+  );
+}
 
 export default Header;
 

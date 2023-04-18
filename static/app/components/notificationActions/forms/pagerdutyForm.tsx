@@ -30,13 +30,13 @@ type PagerdutyFormProps = {
   pagerdutyIntegrations: Record<number, AvailableNotificationAction[]>;
 };
 
-const PagerdutyForm = ({
+function PagerdutyForm({
   action,
   onCancel,
   onChange,
   onSave,
   pagerdutyIntegrations,
-}: PagerdutyFormProps) => {
+}: PagerdutyFormProps) {
   const [selectedAccount, setSelectedAccount] = useState(
     action.integrationId
       ? pagerdutyIntegrations[action.integrationId][0].action.integrationName
@@ -125,7 +125,7 @@ const PagerdutyForm = ({
       </ButtonBar>
     </NotificationActionFormContainer>
   );
-};
+}
 
 const NotificationActionCell = styled('div')`
   display: flex;

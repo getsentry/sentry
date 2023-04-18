@@ -1,5 +1,6 @@
 import uniq from 'lodash/uniq';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {
   BaseGroup,
   EntryException,
@@ -15,6 +16,7 @@ import {
   TreeLabelPart,
 } from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
@@ -314,6 +316,7 @@ export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParam
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
     error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+    error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,
   };
 }
@@ -322,6 +325,7 @@ export type CommonGroupAnalyticsData = {
   error_count: number;
   group_has_replay: boolean;
   group_id: number;
+  group_num_user_feedback: number;
   has_external_issue: boolean;
   has_owner: boolean;
   integration_assignment_source: string;
@@ -330,6 +334,8 @@ export type CommonGroupAnalyticsData = {
   issue_id: number;
   issue_type: IssueType;
   num_comments: number;
+  num_participants: number;
+  num_viewers: number;
   is_assigned?: boolean;
   issue_level?: string;
   issue_status?: string;
@@ -337,6 +343,8 @@ export type CommonGroupAnalyticsData = {
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
   const groupId = group ? parseInt(group.id, 10) : -1;
+  const activeUser = ConfigStore.get('user');
+
   return {
     group_id: groupId,
     // overload group_id with the issue_id
@@ -353,5 +361,8 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
     has_owner: group?.owners ? group?.owners.length > 0 : false,
     integration_assignment_source: group ? getAssignmentIntegration(group) : '',
+    num_participants: group?.participants.length ?? 0,
+    num_viewers: group?.seenBy.filter(user => user.id !== activeUser?.id).length ?? 0,
+    group_num_user_feedback: group?.userReportCount ?? 0,
   };
 }

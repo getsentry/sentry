@@ -68,6 +68,7 @@ type Props = {
   trendView: TrendView;
   previousTrendColumn?: TrendColumnField;
   previousTrendFunction?: TrendFunctionField;
+  withBreakpoint?: boolean;
 };
 
 type TrendsCursorQuery = {
@@ -232,6 +233,7 @@ function ChangedTransactions(props: Props) {
     organization,
     projects,
     setError,
+    withBreakpoint,
   } = props;
   const api = useApi();
 
@@ -258,6 +260,7 @@ function ChangedTransactions(props: Props) {
       cursor={cursor}
       limit={5}
       setError={error => setError(error?.message)}
+      withBreakpoint={withBreakpoint}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
@@ -295,7 +298,7 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle}
+                {chartTitle} {withBreakpoint && '- With Breakpoints'}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
               {isLoading ? (
@@ -537,11 +540,11 @@ function TrendsListItem(props: TrendsListItemProps) {
   );
 }
 
-export const CompareDurations = ({
+export function CompareDurations({
   transaction,
 }: {
   transaction: TrendsListItemProps['transaction'];
-}) => {
+}) {
   const {fromSeconds, toSeconds, showDigits} = transformDeltaSpread(
     transaction.aggregate_range_1,
     transaction.aggregate_range_2
@@ -554,9 +557,9 @@ export const CompareDurations = ({
       <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
     </DurationChange>
   );
-};
+}
 
-const ValueDelta = ({transaction, trendChangeType}: TrendsListItemProps) => {
+function ValueDelta({transaction, trendChangeType}: TrendsListItemProps) {
   const {seconds, fixedDigits, changeLabel} = transformValueDelta(
     transaction.trend_difference,
     trendChangeType
@@ -567,11 +570,11 @@ const ValueDelta = ({transaction, trendChangeType}: TrendsListItemProps) => {
       <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
     </span>
   );
-};
+}
 
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
 
-const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
+function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
   const {
     organization,
     trendView: eventView,
@@ -597,7 +600,7 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
       {transaction.transaction}
     </ItemTransactionName>
   );
-};
+}
 
 const TransactionsListContainer = styled('div')`
   display: flex;

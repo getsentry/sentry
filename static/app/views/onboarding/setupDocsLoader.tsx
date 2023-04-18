@@ -11,14 +11,13 @@ import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 
 export function SetupDocsLoader({
@@ -109,6 +108,18 @@ export function SetupDocsLoader({
     }
   }, [api, location.query.product, organization.slug, project.slug, projectKey?.id]);
 
+  const track = useCallback(() => {
+    if (!project?.id) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('onboarding.setup_loader_docs_rendered', {
+      organization,
+      platform: currentPlatform,
+      project_id: project?.id,
+    });
+  }, [organization, currentPlatform, project?.id]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData, organization.slug, project.slug]);
@@ -117,15 +128,12 @@ export function SetupDocsLoader({
     handleUpdateSelectedProducts();
   }, [handleUpdateSelectedProducts, location.query.product]);
 
+  useEffect(() => {
+    track();
+  }, [track]);
+
   return (
     <Fragment>
-      <SetupIntroduction
-        stepHeaderText={t(
-          'Configure %s SDK',
-          platforms.find(p => p.id === currentPlatform)?.name ?? ''
-        )}
-        platform={currentPlatform}
-      />
       <ProductSelection
         defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
         lazyLoader
@@ -140,7 +148,14 @@ export function SetupDocsLoader({
       )}
 
       {!hasLoadingError ? (
-        projectKey !== null && <ProjectKeyInfo projectKey={projectKey} />
+        projectKey !== null && (
+          <ProjectKeyInfo
+            projectKey={projectKey}
+            platform={platform}
+            organization={organization}
+            project={project}
+          />
+        )
       ) : (
         <LoadingError
           message={t('Failed to load Client Keys for the project.')}
@@ -151,10 +166,21 @@ export function SetupDocsLoader({
   );
 }
 
-function ProjectKeyInfo({projectKey}: {projectKey: ProjectKey}) {
+function ProjectKeyInfo({
+  projectKey,
+  platform,
+  organization,
+  project,
+}: {
+  organization: Organization;
+  platform: PlatformKey | null;
+  project: Project;
+  projectKey: ProjectKey;
+}) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
   const loaderLink = projectKey.dsn.cdn;
+  const currentPlatform = platform ?? project?.platform ?? 'other';
 
   const configCodeSnippet = beautify.html(
     `<script>
@@ -176,6 +202,20 @@ Sentry.onLoad(function() {
     {indent_size: 2}
   );
 
+  const toggleOptionalConfiguration = useCallback(() => {
+    const show = !showOptionalConfig;
+
+    setShowOptionalConfig(show);
+
+    if (show) {
+      trackAdvancedAnalyticsEvent('onboarding.js_loader_optional_configuration_shown', {
+        organization,
+        platform: currentPlatform,
+        project_id: project.id,
+      });
+    }
+  }, [organization, project.id, currentPlatform, showOptionalConfig]);
+
   return (
     <DocsWrapper>
       <DocumentationWrapper>
@@ -196,11 +236,9 @@ Sentry.onLoad(function() {
             size="zero"
             icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
             aria-label={t('Toggle optional configuration')}
-            onClick={() => setShowOptionalConfig(!showOptionalConfig)}
+            onClick={toggleOptionalConfiguration}
           />
-          <h2 onClick={() => setShowOptionalConfig(!showOptionalConfig)}>
-            {t('Configuration (Optional)')}
-          </h2>
+          <h2 onClick={toggleOptionalConfiguration}>{t('Configuration (Optional)')}</h2>
         </OptionalConfigWrapper>
         {showOptionalConfig && (
           <div>

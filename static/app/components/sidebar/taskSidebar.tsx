@@ -13,7 +13,7 @@ interface TaskSidebarProps
   children?: React.ReactNode;
 }
 
-export const TaskSidebar = (props: TaskSidebarProps) => {
+export function TaskSidebar(props: TaskSidebarProps) {
   const {children, collapsed, hidePanel, orientation} = props;
 
   return (
@@ -26,7 +26,7 @@ export const TaskSidebar = (props: TaskSidebarProps) => {
       {children}
     </TaskSidebarPanel>
   );
-};
+}
 
 export const TaskSidebarList = styled('div')`
   display: grid;

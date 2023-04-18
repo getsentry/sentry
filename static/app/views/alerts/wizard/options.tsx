@@ -6,6 +6,8 @@ import {
   FieldKey,
   makeTagCollection,
   MobileVital,
+  ReplayClickFieldKey,
+  ReplayFieldKey,
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
@@ -205,47 +207,92 @@ const TRANSACTION_SUPPORTED_TAGS = [
 ];
 const SESSION_SUPPORTED_TAGS = [FieldKey.RELEASE];
 
+// This is purely for testing purposes, use with alert-allow-indexed feature flag
+const INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS = [
+  FieldKey.AGE,
+  FieldKey.ASSIGNED,
+  FieldKey.ASSIGNED_OR_SUGGESTED,
+  FieldKey.BOOKMARKS,
+  FieldKey.DEVICE_MODEL_ID,
+  FieldKey.EVENT_TIMESTAMP,
+  FieldKey.EVENT_TYPE,
+  FieldKey.FIRST_RELEASE,
+  FieldKey.FIRST_SEEN,
+  FieldKey.IS,
+  FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_TYPE,
+  FieldKey.LAST_SEEN,
+  FieldKey.PLATFORM_NAME,
+  ...Object.values(WebVital),
+  ...Object.values(MobileVital),
+  ...Object.values(ReplayFieldKey),
+  ...Object.values(ReplayClickFieldKey),
+];
+
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
-export const DATASET_SUPPORTED_TAGS: Record<Dataset, TagCollection | undefined> =
-  mapValues(
+export function datasetSupportedTags(
+  dataset: Dataset,
+  org: Organization
+): TagCollection | undefined {
+  return mapValues(
     {
       [Dataset.ERRORS]: undefined,
-      [Dataset.TRANSACTIONS]: TRANSACTION_SUPPORTED_TAGS,
+      [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
+        ? undefined
+        : TRANSACTION_SUPPORTED_TAGS,
       [Dataset.METRICS]: SESSION_SUPPORTED_TAGS,
-      [Dataset.GENERIC_METRICS]: TRANSACTION_SUPPORTED_TAGS,
+      [Dataset.GENERIC_METRICS]: org.features.includes('alert-allow-indexed')
+        ? undefined
+        : TRANSACTION_SUPPORTED_TAGS,
       [Dataset.SESSIONS]: SESSION_SUPPORTED_TAGS,
     },
     value => {
       return value ? makeTagCollection(value) : undefined;
     }
-  );
+  )[dataset];
+}
 
 // Some data sets support all tags except some. For these cases, define the
 // omissions only
-export const DATASET_OMITTED_TAGS: Record<
-  Dataset,
-  Array<FieldKey | WebVital | MobileVital | SpanOpBreakdown> | undefined
-> = {
-  [Dataset.ERRORS]: [
-    FieldKey.EVENT_TYPE,
-    FieldKey.RELEASE_VERSION,
-    FieldKey.RELEASE_STAGE,
-    FieldKey.RELEASE_BUILD,
-    FieldKey.PROJECT,
-    ...Object.values(WebVital),
-    ...Object.values(MobileVital),
-    ...Object.values(SpanOpBreakdown),
-    FieldKey.TRANSACTION,
-    FieldKey.TRANSACTION_DURATION,
-    FieldKey.TRANSACTION_OP,
-    FieldKey.TRANSACTION_STATUS,
-  ],
-  [Dataset.TRANSACTIONS]: undefined,
-  [Dataset.METRICS]: undefined,
-  [Dataset.GENERIC_METRICS]: undefined,
-  [Dataset.SESSIONS]: undefined,
-};
+export function datasetOmittedTags(
+  dataset: Dataset,
+  org: Organization
+):
+  | Array<
+      | FieldKey
+      | WebVital
+      | MobileVital
+      | SpanOpBreakdown
+      | ReplayFieldKey
+      | ReplayClickFieldKey
+    >
+  | undefined {
+  return {
+    [Dataset.ERRORS]: [
+      FieldKey.EVENT_TYPE,
+      FieldKey.RELEASE_VERSION,
+      FieldKey.RELEASE_STAGE,
+      FieldKey.RELEASE_BUILD,
+      FieldKey.PROJECT,
+      ...Object.values(WebVital),
+      ...Object.values(MobileVital),
+      ...Object.values(SpanOpBreakdown),
+      FieldKey.TRANSACTION,
+      FieldKey.TRANSACTION_DURATION,
+      FieldKey.TRANSACTION_OP,
+      FieldKey.TRANSACTION_STATUS,
+    ],
+    [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
+      ? INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS
+      : undefined,
+    [Dataset.METRICS]: undefined,
+    [Dataset.GENERIC_METRICS]: org.features.includes('alert-allow-indexed')
+      ? INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS
+      : undefined,
+    [Dataset.SESSIONS]: undefined,
+  }[dataset];
+}
 
 export function getMEPAlertsDataset(
   dataset: Dataset,

@@ -28,6 +28,7 @@ type Props = {
   }: TapParams) => Promise<void>;
   organization: Organization;
   silentIfUnsupported: boolean;
+  children?: React.ReactNode;
   style?: React.CSSProperties;
 };
 

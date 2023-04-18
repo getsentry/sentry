@@ -8,8 +8,6 @@ import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 import {DynamicSDKLoaderOption, KeySettings, sdkLoaderOptions} from './keySettings';
 
-const ORG_FEATURES = ['js-sdk-dynamic-loader'];
-
 const dynamicSdkLoaderOptions = {
   [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
   [DynamicSDKLoaderOption.HAS_REPLAY]: true,
@@ -48,7 +46,6 @@ describe('Key Settings', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: ORG_FEATURES,
         },
         router: {
           params,
@@ -137,7 +134,6 @@ describe('Key Settings', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: ORG_FEATURES,
         },
         router: {
           params,
@@ -195,7 +191,6 @@ describe('Key Settings', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: ORG_FEATURES,
         },
         router: {
           params,
@@ -247,7 +242,6 @@ describe('Key Settings', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: ORG_FEATURES,
         },
         router: {
           params,

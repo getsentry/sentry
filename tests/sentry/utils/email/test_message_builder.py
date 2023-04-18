@@ -6,6 +6,7 @@ from django.core import mail
 from sentry import options
 from sentry.models import GroupEmailThread, User, UserEmail, UserOption
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email
 
@@ -295,3 +296,23 @@ class MessageBuilderTest(TestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].subject == "Foo"
+
+    def test_adds_type_to_headers(self):
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<b>hello world</b>",
+            headers={"X-Test": "foo"},
+            type="test_email.type",
+        )
+        msg.send(["foo@example.com"])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ["foo@example.com"]
+        assert out.subject == "Test"
+        assert out.extra_headers["X-Test"] == "foo"
+
+        json_xsmtpapi_data = json.loads(out.extra_headers["X-SMTPAPI"])
+        assert json_xsmtpapi_data["category"] == "test_email.type"

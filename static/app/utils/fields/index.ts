@@ -24,6 +24,9 @@ export enum FieldKey {
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
   DEVICE_CHARGING = 'device.charging',
+  // device.class is a synthesized field calculated based off device info found in context such
+  // as model (for iOS devices), and device specs like processor_frequency (for Android devices).
+  // https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/device_class.rs
   DEVICE_CLASS = 'device.class',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
@@ -45,6 +48,7 @@ export enum FieldKey {
   ERROR_UNHANDLED = 'error.unhandled',
   ERROR_VALUE = 'error.value',
   ERROR_RECEIVED = 'error.received',
+  ERROR_MAIN_THREAD = 'error.main_thread',
   EVENT_TIMESTAMP = 'event.timestamp',
   EVENT_TYPE = 'event.type',
   FIRST_RELEASE = 'firstRelease',
@@ -622,6 +626,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
+  [FieldKey.ERROR_MAIN_THREAD]: {
+    desc: t('Indicates if the error occurred on the main thread'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [FieldKey.EVENT_TIMESTAMP]: {
     desc: t('Date and time of the event'),
     kind: FieldKind.FIELD,
@@ -981,6 +990,7 @@ export const ISSUE_FIELDS = [
   FieldKey.ERROR_TYPE,
   FieldKey.ERROR_UNHANDLED,
   FieldKey.ERROR_VALUE,
+  FieldKey.ERROR_MAIN_THREAD,
   FieldKey.EVENT_TIMESTAMP,
   FieldKey.EVENT_TYPE,
   FieldKey.FIRST_RELEASE,
@@ -1094,6 +1104,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.ERROR_HANDLED,
   FieldKey.ERROR_UNHANDLED,
   FieldKey.ERROR_RECEIVED,
+  FieldKey.ERROR_MAIN_THREAD,
   FieldKey.LEVEL,
   FieldKey.STACK_ABS_PATH,
   FieldKey.STACK_FILENAME,
@@ -1136,7 +1147,7 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SpansUi,
 ];
 
-enum ReplayFieldKey {
+export enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
@@ -1150,17 +1161,17 @@ enum ReplayFieldKey {
   URLS = 'urls',
 }
 
-enum ReplayClickFieldKey {
-  CLICK_ALT = 'replay_click.alt',
-  CLICK_CLASS = 'replay_click.class',
-  CLICK_ID = 'replay_click.id',
-  CLICK_LABEL = 'replay_click.label',
-  CLICK_ROLE = 'replay_click.role',
-  CLICK_SELECTOR = 'replay_click.selector',
-  CLICK_TAG = 'replay_click.tag',
-  CLICK_TESTID = 'replay_click.testid',
-  CLICK_TEXT_CONTENT = 'replay_click.textContent',
-  CLICK_TITLE = 'replay_click.title',
+export enum ReplayClickFieldKey {
+  CLICK_ALT = 'click.alt',
+  CLICK_CLASS = 'click.class',
+  CLICK_ID = 'click.id',
+  CLICK_LABEL = 'click.label',
+  CLICK_ROLE = 'click.role',
+  CLICK_SELECTOR = 'click.selector',
+  CLICK_TAG = 'click.tag',
+  CLICK_TESTID = 'click.testid',
+  CLICK_TEXT_CONTENT = 'click.textContent',
+  CLICK_TITLE = 'click.title',
 }
 
 /**

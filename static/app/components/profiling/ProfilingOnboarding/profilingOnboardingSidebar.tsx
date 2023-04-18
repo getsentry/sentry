@@ -323,17 +323,21 @@ function OnboardingContent({
   );
 }
 
-const EventReceivedIndicator = () => (
-  <EventIndicator status="received">
-    {t("We've received this project's first profile!")}
-  </EventIndicator>
-);
+function EventReceivedIndicator() {
+  return (
+    <EventIndicator status="received">
+      {t("We've received this project's first profile!")}
+    </EventIndicator>
+  );
+}
 
-const EventWaitingIndicator = () => (
-  <EventIndicator status="waiting">
-    {t("Waiting for this project's first profile.")}
-  </EventIndicator>
-);
+function EventWaitingIndicator() {
+  return (
+    <EventIndicator status="waiting">
+      {t("Waiting for this project's first profile.")}
+    </EventIndicator>
+  );
+}
 
 const Heading = styled('div')`
   display: flex;

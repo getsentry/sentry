@@ -160,6 +160,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             organization_id=self.project.organization_id,
             group_id=group.id,
             resolution_type="automatic",
+            issue_type="error",
+            issue_category="error",
         )
 
     def test_subscribed(self):

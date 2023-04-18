@@ -34,7 +34,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         operation_id="Update a check-in",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
             MONITOR_PARAMS.CHECKIN_ID,
         ],
         request=MonitorCheckInValidator,
@@ -89,11 +89,12 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
             params["duration"] = duration
 
-        monitor_environment = MonitorEnvironment.objects.ensure_environment(
-            project, monitor, params.get("environment")
-        )
-
-        if not checkin.monitor_environment:
+        # TODO(rjo100): will need to remove this when environment is ensured
+        monitor_environment = checkin.monitor_environment
+        if not monitor_environment:
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, result.get("environment")
+            )
             checkin.monitor_environment = monitor_environment
             checkin.save()
 

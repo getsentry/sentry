@@ -2054,6 +2054,61 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 "sourcemaps.processed", amount=len(self.sourcemaps_touched), skip_internal=True
             )
 
+        # If we do some A/B testing for symbolicator, we want to compare the stack traces
+        # processed by both the existing processor (this one), and the symbolicator result,
+        # and log any differences.
+        # Q: what do we want to diff? raw/_stacktraces? With the full source context?
+        # Processing Errors?
+        # We also need to account for known differences? Like symbolicator not
+        # outputting a trailing empty line, whereas the python processor does.
+        if symbolicator_stacktraces := self.data.pop("symbolicator_stacktraces", None):
+
+            # TODO: we currently have known differences:
+            # - small `abs_path`/`filename` differences because of different url joining
+            # - python resolves a `module` in the processor, whereas symbolicator does that
+            #   indirectly in the Plugin preprocessor
+            # - python adds `data.sourcemap` whereas symbolicator does not
+            # - symbolicator does not add trailing empty lines to `post_context`
+            interesting_keys = {
+                "abs_path",
+                "filename",
+                "lineno",
+                "colno",
+                "function",
+                "context_line",
+            }
+
+            def filtered_frame(frame: dict) -> dict:
+                {key: value for key, value in frame.items() if key in interesting_keys}
+
+            different_frames = []
+            for symbolicator_stacktrace, stacktrace_info in zip(
+                symbolicator_stacktraces,
+                filter(
+                    # only include `stacktrace_infos` that have a stacktrace with frames
+                    lambda sinfo: get_path(sinfo, "stacktrace", "frames", filter=True),
+                    self.stacktrace_infos,
+                ),
+            ):
+                python_stacktrace = stacktrace_info.container.get("stacktrace")
+
+                for symbolicator_frame, python_frame in zip(
+                    symbolicator_stacktrace, python_stacktrace["frames"]
+                ):
+                    symbolicator_frame = filtered_frame(symbolicator_frame)
+                    python_frame = filtered_frame(python_frame)
+                    if symbolicator_frame != python_frame:
+                        different_frames.append((symbolicator_frame, python_frame))
+
+            if different_frames:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_extra("different_frames", different_frames)
+                    scope.set_extra("event_id", self.data.get("event_id"))
+                    scope.set_tag("project_id", self.project.id)
+                    sentry_sdk.capture_message(
+                        "JS symbolication differences between symbolicator and python."
+                    )
+
     def suspected_console_errors(self, frames):
         def is_suspicious_frame(frame) -> bool:
             function = frame.get("function", None)

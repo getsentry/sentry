@@ -157,13 +157,13 @@ export function DataDisplay<T extends WidgetDataConstraint>(
   );
 }
 
-const DefaultErrorComponent = (props: {height: number}) => {
+function DefaultErrorComponent(props: {height: number}) {
   return (
     <ErrorPanel data-test-id="widget-state-is-errored" height={`${props.height}px`}>
       <IconWarning color="gray300" size="lg" />
     </ErrorPanel>
   );
-};
+}
 
 const defaultGrid = {
   left: space(0),

@@ -209,10 +209,10 @@ const originalLocation = window.location;
 
 describe('withDomainRequired', function () {
   type Props = RouteComponentProps<{orgId: string}, {}>;
-  const MyComponent = (props: Props) => {
+  function MyComponent(props: Props) {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
-  };
+  }
 
   beforeEach(function () {
     Object.defineProperty(window, 'location', {

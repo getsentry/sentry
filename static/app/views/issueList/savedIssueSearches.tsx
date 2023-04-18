@@ -41,9 +41,9 @@ type CreateNewSavedSearchButtonProps = Pick<
 
 const MAX_SHOWN_SEARCHES = 4;
 
-const SavedSearchItemDescription = ({
+function SavedSearchItemDescription({
   savedSearch,
-}: Pick<SavedSearchItemProps, 'savedSearch'>) => {
+}: Pick<SavedSearchItemProps, 'savedSearch'>) {
   if (savedSearch.isGlobal) {
     return <SavedSearchItemQuery>{savedSearch.query}</SavedSearchItemQuery>;
   }
@@ -55,13 +55,13 @@ const SavedSearchItemDescription = ({
         : t('Only you can see and edit')}
     </SavedSearchItemVisbility>
   );
-};
+}
 
-const SavedSearchItem = ({
+function SavedSearchItem({
   organization,
   onSavedSearchSelect,
   savedSearch,
-}: SavedSearchItemProps) => {
+}: SavedSearchItemProps) {
   const {mutate: deleteSavedSearch} = useDeleteSavedSearchOptimistic();
   const hasOrgWriteAccess = organization.access?.includes('org:write');
 
@@ -131,7 +131,7 @@ const SavedSearchItem = ({
       )}
     </SearchListItem>
   );
-};
+}
 
 function CreateNewSavedSearchButton({
   organization,
@@ -154,12 +154,12 @@ function CreateNewSavedSearchButton({
   );
 }
 
-const SavedIssueSearches = ({
+function SavedIssueSearches({
   organization,
   onSavedSearchSelect,
   query,
   sort,
-}: SavedIssueSearchesProps) => {
+}: SavedIssueSearchesProps) {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
@@ -264,7 +264,7 @@ const SavedIssueSearches = ({
       )}
     </StyledSidebar>
   );
-};
+}
 
 const StyledSidebar = styled('aside')`
   grid-area: saved-searches;

@@ -2,9 +2,7 @@ from itertools import islice
 from typing import Any, Sequence
 
 import sentry_sdk
-from django.conf import settings
 
-from sentry import features
 from sentry.models import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -34,8 +32,6 @@ PROJECTS_PER_TASK = 100
 )  # type: ignore
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
-    if not settings.SENTRY_TRANSACTION_CLUSTERER_RUN:
-        return
     with sentry_sdk.start_span(op="txcluster_spawn"):
         project_count = 0
         project_iter = redis.get_active_projects()
@@ -59,16 +55,20 @@ def cluster_projects(projects: Sequence[Project]) -> None:
         # It's still worth checking the feature flag though, because we don't
         # want to keep clustering projects for which the feature flag has been
         # turned off.
-        if features.has("organizations:transaction-name-clusterer", project.organization):
-            with sentry_sdk.start_span(op="txcluster_project") as span:
-                span.set_data("project_id", project.id)
-                tx_names = list(redis.get_transaction_names(project))
-                if len(tx_names) >= redis.MAX_SET_SIZE:
-                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
-                    clusterer.add_input(tx_names)
-                    new_rules = clusterer.get_rules()
-                    rules.update_rules(project, new_rules)
+        with sentry_sdk.start_span(op="txcluster_project") as span:
+            span.set_data("project_id", project.id)
+            tx_names = list(redis.get_transaction_names(project))
+            new_rules = []
+            if len(tx_names) >= redis.MAX_SET_SIZE:
+                clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                clusterer.add_input(tx_names)
+                new_rules = clusterer.get_rules()
 
-                # Clear transaction names to prevent the set from picking up
-                # noise over a long time range.
-                redis.clear_transaction_names(project)
+            # The Redis store may have more up-to-date last_seen values,
+            # so we must update the stores to bring these values to
+            # project options, even if there aren't any new rules.
+            rules.update_rules(project, new_rules)
+
+            # Clear transaction names to prevent the set from picking up
+            # noise over a long time range.
+            redis.clear_transaction_names(project)

@@ -233,6 +233,32 @@ class UpdateMonitorTest(MonitorTestCase):
             **{"config": {"schedule": "* * * *"}},
         )
 
+    def test_crontab_unsupported(self):
+        monitor = self._create_monitor()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"schedule": "0 0 0 * * *"}},
+        )
+        assert (
+            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
+        ), resp.content
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            # Using a \u3000 ideographic space
+            **{"config": {"schedule": "0 0 0 * *　*"}},
+        )
+        assert (
+            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
+        ), resp.content
+
     def test_cronjob_interval(self):
         monitor = self._create_monitor()
 
