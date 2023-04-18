@@ -1,3 +1,7 @@
+"""This module has the logic for querying Snuba for the hourly event count for a list of groups.
+This is later used for generating group forecasts for determining when a group may be escalating.
+"""
+
 from datetime import datetime, timedelta
 from typing import List, Tuple, TypedDict
 
@@ -19,6 +23,10 @@ from sentry.models import Group
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.snuba import raw_snql_query
 
+__all__ = [
+    "query_groups_past_counts",
+]
+
 REFERRER = "sentry.issues.escalating"
 QUERY_LIMIT = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
@@ -34,7 +42,17 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
     """Query Snuba for the counts for every group bucketed into hours.
 
     It optimizes the query by guaranteeing that we look at group_ids that are from the same project id.
-    This is important for Snuba as the data is stored in blocks related to the project id"""
+    This is important for Snuba as the data is stored in blocks related to the project id.
+
+    We maximize the number of projects and groups to reduce the total number of Snuba queries.
+    Each project may not have enough groups in order to reach the max number of returned
+    elements (QUERY_LIMIT), thus, projects with few groups should be grouped together until
+    we get at least a certain number of groups.
+
+    NOTE: Groups with less than the maximum number of buckets (think of groups with just 1 event or less
+    than 7 days old) will skew the optimization since we may only get one page and less elements than the max
+    QUERY_LIMIT.
+    """
     offset = 0
     all_results = []
     start_date, end_date = _start_and_end_dates()
@@ -43,27 +61,22 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
 
     for proj_id in group_ids_by_project.keys():
         _group_ids = group_ids_by_project[proj_id]
+        # Add them to the list of projects and groups to query
         proj_ids.append(proj_id)
         group_ids.append(_group_ids)
-        # Maximize the number of projects and groups to reduce total number of Snuba queries
-        # Each group can have a maximum of BUCKETS_PER_GROUP buckets, thus, projects with
-        # few groups should be grouped together until we get at least a certain number of groups
-        # NOTE: Groups with less than the maximum number of buckets will skew this optimization since
-        # we may only get one page and less elements than QUERY_LIMIT (it's fine)
+        # We still have room for more projects and groups
         if len(_group_ids) < QUERY_LIMIT / BUCKETS_PER_GROUP:
             continue
 
         query = _generate_query(proj_ids, group_ids, offset, start_date, end_date)
         request = Request(dataset=Dataset.Events, app_id=REFERRER, query=query)
-        # XXX: We could track a datadog metric when we're not in the last page yet we get less than
-        # QUERY_LIMIT elements in the response
         results = raw_snql_query(request, referrer=REFERRER)["data"]
         if not results:
             break
         else:
             all_results += results
             offset += QUERY_LIMIT
-            # We're ready for another set of projects and ids
+            # We're ready for a new set of projects and ids
             proj_ids, group_ids = [], []
 
     return all_results
