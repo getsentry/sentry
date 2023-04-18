@@ -32,6 +32,7 @@ describe('loadOrganizationTags', () => {
 
     expect(TagStore.getState().device).toBeTruthy();
   });
+
   it('should show an alert on failure', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
     MockApiClient.addMockResponse({
