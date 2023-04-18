@@ -23,7 +23,7 @@ class GroupForecast(Model):
 
     __include_in_export__ = False
 
-    group = FlexibleForeignKey("sentry.Group", unique=True)
+    group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
     forecast = ArrayField(of=BoundedPositiveIntegerField, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
