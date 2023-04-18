@@ -153,6 +153,7 @@ class GroupStatus:
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
 
+
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
