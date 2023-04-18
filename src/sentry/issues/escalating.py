@@ -58,24 +58,28 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
     start_date, end_date = _start_and_end_dates()
     group_ids_by_project = _extract_project_and_group_ids(groups)
     proj_ids, group_ids = [], []
+    counter = 1
+    projects_count = len(group_ids_by_project)
 
     for proj_id in group_ids_by_project.keys():
+        # breakpoint()
         _group_ids = group_ids_by_project[proj_id]
         # Add them to the list of projects and groups to query
         proj_ids.append(proj_id)
         group_ids.append(_group_ids)
         # We still have room for more projects and groups
-        if len(_group_ids) < QUERY_LIMIT / BUCKETS_PER_GROUP:
+        if counter < projects_count and len(_group_ids) < QUERY_LIMIT / BUCKETS_PER_GROUP:
             continue
 
         query = _generate_query(proj_ids, group_ids, offset, start_date, end_date)
-        request = Request(dataset=Dataset.Events, app_id=REFERRER, query=query)
+        request = Request(dataset=Dataset.Events.value, app_id=REFERRER, query=query)
         results = raw_snql_query(request, referrer=REFERRER)["data"]
         if not results:
             break
         else:
             all_results += results
             offset += QUERY_LIMIT
+            counter += 1
             # We're ready for a new set of projects and ids
             proj_ids, group_ids = [], []
 
@@ -93,7 +97,7 @@ def _generate_query(
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
     return Query(
-        match=Entity(EntityKey.Events),
+        match=Entity(EntityKey.Events.value),
         select=[
             proj_id_col,
             group_id_col,
