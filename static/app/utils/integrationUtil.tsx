@@ -25,36 +25,17 @@ import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
 import {Hooks} from 'sentry/types/hooks';
-import {
-  integrationEventMap,
-  IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrations';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {IconSize} from './theme';
 
-const mapIntegrationParams = analyticsParams => {
-  // Reload expects integration_status even though it's not relevant for non-sentry apps
-  // Passing in a dummy value of published in those cases
-  const fullParams = {...analyticsParams};
-  if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
-    fullParams.integration_status = 'published';
-  }
-  return fullParams;
-};
-
-export const trackIntegrationAnalytics = makeAnalyticsFunction<
-  IntegrationEventParameters,
-  {organization: Organization} // org is required
->(integrationEventMap, {
-  mapValuesFn: mapIntegrationParams,
-});
+// TODO: remove alias once all usages are updated
+export const trackIntegrationAnalytics = trackAdvancedAnalyticsEvent;
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
