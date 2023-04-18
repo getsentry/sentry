@@ -2332,10 +2332,11 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             all_performance_problems = job["performance_problems"]
 
             # Filter out performance problems that will be later sent to the issues platform
+
             performance_problems = [
                 problem
                 for problem in all_performance_problems
-                if not can_create_group(problem, project)
+                if not can_create_group(problem, project) or True
             ]
             for problem in performance_problems:
                 problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
@@ -2350,7 +2351,10 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
             new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
 
+            logger.info(f"{new_grouphashes} and {existing_grouphashes}")
+
             if new_grouphashes:
+                logging.info("new_grouphashes")
                 # limits group creation to grouphashes seen multiple times over a specified time window
                 if settings.SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE:
                     new_grouphashes = reduce_noise(
@@ -2423,6 +2427,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         hashes.append(new_grouphash)
 
             if existing_grouphashes:
+                logger.info("existing_grouphashes")
 
                 # GROUP EXISTS
                 for existing_grouphash in existing_grouphashes:
@@ -2512,6 +2517,8 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
             except KeyError:
                 continue
 
+    # logger.info("before pipeline transaction")
+
     _pull_out_data(jobs, projects)
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
@@ -2519,6 +2526,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
     _detect_performance_problems(jobs, projects)
+    logger.info("after detection perf problem")
     _materialize_metadata_many(jobs)
     _save_aggregate_performance(jobs, projects)  # type: ignore
     _get_or_create_environment_many(jobs, projects)
@@ -2531,7 +2539,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
-    _send_occurrence_to_platform(jobs, projects)
+    # _send_occurrence_to_platform(jobs, projects)
     return jobs
 
 
