@@ -349,7 +349,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        event.group.update(status=GroupStatus.RESOLVED)
+        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
         self.login_as(user=self.user)
         response = self.client.get(f"{self.path}?query=!is:unresolved", format="json")
         assert response.status_code == 200
@@ -1017,6 +1017,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=event.group.id)
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
 
         self.login_as(user=self.user)
@@ -1177,9 +1178,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert "inbox" in response.data
         assert response.data["inbox"] is None
 
-    @patch("sentry.api.helpers.group_index.update.uuid4")
-    @patch("sentry.api.helpers.group_index.update.merge_groups")
-    @patch("sentry.api.helpers.group_index.update.eventstream")
+    @patch("sentry.issues.merge.uuid4")
+    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.eventstream")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -1211,9 +1212,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             eventstream_state=eventstream_state,
         )
 
-    @patch("sentry.api.helpers.group_index.update.uuid4")
-    @patch("sentry.api.helpers.group_index.update.merge_groups")
-    @patch("sentry.api.helpers.group_index.update.eventstream")
+    @patch("sentry.issues.merge.uuid4")
+    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.eventstream")
     def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)

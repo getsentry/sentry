@@ -58,6 +58,7 @@ class IssueSyncIntegration(TestCase):
     def test_status_sync_inbound_unresolve(self):
         group = self.group
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
         assert group.status == GroupStatus.RESOLVED
 
@@ -103,6 +104,7 @@ class IssueSyncIntegration(TestCase):
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED
+        self.group.substatus = None
         self.group.save()
 
         integration = self.create_integration(
