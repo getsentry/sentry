@@ -1,3 +1,4 @@
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {lastOfArray} from 'sentry/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
@@ -346,6 +347,8 @@ export class Flamegraph {
   }
 
   findAllMatchingFrames(frameName?: string, framePackage?: string): FlamegraphFrame[] {
+    framePackage = tryTrimPackage(framePackage);
+
     const matches: FlamegraphFrame[] = [];
 
     for (let i = 0; i < this.frames.length; i++) {
@@ -353,7 +356,7 @@ export class Flamegraph {
         this.frames[i].frame.name === frameName &&
         // the framePackage can match either the package or the module
         // this is an artifact of how we previously used image
-        (this.frames[i].frame.package === framePackage ||
+        (tryTrimPackage(this.frames[i].frame.package) === framePackage ||
           this.frames[i].frame.module === framePackage)
       ) {
         matches.push(this.frames[i]);
@@ -404,4 +407,8 @@ function buildCollapsedFlamegraph(root: FlamegraphFrame) {
     root,
     depth: maxDepth,
   };
+}
+
+function tryTrimPackage(pkg?: string): string | undefined {
+  return pkg ? trimPackage(pkg) : pkg;
 }

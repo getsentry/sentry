@@ -14,6 +14,7 @@ from sentry.models import (
     GroupLink,
     GroupStatus,
     GroupSubscription,
+    GroupSubStatus,
     Project,
     PullRequest,
     Release,
@@ -55,7 +56,8 @@ def remove_resolved_link(link):
     with transaction.atomic():
         link.delete()
         affected = Group.objects.filter(status=GroupStatus.RESOLVED, id=link.group_id).update(
-            status=GroupStatus.UNRESOLVED
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
         )
         if affected:
             Activity.objects.create(
@@ -147,7 +149,9 @@ def resolved_in_commit(instance, created, **kwargs):
                 Activity.objects.create(**activity_kwargs)
 
                 Group.objects.filter(id=group.id).update(
-                    status=GroupStatus.RESOLVED, resolved_at=current_datetime
+                    status=GroupStatus.RESOLVED,
+                    resolved_at=current_datetime,
+                    substatus=None,
                 )
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
                 record_group_history_from_activity_type(
