@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -12,12 +13,15 @@ import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-import Chart from 'sentry/views/starfish/components/chart';
 import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 
-import EndpointList from './endpointList';
-
 const EventsRequest = withApi(_EventsRequest);
+
+import {useQuery} from 'sentry/utils/queryClient';
+import Chart from 'sentry/views/starfish/components/chart';
+import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
+
+import EndpointList from './endpointList';
 
 type BasePerformanceViewProps = {
   eventView: EventView;
@@ -26,63 +30,56 @@ type BasePerformanceViewProps = {
   projects: Project[];
 };
 
+const HOST = 'http://localhost:8080';
+
 export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView} = props;
 
-  function renderModuleBreakdownChart() {
-    return (
-      <EventsRequest
-        query={eventView.query}
-        includePrevious={false}
-        partial
-        interval="1h"
-        includeTransformedData
-        limit={1}
-        environment={eventView.environment}
-        project={eventView.project}
-        period={eventView.statsPeriod}
-        referrer="starfish-homepage-span-breakdown"
-        start={eventView.start}
-        end={eventView.end}
-        organization={organization}
-        yAxis={[
-          'p95(spans.db)',
-          'p95(spans.http)',
-          'p95(spans.browser)',
-          'p95(spans.resource)',
-          'p95(spans.ui)',
-        ]}
-        queryExtras={{
-          dataset: 'metrics',
-        }}
-      >
-        {data => {
-          return (
-            <Chart
-              statsPeriod={eventView.statsPeriod}
-              height={180}
-              data={data.results as Series[]}
-              start={eventView.start as string}
-              end={eventView.end as string}
-              loading={data.loading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '16px',
-                bottom: '8px',
-              }}
-              disableMultiAxis
-              definedAxisTicks={4}
-              stacked
-              log
-              chartColors={CHART_PALETTE[5]}
-            />
-          );
-        }}
-      </EventsRequest>
-    );
-  }
+  const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
+    queryKey: ['graph'],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${MODULE_DURATION_QUERY}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const modules = ['db', 'cache', 'http'];
+
+  const seriesByModule: {[module: string]: Series} = {};
+  modules.forEach(module => {
+    seriesByModule[module] = {
+      seriesName: `p75(${module})`,
+      data: [],
+    };
+  });
+
+  // cross-reference the series, and makes sure
+  // they have the same number of points by backfilling
+  // missing timestamps for each other series with a 0
+  let lastInterval = undefined;
+  modules.forEach(module => {
+    moduleDurationData.forEach(value => {
+      if (module === value.module) {
+        if (lastInterval === value.interval) {
+          seriesByModule[module].data.pop();
+        }
+        seriesByModule[module].data.push({
+          value: value.p75,
+          name: value.interval,
+        });
+      } else {
+        if (lastInterval !== value.interval) {
+          seriesByModule[module].data.push({
+            value: 0,
+            name: value.interval,
+          });
+        }
+      }
+      lastInterval = value.interval;
+    });
+  });
+
+  const data = Object.values(seriesByModule);
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -104,8 +101,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
         organization={organization}
         yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
       >
-        {data => {
-          const transformedData: Series[] | undefined = data.timeseriesData?.map(
+        {eventData => {
+          const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
             series => ({
               data: series.data,
               seriesName: t('Failure Rate'),
@@ -124,7 +121,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               data={transformedData}
               start={eventView.start as string}
               end={eventView.end as string}
-              loading={data.loading}
+              loading={eventData.loading}
               utc={false}
               grid={{
                 left: '0',
@@ -142,9 +139,28 @@ export function StarfishView(props: BasePerformanceViewProps) {
   return (
     <div data-test-id="starfish-view">
       <StyledRow minSize={200}>
-        {/** TODO: The queries for these should eventually be batched */}
-        {renderModuleBreakdownChart()}
-        {renderFailureRateChart()}
+        <Fragment>
+          <Chart
+            statsPeriod="24h"
+            height={180}
+            data={data}
+            start=""
+            end=""
+            loading={isDurationDataLoading}
+            utc={false}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '16px',
+              bottom: '8px',
+            }}
+            disableMultiAxis
+            definedAxisTicks={4}
+            stacked
+            chartColors={['#444674', '#7a5088', '#b85586']}
+          />
+          {renderFailureRateChart()}
+        </Fragment>
       </StyledRow>
 
       <EndpointList
@@ -156,7 +172,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'tpm',
           'p50(duration)',
           'p95(duration)',
-          '% time spent',
+          'cumulative time',
         ]}
       />
     </div>

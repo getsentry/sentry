@@ -9,6 +9,10 @@ INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
 class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
+    """
+    Handle the UI for adding the Jira integration to a Sentry org.
+    """
+
     provider = "jira"
     external_provider_key = "jira"
 
