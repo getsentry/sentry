@@ -23,6 +23,11 @@ MERGE_THRESHOLD = 200
 #: The number 100 was chosen at random and might still need tweaking.
 PROJECTS_PER_TASK = 100
 
+#: Estimated limit for a clusterer run per project, in seconds.
+#: NOTE: using this in a per-project basis may not be enough. Consider using
+#: this estimation for project batches instead.
+CLUSTERING_TIMEOUT_PER_PROJECT = 0.1
+
 
 @instrumented_task(
     name="sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
@@ -47,8 +52,8 @@ def spawn_clusterers(**kwargs: Any) -> None:
     queue="transactions.name_clusterer",
     default_retry_delay=5,  # copied from release monitor
     max_retries=5,  # copied from release monitor
-    soft_time_limit=5,
-    time_limit=7,  # extra 2s to emit metrics
+    soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
+    time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
 )  # type: ignore
 def cluster_projects(projects: Sequence[Project]) -> None:
     num_clustered = 0
