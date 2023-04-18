@@ -20,6 +20,10 @@ class JiraTokenError(Exception):
 
 
 class JiraWebhookBase(Endpoint, abc.ABC):
+    """
+    Base class for webhooks used in the Jira integration
+    """
+
     authentication_classes = ()
     permission_classes = ()
     provider = "jira"
