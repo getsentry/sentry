@@ -12,11 +12,11 @@ from sentry.models import (
     User,
     record_group_history_from_activity_type,
 )
-from sentry.models.group import GroupSubStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
 

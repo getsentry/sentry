@@ -8,8 +8,8 @@ from sentry.issues.escalating import GroupsCountResponse, query_groups_past_coun
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import generate_issue_forecast
 from sentry.models import Group, GroupStatus
-from sentry.models.group import GroupSubStatus
 from sentry.tasks.base import instrumented_task
+from sentry.types.group import GroupSubStatus
 
 
 class GroupCount(TypedDict):

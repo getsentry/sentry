@@ -38,6 +38,11 @@ from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
+from sentry.types.group import (
+    IGNORED_SUBSTATUS_CHOICES,
+    UNRESOLVED_SUBSTATUS_CHOICES,
+    GroupSubStatus,
+)
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
@@ -149,24 +154,6 @@ class GroupStatus:
     MUTED = IGNORED
 
 
-class GroupSubStatus:
-    # GroupStatus.IGNORED
-    UNTIL_ESCALATING = 1
-
-    # GroupStatus.UNRESOLVED
-    ESCALATING = 2
-    ONGOING = 3
-
-
-UNRESOLVED_SUBSTATUS_CHOICES = {
-    GroupSubStatus.ONGOING,
-    GroupSubStatus.ESCALATING,
-}
-
-IGNORED_SUBSTATUS_CHOICES = {
-    GroupSubStatus.UNTIL_ESCALATING,
-}
-
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
@@ -194,12 +181,6 @@ STATUS_UPDATE_CHOICES = {
     "resolvedInNextRelease": GroupStatus.UNRESOLVED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
-}
-
-SUBSTATUS_UPDATE_CHOICES = {
-    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
-    "escalating": GroupSubStatus.ESCALATING,
-    "ongoing": GroupSubStatus.ONGOING,
 }
 
 
@@ -747,11 +728,10 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
                 extra={"status": instance.status, "substatus": instance.substatus},
             )
 
-        # IGNORED groups may have no substatus for now. We will be adding two more substatusesin the future to simplify this.
-        if instance.status == GroupStatus.IGNORED and instance.substatus not in [
-            None,
-            *IGNORED_SUBSTATUS_CHOICES,
-        ]:
+        if (
+            instance.status == GroupStatus.IGNORED
+            and instance.substatus not in IGNORED_SUBSTATUS_CHOICES
+        ):
             logger.exception(
                 "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
             )

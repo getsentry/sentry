@@ -153,6 +153,9 @@ def resolved_in_commit(instance, created, **kwargs):
                     resolved_at=current_datetime,
                     substatus=None,
                 )
+                group.status = GroupStatus.RESOLVED
+                group.substatus = None
+
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
                 record_group_history_from_activity_type(
                     group,

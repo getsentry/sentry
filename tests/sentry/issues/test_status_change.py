@@ -3,10 +3,10 @@ from unittest.mock import patch
 
 from sentry.issues.status_change import handle_status_update
 from sentry.models import Activity, GroupStatus
-from sentry.models.group import GroupSubStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 class HandleStatusChangeTest(TestCase):  # type:ignore

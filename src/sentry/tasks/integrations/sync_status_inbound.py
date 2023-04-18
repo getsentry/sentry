@@ -2,9 +2,9 @@ from typing import Any, Mapping
 
 from sentry import analytics
 from sentry.models import Group, GroupStatus, Integration, Organization
-from sentry.models.group import GroupSubStatus
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 @instrumented_task(
