@@ -108,7 +108,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'tpm',
           'p50(duration)',
           'p95(duration)',
-          '% time spent',
+          'cumulative time',
         ]}
       />
     </div>
