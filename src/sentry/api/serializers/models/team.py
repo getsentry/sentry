@@ -63,7 +63,7 @@ def _get_team_memberships(
 
     if optimization:
         return {
-            member.team_id: member.role.name if member.role else None
+            member.team_id: member.role.id if member.role else None
             for team in team_list
             for member in [optimization.access.get_team_membership(team.id)]
             if member is not None
@@ -174,6 +174,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     isPending: bool
     memberCount: int
     avatar: SerializedAvatarFields
+    orgRole: str  # TODO(cathy): Change to new key
 
 
 @register(Team)
