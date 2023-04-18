@@ -7,12 +7,12 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import APIDetail from 'sentry/views/starfish/views/endpointDetails';
+import EndpointDetail from 'sentry/views/starfish/views/endpointDetails';
 
-import APIModuleView from './APIModuleView';
+import APIModuleView, {DataRow} from './APIModuleView';
 
 type APIModuleState = {
-  spanGroup?: string;
+  selectedRow?: DataRow;
 };
 
 type Props = {
@@ -20,9 +20,10 @@ type Props = {
 };
 
 export default function APIModule(props: Props) {
-  const [state, setState] = useState<APIModuleState>({spanGroup: undefined});
-  const unsetSelectedSpanGroup = () => setState({spanGroup: undefined});
-  const {spanGroup} = state;
+  const [state, setState] = useState<APIModuleState>({selectedRow: undefined});
+  const unsetSelectedSpanGroup = () => setState({selectedRow: undefined});
+  const {selectedRow} = state;
+  const setSelectedRow = (row: DataRow) => setState({selectedRow: row});
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -35,9 +36,8 @@ export default function APIModule(props: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <APIModuleView {...props} />
-            <button onClick={() => setState({spanGroup: '1'})}>Test</button>
-            <APIDetail spanGroup={spanGroup} onClose={unsetSelectedSpanGroup} />
+            <APIModuleView {...props} onSelect={setSelectedRow} />
+            <EndpointDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
