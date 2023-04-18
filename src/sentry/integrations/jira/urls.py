@@ -7,9 +7,9 @@ from .views import (
 )
 from .webhooks import (
     JiraDescriptorEndpoint,
-    JiraInstalledEndpoint,
     JiraIssueUpdatedWebhook,
     JiraSearchEndpoint,
+    JiraSentryInstalledWebhook,
     JiraUninstalledEndpoint,
 )
 
@@ -24,7 +24,7 @@ urlpatterns = [
     ),
     url(
         r"^installed/$",
-        JiraInstalledEndpoint.as_view(),
+        JiraSentryInstalledWebhook.as_view(),
         name="sentry-extensions-jira-installed",
     ),
     url(

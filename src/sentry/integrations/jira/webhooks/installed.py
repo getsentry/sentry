@@ -13,7 +13,7 @@ from .base import JiraEndpointBase
 
 
 @pending_silo_endpoint
-class JiraInstalledEndpoint(JiraEndpointBase):
+class JiraSentryInstalledWebhook(JiraEndpointBase):
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
 

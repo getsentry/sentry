@@ -1,12 +1,12 @@
 from .descriptor import JiraDescriptorEndpoint
-from .installed import JiraInstalledEndpoint
+from .installed import JiraSentryInstalledWebhook
 from .issue_updated import JiraIssueUpdatedWebhook
 from .search import JiraSearchEndpoint
 from .uninstalled import JiraUninstalledEndpoint
 
 __all__ = (
     "JiraDescriptorEndpoint",
-    "JiraInstalledEndpoint",
+    "JiraSentryInstalledWebhook",
     "JiraIssueUpdatedWebhook",
     "JiraSearchEndpoint",
     "JiraUninstalledEndpoint",
