@@ -242,9 +242,7 @@ function TransactionHeader({
 }
 
 const TransactionName = styled('div')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 export default TransactionHeader;
