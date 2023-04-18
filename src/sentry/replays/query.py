@@ -74,15 +74,14 @@ def query_replays_collection(
     paginators = make_pagination_values(limit, offset)
 
     # Attempt to eager return with subquery.
-    if not conditions and features.has(
-        "organizations:session-replay-index-subquery", organization, actor=actor
-    ):
+    if features.has("organizations:session-replay-index-subquery", organization, actor=actor):
         try:
             response = query_replays_dataset_with_subquery(
                 project_ids=project_ids,
                 start=start,
                 end=end,
                 fields=fields,
+                environments=environment,
                 search_filters=search_filters,
                 sort=sort,
                 pagination=paginators,
@@ -90,7 +89,8 @@ def query_replays_collection(
             )
             return response["data"]
         except ParseError:
-            # Subquery failed fallback to default behavior.
+            # Subquery could not continue because it found search filters which required
+            # aggregation to satisfy.
             pass
 
     response = query_replays_dataset(
@@ -203,6 +203,7 @@ def query_replays_dataset_with_subquery(
     project_ids: List[str],
     start: datetime,
     end: datetime,
+    environments: List[str],
     search_filters: List[SearchFilter],
     sort: Optional[str],
     fields: List[str],
@@ -210,6 +211,9 @@ def query_replays_dataset_with_subquery(
     tenant_ids: dict[str, Any] | None = None,
 ):
     conditions = generate_valid_conditions(search_filters, query_config=ReplaySubqueryConfig())
+    if environments:
+        conditions.append(Condition(Column("environment"), Op.IN, environments))
+
     sorting = get_valid_sort_commands(
         sort,
         default=OrderBy(Column("started_at"), Direction.DESC),
