@@ -13,7 +13,7 @@ class MarkReviewedTest(TestCase):  # type: ignore
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
 
     def test_mark_reviewed(self) -> None:
-        _ = mark_reviewed(
+        mark_reviewed(
             in_inbox=False,
             group_list=self.group_list,
             project_lookup=self.project_lookup,

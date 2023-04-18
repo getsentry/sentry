@@ -23,7 +23,7 @@ def mark_reviewed(
     """
     Support moving groups in or out of the inbox via the Mark Reviewed button.
 
-    Returns the new inbox state.
+    Returns a boolean indicating whether or not the groups are now in the inbox.
     """
     if in_inbox:
         for group in group_list:
