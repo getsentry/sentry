@@ -12,7 +12,7 @@ from sentry.models.project import Project
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
-FORECAST_LIST_MOCK = [200] * 14
+DEFAULT_MINIMUM_CEILING_FORECAST = [200] * 14
 
 
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
