@@ -568,7 +568,7 @@ class SpanTree extends Component<PropType> {
         }
 
         const isAffectedSpan =
-          !('type' in span) && waterfallModel.affectedSpanIds?.includes(span.span_id);
+          !isGapSpan(span) && waterfallModel.affectedSpanIds?.includes(span.span_id);
 
         let spanBarType: SpanBarType | undefined = undefined;
 
