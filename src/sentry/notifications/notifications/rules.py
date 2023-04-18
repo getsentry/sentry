@@ -104,6 +104,11 @@ class AlertRuleNotification(ProjectNotification):
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
         rule_details = get_rules(self.rules, self.organization, self.project)
+        sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
+        for rule in rule_details:
+            rule.url = rule.url + sentry_query_params
+            rule.status_url = rule.url + sentry_query_params
+
         notification_reason = get_owner_reason(
             project=self.project,
             target_type=self.target_type,
@@ -127,7 +132,7 @@ class AlertRuleNotification(ProjectNotification):
             "slack_link": get_integration_link(self.organization, "slack"),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
-                "/settings/account/notifications/alerts/?referrer=alert_email"
+                f"/settings/account/notifications/alerts/{sentry_query_params}"
             ),
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
@@ -151,7 +156,7 @@ class AlertRuleNotification(ProjectNotification):
             context["snooze_alert"] = True
             context[
                 "snooze_alert_url"
-            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/?{urlencode({'mute': '1'})}&{self.get_sentry_query_params(ExternalProviders.EMAIL)}"
+            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
 
         if getattr(self.event, "occurrence", None):
             context["issue_title"] = self.event.occurrence.issue_title
