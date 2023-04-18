@@ -1,7 +1,11 @@
 from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
-from sentry.api.serializers.models.event import DetailedEventSerializer, SharedEventSerializer
+from sentry.api.serializers.models.event import (
+    IssueEventSerializer,
+    SharedEventSerializer,
+    SqlFormatEventSerializer,
+)
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.event_manager import EventManager
 from sentry.models import EventError
@@ -316,7 +320,7 @@ class SimpleEventSerializerTest(TestCase):
 
 
 @region_silo_test
-class DetailedEventSerializerTest(TestCase):
+class IssueEventSerializerTest(TestCase):
     @mock.patch(
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
@@ -335,7 +339,7 @@ class DetailedEventSerializerTest(TestCase):
             assert_no_errors=False,
         )
 
-        result = serialize(event, None, DetailedEventSerializer())
+        result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == [
             {
                 "enables": [],
@@ -364,7 +368,7 @@ class DetailedEventSerializerTest(TestCase):
             assert_no_errors=False,
         )
 
-        result = serialize(event, None, DetailedEventSerializer())
+        result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == [
             {
                 "enables": [],
@@ -393,7 +397,7 @@ class DetailedEventSerializerTest(TestCase):
             assert_no_errors=False,
         )
 
-        result = serialize(event, None, DetailedEventSerializer())
+        result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == []
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
@@ -406,7 +410,7 @@ class DetailedEventSerializerTest(TestCase):
             event = manager.save(self.project.id)
         group_event = event.for_group(event.groups[0])
 
-        result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
+        result = json.loads(json.dumps(serialize(group_event, None, IssueEventSerializer())))
         assert result["perfProblem"] == {
             "causeSpanIds": ["9179e43ae844b174"],
             "desc": "SELECT `books_author`.`id`, `books_author`.`name` FROM "
@@ -460,9 +464,12 @@ class DetailedEventSerializerTest(TestCase):
             event = manager.save(self.project.id)
         group_event = event.for_group(event.groups[0])
 
-        result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
+        result = json.loads(json.dumps(serialize(group_event, None, IssueEventSerializer())))
         assert result["perfProblem"] is None
 
+
+@region_silo_test
+class SqlFormatEventSerializerTest(TestCase):
     def test_event_breadcrumb_formatting(self):
         with self.feature("organizations:sql-format"):
             event = self.store_event(
@@ -477,7 +484,7 @@ class DetailedEventSerializerTest(TestCase):
                 },
                 project_id=self.project.id,
             )
-            result = serialize(event, None, DetailedEventSerializer())
+            result = serialize(event, None, SqlFormatEventSerializer())
 
             breadcrumb_entry = result["entries"][0]
             breadcrumbs = breadcrumb_entry["data"]["values"]
@@ -505,7 +512,7 @@ class DetailedEventSerializerTest(TestCase):
                 },
                 project_id=self.project.id,
             )
-            result = serialize(event, None, DetailedEventSerializer())
+            result = serialize(event, None, SqlFormatEventSerializer())
 
             # Should remove quotes from all terms except the one that contains a space ("column name")
             assert (

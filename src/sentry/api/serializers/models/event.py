@@ -341,36 +341,10 @@ class EventSerializer(Serializer):
         }
 
 
-class DetailedEventSerializer(EventSerializer):
+class SqlFormatEventSerializer(EventSerializer):
     """
-    Adds release and user report info to the serialized event.
+    Applies formatting to SQL queries in the serialized event.
     """
-
-    def get_attrs(
-        self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False
-    ):
-        results = super().get_attrs(item_list, user, is_public)
-        # XXX: Collapse hashes to one hash per group for now. Performance issues currently only have
-        # a single hash, so this will work fine for the moment
-        problems = get_problems(item_list)
-        for event_problem in problems:
-            if event_problem:
-                results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()
-        return results
-
-    def _get_sdk_updates(self, obj):
-        return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
-
-    def _get_perf_problem(self, attrs):
-        from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
-
-        perf_problem = attrs.get("perf_problem")
-        if perf_problem is None:
-            return None
-        converted_problem = convert_dict_key_case(perf_problem, snake_to_camel_case)
-        issue_type = perf_problem.get("type")
-        converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
-        return converted_problem
 
     def _remove_doublequotes(self, message: str):
         return SQL_DOUBLEQUOTES_REGEX.sub(r"\1", message)
@@ -408,11 +382,47 @@ class DetailedEventSerializer(EventSerializer):
 
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
+        result = self._format_breadcrumb_messages(result, obj, user)
+        return result
+
+
+class IssueEventSerializer(SqlFormatEventSerializer):
+    """
+    Adds release, user report, sdk updates, and perf issue info to the event.
+    """
+
+    def get_attrs(
+        self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False
+    ):
+        results = super().get_attrs(item_list, user, is_public)
+        # XXX: Collapse hashes to one hash per group for now. Performance issues currently only have
+        # a single hash, so this will work fine for the moment
+        problems = get_problems(item_list)
+        for event_problem in problems:
+            if event_problem:
+                results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()
+        return results
+
+    def _get_sdk_updates(self, obj):
+        return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
+
+    def _get_perf_problem(self, attrs):
+        from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
+
+        perf_problem = attrs.get("perf_problem")
+        if perf_problem is None:
+            return None
+        converted_problem = convert_dict_key_case(perf_problem, snake_to_camel_case)
+        issue_type = perf_problem.get("type")
+        converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
+        return converted_problem
+
+    def serialize(self, obj, attrs, user):
+        result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
         result["perfProblem"] = self._get_perf_problem(attrs)
-        result = self._format_breadcrumb_messages(result, obj, user)
         return result
 
 

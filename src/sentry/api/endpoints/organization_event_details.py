@@ -5,6 +5,7 @@ from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.event import SqlFormatEventSerializer
 from sentry.models.project import Project, ProjectStatus
 
 
@@ -39,7 +40,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
-        data = serialize(event)
+        data = serialize(event, request.user, SqlFormatEventSerializer())
         data["projectSlug"] = project_slug
 
         return Response(data)
