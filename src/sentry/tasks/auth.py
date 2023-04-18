@@ -77,6 +77,7 @@ class OrganizationComplianceTask(abc.ABC):
             logging_data = {"organization_id": org.id, "user_id": user.id, "member_id": member.id}
 
             try:
+                raise Exception("boo boo")
                 member.remove_user()
                 member.save()
             except (AssertionError, IntegrityError):
