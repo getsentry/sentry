@@ -2,11 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
 
@@ -70,7 +72,9 @@ export default function APIModuleView({location, onSelect}: Props) {
     });
   });
 
-  const data = Object.values(seriesByQuantile);
+  const data = Object.values(seriesByQuantile).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   return (
     <Fragment>
