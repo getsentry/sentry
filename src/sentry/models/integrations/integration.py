@@ -31,6 +31,11 @@ class IntegrationManager(BaseManager):
 
 @control_silo_only_model
 class Integration(DefaultFieldsModel):
+    """
+    An integration tied to a particular instance of a third-party provider (a single Slack
+    workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
+    """
+
     __include_in_export__ = False
 
     provider = models.CharField(max_length=64)

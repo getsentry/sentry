@@ -12,7 +12,7 @@ REFRESH_REQUIRED = b"This page has expired, please refresh to configure your Sen
 CLICK_TO_FINISH = b"Finish Installation in Sentry"
 
 
-class JiraUiHookViewTestCase(APITestCase):
+class JiraSentryInstallationViewTestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.path = absolute_uri("extensions/jira/ui-hook/") + "?xdm_e=base_url"
@@ -23,7 +23,7 @@ class JiraUiHookViewTestCase(APITestCase):
         self.integration = Integration.objects.create(provider="jira", name="Example Jira")
 
 
-class JiraUiHookViewErrorsTest(JiraUiHookViewTestCase):
+class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
     @patch(
         "sentry.integrations.jira.views.ui_hook.get_integration_from_request",
         side_effect=ExpiredSignatureError(),
@@ -43,7 +43,7 @@ class JiraUiHookViewErrorsTest(JiraUiHookViewTestCase):
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
 
 
-class JiraUiHookViewTest(JiraUiHookViewTestCase):
+class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)

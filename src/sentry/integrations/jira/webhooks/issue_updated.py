@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 @pending_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraEndpointBase):
+    """
+    Webhook hit by Jira whenever an issue is updated in Jira's database.
+    """
+
     def handle_exception(
         self, request: Request, exc: Exception, handler_context: Mapping[str, Any] | None = None
     ) -> Response:
