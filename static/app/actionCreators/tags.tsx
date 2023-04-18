@@ -1,5 +1,6 @@
 import {Query} from 'history';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -26,10 +27,13 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
 /**
  * Load an organization's tags based on a global selection value.
  */
-export function loadOrganizationTags(api: Client, orgId: string, selection: PageFilters) {
+export function loadOrganizationTags(
+  api: Client,
+  orgSlug: string,
+  selection: PageFilters
+): Promise<void> {
   TagStore.reset();
 
-  const url = `/organizations/${orgId}/tags/`;
   const query: Query = selection.datetime
     ? {...normalizeDateTimeParams(selection.datetime)}
     : {};
@@ -38,14 +42,16 @@ export function loadOrganizationTags(api: Client, orgId: string, selection: Page
   if (selection.projects) {
     query.project = selection.projects.map(String);
   }
-  const promise = api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
 
-  promise.then(tagFetchSuccess);
-
-  return promise;
+  return api
+    .requestPromise(`/organizations/${orgSlug}/tags/`, {
+      method: 'GET',
+      query,
+    })
+    .then(tagFetchSuccess)
+    .catch(() => {
+      addErrorMessage(t('Unable to load tags'));
+    });
 }
 
 /**
