@@ -1,6 +1,10 @@
 from django.conf.urls import url
 
-from .views import JiraExtensionConfigurationView, JiraSentryIssueDetailsView, JiraUiHookView
+from .views import (
+    JiraExtensionConfigurationView,
+    JiraSentryInstallationView,
+    JiraSentryIssueDetailsView,
+)
 from .webhooks import (
     JiraDescriptorEndpoint,
     JiraInstalledEndpoint,
@@ -12,7 +16,7 @@ from .webhooks import (
 urlpatterns = [
     url(
         r"^ui-hook/$",
-        JiraUiHookView.as_view(),
+        JiraSentryInstallationView.as_view(),
     ),
     url(
         r"^descriptor/$",

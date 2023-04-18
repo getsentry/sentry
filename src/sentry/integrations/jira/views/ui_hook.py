@@ -11,7 +11,7 @@ from sentry.utils.signing import sign
 from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
 
 
-class JiraUiHookView(JiraSentryUIBaseView):
+class JiraSentryInstallationView(JiraSentryUIBaseView):
     html_file = "sentry/integrations/jira-config.html"
 
     def get(self, request: Request, *args, **kwargs) -> Response:
