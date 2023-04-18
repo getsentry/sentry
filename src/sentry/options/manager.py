@@ -109,8 +109,6 @@ class OptionsManager:
             return self.registry[key]
         except KeyError:
 
-            from sentry.models.options import OptionsTypes
-
             # HACK: Historically, Options were used for random ad hoc things.
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.
@@ -118,9 +116,7 @@ class OptionsManager:
                 logger.debug("Using legacy key: %s", key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.make_key(
-                    key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None, OptionsTypes.LEGACY
-                )
+                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None, "legacy")
             raise UnknownOption(key)
 
     def make_key(self, name, default, type, flags, ttl, grace, grouping_info, source):
