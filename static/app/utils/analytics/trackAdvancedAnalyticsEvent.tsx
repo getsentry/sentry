@@ -9,7 +9,7 @@ import {
   dynamicSamplingEventMap,
   DynamicSamplingEventParameters,
 } from './dynamicSamplingAnalyticsEvents';
-import {ecosystemEventMap, EcosystemEventParameters} from './ecosystemAnalyticEvents';
+import {ecosystemEventMap, EcosystemEventParameters} from './ecosystemAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
 import {integrationEventMap, IntegrationEventParameters} from './integrations';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
