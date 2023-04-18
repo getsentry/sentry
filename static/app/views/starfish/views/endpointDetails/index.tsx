@@ -23,8 +23,7 @@ export default function EndpointDetail({
 
 function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   const throughputQuery = getEndpointDetailQuery(row.description);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const {isLoading, data} = useQuery({
+  useQuery({
     queryKey: ['endpointThroughput'],
     queryFn: () => fetch(`${HOST}/?query=${throughputQuery}`).then(res => res.json()),
     retry: false,
