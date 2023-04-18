@@ -149,12 +149,9 @@ class AlertRuleNotification(ProjectNotification):
 
         if features.has("organizations:mute-alerts", self.organization) and len(self.rules) > 0:
             context["snooze_alert"] = True
-            context["snooze_alert_url"] = (
-                f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/"
-                + urlencode({"mute": "1"})
-                + "?"
-                + self.get_sentry_query_params(ExternalProviders.EMAIL)
-            )
+            context[
+                "snooze_alert_url"
+            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/?{urlencode({'mute': '1'})}&{self.get_sentry_query_params(ExternalProviders.EMAIL)}"
 
         if getattr(self.event, "occurrence", None):
             context["issue_title"] = self.event.occurrence.issue_title
