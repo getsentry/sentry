@@ -612,4 +612,17 @@ describe('ProjectAlertsCreate', function () {
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });
   });
+
+  it('shows archived to escalating instead of ignored to unresolved', async () => {
+    createWrapper({
+      organization: TestStubs.Organization({features: ['escalating-issues-ui']}),
+    });
+    await selectEvent.select(screen.getByText('Add optional trigger...'), [
+      'The issue changes state from archived to escalating',
+    ]);
+
+    expect(
+      screen.getByText('The issue changes state from archived to escalating')
+    ).toBeInTheDocument();
+  });
 });
