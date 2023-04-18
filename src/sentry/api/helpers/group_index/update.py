@@ -681,7 +681,7 @@ def update_groups(
 
     if "isPublic" in result:
         result["shareId"] = handle_is_public(
-            result.get("isPublic"), group_list, project_lookup, acting_user
+            result["isPublic"], group_list, project_lookup, acting_user
         )
 
     # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
@@ -718,7 +718,7 @@ def update_groups(
 
 
 def handle_is_public(
-    is_public: Any,
+    is_public: bool,
     group_list: list[Group],
     project_lookup: dict[int, Project],
     acting_user: User | None,
