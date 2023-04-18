@@ -54,15 +54,7 @@ function generateGenericPerformanceEventView(
 ): EventView {
   const {query} = location;
 
-  const fields = [
-    'team_key_transaction',
-    'transaction',
-    'http.method',
-    'tpm()',
-    'p50()',
-    'p95()',
-    'project',
-  ];
+  const fields = ['transaction', 'http.method', 'tpm()', 'p50()', 'p95()', 'project'];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -128,7 +120,6 @@ export function generateWebServiceEventView(
   const {query} = location;
 
   const fields = [
-    'team_key_transaction',
     'transaction',
     'http.method',
     'tpm()',
@@ -143,7 +134,7 @@ export function generateWebServiceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction has:http.method',
+    query: 'event.type:transaction has:http.method transaction.op:http.server',
     projects: [],
     fields,
     version: 2,
@@ -159,10 +150,12 @@ export function generateWebServiceEventView(
   savedQuery.orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
 
   const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
+  savedQuery.query = `${savedQuery.query} ${prepareQueryForLandingPage(
+    searchQuery,
+    withStaticFilters
+  )}`;
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
