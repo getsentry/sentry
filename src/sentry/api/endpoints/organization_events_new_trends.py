@@ -87,7 +87,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 user_query=query,
                 params=params,
                 rollup=rollup,
-                limit=10,
+                limit=1,
                 organization=organization,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
@@ -103,18 +103,28 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     request,
                     organization,
                     get_event_stats,
-                    top_events=10,
+                    top_events=1,
                     query_column=trend_function,
                     params=params,
                     query=_query,
                 )
             )
 
-            trends_request = {"data": None, "sort": None, "trendFunction": None}
+            trends_request = {
+                "data": None,
+                "sort": None,
+                "trendFunction": None,
+                "start": None,
+                "end": None,
+            }
 
             trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
             trends_request["trendFunction"] = trend_function
             trends_request["data"] = response.data
+
+            # get start and end from the first transaction
+            trends_request["start"] = response.data[list(response.data)[0]]["start"]
+            trends_request["end"] = response.data[list(response.data)[0]]["end"]
 
             # send the data to microservice
             trends = get_trends(trends_request)
