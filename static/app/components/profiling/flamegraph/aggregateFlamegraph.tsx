@@ -17,6 +17,7 @@ import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -138,12 +139,15 @@ export function AggregateFlamegraph(): ReactElement {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,
+      filterFn: hideSystemFrames
+        ? (n: CallTreeNode) => n.frame.is_application
+        : undefined,
     });
 
     transaction.finish();
 
     return newFlamegraph;
-  }, [profile, sorting, threadId, view]);
+  }, [profile, sorting, threadId, hideSystemFrames, view]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -339,13 +343,7 @@ export function AggregateFlamegraph(): ReactElement {
             return prevCandidate;
           }
 
-          const graph = new FlamegraphModel(currentProfile, currentProfile.threadId, {
-            inverted: false,
-            sort: sorting,
-            configSpace: undefined,
-          });
-
-          const frame = findLongestMatchingFrame(graph, highlightFrames);
+          const frame = findLongestMatchingFrame(flamegraph, highlightFrames);
 
           if (!defined(frame)) {
             return prevCandidate;
@@ -390,7 +388,15 @@ export function AggregateFlamegraph(): ReactElement {
         payload: threadID,
       });
     }
-  }, [profileGroup, highlightFrames, profiles.threadId, dispatch, sorting]);
+  }, [
+    profileGroup,
+    highlightFrames,
+    profiles.threadId,
+    hideSystemFrames,
+    dispatch,
+    flamegraph,
+    sorting,
+  ]);
 
   return (
     <Fragment>
