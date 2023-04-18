@@ -77,7 +77,7 @@ class OrganizationComplianceTask(abc.ABC):
 
         def remove_member(member):
             user = member.user
-            logging_data = {"organization_id": org.id, "user_id": user.id, "member_id": member.id}
+            logging_data = {"organization_id": org_id, "user_id": user.id, "member_id": member.id}
 
             try:
                 member.remove_user()
@@ -97,15 +97,15 @@ class OrganizationComplianceTask(abc.ABC):
                     ip_address=ip_address,
                     event=audit_log.get_event_id("MEMBER_PENDING"),
                     data=member.get_audit_log_data(),
-                    organization_id=org.id,
-                    target_object=org.id,
+                    organization_id=org_id,
+                    target_object=org_id,
                     target_user=user,
                 )
-
+                org = Organization.objects.get_from_cache(id=org_id)
                 self.call_to_action(org, user, member)
 
         for member in OrganizationMember.objects.select_related("user").filter(
-            organization=org, user__isnull=False
+            organization_id=org_id, user__isnull=False
         ):
             if not self.is_compliant(member):
                 remove_member(member)
