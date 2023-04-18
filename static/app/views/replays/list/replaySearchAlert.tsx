@@ -18,7 +18,7 @@ import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 import {semverCompare} from 'sentry/utils/versions';
 
 const MIN_REPLAY_CLICK_SDK = '7.44.0';
-const LOCAL_STORAGE_KEY = 'replay-player-min-sdk-alert-dismissed';
+const LOCAL_STORAGE_KEY = 'replay-search-min-sdk-alert-dismissed';
 
 // exported for testing
 export function ReplaySearchAlert() {
