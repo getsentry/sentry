@@ -7,7 +7,7 @@ export const ENDPOINT_LIST_QUERY = `SELECT description, count() AS count, domain
 `;
 
 export const ENDPOINT_GRAPH_QUERY = `SELECT
- toStartOfInterval(start_timestamp, INTERVAL 5 MINUTE) as interval,
+ toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
  quantile(0.5)(exclusive_time) as p50,
  quantile(0.75)(exclusive_time) as p75,
  quantile(0.95)(exclusive_time) as p95,
