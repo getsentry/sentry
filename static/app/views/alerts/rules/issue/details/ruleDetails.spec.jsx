@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import RuleDetailsContainer from 'sentry/views/alerts/rules/issue/details/index';
 import AlertRuleDetails from 'sentry/views/alerts/rules/issue/details/ruleDetails';
 
 describe('AlertRuleDetails', () => {
@@ -25,18 +24,12 @@ describe('AlertRuleDetails', () => {
       ruleId: rule.id,
     };
     return render(
-      <RuleDetailsContainer
+      <AlertRuleDetails
         params={params}
         location={{query: {}}}
         router={context.router}
-      >
-        <AlertRuleDetails
-          params={params}
-          location={{query: {}}}
-          router={context.router}
-          {...props}
-        />
-      </RuleDetailsContainer>,
+        {...props}
+      />,
       {context: context.routerContext, organization}
     );
   };
@@ -190,9 +183,9 @@ describe('AlertRuleDetails', () => {
 
   it('incompatible rule banner hidden for good rule', async () => {
     createWrapper();
-    expect(await screen.getAllByText('My alert rule')).toHaveLength(2);
+    expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
     expect(
-      await screen.queryByText(
+      screen.queryByText(
         'The conditions in this alert rule conflict and might not be working properly.'
       )
     ).not.toBeInTheDocument();
