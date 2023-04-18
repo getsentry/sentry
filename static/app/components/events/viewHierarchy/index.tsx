@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
@@ -115,7 +115,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onKeyDown={handleRowKeyDown}
         onClick={e => {
           handleRowClick(e);
-          trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_tree', {
+          trackAnalytics('issue_details.view_hierarchy.select_from_tree', {
             organization,
             platform: project.platform,
             user_org_role: organization.orgRole,
@@ -159,7 +159,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       setUserHasSelected(true);
       setSelectedNode(node);
       handleScrollTo(item => item === node);
-      trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_wireframe', {
+      trackAnalytics('issue_details.view_hierarchy.select_from_wireframe', {
         organization,
         platform: project.platform,
         user_org_role: organization.orgRole,

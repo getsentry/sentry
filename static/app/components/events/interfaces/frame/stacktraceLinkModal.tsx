@@ -17,7 +17,7 @@ import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -93,7 +93,7 @@ function StacktraceLinkModal({
     : t('source code');
 
   const onManualSetup = () => {
-    trackAdvancedAnalyticsEvent('integrations.stacktrace_manual_option_clicked', {
+    trackAnalytics('integrations.stacktrace_manual_option_clicked', {
       view: 'stacktrace_issue_details',
       setup_type: 'manual',
       provider:
@@ -105,7 +105,7 @@ function StacktraceLinkModal({
   };
 
   const handleSubmit = async () => {
-    trackAdvancedAnalyticsEvent('integrations.stacktrace_submit_config', {
+    trackAnalytics('integrations.stacktrace_submit_config', {
       setup_type: 'automatic',
       view: 'stacktrace_issue_details',
       provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
@@ -132,7 +132,7 @@ function StacktraceLinkModal({
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
-      trackAdvancedAnalyticsEvent('integrations.stacktrace_complete_setup', {
+      trackAnalytics('integrations.stacktrace_complete_setup', {
         setup_type: 'automatic',
         provider: configData.config?.provider.key,
         view: 'stacktrace_issue_details',

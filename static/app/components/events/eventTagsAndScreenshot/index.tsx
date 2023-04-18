@@ -12,7 +12,7 @@ import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
@@ -83,11 +83,11 @@ export function EventTagsAndScreenshot({
     eventAttachment: EventAttachment,
     downloadUrl: string
   ) {
-    trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_modal_opened', {
+    trackAnalytics('issue_details.issue_tab.screenshot_modal_opened', {
       organization,
     });
     function handleDelete() {
-      trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_modal_deleted', {
+      trackAnalytics('issue_details.issue_tab.screenshot_modal_deleted', {
         organization,
       });
       handleDeleteScreenshot(eventAttachment.id);
@@ -104,12 +104,9 @@ export function EventTagsAndScreenshot({
           downloadUrl={downloadUrl}
           onDelete={handleDelete}
           onDownload={() =>
-            trackAdvancedAnalyticsEvent(
-              'issue_details.issue_tab.screenshot_modal_download',
-              {
-                organization,
-              }
-            )
+            trackAnalytics('issue_details.issue_tab.screenshot_modal_download', {
+              organization,
+            })
           }
           attachments={screenshots}
           attachmentIndex={screenshotInFocus}

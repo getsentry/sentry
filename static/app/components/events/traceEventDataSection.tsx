@@ -19,7 +19,7 @@ import {space} from 'sentry/styles/space';
 import {PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -107,7 +107,7 @@ export function TraceEventDataSection({
     (val: 'full' | 'relevant') => {
       const isFullOptionClicked = val === 'full';
 
-      trackAdvancedAnalyticsEvent(
+      trackAnalytics(
         isFullOptionClicked
           ? 'stack-trace.full_stack_trace_clicked'
           : 'stack-trace.most_relevant_clicked',
@@ -128,7 +128,7 @@ export function TraceEventDataSection({
     (val: keyof typeof sortByOptions) => {
       const isRecentFirst = val === 'recent-first';
 
-      trackAdvancedAnalyticsEvent(
+      trackAnalytics(
         isRecentFirst
           ? 'stack-trace.sort_option_recent_first_clicked'
           : 'stack-trace.sort_option_recent_last_clicked',
@@ -148,79 +148,61 @@ export function TraceEventDataSection({
   const handleDisplayChange = useCallback(
     (vals: (keyof typeof displayOptions)[]) => {
       if (vals.includes('raw-stack-trace')) {
-        trackAdvancedAnalyticsEvent(
-          'stack-trace.display_option_raw_stack_trace_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: true,
-          }
-        );
+        trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: true,
+        });
       } else if (state.display.includes('raw-stack-trace')) {
-        trackAdvancedAnalyticsEvent(
-          'stack-trace.display_option_raw_stack_trace_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: false,
-          }
-        );
+        trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: false,
+        });
       }
 
       if (vals.includes('absolute-addresses')) {
-        trackAdvancedAnalyticsEvent(
-          'stack-trace.display_option_absolute_addresses_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: true,
-          }
-        );
+        trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: true,
+        });
       } else if (state.display.includes('absolute-addresses')) {
-        trackAdvancedAnalyticsEvent(
-          'stack-trace.display_option_absolute_addresses_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: false,
-          }
-        );
+        trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: false,
+        });
       }
 
       if (vals.includes('absolute-file-paths')) {
-        trackAdvancedAnalyticsEvent(
-          'stack-trace.display_option_absolute_file_paths_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: true,
-          }
-        );
+        trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: true,
+        });
       } else if (state.display.includes('absolute-file-paths')) {
-        trackAdvancedAnalyticsEvent(
-          'stack-trace.display_option_absolute_file_paths_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: false,
-          }
-        );
+        trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: false,
+        });
       }
 
       if (vals.includes('minified')) {
-        trackAdvancedAnalyticsEvent(
+        trackAnalytics(
           platform.startsWith('javascript')
             ? 'stack-trace.display_option_minified_clicked'
             : 'stack-trace.display_option_unsymbolicated_clicked',
@@ -233,7 +215,7 @@ export function TraceEventDataSection({
           }
         );
       } else if (state.display.includes('minified')) {
-        trackAdvancedAnalyticsEvent(
+        trackAnalytics(
           platform.startsWith('javascript')
             ? 'stack-trace.display_option_minified_clicked'
             : 'stack-trace.display_option_unsymbolicated_clicked',
@@ -248,27 +230,21 @@ export function TraceEventDataSection({
       }
 
       if (vals.includes('verbose-function-names')) {
-        trackAdvancedAnalyticsEvent(
-          'stack-trace.display_option_verbose_function_names_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: true,
-          }
-        );
+        trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: true,
+        });
       } else if (state.display.includes('verbose-function-names')) {
-        trackAdvancedAnalyticsEvent(
-          'stack-trace.display_option_verbose_function_names_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: false,
-          }
-        );
+        trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: false,
+        });
       }
 
       setState(currentState => ({...currentState, display: vals}));
@@ -418,7 +394,7 @@ export function TraceEventDataSection({
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent('stack-trace.download_clicked', {
+                  trackAnalytics('stack-trace.download_clicked', {
                     organization,
                     project_slug: projectSlug,
                     platform,
