@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -26,7 +25,6 @@ import {space} from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'sentry/utils/withApi';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 
@@ -35,7 +33,6 @@ import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
 
 type Props = AsyncComponent['props'] & {
-  api: Client;
   organization: Organization;
   project: Project;
 } & RouteComponentProps<{projectId: string; ruleId: string}, {}>;
@@ -393,7 +390,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
   }
 }
 
-export default withApi(AlertRuleDetails);
+export default AlertRuleDetails;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};

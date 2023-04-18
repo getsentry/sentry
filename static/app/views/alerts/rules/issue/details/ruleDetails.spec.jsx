@@ -211,11 +211,11 @@ describe('AlertRuleDetails', () => {
     createWrapper();
     expect(await screen.findByText('Mute')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Mute'));
+    await userEvent.click(screen.getByRole('button', {name: 'Mute'}));
     expect(postRequest).toHaveBeenCalledTimes(1);
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Unmute'));
+    await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
 
     expect(deleteRequest).toHaveBeenCalledTimes(1);
   });

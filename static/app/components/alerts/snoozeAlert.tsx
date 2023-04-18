@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
@@ -20,32 +21,47 @@ type Props = {
   setSnoozeCreatedBy: (nextState: string) => void;
 };
 
-function SnoozeAlert(props: Props) {
-  const {isSnoozed, setSnooze, setSnoozeCreatedBy, api, organization, projectId, ruleId} =
-    props;
-
+function SnoozeAlert({
+  isSnoozed,
+  setSnooze,
+  setSnoozeCreatedBy,
+  api,
+  organization,
+  projectId,
+  ruleId,
+}: Props) {
   function handleMute(target: string) {
+    try {
+      api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/rules/${ruleId}/snooze/`,
+        {
+          method: 'POST',
+          data: {
+            target,
+          },
+        }
+      );
+    } catch (err) {
+      Sentry.captureException(err);
+      return;
+    }
     setSnooze(!isSnoozed);
-    api.requestPromise(
-      `/projects/${organization.slug}/${projectId}/rules/${ruleId}/snooze/`,
-      {
-        method: 'POST',
-        data: {
-          target,
-        },
-      }
-    );
     setSnoozeCreatedBy('You');
   }
 
   function handleUnmute() {
+    try {
+      api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/rules/${ruleId}/snooze/`,
+        {
+          method: 'DELETE',
+        }
+      );
+    } catch (err) {
+      Sentry.captureException(err);
+      return;
+    }
     setSnooze(!isSnoozed);
-    api.requestPromise(
-      `/projects/${organization.slug}/${projectId}/rules/${ruleId}/snooze/`,
-      {
-        method: 'DELETE',
-      }
-    );
   }
 
   const dropdownItems: MenuItemProps[] = [
