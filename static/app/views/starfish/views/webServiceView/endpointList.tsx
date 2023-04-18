@@ -27,6 +27,10 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 
+import Duration from 'sentry/components/duration';
+import {t, tct} from 'sentry/locale';
+import {NumberContainer} from 'sentry/utils/discover/styles';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {getProjectID} from 'sentry/views/performance/utils';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 
@@ -106,6 +110,30 @@ class EndpointList extends Component<Props, State> {
           {prefix}
           {dataRow.transaction}
         </Link>
+      );
+    }
+
+    if (field === TIME_SPENT_IN_SERVICE) {
+      const cumulativeTime = Number(dataRow['sum(transaction.duration)']);
+      const cumulativeTimePercentage = Number(dataRow[TIME_SPENT_IN_SERVICE]);
+      return (
+        <Tooltip
+          title={t(
+            'This endpoint accounts for %s of the cumulative time on your web service',
+            formatPercentage(cumulativeTimePercentage)
+          )}
+          containerDisplayMode="block"
+          position="top"
+        >
+          <NumberContainer>
+            {tct('[cumulativeTime] ([cumulativeTimePercentage])', {
+              cumulativeTime: (
+                <Duration seconds={cumulativeTime / 1000} fixedDigits={2} abbreviation />
+              ),
+              cumulativeTimePercentage: formatPercentage(cumulativeTimePercentage),
+            })}
+          </NumberContainer>
+        </Tooltip>
       );
     }
 
