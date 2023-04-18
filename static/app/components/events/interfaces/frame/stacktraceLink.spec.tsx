@@ -3,7 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {CodecovStatusCode, Frame} from 'sentry/types';
-import * as analytics from 'sentry/utils/integrationUtil';
+import * as analytics from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {StacktraceLink} from './stacktraceLink';
 
@@ -23,7 +23,7 @@ describe('StacktraceLink', function () {
   const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
   let promptActivity: jest.Mock;
 
-  const analyticsSpy = jest.spyOn(analytics, 'trackIntegrationAnalytics');
+  const analyticsSpy = jest.spyOn(analytics, 'default');
 
   beforeEach(function () {
     jest.clearAllMocks();

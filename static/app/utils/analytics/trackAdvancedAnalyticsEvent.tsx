@@ -9,6 +9,7 @@ import {
   dynamicSamplingEventMap,
   DynamicSamplingEventParameters,
 } from './dynamicSamplingAnalyticsEvents';
+import {ecosystemEventMap, EcosystemEventParameters} from './ecosystemAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
 import {integrationEventMap, IntegrationEventParameters} from './integrations';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
@@ -44,6 +45,7 @@ type EventParameters = GrowthEventParameters &
   OnboardingEventParameters &
   StackTraceEventParameters &
   AiSuggestedSolutionEventParameters &
+  EcosystemEventParameters &
   IntegrationEventParameters;
 
 const allEventMap: Record<string, string | null> = {
@@ -64,6 +66,7 @@ const allEventMap: Record<string, string | null> = {
   ...onboardingEventMap,
   ...stackTraceEventMap,
   ...aiSuggestedSolutionEventMap,
+  ...ecosystemEventMap,
   ...integrationEventMap,
 };
 

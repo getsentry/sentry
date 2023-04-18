@@ -8,9 +8,7 @@ import {
 
 import {openModal} from 'sentry/actionCreators/modal';
 import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
-import * as analytics from 'sentry/utils/integrationUtil';
-
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+import * as analytics from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 describe('StacktraceLinkModal', () => {
   const org = TestStubs.Organization();
@@ -29,7 +27,7 @@ describe('StacktraceLinkModal', () => {
   };
   const onSubmit = jest.fn();
   const closeModal = jest.fn();
-  const analyticsSpy = jest.spyOn(analytics, 'trackIntegrationAnalytics');
+  const analyticsSpy = jest.spyOn(analytics, 'default');
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
