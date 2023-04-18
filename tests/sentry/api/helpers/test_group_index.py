@@ -8,7 +8,7 @@ from sentry.api.helpers.group_index import (
     update_groups,
     validate_search_filter_permissions,
 )
-from sentry.api.helpers.group_index.update import handle_is_public, handle_has_seen
+from sentry.api.helpers.group_index.update import handle_has_seen, handle_is_public
 from sentry.api.issue_search import parse_search_query
 from sentry.models import (
     Activity,
