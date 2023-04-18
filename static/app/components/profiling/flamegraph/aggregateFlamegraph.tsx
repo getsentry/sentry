@@ -22,7 +22,6 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {collapseSystemFrameStrategy} from 'sentry/utils/profiling/collapseSystemFrameStrategy';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -108,7 +107,7 @@ export function AggregateFlamegraph(): ReactElement {
     useState<HTMLCanvasElement | null>(null);
 
   // TODO: this should live in flamegraphState?
-  const [collapseSystemFrames, setCollapseSystemFrames] = useState(true);
+  const [hideSystemFrames, setHideSystemFrames] = useState(true);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -139,13 +138,12 @@ export function AggregateFlamegraph(): ReactElement {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,
-      collapseStrategy: collapseSystemFrames ? collapseSystemFrameStrategy : undefined,
     });
 
     transaction.finish();
 
     return newFlamegraph;
-  }, [profile, sorting, threadId, view, collapseSystemFrames]);
+  }, [profile, sorting, threadId, view]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -418,10 +416,10 @@ export function AggregateFlamegraph(): ReactElement {
             {t('Reset Zoom')}
           </Button>
           <Flex align="center" gap={space(1)}>
-            <span>{t('Collapse System Frames')}</span>
+            <span>{t('Hide System Frames')}</span>
             <SwitchButton
-              toggle={() => setCollapseSystemFrames(v => !v)}
-              isActive={collapseSystemFrames}
+              toggle={() => setHideSystemFrames(v => !v)}
+              isActive={hideSystemFrames}
             />
           </Flex>
         </Flex>
