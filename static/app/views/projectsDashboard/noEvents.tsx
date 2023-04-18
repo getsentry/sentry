@@ -6,11 +6,13 @@ type Props = {
   seriesCount: number;
 };
 
-const NoEvents = ({seriesCount}: Props) => (
-  <Container>
-    <EmptyText seriesCount={seriesCount}>{t('No activity yet.')}</EmptyText>
-  </Container>
-);
+function NoEvents({seriesCount}: Props) {
+  return (
+    <Container>
+      <EmptyText seriesCount={seriesCount}>{t('No activity yet.')}</EmptyText>
+    </Container>
+  );
+}
 
 export default NoEvents;
 

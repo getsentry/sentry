@@ -161,7 +161,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
             metadata={"url": "https://example.com"},
         )
         OrganizationIntegration.objects.create(
-            organization=self.organization, integration=integration, default_auth_id=old_identity_id
+            organization_id=self.organization.id,
+            integration=integration,
+            default_auth_id=old_identity_id,
         )
         self.pipeline.state.data = {
             "external_id": self.external_id,
@@ -297,7 +299,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         resp = self.pipeline.finish_pipeline()
         self.assertDialogSuccess(resp)
         assert OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization=self.organization.id
+            integration_id=integration.id, organization_id=self.organization.id
         ).exists()
 
     @patch("sentry.mediators.plugins.Migrator.call")

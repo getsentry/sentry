@@ -9,6 +9,7 @@ import {Client} from 'sentry/api';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import GroupSidebar from 'sentry/components/group/sidebar';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
@@ -41,6 +42,10 @@ import {
   ReprocessingStatus,
 } from '../utils';
 
+const IssuePriorityFeedback = HookOrDefault({
+  hookName: 'component:issue-priority-feedback',
+});
+
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
   api: Client;
@@ -57,13 +62,11 @@ export interface GroupEventDetailsProps
 
 type State = {
   eventNavLinks: string;
-  releasesCompletion: any;
 };
 
 class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
   state: State = {
     eventNavLinks: '',
-    releasesCompletion: null,
   };
 
   componentDidMount() {
@@ -112,18 +115,11 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     this.props.api.clear();
   }
 
-  fetchData = async () => {
+  fetchData = () => {
     const {api, project, organization} = this.props;
     const orgSlug = organization.slug;
-    const projSlug = project.slug;
     const projectId = project.id;
 
-    /**
-     * Perform below requests in parallel
-     */
-    const releasesCompletionPromise = api.requestPromise(
-      `/projects/${orgSlug}/${projSlug}/releases/completion/`
-    );
     fetchSentryAppInstallations(api, orgSlug);
 
     // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
@@ -136,9 +132,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         Sentry.captureMessage('Project ID was not set');
       });
     }
-
-    const releasesCompletion = await releasesCompletionPromise;
-    this.setState({releasesCompletion});
   };
 
   renderContent(eventWithMeta?: Event) {
@@ -261,6 +254,10 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                     return (
                       <StyledLayoutMain>
                         {this.renderGroupStatusBanner()}
+                        <IssuePriorityFeedback
+                          organization={organization}
+                          group={group}
+                        />
                         <QuickTraceContext.Provider value={results}>
                           {eventWithMeta && (
                             <GroupEventHeader
@@ -279,7 +276,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                     );
                   }}
                 </QuickTraceQuery>
-
                 <StyledLayoutSide>
                   <GroupSidebar
                     organization={organization}

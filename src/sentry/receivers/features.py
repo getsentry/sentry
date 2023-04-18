@@ -31,7 +31,7 @@ from sentry.signals import (
     issue_unignored,
     issue_unresolved,
     member_joined,
-    monitor_failed,
+    monitor_environment_failed,
     ownership_rule_created,
     plugin_enabled,
     project_created,
@@ -211,6 +211,8 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         organization_id=organization_id,
         group_id=group.id,
         resolution_type=resolution_type,
+        issue_type=group.issue_type.slug,
+        issue_category=group.issue_category.name.lower(),
     )
 
 
@@ -632,13 +634,14 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
     )
 
 
-@monitor_failed.connect(weak=False)
-def record_monitor_failure(monitor, **kwargs):
+@monitor_environment_failed.connect(weak=False)
+def record_monitor_failure(monitor_environment, **kwargs):
     analytics.record(
-        "monitor.mark_failed",
-        organization_id=monitor.organization_id,
-        monitor_id=monitor.guid,
-        project_id=monitor.project_id,
+        "monitor_environment.mark_failed",
+        organization_id=monitor_environment.monitor.organization_id,
+        monitor_id=monitor_environment.monitor.guid,
+        project_id=monitor_environment.monitor.project_id,
+        environment_id=monitor_environment.environment_id,
     )
 
 

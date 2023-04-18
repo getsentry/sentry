@@ -19,6 +19,7 @@ export function ReplayList(
       duration: duration(30000),
       finished_at: new Date('2022-09-15T06:54:00+00:00'),
       id: '346789a703f6454384f1de473b8b9fcc',
+      is_archived: false,
       os: {
         name: 'sentry.javascript.react',
         version: '7.42.0',

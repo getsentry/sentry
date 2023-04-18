@@ -131,7 +131,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             "installation_type": "born_as_bot",
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -159,7 +159,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             "installation_type": "born_as_bot",
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -187,7 +187,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert integrations[1].external_id == "TXXXXXXX2"
 
         oi = OrganizationIntegration.objects.get(
-            integration=integrations[1], organization=self.organization
+            integration=integrations[1], organization_id=self.organization.id
         )
         assert oi.config == {}
 

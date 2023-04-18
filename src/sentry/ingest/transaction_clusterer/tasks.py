@@ -2,7 +2,6 @@ from itertools import islice
 from typing import Any, Sequence
 
 import sentry_sdk
-from django.conf import settings
 
 from sentry import features
 from sentry.models import Project
@@ -34,8 +33,6 @@ PROJECTS_PER_TASK = 100
 )  # type: ignore
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
-    if not settings.SENTRY_TRANSACTION_CLUSTERER_RUN:
-        return
     with sentry_sdk.start_span(op="txcluster_spawn"):
         project_count = 0
         project_iter = redis.get_active_projects()
@@ -62,9 +59,16 @@ def cluster_projects(projects: Sequence[Project]) -> None:
         if features.has("organizations:transaction-name-clusterer", project.organization):
             with sentry_sdk.start_span(op="txcluster_project") as span:
                 span.set_data("project_id", project.id)
-                clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
-                clusterer.add_input(redis.get_transaction_names(project))
-                new_rules = clusterer.get_rules()
+                tx_names = list(redis.get_transaction_names(project))
+                new_rules = []
+                if len(tx_names) >= redis.MAX_SET_SIZE:
+                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                    clusterer.add_input(tx_names)
+                    new_rules = clusterer.get_rules()
+
+                # The Redis store may have more up-to-date last_seen values,
+                # so we must update the stores to bring these values to
+                # project options, even if there aren't any new rules.
                 rules.update_rules(project, new_rules)
 
                 # Clear transaction names to prevent the set from picking up

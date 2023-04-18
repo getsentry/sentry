@@ -9,6 +9,7 @@ import click
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
+from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
 from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
 from sentry.utils.kafka import run_processor_with_signals
@@ -449,18 +450,6 @@ def post_process_forwarder(**options):
 )
 @click.option("--topic", default=None, help="Topic to get subscription updates from.")
 @click.option(
-    "--commit-batch-size",
-    default=100,
-    type=int,
-    help="How many messages to process before committing offsets.",
-)
-@click.option(
-    "--commit-batch-timeout-ms",
-    default=5000,
-    type=int,
-    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
-)
-@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
@@ -472,17 +461,36 @@ def post_process_forwarder(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Force subscriptions to start from a particular offset",
 )
+@kafka_options(
+    "query-subscription-consumer",
+    include_batching_options=True,
+    allow_force_cluster=False,
+    default_max_batch_size=20,
+)
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @strict_offset_reset_option()
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
-    from sentry.snuba.query_subscription_consumer import get_query_subscription_consumer
+    from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
 
     subscriber = get_query_subscription_consumer(
         topic=options["topic"],
         group_id=options["group"],
         strict_offset_reset=options["strict_offset_reset"],
         initial_offset_reset=options["initial_offset_reset"],
+        max_batch_size=options["max_batch_size"],
+        # Our batcher expects the time in seconds
+        max_batch_time=int(options["max_batch_time"] / 1000),
+        processes=options["processes"],
+        input_block_size=options["input_block_size"],
+        output_block_size=options["output_block_size"],
     )
     run_processor_with_signals(subscriber)
 
@@ -546,16 +554,30 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 
 @run.command("occurrences-ingest-consumer")
-@kafka_options("occurrence-consumer", allow_force_cluster=False)
+@kafka_options(
+    "occurrence-consumer",
+    include_batching_options=True,
+    allow_force_cluster=False,
+    default_max_batch_size=20,
+)
 @strict_offset_reset_option()
 @configuration
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def occurrences_ingest_consumer(**options):
     from django.conf import settings
 
-    from sentry.issues.occurrence_consumer import get_occurrences_ingest_consumer
     from sentry.utils import metrics
 
     consumer_type = settings.KAFKA_INGEST_OCCURRENCES
+
+    # Our batcher expects the time in seconds
+    options["max_batch_time"] = int(options["max_batch_time"] / 1000)
 
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
         consumer = get_occurrences_ingest_consumer(consumer_type, **options)

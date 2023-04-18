@@ -76,11 +76,15 @@ class Tags extends Component<Props, State> {
     }
 
     try {
-      const tags = await fetchTagFacets(
+      let tags = await fetchTagFacets(
         api,
         organization.slug,
         eventView.getFacetsAPIPayload(location)
       );
+
+      if (!organization.features.includes('device-classification')) {
+        tags = tags.filter(tag => tag.key !== 'device.class');
+      }
       this.setState({loading: false, tags});
     } catch (err) {
       Sentry.captureException(err);

@@ -109,6 +109,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.relay.build_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
@@ -329,12 +331,8 @@ def configure_sdk():
         experimental_transport = None
 
     if settings.SENTRY_PROFILING_ENABLED:
-        sdk_options.setdefault("_experiments", {}).update(
-            {
-                "profiles_sample_rate": settings.SENTRY_PROFILES_SAMPLE_RATE,
-                "profiler_mode": settings.SENTRY_PROFILER_MODE,
-            }
-        )
+        sdk_options["profiles_sample_rate"] = settings.SENTRY_PROFILES_SAMPLE_RATE
+        sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
@@ -409,6 +407,10 @@ def configure_sdk():
             DjangoAtomicIntegration(),
             DjangoIntegration(),
             CeleryIntegration(),
+            # This makes it so all levels of logging are recorded as breadcrumbs,
+            # but none are captured as events (that's handled by the `internal`
+            # logger defined in `server.py`, which ignores the levels set
+            # in the integration and goes straight to the underlying handler class).
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
             RedisIntegration(),

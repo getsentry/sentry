@@ -1052,7 +1052,7 @@ class JiraInstallationTest(IntegrationTestCase):
         integration = Integration.objects.get(external_id="my-external-id")
         assert integration.metadata == self.metadata
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         ).exists()
 
     def test_installation(self):

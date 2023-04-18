@@ -16,6 +16,8 @@ import theme, {Color} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 
+type TooltipProps = React.ComponentProps<typeof Tooltip>;
+
 interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Makes the tag clickable. Use for external links.
@@ -44,9 +46,13 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
    */
   to?: LinkProps['to'];
   /**
+   * Additional properites for the Tooltip when `tooltipText` is set.
+   */
+  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
+  /**
    * Text to show up on a hover.
    */
-  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
+  tooltipText?: TooltipProps['title'];
   /**
    * Dictates color scheme of the tag.
    */
@@ -57,6 +63,7 @@ function Tag({
   type = 'default',
   icon,
   tooltipText,
+  tooltipProps,
   to,
   onClick,
   href,
@@ -71,7 +78,7 @@ function Tag({
   };
 
   const tag = (
-    <Tooltip title={tooltipText} containerDisplayMode="inline-flex">
+    <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
       <Background type={type}>
         {tagIcon()}
 

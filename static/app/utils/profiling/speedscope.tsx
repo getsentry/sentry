@@ -195,7 +195,11 @@ export class Rect {
     return this.overlapsX(other) && this.overlapsY(other);
   }
 
-  transformRect(transform: mat3 | Readonly<mat3>): Rect {
+  transformRect(transform: mat3 | Readonly<mat3> | null): Rect {
+    if (!transform) {
+      return this.clone();
+    }
+
     const x = this.x * transform[0] + this.y * transform[3] + transform[6];
     const y = this.x * transform[1] + this.y * transform[4] + transform[7];
     const width = this.width * transform[0] + this.height * transform[3];

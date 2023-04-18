@@ -101,7 +101,7 @@ describe('ProjectSourceMaps', function () {
       expect(tabs[0]).toHaveClass('active');
 
       // Tab 2
-      expect(tabs[1]).toHaveTextContent('Debug ID Bundles');
+      expect(tabs[1]).toHaveTextContent('Artifact Bundles');
       expect(tabs[1]).not.toHaveClass('active');
 
       // Search bar
@@ -157,10 +157,10 @@ describe('ProjectSourceMaps', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
       // Switch tab
-      await userEvent.click(screen.getByRole('link', {name: 'Debug ID Bundles'}));
+      await userEvent.click(screen.getByRole('link', {name: 'Artifact Bundles'}));
       expect(router.push).toHaveBeenCalledWith({
         pathname:
-          '/settings/org-slug/projects/project-slug/source-maps/debug-id-bundles/',
+          '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/',
         query: undefined,
       });
     });
@@ -201,7 +201,7 @@ describe('ProjectSourceMaps', function () {
     });
   });
 
-  describe('Debug ID Bundles', function () {
+  describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
         ...initializeOrg(),
@@ -210,7 +210,7 @@ describe('ProjectSourceMaps', function () {
             query: {},
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
               initializeOrg().project.slug
-            }/source-maps/debug-id-bundles/`,
+            }/source-maps/artifact-bundles/`,
           },
           params: {},
         },
@@ -246,7 +246,7 @@ describe('ProjectSourceMaps', function () {
       expect(tabs[0]).not.toHaveClass('active');
 
       // Tab 2
-      expect(tabs[1]).toHaveTextContent('Debug ID Bundles');
+      expect(tabs[1]).toHaveTextContent('Artifact Bundles');
       expect(tabs[1]).toHaveClass('active');
 
       // Search bar
@@ -283,7 +283,7 @@ describe('ProjectSourceMaps', function () {
         screen.getByRole('link', {name: 'b916a646-2c6b-4e45-af4c-409830a44e0e'})
       );
       expect(router.push).toHaveBeenLastCalledWith(
-        '/settings/org-slug/projects/project-slug/source-maps/debug-id-bundles/b916a646-2c6b-4e45-af4c-409830a44e0e'
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/b916a646-2c6b-4e45-af4c-409830a44e0e'
       );
 
       renderGlobalModal();
@@ -324,7 +324,7 @@ describe('ProjectSourceMaps', function () {
             query: {},
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
               initializeOrg().project.slug
-            }/source-maps/debug-id-bundles/`,
+            }/source-maps/artifact-bundles/`,
           },
           params: {},
         },

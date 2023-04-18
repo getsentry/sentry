@@ -8,7 +8,9 @@ import AbstractExternalIssueForm, {
 import {FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import {Group, Integration, IntegrationExternalIssue} from 'sentry/types';
+import {Group, Integration, IntegrationExternalIssue, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -24,6 +26,7 @@ type Props = {
   group: Group;
   integration: Integration;
   onChange: (onSuccess?: () => void, onError?: () => void) => void;
+  organization: Organization;
 } & AbstractExternalIssueForm['props'];
 
 type State = AbstractExternalIssueForm['state'];
@@ -31,6 +34,7 @@ type State = AbstractExternalIssueForm['state'];
 export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
   submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
+  trackedLoadStatus = false;
 
   constructor(props) {
     super(props, {});
@@ -69,6 +73,14 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   onSubmitSuccess = (_data: IntegrationExternalIssue): void => {
     const {onChange, closeModal} = this.props;
     const {action} = this.state;
+
+    trackAdvancedAnalyticsEvent('issue_details.external_issue_created', {
+      organization: this.props.organization,
+      ...getAnalyticsDataForGroup(this.props.group),
+      external_issue_provider: this.props.integration.provider.key,
+      external_issue_type: 'first_party',
+    });
+
     onChange(() => addSuccessMessage(MESSAGES_BY_ACTION[action]));
     closeModal();
 
@@ -79,12 +91,29 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.submitTransaction?.finish();
   };
 
+  trackLoadStatus = (success: boolean) => {
+    if (this.trackedLoadStatus) {
+      return;
+    }
+
+    this.trackedLoadStatus = true;
+    trackAdvancedAnalyticsEvent('issue_details.external_issue_loaded', {
+      organization: this.props.organization,
+      ...getAnalyticsDataForGroup(this.props.group),
+      external_issue_provider: this.props.integration.provider.key,
+      external_issue_type: 'first_party',
+      success,
+    });
+  };
+
   onLoadAllEndpointsSuccess = () => {
     this.loadTransaction?.finish();
+    this.trackLoadStatus(true);
   };
 
   onRequestError = () => {
     this.loadTransaction?.finish();
+    this.trackLoadStatus(false);
   };
 
   getEndPointString() {

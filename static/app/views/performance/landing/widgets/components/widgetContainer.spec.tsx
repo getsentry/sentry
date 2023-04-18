@@ -26,7 +26,7 @@ const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, withStaticFilters = false, ...rest}) => {
+function WrappedComponent({data, withStaticFilters = false, ...rest}) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -50,7 +50,7 @@ const WrappedComponent = ({data, withStaticFilters = false, ...rest}) => {
       </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 const issuesPredicate = (url, options) =>
   url.includes('events') && options.query?.query.includes('error');

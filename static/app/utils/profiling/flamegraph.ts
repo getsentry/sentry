@@ -1,3 +1,4 @@
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {lastOfArray} from 'sentry/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
@@ -96,7 +97,9 @@ export class Flamegraph {
       inverted = false,
       sort = 'call order',
       configSpace,
+      collapseStrategy,
     }: {
+      collapseStrategy?: (root: FlamegraphFrame) => FlamegraphFrame;
       configSpace?: Rect;
       inverted?: boolean;
       sort?: 'left heavy' | 'alphabetical' | 'call order';
@@ -133,6 +136,15 @@ export class Flamegraph {
 
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
+
+    if (collapseStrategy) {
+      const {root, frames, depth} = buildCollapsedFlamegraph(
+        collapse(this.root, collapseStrategy)
+      );
+      this.root = root;
+      this.depth = depth;
+      this.frames = frames;
+    }
 
     if (this.profile.duration > 0) {
       this.configSpace = new Rect(
@@ -335,6 +347,8 @@ export class Flamegraph {
   }
 
   findAllMatchingFrames(frameName?: string, framePackage?: string): FlamegraphFrame[] {
+    framePackage = tryTrimPackage(framePackage);
+
     const matches: FlamegraphFrame[] = [];
 
     for (let i = 0; i < this.frames.length; i++) {
@@ -342,7 +356,7 @@ export class Flamegraph {
         this.frames[i].frame.name === frameName &&
         // the framePackage can match either the package or the module
         // this is an artifact of how we previously used image
-        (this.frames[i].frame.package === framePackage ||
+        (tryTrimPackage(this.frames[i].frame.package) === framePackage ||
           this.frames[i].frame.module === framePackage)
       ) {
         matches.push(this.frames[i]);
@@ -351,4 +365,50 @@ export class Flamegraph {
 
     return matches;
   }
+}
+
+function collapse(
+  frame: FlamegraphFrame,
+  strategy: (frame: FlamegraphFrame) => FlamegraphFrame
+) {
+  frame.children = frame.children.map(f => collapse(f, strategy));
+
+  if (frame.frame.isRoot) {
+    return frame;
+  }
+
+  return strategy(frame);
+}
+
+function buildCollapsedFlamegraph(root: FlamegraphFrame) {
+  const frames: FlamegraphFrame[] = [];
+  const stack = [root];
+  let maxDepth = 0;
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node) {
+      break;
+    }
+    maxDepth = Math.max(maxDepth, node.depth);
+
+    if (!node.frame.isRoot) {
+      frames.push(node);
+    }
+
+    for (const child of node.children) {
+      child.depth = node.frame.isRoot ? 0 : node.depth + 1;
+
+      stack.push(child);
+    }
+  }
+
+  return {
+    frames,
+    root,
+    depth: maxDepth,
+  };
+}
+
+function tryTrimPackage(pkg?: string): string | undefined {
+  return pkg ? trimPackage(pkg) : pkg;
 }

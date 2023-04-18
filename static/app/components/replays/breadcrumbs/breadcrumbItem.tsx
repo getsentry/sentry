@@ -1,7 +1,8 @@
-import {CSSProperties, memo, useCallback} from 'react';
+import {CSSProperties, isValidElement, memo, MouseEvent, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import ObjectInspector from 'sentry/components/objectInspector';
 import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -12,22 +13,45 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
 
-interface Props {
+interface BaseProps {
   crumb: Crumb;
   isCurrent: boolean;
   isHovered: boolean;
   onClick: null | MouseCallback;
   startTimestampMs: number;
+  expandPaths?: string[];
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
   style?: CSSProperties;
 }
+interface NoDimensionChangeProps extends BaseProps {
+  index?: undefined;
+  onDimensionChange?: undefined;
+}
+
+interface WithDimensionChangeProps extends BaseProps {
+  /**
+   * Only required if onDimensionChange is used
+   */
+  index: number;
+  onDimensionChange: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>,
+    event: MouseEvent<HTMLDivElement>
+  ) => void;
+}
+
+type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
 function BreadcrumbItem({
   crumb,
+  expandPaths,
+  index,
   isCurrent,
   isHovered,
   onClick,
+  onDimensionChange,
   onMouseEnter,
   onMouseLeave,
   startTimestampMs,
@@ -48,6 +72,11 @@ function BreadcrumbItem({
       onClick?.(crumb, e);
     },
     [crumb, onClick]
+  );
+  const handleDimensionChange = useCallback(
+    (path, expandedState, e) =>
+      onDimensionChange && onDimensionChange(index, path, expandedState, e),
+    [index, onDimensionChange]
   );
 
   return (
@@ -75,13 +104,31 @@ function BreadcrumbItem({
           ) : null}
         </TitleContainer>
 
-        <Description title={description} showOnlyOnOverflow>
-          {description}
-        </Description>
+        {typeof description === 'string' || isValidElement(description) ? (
+          <Description title={description} showOnlyOnOverflow>
+            {description}
+          </Description>
+        ) : (
+          <InspectorWrapper>
+            <ObjectInspector
+              data={description}
+              expandPaths={expandPaths}
+              onExpand={handleDimensionChange}
+              theme={{
+                TREENODE_FONT_SIZE: '0.7rem',
+                ARROW_FONT_SIZE: '0.5rem',
+              }}
+            />
+          </InspectorWrapper>
+        )}
       </CrumbDetails>
     </CrumbItem>
   );
 }
+
+const InspectorWrapper = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+`;
 
 const CrumbDetails = styled('div')`
   display: flex;

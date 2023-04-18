@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration, Organization
+from sentry.services.hybrid_cloud import coerce_id_from
 
 
 @pending_silo_endpoint
@@ -11,7 +12,9 @@ class VstsSearchEndpoint(IntegrationEndpoint):  # type: ignore
     def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(
-                organizations=organization, id=integration_id, provider="vsts"
+                organizationintegration__organization_id=coerce_id_from(organization),
+                id=integration_id,
+                provider="vsts",
             )
         except Integration.DoesNotExist:
             return Response(status=404)

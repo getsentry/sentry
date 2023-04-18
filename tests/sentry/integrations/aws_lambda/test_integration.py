@@ -209,7 +209,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "aws_external_id": aws_external_id,
         }
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
 
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
@@ -274,7 +274,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "aws_external_id": aws_external_id,
         }
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
 
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")

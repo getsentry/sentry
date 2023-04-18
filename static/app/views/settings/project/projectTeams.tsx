@@ -37,10 +37,11 @@ class ProjectTeams extends AsyncView<Props, State> {
   }
 
   canCreateTeam = () => {
-    const {organization} = this.props;
-    const access = new Set(organization.access);
+    const access = this.props.organization.access;
     return (
-      access.has('org:write') && access.has('team:write') && access.has('project:write')
+      access.includes('org:write') &&
+      access.includes('team:write') &&
+      access.includes('project:write')
     );
   };
 

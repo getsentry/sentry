@@ -1,4 +1,3 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -9,10 +8,11 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
   location: Location;
   organization: Organization;
 };

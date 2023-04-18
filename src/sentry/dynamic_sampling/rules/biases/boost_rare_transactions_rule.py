@@ -12,7 +12,7 @@ class RareTransactionsRulesBias(Bias):
     def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
         proj_id = project.id
         org_id = project.organization.id
-        transaction_map, rate = get_transactions_resampling_rates(
+        transaction_map, implicit_rate = get_transactions_resampling_rates(
             org_id=org_id, proj_id=proj_id, default_rate=base_sample_rate
         )
         ret_val: List[Rule] = []
@@ -20,10 +20,18 @@ class RareTransactionsRulesBias(Bias):
         if len(transaction_map) == 0:
             return ret_val  # no point returning any rules the project rule should take over
 
+        if base_sample_rate == 0:
+            return ret_val  # we can't deal without a base_sample_rate
+
+        if implicit_rate == 0.0:
+            implicit_rate = 1.0
+        implicit_rate = implicit_rate / base_sample_rate
         idx = 0
         for name, transaction_rate in transaction_map.items():
-            if base_sample_rate != 0:
-                transaction_rate /= base_sample_rate
+            transaction_rate /= base_sample_rate
+            # since the implicit rate applies for everything (so explicit transaction will also
+            # have it applied undo its effect here so we end up with factor = (transaction_r/implicit_r) * implicit_r
+            transaction_rate /= implicit_rate
             # add a rule for each rebalanced transaction
             ret_val.append(
                 {
@@ -47,5 +55,19 @@ class RareTransactionsRulesBias(Bias):
                 }
             )
             idx += 1
+        ret_val.append(
+            {
+                "samplingValue": {
+                    "type": "factor",
+                    "value": implicit_rate,
+                },
+                "type": "transaction",
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+                "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
+            }
+        )
 
         return ret_val

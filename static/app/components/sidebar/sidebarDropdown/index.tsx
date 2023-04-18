@@ -40,7 +40,7 @@ type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   org?: Organization;
 };
 
-const SidebarDropdown = ({
+function SidebarDropdown({
   api,
   org,
   projects,
@@ -49,7 +49,7 @@ const SidebarDropdown = ({
   config,
   user,
   hideOrgLinks,
-}: Props) => {
+}: Props) {
   const handleLogout = async () => {
     await logout(api);
     window.location.assign('/auth/login/');
@@ -185,7 +185,7 @@ const SidebarDropdown = ({
       )}
     </DeprecatedDropdownMenu>
   );
-};
+}
 
 export default withApi(withProjects(SidebarDropdown));
 

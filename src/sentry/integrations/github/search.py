@@ -12,7 +12,9 @@ from sentry.shared_integrations.exceptions import ApiError
 class GitHubSearchEndpoint(IntegrationEndpoint):  # type: ignore
     def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
-            integration = Integration.objects.get(organizations=organization, id=integration_id)
+            integration = Integration.objects.get(
+                organizationintegration__organization_id=organization.id, id=integration_id
+            )
         except Integration.DoesNotExist:
             return Response(status=404)
 

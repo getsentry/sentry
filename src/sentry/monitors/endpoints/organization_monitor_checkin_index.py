@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -31,7 +32,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         operation_id="Retrieve check-ins for a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
             MONITOR_PARAMS.CHECKIN_ID,
         ],
         responses={
@@ -61,8 +62,24 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
 
         environments = get_environments(request, organization)
 
+        # XXX(epurkhiser): This is a hack right now, since we were not dual
+        # writing missed check-ins, we have many past checkins that are not
+        # assocaiated to an environment.
+        #
+        # When the environment is 'production' (the default) or empty, we will
+        # explicitly include monitor environments that are missing
+        skip_environments_when_production = (
+            len(environments) == 1 and environments[0].name == "production"
+        )
+
         if environments:
-            queryset = queryset.filter(monitor_environment__environment__in=environments)
+            if skip_environments_when_production:
+                queryset = queryset.filter(
+                    Q(monitor_environment__environment__in=environments)
+                    | Q(monitor_environment=None)
+                )
+            else:
+                queryset = queryset.filter(monitor_environment__environment__in=environments)
 
         return self.paginate(
             request=request,

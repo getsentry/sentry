@@ -16,7 +16,9 @@ class JiraSearchEndpoint(IntegrationEndpoint):
 
     def _get_integration(self, organization, integration_id):
         return Integration.objects.get(
-            organizations=organization, id=integration_id, provider=self.provider
+            organizationintegration__organization_id=organization.id,
+            id=integration_id,
+            provider=self.provider,
         )
 
     def get(self, request: Request, organization, integration_id) -> Response:

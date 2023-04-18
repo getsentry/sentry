@@ -38,7 +38,10 @@ type CustomProps = {
  * We add some additional props to our routes
  */
 
-const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
+const Route = BaseRoute as React.ComponentClass<
+  React.PropsWithChildren<RouteProps & CustomProps>
+>;
+
 const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
@@ -56,11 +59,11 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   resolve: () => Promise<{default: C}>
 ) {
   // XXX: Assign the component to a variable so it has a displayname
-  const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
+  function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
     return <SafeLazyLoad {...props} component={resolve} />;
-  };
+  }
 
   return RouteLazyLoad;
 }
@@ -514,8 +517,8 @@ function buildRoutes() {
           })}
         />
         <Route
-          path="debug-id-bundles/"
-          name={t('Debug ID Bundles')}
+          path="artifact-bundles/"
+          name={t('Artifact Bundles')}
           component={make(async () => {
             const {ProjectSourceMapsContainer} = await import(
               'sentry/views/settings/projectSourceMaps'
@@ -526,7 +529,7 @@ function buildRoutes() {
           })}
         >
           <Route
-            name={t('Debug ID Bundle')}
+            name={t('Artifact Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
@@ -1699,6 +1702,48 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const starfishChildRoutes = (
+    <Fragment>
+      <IndexRoute
+        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
+      />
+      <Route
+        path="database/"
+        component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
+      />
+      <Route
+        path="api/"
+        component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+      />
+      <Route
+        path="cache/"
+        component={make(() => import('sentry/views/starfish/modules/cacheModule'))}
+      />
+    </Fragment>
+  );
+
+  const starfishRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={withDomainRequired(make(() => import('sentry/views/starfish')))}
+          key="orgless-starfish-route"
+        >
+          {starfishChildRoutes}
+        </Route>
+      )}
+
+      <Route
+        path="organizations/:orgId/starfish/"
+        component={make(() => import('sentry/views/starfish/'))}
+        key="org-starfish"
+      >
+        {starfishChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
   const userFeedbackRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -2125,6 +2170,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {starfishRoutes}
       {profilingRoutes}
       {adminManageRoutes}
       {gettingStartedRoutes}

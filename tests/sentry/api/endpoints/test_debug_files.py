@@ -292,8 +292,10 @@ class DebugFilesUploadTest(APITestCase):
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
         release2 = Release.objects.create(organization_id=project.organization_id, version="2")
+        release3 = Release.objects.create(organization_id=project.organization_id, version="3")
         release.add_project(project)
         release2.add_project(project)
+        release3.add_project(project)
 
         ReleaseFile.objects.create(
             organization_id=project.organization_id,
@@ -307,6 +309,13 @@ class DebugFilesUploadTest(APITestCase):
             file=File.objects.create(name="application2.js", type="release.file"),
             name="http://example.com/application2.js",
         )
+        ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release2.id,
+            file=File.objects.create(name="application3.js", type="release.file"),
+            name="http://example.com/application2.js",
+            artifact_count=0,
+        )
 
         url = reverse(
             "sentry-api-0-source-maps",
@@ -318,10 +327,16 @@ class DebugFilesUploadTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert response.data[0]["name"] == str(release2.version)
-        assert response.data[0]["fileCount"] == 0
-        assert response.data[1]["fileCount"] == 2
+        assert len(response.data) == 3
+        # No ReleaseFile.
+        assert response.data[0]["name"] == str(release3.version)
+        assert response.data[0]["fileCount"] == -1
+        # ReleaseFile with zero artifacts.
+        assert response.data[1]["name"] == str(release2.version)
+        assert response.data[1]["fileCount"] == 0
+        # ReleaseFile with multiple artifacts.
+        assert response.data[2]["name"] == str(release.version)
+        assert response.data[2]["fileCount"] == 2
 
     def test_source_maps_sorting(self):
         project = self.create_project(name="foo")

@@ -12,7 +12,7 @@ import {Event, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {
   getStatusBodyText,
   HttpStatus,
@@ -39,7 +39,7 @@ interface EventContextProps extends BaseContextProps {
 
 function EventContext(props: EventContextProps) {
   const {organization, dataRow, eventView, location} = props;
-  const {isLoading, isError, data} = useQuery<Event>(
+  const {isLoading, isError, data} = useApiQuery<Event>(
     [
       `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
     ],

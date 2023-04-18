@@ -1,9 +1,9 @@
 import {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
 
-import Exception from './exception';
-import Stacktrace from './stackTrace';
+import {ExceptionContent} from './exception';
+import {StackTraceContent} from './stackTrace';
 
-type ExceptionProps = React.ComponentProps<typeof Exception>;
+type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 type Props = Pick<
   ExceptionProps,
   | 'stackType'
@@ -18,7 +18,7 @@ type Props = Pick<
   stacktrace?: ExceptionValue['stacktrace'];
 };
 
-function CrashContent({
+export function CrashContent({
   event,
   stackView,
   stackType,
@@ -33,7 +33,7 @@ function CrashContent({
 
   if (exception) {
     return (
-      <Exception
+      <ExceptionContent
         stackType={stackType}
         stackView={stackView}
         projectSlug={projectSlug}
@@ -49,7 +49,7 @@ function CrashContent({
 
   if (stacktrace) {
     return (
-      <Stacktrace
+      <StackTraceContent
         stacktrace={stacktrace}
         stackView={stackView}
         newestFirst={newestFirst}
@@ -63,5 +63,3 @@ function CrashContent({
 
   return null;
 }
-
-export default CrashContent;
