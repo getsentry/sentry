@@ -1,18 +1,22 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {UpdateSdkSuggestion} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {ReplaySearchMinSdkAlert} from 'sentry/views/replays/list/replaySearchAlert';
+import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
+import {ReplaySearchAlert} from 'sentry/views/replays/list/replaySearchAlert';
 
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/utils/useProjectSdkUpdates');
 
 const mockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
 const mockUsePageFilters = usePageFilters as jest.MockedFunction<typeof usePageFilters>;
 const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
+const mockUseProjectSdkUpdates = useProjectSdkUpdates as jest.MockedFunction<
+  typeof useProjectSdkUpdates
+>;
 
 const project = TestStubs.Project();
 
@@ -20,101 +24,98 @@ function getMockContext() {
   return TestStubs.routerContext([{}]);
 }
 
+function mockLocationReturn(query: string = ''): ReturnType<typeof useLocation> {
+  return {
+    query: {
+      query,
+    },
+    pathname: '',
+    search: '',
+    hash: '',
+    state: {},
+    action: 'PUSH',
+    key: '',
+  };
+}
+
 describe('ReplaySearchAlert', () => {
   beforeEach(() => {
-    // @ts-ignore
+    // @ts-expect-error
     mockUseProjects.mockReturnValue({
       projects: [project],
     });
 
-    // @ts-ignore
     mockUsePageFilters.mockReturnValue({
-      // @ts-ignore
+      // @ts-expect-error
       selection: {
         // for some reason project.id selections are numbers, but elsewhere project.id is string
         projects: [Number(project.id)],
       },
     });
 
-    // @ts-ignore
-    mockUseLocation.mockReturnValue({
-      query: {
-        query: '',
-      },
+    mockUseLocation.mockReturnValue(mockLocationReturn());
+
+    mockUseProjectSdkUpdates.mockReturnValue({
+      type: 'initial',
     });
   });
 
   it('should not render search alert by default', () => {
-    const {container} = render(<ReplaySearchMinSdkAlert />, {
+    const {container} = render(<ReplaySearchAlert />, {
       context: getMockContext(),
     });
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('should render update alert if minSdk <= 7.44.0 and search contains "click" key', () => {
-    // @ts-ignore
-    mockUseLocation.mockReturnValue({
-      query: {
-        query: 'click.alt:foo',
-      },
+  it('should render dismissible alert if minSdk <= 7.44.0', () => {
+    mockUseProjectSdkUpdates.mockReturnValue({
+      type: 'resolved',
+      // @ts-expect-error - ts doesn't play nice with overloaded returns
+      data: [
+        {
+          projectId: project.id,
+          sdkName: 'javascript',
+          sdkVersion: '7.0.0',
+          suggestions: [],
+        },
+      ],
     });
 
-    const {container} = render(
-      <ReplaySearchMinSdkAlert
-        sdkUpdates={[
-          {
-            projectId: project.id,
-            sdkName: 'javascript',
-            sdkVersion: '7.0.0',
-            suggestions: [],
-          },
-        ]}
-      />,
-      {
-        context: getMockContext(),
-      }
-    );
+    const {container} = render(<ReplaySearchAlert />, {
+      context: getMockContext(),
+    });
 
     expect(container).not.toBeEmptyDOMElement();
+    expect(screen.queryByTestId('min-sdk-alert')).toBeInTheDocument();
     expect(container).toHaveTextContent(
-      'Searching by click requires a minimum SDK version of v7.44.0'
+      "Search for dom elements clicked during a replay by using our new search key 'click'. Sadly, it requires an SDK version >= 7.44.0"
     );
   });
 
-  it('should render update alert w/ recommendation if minSdk <= 7.44.0 and search contains "click" key and sdkUpdates include suggestion', () => {
-    // @ts-ignore
-    mockUseLocation.mockReturnValue({
-      query: {
-        query: 'click.alt:foo',
-      },
+  it('should render update alert if minSdk <= 7.44.0 and search contains "click" key', () => {
+    mockUseLocation.mockReturnValue(mockLocationReturn('click.alt:foo'));
+
+    mockUseProjectSdkUpdates.mockReturnValue({
+      type: 'resolved',
+      // @ts-expect-error - ts doesn't play nice with overloaded returns
+      data: [
+        {
+          projectId: project.id,
+          sdkName: 'javascript',
+          sdkVersion: '7.0.0',
+          suggestions: [],
+        },
+      ],
     });
 
-    const {container} = render(
-      <ReplaySearchMinSdkAlert
-        sdkUpdates={[
-          {
-            projectId: project.id,
-            sdkName: 'javascript',
-            sdkVersion: '7.0.0',
-            suggestions: [
-              {
-                type: 'updateSdk',
-                newSdkVersion: '8.0.0',
-                sdkName: 'javascript',
-                sdkUrl: 'https://sentry.io',
-              } as UpdateSdkSuggestion,
-            ],
-          },
-        ]}
-      />,
-      {
-        context: getMockContext(),
-      }
-    );
+    const {container} = render(<ReplaySearchAlert />, {
+      context: getMockContext(),
+    });
 
     expect(container).not.toBeEmptyDOMElement();
+    expect(screen.queryByTestId('min-sdk-alert')).toBeInTheDocument();
     expect(container).toHaveTextContent(
-      'Searching by click requires a minimum SDK version of javascript@v7.44.0. Update to javascript@v8.0.0'
+      "Search field 'click' requires a minimum SDK version of >= 7.44.0."
     );
   });
 });
