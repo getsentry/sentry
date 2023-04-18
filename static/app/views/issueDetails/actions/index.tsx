@@ -21,8 +21,6 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeatureBadge from 'sentry/components/featureBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCheckmark,
   IconEllipsis,
