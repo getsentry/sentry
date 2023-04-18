@@ -34,7 +34,9 @@ class Option(Model):  # type: ignore
     key = models.CharField(max_length=128, unique=True)
     value = PickledObjectField()
     last_updated = models.DateTimeField(default=timezone.now)
-    last_updated_by = models.CharField(choices=OptionsTypes.choices(), default=OptionsTypes.LEGACY)
+    last_updated_by = models.CharField(
+        max_length=128, choices=OptionsTypes.choices(), default="legacy"
+    )
 
     class Meta:
         app_label = "sentry"
