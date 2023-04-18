@@ -8,7 +8,7 @@ import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveRe
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const tabs = {
+const ReplayTabs: Record<TabKey, string> = {
   [TabKey.console]: t('Console'),
   [TabKey.network]: t('Network'),
   [TabKey.dom]: t('DOM Events'),
@@ -29,7 +29,7 @@ function FocusTabs({className}: Props) {
 
   return (
     <ScrollableTabs className={className} underlined>
-      {Object.entries(tabs).map(([tab, label]) => (
+      {Object.entries(ReplayTabs).map(([tab, label]) => (
         <ListLink
           key={tab}
           isActive={() => tab === activeTab}
