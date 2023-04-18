@@ -1,41 +1,32 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
-// import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-// import {Organization} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
 
 type Props = {
-  api: Client;
   isSnoozed: boolean;
-  // organization: Organization;
-  projectId: string;
+  onSnooze: (nextState: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) => void;
+  projectSlug: string;
   ruleId: string;
-  setSnooze: (nextState: boolean) => void;
-  setSnoozeCreatedBy: (nextState: string) => void;
 };
 
-function SnoozeAlert({
-  isSnoozed,
-  setSnooze,
-  setSnoozeCreatedBy,
-  api,
-  // organization,
-  projectId,
-  ruleId,
-}: Props) {
+function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
   const organization = useOrganization();
+  const api = useApi();
   function handleMute(target: string) {
     try {
       api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/rules/${ruleId}/snooze/`,
+        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
         {
           method: 'POST',
           data: {
@@ -47,14 +38,17 @@ function SnoozeAlert({
       Sentry.captureException(err);
       return;
     }
-    setSnooze(!isSnoozed);
-    setSnoozeCreatedBy('You');
+    onSnooze({
+      snooze: !isSnoozed,
+      snoozeCreatedBy: 'You',
+      snoozeForEveryone: target === 'me' ? false : true,
+    });
   }
 
   function handleUnmute() {
     try {
       api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/rules/${ruleId}/snooze/`,
+        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
         {
           method: 'DELETE',
         }
@@ -63,7 +57,7 @@ function SnoozeAlert({
       Sentry.captureException(err);
       return;
     }
-    setSnooze(!isSnoozed);
+    onSnooze({snooze: !isSnoozed});
   }
 
   const dropdownItems: MenuItemProps[] = [
@@ -107,7 +101,7 @@ function SnoozeAlert({
   );
 }
 
-export default withApi(SnoozeAlert);
+export default SnoozeAlert;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;

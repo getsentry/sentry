@@ -38,10 +38,8 @@ type Props = AsyncComponent['props'] & {
 } & RouteComponentProps<{projectId: string; ruleId: string}, {}>;
 
 type State = AsyncComponent['state'] & {
-  isSnoozed: boolean;
   memberList: Member[];
   rule: IssueAlertRule | null;
-  snoozeCreatedBy: string | undefined;
 };
 
 const PAGE_QUERY_PARAMS = [
@@ -76,19 +74,11 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     }
   }
 
-  onRequestSuccess = ({stateKey, data}) => {
-    if (stateKey === 'rule') {
-      this.setSnooze(data.snooze);
-      this.setSnoozeCreatedBy(data.snoozeCreatedBy);
-    }
-  };
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       rule: null,
       memberList: [],
-      isSnoozed: false,
-      snoozeCreatedBy: '',
     };
   }
 
@@ -168,12 +158,19 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     });
   }
 
-  setSnooze = (snooze: boolean) => {
-    this.setState({isSnoozed: snooze});
-  };
-
-  setSnoozeCreatedBy = (createdBy: string) => {
-    this.setState({snoozeCreatedBy: createdBy});
+  onSnooze = ({
+    snooze,
+    snoozeCreatedBy,
+    snoozeForEveryone,
+  }: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) => {
+    if (this.state.rule) {
+      const rule = {...this.state.rule, snooze, snoozeCreatedBy, snoozeForEveryone};
+      this.setState({rule});
+    }
   };
 
   handleUpdateDatetime = (datetime: ChangeData) => {
@@ -242,7 +239,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     const {ruleId, projectId} = params;
     const {cursor} = location.query;
     const {period, start, end, utc} = this.getDataDatetime();
-    const {rule, memberList, isSnoozed} = this.state;
+    const {rule, memberList} = this.state;
 
     if (!rule) {
       return (
@@ -261,6 +258,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     }
 
     const hasSnoozeFeature = organization.features.includes('mute-alerts');
+    const isSnoozed = rule.snooze;
 
     const duplicateLink = {
       pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
@@ -314,10 +312,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               {hasSnoozeFeature && (
                 <SnoozeAlert
                   isSnoozed={isSnoozed}
-                  setSnooze={this.setSnooze}
-                  setSnoozeCreatedBy={this.setSnoozeCreatedBy}
+                  onSnooze={this.onSnooze}
                   ruleId={rule.id}
-                  projectId={projectId}
+                  projectSlug={projectId}
                 />
               )}
               <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
@@ -347,7 +344,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
                 {tct(
                   "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
                   {
-                    creator: this.state.snoozeCreatedBy,
+                    creator: rule.snoozeCreatedBy,
                     forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
                   }
                 )}
