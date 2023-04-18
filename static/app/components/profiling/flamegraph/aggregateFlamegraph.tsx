@@ -40,7 +40,6 @@ import {
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
-import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
@@ -109,8 +108,8 @@ export function AggregateFlamegraph(): ReactElement {
     return new FlamegraphCanvas(flamegraphCanvasRef, vec2.fromValues(0, yOrigin));
   }, [devicePixelRatio, flamegraphCanvasRef, flamegraphTheme]);
 
-  const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
-    _ => {
+  const flamegraphView = useMemo<CanvasView<FlamegraphModel> | null>(
+    () => {
       if (!flamegraphCanvas) {
         return null;
       }
