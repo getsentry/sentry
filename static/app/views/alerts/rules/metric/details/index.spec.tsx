@@ -5,7 +5,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
 
-jest.mock('sentry/utils/analytics/trackAnalytics');
+jest.mock('sentry/utils/analytics');
 
 describe('MetricAlertDetails', () => {
   const project = TestStubs.Project({slug: 'earth', platform: 'javascript'});
