@@ -19,7 +19,7 @@ class JiraTokenError(Exception):
     pass
 
 
-class JiraEndpointBase(Endpoint, abc.ABC):
+class JiraWebhookBase(Endpoint, abc.ABC):
     authentication_classes = ()
     permission_classes = ()
     provider = "jira"
