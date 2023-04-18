@@ -69,8 +69,6 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
-from sentry.services.hybrid_cloud.user import user_service
-from sentry.silo.base import SiloMode
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
@@ -138,14 +136,7 @@ class QueryBuilder(BaseQueryBuilder):
             else:
                 environments = []
 
-        user = None
-        if "user_id" in params:
-            user = (
-                User.objects.filter(id=params["user_id"]).first()
-                if SiloMode.get_current_mode() != SiloMode.REGION
-                else user_service.get_user(params["user_id"])
-            )
-
+        user = User.objects.filter(id=params["user_id"]).first() if "user_id" in params else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)

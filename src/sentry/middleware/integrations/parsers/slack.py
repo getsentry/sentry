@@ -7,7 +7,11 @@ from django.http import HttpResponse
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequestError
-from sentry.integrations.slack.webhooks.action import SlackActionEndpoint
+from sentry.integrations.slack.webhooks.action import (
+    NOTIFICATION_SETTINGS_ACTION_OPTIONS,
+    UNFURL_ACTION_OPTIONS,
+    SlackActionEndpoint,
+)
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.models.integrations.integration import Integration
 from sentry.silo.client import SiloClientError
@@ -36,6 +40,8 @@ Views served directly from the control silo without React.
 See: `src/sentry/integrations/slack/views`
 """
 
+ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTINGS_ACTION_OPTIONS
+
 
 class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
@@ -58,7 +64,7 @@ class SlackRequestParser(BaseRequestParser):
         slack_request = self.match.func.view_class.slack_request_class(drf_request)
         action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
 
-        if action_option in ["link", "ignore", "all_slack"]:
+        if action_option in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
             return self.get_response_from_control_silo()
         else:
             response_map = self.get_responses_from_region_silos(regions=regions)
@@ -145,7 +151,7 @@ class SlackRequestParser(BaseRequestParser):
             action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
 
             # All actions other than those below are sent to every region
-            if action_option not in ["link", "ignore", "all_slack"]:
+            if action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
                 return self.get_response_from_all_regions()
 
         # Slack webhooks can only receive one synchronous call/response, as there are many

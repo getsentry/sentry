@@ -36,6 +36,9 @@ from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 
+UNFURL_ACTION_OPTIONS = ["link", "ignore"]
+NOTIFICATION_SETTINGS_ACTION_OPTIONS = ["all_slack"]
+
 LINK_IDENTITY_MESSAGE = (
     "Looks like you haven't linked your Sentry account with your Slack identity yet! "
     "<{associate_url}|Link your identity now> to perform actions in Sentry through Slack. "
@@ -431,14 +434,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if action_option == "sentry_docs_link_clicked":
             return self.respond()
 
-        # TODO(mgaeta): Stop short-circuiting here on VALUE alone.
-        if action_option in ["link", "ignore"]:
+        if action_option in UNFURL_ACTION_OPTIONS:
             return self.handle_unfurl(slack_request, action_option)
 
         if action_option in ["approve_member", "reject_member"]:
             return self.handle_member_approval(slack_request, action_option)
 
-        if action_option in ["all_slack"]:
+        if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
         action_list = self.get_action_list(slack_request=slack_request)

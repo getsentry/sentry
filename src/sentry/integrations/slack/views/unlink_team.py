@@ -62,10 +62,10 @@ class SlackUnlinkTeamView(BaseView):
             provider_type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
         )
 
-        qs = OrganizationMember.objects.get_for_integration(
+        om = OrganizationMember.objects.get_for_integration(
             integration, request.user, organization_id=params["organization_id"]
-        )
-        organization = qs.first().organization if qs else None
+        ).first()
+        organization = om.organization if om else None
         if organization is None:
             raise Http404
 
