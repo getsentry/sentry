@@ -46,9 +46,9 @@ export type EcosystemEventParameters = {
   };
 };
 
-type TeamInsightsEventKey = keyof EcosystemEventParameters;
+type EcosystemEventKeys = keyof EcosystemEventParameters;
 
-export const ecosystemEventMap: Record<TeamInsightsEventKey, string | null> = {
+export const ecosystemEventMap: Record<EcosystemEventKeys, string | null> = {
   'integrations.stacktrace_complete_setup': 'Integrations: Stacktrace Complete Setup',
   'integrations.stacktrace_docs_clicked': 'Integrations: Stacktrace Docs Clicked',
   'integrations.stacktrace_link_clicked': 'Integrations: Stacktrace Link Clicked',
