@@ -100,9 +100,13 @@ function ProjectKeyCredentials({
       {showSecurityEndpoint && (
         <FieldGroup
           label={t('Security Header Endpoint')}
-          help={t(
-            'Use your security header endpoint for features like CSP and Expect-CT reports.'
-          )}
+          help={tct('Use your security header endpoint for features like [link].', {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
+                CSP and Expect-CT reports
+              </ExternalLink>
+            ),
+          })}
           inline={false}
           flexibleControlStateSize
         >
