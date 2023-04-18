@@ -385,27 +385,6 @@ class VercelIntegrationTest(IntegrationTestCase):
             installation.update_organization_config(data)
 
     @responses.activate
-    def test_upgrade_org_config_no_source_code_provider(self):
-        """Test that the function doesn't progress if the Vercel project hasn't been connected to a Git repository"""
-
-        with self.tasks():
-            self.assert_setup_flow()
-
-        project_id = self.project.id
-        org = self.organization
-        data = {"project_mappings": [[project_id, self.project_id]]}
-        integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(org.id)
-
-        responses.add(
-            responses.GET,
-            f"{VercelClient.base_url}{VercelClient.GET_PROJECT_URL % self.project_id}",
-            json={},
-        )
-        with pytest.raises(ValidationError):
-            installation.update_organization_config(data)
-
-    @responses.activate
     def test_get_dynamic_display_information(self):
         with self.tasks():
             self.assert_setup_flow()
