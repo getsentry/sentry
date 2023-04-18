@@ -16,7 +16,7 @@ export default function QueryDetail({
   onClose,
 }: Partial<EndpointDetailBodyProps> & {onClose: () => void}) {
   return (
-    <Detail detailKey={row?.description} onClose={onClose}>
+    <Detail detailKey={row?.desc} onClose={onClose}>
       {row && <QueryDetailBody row={row} />}
     </Detail>
   );
