@@ -14,6 +14,10 @@ class OptionsTypes(Enum):
     AUTOMATOR = "automator"
     CLI = "cli"
 
+    @classmethod
+    def choices(cls):
+        return tuple((i.name, i.value) for i in cls)
+
 
 @control_silo_only_model
 class Option(Model):  # type: ignore
