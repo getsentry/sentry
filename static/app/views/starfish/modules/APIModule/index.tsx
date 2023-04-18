@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -7,7 +7,13 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 
-export default function APIModule() {
+import APIModuleView from './APIModuleView';
+
+type Props = {
+  location: Location;
+};
+
+export default function APIModule(props: Props) {
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -20,7 +26,7 @@ export default function APIModule() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <Fragment />
+            <APIModuleView {...props} />
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>

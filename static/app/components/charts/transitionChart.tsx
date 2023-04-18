@@ -9,6 +9,7 @@ const defaultProps = {
 type Props = {
   loading: boolean;
   reloading: boolean;
+  children?: React.ReactNode;
 } & typeof defaultProps;
 
 type State = {

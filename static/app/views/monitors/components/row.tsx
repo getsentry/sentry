@@ -102,7 +102,14 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     {
       key: 'edit',
       label: t('Edit'),
-      to: normalizeUrl(`/organizations/${organization.slug}/crons/${monitor.slug}/edit/`),
+      // TODO(davidenwang): Right now we have to pass the environment
+      // through the URL so that when we save the monitor and are
+      // redirected back to the details page it queries the backend
+      // for a monitor environment with check-in data
+      to: normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${monitor.slug}/edit/`,
+        query: {environment: monitorEnv?.name},
+      }),
     },
     {
       key: 'delete',

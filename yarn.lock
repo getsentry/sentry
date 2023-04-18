@@ -4621,10 +4621,10 @@ create-require@^1.1.0:
   resolved "https://registry.yarnpkg.com/create-require/-/create-require-1.1.1.tgz#c1d7e8f1e5f6cfc9ff65f9cd352d37348756c333"
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
-cronstrue@^2.23.0:
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/cronstrue/-/cronstrue-2.23.0.tgz#8f000f62c0034a0efae820b6b4f86052836c3d38"
-  integrity sha512-iPoWUQbCwUmrBf1w9W+9YQs8FowWp/teC2XGz3zAmt0Aja+HWGjyjUkWASWcsdzxSuL0EIIdvlfGEVBljvTbSQ==
+cronstrue@^2.26.0:
+  version "2.26.0"
+  resolved "https://registry.yarnpkg.com/cronstrue/-/cronstrue-2.26.0.tgz#c07c579b51763e26d4fb5c2693f09d0686b7010a"
+  integrity sha512-M1VdV3hpBAsd1Zzvqcvf63wgDpcwCuS4WiNEVFpJ0s33MGO2sVDTfswYq0EPypCmESrCzmgL8h68DTzJuSDbVA==
 
 cross-fetch@^3.0.4:
   version "3.1.5"
@@ -6709,10 +6709,10 @@ invariant@^2.2.1, invariant@^2.2.4:
   dependencies:
     loose-envify "^1.0.0"
 
-ios-device-list@^1.1.35:
-  version "1.1.35"
-  resolved "https://registry.yarnpkg.com/ios-device-list/-/ios-device-list-1.1.35.tgz#cddc2ed9634f4f1af1061016caf31ef4f4dc5307"
-  integrity sha512-ESaQizoD8nGdw8vhkYqab0jbPcSPnpGmqhwd3aqtyan9AZFNnQdj31ic6FdDd+/gUqp5N6RFU/ODxVKGwDhoMw==
+ios-device-list@1.1.37:
+  version "1.1.37"
+  resolved "https://registry.yarnpkg.com/ios-device-list/-/ios-device-list-1.1.37.tgz#0461dcba91ff824422740cfabc32490bfd95e686"
+  integrity sha512-0CS8kand3WDF58GtQV7AlFl9mONeHyQDtrypNEVSUyFsxNcbvj/o4gGeS/LNrQAK8V8V4rSIIpxx3hBVDDFwIg==
   dependencies:
     lodash.clonedeep "^4.5.0"
     lodash.flatten "^4.4.0"
