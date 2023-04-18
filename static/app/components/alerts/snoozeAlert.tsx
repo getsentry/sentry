@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
@@ -50,8 +49,11 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
     } catch (err) {
       if (err.status === 403) {
         addErrorMessage(t('You do not have permission to mute this alert'));
+      } else if (err.stats === 410) {
+        addErrorMessage(t('This alert has already been muted'));
+      } else {
+        addErrorMessage(t('Unable to mute this alert'));
       }
-      Sentry.captureException(err);
     }
   }
 
@@ -71,8 +73,9 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
     } catch (err) {
       if (err.status === 403) {
         addErrorMessage(t('You do not have permission to unmute this alert'));
+      } else {
+        addErrorMessage(t('Unable to unmute this alert'));
       }
-      Sentry.captureException(err);
     }
   }
 
