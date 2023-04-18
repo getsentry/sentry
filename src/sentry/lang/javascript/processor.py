@@ -2079,14 +2079,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             }
 
             def filtered_frame(frame: dict) -> dict:
-                {key: value for key, value in frame.items() if key in interesting_keys}
+                return {key: value for key, value in frame.items() if key in interesting_keys}
 
             different_frames = []
             for symbolicator_stacktrace, stacktrace_info in zip(
                 symbolicator_stacktraces,
                 filter(
                     # only include `stacktrace_infos` that have a stacktrace with frames
-                    lambda sinfo: get_path(sinfo, "stacktrace", "frames", filter=True),
+                    lambda sinfo: get_path(sinfo.container, "stacktrace", "frames", filter=True),
                     self.stacktrace_infos,
                 ),
             ):
