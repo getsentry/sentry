@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Dict, List, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -719,8 +719,8 @@ def update_groups(
 
 def handle_is_public(
     is_public: Any,
-    group_list: List[Group],
-    project_lookup: Dict[int, Project],
+    group_list: list[Group],
+    project_lookup: dict[int, Project],
     acting_user: User | None,
 ) -> str | None:
     """
@@ -728,7 +728,7 @@ def handle_is_public(
 
     This deletes the existing share ID and creates a new share ID if isPublic is True.
     We always want to delete an existing share, because triggering an isPublic=True
-    even when it's already public, should trigger regenerating.
+    when it's already public should trigger regenerating.
     """
     user_id = acting_user.id if acting_user else None
     share_id = None
