@@ -38,7 +38,7 @@ jest.mock('sentry/utils/analytics', () => ({
     mark: jest.fn(),
     measure: jest.fn(),
   },
-  trackAnalyticsEventV2: jest.fn(),
+  trackAnalytics: jest.fn(),
 }));
 
 const projectAlertRuleDetailsRoutes = [
