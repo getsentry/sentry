@@ -77,7 +77,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         user_id = request.user.id if data.get("target") == "me" else None
         if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
             raise AuthenticationFailed(
-                detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
+                detail="Requesting user cannot mute this rule.", code=status.HTTP_403_FORBIDDEN
             )
 
         kwargs = {self.rule_field: rule}
@@ -176,7 +176,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         # didn't find a match but there is a shared snooze
         if shared_snooze:
             raise AuthenticationFailed(
-                detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
+                detail="Requesting user cannot mute this rule.", code=status.HTTP_403_FORBIDDEN
             )
         # no snooze at all found
         return Response(
