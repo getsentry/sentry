@@ -115,7 +115,6 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
             tracePayload
           );
           promise.then(([trace, , _traceResp]) => {
-            // TODO: we need to iterate over any pages of data
             setState(prev => ({
               ...prev,
               detailsResponses: prev.detailsResponses + 1,

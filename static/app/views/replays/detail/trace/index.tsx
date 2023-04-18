@@ -1,39 +1,54 @@
-import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
-import Trace from 'sentry/views/replays/detail/trace/trace';
+import styled from '@emotion/styled';
+
+import Placeholder from 'sentry/components/placeholder';
+import {tct} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import TraceView from 'sentry/views/performance/traceDetails/traceView';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  organization: Organization;
-  replayRecord: ReplayRecord;
+  replayRecord: undefined | ReplayRecord;
 };
 
-const features = ['organizations:performance-view'];
+function Transactions({replayRecord}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const {state, eventView} = useTransactionData();
 
-function PerfDisabled() {
+  if (!replayRecord || !state.traces?.length) {
+    return <Placeholder height="100%" />;
+  }
+
+  const loading =
+    state.detailsRequests !== state.detailsResponses ? (
+      <LoadingCount>
+        {tct('Loaded [detailsResponses] of [detailsRequests]', state)}
+      </LoadingCount>
+    ) : null;
+
   return (
-    <FeatureDisabled
-      featureName={t('Performance Monitoring')}
-      features={features}
-      hideHelpToggle
-      message={t('Requires performance monitoring.')}
-    />
+    <FluidHeight>
+      <TraceView
+        meta={null}
+        traces={state.traces ?? null}
+        location={location}
+        organization={organization}
+        traceEventView={eventView!}
+        traceSlug="Replay"
+      />
+      {loading}
+    </FluidHeight>
   );
 }
 
-function TraceFeature({organization, replayRecord}: Props) {
-  return (
-    <Feature
-      features={features}
-      hookName={undefined}
-      organization={organization}
-      renderDisabled={PerfDisabled}
-    >
-      <Trace organization={organization} replayRecord={replayRecord} />
-    </Feature>
-  );
-}
+const LoadingCount = styled('div')`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: red;
+`;
 
-export default TraceFeature;
+export default Transactions;
