@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.internal.proxy import InternalProxyEndpoint
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -2502,6 +2503,11 @@ INTERNAL_URLS = [
     url(
         r"^mail/$",
         InternalMailEndpoint.as_view(),
+    ),
+    url(
+        r"^proxy/$",
+        InternalProxyEndpoint.as_view(),
+        name="sentry-api-0-internal-proxy",
     ),
     url(
         r"^project-config/$",

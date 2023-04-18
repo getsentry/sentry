@@ -1,8 +1,9 @@
 from typing import Any, Mapping, Optional, Union
 
-from requests import Response
+from requests import Request, Response
 from sentry_sdk.tracing import Transaction
 
+from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.client import BaseApiResponse
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.proxy.client import IntegrationProxyClient
@@ -17,9 +18,13 @@ class SlackClient(IntegrationProxyClient):  # type: ignore
     base_url = "https://slack.com/api"
     metrics_prefix = "integrations.slack"
 
-    def __init__(self, organization_integration_id: int):
-        self.organization_integration_id = organization_integration_id
-        super.__init__()
+    def authorize_request(self, request: Request) -> Request:
+        integration = Integration.objects.get(id=4)
+        token = (
+            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+        )
+        request.headers["Authorization"] = f"Bearer {token}"
+        return request
 
     def track_response_data(
         self,

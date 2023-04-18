@@ -5,7 +5,7 @@ from typing import Any, Callable, Mapping, Sequence, Type, Union
 
 import sentry_sdk
 from django.core.cache import cache
-from requests import PreparedRequest
+from requests import PreparedRequest, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry.http import build_session
@@ -82,8 +82,9 @@ class BaseApiClient(TrackResponseMixin):
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        raw_response: bool = False,
         proxies: Mapping[str, str] = None,
-    ) -> BaseApiResponseX:
+    ) -> BaseApiResponseX | Response:
         if allow_text is None:
             allow_text = self.allow_text
 
@@ -138,6 +139,8 @@ class BaseApiClient(TrackResponseMixin):
                             timeout=timeout,
                         )
                     )
+                    if raw_response:
+                        return raw_response
                     resp.raise_for_status()
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)

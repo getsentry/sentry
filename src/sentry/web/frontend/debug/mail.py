@@ -11,7 +11,7 @@ from random import Random
 from typing import Any, MutableMapping
 
 import pytz
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -378,11 +378,10 @@ class ActivityMailDebugView(View):
         raise NotImplementedError
 
     def get(self, request: Request) -> Response:
-
-        client = SlackClient()
-        resp = client.get("/team.info")
-        print(resp)
-        return JsonResponse(resp)
+        headers = {"User-Agent": "Chrome"}
+        client = SlackClient(org_integration_id=9)
+        resp = client.get("/team.info", headers=headers)
+        return HttpResponse(resp)
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 

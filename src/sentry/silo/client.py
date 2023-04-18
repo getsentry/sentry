@@ -36,6 +36,7 @@ class BaseSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
+    @classmethod
     def clean_headers(self, headers: Mapping[str, Any] | None) -> Mapping[str, Any]:
         if not headers:
             headers = {}

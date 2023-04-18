@@ -46,7 +46,7 @@ class UserActiveMiddleware(MiddlewareMixin):
 
         request.user.last_active = now
         # this also seems redundent with UserIP, can we somehow remove it?
-        if SiloMode.get_current_mode() != SiloMode.REGION:
-            request.user.update(last_active=now)
+        # if SiloMode.get_current_mode() != SiloMode.REGION:
+        #     request.user.update(last_active=now)
 
         return None
