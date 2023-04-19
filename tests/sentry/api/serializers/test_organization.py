@@ -74,6 +74,7 @@ class OrganizationSerializerTest(TestCase):
             "invite-members-rate-limits",
             "minute-resolution-sessions",
             "open-membership",
+            "project-stats",
             "relay",
             "shared-issues",
             "session-replay-ui",
@@ -82,6 +83,7 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "performance-issues-search",
+            "transaction-name-normalize",
         }
 
     @mock.patch("sentry.features.batch_has")

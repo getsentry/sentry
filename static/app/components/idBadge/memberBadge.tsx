@@ -91,6 +91,7 @@ interface NameProps {
   hideEmail: boolean;
   to: LinkProps['to'];
   useLink: boolean;
+  children?: React.ReactNode;
 }
 
 const StyledName = styled(({useLink, to, ...props}: NameProps) => {

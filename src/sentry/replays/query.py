@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Generator, List, Optional, Union
 
+from rest_framework.exceptions import ParseError
 from snuba_sdk import (
     Column,
     Condition,
@@ -21,8 +22,11 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
+from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
+    IPAddress,
     ListField,
     Number,
     QueryConfig,
@@ -39,7 +43,8 @@ from sentry.utils.snuba import raw_snql_query
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
 DEFAULT_OFFSET = 0
-
+MAX_REPLAY_LENGTH_HOURS = 1
+ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 Paginators = namedtuple("Paginators", ("limit", "offset"))
 
 
@@ -53,19 +58,40 @@ def query_replays_collection(
     limit: Optional[str],
     offset: Optional[str],
     search_filters: List[SearchFilter],
-    tenant_ids: dict[str, Any] | None = None,
+    organization: Optional[Organization] = None,
+    actor: Optional[Any] = None,
 ) -> dict:
     """Query aggregated replay collection."""
+    if organization:
+        tenant_ids = {"organization_id": organization.id}
+    else:
+        tenant_ids = {}
+
     conditions = []
     if environment:
         conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
-    sort_ordering = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("started_at"), Direction.DESC),
-        query_config=ReplayQueryConfig(),
-    )
     paginators = make_pagination_values(limit, offset)
+
+    # Attempt to eager return with subquery.
+    if features.has("organizations:session-replay-index-subquery", organization, actor=actor):
+        try:
+            response = query_replays_dataset_with_subquery(
+                project_ids=project_ids,
+                start=start,
+                end=end,
+                fields=fields,
+                environments=environment,
+                search_filters=search_filters,
+                sort=sort,
+                pagination=paginators,
+                tenant_ids=tenant_ids,
+            )
+            return response["data"]
+        except ParseError:
+            # Subquery could not continue because it found search filters which required
+            # aggregation to satisfy.
+            pass
 
     response = query_replays_dataset(
         project_ids=project_ids,
@@ -74,9 +100,9 @@ def query_replays_collection(
         where=[],
         having=conditions,
         fields=fields,
-        sorting=sort_ordering,
         pagination=paginators,
         search_filters=search_filters,
+        sort=sort,
         tenant_ids=tenant_ids,
     )
     return response["data"]
@@ -97,9 +123,9 @@ def query_replay_instance(
         where=[
             Condition(Column("replay_id"), Op.EQ, replay_id),
         ],
-        having=[],
+        having=[Condition(Column("isArchived"), Op.EQ, 0)],
         fields=[],
-        sorting=[],
+        sort=None,
         pagination=None,
         search_filters=[],
         tenant_ids=tenant_ids,
@@ -114,9 +140,9 @@ def query_replays_dataset(
     where: List[Condition],
     having: List[Condition],
     fields: List[str],
-    sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
+    sort: Optional[str],
     tenant_ids: dict[str, Any] | None = None,
 ):
     query_options = {}
@@ -125,6 +151,12 @@ def query_replays_dataset(
     if pagination:
         query_options["limit"] = Limit(pagination.limit)
         query_options["offset"] = Offset(pagination.offset)
+
+    sorting = get_valid_sort_commands(
+        sort,
+        default=OrderBy(Column("started_at"), Direction.DESC),
+        query_config=ReplayQueryConfig(),
+    )
 
     snuba_request = Request(
         dataset="replays",
@@ -152,8 +184,6 @@ def query_replays_dataset(
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
                 # Make sure we're not too old.
                 Condition(Column("finished_at"), Op.LT, end),
-                # Require non-archived replays.
-                Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
                 # Other conditions.
@@ -163,6 +193,116 @@ def query_replays_dataset(
             groupby=[Column("project_id"), Column("replay_id")],
             granularity=Granularity(3600),
             **query_options,
+        ),
+        tenant_ids=tenant_ids,
+    )
+    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+
+
+def query_replays_dataset_with_subquery(
+    project_ids: List[str],
+    start: datetime,
+    end: datetime,
+    environments: List[str],
+    search_filters: List[SearchFilter],
+    sort: Optional[str],
+    fields: List[str],
+    pagination: Optional[Paginators],
+    tenant_ids: dict[str, Any] | None = None,
+):
+    conditions = generate_valid_conditions(search_filters, query_config=ReplaySubqueryConfig())
+    if environments:
+        conditions.append(Condition(Column("environment"), Op.IN, environments))
+
+    sorting = get_valid_sort_commands(
+        sort,
+        default=OrderBy(Column("started_at"), Direction.DESC),
+        query_config=ReplaySubqueryConfig(),
+    )
+
+    subquery_snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                Column("replay_id"),
+                Column("timestamp"),
+                Function(
+                    "identity", parameters=[Column("replay_start_timestamp")], alias="started_at"
+                ),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("segment_id"), Op.EQ, 0),
+                *conditions,
+            ],
+            orderby=sorting,
+            granularity=Granularity(3600),
+            limit=Limit(pagination.limit),
+            offset=Offset(pagination.offset),
+        ),
+        tenant_ids=tenant_ids,
+    )
+
+    replay_ids_to_filter_results = raw_snql_query(
+        subquery_snuba_request, "replays.query.query_replays_dataset_subquery"
+    )
+
+    if len(replay_ids_to_filter_results["data"]) == 0:
+        # if no results, no need to carry on
+        return {"data": []}
+
+    max_subquery_ts = 0
+    min_subquery_ts = datetime.now().timestamp()
+    replay_ids_to_filter = []
+
+    for replay in replay_ids_to_filter_results["data"]:
+        ts = int(datetime.fromisoformat(replay["timestamp"]).timestamp())
+        replay_ids_to_filter.append(replay["replay_id"])
+        min_subquery_ts = min(min_subquery_ts, ts)
+        max_subquery_ts = max(max_subquery_ts, ts)
+
+    # do the full query to get all aggregated fields
+    sorting = get_valid_sort_commands(
+        sort,
+        default=OrderBy(Column("started_at"), Direction.DESC),
+        query_config=ReplayQueryConfig(),
+    )
+
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=make_select_statement(fields, sorting, []),
+            # these should be the only filters in this query,
+            # as all previous filters should have been done subquery,
+            # so project_id, timestamp and replay_id are only filters
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("replay_id"), Op.IN, replay_ids_to_filter),
+                # a replay can be up to an hour long, so query past the cutoff by an hour to get
+                # any segments outside the query window but still part of a replay within it.
+                Condition(
+                    Column("timestamp"),
+                    Op.LT,
+                    # end
+                    datetime.fromtimestamp(max_subquery_ts)
+                    + timedelta(hours=MAX_REPLAY_LENGTH_HOURS),
+                ),
+                Condition(
+                    Column("timestamp"),
+                    Op.GTE,
+                    datetime.fromtimestamp(min_subquery_ts),
+                ),
+            ],
+            orderby=sorting,
+            groupby=[Column("project_id"), Column("replay_id")],
+            granularity=Granularity(3600),
+            # this second query doesn't need offsetting / limits, as those are handled by the first query
         ),
         tenant_ids=tenant_ids,
     )
@@ -434,18 +574,16 @@ class ReplayQueryConfig(QueryConfig):
     sdk = String(field_alias="sdk", query_alias="sdk_name")
 
     # Click
-    click_alt = ListField(field_alias="replay_click.alt", is_sortable=False)
-    click_class = ListField(
-        field_alias="replay_click.class", query_alias="clickClass", is_sortable=False
-    )
-    click_id = ListField(field_alias="replay_click.id", is_sortable=False)
-    click_aria_label = ListField(field_alias="replay_click.label", is_sortable=False)
-    click_role = ListField(field_alias="replay_click.role", is_sortable=False)
-    click_tag = ListField(field_alias="replay_click.tag", is_sortable=False)
-    click_testid = ListField(field_alias="replay_click.testid", is_sortable=False)
-    click_text = ListField(field_alias="replay_click.textContent", is_sortable=False)
-    click_title = ListField(field_alias="replay_click.title", is_sortable=False)
-    click_selector = Selector(field_alias="replay_click.selector", is_sortable=False)
+    click_alt = ListField(field_alias="click.alt", is_sortable=False)
+    click_class = ListField(field_alias="click.class", query_alias="clickClass", is_sortable=False)
+    click_id = ListField(field_alias="click.id", is_sortable=False)
+    click_aria_label = ListField(field_alias="click.label", is_sortable=False)
+    click_role = ListField(field_alias="click.role", is_sortable=False)
+    click_tag = ListField(field_alias="click.tag", is_sortable=False)
+    click_testid = ListField(field_alias="click.testid", is_sortable=False)
+    click_text = ListField(field_alias="click.textContent", is_sortable=False)
+    click_title = ListField(field_alias="click.title", is_sortable=False)
+    click_selector = Selector(field_alias="click.selector", is_sortable=False)
 
     # Tag
     tags = Tag(field_alias="*")
@@ -457,6 +595,32 @@ class ReplayQueryConfig(QueryConfig):
     # Dedicated url parameter should be used.
     project_id = String(query_alias="project_id", is_filterable=False)
     project = String(query_alias="project_id", is_filterable=False)
+
+
+class ReplaySubqueryConfig(QueryConfig):
+    browser = String(field_alias="browser", query_alias="browser_name")
+    browser_name = String(field_alias="browser.name")
+    browser_version = String(field_alias="browser.version")
+    device = String(field_alias="device", query_alias="device_name")
+    device_brand = String(field_alias="device.brand")
+    device_family = String(field_alias="device.family")
+    device_model = String(field_alias="device.model")
+    device_name = String(field_alias="device.name")
+    dist = String()
+    os = String(field_alias="os", query_alias="os_name")
+    os_name = String(field_alias="os.name")
+    os_version = String(field_alias="os.version")
+    platform = String()
+    replay_id = UUIDField(field_alias="id")
+    replay_type = String()
+    sdk = String(field_alias="sdk", query_alias="sdk_name")
+    sdk_name = String(field_alias="sdk.name")
+    sdk_version = String(field_alias="sdk.version")
+    user = String(field_alias="user", query_alias="user_name")
+    user_email = String(field_alias="user.email")
+    user_id = String(field_alias="user.id")
+    user_ip_address = IPAddress(field_alias="user.ip", query_alias="ip_address_v4")
+    user_name = String(field_alias="user.username")
 
 
 # Pagination.
@@ -597,16 +761,16 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
     # Click actions
-    "replay_click.alt": ["click.alt"],
-    "replay_click.label": ["click.aria_label"],
-    "replay_click.class": ["click.class"],
-    "replay_click.id": ["click.id"],
-    "replay_click.role": ["click.role"],
-    "replay_click.tag": ["click.tag"],
-    "replay_click.testid": ["click.testid"],
-    "replay_click.textContent": ["click.text"],
-    "replay_click.title": ["click.title"],
-    "replay_click.selector": [
+    "click.alt": ["click.alt"],
+    "click.label": ["click.aria_label"],
+    "click.class": ["click.class"],
+    "click.id": ["click.id"],
+    "click.role": ["click.role"],
+    "click.tag": ["click.tag"],
+    "click.testid": ["click.testid"],
+    "click.textContent": ["click.text"],
+    "click.title": ["click.title"],
+    "click.selector": [
         "click.alt",
         "click.aria_label",
         "click.classes",

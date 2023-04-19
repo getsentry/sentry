@@ -8,10 +8,15 @@ from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
-from . import UNABLE_TO_VERIFY_INSTALLATION, JiraBaseHook
+from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
 
 
-class JiraUiHookView(JiraBaseHook):
+class JiraSentryInstallationView(JiraSentryUIBaseView):
+    """
+    Handles requests (from the Sentry integration in Jira) for HTML to display when
+    setting up the integration in the Jira UI.
+    """
+
     html_file = "sentry/integrations/jira-config.html"
 
     def get(self, request: Request, *args, **kwargs) -> Response:

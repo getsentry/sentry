@@ -36,7 +36,7 @@ export type SpanSiblingGroupBarProps = {
   occurrence: number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
   toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
