@@ -239,7 +239,7 @@ function Sidebar({location, organization}: Props) {
       >
         <SidebarItem
           {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Api')}</GuideAnchor>}
+          label={<GuideAnchor target="starfish">{t('API')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/starfish/api/`}
           id="starfish"
           icon={<SubitemDot collapsed={collapsed} />}
