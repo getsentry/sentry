@@ -184,6 +184,7 @@ class ArithmeticVisitor(NodeVisitor):
         "epm",
         "count_miserable",
         "count_web_vitals",
+        "percentile_range",
     }
 
     def __init__(self, max_operators: int, custom_measurements: Optional[Set[str]]):
