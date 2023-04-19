@@ -244,6 +244,10 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
 
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids():
+    """
+    Verify that the extract string method can handle payloads that has multiple
+    (generic) uses cases
+    """
     counter_payload = {
         "name": "c:use_case_1/session@none",
         "tags": {
@@ -328,6 +332,9 @@ def test_extract_strings_with_multiple_use_case_ids():
 
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_invalid_mri():
+    """
+    Verify that extract strings will drop payload that has invalid MRI in name field but continue processing the rest
+    """
     bad_counter_payload = {
         "name": "invalid_MRI",
         "tags": {
@@ -426,6 +433,10 @@ def test_extract_strings_with_invalid_mri():
 
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
+    """
+    Verify that the extract string method can handle payloads that has multiple
+    (generic) uses cases and from different orgs
+    """
     custom_uc_counter_payload = {
         "name": "c:use_case_1/session@none",
         "tags": {
