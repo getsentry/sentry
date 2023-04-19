@@ -58,7 +58,7 @@ export default function EndpointTable({location, onSelect}: Props) {
       columnSortBy={[]}
       grid={{
         renderHeadCell,
-        renderBodyCell: (column: GridColumnHeader, row: DataRow) =>
+        renderBodyCell: (column: GridColumnHeader, row: EndpointDataRow) =>
           renderBodyCell(column, row, onSelect),
       }}
       location={location}
@@ -72,8 +72,8 @@ export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
 
 export function renderBodyCell(
   column: GridColumnHeader,
-  row: DataRow,
-  onSelect?: (row: DataRow) => void
+  row: EndpointDataRow,
+  onSelect?: (row: EndpointDataRow) => void
 ): React.ReactNode {
   if (column.key === 'description' && onSelect) {
     return (
