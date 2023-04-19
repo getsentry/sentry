@@ -23,7 +23,7 @@ export type DataRow = {
 const COLUMN_ORDER = [
   {
     key: 'description',
-    name: 'Transaction',
+    name: 'URL',
     width: 600,
   },
   {
