@@ -1,21 +1,36 @@
 import {RouteComponentProps} from 'react-router';
+import {useQuery} from '@tanstack/react-query';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
+import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule/queries';
 
-type Props = RouteComponentProps<{slug?: string}, {}>;
+type Props = RouteComponentProps<{slug: string}, {}>;
 
 export default function SpanInTransactionView({params}: Props) {
   const slug = parseSlug(params.slug);
 
+  const {spanDescription, transactionName} = slug || {
+    spanDescription: '',
+    transactionName: '',
+  };
+
+  const query = getSpanInTransactionQuery(spanDescription, transactionName);
+
+  const {isLoading, data} = useQuery({
+    queryKey: ['spanInTransaction', spanDescription, transactionName],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
   if (!slug) {
     return <div>ERROR</div>;
   }
-
-  const {spanDescription, transactionName} = slug;
 
   return (
     <Layout.Page>
@@ -30,7 +45,17 @@ export default function SpanInTransactionView({params}: Props) {
           <Layout.Main fullWidth>
             <PageErrorAlert />
             <h2>Span Description</h2>
-            {spanDescription}
+            Description: {spanDescription}
+            {isLoading ? (
+              <span>LOADING</span>
+            ) : (
+              <div>
+                <h2>Span Stats</h2>
+                <span>Count: {data?.[0]?.count}</span>
+                <br />
+                <span>p50: {data?.[0]?.p50}</span>
+              </div>
+            )}
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
