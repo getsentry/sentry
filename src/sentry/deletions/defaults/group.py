@@ -31,7 +31,6 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupSubscription,
     models.GroupHistory,
     models.RuleFireHistory,
-    models.GroupForecast,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
