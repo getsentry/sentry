@@ -1,16 +1,14 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
+import EndpointTable from './endpointTable';
+import {ENDPOINT_GRAPH_QUERY} from './queries';
 
 export const HOST = 'http://localhost:8080';
 
@@ -25,26 +23,7 @@ export type DataRow = {
   domain: string;
 };
 
-const COLUMN_ORDER = [
-  {
-    key: 'description',
-    name: 'Transaction',
-    width: 600,
-  },
-  {
-    key: 'count',
-    name: 'Count',
-  },
-];
-
 export default function APIModuleView({location, onSelect}: Props) {
-  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints'],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_LIST_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
   const {isLoading: isGraphLoading, data: graphData} = useQuery({
     queryKey: ['graph'],
     queryFn: () =>
@@ -97,43 +76,7 @@ export default function APIModuleView({location, onSelect}: Props) {
         stacked
       />
 
-      <GridEditable
-        isLoading={areEndpointsLoading}
-        data={endpointsData}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell: (column: GridColumnHeader, row: DataRow) =>
-            renderBodyCell(column, row, onSelect),
-        }}
-        location={location}
-      />
+      <EndpointTable location={location} onSelect={onSelect} />
     </Fragment>
   );
 }
-
-export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
-}
-
-export function renderBodyCell(
-  column: GridColumnHeader,
-  row: DataRow,
-  onSelect?: (row: DataRow) => void
-): React.ReactNode {
-  if (column.key === 'description' && onSelect) {
-    return (
-      <Link onClick={() => onSelect(row)} to="">
-        {row[column.key]}
-      </Link>
-    );
-  }
-  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
-}
-
-const OverflowEllipsisTextContainer = styled('span')`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-`;
