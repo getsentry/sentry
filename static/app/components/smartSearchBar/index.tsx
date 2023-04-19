@@ -231,7 +231,6 @@ type Props = WithRouterProps &
      * trigger re-renders.
      */
     members?: User[];
-
     /**
      * Extend search group items with additional props
      * Useful for providing descriptions to field parents with many children
@@ -272,12 +271,10 @@ type Props = WithRouterProps &
      * Prepare query value before filtering dropdown items
      */
     prepareQuery?: (query: string) => string;
-
     /**
      * Indicates the usage of the search bar for analytics
      */
     searchSource?: string;
-
     /**
      * Type of supported tags
      */
@@ -1917,7 +1914,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             customPerformanceMetrics={customPerformanceMetrics}
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
-            mergeSearchGroupWith={this.props.mergeSearchGroupWith}
+            mergeItemsWith={this.props.mergeSearchGroupWith}
           />
         )}
       </Container>

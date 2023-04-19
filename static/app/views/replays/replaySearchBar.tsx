@@ -126,7 +126,7 @@ function ReplaySearchBar(props: Props) {
       fieldDefinitionGetter={getReplayFieldDefinition}
       mergeSearchGroupWith={{
         click: {
-          documentation: t('Requires min sdk >= 7.44.0'),
+          documentation: t('Requires SDK version >= 7.44.0'),
           titleBadge: <FeatureBadge type="new">{t('New')}</FeatureBadge>,
         },
       }}
