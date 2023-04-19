@@ -51,7 +51,7 @@ class HistoricGroupCounts(TestCase):  # type: ignore
             }
         ]
 
-    def test_query_multiple_groups_same_project(self) -> None:
+    def test_pagination(self) -> None:
         event1 = self._load_event_for_group(fingerprint="group-1", minutes_ago=1)
         # Increases the count of event1
         self._load_event_for_group(fingerprint="group-1", minutes_ago=59)
