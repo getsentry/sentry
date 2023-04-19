@@ -12,7 +12,7 @@ from sentry.models import EventError
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -508,14 +508,84 @@ class SqlFormatEventSerializerTest(TestCase):
                             "category": "query",
                             "message": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
                         },
+                        {
+                            "category": "query",
+                            "message": """This is not "SQL" content.""",
+                        },
                     ]
                 },
                 project_id=self.project.id,
             )
             result = serialize(event, None, SqlFormatEventSerializer())
 
-            # Should remove quotes from all terms except the one that contains a space ("column name")
+            # For breadcrumb 1: should remove quotes from all terms except the one that contains a space ("column name")
             assert (
                 result["entries"][0]["data"]["values"][0]["message"]
                 == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
             )
+
+            # For breadcrumb 2: Not SQL so shouldn't be changed
+            assert (
+                result["entries"][0]["data"]["values"][1]["message"]
+                == """This is not "SQL" content."""
+            )
+
+    def test_event_db_span_formatting(self):
+        with self.feature("organizations:sql-format"):
+            event_data = get_event("n-plus-one-in-django-new-view")
+            event_data["contexts"] = {
+                "trace": {
+                    "trace_id": "530c14e044aa464db6ddb43660e6474f",
+                    "span_id": "139fcdb7c5534eb4",
+                }
+            }
+            event = self.store_event(
+                data={
+                    "type": "transaction",
+                    "transaction": "/organizations/:orgId/performance/:eventSlug/",
+                    "start_timestamp": iso_format(before_now(minutes=1, milliseconds=500)),
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "contexts": {
+                        "trace": {
+                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                            "span_id": "8f5a2b8768cafb4e",
+                            "type": "trace",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "description": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
+                            "op": "db",
+                            "parent_span_id": "abe79ad9292b90a9",
+                            "span_id": "9c045ea336297177",
+                            "start_timestamp": timestamp_format(
+                                before_now(minutes=1, milliseconds=200)
+                            ),
+                            "timestamp": timestamp_format(before_now(minutes=1)),
+                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                        },
+                        {
+                            "description": "http span",
+                            "op": "http",
+                            "parent_span_id": "a99fd04e79e17631",
+                            "span_id": "abe79ad9292b90a9",
+                            "start_timestamp": timestamp_format(
+                                before_now(minutes=1, milliseconds=200)
+                            ),
+                            "timestamp": timestamp_format(before_now(minutes=1)),
+                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                        },
+                    ],
+                },
+                project_id=self.project.id,
+            )
+            result = serialize(event, None, SqlFormatEventSerializer())
+
+            # For span 1: Should remove quotes from all terms except the one that contains a space ("column name")
+            assert (
+                result["entries"][0]["data"][0]["description"]
+                == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
+            )
+
+            # For span 2: Not a db span so no change
+            assert result["entries"][0]["data"][1]["description"] == """http span"""

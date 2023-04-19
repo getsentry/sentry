@@ -349,6 +349,12 @@ class SqlFormatEventSerializer(EventSerializer):
     def _remove_doublequotes(self, message: str):
         return SQL_DOUBLEQUOTES_REGEX.sub(r"\1", message)
 
+    def _format_sql_query(self, message: str):
+        formatted = sqlparse.format(message, reindent=True, wrap_after=80)
+        if formatted != message:
+            formatted = self._remove_doublequotes(formatted)
+        return formatted
+
     def _format_breadcrumb_messages(
         self, event_data: dict[str, Any], event: Event | GroupEvent, user: User
     ):
@@ -367,13 +373,28 @@ class SqlFormatEventSerializer(EventSerializer):
                 if breadcrumb_item["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
                     breadcrumb_item["messageFormat"] = "sql"
                     breadcrumb_item["messageRaw"] = breadcrumb_item["message"]
-                    breadcrumb_item["message"] = sqlparse.format(
-                        breadcrumb_item["message"], reindent=True, wrap_after=80
-                    )
-                    if breadcrumb_item["message"] != breadcrumb_item["messageRaw"]:
-                        breadcrumb_item["message"] = self._remove_doublequotes(
-                            breadcrumb_item["message"]
-                        )
+                    breadcrumb_item["message"] = self._format_sql_query(breadcrumb_item["message"])
+
+            return event_data
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
+            return event_data
+
+    def _format_db_spans(self, event_data: dict[str, Any], event: Event | GroupEvent, user: User):
+        try:
+            spans = next(
+                filter(lambda entry: entry["type"] == "spans", event_data.get("entries", ())),
+                None,
+            )
+
+            if not spans or not features.has(
+                "organizations:sql-format", event.project.organization, actor=user
+            ):
+                return event_data
+
+            for span in spans["data"]:
+                if span["op"] == "db":
+                    span["description"] = self._format_sql_query(span["description"])
 
             return event_data
         except Exception as exc:
@@ -383,6 +404,7 @@ class SqlFormatEventSerializer(EventSerializer):
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
         result = self._format_breadcrumb_messages(result, obj, user)
+        result = self._format_db_spans(result, obj, user)
         return result
 
 
