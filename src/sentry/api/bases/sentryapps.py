@@ -13,8 +13,9 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
-from sentry.models import Organization, SentryApp, SentryAppInstallation
+from sentry.models import Organization, SentryAppInstallation
 from sentry.models.organization import OrganizationStatus
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
@@ -212,9 +213,8 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppPermission,)
 
     def convert_args(self, request: Request, sentry_app_slug, *args, **kwargs):
-        try:
-            sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
-        except SentryApp.DoesNotExist:
+        sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+        if sentry_app is None:
             raise Http404
 
         self.check_object_permissions(request, sentry_app)

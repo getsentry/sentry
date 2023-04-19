@@ -158,6 +158,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
 
