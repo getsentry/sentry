@@ -214,7 +214,6 @@ describe('AlertRuleDetails', () => {
     expect(deleteRequest).toHaveBeenCalledTimes(1);
   });
 
-
   it('mutes alert if query parameter is set', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
@@ -232,7 +231,7 @@ describe('AlertRuleDetails', () => {
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
-})
+  });
 
   it('inserts user email into rule notify action', async () => {
     // Alert rule with "send a notification to member" action
