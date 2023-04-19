@@ -244,6 +244,10 @@ export const profiling: PlatformKey[] = [
   'php',
   'php-laravel',
   'php-symfony2',
+  // ruby
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
 ];
 
 export const releaseHealth: PlatformKey[] = [
