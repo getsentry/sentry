@@ -6,6 +6,7 @@ import moment from 'moment';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import EndpointTable from './endpointTable';
 import {ENDPOINT_GRAPH_QUERY} from './queries';
@@ -14,7 +15,7 @@ export const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
-  onSelect: (row: DataRow) => void;
+  onSelect: (row: EndpointDataRow) => void;
 };
 
 export type DataRow = {

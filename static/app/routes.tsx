@@ -1719,6 +1719,12 @@ function buildRoutes() {
         path="cache/"
         component={make(() => import('sentry/views/starfish/modules/cacheModule'))}
       />
+      <Route
+        path="span/:slug/"
+        component={make(
+          () => import('sentry/views/starfish/views/spanInTransactionView')
+        )}
+      />
     </Fragment>
   );
 
