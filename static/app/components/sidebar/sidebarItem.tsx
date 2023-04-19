@@ -285,8 +285,12 @@ const StyledSidebarItem = styled(Link)`
   }
 
   &:hover,
-  &:focus {
+  &.focus-visible {
     color: ${p => p.theme.white};
+  }
+
+  &:focus {
+    outline: none;
   }
 
   &.focus-visible {
