@@ -9,7 +9,6 @@ from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 from tests.sentry.tasks.test_weekly_escalating_forecast import DEFAULT_MINIMUM_CEILING_FORECAST
 
 
-
 class HandleIgnoredTest(TestCase):  # type: ignore
     def setUp(self) -> None:
         super().setUp()
