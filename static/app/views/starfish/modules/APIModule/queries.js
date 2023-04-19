@@ -20,7 +20,7 @@ export const ENDPOINT_GRAPH_QUERY = `SELECT
 
 export const getEndpointDetailSeriesQuery = description => {
   return `SELECT
-    toStartOfInterval(start_timestamp, INTERVAL 5 MINUTE) as interval,
+    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
     quantile(0.5)(exclusive_time) as p50,
     count() as count
     FROM spans_experimental_starfish
