@@ -1411,6 +1411,8 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
+    # Enables occurrence-backed performance issues
+    "projects:use-occurrences-for-perf-issues": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
