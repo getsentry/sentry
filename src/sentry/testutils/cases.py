@@ -228,7 +228,9 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False, path="/"):
+    def make_request(
+        self, user=None, auth=None, method=None, is_superuser=False, path="/"
+    ) -> HttpRequest:
         request = HttpRequest()
         if method:
             request.method = method

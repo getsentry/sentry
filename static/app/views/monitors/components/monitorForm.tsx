@@ -322,7 +322,7 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.checkin_margin"
-            placeholder="e.g. 30"
+            placeholder="Defaults to 0 minutes"
             stacked
             inline={false}
           />
@@ -336,7 +336,7 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.max_runtime"
-            placeholder="e.g. 30"
+            placeholder="Defaults to 30 minutes"
             stacked
             inline={false}
           />

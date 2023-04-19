@@ -75,7 +75,27 @@ class ArtifactLookupTest(APITestCase):
     def test_query_by_debug_ids(self):
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
         debug_id_b = "bbbbbbbb-0000-0000-0000-000000000000"
-        file_ab = make_file("bundle_ab.zip", b"ab")
+        file_ab = make_compressed_zip_file(
+            "bundle_ab.zip",
+            {
+                "path/in/zip/a": {
+                    "url": "~/path/to/app.js",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "debug-id": debug_id_a,
+                    },
+                },
+                "path/in/zip/b": {
+                    "url": "~/path/to/app.js",
+                    "type": "source_map",
+                    "content": b"bar",
+                    "headers": {
+                        "debug-id": debug_id_b,
+                    },
+                },
+            },
+        )
 
         bundle_id_ab = uuid4()
         artifact_bundle_ab = ArtifactBundle.objects.create(
@@ -99,7 +119,19 @@ class ArtifactLookupTest(APITestCase):
         )
 
         debug_id_c = "cccccccc-0000-0000-0000-000000000000"
-        file_c = make_file("bundle_c.zip", b"c")
+        file_c = make_compressed_zip_file(
+            "bundle_c.zip",
+            {
+                "path/in/zip/c": {
+                    "url": "~/path/to/app.js",
+                    "type": "source_map",
+                    "content": b"baz",
+                    "headers": {
+                        "debug-id": debug_id_c,
+                    },
+                },
+            },
+        )
 
         bundle_id_c = uuid4()
         artifact_bundle_c = ArtifactBundle.objects.create(
@@ -220,25 +252,23 @@ class ArtifactLookupTest(APITestCase):
             },
         )
 
-        # query by url that is in both files, we only want to get one though
+        # query by url that is in both files, we only want to get the most recent one though
         response = self.client.get(
             f"{url}?release={self.release.version}&dist={dist.name}&url=path/to/app"
         ).json()
 
         assert len(response) == 1
         assert response[0]["type"] == "bundle"
-        self.assert_download_matches_file(response[0]["url"], file_a)
+        self.assert_download_matches_file(response[0]["url"], file_b)
 
-        # query by two urls yielding two bundles
+        # query by two urls should yield the most recent bundle matching those urls
         response = self.client.get(
             f"{url}?release={self.release.version}&dist={dist.name}&url=path/to/app&url=path/to/other/app"
         ).json()
 
-        assert len(response) == 2
+        assert len(response) == 1
         assert response[0]["type"] == "bundle"
-        self.assert_download_matches_file(response[0]["url"], file_a)
-        assert response[1]["type"] == "bundle"
-        self.assert_download_matches_file(response[1]["url"], file_b)
+        self.assert_download_matches_file(response[0]["url"], file_b)
 
         # query by both debug-id and url with overlapping bundles
         response = self.client.get(
@@ -249,7 +279,7 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], file_a)
 
-        # query by both debug-id and url
+        # query by both debug-id and url with non-overlapping bundles
         response = self.client.get(
             f"{url}?release={self.release.version}&dist={dist.name}&debug_id={debug_id_a}&url=path/to/other/app"
         ).json()
