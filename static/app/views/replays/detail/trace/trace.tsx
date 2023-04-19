@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +24,11 @@ function Trace({replayRecord}: Props) {
   useFetchTransactions();
 
   if (!replayRecord || !state.traces?.length) {
-    return <StyledPlaceholder height="100%" />;
+    return (
+      <StyledPlaceholder height="100%">
+        {state.isFetching && <Loading />}
+      </StyledPlaceholder>
+    );
   }
 
   return (
