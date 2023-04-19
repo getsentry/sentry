@@ -4,15 +4,14 @@ import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import {
-  DataRow,
   HOST,
-  renderBodyCell,
   renderHeadCell,
 } from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
@@ -20,6 +19,13 @@ import {
   getEndpointDetailSeriesQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+
+type DataRow = {
+  count: number;
+  description: string;
+  domain: string;
+  transaction: string;
+};
 
 type EndpointDetailBodyProps = {
   row: DataRow;
@@ -131,12 +137,32 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         grid={{
           renderHeadCell,
           renderBodyCell: (column: GridColumnHeader, dataRow: DataRow) =>
-            renderBodyCell(column, dataRow),
+            renderBodyCell(column, dataRow, row.description),
         }}
         location={location}
       />
     </div>
   );
+}
+
+function renderBodyCell(
+  column: GridColumnHeader,
+  row: DataRow,
+  spanDescription: string
+): React.ReactNode {
+  if (column.key === 'transaction') {
+    return (
+      <Link
+        to={`/starfish/span/${encodeURIComponent(spanDescription)}:${encodeURIComponent(
+          row.transaction
+        )}`}
+      >
+        {row[column.key]}
+      </Link>
+    );
+  }
+
+  return row[column.key];
 }
 
 function endpointDetailDataToChartData(data: any) {
