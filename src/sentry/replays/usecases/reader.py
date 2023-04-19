@@ -253,22 +253,23 @@ def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[b
         download_segment, transaction=transaction, current_hub=sentry_sdk.Hub.current
     )
 
-    # Map all of the segments to a worker process for download.
-    with ThreadPoolExecutor(max_workers=4) as exe:
-        results = exe.map(download_segment_with_fixed_args, segments)
-
+    # use a threadpool to download each segment from storage.
+    # stream the downloaded segments as they come in, in order.
     yield b"["
+    with ThreadPoolExecutor(max_workers=4) as exe:
+        futures = [exe.submit(download_segment_with_fixed_args, segment) for segment in segments]
 
-    for i, result in enumerate(results):
-        if result is None:
-            yield b"[]"
-        else:
-            yield result
-
-        if i < len(segments) - 1:
-            yield b","
-
+        while len(futures) > 0:
+            result = futures.pop(0).result()
+            if result is None:
+                yield b"[]"
+            else:
+                yield result
+            if len(futures) > 0:
+                # on the last element don't add a comma as it results in invalid json
+                yield b","
     yield b"]"
+
     transaction.finish()
 
 
