@@ -1,4 +1,5 @@
 import {Fragment, isValidElement} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,7 +23,7 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-type Props = {
+export type SidebarItemProps = {
   /**
    * Icon to display
    */
@@ -86,8 +87,11 @@ type Props = {
    * The current organization. Useful for analytics.
    */
   organization?: Organization;
-
   to?: string;
+  /**
+   * Content to render at the end of the item.
+   */
+  trailingItems?: React.ReactNode;
 };
 
 function SidebarItem({
@@ -109,8 +113,9 @@ function SidebarItem({
   isNewSeenKeySuffix,
   organization,
   onClick,
+  trailingItems,
   ...props
-}: Props) {
+}: SidebarItemProps) {
   const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
@@ -170,7 +175,7 @@ function SidebarItem({
   return (
     <Tooltip disabled={!collapsed} title={tooltipLabel} position={placement}>
       <StyledSidebarItem
-        data-test-id={props['data-test-id']}
+        {...props}
         id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
         to={(to ? to : href) || '#'}
@@ -182,11 +187,7 @@ function SidebarItem({
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
       >
-        <InteractionStateLayer
-          isPressed={isActive ? true : undefined}
-          color="white"
-          higherOpacity
-        />
+        <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
         <SidebarItemWrapper collapsed={collapsed}>
           <SidebarItemIcon>{icon}</SidebarItemIcon>
           {!collapsed && !isTop && (
@@ -221,6 +222,7 @@ function SidebarItem({
           {badge !== undefined && badge > 0 && (
             <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
           )}
+          {trailingItems}
         </SidebarItemWrapper>
       </StyledSidebarItem>
     </Tooltip>
@@ -248,7 +250,9 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   `;
 };
 
-const StyledSidebarItem = styled(Link)`
+const StyledSidebarItem = styled(Link, {
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
+})`
   display: flex;
   color: inherit;
   position: relative;
@@ -292,12 +296,6 @@ const StyledSidebarItem = styled(Link)`
   &.focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px ${p => p.theme.purple300};
-    padding: 0 ${space(1)} 0 ${space(0.25)};
-    margin: 0 -${space(1)} 0 -${space(0.25)};
-
-    &:before {
-      left: -18px;
-    }
   }
 
   ${getActiveStyle};
@@ -316,6 +314,9 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
 `;
 
 const SidebarItemIcon = styled('span')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   width: 37px;
 
