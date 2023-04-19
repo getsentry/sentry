@@ -3,7 +3,7 @@ This is later used for generating group forecasts for determining when a group m
 """
 
 from datetime import datetime, timedelta
-from typing import List, Tuple, TypedDict
+from typing import Dict, List, Tuple, TypedDict
 
 from snuba_sdk import (
     Column,
@@ -19,6 +19,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.models import Group
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.snuba import raw_snql_query
@@ -36,6 +37,8 @@ GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
     {"group_id": int, "hourBucket": str, "count()": int},
 )
+
+ParsedGroupsCount = Dict[int, GroupCount]
 
 
 def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
@@ -62,6 +65,28 @@ def _query_with_pagination(
             offset += QUERY_LIMIT
 
     return all_results
+
+
+def parse_groups_past_counts(response: List[GroupsCountResponse]) -> ParsedGroupsCount:
+    """
+    Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
+    ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
+
+    `response`: Snuba response for group event counts
+    """
+    group_counts: ParsedGroupsCount = {}
+    group_ids_list = group_counts.keys()
+    for data in response:
+        group_id = data["group_id"]
+        if group_id not in group_ids_list:
+            group_counts[group_id] = {
+                "intervals": [data["hourBucket"]],
+                "data": [data["count()"]],
+            }
+        else:
+            group_counts[group_id]["intervals"].append(data["hourBucket"])
+            group_counts[group_id]["data"].append(data["count()"])
+    return group_counts
 
 
 def _generate_query(

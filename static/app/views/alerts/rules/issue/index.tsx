@@ -58,8 +58,7 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
-import {metric} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -445,7 +444,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         (conditionIndices !== null || filterIndices !== null)
       ) {
         this.trackIncompatibleAnalytics = true;
-        trackAdvancedAnalyticsEvent('edit_alert_rule.incompatible_rule', {
+        trackAnalytics('edit_alert_rule.incompatible_rule', {
           organization: this.props.organization,
         });
       }
@@ -506,14 +505,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       })
       .then(() => {
         addSuccessMessage(tn('Notification sent!', 'Notifications sent!', actions));
-        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+        trackAnalytics('edit_alert_rule.notification_test', {
           organization,
           success: true,
         });
       })
       .catch(() => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
-        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+        trackAnalytics('edit_alert_rule.notification_test', {
           organization,
           success: false,
         });
@@ -754,7 +753,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     const {organization} = this.props;
     const {project} = this.state;
-    trackAdvancedAnalyticsEvent('edit_alert_rule.add_row', {
+    trackAnalytics('edit_alert_rule.add_row', {
       organization,
       project_id: project.id,
       type,
