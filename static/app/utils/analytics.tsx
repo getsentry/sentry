@@ -50,8 +50,10 @@ export function trackAnalytics(
  * Should NOT be used directly.
  * Instead, use makeAnalyticsFunction to generate an analytics function.
  */
-export const trackAnalyticsEventV2: Hooks['analytics:track-event-v2'] = (data, options) =>
-  HookStore.get('analytics:track-event-v2').forEach(cb => cb(data, options));
+export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
+  data,
+  options
+) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
 /**
  * This should be used to log when a `organization.experiments` experiment
