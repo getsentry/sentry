@@ -1,11 +1,10 @@
-import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import domId from 'sentry/utils/domId';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import SidebarItem, {SidebarItemProps} from './sidebarItem';
 
@@ -14,11 +13,14 @@ type SidebarAccordionProps = SidebarItemProps & {
 };
 
 function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
-  const [expanded, setExpanded] = useState(true);
-  const {collapsed: sidebarCollapsed} = itemProps;
+  const {id, collapsed: sidebarCollapsed} = itemProps;
+  const [expanded, setExpanded] = useLocalStorageState(
+    `sidebar-accordion-${id}:expanded`,
+    true
+  );
 
-  const mainItemId = useMemo(() => domId('sidebar-accordion-item-'), []);
-  const contentId = useMemo(() => domId('sidebar-accordion-content-'), []);
+  const mainItemId = `sidebar-accordion-${id}-item`;
+  const contentId = `sidebar-accordion-${id}-content`;
 
   return (
     <SidebarAccordionWrapper>
@@ -32,7 +34,10 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
             <SidebarItemExandButton
               size="zero"
               borderless
-              onClick={() => setExpanded(cur => !cur)}
+              onClick={e => {
+                e.preventDefault();
+                setExpanded(!expanded);
+              }}
               aria-controls={mainItemId}
               aria-label={expanded ? t('Collapse') : t('Expand')}
               sidebarCollapsed={sidebarCollapsed}
