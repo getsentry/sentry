@@ -31,7 +31,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
           aria-expanded={expanded}
           aria-owns={contentId}
           trailingItems={
-            <SidebarItemExandButton
+            <SidebarAccordionExpandButton
               size="zero"
               borderless
               onClick={e => {
@@ -47,7 +47,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
                 direction={expanded ? 'up' : 'down'}
                 role="presentation"
               />
-            </SidebarItemExandButton>
+            </SidebarAccordionExpandButton>
           }
         />
       </SidebarAccordionHeaderWrap>
@@ -80,7 +80,7 @@ const SidebarAccordionHeaderWrap = styled('div')`
   }
 `;
 
-const SidebarItemExandButton = styled(Button)<{sidebarCollapsed?: boolean}>`
+const SidebarAccordionExpandButton = styled(Button)<{sidebarCollapsed?: boolean}>`
   height: calc(100% - ${space(1)});
   margin: 0 -${space(0.5)};
   padding: 0 ${space(0.75)};
