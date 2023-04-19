@@ -35,7 +35,6 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -315,13 +314,8 @@ class Require2fa(TestCase):
         user = self._create_user(has_email=has_user_email)
         if has_2fa:
             TotpInterface().enroll(user)
-        rpc_org_member = organization_service.add_organization_member(
-            organization_id=self.org.id,
-            default_org_role=self.org.default_role,
-            user_id=user.id,
-        )
-        org_member = OrganizationMember.objects.get(id=rpc_org_member.id)
-        return user, org_member
+        member = self.create_member(organization=self.org, user=user)
+        return user, member
 
     def is_organization_member(self, user_id, member_id):
         member = OrganizationMember.objects.get(id=member_id)
