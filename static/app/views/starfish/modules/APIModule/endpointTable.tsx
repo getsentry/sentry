@@ -90,7 +90,7 @@ export function renderBodyCell(
   return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
 }
 
-const OverflowEllipsisTextContainer = styled('span')`
+export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
