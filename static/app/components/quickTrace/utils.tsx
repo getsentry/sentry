@@ -33,9 +33,11 @@ export type TransactionDestination = 'discover' | 'performance';
 
 export function generateIssueEventTarget(
   event: TraceError | TracePerformanceIssue,
-  organization: OrganizationSummary
+  organization: OrganizationSummary,
+  referrer?: string
 ): LocationDescriptor {
-  return `/organizations/${organization.slug}/issues/${event.issue_id}/events/${event.event_id}`;
+  const queryParams = referrer ? '?referrer=' + referrer : '';
+  return `/organizations/${organization.slug}/issues/${event.issue_id}/events/${event.event_id}/${queryParams}`;
 }
 
 function generatePerformanceEventTarget(
@@ -57,7 +59,8 @@ function generatePerformanceEventTarget(
 function generateDiscoverEventTarget(
   event: EventLite | TraceError | TracePerformanceIssue,
   organization: OrganizationSummary,
-  location: Location
+  location: Location,
+  referrer?: string
 ): LocationDescriptor {
   const eventSlug = generateEventSlug({
     id: event.event_id,
@@ -68,6 +71,7 @@ function generateDiscoverEventTarget(
     query: {
       ...location.query,
       project: String(event.project_id),
+      ...(referrer ? {referrer} : {}),
     },
   };
   return eventDetailsRouteWithEventView({
@@ -82,14 +86,15 @@ export function generateSingleErrorTarget(
   event: TraceError | TracePerformanceIssue,
   organization: OrganizationSummary,
   location: Location,
-  destination: ErrorDestination
+  destination: ErrorDestination,
+  referrer?: string
 ): LocationDescriptor {
   switch (destination) {
     case 'issue':
-      return generateIssueEventTarget(event, organization);
+      return generateIssueEventTarget(event, organization, referrer);
     case 'discover':
     default:
-      return generateDiscoverEventTarget(event, organization, location);
+      return generateDiscoverEventTarget(event, organization, location, referrer);
   }
 }
 

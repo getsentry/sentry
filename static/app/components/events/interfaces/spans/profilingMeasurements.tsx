@@ -4,29 +4,24 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   MINIMAP_HEIGHT,
   PROFILE_MEASUREMENTS_CHART_HEIGHT,
   TIME_AXIS_HEIGHT,
 } from 'sentry/components/events/interfaces/spans/constants';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
-import {
-  OpsDot,
-  OpsLine,
-  OpsName,
-  OpsNameContainer,
-} from 'sentry/components/events/opsBreakdown';
+import {OpsLine} from 'sentry/components/events/opsBreakdown';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatBytesBase10} from 'sentry/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 
+export const MIN_DATA_POINTS = 3;
+export const MS_PER_S = 1000;
 const NS_PER_MS = 1000000;
 const CPU_USAGE = 'cpu_usage';
 const MEMORY = 'memory_footprint';
@@ -46,30 +41,40 @@ function getChartName(op: string) {
   }
 }
 
+// Filters out data points that are outside of the transaction duration
+// because profiles can be longer than the transaction
+export function getDataPoints(
+  data: {unit: string; values: Profiling.MeasurementValue[]},
+  maxDurationInMs: number
+) {
+  // Use uniqBy since we can't guarantee the interval between recordings and
+  // we're converting to lower fidelity (ns -> ms). This can result in duplicate entries
+  return uniqBy(
+    data.values.map(value => {
+      return {
+        name: parseFloat(toMilliseconds(value.elapsed_since_start_ns).toFixed(2)),
+        value: value.value,
+      };
+    }),
+    'name'
+  ).filter(({name}) => name <= maxDurationInMs + 1); // Add 1ms to account for rounding
+}
+
 type ChartProps = {
   data: {
     unit: string;
     values: Profiling.MeasurementValue[];
   };
+  transactionDuration: number;
   type: typeof CPU_USAGE | typeof MEMORY;
 };
 
-function Chart({data, type}: ChartProps) {
+function Chart({data, type, transactionDuration}: ChartProps) {
   const theme = useTheme();
   const series: LineChartSeries[] = [
     {
       seriesName: getChartName(type),
-      // Use uniqBy since we can't guarantee the interval between recordings and
-      // we're converting to lower fidelity (ns -> ms). This can result in duplicate entries
-      data: uniqBy<SeriesDataUnit>(
-        data.values.map(value => {
-          return {
-            name: toMilliseconds(value.elapsed_since_start_ns).toFixed(0),
-            value: value.value,
-          };
-        }),
-        'name'
-      ),
+      data: getDataPoints(data, transactionDuration),
       yAxisIndex: 0,
       xAxisIndex: 0,
     },
@@ -93,6 +98,9 @@ function Chart({data, type}: ChartProps) {
           triggerOn: 'mousemove',
         },
         boundaryGap: false,
+        type: 'value',
+        alignTicks: false,
+        max: parseFloat(transactionDuration.toFixed(2)),
       }}
       series={series}
       renderer="svg"
@@ -105,8 +113,9 @@ function Chart({data, type}: ChartProps) {
       seriesOptions={{
         showSymbol: false,
       }}
-      colors={[theme.green200] as string[]}
+      colors={[theme.red300] as string[]}
       tooltip={{
+        formatAxisLabel: (value: number) => `${value}ms`,
         valueFormatter: (value, _seriesName) => {
           if (type === CPU_USAGE) {
             return `${value.toFixed(2)}%`;
@@ -127,6 +136,7 @@ const MemoizedChart = React.memo(
 
 type ProfilingMeasurementsProps = {
   profileData: Profiling.ProfileInput;
+  transactionDuration: number;
   onStartWindowSelection?: (event: React.MouseEvent<HTMLDivElement>) => void;
   renderCursorGuide?: ({
     cursorGuideHeight,
@@ -147,8 +157,8 @@ function ProfilingMeasurements({
   renderCursorGuide,
   renderFog,
   renderWindowSelection,
+  transactionDuration,
 }: ProfilingMeasurementsProps) {
-  const theme = useTheme();
   const [measurementType, setMeasurementType] = useState<
     typeof CPU_USAGE | typeof MEMORY
   >(CPU_USAGE);
@@ -161,6 +171,7 @@ function ProfilingMeasurements({
   }
 
   const data = profileData.measurements[measurementType]!;
+  const transactionDurationInMs = transactionDuration * MS_PER_S;
 
   return (
     <CursorGuideHandler.Consumer>
@@ -170,32 +181,18 @@ function ProfilingMeasurements({
             <MeasurementContainer>
               <ChartOpsLabel dividerPosition={dividerPosition}>
                 <OpsLine>
-                  <OpsNameContainer>
-                    <OpsDot style={{backgroundColor: theme.green200}} />
-                    <StyledDropdownMenu
-                      trigger={triggerProps => (
-                        <StyledDropdownButton {...triggerProps} borderless>
-                          <OpsName>{getChartName(measurementType)}</OpsName>
-                        </StyledDropdownButton>
-                      )}
-                      items={[
-                        {
-                          key: CPU_USAGE,
-                          label: getChartName(CPU_USAGE),
-                          onAction: () => {
-                            setMeasurementType(CPU_USAGE);
-                          },
-                        },
-                        {
-                          key: MEMORY,
-                          label: getChartName(MEMORY),
-                          onAction: () => {
-                            setMeasurementType(MEMORY);
-                          },
-                        },
-                      ]}
-                    />
-                  </OpsNameContainer>
+                  <RadioGroup
+                    style={{overflowX: 'visible'}}
+                    choices={[
+                      [CPU_USAGE, getChartName(CPU_USAGE)],
+                      [MEMORY, getChartName(MEMORY)],
+                    ]}
+                    value={measurementType}
+                    label={t('Profile Measurements Chart Type')}
+                    onChange={type => {
+                      setMeasurementType(type);
+                    }}
+                  />
                 </OpsLine>
               </ChartOpsLabel>
               <DividerSpacer />
@@ -211,7 +208,11 @@ function ProfilingMeasurements({
                 }}
                 onMouseDown={onStartWindowSelection}
               >
-                <MemoizedChart data={data} type={measurementType} />
+                <MemoizedChart
+                  data={data}
+                  type={measurementType}
+                  transactionDuration={transactionDurationInMs}
+                />
                 <Overlays>
                   {renderFog?.()}
                   {renderCursorGuide?.({
@@ -243,12 +244,13 @@ const Overlays = styled('div')`
 const ChartContainer = styled('div')`
   position: relative;
   flex: 1;
-  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const ChartOpsLabel = styled('div')<{dividerPosition: number}>`
+  display: flex;
+  align-items: center;
   width: calc(${p => toPercent(p.dividerPosition)} - 0.5px);
-  height: 100%;
+  height: ${PROFILE_MEASUREMENTS_CHART_HEIGHT + TIME_AXIS_HEIGHT}px;
   padding-left: ${space(3)};
 `;
 
@@ -256,16 +258,6 @@ const MeasurementContainer = styled('div')`
   display: flex;
   position: absolute;
   width: 100%;
-  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
-`;
-
-const StyledDropdownButton = styled(DropdownButton)`
-  padding: 0;
-  padding-right: ${space(0.5)};
-  margin-left: 0;
-  font-weight: normal;
-`;
-
-const StyledDropdownMenu = styled(DropdownMenu)`
-  margin-left: 0;
+  top: ${MINIMAP_HEIGHT}px;
+  border-top: 1px solid ${p => p.theme.border};
 `;

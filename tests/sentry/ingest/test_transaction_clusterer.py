@@ -106,31 +106,26 @@ def test_distribution():
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "source, txname, tags, feature_enabled, expected",
+    "source, txname, tags, expected",
     [
-        ("url", "/a/b/c", [["transaction", "/a/b/c"]], True, 1),
-        ("url", "/a/b/c", [["http.status_code", "200"]], True, 1),
-        ("route", "/", [["transaction", "/"]], True, 0),
-        ("url", None, [], True, 0),
-        ("url", "/a/b/c", [["http.status_code", "404"]], True, 0),
-        ("url", "/", [["transaction", "/"]], False, 0),
-        ("route", None, [], False, 0),
+        ("url", "/a/b/c", [["transaction", "/a/b/c"]], 1),
+        ("url", "/a/b/c", [["http.status_code", "200"]], 1),
+        ("route", "/", [["transaction", "/"]], 0),
+        ("url", None, [], 0),
+        ("url", "/a/b/c", [["http.status_code", "404"]], 0),
     ],
 )
-def test_record_transactions(
-    mocked_record, default_organization, source, txname, tags, feature_enabled, expected
-):
-    with Feature({"organizations:transaction-name-clusterer": feature_enabled}):
-        project = Project(id=111, name="project", organization_id=default_organization.id)
-        record_transaction_name(
-            project,
-            {
-                "tags": tags,
-                "transaction": txname,
-                "transaction_info": {"source": source},
-            },
-        )
-        assert len(mocked_record.mock_calls) == expected
+def test_record_transactions(mocked_record, default_organization, source, txname, tags, expected):
+    project = Project(id=111, name="project", organization_id=default_organization.id)
+    record_transaction_name(
+        project,
+        {
+            "tags": tags,
+            "transaction": txname,
+            "transaction_info": {"source": source},
+        },
+    )
+    assert len(mocked_record.mock_calls) == expected
 
 
 def test_sort_rules():
@@ -188,7 +183,6 @@ def test_save_rules(default_project):
     assert {"bar": 1326542402, "foo": 1326542401, "zap": 1326542402}
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 # From the test -- number of transactions: 30 == 10 * 2 + 5 * 2
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 30)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
@@ -203,53 +197,51 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
             _store_transaction_name(proj, f"/user/tx-{proj.name}-{i}")
             _store_transaction_name(proj, f"/org/tx-{proj.name}-{i}")
 
-    with Feature({"organizations:transaction-name-clusterer": True}):
-        project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-        project2 = Project(id=223, name="project2", organization_id=default_organization.id)
-        for project in (project1, project2):
-            project.save()
-            _add_mock_data(project, 10)
+    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+    project2 = Project(id=223, name="project2", organization_id=default_organization.id)
+    for project in (project1, project2):
+        project.save()
+        _add_mock_data(project, 10)
 
+    spawn_clusterers()
+
+    assert cluster_projects_delay.call_count == 1
+    cluster_projects_delay.reset_mock()
+
+    # Not stored enough transactions yet
+    assert _get_rules(project1) == {}
+    assert _get_rules(project2) == {}
+
+    # Clear transactions if batch minimum is not met
+    assert list(get_transaction_names(project1)) == []
+    assert list(get_transaction_names(project2)) == []
+
+    _add_mock_data(project1, 10)
+    _add_mock_data(project2, 10)
+
+    # add more transactions to the project 1
+    for i in range(5):
+        _store_transaction_name(project1, f"/users/trans/tx-{project1.id}-{i}")
+        _store_transaction_name(project1, f"/test/path/{i}")
+
+    # Add a transaction to project2 so it runs again
+    _store_transaction_name(project2, "foo")
+
+    with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1):
         spawn_clusterers()
 
-        assert cluster_projects_delay.call_count == 1
-        cluster_projects_delay.reset_mock()
+    # One project per batch now:
+    assert cluster_projects_delay.call_count == 2, cluster_projects_delay.call_args
 
-        # Not stored enough transactions yet
-        assert _get_rules(project1) == {}
-        assert _get_rules(project2) == {}
-
-        # Clear transactions if batch minimum is not met
-        assert list(get_transaction_names(project1)) == []
-        assert list(get_transaction_names(project2)) == []
-
-        _add_mock_data(project1, 10)
-        _add_mock_data(project2, 10)
-
-        # add more transactions to the project 1
-        for i in range(5):
-            _store_transaction_name(project1, f"/users/trans/tx-{project1.id}-{i}")
-            _store_transaction_name(project1, f"/test/path/{i}")
-
-        # Add a transaction to project2 so it runs again
-        _store_transaction_name(project2, "foo")
-
-        with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1):
-            spawn_clusterers()
-
-        # One project per batch now:
-        assert cluster_projects_delay.call_count == 2, cluster_projects_delay.call_args
-
-        pr_rules = _get_rules(project1)
-        assert pr_rules.keys() == {
-            "/org/*/**",
-            "/user/*/**",
-            "/test/path/*/**",
-            "/users/trans/*/**",
-        }
+    pr_rules = _get_rules(project1)
+    assert pr_rules.keys() == {
+        "/org/*/**",
+        "/user/*/**",
+        "/test/path/*/**",
+        "/users/trans/*/**",
+    }
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
@@ -259,8 +251,7 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
     assert _get_rules(project) == {}
 
     _store_transaction_name(project, "/transaction/number/1")
-    with Feature({"organizations:transaction-name-clusterer": True}):
-        cluster_projects([project])
+    cluster_projects([project])
     # Clusterer didn't create rules. Still, it updates the stores.
     assert mock_update_rules.call_count == 1
     assert mock_update_rules.call_args == mock.call(project, [])
@@ -268,8 +259,7 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
 
     _store_transaction_name(project, "/transaction/number/1")
     _store_transaction_name(project, "/transaction/number/2")
-    with Feature({"organizations:transaction-name-clusterer": True}):
-        cluster_projects([project])
+    cluster_projects([project])
     assert mock_update_rules.call_count == 2
     assert mock_update_rules.call_args == mock.call(project, ["/transaction/number/*/**"])
 
@@ -317,7 +307,6 @@ def test_transaction_clusterer_generates_rules(default_project):
         ]
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
 @mock.patch(
@@ -335,9 +324,7 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         def write(self, project: Project, rules) -> None:
             tmp_redis_storage[project] = rules
 
-    with mock.patch(
-        "sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore
-    ), Feature({"organizations:transaction-name-clusterer": True}):
+    with mock.patch("sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore):
         project1 = Project(id=123, name="project1", organization_id=default_organization.id)
         project1.save()
         for i in range(10):
@@ -374,7 +361,6 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         assert _get_rules(project1) == {"/user/*/**": 2}
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch(
@@ -408,9 +394,7 @@ def test_dont_store_inexisting_rules(_, default_organization):
         },
     }
 
-    with mock.patch(
-        "sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore
-    ), Feature({"organizations:transaction-name-clusterer": True}):
+    with mock.patch("sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore):
         project1 = Project(id=234, name="project1", organization_id=default_organization.id)
         project1.save()
 

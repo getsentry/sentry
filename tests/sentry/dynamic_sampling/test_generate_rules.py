@@ -22,7 +22,6 @@ from sentry.dynamic_sampling.rules.utils import (
 )
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers import Feature
 from sentry.utils import json
 
 DEFAULT_FACTOR_RULE = lambda factor: {
@@ -663,7 +662,6 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     get_transactions_resampling_rates.return_value = {
         "t1": t1_rate,
     }, implicit_rate
-    boost_low_transactions_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS]
     uniform_id = RESERVED_IDS[RuleType.UNIFORM_RULE]
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -687,29 +685,6 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     t1_rate /= project_sample_rate
     t1_rate /= implicit_rate
     assert rules == [
-        # transaction boosting rule
-        {
-            "condition": {
-                "inner": [
-                    {
-                        "name": "event.transaction",
-                        "op": "eq",
-                        "options": {"ignoreCase": True},
-                        "value": ["t1"],
-                    }
-                ],
-                "op": "or",
-            },
-            "id": boost_low_transactions_id,
-            "samplingValue": {"type": "factor", "value": t1_rate},
-            "type": "transaction",
-        },
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1401,
-            "samplingValue": {"type": "factor", "value": implicit_rate},
-            "type": "transaction",
-        },
         {
             "condition": {"inner": [], "op": "and"},
             "id": uniform_id,
@@ -786,14 +761,13 @@ def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
         f"{default_project.id}",
         default_factor,
     )
-    with Feature({"organizations:ds-apply-actual-sample-rate-to-biases": True}):
-        assert generate_rules(default_project) == [
-            DEFAULT_FACTOR_RULE(default_factor),
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1000,
-                "samplingValue": {"type": "sampleRate", "value": 0.1},
-                "type": "trace",
-            },
-        ]
+    assert generate_rules(default_project) == [
+        DEFAULT_FACTOR_RULE(default_factor),
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.1},
+            "type": "trace",
+        },
+    ]
     _validate_rules(default_project)

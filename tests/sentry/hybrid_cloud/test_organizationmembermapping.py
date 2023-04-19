@@ -53,7 +53,7 @@ class OrganizationMappingTest(TransactionTestCase):
         with exempt_from_silo_limits():
             org_member = OrganizationMember.objects.create(**fields)
         rpc_orgmember_mapping = organizationmember_mapping_service.create_with_organization_member(
-            org_member
+            org_member=org_member
         )
         orgmember_mapping = OrganizationMemberMapping.objects.get(
             organization_id=self.organization.id

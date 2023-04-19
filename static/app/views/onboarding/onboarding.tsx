@@ -16,7 +16,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingStatus} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -188,7 +188,7 @@ function Onboarding(props: Props) {
       cornerVariantControl.start('none');
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.back_button_clicked', {
+    trackAnalytics('onboarding.back_button_clicked', {
       organization,
       from: onboardingSteps[stepIndex].id,
       to: previousStep.id,
@@ -263,7 +263,7 @@ function Onboarding(props: Props) {
     return (
       <SkipOnboardingLink
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+          trackAnalytics('growth.onboarding_clicked_skip', {
             organization,
             source,
           });
