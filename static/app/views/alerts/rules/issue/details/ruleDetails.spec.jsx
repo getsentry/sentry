@@ -18,31 +18,28 @@ describe('AlertRuleDetails', () => {
     lastTriggered: moment().subtract(2, 'day').format(),
   });
 
-  const createWrapper = (props = {}, queryParameter) => {
+  const createWrapper = (props = {}, contextWithQueryParam) => {
     const params = {
       orgId: organization.slug,
       projectId: project.slug,
       ruleId: rule.id,
     };
 
-    if (queryParameter) {
-      context.router.location.query = {mute: '1'};
-    }
+    const router = contextWithQueryParam ? contextWithQueryParam.router : context.router;
+    const routerContext = contextWithQueryParam
+      ? contextWithQueryParam.routerContext
+      : context.routerContext;
 
     return render(
-      <RuleDetailsContainer
-        params={params}
-        location={{query: {}}}
-        router={context.router}
-      >
+      <RuleDetailsContainer params={params} location={{query: {}}} router={router}>
         <AlertRuleDetails
           params={params}
           location={{query: {}}}
-          router={context.router}
+          router={router}
           {...props}
         />
       </RuleDetailsContainer>,
-      {context: context.routerContext, organization}
+      {context: routerContext, organization}
     );
   };
 
@@ -231,8 +228,14 @@ describe('AlertRuleDetails', () => {
       method: 'POST',
       data: {target: 'me'},
     });
+    const contextWithQueryParam = initializeOrg({
+      organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
+      router: {
+        location: {query: {mute: '1'}},
+      },
+    });
 
-    createWrapper({}, true);
+    createWrapper({}, contextWithQueryParam);
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
