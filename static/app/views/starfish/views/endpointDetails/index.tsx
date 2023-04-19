@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
+import Duration from 'sentry/components/duration';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -11,7 +12,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
-import {renderHeadCell} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+import {
+  OverflowEllipsisTextContainer,
+  renderHeadCell,
+} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailErrorRateSeriesQuery,
   getEndpointDetailQuery,
@@ -179,7 +183,11 @@ function renderBodyCell(
     );
   }
 
-  return row[column.key];
+  if (column.key.toString().match(/^p\d\d/)) {
+    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+  }
+
+  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
 }
 
 function endpointDetailDataToChartData(data: any) {
