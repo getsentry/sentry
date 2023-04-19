@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
+import Duration from 'sentry/components/duration';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 
@@ -27,8 +28,8 @@ const COLUMN_ORDER = [
     width: 600,
   },
   {
-    key: 'count',
-    name: 'Count',
+    key: 'p50(exclusive_time)',
+    name: 'p50',
   },
 ];
 
@@ -72,7 +73,12 @@ function renderBodyCell(
       </Link>
     );
   }
-  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
+
+  return (
+    <OverflowEllipsisTextContainer>
+      <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
+    </OverflowEllipsisTextContainer>
+  );
 }
 
 const OverflowEllipsisTextContainer = styled('span')`
