@@ -104,6 +104,10 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
           <Panel>
             <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
             <PanelBody>
+              <PanelAlert type="info" showIcon>
+                {t('Note that it can take a few minutes until changed options are live.')}
+              </PanelAlert>
+
               <LoaderSettings
                 orgSlug={organization.slug}
                 keyId={params.keyId}
