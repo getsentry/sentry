@@ -25,7 +25,7 @@ from snuba_sdk import (
 )
 
 from sentry.models.file import File, FileBlobIndex
-from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils.snuba import raw_snql_query
 
@@ -283,7 +283,7 @@ def download_segment(
             op="download_segment",
             description="thread_task",
         ):
-            driver = FilestoreBlob() if segment.file_id else StorageBlob()
+            driver = filestore if segment.file_id else storage
             with sentry_sdk.start_span(
                 op="download_segment",
                 description="download",
