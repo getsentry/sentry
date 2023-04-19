@@ -162,6 +162,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
           end,
           limit: 10,
         } as unknown as Location),
+        sort: ['min_timestamp', 'trace'],
         cursor: cursor.cursor,
       };
 
