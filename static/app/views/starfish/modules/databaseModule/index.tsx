@@ -15,7 +15,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import DatabaseChartView from './databaseChartView';
-import DatabaseTableView from './databaseTableView';
+import DatabaseTableView, {DataRow} from './databaseTableView';
+import QueryDetail from './panel';
 
 type Props = {
   location: Location;
@@ -46,6 +47,7 @@ function getOptions() {
 type State = {
   action: string;
   transaction: string;
+  selectedRow?: DataRow;
 };
 
 class DatabaseModule extends Component<Props, State> {
@@ -76,6 +78,8 @@ class DatabaseModule extends Component<Props, State> {
     const {location, organization} = this.props;
     const {action, transaction} = this.state;
     const eventView = EventView.fromLocation(location);
+    const setSelectedRow = (row: DataRow) => this.setState({selectedRow: row});
+    const unsetSelectedSpanGroup = () => this.setState({selectedRow: undefined});
 
     return (
       <Layout.Page>
@@ -105,6 +109,11 @@ class DatabaseModule extends Component<Props, State> {
                 location={location}
                 action={action}
                 transaction={transaction}
+                onSelect={setSelectedRow}
+              />
+              <QueryDetail
+                row={this.state.selectedRow}
+                onClose={unsetSelectedSpanGroup}
               />
             </Layout.Main>
           </Layout.Body>
