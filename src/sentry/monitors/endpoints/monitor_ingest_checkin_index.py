@@ -104,7 +104,12 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
         checkin_validator = MonitorCheckInValidator(
             data=request.data,
-            context={"project": project, "request": request, "monitor_slug": monitor_slug},
+            context={
+                "project": project,
+                "request": request,
+                "monitor_slug": monitor_slug,
+                "monitor": monitor,
+            },
         )
         if not checkin_validator.is_valid():
             return self.respond(checkin_validator.errors, status=400)

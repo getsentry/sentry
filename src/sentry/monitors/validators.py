@@ -223,6 +223,17 @@ class MonitorCheckInValidator(serializers.Serializer):
         monitor_config = self.initial_data.get("monitor_config")
         if monitor_config:
             project = self.context["project"]
+            instance = {}
+            monitor = self.context.get("monitor", None)
+            if monitor:
+                instance = {
+                    "name": monitor.name,
+                    "slug": monitor.slug,
+                    "status": monitor.status,
+                    "type": monitor.type,
+                    "config": monitor.config,
+                    "project": project,
+                }
 
             # Use context to complete the full monitor validator object
             monitor_validator = MonitorValidator(
@@ -233,6 +244,7 @@ class MonitorCheckInValidator(serializers.Serializer):
                     "project": project.slug,
                     "config": monitor_config,
                 },
+                instance=instance,
                 context={
                     "organization": project.organization,
                     "access": self.context["request"].access,
