@@ -33,6 +33,7 @@ function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
 
 describe('useReplayData', () => {
   beforeEach(() => {
+    MockedReplayReaderFactory.mockClear();
     MockApiClient.clearMockResponses();
   });
 

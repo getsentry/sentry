@@ -8,7 +8,7 @@ import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPage
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ShareButton from 'sentry/components/replays/shareButton';
-import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
+import {CrumbWalker, StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,7 +38,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
         <DeleteButton />
       </ButtonActionsWrapper>
 
-      {replayRecord && crumbs ? (
+      {replayRecord ? (
         <UserBadge
           avatarSize={32}
           displayName={
@@ -56,7 +56,11 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
           displayEmail={
             <Cols>
-              <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+              {crumbs?.length ? (
+                <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+              ) : (
+                <StringWalker urls={replayRecord.urls} />
+              )}
             </Cols>
           }
         />
