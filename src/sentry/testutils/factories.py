@@ -103,6 +103,9 @@ from sentry.models.releasefile import update_artifact_index
 from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    organizationmember_mapping_service,
+)
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -284,6 +287,7 @@ class Factories:
         teamRole = kwargs.pop("teamRole", None)
 
         om = OrganizationMember.objects.create(**kwargs)
+        organizationmember_mapping_service.create_with_organization_member(org_member=om)
 
         if team_roles:
             for team, role in team_roles:
