@@ -41,7 +41,6 @@ function useVideoSizeLogger({
       windowDimensions.height / videoDimensions.height,
       1
     );
-    // TODO: replace trackAnalytics with trackAnalytics
     const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
       typeof trackAnalytics<'replay.render-player'>
     >[1]['scale_bucket'];
