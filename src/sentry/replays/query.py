@@ -618,7 +618,7 @@ class ReplaySubqueryConfig(QueryConfig):
     sdk = String(field_alias="sdk", query_alias="sdk_name")
     sdk_name = String(field_alias="sdk.name")
     sdk_version = String(field_alias="sdk.version")
-    started_at = String()
+    started_at = String(is_filterable=False)
     user = String(field_alias="user", query_alias="user_name")
     user_email = String(field_alias="user.email")
     user_id = String(field_alias="user.id")
