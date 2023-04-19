@@ -12,6 +12,7 @@ from sentry.api.helpers.group_index.update import (
     handle_has_seen,
     handle_is_bookmarked,
     handle_is_public,
+    handle_is_subscribed,
 )
 from sentry.api.issue_search import parse_search_query
 from sentry.models import (
@@ -22,6 +23,7 @@ from sentry.models import (
     GroupSeen,
     GroupShare,
     GroupStatus,
+    GroupSubscription,
     GroupSubStatus,
     add_group_to_inbox,
 )
@@ -210,6 +212,31 @@ class UpdateGroupsTest(TestCase):
         assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
+
+
+class TestHandleIsSubscribed(TestCase):
+    def setUp(self) -> None:
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+    def test_is_subscribed(self) -> None:
+        resp = handle_is_subscribed(True, self.group_list, self.project_lookup, self.user)
+
+        assert GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert resp["reason"] == "unknown"
+
+    def test_is_subscribed_updates(self) -> None:
+        GroupSubscription.objects.create(
+            group=self.group, project=self.group.project, user_id=self.user.id, is_active=False
+        )
+
+        resp = handle_is_subscribed(True, self.group_list, self.project_lookup, self.user)
+
+        subscription = GroupSubscription.objects.filter(group=self.group, user_id=self.user.id)
+        assert subscription.exists()
+        assert subscription.first().is_active
+        assert resp["reason"] == "unknown"
 
 
 class TestHandleIsBookmarked(TestCase):
