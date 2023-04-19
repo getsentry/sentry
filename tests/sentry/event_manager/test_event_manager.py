@@ -454,6 +454,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
         assert group.is_resolved()
 
@@ -480,6 +481,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
         assert group.is_resolved()
 
@@ -519,7 +521,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         group = event.group
 
-        group.update(status=GroupStatus.RESOLVED)
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         resolution = GroupResolution.objects.create(release=old_release, group=group)
         activity = Activity.objects.create(
@@ -590,7 +592,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         )
         event = manager.save(self.project.id)
         group = event.group
-        group.update(status=GroupStatus.RESOLVED)
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         # Resolve the group in old_release
         resolution = GroupResolution.objects.create(release=old_release, group=group)
@@ -648,7 +650,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         )
         event = manager.save(self.project.id)
         group = event.group
-        group.update(status=GroupStatus.RESOLVED)
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         # Resolve the group in old_release
         resolution = GroupResolution.objects.create(release=old_release, group=group)
@@ -919,7 +921,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        group.update(status=GroupStatus.RESOLVED)
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         resolution = GroupResolution.objects.create(release=old_release, group=group)
         activity = Activity.objects.create(
@@ -991,7 +993,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         group = event.group
 
-        group.update(status=GroupStatus.RESOLVED)
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
         GroupLink.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -1029,7 +1031,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         group = event.group
 
-        group.update(status=GroupStatus.RESOLVED)
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         GroupLink.objects.create(
             group_id=group.id,

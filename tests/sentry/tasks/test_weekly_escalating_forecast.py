@@ -3,12 +3,17 @@ from datetime import datetime, timedelta
 from typing import List
 from unittest.mock import patch
 
+import pytz
+
 from sentry.issues.escalating import GroupsCountResponse
-from sentry.models.group import Group, GroupStatus, GroupSubStatus
-from sentry.models.groupforecast import GroupForecast
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.types.group import GroupSubStatus
+
+DEFAULT_MINIMUM_CEILING_FORECAST = [200] * 14
 
 
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
@@ -52,7 +57,17 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             group_list.append(group)
         return group_list
 
-    @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
+    @patch("sentry.issues.escalating.query_groups_past_counts")
+    def test_empty_escalating_forecast(self, mock_query_groups_past_counts):
+        group_list = self.create_archived_until_escalating_groups(num_groups=1)
+
+        mock_query_groups_past_counts.return_value = {}
+
+        run_escalating_forecast()
+        fetched_forecast = EscalatingGroupForecast.fetch(group_list[0].project.id, group_list[0].id)
+        assert fetched_forecast is None
+
+    @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_single_group_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_archived_until_escalating_groups(num_groups=1)
 
@@ -61,11 +76,17 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         )
 
         run_escalating_forecast()
-        group_forecast = GroupForecast.objects.all()
-        assert len(group_forecast) == 1
-        assert group_forecast[0].group == group_list[0]
+        approximate_date_added = datetime.now(pytz.utc)
+        fetched_forecast = EscalatingGroupForecast.fetch(group_list[0].project.id, group_list[0].id)
+        assert fetched_forecast.project_id == group_list[0].project.id
+        assert fetched_forecast.group_id == group_list[0].id
+        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+        assert fetched_forecast.date_added.replace(
+            second=0, microsecond=0
+        ) == approximate_date_added.replace(second=0, microsecond=0)
+        assert fetched_forecast.date_added < approximate_date_added
 
-    @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
+    @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_multiple_groups_escalating_forecast(self, mock_query_groups_past_counts):
         group_list = self.create_archived_until_escalating_groups(num_groups=3)
 
@@ -74,28 +95,35 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         )
 
         run_escalating_forecast()
-        group_forecast = GroupForecast.objects.all()
-        assert len(group_forecast) == 3
-        for i in range(len(group_forecast)):
-            assert group_forecast[i].group in group_list
+        approximate_date_added = datetime.now(pytz.utc)
+        for i in range(len(group_list)):
+            fetched_forecast = EscalatingGroupForecast.fetch(
+                group_list[i].project.id, group_list[i].id
+            )
+            assert fetched_forecast.project_id == group_list[i].project.id
+            assert fetched_forecast.group_id == group_list[i].id
+            assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+            assert fetched_forecast.date_added.replace(
+                second=0, microsecond=0
+            ) == approximate_date_added.replace(second=0, microsecond=0)
+            assert fetched_forecast.date_added < approximate_date_added
 
-    @patch("sentry.tasks.weekly_escalating_forecast.query_groups_past_counts")
-    def test_no_duped_groups_escalating_forecast(self, mock_query_groups_past_counts):
-        group_list = self.create_archived_until_escalating_groups(num_groups=3)
+    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    def test_update_group_escalating_forecast(self, mock_query_groups_past_counts):
+        group_list = self.create_archived_until_escalating_groups(num_groups=1)
 
         mock_query_groups_past_counts.return_value = self.get_mock_groups_past_counts_response(
             num_days=7, num_hours=2, groups=group_list
         )
 
         run_escalating_forecast()
-        group_forecast = GroupForecast.objects.all()
-        assert len(group_forecast) == 3
-        for i in range(len(group_forecast)):
-            assert group_forecast[i].group in group_list
+        first_fetched_forecast = EscalatingGroupForecast.fetch(
+            group_list[0].project.id, group_list[0].id
+        )
 
-        # Assert no duplicates when this is run twice
+        # Assert update when this is run twice
         run_escalating_forecast()
-        group_forecast = GroupForecast.objects.all()
-        assert len(group_forecast) == 3
-        for i in range(len(group_forecast)):
-            assert group_forecast[i].group in group_list
+        second_fetched_forecast = EscalatingGroupForecast.fetch(
+            group_list[0].project.id, group_list[0].id
+        )
+        assert first_fetched_forecast.date_added < second_fetched_forecast.date_added

@@ -11,40 +11,40 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import useInitialTimeOffsetMs, {
+  TimeOffsetLocationQueryParams,
+} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
+import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-import {getInitialTimeOffset} from 'sentry/views/replays/utils';
 
 type Props = RouteComponentProps<
   {replaySlug: string},
   {},
   any,
-  {event_t: string; t: number}
+  TimeOffsetLocationQueryParams
 >;
 
-function ReplayDetails({
-  location: {
-    query: {
-      event_t: eventTimestamp, // Timestamp of the event or activity that was selected
-      t: initialTimeOffset, // Time, in seconds, where the video should start
-    },
-  },
-  params: {replaySlug},
-}: Props) {
+function ReplayDetails({params: {replaySlug}}: Props) {
   useReplayPageview('replay.details-time-spent');
-  const {slug: orgSlug} = useOrganization();
+  const organization = useOrganization();
+  const {slug: orgSlug} = organization;
 
   const {fetching, onRetry, replay, replayRecord, fetchError} = useReplayData({
     replaySlug,
     orgSlug,
   });
 
-  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
+  const initialTimeOffsetMs = useInitialTimeOffsetMs({
+    orgSlug,
+    replaySlug,
+    replayStartTimestampMs: replayRecord?.started_at.getTime(),
+  });
 
   if (fetchError) {
     if (fetchError.statusText === 'Not Found') {
@@ -90,10 +90,14 @@ function ReplayDetails({
       <Page orgSlug={orgSlug} replayRecord={replayRecord}>
         <DetailedError
           hideSupportLinks
-          heading={t('Expected two or more replay events')}
+          heading={t('Error loading replay')}
           message={
             <Fragment>
-              <p>{t('This Replay may not have captured any user actions.')}</p>
+              <p>
+                {t(
+                  'Expected two or more replay events. This Replay may not have captured any user actions.'
+                )}
+              </p>
               <p>
                 {t(
                   'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
@@ -110,18 +114,16 @@ function ReplayDetails({
     <ReplayContextProvider
       isFetching={fetching}
       replay={replay}
-      initialTimeOffset={getInitialTimeOffset({
-        eventTimestamp,
-        initialTimeOffset,
-        startTimestampMs,
-      })}
+      initialTimeOffsetMs={initialTimeOffsetMs}
     >
-      <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
+      <ReplayTransactionContext replayRecord={replayRecord}>
+        <DetailsInsideContext orgSlug={orgSlug} replayRecord={replayRecord} />
+      </ReplayTransactionContext>
     </ReplayContextProvider>
   );
 }
 
-function LoadedDetails({
+function DetailsInsideContext({
   orgSlug,
   replayRecord,
 }: {

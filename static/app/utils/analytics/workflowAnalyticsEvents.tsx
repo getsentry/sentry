@@ -72,7 +72,6 @@ export type TeamInsightsEventParameters = {
       | 'shared'
       | 'discarded'
       | 'open_in_discover'
-      | 'open_ai_suggested_fix'
       | 'assign'
       | ResolutionStatus;
     assigned_suggestion_reason?: string;
@@ -89,6 +88,14 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': {};
   'issue_details.issue_tab.screenshot_modal_download': {};
   'issue_details.issue_tab.screenshot_modal_opened': {};
+  'issue_details.merged_tab.unmerge_clicked': {
+    /**
+     * comma separated list of event ids that were unmerged
+     */
+    event_ids_unmerged: string;
+    group_id: string;
+    total_unmerged: number;
+  };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
   };
@@ -156,6 +163,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
+  'issue_details.merged_tab.unmerge_clicked': 'Issue Details: Unmerge Clicked',
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',
