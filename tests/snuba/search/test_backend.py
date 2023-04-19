@@ -38,6 +38,7 @@ from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -143,6 +144,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         self.group1.times_seen = 5
         self.group1.status = GroupStatus.UNRESOLVED
+        self.group1.substatus = GroupSubStatus.ONGOING
         self.group1.update(type=ErrorGroupType.type_id)
         self.group1.save()
         self.store_group(self.group1)
@@ -169,6 +171,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert self.group2.first_seen == self.group2.last_seen == self.event2.datetime
 
         self.group2.status = GroupStatus.RESOLVED
+        self.group2.substatus = None
         self.group2.times_seen = 10
         self.group2.update(type=ErrorGroupType.type_id)
         self.group2.save()
@@ -391,6 +394,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         group_3 = event_3.group
         group_3.status = GroupStatus.MUTED
+        group_3.substatus = None
         group_3.save()
 
         self.run_test_query_in_syntax(
@@ -1057,6 +1061,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
         group_3.status = GroupStatus.MUTED
+        group_3.substatus = None
         group_3.save()
         other_user = self.create_user()
         self.run_test_query_in_syntax(
@@ -2754,6 +2759,7 @@ class CdcEventsSnubaSearchTest(SharedSnubaTest):
 
     def test_resolved_group(self):
         self.group2.status = GroupStatus.RESOLVED
+        self.group2.substatus = None
         self.group2.save()
         self.store_group(self.group2)
         self.run_test("is:unresolved", [self.group1], None)
@@ -2923,6 +2929,7 @@ class CdcEventsSnubaSearchTest(SharedSnubaTest):
 
     def test_rechecking(self):
         self.group2.status = GroupStatus.RESOLVED
+        self.group2.substatus = None
         self.group2.save()
         # Explicitly avoid calling `store_group` here. This means that Clickhouse will still see
         # this group as `UNRESOLVED` and it will be returned in the snuba results. This group

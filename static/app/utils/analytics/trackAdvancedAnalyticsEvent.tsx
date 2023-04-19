@@ -9,7 +9,9 @@ import {
   dynamicSamplingEventMap,
   DynamicSamplingEventParameters,
 } from './dynamicSamplingAnalyticsEvents';
+import {ecosystemEventMap, EcosystemEventParameters} from './ecosystemAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
+import {integrationEventMap, IntegrationEventParameters} from './integrations';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
 import {monitorsEventMap, MonitorsEventParameters} from './monitorsAnalyticsEvents';
@@ -42,7 +44,9 @@ type EventParameters = GrowthEventParameters &
   DynamicSamplingEventParameters &
   OnboardingEventParameters &
   StackTraceEventParameters &
-  AiSuggestedSolutionEventParameters;
+  AiSuggestedSolutionEventParameters &
+  EcosystemEventParameters &
+  IntegrationEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -62,6 +66,8 @@ const allEventMap: Record<string, string | null> = {
   ...onboardingEventMap,
   ...stackTraceEventMap,
   ...aiSuggestedSolutionEventMap,
+  ...ecosystemEventMap,
+  ...integrationEventMap,
 };
 
 /**

@@ -6,6 +6,7 @@ from sentry.models import Activity, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 class HandleStatusChangeTest(TestCase):  # type:ignore
@@ -27,6 +28,7 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
             is_bulk=True,
             status_details={},
             new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ONGOING,
             sender=self,
             activity_type=None,
         )
@@ -50,6 +52,7 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
             self.project_lookup,
             acting_user=self.user,
             new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ONGOING,
             is_bulk=True,
             status_details={},
             sender=self,
@@ -75,6 +78,7 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
             self.project_lookup,
             acting_user=self.user,
             new_status=GroupStatus.IGNORED,
+            new_substatus=None,
             is_bulk=True,
             status_details={"ignoreDuration": 30},
             sender=self,

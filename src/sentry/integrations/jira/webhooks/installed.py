@@ -9,11 +9,15 @@ from sentry.tasks.integrations import sync_metadata
 from sentry.utils import jwt
 
 from ..integration import JiraIntegrationProvider
-from .base import JiraEndpointBase
+from .base import JiraWebhookBase
 
 
 @pending_silo_endpoint
-class JiraInstalledEndpoint(JiraEndpointBase):
+class JiraSentryInstalledWebhook(JiraWebhookBase):
+    """
+    Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
+    """
+
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
 
