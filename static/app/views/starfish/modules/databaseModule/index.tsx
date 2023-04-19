@@ -111,7 +111,10 @@ class DatabaseModule extends Component<Props, State> {
                 transaction={transaction}
                 onSelect={setSelectedRow}
               />
-              <QueryDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
+              <QueryDetail
+                row={this.state.selectedRow}
+                onClose={unsetSelectedSpanGroup}
+              />
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
