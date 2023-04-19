@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import moment from 'moment';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
@@ -18,6 +19,7 @@ import {
   getEndpointDetailQuery,
   getEndpointDetailSeriesQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 type EndpointDetailBodyProps = {
   row: DataRow;
@@ -27,7 +29,7 @@ const COLUMN_ORDER = [
   {
     key: 'transaction',
     name: 'Transaction',
-    width: 300,
+    width: 400,
   },
   {
     key: 'count',
@@ -66,7 +68,9 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     retry: true,
     initialData: [],
   });
-  const [countSeries, p50Series] = endpointDetailDataToChartData(seriesData);
+  const [countSeries, p50Series] = endpointDetailDataToChartData(seriesData).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   return (
     <div>
