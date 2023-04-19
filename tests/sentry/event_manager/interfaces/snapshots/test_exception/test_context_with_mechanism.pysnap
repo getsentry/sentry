@@ -1,5 +1,5 @@
 ---
-created: '2019-04-30T08:25:08.436911Z'
+created: '2023-04-19T16:08:28.133847Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_exception.py
 ---
@@ -9,6 +9,10 @@ get_api_context:
   hasSystemFrames: true
   values:
   - mechanism:
+      exception_id: 1
+      is_exception_group: true
+      parent_id: 0
+      source: __context__
       type: generic
     module: foo.bar
     rawStacktrace: null
@@ -40,6 +44,10 @@ get_api_context:
 to_json:
   values:
   - mechanism:
+      exception_id: 1
+      is_exception_group: true
+      parent_id: 0
+      source: __context__
       type: generic
     module: foo.bar
     stacktrace:
