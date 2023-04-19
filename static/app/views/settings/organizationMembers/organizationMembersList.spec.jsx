@@ -16,7 +16,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
-jest.mock('sentry/utils/analytics/trackAnalytics', () => jest.fn());
+jest.mock('sentry/utils/analytics');
 
 jest.mock('sentry/api');
 jest.mock('sentry/actionCreators/indicator');

@@ -5,7 +5,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 import OrganizationMembersWrapper from 'sentry/views/settings/organizationMembers/organizationMembersWrapper';
 
-jest.mock('sentry/utils/analytics/trackAnalytics', () => jest.fn());
+jest.mock('sentry/utils/analytics');
 jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));

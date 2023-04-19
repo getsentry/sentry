@@ -6,7 +6,7 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import IncidentRedirect from 'sentry/views/alerts/incidentRedirect';
 
-jest.mock('sentry/utils/analytics/trackAnalytics');
+jest.mock('sentry/utils/analytics');
 
 describe('IncidentRedirect', () => {
   const params = {alertId: '123'};

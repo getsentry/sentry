@@ -16,7 +16,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
-jest.mock('sentry/utils/analytics/trackAnalytics');
+jest.mock('sentry/utils/analytics');
 
 describe('OrganizationGeneralSettings', function () {
   const ENDPOINT = '/organizations/org-slug/';
