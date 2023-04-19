@@ -596,6 +596,7 @@ def start_group_reprocessing(
     with transaction.atomic():
         group = models.Group.objects.get(id=group_id)
         original_status = group.status
+        original_substatus = group.substatus
         if original_status == models.GroupStatus.REPROCESSING:
             # This is supposed to be a rather unlikely UI race when two people
             # click reprocessing in the UI at the same time.
@@ -605,6 +606,7 @@ def start_group_reprocessing(
 
         original_short_id = group.short_id
         group.status = models.GroupStatus.REPROCESSING
+        group.substatus = None
         # satisfy unique constraint of (project_id, short_id)
         # we manually tested that multiple groups with (project_id=1,
         # short_id=null) can exist in postgres
@@ -617,6 +619,7 @@ def start_group_reprocessing(
         new_group = group  # rename variable just to avoid confusion
         del group
         new_group.status = original_status
+        new_group.substatus = original_substatus
         new_group.short_id = original_short_id
 
         # this will be incremented by either the events that are
