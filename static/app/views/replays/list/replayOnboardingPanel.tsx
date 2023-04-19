@@ -1,9 +1,8 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import {addMessage} from 'sentry/actionCreators/indicator';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
@@ -18,10 +17,10 @@ import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -41,6 +40,8 @@ const OnboardingAlertHook = HookOrDefault({
   hookName: 'component:replay-onboarding-alert',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
+
+const AUTO_SWITCH_COUNTDOWN_SECONDS = 3;
 
 export default function ReplayOnboardingPanel() {
   const preferences = useLegacyStore(PreferencesStore);
@@ -89,36 +90,27 @@ export default function ReplayOnboardingPanel() {
 
   const router = useRouter();
 
+  const onComplete = useCallback(() => {
+    updateProjects([], router);
+  }, [router]);
+
+  const countdown = useCountdown({
+    seconds: AUTO_SWITCH_COUNTDOWN_SECONDS,
+    onComplete,
+  });
+
   useEffect(() => {
-    if (allProjectsUnsupported) {
+    if (allProjectsUnsupported || !allSelectedProjectsUnsupported) {
       return;
     }
 
-    const didUndo = sessionStorage.getItem('replay-project-redirect') === '1';
-
-    if (didUndo) {
-      return;
-    }
-
-    if (allSelectedProjectsUnsupported) {
-      const prevProjects = pageFilters.selection.projects;
-      updateProjects([], router, {});
-      addMessage(
-        <Fragment>{tct(`Automatically selecting supported projects`, {})}</Fragment>,
-        'undo',
-        {
-          undo: () => {
-            sessionStorage.setItem('replay-project-redirect', '1');
-            updateProjects(prevProjects, router, {});
-          },
-        }
-      );
-    }
+    countdown.start();
   }, [
     allProjectsUnsupported,
     allSelectedProjectsUnsupported,
     router,
     pageFilters.selection.projects,
+    countdown,
   ]);
 
   return (
@@ -168,6 +160,16 @@ export default function ReplayOnboardingPanel() {
               primaryAction={primaryAction}
               disabled={primaryActionDisabled}
             />
+            <CountdownWrapper>
+              <CountdownProgressBar>
+                <CountdownProgress
+                  style={{
+                    width: countdown.progress * 100 + '%',
+                  }}
+                />
+              </CountdownProgressBar>
+              <div>{t('Auto switching projects in %s seconds', countdown.time)}</div>
+            </CountdownWrapper>
           </OnboardingCTAHook>
         </Feature>
       </OnboardingPanel>
@@ -287,4 +289,73 @@ const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+`;
+
+interface CountdownProps {
+  seconds: number;
+  onComplete?: () => void;
+}
+
+function useCountdown({seconds, onComplete}: CountdownProps) {
+  const [isRunning, setIsRunning] = useState(false);
+  const [time, setTime] = useState(seconds);
+
+  const start = useCallback(() => setIsRunning(true), []);
+  const stop = useCallback(() => setIsRunning(false), []);
+  const reset = useCallback(() => setTime(seconds), [seconds]);
+
+  useEffect(() => {
+    if (!isRunning) {
+      return undefined;
+    }
+
+    const id = setInterval(() => {
+      setTime(currentTime => {
+        const nextTime = currentTime - 1;
+
+        if (nextTime < 0) {
+          clearInterval(id);
+          onComplete?.();
+          return currentTime;
+        }
+
+        return nextTime;
+      });
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [isRunning, onComplete]);
+
+  return {
+    time,
+    progress: time / seconds,
+    start,
+    stop,
+    reset,
+  };
+}
+
+const CountdownWrapper = styled('div')`
+  /* width: fit-content; */
+  width: 270px;
+  text-align: center;
+`;
+
+const CountdownProgressBar = styled('div')`
+  position: relative;
+  height: ${space(0.5)};
+  width: 100%;
+  background-color: ${p => p.theme.gray100};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const CountdownProgress = styled('div')`
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  right: 0;
+  background-color: ${p => p.theme.progressBar};
+  transition: width ease 0.8s;
 `;
