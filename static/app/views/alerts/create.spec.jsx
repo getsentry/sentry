@@ -5,8 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {metric} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import AlertsContainer from 'sentry/views/alerts';
 import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
@@ -31,9 +30,8 @@ jest.mock('sentry/utils/analytics', () => ({
     mark: jest.fn(),
     measure: jest.fn(),
   },
-  trackAdvancedAnalyticsEvent: jest.fn(),
+  trackAnalytics: jest.fn(),
 }));
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('ProjectAlertsCreate', function () {
   beforeEach(function () {
@@ -185,15 +183,12 @@ describe('ProjectAlertsCreate', function () {
       await userEvent.click(screen.getByLabelText('Delete Node'));
 
       await waitFor(() => {
-        expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-          'edit_alert_rule.add_row',
-          {
-            name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-            organization,
-            project_id: '2',
-            type: 'conditions',
-          }
-        );
+        expect(trackAnalytics).toHaveBeenCalledWith('edit_alert_rule.add_row', {
+          name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+          organization,
+          project_id: '2',
+          type: 'conditions',
+        });
       });
 
       await userEvent.click(screen.getByText('Save Rule'));
@@ -611,5 +606,18 @@ describe('ProjectAlertsCreate', function () {
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });
+  });
+
+  it('shows archived to escalating instead of ignored to unresolved', async () => {
+    createWrapper({
+      organization: TestStubs.Organization({features: ['escalating-issues-ui']}),
+    });
+    await selectEvent.select(screen.getByText('Add optional trigger...'), [
+      'The issue changes state from archived to escalating',
+    ]);
+
+    expect(
+      screen.getByText('The issue changes state from archived to escalating')
+    ).toBeInTheDocument();
   });
 });

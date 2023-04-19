@@ -1,33 +1,44 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import moment from 'moment';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {
-  DataRow,
-  HOST,
-  renderBodyCell,
-  renderHeadCell,
-} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
+import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
+import {renderHeadCell} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailQuery,
   getEndpointDetailSeriesQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+
+export type EndpointDataRow = {
+  count: number;
+  description: string;
+  domain: string;
+  transaction_count: number;
+};
+
+export type SpanTransactionDataRow = {
+  count: number;
+  transaction: string;
+};
 
 type EndpointDetailBodyProps = {
-  row: DataRow;
+  row: EndpointDataRow;
 };
 
 const COLUMN_ORDER = [
   {
     key: 'transaction',
     name: 'Transaction',
-    width: 300,
+    width: 400,
   },
   {
     key: 'count',
@@ -66,7 +77,9 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     retry: true,
     initialData: [],
   });
-  const [countSeries, p50Series] = endpointDetailDataToChartData(seriesData);
+  const [countSeries, p50Series] = endpointDetailDataToChartData(seriesData).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   return (
     <div>
@@ -126,13 +139,33 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         columnSortBy={[]}
         grid={{
           renderHeadCell,
-          renderBodyCell: (column: GridColumnHeader, dataRow: DataRow) =>
-            renderBodyCell(column, dataRow),
+          renderBodyCell: (column: GridColumnHeader, dataRow: SpanTransactionDataRow) =>
+            renderBodyCell(column, dataRow, row.description),
         }}
         location={location}
       />
     </div>
   );
+}
+
+function renderBodyCell(
+  column: GridColumnHeader,
+  row: SpanTransactionDataRow,
+  spanDescription: string
+): React.ReactNode {
+  if (column.key === 'transaction') {
+    return (
+      <Link
+        to={`/starfish/span/${encodeURIComponent(spanDescription)}:${encodeURIComponent(
+          row.transaction
+        )}`}
+      >
+        {row[column.key]}
+      </Link>
+    );
+  }
+
+  return row[column.key];
 }
 
 function endpointDetailDataToChartData(data: any) {

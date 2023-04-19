@@ -13,15 +13,15 @@ type Props = {
 
 export default function APIModuleView({}: Props) {
   const GRAPH_QUERY = `
-  select operation,
+  select action,
        count() as count,
        toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
   from default.spans_experimental_starfish
   where startsWith(span_operation, 'db')
     and span_operation != 'db.redis'
  group by interval,
-          operation
-  order by interval, operation
+          action
+  order by interval, action
   `;
   const TOP_QUERY = `
   select quantile(0.5)(exclusive_time) as p50, description,
@@ -55,24 +55,24 @@ export default function APIModuleView({}: Props) {
     initialData: [],
   });
 
-  const seriesByOperation: {[operation: string]: Series} = {};
+  const seriesByAction: {[action: string]: Series} = {};
   graphData.forEach(datum => {
-    seriesByOperation[datum.operation] = {
-      seriesName: datum.operation,
+    seriesByAction[datum.action] = {
+      seriesName: datum.action,
       data: [],
     };
   });
 
   graphData.forEach(datum => {
-    seriesByOperation[datum.operation].data.push({
+    seriesByAction[datum.action].data.push({
       value: datum.count,
       name: datum.interval,
     });
   });
 
-  const data = Object.values(seriesByOperation);
+  const data = Object.values(seriesByAction);
 
-  const seriesByQuery: {[operation: string]: Series} = {};
+  const seriesByQuery: {[action: string]: Series} = {};
   topGraphData.forEach(datum => {
     seriesByQuery[datum.description] = {
       seriesName: datum.description.substring(0, 50),

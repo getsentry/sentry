@@ -15,7 +15,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import DatabaseChartView from './databaseChartView';
-import DatabaseTableView from './databaseTableView';
+import DatabaseTableView, {DataRow} from './databaseTableView';
+import QueryDetail from './panel';
 
 type Props = {
   location: Location;
@@ -34,28 +35,29 @@ function getOptions() {
     'UPDATE',
     'connect',
     'delete',
-  ].map(operation => {
+  ].map(action => {
     return {
-      value: operation,
+      value: action,
       prefix,
-      label: operation,
+      label: action,
     };
   });
 }
 
 type State = {
-  operation: string;
+  action: string;
   transaction: string;
+  selectedRow?: DataRow;
 };
 
 class DatabaseModule extends Component<Props, State> {
   state: State = {
-    operation: 'SELECT',
+    action: 'SELECT',
     transaction: '',
   };
 
   handleOptionChange(value) {
-    this.setState({operation: value});
+    this.setState({action: value});
   }
 
   handleSearch(query) {
@@ -74,8 +76,10 @@ class DatabaseModule extends Component<Props, State> {
 
   render() {
     const {location, organization} = this.props;
-    const {operation, transaction} = this.state;
+    const {action, transaction} = this.state;
     const eventView = EventView.fromLocation(location);
+    const setSelectedRow = (row: DataRow) => this.setState({selectedRow: row});
+    const unsetSelectedSpanGroup = () => this.setState({selectedRow: undefined});
 
     return (
       <Layout.Page>
@@ -91,7 +95,7 @@ class DatabaseModule extends Component<Props, State> {
               <PageErrorAlert />
               <DatabaseChartView location={location} />
               <CompactSelect
-                value={operation}
+                value={action}
                 options={getOptions()}
                 onChange={opt => this.handleOptionChange(opt.value)}
               />
@@ -103,8 +107,13 @@ class DatabaseModule extends Component<Props, State> {
               />
               <DatabaseTableView
                 location={location}
-                operation={operation}
+                action={action}
                 transaction={transaction}
+                onSelect={setSelectedRow}
+              />
+              <QueryDetail
+                row={this.state.selectedRow}
+                onClose={unsetSelectedSpanGroup}
               />
             </Layout.Main>
           </Layout.Body>

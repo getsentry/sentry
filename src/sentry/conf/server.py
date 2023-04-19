@@ -904,11 +904,6 @@ CELERYBEAT_SCHEDULE = {
         # Run job every 5 minutes
         "schedule": timedelta(minutes=5),
     },
-    "dynamic-sampling-prioritize-transactions": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
-        # Run every 5 minutes
-        "schedule": timedelta(minutes=6),
-    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -1102,6 +1097,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
+    # Enable the new issue states and substates
+    "organizations:issues-states": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view

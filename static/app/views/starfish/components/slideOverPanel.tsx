@@ -1,3 +1,4 @@
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -25,7 +26,10 @@ export default function SlideOverPanel({collapsed, children}: SlideOverPanelProp
   );
 }
 
-const _SlideOverPanel = styled(motion.div)<{
+const _SlideOverPanel = styled(motion.div, {
+  shouldForwardProp: prop =>
+    prop === 'animate' || (prop !== 'collapsed' && isPropValid(prop)),
+})<{
   collapsed: boolean;
 }>`
   width: ${PANEL_WIDTH};
