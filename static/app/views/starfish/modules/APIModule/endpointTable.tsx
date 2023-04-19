@@ -31,6 +31,14 @@ const COLUMN_ORDER = [
     key: 'p50(exclusive_time)',
     name: 'p50',
   },
+  {
+    key: 'user_count',
+    name: 'Users',
+  },
+  {
+    key: 'transaction_count',
+    name: 'Transactions',
+  },
 ];
 
 export default function EndpointTable({location, onSelect}: Props) {
@@ -74,11 +82,11 @@ function renderBodyCell(
     );
   }
 
-  return (
-    <OverflowEllipsisTextContainer>
-      <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-    </OverflowEllipsisTextContainer>
-  );
+  if (column.key.toString().match(/^p\d\d/)) {
+    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+  }
+
+  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
 }
 
 const OverflowEllipsisTextContainer = styled('span')`

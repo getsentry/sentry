@@ -1,4 +1,4 @@
-export const ENDPOINT_LIST_QUERY = `SELECT description, domain, quantile(0.5)(exclusive_time) AS "p50(exclusive_time)"
+export const ENDPOINT_LIST_QUERY = `SELECT description, domain, quantile(0.5)(exclusive_time) AS "p50(exclusive_time)", uniq(user) as user_count, uniq(transaction) as transaction_count
  FROM spans_experimental_starfish
  WHERE module = 'http'
  GROUP BY description, domain
