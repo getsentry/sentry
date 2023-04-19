@@ -11,7 +11,7 @@ import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {Widget} from 'sentry/views/dashboards/types';
@@ -58,13 +58,10 @@ class DashboardWidgetQuerySelectorModal extends Component<Props> {
                 priority="primary"
                 icon={<IconChevron size="xs" direction="right" />}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent(
-                    'dashboards_views.query_selector.selected',
-                    {
-                      organization,
-                      widget_type: widget.displayType,
-                    }
-                  );
+                  trackAnalytics('dashboards_views.query_selector.selected', {
+                    organization,
+                    widget_type: widget.displayType,
+                  });
                 }}
                 aria-label={t('Open in Discover')}
               />

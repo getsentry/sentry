@@ -17,7 +17,7 @@ import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery, {
   TableData,
@@ -166,7 +166,7 @@ function InnerContent(
   };
 
   const changeTag = (tag: string, isOtherTag: boolean) => {
-    trackAdvancedAnalyticsEvent('performance_views.tags.change_tag', {
+    trackAnalytics('performance_views.tags.change_tag', {
       organization,
       from_tag: tagSelected!,
       to_tag: tag,
@@ -207,13 +207,10 @@ function InnerContent(
             value={aggregateColumn}
             options={X_AXIS_SELECT_OPTIONS}
             onChange={opt => {
-              trackAdvancedAnalyticsEvent(
-                'performance_views.tags.change_aggregate_column',
-                {
-                  organization,
-                  value: opt.value,
-                }
-              );
+              trackAnalytics('performance_views.tags.change_aggregate_column', {
+                organization,
+                value: opt.value,
+              });
               onChangeAggregateColumn(opt.value);
             }}
             triggerProps={{prefix: t('X-Axis')}}
