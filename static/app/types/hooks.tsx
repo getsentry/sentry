@@ -185,7 +185,9 @@ export type CustomizationHooks = {
 export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
-  'analytics:track-event-v2': AnalyticsTrackEventV2;
+  'analytics:raw-track-event': AnalyticsRawTrackEvent;
+  // TODO: remove this hook once we've migrated to the new one
+  'analytics:track-event-v2': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
 
@@ -362,7 +364,7 @@ type AnalyticsInitUser = (user: User) => void;
 /**
  * Trigger analytics tracking in the hook store.
  */
-type AnalyticsTrackEventV2 = (
+type AnalyticsRawTrackEvent = (
   data: {
     /**
      * Arbitrary data to track

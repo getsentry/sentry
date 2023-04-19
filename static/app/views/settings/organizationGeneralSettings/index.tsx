@@ -16,7 +16,7 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -77,7 +77,7 @@ function OrganizationGeneralSettings(props: Props) {
       }
     } else {
       if (prevData.codecovAccess !== updated.codecovAccess) {
-        trackAdvancedAnalyticsEvent('organization_settings.codecov_access_updated', {
+        trackAnalytics('organization_settings.codecov_access_updated', {
           organization: updated,
           has_access: updated.codecovAccess,
         });

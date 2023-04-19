@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getDateWithTimezoneInUtc,
   getInternalDate,
@@ -379,7 +379,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       if (!end) {
         end = getDateWithTimezoneInUtc(state.end, state.utc);
       }
-      trackAdvancedAnalyticsEvent('dateselector.utc_changed', {
+      trackAnalytics('dateselector.utc_changed', {
         organization,
         path: getRouteStringFromRoutes(router.routes),
         utc,

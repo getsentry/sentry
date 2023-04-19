@@ -23,7 +23,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
@@ -859,13 +859,10 @@ export const spanOperationRelativeBreakdownRenderer = (
                   if (filter === SpanOperationBreakdownFilter.None) {
                     return;
                   }
-                  trackAdvancedAnalyticsEvent(
-                    'performance_views.relative_breakdown.selection',
-                    {
-                      action: filter,
-                      organization,
-                    }
-                  );
+                  trackAnalytics('performance_views.relative_breakdown.selection', {
+                    action: filter,
+                    organization,
+                  });
                   browserHistory.push({
                     pathname: location.pathname,
                     query: {
