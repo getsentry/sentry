@@ -145,7 +145,7 @@ def get_mock_groups_past_counts_response(
     num_days: int,
     num_hours: int,
     groups: List[Group],
-) -> GroupsCountResponse:
+) -> List[GroupsCountResponse]:
     """
     Returns a mocked response of type `GroupsCountResponse` from `query_groups_past_counts`.
     Creates event count data for each group in `groups` for `num_days`, for `num_hours`.
@@ -164,10 +164,12 @@ def get_mock_groups_past_counts_response(
             for hour in range(num_hours, 0, -1):
                 hourly_time = time - timedelta(hours=hour)
                 data.append(
-                    {
-                        "group_id": group.id,
-                        "hourBucket": hourly_time.strftime("%Y-%m-%dT%H:%M:%S%f") + "+00:00",
-                        "count()": random.randint(1, 10),
-                    }
+                    GroupsCountResponse(
+                        {
+                            "group_id": group.id,
+                            "hourBucket": hourly_time.strftime("%Y-%m-%dT%H:%M:%S%f") + "+00:00",
+                            "count()": random.randint(1, 10),
+                        }
+                    )
                 )
     return data
