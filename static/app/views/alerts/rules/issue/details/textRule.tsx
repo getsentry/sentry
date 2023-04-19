@@ -73,14 +73,14 @@ export function TextAction({
       member => member.user.id === `${action.targetIdentifier}`
     );
     return (
-      <Fragment>{t('Send a notification to %s', user?.email ?? t('Unknown'))}</Fragment>
+      <Fragment>{t('Send a notification to %s', user?.email ?? t('unknown'))}</Fragment>
     );
   }
 
   if (action.targetType === 'Team') {
     const team = teams.find(tm => tm.id === `${action.targetIdentifier}`);
     return (
-      <Fragment>{t('Send a notification to #%s', team?.name ?? t('Unknown'))}</Fragment>
+      <Fragment>{t('Send a notification to #%s', team?.name ?? t('unknown'))}</Fragment>
     );
   }
 
