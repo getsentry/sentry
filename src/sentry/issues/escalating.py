@@ -82,13 +82,13 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
 
 
 def _query_with_pagination(
-    proj_ids: List[int], group_ids: List[int], start_date: datetime, end_date: datetime
+    project_ids: List[int], group_ids: List[int], start_date: datetime, end_date: datetime
 ) -> List[GroupsCountResponse]:
 
     all_results = []
     offset = 0
     while True:
-        query = _generate_query(proj_ids, group_ids, offset, start_date, end_date)
+        query = _generate_query(project_ids, group_ids, offset, start_date, end_date)
         request = Request(dataset=Dataset.Events.value, app_id=REFERRER, query=query)
         results = raw_snql_query(request, referrer=REFERRER)["data"]
         if not results:

@@ -19,7 +19,7 @@ import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 
 import {DragManagerChildrenProps} from './dragManager';
@@ -352,10 +352,9 @@ class SpanTree extends Component<PropType> {
         onClick={
           isClickable
             ? () => {
-                trackAdvancedAnalyticsEvent(
-                  'issue_details.performance.hidden_spans_expanded',
-                  {organization}
-                );
+                trackAnalytics('issue_details.performance.hidden_spans_expanded', {
+                  organization,
+                });
                 waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
 
                 // We must clear the cache at this point, since the code in componentDidUpdate is unable to effectively

@@ -6,7 +6,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {Event, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -50,7 +50,7 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
             setSuggestedSolutionLocalConfig({
               hideDetails: !suggestedSolutionLocalConfig.hideDetails,
             });
-            trackAdvancedAnalyticsEvent(
+            trackAnalytics(
               !suggestedSolutionLocalConfig.hideDetails === false
                 ? 'ai_suggested_solution.show_details_button_clicked'
                 : 'ai_suggested_solution.hide_details_button_clicked',
@@ -74,15 +74,12 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
         !openSuggestion ? (
           <Banner
             onViewSuggestion={() => {
-              trackAdvancedAnalyticsEvent(
-                'ai_suggested_solution.view_suggestion_button_clicked',
-                {
-                  organization,
-                  project_id: event.projectID,
-                  group_id: event.groupID,
-                  ...getAnalyticsDataForEvent(event),
-                }
-              );
+              trackAnalytics('ai_suggested_solution.view_suggestion_button_clicked', {
+                organization,
+                project_id: event.projectID,
+                group_id: event.groupID,
+                ...getAnalyticsDataForEvent(event),
+              });
               setOpenSuggestion(true);
             }}
           />
@@ -91,15 +88,12 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
             projectSlug={projectSlug}
             event={event}
             onHideSuggestion={() => {
-              trackAdvancedAnalyticsEvent(
-                'ai_suggested_solution.hide_suggestion_button_clicked',
-                {
-                  organization,
-                  project_id: event.projectID,
-                  group_id: event.groupID,
-                  ...getAnalyticsDataForEvent(event),
-                }
-              );
+              trackAnalytics('ai_suggested_solution.hide_suggestion_button_clicked', {
+                organization,
+                project_id: event.projectID,
+                group_id: event.groupID,
+                ...getAnalyticsDataForEvent(event),
+              });
               setOpenSuggestion(false);
             }}
           />
