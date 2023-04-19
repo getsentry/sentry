@@ -7,7 +7,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   organization: Organization;
-  replayRecord: ReplayRecord;
+  replayRecord: undefined | ReplayRecord;
 };
 
 const features = ['organizations:performance-view'];
@@ -31,7 +31,7 @@ function TraceFeature({organization, replayRecord}: Props) {
       organization={organization}
       renderDisabled={PerfDisabled}
     >
-      <Trace organization={organization} replayRecord={replayRecord} />
+      <Trace replayRecord={replayRecord} />
     </Feature>
   );
 }

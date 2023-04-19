@@ -26,10 +26,7 @@ function FocusArea({}: Props) {
         />
       );
     case TabKey.trace:
-      if (!replay) {
-        return <Placeholder height="150px" />;
-      }
-      return <Trace organization={organization} replayRecord={replay.getReplay()} />;
+      return <Trace organization={organization} replayRecord={replay?.getReplay()} />;
     case TabKey.issues:
       if (!replay) {
         return <Placeholder height="150px" />;

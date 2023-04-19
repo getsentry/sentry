@@ -19,8 +19,8 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 type Props = {
   children: ReactNode;
   orgSlug: string;
+  replayRecord: undefined | ReplayRecord;
   crumbs?: Crumb[];
-  replayRecord?: ReplayRecord;
 };
 
 function Page({children, crumbs, orgSlug, replayRecord}: Props) {
