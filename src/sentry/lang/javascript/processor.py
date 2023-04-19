@@ -2109,7 +2109,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
                     python_frame = filtered_frame(python_frame)
                     if symbolicator_frame != python_frame:
-                        different_frames.append((symbolicator_frame, python_frame))
+                        different_frames.append(
+                            {"symbolicator": symbolicator_frame, "python": python_frame}
+                        )
 
             if different_frames:
                 with sentry_sdk.push_scope() as scope:
