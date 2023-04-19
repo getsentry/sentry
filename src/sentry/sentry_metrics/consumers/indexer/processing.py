@@ -126,7 +126,8 @@ class MessageProcessor:
         bulk_record_meta = record_result.get_fetch_metadata()
 
         new_messages = batch.reconstruct_messages(
-            next(iter(mapping.values())), next(iter(bulk_record_meta.values()))
+            next(iter(mapping.values())) if mapping else {},
+            next(iter(bulk_record_meta.values())) if bulk_record_meta else {},
         )
 
         sdk.set_measurement("new_messages.len", len(new_messages))
