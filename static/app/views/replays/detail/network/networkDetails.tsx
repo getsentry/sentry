@@ -1,4 +1,4 @@
-import {Fragment, MouseEvent, useCallback, useMemo} from 'react';
+import {Fragment, MouseEvent, ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
@@ -10,6 +10,7 @@ import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatBytesBase10} from 'sentry/utils';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -18,14 +19,16 @@ import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 import NetworkDetailsTabs, {
   TabKey,
 } from 'sentry/views/replays/detail/network/networkDetailsTabs';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
+  initialHeight: number;
   items: NetworkSpan[];
-  initialHeight?: number;
+  startTimestampMs: number;
 };
 
-function NetworkRequestDetails({initialHeight = 100, items}: Props) {
+function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) {
   const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
     'n_detail_row',
     ''
@@ -59,7 +62,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
     [setDetailRow]
   );
 
-  const data = useMemo(() => getData(item), [item]);
+  const data = useMemo(() => getData(item, startTimestampMs), [item, startTimestampMs]);
   if (!data) {
     return null;
   }
@@ -107,7 +110,7 @@ function KeyValueSections({containerSize, sections}: SectionsProps) {
       <FluidPanel>
         <KeyValueTable noMargin>
           {Object.entries(sections).map(([key, values]) => (
-            <ReplayTagsTableRow key={key} name={key} values={[String(values)]} />
+            <ReplayTagsTableRow key={key} name={key} values={[values]} />
           ))}
         </KeyValueTable>
       </FluidPanel>
@@ -121,38 +124,65 @@ function ObjectSections({containerSize, sections}: SectionsProps) {
       {Object.entries(sections).map(([label, sectionData]) => (
         <Fragment key={label}>
           <SectionTitle>{label}</SectionTitle>
-          <SectionData>
-            <ObjectInspector expandPaths={[]} data={sectionData} />
-          </SectionData>
+          <SectionData>{sectionData}</SectionData>
         </Fragment>
       ))}
     </SectionList>
   );
 }
 function getData(
-  span: NetworkSpan | null
-): undefined | Record<TabKey, Record<string, unknown>> {
+  span: NetworkSpan | null,
+  startTimestampMs: number
+): undefined | Record<TabKey, Record<string, ReactNode>> {
   if (!span) {
     return undefined;
   }
 
   const queryParams = queryString.parse(span.description?.split('?')?.[1] ?? '');
 
+  const startMs = span.startTimestamp * 1000;
+  const endMs = span.endTimestamp * 1000;
+
   return {
     // It would be better if the General tab rendered in a grid, like tags
     general: {
       [t('URL')]: span.description,
+      [t('Type')]: span.op,
       [t('Method')]: span.data.method,
       [t('Status Code')]: span.data.statusCode,
-      [t('Request Body Size')]: span.data.request?.size ?? 0,
-      [t('Response Body Size')]: span.data.response?.size ?? 0,
+      [t('Request Body Size')]: formatBytesBase10(span.data.request?.size ?? 0),
+      [t('Response Body Size')]: formatBytesBase10(span.data.response?.size ?? 0),
+      [t('Duration')]: `${(endMs - startMs).toFixed(2)}ms`,
+      [t('Timestamp')]: (
+        <TimestampButton
+          format="mm:ss.SSS"
+          onClick={(event: MouseEvent) => {
+            event.stopPropagation();
+            // handleClick(span);
+          }}
+          startTimestampMs={startTimestampMs}
+          timestampMs={startMs}
+        />
+      ),
     },
     request: {
-      [t('Query String Parameters')]: queryParams,
-      [t('Request Payload')]: span.data?.request?.body,
+      [t('Query String Parameters')]: queryParams ? (
+        <ObjectInspector data={queryParams} expandLevel={3} />
+      ) : (
+        <NotFoundText>{t('Query Params not found')}</NotFoundText>
+      ),
+      [t('Request Payload')]: span.data?.request?.body ? (
+        <ObjectInspector data={span.data?.request?.body} expandLevel={3} />
+      ) : (
+        <NotFoundText>{t('Request Body not found')}</NotFoundText>
+      ),
     },
     response: {
-      [t('Response Body')]: span.data?.response?.body,
+      [t('Response Body')]: span.data?.response?.body ? (
+        <ObjectInspector data={span.data?.response?.body} expandLevel={3} />
+      ) : (
+        <NotFoundText>{t('Response body not found')}</NotFoundText>
+      ),
     },
   };
 }
@@ -223,6 +253,9 @@ const SectionTitle = styled('dt')`
 
 const SectionData = styled('dd')`
   margin-bottom: ${space(2)};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
+
+const NotFoundText = styled('code')``;
 
 export default NetworkRequestDetails;

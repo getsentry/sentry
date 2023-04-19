@@ -5,9 +5,8 @@ import FileSize from 'sentry/components/fileSize';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconFile} from 'sentry/icons';
+import {IconContract, IconExpand} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -16,15 +15,13 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 
 const EMPTY_CELL = '\u00A0';
 
-// `block` so that it's vertically centered :lolsob:
-const DetailsOpenIcon = styled(IconFile)`
-  margin-right: ${space(0.5)};
+const DetailsOpenIcon = styled(IconContract)`
+  margin-inline: ${space(0.5)};
   margin-top: -4px;
 `;
-const DetailsCloseIcon = styled(IconFile)`
-  margin-right: ${space(0.5)};
+const DetailsCloseIcon = styled(IconExpand)`
+  margin-inline: ${space(0.5)};
   margin-top: -4px;
-  fill: black;
 `;
 
 type Props = {
@@ -61,15 +58,15 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     // Rows include the sortable header, the dataIndex does not
     const dataIndex = String(rowIndex - 1);
 
-    const organization = useOrganization();
+    // const organization = useOrganization();
     const {currentTime} = useReplayContext();
     const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
 
     const isDetailsOpen = getParamValue() === dataIndex;
 
-    const hasNetworkDetails =
-      organization.features.includes('session-replay-network-details') &&
-      ['resource.fetch', 'resource.xhr'].includes(span.op);
+    // const hasNetworkDetails =
+    //   organization.features.includes('session-replay-network-details') &&
+    //   ['resource.fetch', 'resource.xhr'].includes(span.op);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
@@ -85,7 +82,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       isDetailsOpen,
       isHovered,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: hasNetworkDetails ? () => setParamValue(dataIndex) : undefined,
+      onClick: () => setParamValue(dataIndex),
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
       ref,
@@ -117,14 +114,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps}>
           <Tooltip title={operationName(span.op)} isHoverable showOnlyOnOverflow>
             <Text>
-              {['resource.xhr', 'resource.fetch'].includes(span.op) ? (
-                isDetailsOpen ? (
-                  <DetailsCloseIcon size="xs" />
-                ) : (
-                  <DetailsOpenIcon size="xs" />
-                )
+              {isDetailsOpen ? (
+                <DetailsCloseIcon size="xs" />
               ) : (
-                <DetailsOpenIcon size="xs" color="white" />
+                <DetailsOpenIcon size="xs" />
               )}
               {operationName(span.op)}
             </Text>
@@ -163,8 +156,12 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
 );
 
 const cellBackground = p => {
+  if (p.isDetailsOpen) {
+    return `background-color: ${p.theme.textColor};`;
+  }
   if (p.hasOccurred === undefined && !p.isStatusError) {
-    return `background-color: ${p.isHovered ? p.theme.hover : 'inherit'};`;
+    const color = p.isHovered ? p.theme.hover : 'inherit';
+    return `background-color: ${color};`;
   }
   const color = p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit';
   return `background-color: ${color};`;
@@ -185,13 +182,17 @@ const cellBorder = p => {
 };
 
 const cellColor = p => {
+  if (p.isDetailsOpen) {
+    const colors = p.isStatusError
+      ? [p.theme.alert.error.background]
+      : [p.theme.background];
+    return `color: ${p.hasOccurred !== false ? colors[0] : colors[0]};`;
+  }
   const colors = p.isStatusError
     ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
     : ['inherit', p.theme.gray300];
-  if (p.hasOccurred === undefined) {
-    return `color: ${colors[0]};`;
-  }
-  return `color: ${p.hasOccurred ? colors[0] : colors[1]};`;
+
+  return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
 };
 
 const Cell = styled('div')<{
@@ -209,8 +210,6 @@ const Cell = styled('div')<{
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
-
-  font-weight: ${p => (p.isDetailsOpen ? 'bold' : 'inherit')};
 
   ${cellBackground}
   ${cellBorder}
