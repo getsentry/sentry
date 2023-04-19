@@ -34,6 +34,7 @@ type Props = {
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   customPerformanceMetrics?: CustomMeasurementCollection;
   maxMenuHeight?: number;
+  mergeItemsWith?: Record<string, SearchItem>;
   onIconClick?: (value: string) => void;
   runShortcut?: (shortcut: Shortcut) => void;
   supportedTags?: TagCollection;
@@ -53,6 +54,7 @@ function SearchDropdown({
   customPerformanceMetrics,
   supportedTags,
   customInvalidTagMessage,
+  mergeItemsWith,
 }: Props) {
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
@@ -73,7 +75,10 @@ function SearchDropdown({
                   item.children.map(child => (
                     <DropdownItem
                       key={getDropdownItemKey(child)}
-                      item={child}
+                      item={{
+                        ...child,
+                        ...mergeItemsWith?.[child.title!],
+                      }}
                       searchSubstring={searchSubstring}
                       onClick={onClick}
                       onIconClick={onIconClick}
@@ -230,6 +235,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
               hasSplit={words.length > 1}
             />
           )}
+          {item.titleBadge}
         </SearchItemTitleWrapper>
       );
     }

@@ -209,6 +209,7 @@ const UserBadgeNoOverflow = styled(IdBadge)`
 
 const SidebarDropdownRoot = styled('div')`
   position: relative;
+  padding: 0 3px; /* align org icon with sidebar item icons */
 `;
 
 // So that long org names and user names do not overflow
