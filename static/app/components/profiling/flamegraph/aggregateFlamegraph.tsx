@@ -17,12 +17,12 @@ import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {collapseSystemFrameStrategy} from 'sentry/utils/profiling/collapseSystemFrameStrategy';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
@@ -61,7 +61,7 @@ export function AggregateFlamegraph(): ReactElement {
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
 
-  const [collapseSystemFrames, setCollapseSystemFrames] = useState(true);
+  const [hideSystemFrames, setHideSystemFrames] = useState(true);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -92,13 +92,15 @@ export function AggregateFlamegraph(): ReactElement {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,
-      collapseStrategy: collapseSystemFrames ? collapseSystemFrameStrategy : undefined,
+      filterFn: hideSystemFrames
+        ? (n: CallTreeNode) => n.frame.is_application
+        : undefined,
     });
 
     transaction.finish();
 
     return newFlamegraph;
-  }, [profile, sorting, threadId, view, collapseSystemFrames]);
+  }, [profile, sorting, threadId, hideSystemFrames, view]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -252,7 +254,6 @@ export function AggregateFlamegraph(): ReactElement {
       typeof profileGroup.activeProfileIndex === 'number'
         ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
         : null;
-
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
     if (defined(threadID)) {
@@ -261,7 +262,7 @@ export function AggregateFlamegraph(): ReactElement {
         payload: threadID,
       });
     }
-  }, [profileGroup, profiles.threadId, dispatch, sorting]);
+  }, [profileGroup, profiles.threadId, dispatch]);
 
   return (
     <Fragment>
@@ -287,10 +288,10 @@ export function AggregateFlamegraph(): ReactElement {
             {t('Reset Zoom')}
           </Button>
           <Flex align="center" gap={space(1)}>
-            <span>{t('Collapse System Frames')}</span>
+            <span>{t('Hide System Frames')}</span>
             <SwitchButton
-              toggle={() => setCollapseSystemFrames(v => !v)}
-              isActive={collapseSystemFrames}
+              toggle={() => setHideSystemFrames(v => !v)}
+              isActive={hideSystemFrames}
             />
           </Flex>
         </Flex>
