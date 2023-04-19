@@ -150,8 +150,8 @@ class CachingIndexer(StringIndexer):
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
-    def resolve(self, use_case_key: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        key = f"{use_case_key.value}:{org_id}:{string}"
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        key = f"{use_case_id.value}:{org_id}:{string}"
         result = self.cache.get(key)
 
         if result and isinstance(result, int):
@@ -159,15 +159,15 @@ class CachingIndexer(StringIndexer):
             return result
 
         metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "resolve"})
-        id = self.indexer.resolve(use_case_key, org_id, string)
+        id = self.indexer.resolve(use_case_id, org_id, string)
 
         if id is not None:
             self.cache.set(key, id)
 
         return id
 
-    def reverse_resolve(self, use_case_key: UseCaseKey, org_id: int, id: int) -> Optional[str]:
-        return self.indexer.reverse_resolve(use_case_key, org_id, id)
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+        return self.indexer.reverse_resolve(use_case_id, org_id, id)
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         raise NotImplementedError(

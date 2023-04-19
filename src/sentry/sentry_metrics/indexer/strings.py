@@ -176,15 +176,15 @@ class StaticStringIndexer(StringIndexer):
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    def resolve(self, use_case_key: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.resolve(use_case_key=use_case_key, org_id=org_id, string=string)
+        return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    def reverse_resolve(self, use_case_key: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
-        return self.indexer.reverse_resolve(use_case_key=use_case_key, org_id=org_id, id=id)
+        return self.indexer.reverse_resolve(use_case_id=use_case_id, org_id=org_id, id=id)
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
