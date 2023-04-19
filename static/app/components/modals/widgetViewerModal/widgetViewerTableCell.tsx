@@ -10,7 +10,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getIssueFieldRenderer,
   getSortField,
@@ -83,7 +83,7 @@ export const renderIssueGridHeaderCell = ({
         })}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.ISSUE,
             display_type: widget.displayType,
@@ -157,7 +157,7 @@ export const renderDiscoverGridHeaderCell = ({
         generateSortLink={generateSortLink}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.DISCOVER,
             display_type: widget.displayType,
@@ -326,7 +326,7 @@ export const renderReleaseGridHeaderCell = ({
         generateSortLink={generateSortLink}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.RELEASE,
             display_type: widget.displayType,

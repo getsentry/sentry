@@ -20,7 +20,7 @@ import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 
@@ -161,7 +161,7 @@ function PlatformPicker(props: PlatformPickerProps) {
 
   const logSearch = debounce(() => {
     if (filter) {
-      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+      trackAnalytics('growth.platformpicker_search', {
         search: filter.toLowerCase(),
         num_results: platformList.length,
         source,
@@ -180,7 +180,7 @@ function PlatformPicker(props: PlatformPickerProps) {
             <ListLink
               key={id}
               onClick={(e: React.MouseEvent) => {
-                trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                trackAnalytics('growth.platformpicker_category', {
                   category: id,
                   source,
                   organization,
@@ -219,7 +219,7 @@ function PlatformPicker(props: PlatformPickerProps) {
               if (props.platforms.includes(platform.id)) {
                 return;
               }
-              trackAdvancedAnalyticsEvent('growth.select_platform', {
+              trackAnalytics('growth.select_platform', {
                 platform_id: platform.id,
                 source,
                 organization,

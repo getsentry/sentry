@@ -12,7 +12,7 @@ import {
   TagCollection,
   TagValue,
 } from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FieldKind,
@@ -129,7 +129,7 @@ function ReplaySearchBar(props: Props) {
         const searchKeys = conditions.tokens.map(({key}) => key).filter(Boolean);
 
         if (searchKeys.length > 0) {
-          trackAdvancedAnalyticsEvent('replay.search', {
+          trackAnalytics('replay.search', {
             search_keys: searchKeys.join(','),
             organization,
           });

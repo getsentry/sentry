@@ -7,14 +7,14 @@ import Input from 'sentry/components/input';
 import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 function CommandPalette({Body}: ModalRenderProps) {
   const theme = useTheme();
 
   useEffect(
     () =>
-      void trackAdvancedAnalyticsEvent('omnisearch.open', {
+      void trackAnalytics('omnisearch.open', {
         organization: null,
       }),
     []

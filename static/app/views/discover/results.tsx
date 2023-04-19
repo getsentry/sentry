@@ -34,7 +34,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -342,7 +342,7 @@ export class Results extends Component<Props, State> {
 
   handleChangeShowTags = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('discover_v2.results.toggle_tag_facets', {
+    trackAnalytics('discover_v2.results.toggle_tag_facets', {
       organization,
     });
     this.setState(state => {
@@ -397,7 +397,7 @@ export class Results extends Component<Props, State> {
       this.handleConfirmed();
     }
 
-    trackAdvancedAnalyticsEvent('discover_v2.y_axis_change', {
+    trackAnalytics('discover_v2.y_axis_change', {
       organization: this.props.organization,
       y_axis_value: value,
     });

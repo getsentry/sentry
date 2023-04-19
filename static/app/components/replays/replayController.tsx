@@ -24,7 +24,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -166,7 +166,7 @@ function ReplayControls({
 
   const handleFullscreenToggle = () => {
     if (toggleFullscreen) {
-      trackAdvancedAnalyticsEvent('replay.toggle-fullscreen', {
+      trackAnalytics('replay.toggle-fullscreen', {
         organization,
         user_email: config.user.email,
         fullscreen: !isFullscreen,

@@ -23,7 +23,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 
@@ -54,7 +54,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   componentDidMount() {
     const {organization, params} = this.props;
-    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
+    trackAnalytics('issue_alert_rule_details.viewed', {
       organization,
       rule_id: parseInt(params.ruleId, 10),
     });
@@ -298,7 +298,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
                 icon={<IconEdit />}
                 to={`/organizations/${organization.slug}/alerts/rules/${projectId}/${ruleId}/`}
                 onClick={() =>
-                  trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
+                  trackAnalytics('issue_alert_rule_details.edit_clicked', {
                     organization,
                     rule_id: parseInt(ruleId, 10),
                   })

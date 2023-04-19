@@ -4,7 +4,7 @@ import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import {
   clearAllHighlights,
@@ -441,7 +441,7 @@ export function Provider({
       }
       setIsPlaying(play);
 
-      trackAdvancedAnalyticsEvent('replay.play-pause', {
+      trackAnalytics('replay.play-pause', {
         organization,
         user_email: config.user.email,
         play,

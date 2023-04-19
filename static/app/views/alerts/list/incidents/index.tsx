@@ -17,7 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
 
 import FilterBar from '../../filterBar';
@@ -288,7 +288,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
 function IncidentsListContainer(props: Props) {
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+    trackAnalytics('alert_stream.viewed', {
       organization: props.organization,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -20,7 +20,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalytics from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import {DashboardListItem} from 'sentry/views/dashboards/types';
 
@@ -49,7 +49,7 @@ function DashboardList({
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
-        trackAdvancedAnalytics('dashboards_manage.delete', {
+        trackAnalytics('dashboards_manage.delete', {
           organization,
           dashboard_id: parseInt(dashboard.id, 10),
         });
@@ -67,7 +67,7 @@ function DashboardList({
       const newDashboard = cloneDashboard(dashboardDetail);
       newDashboard.widgets.map(widget => (widget.id = undefined));
       await createDashboard(api, organization.slug, newDashboard, true);
-      trackAdvancedAnalytics('dashboards_manage.duplicate', {
+      trackAnalytics('dashboards_manage.duplicate', {
         organization,
         dashboard_id: parseInt(dashboard.id, 10),
       });
@@ -174,7 +174,7 @@ function DashboardList({
           if (offset <= 0 && isPrevious) {
             delete newQuery.cursor;
           }
-          trackAdvancedAnalytics('dashboards_manage.paginate', {organization});
+          trackAnalytics('dashboards_manage.paginate', {organization});
 
           browserHistory.push({
             pathname: path,

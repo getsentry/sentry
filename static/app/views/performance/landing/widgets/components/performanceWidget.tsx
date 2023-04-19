@@ -6,7 +6,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import useApi from 'sentry/utils/useApi';
@@ -88,7 +88,7 @@ function trackDataComponentClicks(
   chartSetting: PerformanceWidgetSetting,
   organization: Organization
 ) {
-  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.interaction', {
+  trackAnalytics('performance_views.landingv3.widget.interaction', {
     organization,
     widget_type: chartSetting,
   });

@@ -21,7 +21,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -96,7 +96,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   handleSearch(query: string) {
     const {location, router, organization} = this.props;
-    trackAdvancedAnalyticsEvent('dashboards_manage.search', {
+    trackAnalytics('dashboards_manage.search', {
       organization,
     });
 
@@ -108,7 +108,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   handleSortChange = (value: string) => {
     const {location, organization} = this.props;
-    trackAdvancedAnalyticsEvent('dashboards_manage.change_sort', {
+    trackAnalytics('dashboards_manage.change_sort', {
       organization,
       sort: value,
     });
@@ -126,7 +126,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     const {showTemplates} = this.state;
     const {organization} = this.props;
 
-    trackAdvancedAnalyticsEvent('dashboards_manage.templates.toggle', {
+    trackAnalytics('dashboards_manage.templates.toggle', {
       organization,
       show_templates: !showTemplates,
     });
@@ -209,7 +209,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onCreate() {
     const {organization, location} = this.props;
-    trackAdvancedAnalyticsEvent('dashboards_manage.create.start', {
+    trackAnalytics('dashboards_manage.create.start', {
       organization,
     });
 
@@ -223,7 +223,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   async onAdd(dashboard: DashboardDetails) {
     const {organization, api} = this.props;
-    trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
+    trackAnalytics('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
       dashboard_title: dashboard.title,
@@ -245,7 +245,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onPreview(dashboardId: string) {
     const {organization, location} = this.props;
-    trackAdvancedAnalyticsEvent('dashboards_manage.templates.preview', {
+    trackAnalytics('dashboards_manage.templates.preview', {
       organization,
       dashboard_id: dashboardId,
     });

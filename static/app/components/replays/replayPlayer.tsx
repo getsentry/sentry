@@ -7,6 +7,7 @@ import {Panel as _Panel} from 'sentry/components/panels';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -41,11 +42,12 @@ function useVideoSizeLogger({
       windowDimensions.height / videoDimensions.height,
       1
     );
+    // TODO: replace trackAdvancedAnalyticsEvent with trackAnalytics
     const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
       typeof trackAdvancedAnalyticsEvent<'replay.render-player'>
     >[1]['scale_bucket'];
 
-    trackAdvancedAnalyticsEvent('replay.render-player', {
+    trackAnalytics('replay.render-player', {
       organization,
       aspect_ratio,
       scale_bucket,

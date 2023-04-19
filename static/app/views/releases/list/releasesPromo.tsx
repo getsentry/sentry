@@ -21,7 +21,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, SentryApp} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useApiRequests from 'sentry/utils/useApiRequests';
 
@@ -111,7 +111,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
     }
   }, [isLoading, data.internalIntegrations]);
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('releases.quickstart_viewed', {
+    trackAnalytics('releases.quickstart_viewed', {
       organization,
       project_id: project.id,
     });
@@ -119,7 +119,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
   }, []);
 
   const trackQuickstartCopy = useCallback(() => {
-    trackAdvancedAnalyticsEvent('releases.quickstart_copied', {
+    trackAnalytics('releases.quickstart_copied', {
       organization,
       project_id: project.id,
     });
@@ -127,7 +127,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
 
   const trackQuickstartCreatedIntegration = useCallback(
     (integration: SentryApp) => {
-      trackAdvancedAnalyticsEvent('releases.quickstart_create_integration.success', {
+      trackAnalytics('releases.quickstart_create_integration.success', {
         organization,
         project_id: project.id,
         integration_uuid: integration.uuid,
@@ -137,7 +137,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
   );
 
   const trackCreateIntegrationModalClose = useCallback(() => {
-    trackAdvancedAnalyticsEvent('releases.quickstart_create_integration_modal.close', {
+    trackAnalytics('releases.quickstart_create_integration_modal.close', {
       organization,
       project_id: project.id,
     });

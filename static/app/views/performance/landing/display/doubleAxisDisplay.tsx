@@ -6,7 +6,7 @@ import {Location} from 'history';
 import {Panel} from 'sentry/components/panels';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -41,7 +41,7 @@ function DoubleAxisDisplay(props: Props) {
       `<${Math.round(maxValue)}`,
     ]);
     const query = conditions.formatString();
-    trackAdvancedAnalyticsEvent('performance_views.landingv2.display.filter_change', {
+    trackAnalytics('performance_views.landingv2.display.filter_change', {
       organization,
 
       field,

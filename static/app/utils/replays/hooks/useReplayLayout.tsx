@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
@@ -86,7 +86,7 @@ function useActiveReplayTab() {
         const chosenLayout = isLayout(value) ? value : defaultLayout;
 
         setParamValue(chosenLayout);
-        trackAdvancedAnalyticsEvent('replay.details-layout-changed', {
+        trackAnalytics('replay.details-layout-changed', {
           organization,
           default_layout: defaultLayout,
           chosen_layout: chosenLayout,
