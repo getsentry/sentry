@@ -77,7 +77,9 @@ export function TextAction({
 
   if (action.targetType === 'Team') {
     const team = teams.find(tm => tm.id === `${action.targetIdentifier}`);
-    return <Fragment>{t('Send a notification to #%s', team?.name)}</Fragment>;
+    return (
+      <Fragment>{t('Send a notification to #%s', team?.name ?? t('Unknown'))}</Fragment>
+    );
   }
 
   if (action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
