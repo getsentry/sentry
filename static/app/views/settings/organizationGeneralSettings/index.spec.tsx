@@ -13,10 +13,10 @@ import {
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics/trackAnalytics');
 
 describe('OrganizationGeneralSettings', function () {
   const ENDPOINT = '/organizations/org-slug/';
@@ -81,7 +81,7 @@ describe('OrganizationGeneralSettings', function () {
       );
     });
 
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalled();
+    expect(trackAnalytics).toHaveBeenCalled();
   });
 
   it('changes org slug and redirects to new slug', async function () {
