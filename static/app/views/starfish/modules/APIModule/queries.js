@@ -7,7 +7,7 @@ export const ENDPOINT_LIST_QUERY = `SELECT
  FROM spans_experimental_starfish
  WHERE module = 'http'
  GROUP BY description, domain
- ORDER BY "p50(exclusive_time)" DESC
+ ORDER BY count DESC
  LIMIT 10
 `;
 
