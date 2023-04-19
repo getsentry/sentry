@@ -85,9 +85,10 @@ def _process_message(wrapper: Dict) -> None:
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
 
+    environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
 
-    ratelimit_key = params["monitor_slug"]
+    ratelimit_key = f"{params['monitor_slug']}:{environment}"
 
     if ratelimits.is_limited(
         f"monitor-checkins:{ratelimit_key}",
@@ -111,7 +112,7 @@ def _process_message(wrapper: Dict) -> None:
                 return
 
             monitor_environment = MonitorEnvironment.objects.ensure_environment(
-                project, monitor, params.get("environment")
+                project, monitor, environment
             )
 
             status = getattr(CheckInStatus, params["status"].upper())
