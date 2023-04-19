@@ -10,7 +10,7 @@ import AlertRuleDetails from 'sentry/views/alerts/rules/issue/details/ruleDetail
 
 describe('AlertRuleDetails', () => {
   const context = initializeOrg({
-    organization: {features: ['issue-alert-incompatible-rules']},
+    organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
   });
   const organization = context.organization;
   const project = TestStubs.Project();
@@ -196,5 +196,27 @@ describe('AlertRuleDetails', () => {
         'The conditions in this alert rule conflict and might not be working properly.'
       )
     ).not.toBeInTheDocument();
+  });
+
+  it('renders the mute button and can mute/unmute alerts', async () => {
+    const postRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
+      method: 'POST',
+      data: {target: 'me'},
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
+      method: 'DELETE',
+    });
+    createWrapper();
+    expect(await screen.findByText('Mute')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Mute'}));
+    expect(postRequest).toHaveBeenCalledTimes(1);
+
+    expect(await screen.findByText('Unmute')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
+
+    expect(deleteRequest).toHaveBeenCalledTimes(1);
   });
 });
