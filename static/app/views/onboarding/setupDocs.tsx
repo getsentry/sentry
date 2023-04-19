@@ -437,7 +437,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
               projects={projects}
               selectedPlatformToProjectIdMap={Object.fromEntries(
                 selectedPlatforms.map(platform => [
-                  platform,
+                  platform.key,
                   platformToProjectIdMap[platform.key],
                 ])
               )}
