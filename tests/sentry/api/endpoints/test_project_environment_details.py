@@ -97,6 +97,7 @@ class ProjectEnvironmentsTest(APITestCase):
     def test_escaped_character_put(self):
         project = self.create_project()
 
+        # "/" character will have to be escaped in url path
         env_name = "PROD/STAGE"
         environment = Environment.objects.create(
             organization_id=project.organization_id, name=env_name
