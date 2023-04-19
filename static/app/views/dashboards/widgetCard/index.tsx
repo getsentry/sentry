@@ -298,22 +298,23 @@ class WidgetCard extends Component<Props, State> {
                     <WidgetTitle>{widget.title}</WidgetTitle>
                   </Tooltip>
                   <DashboardsMEPConsumer>
-                    {({isMetricsData}) => {
-                      if (
-                        isMetricsData === false &&
-                        widget.widgetType === WidgetType.DISCOVER
-                      ) {
-                        return (
-                          <Tooltip
-                            containerDisplayMode="inline-flex"
-                            title={t(
-                              'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
-                            )}
-                          >
-                            <IconWarning color="warningText" />
-                          </Tooltip>
-                        );
-                      }
+                    {({}) => {
+                      // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
+                      // if (
+                      //   isMetricsData === false &&
+                      //   widget.widgetType === WidgetType.DISCOVER
+                      // ) {
+                      //   return (
+                      //     <Tooltip
+                      //       containerDisplayMode="inline-flex"
+                      //       title={t(
+                      //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
+                      //       )}
+                      //     >
+                      //       <IconWarning color="warningText" />
+                      //     </Tooltip>
+                      //   );
+                      // }
                       return null;
                     }}
                   </DashboardsMEPConsumer>
