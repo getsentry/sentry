@@ -17,7 +17,7 @@ export default function SlideOverPanel({collapsed, children}: SlideOverPanelProp
       animate={!collapsed ? {opacity: 1, x: 0} : {opacity: 0, x: PANEL_WIDTH}}
       transition={{
         type: 'spring',
-        stiffness: 1000,
+        stiffness: 500,
         damping: 50,
       }}
     >
