@@ -9,7 +9,7 @@ frontend_lintable: &frontend_lintable
   - *frontend_components_lintable
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
-  - '!ios-device-list.tsx'
+  - '!**/ios-device-list.tsx'
 
 yarn_lockfile: &yarn_lockfile
   - 'yarn.lock'
