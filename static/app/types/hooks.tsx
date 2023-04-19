@@ -186,8 +186,6 @@ export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
-  // TODO: remove this hook once we've migrated to the new one
-  'analytics:track-event-v2': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
 
