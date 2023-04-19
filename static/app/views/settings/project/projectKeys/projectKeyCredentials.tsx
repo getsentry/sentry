@@ -103,7 +103,7 @@ function ProjectKeyCredentials({
           help={tct('Use your security header endpoint for features like [link].', {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
-                CSP and Expect-CT reports
+             {t('CSP and Expect-CT reports')}
               </ExternalLink>
             ),
           })}

@@ -170,7 +170,7 @@ export function LoaderSettings({keyId, organizationId, projectId, projectKey}: P
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
-                    What does the script provide?
+                   {t(' What does the script provide?')}
                   </ExternalLink>
                 ),
               }
@@ -199,7 +199,7 @@ export function LoaderSettings({keyId, organizationId, projectId, projectKey}: P
                 : []
             }
             value={browserSdkVersion}
-            onChange={value => handleUpdateBrowserSDKVersion(value)}
+            onChange={handleUpdateBrowserSDKVersion}
             placeholder={t('4.x')}
             allowClear={false}
             disabled={!hasAccess}

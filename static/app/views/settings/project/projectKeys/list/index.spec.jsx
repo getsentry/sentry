@@ -73,11 +73,11 @@ describe('ProjectKeys', function () {
       />
     );
 
-    const allDsn = screen.queryAllByRole('textbox', {name: 'DSN URL'});
+    const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
     expect(allDsn.length).toBe(1);
 
-    const expandButton = screen.queryByRole('button', {name: 'Expand'});
-    const dsn = screen.queryByRole('textbox', {name: 'DSN URL'});
+    const expandButton = screen.getByRole('button', {name: 'Expand'});
+    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
@@ -107,7 +107,7 @@ describe('ProjectKeys', function () {
     );
 
     const expandButton = screen.queryByRole('button', {name: 'Expand'});
-    const dsn = screen.queryByRole('textbox', {name: 'DSN URL'});
+    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
@@ -136,7 +136,7 @@ describe('ProjectKeys', function () {
     );
 
     const expandButton = screen.queryByRole('button', {name: 'Expand'});
-    const dsn = screen.queryByRole('textbox', {name: 'DSN URL'});
+    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
@@ -209,7 +209,7 @@ describe('ProjectKeys', function () {
       />
     );
 
-    const allDsn = screen.queryAllByRole('textbox', {name: 'DSN URL'});
+    const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
     expect(allDsn.length).toBe(2);
   });
 
