@@ -91,8 +91,6 @@ function EndpointDetailBody({row}: CacheDetailBodyProps) {
       <p>{t('Detailed summary of redis span.')}</p>
       <SubHeader>{t('Command')}</SubHeader>
       <pre>{row.desc}</pre>
-      <SubHeader>{t('Total time spent')}</SubHeader>
-      <pre>{row.total_time}ms</pre>
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Throughput')}</SubHeader>
