@@ -18,8 +18,8 @@ export function PlatformSelection(props: StepProps) {
   const [clientState, setClientState] = usePersistedOnboardingState();
 
   const selectedPlatform = clientState?.selectedPlatforms?.[0]
-    ? platforms.find(platform => platform.id === clientState?.selectedPlatforms?.[0].key)
-      ? clientState?.selectedPlatforms?.[0]
+    ? platforms.find(platform => platform.id === clientState.selectedPlatforms[0].key)
+      ? clientState.selectedPlatforms[0]
       : undefined
     : undefined;
 
