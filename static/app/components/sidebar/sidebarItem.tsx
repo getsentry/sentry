@@ -262,7 +262,6 @@ const StyledSidebarItem = styled(Link, {
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
-  margin-bottom: 1px;
 
   &:before {
     display: block;
@@ -278,9 +277,6 @@ const StyledSidebarItem = styled(Link, {
   }
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: 0;
-    margin-right: 1px;
-
     &:before {
       top: auto;
       left: 5px;
