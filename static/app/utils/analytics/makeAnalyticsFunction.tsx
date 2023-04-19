@@ -1,13 +1,13 @@
 import {Organization} from 'sentry/types';
 import {Hooks} from 'sentry/types/hooks';
-import {trackAnalyticsEventV2} from 'sentry/utils/analytics';
+import {rawTrackAnalyticsEvent} from 'sentry/utils/analytics';
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
 type OptionalOrg = {
   organization: Organization | string | null;
 };
-type Options = Parameters<Hooks['analytics:track-event-v2']>[1];
+type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
 
 /**
  * Generates functions used to track an event for analytics.
@@ -49,9 +49,9 @@ export default function makeAnalyticsFunction<
     // only apply options if required to make mock assertions easier
     if (options || defaultOptions) {
       options = {...defaultOptions, ...options};
-      trackAnalyticsEventV2(params, options);
+      rawTrackAnalyticsEvent(params, options);
     } else {
-      trackAnalyticsEventV2(params);
+      rawTrackAnalyticsEvent(params);
     }
   };
 }
