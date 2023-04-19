@@ -9,6 +9,7 @@ import Link from 'sentry/components/links/link';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
 
@@ -16,7 +17,7 @@ export const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
-  onSelect: (row: DataRow) => void;
+  onSelect: (row: EndpointDataRow) => void;
 };
 
 export type DataRow = {
@@ -104,7 +105,7 @@ export default function APIModuleView({location, onSelect}: Props) {
         columnSortBy={[]}
         grid={{
           renderHeadCell,
-          renderBodyCell: (column: GridColumnHeader, row: DataRow) =>
+          renderBodyCell: (column: GridColumnHeader, row: EndpointDataRow) =>
             renderBodyCell(column, row, onSelect),
         }}
         location={location}
@@ -119,8 +120,8 @@ export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
 
 export function renderBodyCell(
   column: GridColumnHeader,
-  row: DataRow,
-  onSelect?: (row: DataRow) => void
+  row: EndpointDataRow,
+  onSelect?: (row: EndpointDataRow) => void
 ): React.ReactNode {
   if (column.key === 'description' && onSelect) {
     return (

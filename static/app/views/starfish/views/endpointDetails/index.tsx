@@ -20,15 +20,20 @@ import {
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-type DataRow = {
+export type EndpointDataRow = {
   count: number;
   description: string;
   domain: string;
+  transaction_count: number;
+};
+
+export type SpanTransactionDataRow = {
+  count: number;
   transaction: string;
 };
 
 type EndpointDetailBodyProps = {
-  row: DataRow;
+  row: EndpointDataRow;
 };
 
 const COLUMN_ORDER = [
@@ -136,7 +141,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         columnSortBy={[]}
         grid={{
           renderHeadCell,
-          renderBodyCell: (column: GridColumnHeader, dataRow: DataRow) =>
+          renderBodyCell: (column: GridColumnHeader, dataRow: SpanTransactionDataRow) =>
             renderBodyCell(column, dataRow, row.description),
         }}
         location={location}
@@ -147,7 +152,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
 
 function renderBodyCell(
   column: GridColumnHeader,
-  row: DataRow,
+  row: SpanTransactionDataRow,
   spanDescription: string
 ): React.ReactNode {
   if (column.key === 'transaction') {
