@@ -72,7 +72,9 @@ export function TextAction({
     const user = memberList.find(
       member => member.user.id === `${action.targetIdentifier}`
     );
-    return <Fragment>{t('Send a notification to %s', user?.email)}</Fragment>;
+    return (
+      <Fragment>{t('Send a notification to %s', user?.email ?? t('Unknown'))}</Fragment>
+    );
   }
 
   if (action.targetType === 'Team') {
