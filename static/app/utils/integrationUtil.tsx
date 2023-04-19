@@ -30,15 +30,15 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types';
 import {Hooks} from 'sentry/types/hooks';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {IconSize} from './theme';
 
 /**
  * TODO: remove alias once all usages are updated
- * @deprecated Use trackAdvancedAnalyticsEvent instead
+ * @deprecated Use trackAnalytics instead
  */
-export const trackIntegrationAnalytics = trackAdvancedAnalyticsEvent;
+export const trackIntegrationAnalytics = trackAnalytics;
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook

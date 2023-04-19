@@ -18,7 +18,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   getAnalyticsDataForEvent,
@@ -528,7 +528,7 @@ class GroupDetails extends Component<Props, State> {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
+    trackAnalytics('issue_details.tab_changed', {
       organization,
       project_id: parseInt(project.id, 10),
       tab,
@@ -548,7 +548,7 @@ class GroupDetails extends Component<Props, State> {
           }, {})
       : {};
 
-    trackAdvancedAnalyticsEvent('issue_group_details.tab.clicked', {
+    trackAnalytics('issue_group_details.tab.clicked', {
       organization,
       tab,
       platform: project.platform,

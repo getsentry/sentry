@@ -15,7 +15,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -164,7 +164,7 @@ export class TagValueTable extends Component<Props, State> {
 
   handleReleaseLinkClicked = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.tags.jump_to_release', {
+    trackAnalytics('performance_views.tags.jump_to_release', {
       organization,
     });
   };

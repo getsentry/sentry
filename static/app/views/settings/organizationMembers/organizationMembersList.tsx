@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Member, MemberRole, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -60,7 +60,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   onLoadAllEndpointsSuccess() {
     const {organization} = this.props;
     const {inviteRequests, members} = this.state;
-    trackAdvancedAnalyticsEvent('member_settings_page.loaded', {
+    trackAnalytics('member_settings_page.loaded', {
       organization,
       num_members: members?.length,
       num_invite_requests: inviteRequests?.length,
@@ -197,7 +197,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
       this.removeInviteRequest(inviteRequest.id);
       addSuccessMessage(successMessage);
-      trackAdvancedAnalyticsEvent(eventKey, {
+      trackAnalytics(eventKey, {
         member_id: parseInt(inviteRequest.id, 10),
         invite_status: inviteRequest.inviteStatus,
         organization,

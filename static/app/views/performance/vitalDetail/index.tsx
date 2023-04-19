@@ -9,7 +9,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
@@ -64,7 +64,7 @@ class VitalDetail extends Component<Props, State> {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
 
-    trackAdvancedAnalyticsEvent('performance_views.vital_detail.view', {
+    trackAnalytics('performance_views.vital_detail.view', {
       organization,
       project_platforms: getSelectedProjectPlatforms(location, projects),
     });

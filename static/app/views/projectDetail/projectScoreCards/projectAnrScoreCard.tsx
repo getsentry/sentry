@@ -14,7 +14,7 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import {Organization, SessionApiResponse} from 'sentry/types/organization';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import useApi from 'sentry/utils/useApi';
@@ -167,7 +167,7 @@ export function ProjectAnrScoreCard({
         size="xs"
         to={issueSearch}
         onClick={() => {
-          trackAdvancedAnalyticsEvent('project_detail.open_anr_issues', {
+          trackAnalytics('project_detail.open_anr_issues', {
             organization,
           });
         }}

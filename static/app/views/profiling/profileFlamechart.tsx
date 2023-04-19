@@ -7,7 +7,7 @@ import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DeepPartial} from 'sentry/types/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
   FlamegraphState,
@@ -49,7 +49,7 @@ function ProfileFlamegraph(): React.ReactElement {
   const currentProject = useCurrentProjectFromRouteParam();
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
+    trackAnalytics('profiling_views.profile_flamegraph', {
       organization,
       project_platform: currentProject?.platform,
       project_id: currentProject?.id,

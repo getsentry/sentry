@@ -24,7 +24,7 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
@@ -126,7 +126,7 @@ function VitalDetailContent(props: Props) {
               },
             });
 
-            trackAdvancedAnalyticsEvent('performance_views.vital_detail.switch_vital', {
+            trackAnalytics('performance_views.vital_detail.switch_vital', {
               organization,
               from_vital: vitalAbbreviations[vitalName] ?? 'undefined',
               to_vital: vitalAbbreviations[newVitalName] ?? 'undefined',

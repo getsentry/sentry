@@ -9,7 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
 import {Group, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';
@@ -105,7 +105,7 @@ class GroupMergedView extends Component<Props, State> {
       errorMessage: t('Unable to queue events for unmerging.'),
     });
     const unmergeKeys = [...GroupingStore.getState().unmergeList.values()];
-    trackAdvancedAnalyticsEvent('issue_details.merged_tab.unmerge_clicked', {
+    trackAnalytics('issue_details.merged_tab.unmerge_clicked', {
       organization: this.props.organization,
       group_id: this.props.params.groupId,
       event_ids_unmerged: unmergeKeys.join(','),

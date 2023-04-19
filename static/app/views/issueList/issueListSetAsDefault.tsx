@@ -5,7 +5,7 @@ import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchType} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -71,7 +71,7 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
   });
 
   const onTogglePinnedSearch = () => {
-    trackAdvancedAnalyticsEvent('search.pin', {
+    trackAnalytics('search.pin', {
       organization,
       action: pinnedSearch ? 'unpin' : 'pin',
       search_type: 'issues',

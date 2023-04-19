@@ -28,7 +28,7 @@ import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -120,7 +120,7 @@ function Onboarding({organization, project}: Props) {
   }, [location.hash, projectsForOnboarding, project.id, showOnboardingChecklist]);
 
   function handleAdvance(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('performance_views.tour.advance', {
+    trackAnalytics('performance_views.tour.advance', {
       step,
       duration,
       organization,
@@ -128,7 +128,7 @@ function Onboarding({organization, project}: Props) {
   }
 
   function handleClose(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('performance_views.tour.close', {
+    trackAnalytics('performance_views.tour.close', {
       step,
       duration,
       organization,
@@ -178,7 +178,7 @@ function Onboarding({organization, project}: Props) {
         <Button
           data-test-id="create-sample-transaction-btn"
           onClick={async () => {
-            trackAdvancedAnalyticsEvent('performance_views.create_sample_transaction', {
+            trackAnalytics('performance_views.create_sample_transaction', {
               platform: project.platform,
               organization,
             });
@@ -219,7 +219,7 @@ function Onboarding({organization, project}: Props) {
           <Button
             priority="link"
             onClick={() => {
-              trackAdvancedAnalyticsEvent('performance_views.tour.start', {organization});
+              trackAnalytics('performance_views.tour.start', {organization});
               showModal();
             }}
           >

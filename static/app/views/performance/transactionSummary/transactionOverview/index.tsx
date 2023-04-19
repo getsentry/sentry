@@ -5,7 +5,7 @@ import {Location} from 'history';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -61,7 +61,7 @@ function TransactionOverview(props: Props) {
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
-    trackAdvancedAnalyticsEvent('performance_views.transaction_summary.view', {
+    trackAnalytics('performance_views.transaction_summary.view', {
       organization,
     });
   }, [selection, organization, api]);
@@ -146,7 +146,7 @@ function OverviewContentWrapper(props: ChildProps) {
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
   const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
-    trackAdvancedAnalyticsEvent('performance_views.filter_dropdown.selection', {
+    trackAnalytics('performance_views.filter_dropdown.selection', {
       organization,
       action: newFilter as string,
     });

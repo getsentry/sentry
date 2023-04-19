@@ -12,7 +12,7 @@ import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
@@ -148,7 +148,7 @@ function PageLayout(props: Props) {
 
       const analyticsKey = TAB_ANALYTICS[newTab];
       if (analyticsKey) {
-        trackAdvancedAnalyticsEvent(analyticsKey, {
+        trackAnalytics(analyticsKey, {
           organization,
           project_platforms: getSelectedProjectPlatforms(location, projects),
         });

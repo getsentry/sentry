@@ -1,11 +1,11 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 import OrganizationMembersWrapper from 'sentry/views/settings/organizationMembers/organizationMembersWrapper';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
+jest.mock('sentry/utils/analytics');
 jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
@@ -26,7 +26,7 @@ describe('OrganizationMembersWrapper', function () {
   };
 
   beforeEach(function () {
-    trackAdvancedAnalyticsEvent.mockClear();
+    trackAnalytics.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/me/',

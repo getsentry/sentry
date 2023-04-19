@@ -40,7 +40,7 @@ import {
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -111,7 +111,7 @@ class Actions extends Component<Props> {
   ) {
     const {group, project, organization, query = {}} = this.props;
     const {alert_date, alert_rule_id, alert_type} = query;
-    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+    trackAnalytics('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: action,
@@ -193,7 +193,7 @@ class Actions extends Component<Props> {
   onToggleShare = () => {
     const newIsPublic = !this.props.group.isPublic;
     if (newIsPublic) {
-      trackAdvancedAnalyticsEvent('issue.shared_publicly', {
+      trackAnalytics('issue.shared_publicly', {
         organization: this.props.organization,
       });
     }
