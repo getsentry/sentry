@@ -10,7 +10,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {ProjectSdkUpdates} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,17 +38,17 @@ function InnerGlobalSdkUpdateAlert(
       status: 'snoozed',
     });
 
-    trackAdvancedAnalyticsEvent('sdk_updates.snoozed', {organization});
+    trackAnalytics('sdk_updates.snoozed', {organization});
     setShowUpdateAlert(false);
   }, [api, organization]);
 
   const handleReviewUpdatesClick = useCallback(() => {
     SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
-    trackAdvancedAnalyticsEvent('sdk_updates.clicked', {organization});
+    trackAnalytics('sdk_updates.clicked', {organization});
   }, [organization]);
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});
+    trackAnalytics('sdk_updates.seen', {organization});
 
     let isUnmounted = false;
 

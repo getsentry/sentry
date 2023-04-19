@@ -10,10 +10,8 @@ import space from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {
-  HOST,
-  renderHeadCell,
-} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
+import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
+import {renderHeadCell} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailQuery,
   getEndpointDetailSeriesQuery,

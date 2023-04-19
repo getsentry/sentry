@@ -4,6 +4,7 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {Alert} from 'sentry/components/alert';
+import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
@@ -23,7 +24,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 
@@ -54,7 +55,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   componentDidMount() {
     const {organization, params} = this.props;
-    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
+    trackAnalytics('issue_alert_rule_details.viewed', {
       organization,
       rule_id: parseInt(params.ruleId, 10),
     });
@@ -157,6 +158,21 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     });
   }
 
+  onSnooze = ({
+    snooze,
+    snoozeCreatedBy,
+    snoozeForEveryone,
+  }: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) => {
+    if (this.state.rule) {
+      const rule = {...this.state.rule, snooze, snoozeCreatedBy, snoozeForEveryone};
+      this.setState({rule});
+    }
+  };
+
   handleUpdateDatetime = (datetime: ChangeData) => {
     const {start, end, relative, utc} = datetime;
 
@@ -241,6 +257,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       );
     }
 
+    const hasSnoozeFeature = organization.features.includes('mute-alerts');
+    const isSnoozed = rule.snooze;
+
     const duplicateLink = {
       pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
       query: {
@@ -290,6 +309,14 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
+              {hasSnoozeFeature && (
+                <SnoozeAlert
+                  isSnoozed={isSnoozed}
+                  onSnooze={this.onSnooze}
+                  ruleId={rule.id}
+                  projectSlug={projectId}
+                />
+              )}
               <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
                 {t('Duplicate')}
               </Button>
@@ -298,7 +325,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
                 icon={<IconEdit />}
                 to={`/organizations/${organization.slug}/alerts/rules/${projectId}/${ruleId}/`}
                 onClick={() =>
-                  trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
+                  trackAnalytics('issue_alert_rule_details.edit_clicked', {
                     organization,
                     rule_id: parseInt(ruleId, 10),
                   })
@@ -312,6 +339,17 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         <Layout.Body>
           <Layout.Main>
             {this.renderIncompatibleAlert()}
+            {hasSnoozeFeature && isSnoozed && (
+              <Alert showIcon>
+                {tct(
+                  "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                  {
+                    creator: rule.snoozeCreatedBy,
+                    forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                  }
+                )}
+              </Alert>
+            )}
             <StyledPageTimeRangeSelector
               organization={organization}
               relative={period ?? ''}

@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import {Group, OnboardingStatus, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
@@ -98,7 +98,7 @@ export default function FirstEventFooter({
     <GridFooter>
       <SkipOnboardingLink
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+          trackAnalytics('growth.onboarding_clicked_skip', {
             organization,
             source,
           });
