@@ -17,6 +17,8 @@ import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/
 
 const EventsRequest = withApi(_EventsRequest);
 
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -35,6 +37,7 @@ const HOST = 'http://localhost:8080';
 
 export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView} = props;
+  const theme = useTheme();
 
   const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
     queryKey: ['durationBreakdown'],
@@ -115,7 +118,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             return null;
           }
 
-          insertClickableAreasIntoSeries(transformedData);
+          insertClickableAreasIntoSeries(transformedData, theme.red300);
 
           return (
             <FailureRateChart
