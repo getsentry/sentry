@@ -47,7 +47,9 @@ export function CreateProjectsFooter({
   genSkipOnboardingLink,
   clearPlatforms,
 }: Props) {
-  const singleSelectPlatform = true;
+  const singleSelectPlatform = !!organization?.features.includes(
+    'onboarding-remove-multiselect-platform'
+  );
   const frameworkSelectionEnabled = !!organization?.features.includes(
     'onboarding-sdk-selection'
   );
