@@ -4,12 +4,13 @@
 # as well as some configuration files that should trigger both
 frontend_components_lintable: &frontend_components_lintable
   - '**/*.[tj]{s,sx}'
+  - '!static/app/constants/ios-device-list.tsx'
 
 frontend_lintable: &frontend_lintable
   - *frontend_components_lintable
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
-  - '!**/ios-device-list.tsx'
+  - '!static/app/constants/ios-device-list.tsx'
 
 yarn_lockfile: &yarn_lockfile
   - 'yarn.lock'
@@ -24,12 +25,14 @@ frontend_src: &frontend_src
   - *yarn_lockfile
   - *eslint_config
   - '!(tests)/**/*.[tj]{s,sx}'
+  - '!static/app/constants/ios-device-list.tsx'
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
   - '**/*.less'
   - 'static/**'
   - 'fixtures/search-syntax/**/*'
   - '.github/workflows/frontend.yml'
+  - '!static/app/constants/ios-device-list.tsx'
 
 frontend_all: &frontend_all
   - *frontend_src
