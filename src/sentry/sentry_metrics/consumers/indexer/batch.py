@@ -44,6 +44,8 @@ MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
 OrgId = int
 
+SENTRY_RECEIVED_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
 
 class PartitionIdxOffset(NamedTuple):
     partition_idx: int
@@ -387,7 +389,9 @@ class IndexerBatch:
 
             # timestamp when the message was produced to ingest-* topic,
             # used for end-to-end latency metrics
-            origin_timestamp = message.value.timestamp
+            sentry_received_timestamp = bytes(
+                message.value.timestamp.strftime(SENTRY_RECEIVED_FORMAT), "utf-8"
+            )
 
             if self.__should_index_tag_values:
                 new_payload_v1: Metric = {
@@ -402,7 +406,6 @@ class IndexerBatch:
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
                     "value": old_payload_value["value"],
-                    "origin_timestamp": origin_timestamp,
                 }
 
                 new_payload_value = new_payload_v1
@@ -422,7 +425,6 @@ class IndexerBatch:
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
                     "value": old_payload_value["value"],
-                    "origin_timestamp": origin_timestamp,
                 }
                 new_payload_value = new_payload_v2
 
@@ -434,6 +436,7 @@ class IndexerBatch:
                     ("mapping_sources", mapping_header_content),
                     # XXX: type mismatch, but seems to work fine in prod
                     ("metric_type", new_payload_value["type"]),  # type: ignore
+                    ("sentry_received_timestamp", sentry_received_timestamp),
                 ],
             )
             if self.is_output_sliced:
