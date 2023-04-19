@@ -114,6 +114,15 @@ class StorageBlob(Blob):
     bucket.  Keys are prefixed by their TTL.  Those TTLs are 30, 60, 90.  Measured in days.
     """
 
+    def initialize_client(self):
+        storage = get_storage(self._make_storage_options())
+        # acccess the storage client so it is initialized below.
+        # this will prevent race condition parallel credential getting during segment download
+        # when using many threads
+        # the storage client uses a global so we don't need to store it here.
+        if hasattr(storage, "client"):
+            storage.client
+
     def delete(self, segment: RecordingSegmentStorageMeta) -> None:
         storage = get_storage(self._make_storage_options())
         storage.delete(self.make_key(segment))
