@@ -3,8 +3,10 @@ import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
+import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
@@ -58,24 +60,26 @@ export default function APIModuleView({location, onSelect}: Props) {
 
   return (
     <Fragment>
-      <Chart
-        statsPeriod="24h"
-        height={180}
-        data={data}
-        start=""
-        end=""
-        loading={isGraphLoading}
-        utc={false}
-        grid={{
-          left: '0',
-          right: '0',
-          top: '16px',
-          bottom: '8px',
-        }}
-        disableMultiAxis
-        definedAxisTicks={4}
-        stacked
-      />
+      <ChartPanel title={t('Response Time')}>
+        <Chart
+          statsPeriod="24h"
+          height={180}
+          data={data}
+          start=""
+          end=""
+          loading={isGraphLoading}
+          utc={false}
+          grid={{
+            left: '0',
+            right: '0',
+            top: '16px',
+            bottom: '8px',
+          }}
+          disableMultiAxis
+          definedAxisTicks={4}
+          stacked
+        />
+      </ChartPanel>
 
       <EndpointTable location={location} onSelect={onSelect} />
     </Fragment>
