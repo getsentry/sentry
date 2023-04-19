@@ -1,4 +1,5 @@
 import {Fragment, isValidElement} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -249,7 +250,9 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   `;
 };
 
-const StyledSidebarItem = styled(Link)`
+const StyledSidebarItem = styled(Link, {
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
+})`
   display: flex;
   color: inherit;
   position: relative;
