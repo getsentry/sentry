@@ -71,7 +71,7 @@ class EndpointList extends Component<Props, State> {
     tableData: TableData | null,
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow,
-    additionalColumnMap: Record<string, string>
+    deltaColumnMap: Record<string, string>
   ): React.ReactNode {
     const {eventView, organization, projects, location} = this.props;
 
@@ -141,8 +141,8 @@ class EndpointList extends Component<Props, State> {
     }
 
     if (field === 'p50()') {
-      const p95DeltaColName = additionalColumnMap[field];
-      const deltaValue = dataRow[p95DeltaColName] as number;
+      const deltaColName = deltaColumnMap[field];
+      const deltaValue = dataRow[deltaColName] as number;
       const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
 
       return (
@@ -191,7 +191,7 @@ class EndpointList extends Component<Props, State> {
   }
 
   renderBodyCellWithData = (tableData: TableData | null) => {
-    const columnMapping: Record<string, string> = {};
+    const deltaColumnMap: Record<string, string> = {};
     if (tableData?.data?.[0]) {
       Object.keys(tableData.data[0]).forEach(col => {
         if (
@@ -199,7 +199,7 @@ class EndpointList extends Component<Props, State> {
             'equation|percentile_range(transaction.duration,0.50,lessOrEquals'
           )
         ) {
-          columnMapping['p50()'] = col;
+          deltaColumnMap['p50()'] = col;
         }
       });
     }
@@ -207,7 +207,7 @@ class EndpointList extends Component<Props, State> {
     return (
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
-    ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow, columnMapping);
+    ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow, deltaColumnMap);
   };
 
   renderHeadCell(
