@@ -9,12 +9,11 @@ import space from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {DataRow, HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
-  DataRow,
-  HOST,
   renderBodyCell,
   renderHeadCell,
-} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
+} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailQuery,
   getEndpointDetailSeriesQuery,
