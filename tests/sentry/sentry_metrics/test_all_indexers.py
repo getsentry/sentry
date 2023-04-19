@@ -19,7 +19,6 @@ from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIn
 from sentry.testutils.helpers.options import override_options
 
 BACKENDS = [
-    # TODO: add cloud spanner here
     RawSimpleIndexer,
     pytest.param(PGStringIndexerV2, marks=pytest.mark.django_db),
 ]
@@ -56,32 +55,78 @@ def assert_fetch_type_for_tag_string_set(
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
-def test_static_and_non_static_strings(indexer):
+def test_static_and_non_static_strings_release_health(indexer):
     static_indexer = StaticStringIndexer(indexer)
-    org_strings = {
-        2: {"release", "1.0.0"},
-        3: {"production", "environment", "release", "2.0.0"},
+    use_case_id = UseCaseKey("release-health")
+    strings = {
+        use_case_id.value: {
+            2: {"release", "1.0.0"},
+            3: {"production", "environment", "release", "2.0.0"},
+        }
     }
-    results = static_indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+    results = static_indexer.bulk_record(strings=strings)
 
     v1 = indexer.resolve(use_case_id, 2, "1.0.0")
     v2 = indexer.resolve(use_case_id, 3, "2.0.0")
 
-    assert results[2]["release"] == SHARED_STRINGS["release"]
-    assert results[3]["production"] == SHARED_STRINGS["production"]
-    assert results[3]["environment"] == SHARED_STRINGS["environment"]
-    assert results[3]["release"] == SHARED_STRINGS["release"]
+    assert results[use_case_id.value][2]["release"] == SHARED_STRINGS["release"]
+    assert results[use_case_id.value][3]["production"] == SHARED_STRINGS["production"]
+    assert results[use_case_id.value][3]["environment"] == SHARED_STRINGS["environment"]
+    assert results[use_case_id.value][3]["release"] == SHARED_STRINGS["release"]
 
-    assert results[2]["1.0.0"] == v1
-    assert results[3]["2.0.0"] == v2
+    assert results[use_case_id.value][2]["1.0.0"] == v1
+    assert results[use_case_id.value][3]["2.0.0"] == v2
 
     meta = results.get_fetch_metadata()
-    assert_fetch_type_for_tag_string_set(meta[2], FetchType.HARDCODED, {"release"})
     assert_fetch_type_for_tag_string_set(
-        meta[3], FetchType.HARDCODED, {"release", "production", "environment"}
+        meta[use_case_id.value][2], FetchType.HARDCODED, {"release"}
     )
-    assert_fetch_type_for_tag_string_set(meta[2], FetchType.FIRST_SEEN, {"1.0.0"})
-    assert_fetch_type_for_tag_string_set(meta[3], FetchType.FIRST_SEEN, {"2.0.0"})
+    assert_fetch_type_for_tag_string_set(
+        meta[use_case_id.value][3], FetchType.HARDCODED, {"release", "production", "environment"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[use_case_id.value][2], FetchType.FIRST_SEEN, {"1.0.0"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[use_case_id.value][3], FetchType.FIRST_SEEN, {"2.0.0"}
+    )
+
+
+def test_static_and_non_static_strings_generic_metrics(indexer):
+    static_indexer = StaticStringIndexer(indexer)
+    use_case_id = UseCaseKey("performance")
+    strings = {
+        use_case_id.value: {
+            2: {"release", "1.0.0"},
+            3: {"production", "environment", "release", "2.0.0"},
+        }
+    }
+    results = static_indexer.bulk_record(strings=strings)
+
+    v1 = indexer.resolve(use_case_id, 2, "1.0.0")
+    v2 = indexer.resolve(use_case_id, 3, "2.0.0")
+
+    assert results[use_case_id.value][2]["release"] == SHARED_STRINGS["release"]
+    assert results[use_case_id.value][3]["production"] == SHARED_STRINGS["production"]
+    assert results[use_case_id.value][3]["environment"] == SHARED_STRINGS["environment"]
+    assert results[use_case_id.value][3]["release"] == SHARED_STRINGS["release"]
+
+    assert results[use_case_id.value][2]["1.0.0"] == v1
+    assert results[use_case_id.value][3]["2.0.0"] == v2
+
+    meta = results.get_fetch_metadata()
+    assert_fetch_type_for_tag_string_set(
+        meta[use_case_id.value][2], FetchType.HARDCODED, {"release"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[use_case_id.value][3], FetchType.HARDCODED, {"release", "production", "environment"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[use_case_id.value][2], FetchType.FIRST_SEEN, {"1.0.0"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[use_case_id.value][3], FetchType.FIRST_SEEN, {"2.0.0"}
+    )
 
 
 def test_indexer(indexer, indexer_cache):

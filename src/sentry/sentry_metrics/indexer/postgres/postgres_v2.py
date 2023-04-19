@@ -183,12 +183,23 @@ class PGStringIndexerV2(StringIndexer):
             if filtered_db_write_keys.size == 0:
                 return db_read_key_results.merge(rate_limited_key_results)
 
-            new_records = [
-                self._get_table(strings.keys())(
-                    organization_id=int(organization_id), string=string, use_case_id=use_case_id
-                )
-                for organization_id, string in filtered_db_write_keys.as_tuples()
-            ]
+            if use_case_id is not UseCaseKey.RELEASE_HEALTH:
+                new_records = [
+                    self._get_table(strings.keys())(
+                        organization_id=int(organization_id),
+                        string=string,
+                        use_case_id=use_case_id.value,
+                    )
+                    for organization_id, string in filtered_db_write_keys.as_tuples()
+                ]
+            else:
+                new_records = [
+                    self._get_table(strings.keys())(
+                        organization_id=int(organization_id),
+                        string=string,
+                    )
+                    for organization_id, string in filtered_db_write_keys.as_tuples()
+                ]
 
             with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
                 self._bulk_create_with_retry(self._get_table(strings.keys()), new_records)
@@ -222,7 +233,7 @@ class PGStringIndexerV2(StringIndexer):
         Returns None if the entry cannot be found.
 
         """
-        table = self._get_table(tuple(use_case_id.value))
+        table = self._get_table([use_case_id.value])
         try:
             id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
         except table.DoesNotExist:
@@ -235,7 +246,7 @@ class PGStringIndexerV2(StringIndexer):
 
         Returns None if the entry cannot be found.
         """
-        table = self._get_table(tuple(use_case_id.value))
+        table = self._get_table([use_case_id.value])
         try:
             obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
