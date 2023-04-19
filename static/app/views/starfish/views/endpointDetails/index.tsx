@@ -71,20 +71,20 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   const errorRateSeriesQuery = getEndpointDetailErrorRateSeriesQuery(row.description);
   const tableQuery = getEndpointDetailQuery(row.description);
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
-    queryKey: ['endpointDetailSeries'],
+    queryKey: [seriesQuery],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
   const {isLoading: errorRateSeriesIsLoading, data: errorRateSeriesData} = useQuery({
-    queryKey: ['endpointDetailErrorRateSeries'],
+    queryKey: [errorRateSeriesQuery],
     queryFn: () =>
       fetch(`${HOST}/?query=${errorRateSeriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
   const {isLoading: tableIsLoading, data: tableData} = useQuery({
-    queryKey: ['endpointDetailTable'],
+    queryKey: [tableQuery],
     queryFn: () => fetch(`${HOST}/?query=${tableQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
