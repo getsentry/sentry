@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Rule
 from sentry.models.activity import ActivityIntegration
 from sentry.utils import json, jwt
@@ -129,7 +129,7 @@ def verify_signature(request):
     return True
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()

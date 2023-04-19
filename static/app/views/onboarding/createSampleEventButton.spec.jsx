@@ -3,11 +3,11 @@ import * as Sentry from '@sentry/react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 jest.useFakeTimers();
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('CreateSampleEventButton', function () {
   const org = TestStubs.Organization();
@@ -109,7 +109,7 @@ describe('CreateSampleEventButton', function () {
       `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}&referrer=sample-error`
     );
 
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'sample_event.created',
       expect.objectContaining({
         organization: org,

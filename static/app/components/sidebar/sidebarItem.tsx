@@ -10,7 +10,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -147,7 +147,7 @@ function SidebarItem({
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
   const recordAnalytics = () => {
-    trackAdvancedAnalyticsEvent('growth.clicked_sidebar', {
+    trackAnalytics('growth.clicked_sidebar', {
       item: id,
       organization: organization || null,
     });

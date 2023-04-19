@@ -1,8 +1,8 @@
-export const ENDPOINT_LIST_QUERY = `SELECT description, count() AS count, domain
+export const ENDPOINT_LIST_QUERY = `SELECT description, domain, quantile(0.5)(exclusive_time) AS "p50(exclusive_time)", uniq(user) as user_count, uniq(transaction) as transaction_count
  FROM spans_experimental_starfish
  WHERE module = 'http'
  GROUP BY description, domain
- ORDER BY count DESC
+ ORDER BY "p50(exclusive_time)" DESC
  LIMIT 10
 `;
 
@@ -20,7 +20,7 @@ export const ENDPOINT_GRAPH_QUERY = `SELECT
 
 export const getEndpointDetailSeriesQuery = description => {
   return `SELECT
-    toStartOfInterval(start_timestamp, INTERVAL 5 MINUTE) as interval,
+    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
     quantile(0.5)(exclusive_time) as p50,
     count() as count
     FROM spans_experimental_starfish
@@ -40,5 +40,15 @@ export const getEndpointDetailQuery = description => {
     GROUP BY transaction
     ORDER BY count DESC
     LIMIT 10
+ `;
+};
+
+export const getSpanInTransactionQuery = (spanDescription, transactionName) => {
+  return `
+    SELECT count() AS count, quantile(0.5)(exclusive_time) as p50
+    FROM spans_experimental_starfish
+    WHERE module = 'http'
+    AND description = '${spanDescription}'
+    AND transaction = '${transactionName}'
  `;
 };
