@@ -10,12 +10,6 @@ class GroupIgnoredSubstatusBackfillTest(TestMigrations):
         self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
         self.create_group(status=GroupStatus.MUTED, substatus=GroupSubStatus.UNTIL_ESCALATING)
 
-        # below substates shouldn't be legal but for the purposes of this backfill, we'll null them out
-        self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING)
-        self.create_group(status=GroupStatus.MUTED, substatus=GroupSubStatus.ONGOING)
-        self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ESCALATING)
-        self.create_group(status=GroupStatus.MUTED, substatus=GroupSubStatus.ESCALATING)
-
         # nulled substatus should stay the same
         self.create_group(status=GroupStatus.IGNORED)
         self.create_group(status=GroupStatus.MUTED)

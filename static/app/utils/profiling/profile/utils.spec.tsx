@@ -1,7 +1,51 @@
+import {Frame} from 'sentry/utils/profiling/frame';
 import {
+  createSentrySampleProfileFrameIndex,
   memoizeByReference,
   memoizeVariadicByReference,
 } from 'sentry/utils/profiling/profile/utils';
+
+describe('createSentrySampleProfileFrameIndex', () => {
+  it('dedupes frames', () => {
+    const frameIndex = createSentrySampleProfileFrameIndex([
+      {
+        in_app: true,
+        function: 'foo',
+        lineno: 100,
+      },
+      {
+        in_app: true,
+        function: 'bar',
+        lineno: 105,
+      },
+      {
+        in_app: true,
+        function: 'foo',
+        lineno: 100,
+      },
+    ]);
+
+    const fooFrame = new Frame({
+      key: 0,
+      is_application: true,
+      name: 'foo',
+      line: 100,
+    });
+
+    const barFrame = new Frame({
+      key: 1,
+      is_application: true,
+      name: 'bar',
+      line: 105,
+    });
+
+    expect(frameIndex).toEqual({
+      0: fooFrame,
+      1: barFrame,
+      2: fooFrame,
+    });
+  });
+});
 
 describe('memoizeByReference', () => {
   it('doesnt crash w/o args', () => {

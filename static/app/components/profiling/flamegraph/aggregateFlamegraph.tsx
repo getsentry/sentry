@@ -24,12 +24,9 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {
   useFlamegraphTheme,
   useMutateFlamegraphTheme,
@@ -38,53 +35,12 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
-  computeMinZoomConfigViewForFrames,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
-import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-
-type FlamegraphCandidate = {
-  frame: FlamegraphFrame;
-  threadId: number;
-  isActiveThread?: boolean; // this is the thread referred to by the active profile index
-};
-
-function findLongestMatchingFrame(
-  flamegraph: FlamegraphModel,
-  focusFrame: FlamegraphSearch['highlightFrames']
-): FlamegraphFrame | null {
-  if (focusFrame === null) {
-    return null;
-  }
-
-  let longestFrame: FlamegraphFrame | null = null;
-
-  const frames: FlamegraphFrame[] = [...flamegraph.root.children];
-  while (frames.length > 0) {
-    const frame = frames.pop()!;
-    if (
-      focusFrame.name === frame.frame.name &&
-      // the image name on a frame is optional treat it the same as the empty string
-      (focusFrame.package === (frame.frame.package || '') ||
-        focusFrame.package === (frame.frame.module || '')) &&
-      (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
-    ) {
-      longestFrame = frame;
-    }
-
-    if (longestFrame && longestFrame.node.totalWeight < frame.node.totalWeight) {
-      for (let i = 0; i < frame.children.length; i++) {
-        frames.push(frame.children[i]);
-      }
-    }
-  }
-
-  return longestFrame;
-}
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 
@@ -96,9 +52,7 @@ export function AggregateFlamegraph(): ReactElement {
 
   const flamegraphTheme = useFlamegraphTheme();
   const setFlamegraphThemeMutation = useMutateFlamegraphTheme();
-  const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
-  const {highlightFrames} = useFlamegraphSearch();
   const {colorCoding, sorting, view} = useFlamegraphPreferences();
   const {threadId} = profiles;
 
@@ -107,7 +61,6 @@ export function AggregateFlamegraph(): ReactElement {
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
 
-  // TODO: this should live in flamegraphState?
   const [hideSystemFrames, setHideSystemFrames] = useState(true);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -157,8 +110,8 @@ export function AggregateFlamegraph(): ReactElement {
     return new FlamegraphCanvas(flamegraphCanvasRef, vec2.fromValues(0, yOrigin));
   }, [devicePixelRatio, flamegraphCanvasRef, flamegraphTheme]);
 
-  const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
-    previousView => {
+  const flamegraphView = useMemo<CanvasView<FlamegraphModel> | null>(
+    () => {
       if (!flamegraphCanvas) {
         return null;
       }
@@ -175,40 +128,10 @@ export function AggregateFlamegraph(): ReactElement {
         },
       });
 
-      if (defined(highlightFrames)) {
-        const frames = flamegraph.findAllMatchingFrames(
-          highlightFrames.name,
-          highlightFrames.package
-        );
-
-        if (frames.length > 0) {
-          const rectFrames = frames.map(
-            f => new Rect(f.start, f.depth, f.end - f.start, 1)
-          );
-          const newConfigView = computeMinZoomConfigViewForFrames(
-            newView.configView,
-            rectFrames
-          );
-          newView.setConfigView(newConfigView);
-          return newView;
-        }
-      }
-
-      // Because we render empty flamechart while we fetch the data, we need to make sure
-      // to have some heuristic when the data is fetched to determine if we should
-      // initialize the config view to the full view or a predefined value
-      else if (
-        !defined(highlightFrames) &&
-        position.view &&
-        !position.view.isEmpty() &&
-        previousView?.model === LOADING_OR_FALLBACK_FLAMEGRAPH
-      ) {
-        // We allow min width to be initialize to lower than view.minWidth because
-        // there is a chance that user zoomed into a span duration which may have been updated
-        // after the model was loaded (see L320)
-        newView.setConfigView(position.view, {width: {min: 0}});
-      }
-
+      // Set to 3/4 of the view up, magic number... Would be best to comput some weighted visual score
+      // based on the number of frames and the depth of the frames, but lets see if we can make it work
+      // with this for now
+      newView.setConfigView(newView.configView.withY(newView.configView.height * 0.75));
       return newView;
     },
 
@@ -331,55 +254,6 @@ export function AggregateFlamegraph(): ReactElement {
       typeof profileGroup.activeProfileIndex === 'number'
         ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
         : null;
-
-    // if the state has a highlight frame specified, then we want to jump to the
-    // thread containing it, highlight the frames on the thread, and change the
-    // view so it's obvious where it is
-    if (highlightFrames) {
-      const candidate = profileGroup.profiles.reduce<FlamegraphCandidate | null>(
-        (prevCandidate, currentProfile) => {
-          // if the previous candidate is the active thread, it always takes priority
-          if (prevCandidate?.isActiveThread) {
-            return prevCandidate;
-          }
-
-          const frame = findLongestMatchingFrame(flamegraph, highlightFrames);
-
-          if (!defined(frame)) {
-            return prevCandidate;
-          }
-
-          const newScore = frame.node.totalWeight || 0;
-          const oldScore = prevCandidate?.frame?.node?.totalWeight || 0;
-
-          // if we find the frame on the active thread, it always takes priority
-          if (newScore > 0 && currentProfile.threadId === threadID) {
-            return {
-              frame,
-              threadId: currentProfile.threadId,
-              isActiveThread: true,
-            };
-          }
-
-          return newScore <= oldScore
-            ? prevCandidate
-            : {
-                frame,
-                threadId: currentProfile.threadId,
-              };
-        },
-        null
-      );
-
-      if (defined(candidate)) {
-        dispatch({
-          type: 'set thread id',
-          payload: candidate.threadId,
-        });
-        return;
-      }
-    }
-
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
     if (defined(threadID)) {

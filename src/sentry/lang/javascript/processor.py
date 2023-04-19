@@ -2063,11 +2063,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # outputting a trailing empty line, whereas the python processor does.
         if symbolicator_stacktraces := self.data.pop("symbolicator_stacktraces", None):
 
+            metrics.incr("sourcemaps.ab-test.performed")
+
             # TODO: we currently have known differences:
             # - small `abs_path`/`filename` differences because of different url joining
             # - python resolves a `module` in the processor, whereas symbolicator does that
             #   indirectly in the Plugin preprocessor
-            # - python adds `data.sourcemap` whereas symbolicator does not
             # - symbolicator does not add trailing empty lines to `post_context`
             interesting_keys = {
                 "abs_path",
@@ -2076,17 +2077,20 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 "colno",
                 "function",
                 "context_line",
+                "module",
             }
 
             def filtered_frame(frame: dict) -> dict:
-                {key: value for key, value in frame.items() if key in interesting_keys}
+                new_frame = {key: value for key, value in frame.items() if key in interesting_keys}
+                new_frame["data.sourcemap"] = get_path(frame, "data", "sourcemap")
+                return new_frame
 
             different_frames = []
             for symbolicator_stacktrace, stacktrace_info in zip(
                 symbolicator_stacktraces,
                 filter(
                     # only include `stacktrace_infos` that have a stacktrace with frames
-                    lambda sinfo: get_path(sinfo, "stacktrace", "frames", filter=True),
+                    lambda sinfo: get_path(sinfo.container, "stacktrace", "frames", filter=True),
                     self.stacktrace_infos,
                 ),
             ):
@@ -2096,9 +2100,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     symbolicator_stacktrace, python_stacktrace["frames"]
                 ):
                     symbolicator_frame = filtered_frame(symbolicator_frame)
+
+                    # apply the same `module` logic as `generate_modules` (in Plugin/preprocess_event)
+                    # to all the symbolicator frames so we can properly A/B test them
+                    abs_path = symbolicator_frame.get("abs_path")
+                    if abs_path and abs_path.startswith(("http:", "https:", "webpack:", "app:")):
+                        symbolicator_frame["module"] = generate_module(abs_path)
+
                     python_frame = filtered_frame(python_frame)
                     if symbolicator_frame != python_frame:
-                        different_frames.append((symbolicator_frame, python_frame))
+                        different_frames.append(
+                            {"symbolicator": symbolicator_frame, "python": python_frame}
+                        )
 
             if different_frames:
                 with sentry_sdk.push_scope() as scope:

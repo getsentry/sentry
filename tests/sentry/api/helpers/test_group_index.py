@@ -8,16 +8,28 @@ from sentry.api.helpers.group_index import (
     update_groups,
     validate_search_filter_permissions,
 )
+from sentry.api.helpers.group_index.update import (
+    handle_has_seen,
+    handle_is_bookmarked,
+    handle_is_public,
+    handle_is_subscribed,
+)
 from sentry.api.issue_search import parse_search_query
 from sentry.models import (
+    Activity,
+    GroupBookmark,
     GroupInbox,
     GroupInboxReason,
+    GroupSeen,
+    GroupShare,
     GroupStatus,
+    GroupSubscription,
     GroupSubStatus,
     add_group_to_inbox,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.types.activity import ActivityType
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -200,3 +212,120 @@ class UpdateGroupsTest(TestCase):
         assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
+
+
+class TestHandleIsSubscribed(TestCase):
+    def setUp(self) -> None:
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+    def test_is_subscribed(self) -> None:
+        resp = handle_is_subscribed(True, self.group_list, self.project_lookup, self.user)
+
+        assert GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert resp["reason"] == "unknown"
+
+    def test_is_subscribed_updates(self) -> None:
+        GroupSubscription.objects.create(
+            group=self.group, project=self.group.project, user_id=self.user.id, is_active=False
+        )
+
+        resp = handle_is_subscribed(True, self.group_list, self.project_lookup, self.user)
+
+        subscription = GroupSubscription.objects.filter(group=self.group, user_id=self.user.id)
+        assert subscription.exists()
+        assert subscription.first().is_active
+        assert resp["reason"] == "unknown"
+
+
+class TestHandleIsBookmarked(TestCase):
+    def setUp(self):
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.group_ids = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+    def test_is_bookmarked(self):
+        handle_is_bookmarked(True, self.group_list, self.group_ids, self.project_lookup, self.user)
+
+        assert GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+    def test_not_is_bookmarked(self):
+        GroupBookmark.objects.create(
+            group=self.group, user_id=self.user.id, project_id=self.group.project_id
+        )
+
+        handle_is_bookmarked(False, self.group_list, self.group_ids, self.project_lookup, self.user)
+
+        assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+
+class TestHandleHasSeen(TestCase):
+    def setUp(self):
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.group_ids = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+    def test_has_seen(self):
+        handle_has_seen(
+            True, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
+        )
+
+        assert GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+    def test_not_has_seen(self):
+        GroupSeen.objects.create(
+            group=self.group, user_id=self.user.id, project_id=self.group.project_id
+        )
+
+        handle_has_seen(
+            False, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
+        )
+
+        assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+
+class TestHandleIsPublic(TestCase):
+    def setUp(self):
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+    def test_is_public(self):
+        share_id = handle_is_public(True, self.group_list, self.project_lookup, self.user)
+
+        new_share = GroupShare.objects.get(group=self.group)
+        assert Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PUBLIC.value
+        ).exists()
+        assert share_id == new_share.uuid
+
+    def test_is_public_existing_shares(self):
+        share = GroupShare.objects.create(group=self.group, project=self.group.project)
+
+        share_id = handle_is_public(True, self.group_list, self.project_lookup, self.user)
+
+        new_share = GroupShare.objects.get(group=self.group)
+        assert Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PRIVATE.value
+        ).exists()
+        assert new_share != share
+        assert Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PUBLIC.value
+        ).exists()
+        assert share_id == new_share.uuid
+
+    def test_not_is_public(self):
+        GroupShare.objects.create(group=self.group, project=self.group.project)
+
+        share_id = handle_is_public(False, self.group_list, self.project_lookup, self.user)
+        assert Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PRIVATE.value
+        ).exists()
+        assert not GroupShare.objects.filter(group=self.group).exists()
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PUBLIC.value
+        ).exists()
+        assert share_id is None
