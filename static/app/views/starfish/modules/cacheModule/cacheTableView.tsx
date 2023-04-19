@@ -16,8 +16,8 @@ export type DataRow = {
 };
 
 type Props = {
+  action: string;
   location: Location;
-  operation: string;
   setSelectedRow: (row: DataRow) => void;
   transaction: string;
 };
@@ -48,15 +48,15 @@ const COLUMN_ORDER = [
 
 export default function CacheModuleView({
   location,
-  operation,
+  action,
   transaction,
   setSelectedRow,
 }: Props) {
-  const ENDPOINT_QUERY = `select description as desc, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
+  const CACHE_TABLE_QUERY = `select description as desc, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
   uniq(transaction) as transactions,
   sum(exclusive_time) as total_time
     from default.spans_experimental_starfish
-    where module == 'cache' and operation='${operation}'
+    where module == 'cache' and action='${action}'
     group by description
     limit 100
   `;
@@ -76,9 +76,9 @@ export default function CacheModuleView({
     return <span>{row[column.key]}</span>;
   };
 
-  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints', operation, transaction],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_QUERY}`).then(res => res.json()),
+  const {isLoading: areEndpointsLoading, data: cacheTableData} = useQuery({
+    queryKey: ['endpoints', action, transaction],
+    queryFn: () => fetch(`${HOST}/?query=${CACHE_TABLE_QUERY}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -86,7 +86,7 @@ export default function CacheModuleView({
   return (
     <GridEditable
       isLoading={areEndpointsLoading}
-      data={endpointsData}
+      data={cacheTableData}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
