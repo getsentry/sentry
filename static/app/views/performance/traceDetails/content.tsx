@@ -15,7 +15,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
@@ -349,12 +349,9 @@ class TraceDetailsContent extends Component<Props, State> {
                 size="sm"
                 to={traceEventView.getResultsViewUrlTarget(organization.slug)}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent(
-                    'performance_views.trace_view.open_in_discover',
-                    {
-                      organization,
-                    }
-                  );
+                  trackAnalytics('performance_views.trace_view.open_in_discover', {
+                    organization,
+                  });
                 }}
               >
                 {t('Open in Discover')}

@@ -30,7 +30,7 @@ import {
   Project,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -73,7 +73,7 @@ class BaseGroupSidebar extends Component<Props, State> {
   trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {group, project, organization, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+    trackAnalytics('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: 'assign',

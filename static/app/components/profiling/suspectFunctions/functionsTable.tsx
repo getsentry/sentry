@@ -11,7 +11,7 @@ import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -69,7 +69,7 @@ function FunctionsTable(props: FunctionsTableProps) {
           return {
             value: getShortEventId(profileId),
             onClick: () =>
-              trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+              trackAnalytics('profiling_views.go_to_flamegraph', {
                 organization,
                 source: `${props.analyticsPageSource}.suspect_functions_table`,
               }),

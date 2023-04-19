@@ -4,9 +4,9 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('StreamGroup', function () {
   let group1;
@@ -34,7 +34,7 @@ describe('StreamGroup', function () {
   });
 
   afterEach(function () {
-    trackAdvancedAnalyticsEvent.mockClear();
+    trackAnalytics.mockClear();
     GroupStore.reset();
   });
 
@@ -96,6 +96,6 @@ describe('StreamGroup', function () {
 
     // skipHover - Prevent stacktrace preview from being rendered
     await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(2);
+    expect(trackAnalytics).toHaveBeenCalledTimes(2);
   });
 });

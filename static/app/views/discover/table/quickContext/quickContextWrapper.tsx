@@ -9,7 +9,7 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -137,7 +137,7 @@ function HoverHeader({
               data-test-id="quick-context-hover-header-copy-icon"
               size="xs"
               onClick={() => {
-                trackAdvancedAnalyticsEvent('discover_v2.quick_context_header_copy', {
+                trackAnalytics('discover_v2.quick_context_header_copy', {
                   organization,
                   clipBoardTitle: title,
                 });

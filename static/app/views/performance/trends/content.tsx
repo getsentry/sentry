@@ -18,7 +18,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -93,7 +93,7 @@ class TrendsContent extends Component<Props, State> {
       offsets[queryKey] = undefined;
     });
 
-    trackAdvancedAnalyticsEvent('performance_views.trends.change_function', {
+    trackAnalytics('performance_views.trends.change_function', {
       organization,
       function_name: field,
     });
@@ -133,7 +133,7 @@ class TrendsContent extends Component<Props, State> {
     const {organization, location} = this.props;
     const cursors = resetCursors();
 
-    trackAdvancedAnalyticsEvent('performance_views.trends.change_parameter', {
+    trackAnalytics('performance_views.trends.change_parameter', {
       organization,
       parameter_name: label,
     });

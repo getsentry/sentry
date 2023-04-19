@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, Organization, Plugin, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
 type Field = {
@@ -308,7 +308,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     // a refetch in GroupDetails
     type StaleGroup = Group & {stale?: boolean};
 
-    trackAdvancedAnalyticsEvent('issue_details.external_issue_created', {
+    trackAnalytics('issue_details.external_issue_created', {
       organization: this.props.organization,
       ...getAnalyticsDataForGroup(this.props.group),
       external_issue_provider: this.props.plugin.slug,

@@ -1,9 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PlatformPicker from 'sentry/components/platformPicker';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('PlatformPicker', function () {
   const baseProps = {
@@ -47,7 +47,7 @@ describe('PlatformPicker', function () {
     expect(screen.getByText('Popular')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('All'));
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'growth.platformpicker_category',
       expect.objectContaining({
         category: 'all',

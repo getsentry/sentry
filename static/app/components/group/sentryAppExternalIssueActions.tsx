@@ -19,7 +19,7 @@ import {
   SentryAppInstallation,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import withApi from 'sentry/utils/withApi';
@@ -67,7 +67,7 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
     const {group, event, organization, sentryAppComponent, sentryAppInstallation} =
       this.props;
 
-    trackAdvancedAnalyticsEvent('issue_details.external_issue_modal_opened', {
+    trackAnalytics('issue_details.external_issue_modal_opened', {
       organization,
       ...getAnalyticsDataForGroup(group),
       external_issue_provider: sentryAppComponent.sentryApp.slug,
@@ -121,7 +121,7 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
 
   onSubmitSuccess = (externalIssue: PlatformExternalIssue) => {
     const {organization, group, sentryAppComponent} = this.props;
-    trackAdvancedAnalyticsEvent('issue_details.external_issue_modal_opened', {
+    trackAnalytics('issue_details.external_issue_modal_opened', {
       organization,
       ...getAnalyticsDataForGroup(group),
       external_issue_provider: sentryAppComponent.sentryApp.slug,

@@ -7,8 +7,7 @@ import {Client} from 'sentry/api';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {metric} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -187,7 +186,7 @@ class Table extends PureComponent<TableProps, TableState> {
           pageLinks: null,
           tableData: null,
         });
-        trackAdvancedAnalyticsEvent('discover_search.failed', {
+        trackAnalytics('discover_search.failed', {
           organization: this.props.organization,
           search_type: 'events',
           search_source: 'discover_search',

@@ -13,7 +13,7 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
@@ -41,7 +41,7 @@ function OnboardingStatus({
   onShowPanel,
 }: Props) {
   const handleShowPanel = () => {
-    trackAdvancedAnalyticsEvent('onboarding.wizard_opened', {organization: org});
+    trackAnalytics('onboarding.wizard_opened', {organization: org});
     onShowPanel();
   };
   const [onboardingState] = usePersistedOnboardingState();

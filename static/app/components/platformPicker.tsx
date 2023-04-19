@@ -16,7 +16,7 @@ import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 
@@ -95,7 +95,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+      trackAnalytics('growth.platformpicker_search', {
         search: this.state.filter.toLowerCase(),
         num_results: this.platformList.length,
         source: this.props.source,
@@ -117,7 +117,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                  trackAnalytics('growth.platformpicker_category', {
                     category: id,
                     source: this.props.source,
                     organization: this.props.organization ?? null,
@@ -152,7 +152,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
                   e.stopPropagation();
                 }}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent('growth.select_platform', {
+                  trackAnalytics('growth.select_platform', {
                     platform_id: platform.id,
                     source: this.props.source,
                     organization: this.props.organization ?? null,

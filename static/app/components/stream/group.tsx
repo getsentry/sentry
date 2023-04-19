@@ -35,7 +35,7 @@ import {
   User,
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -131,14 +131,14 @@ function BaseGroupRow({
 
   const trackClick = useCallback(() => {
     if (query === Query.FOR_REVIEW) {
-      trackAdvancedAnalyticsEvent('inbox_tab.issue_clicked', {
+      trackAnalytics('inbox_tab.issue_clicked', {
         organization,
         group_id: group.id,
       });
     }
 
     if (query !== undefined) {
-      trackAdvancedAnalyticsEvent('issues_stream.issue_clicked', sharedAnalytics);
+      trackAnalytics('issues_stream.issue_clicked', sharedAnalytics);
     }
   }, [organization, group.id, query, sharedAnalytics]);
 
@@ -146,7 +146,7 @@ function BaseGroupRow({
     useCallback(
       (type, _assignee, suggestedAssignee) => {
         if (query !== undefined) {
-          trackAdvancedAnalyticsEvent('issues_stream.issue_assigned', {
+          trackAnalytics('issues_stream.issue_assigned', {
             ...sharedAnalytics,
             did_assign_suggestion: !!suggestedAssignee,
             assigned_suggestion_reason: suggestedAssignee?.suggestedReason,

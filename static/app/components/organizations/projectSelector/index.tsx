@@ -11,7 +11,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -120,7 +120,7 @@ function ProjectSelector({
    * Should perform an "update" callback
    */
   const handleQuickSelect = (selected: Pick<Project, 'id'>) => {
-    trackAdvancedAnalyticsEvent('projectselector.direct_selection', {
+    trackAnalytics('projectselector.direct_selection', {
       path: getRouteStringFromRoutes(routes),
       organization,
     });
@@ -141,7 +141,7 @@ function ProjectSelector({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('projectselector.update', {
+    trackAnalytics('projectselector.update', {
       count: value.length,
       path: getRouteStringFromRoutes(routes),
       organization,
@@ -158,7 +158,7 @@ function ProjectSelector({
    * Should perform an "update" callback
    */
   const handleClear = () => {
-    trackAdvancedAnalyticsEvent('projectselector.clear', {
+    trackAnalytics('projectselector.clear', {
       path: getRouteStringFromRoutes(routes),
       organization,
     });
@@ -197,7 +197,7 @@ function ProjectSelector({
       selectedProjectsMap.set(project.slug, project);
     }
 
-    trackAdvancedAnalyticsEvent('projectselector.toggle', {
+    trackAnalytics('projectselector.toggle', {
       action: selected.length > value.length ? 'added' : 'removed',
       path: getRouteStringFromRoutes(routes),
       organization,
@@ -285,7 +285,7 @@ function ProjectSelector({
               onApply={() => handleUpdate(actions)}
               onShowAllProjects={() => {
                 handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
-                trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                trackAnalytics('projectselector.multi_button_clicked', {
                   button_type: 'all',
                   path: getRouteStringFromRoutes(routes),
                   organization,
@@ -299,7 +299,7 @@ function ProjectSelector({
               }}
               onShowMyProjects={() => {
                 handleClear();
-                trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                trackAnalytics('projectselector.multi_button_clicked', {
                   button_type: 'my',
                   path: getRouteStringFromRoutes(routes),
                   organization,

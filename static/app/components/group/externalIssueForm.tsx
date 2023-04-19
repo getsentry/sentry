@@ -9,7 +9,7 @@ import {FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import {Group, Integration, IntegrationExternalIssue, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
 const MESSAGES_BY_ACTION = {
@@ -74,7 +74,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     const {onChange, closeModal} = this.props;
     const {action} = this.state;
 
-    trackAdvancedAnalyticsEvent('issue_details.external_issue_created', {
+    trackAnalytics('issue_details.external_issue_created', {
       organization: this.props.organization,
       ...getAnalyticsDataForGroup(this.props.group),
       external_issue_provider: this.props.integration.provider.key,
@@ -97,7 +97,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     }
 
     this.trackedLoadStatus = true;
-    trackAdvancedAnalyticsEvent('issue_details.external_issue_loaded', {
+    trackAnalytics('issue_details.external_issue_loaded', {
       organization: this.props.organization,
       ...getAnalyticsDataForGroup(this.props.group),
       external_issue_provider: this.props.integration.provider.key,

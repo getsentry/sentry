@@ -25,7 +25,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {eventDetailsRoute} from 'sentry/utils/discover/urls';
@@ -130,7 +130,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {isSidebarVisible} = this.state;
 
     // metrics
-    trackAdvancedAnalyticsEvent('discover_v2.event_details', {
+    trackAnalytics('discover_v2.event_details', {
       event_type: event.type,
       organization,
     });
@@ -183,12 +183,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 href={eventJsonUrl}
                 external
                 onClick={() =>
-                  trackAdvancedAnalyticsEvent(
-                    'performance_views.event_details.json_button_click',
-                    {
-                      organization,
-                    }
-                  )
+                  trackAnalytics('performance_views.event_details.json_button_click', {
+                    organization,
+                  })
                 }
               >
                 {t('JSON')} (<FileSize bytes={event.size} />)

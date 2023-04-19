@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
@@ -168,14 +168,14 @@ function WidgetCardContextMenu({
         to: widget.queries.length === 1 ? discoverPath : undefined,
         onAction: () => {
           if (widget.queries.length === 1) {
-            trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
+            trackAnalytics('dashboards_views.open_in_discover.opened', {
               organization,
               widget_type: widget.displayType,
             });
             return;
           }
 
-          trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
+          trackAnalytics('dashboards_views.query_selector.opened', {
             organization,
             widget_type: widget.displayType,
           });

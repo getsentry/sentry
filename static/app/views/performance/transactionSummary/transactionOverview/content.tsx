@@ -22,7 +22,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
@@ -151,7 +151,7 @@ function SummaryContent({
   }
 
   function handleAllEventsViewClick() {
-    trackAdvancedAnalyticsEvent('performance_views.summary.view_in_transaction_events', {
+    trackAnalytics('performance_views.summary.view_in_transaction_events', {
       organization,
     });
   }
