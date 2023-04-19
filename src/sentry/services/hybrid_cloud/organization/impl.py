@@ -202,7 +202,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             user_id=user_id, organization=self.serialize_organization(org), member=membership
         )
 
-    def get_organization_by_slug(
+    def get_org_by_slug(
         self,
         *,
         slug: str,
