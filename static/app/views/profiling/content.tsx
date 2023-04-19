@@ -16,6 +16,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {
+  ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
   ProfilingUpgradeButton,
 } from 'sentry/components/profiling/billing/alerts';
@@ -251,8 +252,25 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
-                <ProfilingOnboardingPanel>
-                  {isProfilingGA ? (
+                isProfilingGA ? (
+                  // If user is on m2, show default
+                  <ProfilingOnboardingPanel
+                    content={
+                      <ProfilingAM1OrMMXUpgrade
+                        organization={organization}
+                        fallback={
+                          <Fragment>
+                            <h3>{t('Function level insights')}</h3>
+                            <p>
+                              {t(
+                                'Discover slow-to-execute or resource intensive functions within your application'
+                              )}
+                            </p>
+                          </Fragment>
+                        }
+                      />
+                    }
+                  >
                     <ProfilingUpgradeButton
                       organization={organization}
                       priority="primary"
@@ -264,15 +282,21 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     >
                       {t('Upgrade plan')}
                     </ProfilingUpgradeButton>
-                  ) : (
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                ) : (
+                  // show previous state
+                  <ProfilingOnboardingPanel>
                     <Button onClick={onSetupProfilingClick} priority="primary">
                       {t('Set Up Profiling')}
                     </Button>
-                  )}
-                  <Button href="https://docs.sentry.io/product/profiling/" external>
-                    {t('Read Docs')}
-                  </Button>
-                </ProfilingOnboardingPanel>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                )
               ) : (
                 <Fragment>
                   <PanelsGrid>
