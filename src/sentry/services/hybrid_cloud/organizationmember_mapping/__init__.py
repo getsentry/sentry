@@ -51,7 +51,7 @@ def rpc_update_organizationmember_mapping_from_instance(
         attr_name: getattr(organization_member, attr_name)
         for attr_name in RpcOrganizationMemberMappingUpdate.__annotations__.keys()
     }
-    return RpcOrganizationMemberMappingUpdate(**attributes)  # type: ignore
+    return RpcOrganizationMemberMappingUpdate(**attributes)
 
 
 class OrganizationMemberMappingService(RpcService):
