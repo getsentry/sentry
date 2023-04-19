@@ -37,7 +37,7 @@ def save_forecast_per_group(
 
 def get_forecasts(groups: List[Group]) -> None:
     """
-    Returns a list of forecasted values for each group.
+    Generates and saves a list of forecasted values for each group.
     `groups`: List of groups to be forecasted
     """
     past_counts = query_groups_past_counts(groups)

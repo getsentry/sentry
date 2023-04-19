@@ -6,6 +6,7 @@ from typing import Any, Dict, Sequence, TypedDict
 
 from django.utils import timezone
 
+from sentry.issues.forecasts import get_forecasts
 from sentry.models import Group, GroupInboxRemoveAction, GroupSnooze, User, remove_group_from_inbox
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
@@ -36,26 +37,7 @@ def handle_archived_until_escalating(
     for group in group_list:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
 
-    forecasts = get_forecasts(list(group_list))
-    group_forecasts = []
-    for group, forecast in forecasts:
-        if not forecast:
-            logger.info(
-                "archived_until_escalating.no_forecast_created",
-                extra={
-                    "detail": "No forecast created for groups",
-                    "group_id": group.id,
-                },
-            )
-        else:
-            group_forecasts.append((group, forecast))
-
-    if not group_forecasts:
-        return
-    GroupForecast.objects.filter(group__in=group_list).delete()
-    GroupForecast.objects.bulk_create(
-        [GroupForecast(group=group, forecast=forecast) for group, forecast in group_forecasts]
-    )
+    get_forecasts(list(group_list))
     logger.info(
         "archived_until_escalating.forecast_created",
         extra={

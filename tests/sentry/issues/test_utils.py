@@ -1,13 +1,15 @@
+import random
 import uuid
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
+from sentry.issues.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
@@ -137,3 +139,35 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         assert result["data"][0]["timestamp"] == insert_timestamp.isoformat()
 
         return event, saved_occurrence, group_info
+
+
+def get_mock_groups_past_counts_response(
+    num_days: int,
+    num_hours: int,
+    groups: List[Group],
+) -> GroupsCountResponse:
+    """
+    Returns a mocked response of type `GroupsCountResponse` from `query_groups_past_counts`.
+    Creates event count data for each group in `groups` for `num_days`, for `num_hours`.
+
+    `groups`: The groups that data will be generated for
+    `num_days`: The number of days that data will be generated for
+    `num_hours`: The number of hours per day that data will be generated for
+    """
+    data = []
+    now = datetime.now()
+
+    for group in groups:
+        for day in range(num_days, 0, -1):
+            time = now - timedelta(days=day)
+
+            for hour in range(num_hours, 0, -1):
+                hourly_time = time - timedelta(hours=hour)
+                data.append(
+                    {
+                        "group_id": group.id,
+                        "hourBucket": hourly_time.strftime("%Y-%m-%dT%H:%M:%S%f") + "+00:00",
+                        "count()": random.randint(1, 10),
+                    }
+                )
+    return data

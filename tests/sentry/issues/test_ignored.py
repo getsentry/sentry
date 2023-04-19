@@ -1,9 +1,13 @@
-from typing import Any
 from unittest.mock import patch
 
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.models import GroupInbox, GroupInboxReason, GroupSnooze, add_group_to_inbox
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
+from tests.sentry.tasks.test_weekly_escalating_forecast import DEFAULT_MINIMUM_CEILING_FORECAST
+
 
 
 class HandleIgnoredTest(TestCase):  # type: ignore
@@ -50,11 +54,33 @@ class HandleIgnoredTest(TestCase):  # type: ignore
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
 class HandleArchiveUntilEscalating(TestCase):  # type: ignore
-    def test_archive_until_escalating(self) -> None:
-        group = self.create_group()
-        add_group_to_inbox(group, GroupInboxReason.NEW)
+    @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
+    def test_archive_until_escalating_no_counts(self, mock_query_groups_past_counts) -> None:
+        self.group = self.create_group()
+        add_group_to_inbox(self.group, GroupInboxReason.NEW)
 
         handle_archived_until_escalating([self.group], self.user)
         assert not GroupInbox.objects.filter(group=self.group).exists()
         assert not GroupSnooze.objects.filter(group=self.group).exists()
-        assert not GroupForecast.objects.filter(group=self.group).exists()
+
+        fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
+        assert fetched_forecast is None
+
+    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    def test_archive_until_escalating_with_counts(self, mock_query_groups_past_counts):
+        self.group = self.create_group()
+
+        mock_query_groups_past_counts.return_value = get_mock_groups_past_counts_response(
+            num_days=7, num_hours=1, groups=[self.group]
+        )
+
+        add_group_to_inbox(self.group, GroupInboxReason.NEW)
+
+        handle_archived_until_escalating([self.group], self.user)
+        assert not GroupInbox.objects.filter(group=self.group).exists()
+        assert not GroupSnooze.objects.filter(group=self.group).exists()
+
+        fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
+        assert fetched_forecast.project_id == self.group.project.id
+        assert fetched_forecast.group_id == self.group.id
+        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
