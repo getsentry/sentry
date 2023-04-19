@@ -26,7 +26,6 @@ export const retentionPrioritiesLabels = {
   boostLatestRelease: t('Prioritize new releases'),
   boostEnvironments: t('Prioritize dev environments'),
   boostKeyTransactions: t('Prioritize key transactions'),
-  boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
 };
 
@@ -279,16 +278,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         type: 'boolean',
         label: retentionPrioritiesLabels.boostKeyTransactions,
         help: t('Captures more of your most important (starred) transactions'),
-        getData: this.getRetentionPrioritiesData,
-      },
-      {
-        name: 'boostLowVolumeTransactions',
-        type: 'boolean',
-        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
-        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-        visible: this.props.organization.features.includes(
-          'dynamic-sampling-transaction-name-priority'
-        ),
         getData: this.getRetentionPrioritiesData,
       },
       {
