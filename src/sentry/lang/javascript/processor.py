@@ -1186,10 +1186,12 @@ class Fetcher:
         if result is None:
             if not url.startswith(("http:", "https:")):
                 error = {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)}
+                self.failed_urls.add(url)
                 raise http.CannotFetch(error)
 
             if not self.allow_scraping:
                 error = {"type": EventError.JS_SCRAPING_DISABLED, "url": http.expose_url(url)}
+                self.failed_urls.add(url)
                 raise http.CannotFetch(error)
 
             logger.debug("Checking cache for url %r", url)
