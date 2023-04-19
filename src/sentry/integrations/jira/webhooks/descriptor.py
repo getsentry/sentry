@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -17,8 +17,14 @@ if settings.JIRA_USE_EMAIL_SCOPE:
     scopes.append("access_email_addresses")
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class JiraDescriptorEndpoint(Endpoint):
+    """
+    Provides the metadata needed by Jira to setup an instance of the Sentry integration within Jira.
+    Only used by on-prem orgs and devs setting up local instances of the integration. (Sentry SAAS
+    already has an established, official instance of the Sentry integration registered with Jira.)
+    """
+
     authentication_classes = ()
     permission_classes = ()
 
