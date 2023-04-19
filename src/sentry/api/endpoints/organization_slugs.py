@@ -3,12 +3,12 @@ from django.db import transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import Project
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class SlugsUpdateEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization) -> Response:
         """

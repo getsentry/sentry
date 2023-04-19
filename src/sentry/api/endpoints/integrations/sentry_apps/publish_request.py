@@ -2,7 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
 from sentry.models import SentryAppAvatar
@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import email
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
     def has_ui_component(self, sentry_app):
         """Determine if the sentry app supports issue linking or stack trace linking."""

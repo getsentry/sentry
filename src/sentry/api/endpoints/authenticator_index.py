@@ -4,11 +4,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models import Authenticator
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class AuthenticatorIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 

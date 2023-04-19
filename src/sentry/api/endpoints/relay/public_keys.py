@@ -2,12 +2,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import RelayAuthentication
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Relay
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class RelayPublicKeysEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)

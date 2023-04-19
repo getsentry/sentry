@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.utils import authenticate_asymmetric_jwt, verify_claims
 from sentry.tasks.integrations import sync_metadata
@@ -12,7 +12,7 @@ from ..integration import JiraIntegrationProvider
 from .base import JiraWebhookBase
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class JiraSentryInstalledWebhook(JiraWebhookBase):
     """
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.

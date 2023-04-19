@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.utils.cleanup import clear_tags_and_context
 from sentry.models import Integration
@@ -42,7 +42,7 @@ def get_integration_from_token(token):
     return integration
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class JiraIssueUpdatedWebhook(Endpoint):
     authentication_classes = ()
     permission_classes = ()

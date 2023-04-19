@@ -5,7 +5,7 @@ from typing import Any, Mapping
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RequestSerializer
@@ -38,7 +38,7 @@ class BufferedRequest:
         return self.id
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppStatsPermission,)
 

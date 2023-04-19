@@ -3,12 +3,12 @@ from rest_framework.response import Response
 from sentry_relay import pii_selector_suggestions_from_event
 
 from sentry import nodestore
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.eventstore.models import Event
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """
