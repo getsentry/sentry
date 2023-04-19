@@ -29,7 +29,9 @@ from sentry.types.region import MONOLITH_REGION_NAME
 @region_silo_test(stable=True)
 def test_creating_org_outboxes():
     Organization.outbox_for_update(10).save()
-    OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
+    OrganizationMember(organization_id=12, id=15).outbox_for_update(
+        prev_user_id=1, prev_email=None
+    ).save()
     assert RegionOutbox.objects.count() == 2
 
     with exempt_from_silo_limits(), outbox_runner():
@@ -71,13 +73,21 @@ def test_creating_user_outboxes():
 @patch("sentry.models.outbox.metrics")
 def test_concurrent_coalesced_object_processing(mock_metrics):
     # Two objects coalesced
-    outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
+    outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update(
+        prev_user_id=1, prev_email=None
+    )
     outbox.save()
-    OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
+    OrganizationMember(id=1, organization_id=1).outbox_for_update(
+        prev_user_id=1, prev_email=None
+    ).save()
 
     # Unrelated
-    OrganizationMember(organization_id=1, id=2).outbox_for_update().save()
-    OrganizationMember(organization_id=2, id=2).outbox_for_update().save()
+    OrganizationMember(organization_id=1, id=2).outbox_for_update(
+        prev_user_id=2, prev_email=None
+    ).save()
+    OrganizationMember(organization_id=2, id=2).outbox_for_update(
+        prev_user_id=2, prev_email=None
+    ).save()
 
     assert len(list(RegionOutbox.find_scheduled_shards())) == 2
 
@@ -88,7 +98,9 @@ def test_concurrent_coalesced_object_processing(mock_metrics):
         assert outbox.select_coalesced_messages().count() == 2
 
         # concurrent write of coalesced object update.
-        OrganizationMember(organization_id=1, id=1).outbox_for_update().save()
+        OrganizationMember(organization_id=1, id=1).outbox_for_update(
+            prev_user_id=1, prev_email=None
+        ).save()
         assert RegionOutbox.objects.count() == 5
         assert outbox.select_coalesced_messages().count() == 3
 
@@ -122,8 +134,12 @@ def test_region_sharding_keys():
     Organization.outbox_for_update(org1.id).save()
     Organization.outbox_for_update(org2.id).save()
 
-    OrganizationMember(organization_id=org1.id, id=1).outbox_for_update().save()
-    OrganizationMember(organization_id=org2.id, id=2).outbox_for_update().save()
+    OrganizationMember(organization_id=org1.id, id=1).outbox_for_update(
+        prev_user_id=1, prev_email=None
+    ).save()
+    OrganizationMember(organization_id=org2.id, id=2).outbox_for_update(
+        prev_user_id=2, prev_email=None
+    ).save()
 
     shards = {
         (row["shard_scope"], row["shard_identifier"])

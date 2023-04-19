@@ -160,7 +160,7 @@ class OrganizationMemberTest(TestCase):
             assert qs.exists()
 
         with outbox_runner():
-            member.outbox_for_update().save()
+            member.outbox_for_update(prev_user_id=member.user_id, prev_email=member.email).save()
 
         # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
         # the delete to auth identity objects.
