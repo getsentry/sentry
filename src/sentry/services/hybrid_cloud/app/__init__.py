@@ -46,6 +46,7 @@ class RpcSentryApp(RpcModel):
     uuid: str = ""
     events: List[str] = Field(default_factory=list)
     webhook_url: Optional[str] = None
+    is_published: False
 
 
 class RpcSentryAppInstallation(RpcModel):
@@ -179,6 +180,7 @@ class AppService(RpcService):
             uuid=app.uuid,
             events=app.events,
             webhook_url=app.webhook_url,
+            is_published=app.is_published,
         )
 
     @rpc_method

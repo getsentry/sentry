@@ -241,7 +241,16 @@ class SentryAppInstallationsPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
-        if organization not in request.user.get_orgs():
+        # TODO(hybrid-cloud): replace this with a local silo lookup once org member work is done
+        org_ids = [
+            org.id
+            for org in organization_service.get_organizations(
+                user_id=request.user.id,
+                only_visible=False,
+                scope=None,
+            )
+        ]
+        if organization.id not in org_ids:
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -252,13 +261,13 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(self, request: Request, organization_slug, *args, **kwargs):
         if is_active_superuser(request):
-            organizations = Organization.objects.all()
+            organization = organization_service.get_organization_by_slug(slug=organization_slug)
         else:
-            organizations = request.user.get_orgs()
+            organization = organization_service.get_organization_by_slug(
+                slug=organization_slug, user_id=request.user.id
+            )
 
-        try:
-            organization = organizations.get(slug=organization_slug)
-        except Organization.DoesNotExist:
+        if organization is None:
             raise Http404
         self.check_object_permissions(request, organization)
 
