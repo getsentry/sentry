@@ -17,6 +17,7 @@ from sentry.models import (
     AuthProvider,
     InviteStatus,
     OrganizationMember,
+    OrganizationMemberTeam,
     UserEmail,
 )
 from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
@@ -238,6 +239,11 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             user=self.user,
         )
         self.assert_org_member_mapping(org_member=org_member)
+
+        for team in self.auth_provider.default_teams.all():
+            assert OrganizationMemberTeam.objects.create(
+                team=team, organizationmember__user=self.user
+            ).exists()
 
         assert AuditLogEntry.objects.filter(
             organization_id=self.organization.id,
