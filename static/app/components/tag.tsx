@@ -11,7 +11,7 @@ import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme, {Color} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
@@ -106,7 +106,7 @@ function Tag({
   }
 
   const trackClickEvent = () => {
-    trackAdvancedAnalyticsEvent('tag.clicked', {
+    trackAnalytics('tag.clicked', {
       is_clickable: defined(onClick) || defined(to) || defined(href),
       organization: null,
     });

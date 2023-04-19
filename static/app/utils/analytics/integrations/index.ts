@@ -1,11 +1,6 @@
 import {IntegrationType, SentryAppStatus} from 'sentry/types';
 
-import {codeownersEventMap, CodeownersEventParameters} from './codeownersAnalyticsEvents';
 import {platformEventMap, PlatformEventParameters} from './platformAnalyticsEvents';
-import {
-  stacktraceLinkEventMap,
-  StacktraceLinkEventParameters,
-} from './stacktraceLinkAnalyticsEvents';
 
 export type IntegrationView = {
   view?:
@@ -90,9 +85,7 @@ export type IntegrationEventParameters = {
   'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
   'project_ownership.modal_opened': ProjectOwnershipModalParams;
   'project_ownership.saved': ProjectOwnershipModalParams;
-} & CodeownersEventParameters &
-  StacktraceLinkEventParameters &
-  PlatformEventParameters;
+} & PlatformEventParameters;
 
 export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
@@ -125,7 +118,5 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',
   'project_ownership.modal_opened': 'Project Ownership: Modal Opened',
   'project_ownership.saved': 'Project Ownership: Saved',
-  ...codeownersEventMap,
-  ...stacktraceLinkEventMap,
   ...platformEventMap,
 };

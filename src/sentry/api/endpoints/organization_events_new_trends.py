@@ -36,7 +36,7 @@ def get_trends(snuba_io):
         body=json.dumps(snuba_io),
         headers={"content-type": "application/json;charset=utf-8"},
     )
-    return Response(json.loads(response.data), status=200)
+    return json.loads(response.data)
 
 
 @region_silo_endpoint
@@ -65,7 +65,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         selected_columns = self.get_field_list(organization, request)
 
-        top_columns = ["count()", "transaction", "project"]
+        top_columns = ["tpm()", "transaction", "project"]
         # TODO use user query and remove trends-specific aliases
         _query = (
             "tpm():>0.01 transaction.duration:>0 transaction.duration:<15min event.type:transaction"
@@ -87,12 +87,12 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 user_query=query,
                 params=params,
                 rollup=rollup,
-                limit=10,
+                limit=20,
                 organization=organization,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
                 zerofill_results=zerofill_results,
-                orderby=["count()"],
+                orderby=["-tpm()"],
             )
 
             return results
@@ -103,25 +103,49 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     request,
                     organization,
                     get_event_stats,
-                    top_events=10,
+                    top_events=20,
                     query_column=trend_function,
                     params=params,
                     query=_query,
                 )
             )
 
-            trends_request = {"data": None}
-            data = response.data
+            trends_request = {
+                "data": None,
+                "sort": None,
+                "trendFunction": None,
+                "start": None,
+                "end": None,
+            }
 
-            data["sort"] = request.GET.get("sort", "trend_percentage()")
-            data["trendFunction"] = trend_function
-            trends_request["data"] = data
+            trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
+            trends_request["trendFunction"] = trend_function
+            trends_request["data"] = response.data
+
+            # get start and end from the first transaction
+            trends_request["start"] = response.data[list(response.data)[0]]["start"]
+            trends_request["end"] = response.data[list(response.data)[0]]["end"]
 
             # send the data to microservice
             trends = get_trends(trends_request)
+            trending_transaction_names_stats = {}
+            trending_events = trends["data"]
+            for t in trending_events:
+                transaction_name = t["transaction"]
+                project = t["project"]
+                t_p_key = project + "," + transaction_name
+                trending_transaction_names_stats[t_p_key] = response.data[t_p_key]
 
             # send the results back to the client
-            return trends
+            return Response(
+                {
+                    "events": self.handle_results_with_meta(
+                        request, organization, params["project_id"], {"data": trending_events}
+                    ),
+                    "stats": trending_transaction_names_stats,
+                },
+                status=200,
+            )
         # TODO check if this is applicable here
         except ValidationError:
             return Response({"detail": "Comparison period is outside retention window"}, status=400)
