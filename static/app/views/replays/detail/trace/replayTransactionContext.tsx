@@ -134,7 +134,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   );
 
   const fetchTransactionData = useCallback(async () => {
-    if (state.traces || !listEventView) {
+    if (!listEventView) {
       return;
     }
     const start = getUtcDateString(replayRecord?.started_at.getTime());
@@ -202,7 +202,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     }
 
     setState(prev => ({...prev, indexComplete: true} as InternalState));
-  }, [api, fetchSingleTraceData, listEventView, orgSlug, replayRecord, state]);
+  }, [api, fetchSingleTraceData, listEventView, orgSlug, replayRecord]);
 
   return (
     <TxnContext.Provider
@@ -236,14 +236,14 @@ function internalToExternalState({
 
 export default ReplayTransactionContext;
 
-export const useTransactionData = () => {
-  const context = useContext(TxnContext);
-  useEffect(() => {
-    context.fetchTransactionData();
-  }, [context]);
+export const useFetchTransactions = () => {
+  const {fetchTransactionData} = useContext(TxnContext);
 
-  return {
-    state: context.state,
-    eventView: context.eventView,
-  };
+  useEffect(fetchTransactionData, [fetchTransactionData]);
+};
+
+export const useTransactionData = () => {
+  const {eventView, state} = useContext(TxnContext);
+  const data = useMemo(() => ({eventView, state}), [eventView, state]);
+  return data;
 };

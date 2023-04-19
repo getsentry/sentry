@@ -5,7 +5,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
+import {
+  useFetchTransactions,
+  useTransactionData,
+} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -16,6 +19,8 @@ function Trace({replayRecord}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {state, eventView} = useTransactionData();
+
+  useFetchTransactions();
 
   if (!replayRecord || !state.traces?.length) {
     return <StyledPlaceholder height="100%" />;
