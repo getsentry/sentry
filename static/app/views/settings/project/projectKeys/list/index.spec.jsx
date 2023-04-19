@@ -155,7 +155,7 @@ describe('ProjectKeys', function () {
   });
 
   it('renders multiple keys', function () {
-    projectKeys = TestStubs.ProjectKeys([
+    const multipleProjectKeys = TestStubs.ProjectKeys([
       {
         dsn: {
           secret:
@@ -197,7 +197,7 @@ describe('ProjectKeys', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,
       method: 'GET',
-      body: projectKeys,
+      body: multipleProjectKeys,
     });
 
     render(

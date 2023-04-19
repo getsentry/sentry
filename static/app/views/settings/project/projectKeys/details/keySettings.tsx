@@ -105,7 +105,7 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
             <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
             <PanelBody>
               <LoaderSettings
-                organizationId={organization.slug}
+                orgSlug={organization.slug}
                 keyId={params.keyId}
                 projectId={params.projectId}
                 projectKey={data}

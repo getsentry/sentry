@@ -21,7 +21,7 @@ import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   keyId: string;
-  organizationId: string;
+  orgSlug: string;
   projectId: string;
   projectKey: ProjectKey;
 };
@@ -47,7 +47,7 @@ export const sdkLoaderOptions = {
   },
 };
 
-export function LoaderSettings({keyId, organizationId, projectId, projectKey}: Props) {
+export function LoaderSettings({keyId, orgSlug, projectId, projectKey}: Props) {
   const api = useApi();
   const [browserSdkVersion, setBrowserSdkVersion] = useState(
     projectKey.browserSdkVersion
@@ -64,7 +64,7 @@ export function LoaderSettings({keyId, organizationId, projectId, projectKey}: P
     setDynamicSDKLoaderOptions(projectKey.dynamicSdkLoaderOptions);
   }, [projectKey.dynamicSdkLoaderOptions]);
 
-  const apiEndpoint = `/projects/${organizationId}/${projectId}/keys/${keyId}/`;
+  const apiEndpoint = `/projects/${orgSlug}/${projectId}/keys/${keyId}/`;
   const loaderLink = getDynamicText({
     value: projectKey.dsn.cdn,
     fixed: '__JS_SDK_LOADER_URL__',
@@ -170,7 +170,7 @@ export function LoaderSettings({keyId, organizationId, projectId, projectKey}: P
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
-                   {t(' What does the script provide?')}
+                    {t(' What does the script provide?')}
                   </ExternalLink>
                 ),
               }
@@ -200,7 +200,7 @@ export function LoaderSettings({keyId, organizationId, projectId, projectKey}: P
             }
             value={browserSdkVersion}
             onChange={handleUpdateBrowserSDKVersion}
-            placeholder={t('4.x')}
+            placeholder="7.x"
             allowClear={false}
             disabled={!hasAccess}
           />
