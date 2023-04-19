@@ -3,83 +3,66 @@ import {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Hooks} from 'sentry/types/hooks';
+
 import {
   aiSuggestedSolutionEventMap,
   AiSuggestedSolutionEventParameters,
-} from 'sentry/utils/analytics/aiSuggestedSolutionAnalyticsEvents';
-import {
-  coreUIEventMap,
-  CoreUIEventParameters,
-} from 'sentry/utils/analytics/coreuiAnalyticsEvents';
+} from './analytics/aiSuggestedSolutionAnalyticsEvents';
+import {coreUIEventMap, CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {
   dashboardsEventMap,
   DashboardsEventParameters,
-} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+} from './analytics/dashboardsAnalyticsEvents';
 import {
   discoverEventMap,
   DiscoverEventParameters,
-} from 'sentry/utils/analytics/discoverAnalyticsEvents';
+} from './analytics/discoverAnalyticsEvents';
 import {
   dynamicSamplingEventMap,
   DynamicSamplingEventParameters,
-} from 'sentry/utils/analytics/dynamicSamplingAnalyticsEvents';
+} from './analytics/dynamicSamplingAnalyticsEvents';
 import {
   ecosystemEventMap,
   EcosystemEventParameters,
-} from 'sentry/utils/analytics/ecosystemAnalyticsEvents';
-import {
-  growthEventMap,
-  GrowthEventParameters,
-} from 'sentry/utils/analytics/growthAnalyticsEvents';
-import {
-  integrationEventMap,
-  IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrations';
-import {
-  issueEventMap,
-  IssueEventParameters,
-} from 'sentry/utils/analytics/issueAnalyticsEvents';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+} from './analytics/ecosystemAnalyticsEvents';
+import {growthEventMap, GrowthEventParameters} from './analytics/growthAnalyticsEvents';
+import {integrationEventMap, IntegrationEventParameters} from './analytics/integrations';
+import {issueEventMap, IssueEventParameters} from './analytics/issueAnalyticsEvents';
+import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
 import {
   monitorsEventMap,
   MonitorsEventParameters,
-} from 'sentry/utils/analytics/monitorsAnalyticsEvents';
+} from './analytics/monitorsAnalyticsEvents';
 import {
   onboardingEventMap,
   OnboardingEventParameters,
-} from 'sentry/utils/analytics/onboardingAnalyticsEvents';
+} from './analytics/onboardingAnalyticsEvents';
 import {
   performanceEventMap,
   PerformanceEventParameters,
-} from 'sentry/utils/analytics/performanceAnalyticsEvents';
+} from './analytics/performanceAnalyticsEvents';
 import {
   profilingEventMap,
   ProfilingEventParameters,
-} from 'sentry/utils/analytics/profilingAnalyticsEvents';
+} from './analytics/profilingAnalyticsEvents';
 import {
   releasesEventMap,
   ReleasesEventParameters,
-} from 'sentry/utils/analytics/releasesAnalyticsEvents';
-import {
-  replayEventMap,
-  ReplayEventParameters,
-} from 'sentry/utils/analytics/replayAnalyticsEvents';
-import {
-  searchEventMap,
-  SearchEventParameters,
-} from 'sentry/utils/analytics/searchAnalyticsEvents';
+} from './analytics/releasesAnalyticsEvents';
+import {replayEventMap, ReplayEventParameters} from './analytics/replayAnalyticsEvents';
+import {searchEventMap, SearchEventParameters} from './analytics/searchAnalyticsEvents';
 import {
   settingsEventMap,
   SettingsEventParameters,
-} from 'sentry/utils/analytics/settingsAnalyticsEvents';
+} from './analytics/settingsAnalyticsEvents';
 import {
   stackTraceEventMap,
   StackTraceEventParameters,
-} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+} from './analytics/stackTraceAnalyticsEvents';
 import {
   TeamInsightsEventParameters,
   workflowEventMap,
-} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+} from './analytics/workflowAnalyticsEvents';
 
 type EventParameters = GrowthEventParameters &
   CoreUIEventParameters &
