@@ -1,21 +1,26 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-import withApi from 'sentry/utils/withApi';
+import {useQuery} from 'sentry/utils/queryClient';
 import Chart from 'sentry/views/starfish/components/chart';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
+import {
+  FAILURE_RATE_QUERY,
+  MODULE_DURATION_QUERY,
+} from 'sentry/views/starfish/views/webServiceView/queries';
 
 import EndpointList from './endpointList';
-
-const EventsRequest = withApi(_EventsRequest);
-import {Fragment} from 'react';
-
-import {Series} from 'sentry/types/echarts';
 
 type BasePerformanceViewProps = {
   eventView: EventView;
@@ -24,71 +29,116 @@ type BasePerformanceViewProps = {
   projects: Project[];
 };
 
+const HOST = 'http://localhost:8080';
+
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView} = props;
+  const {eventView} = props;
+
+  const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
+    queryKey: ['durationBreakdown'],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${MODULE_DURATION_QUERY}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const {isLoading: isFailureRateDataLoading, data: failureRateData} = useQuery({
+    queryKey: ['failureRate'],
+    queryFn: () => fetch(`${HOST}/?query=${FAILURE_RATE_QUERY}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const modules = ['db', 'cache', 'http'];
+
+  const seriesByModule: {[module: string]: Series} = {};
+  modules.forEach(module => {
+    seriesByModule[module] = {
+      seriesName: `p75(${module})`,
+      data: [],
+    };
+  });
+
+  // cross-reference the series, and makes sure
+  // they have the same number of points by backfilling
+  // missing timestamps for each other series with a 0
+  let lastInterval = undefined;
+  modules.forEach(module => {
+    moduleDurationData.forEach(value => {
+      if (module === value.module) {
+        if (lastInterval === value.interval) {
+          seriesByModule[module].data.pop();
+        }
+        seriesByModule[module].data.push({
+          value: value.p75,
+          name: value.interval,
+        });
+      } else {
+        if (lastInterval !== value.interval) {
+          seriesByModule[module].data.push({
+            value: 0,
+            name: value.interval,
+          });
+        }
+      }
+      lastInterval = value.interval;
+    });
+  });
+
+  const data = Object.values(seriesByModule);
+
+  const failureRateSeries = zeroFillSeries(
+    {
+      seriesName: 'Failure Rate',
+      color: CHART_PALETTE[5][3],
+      data: failureRateData.map(entry => ({
+        value: entry.failureRate,
+        name: entry.interval,
+      })),
+    },
+    moment.duration(5, 'minutes')
+  );
 
   return (
     <div data-test-id="starfish-view">
       <StyledRow minSize={200}>
-        <EventsRequest
-          query={eventView.query}
-          includePrevious={false}
-          partial
-          interval="1h"
-          includeTransformedData
-          limit={1}
-          environment={eventView.environment}
-          project={eventView.project}
-          period={eventView.statsPeriod}
-          referrer="starfish-homepage-span-breakdown"
-          start={eventView.start}
-          end={eventView.end}
-          organization={organization}
-          yAxis={[
-            'p95(spans.db)',
-            'p95(spans.http)',
-            'p95(spans.browser)',
-            'p95(spans.resource)',
-            'p95(spans.ui)',
-          ]}
-          queryExtras={{
-            dataset: 'metrics',
-          }}
-        >
-          {data => {
-            return (
-              <Fragment>
-                <Chart
-                  statsPeriod={eventView.statsPeriod}
-                  height={180}
-                  data={data.results as Series[]}
-                  start={eventView.start as string}
-                  end={eventView.end as string}
-                  loading={data.loading}
-                  utc={false}
-                  grid={{
-                    left: '0',
-                    right: '0',
-                    top: '16px',
-                    bottom: '8px',
-                  }}
-                  disableMultiAxis
-                  definedAxisTicks={4}
-                  stacked
-                  log
-                  chartColors={[
-                    '#444674',
-                    '#7a5088',
-                    '#b85586',
-                    '#e9626e',
-                    '#f58c46',
-                    '#f2b712',
-                  ]}
-                />
-              </Fragment>
-            );
-          }}
-        </EventsRequest>
+        <Fragment>
+          <Chart
+            statsPeriod="24h"
+            height={180}
+            data={data}
+            start=""
+            end=""
+            loading={isDurationDataLoading}
+            utc={false}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '16px',
+              bottom: '8px',
+            }}
+            disableMultiAxis
+            definedAxisTicks={4}
+            stacked
+            chartColors={['#444674', '#7a5088', '#b85586']}
+          />
+
+          <FailureRateChart
+            statsPeriod={eventView.statsPeriod}
+            height={180}
+            data={[failureRateSeries]}
+            start={eventView.start as string}
+            end={eventView.end as string}
+            loading={isFailureRateDataLoading}
+            utc={false}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '16px',
+              bottom: '8px',
+            }}
+          />
+        </Fragment>
       </StyledRow>
 
       <EndpointList
@@ -100,7 +150,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'tpm',
           'p50(duration)',
           'p95(duration)',
-          '% time spent',
+          'cumulative time',
         ]}
       />
     </div>

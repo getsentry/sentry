@@ -38,7 +38,7 @@ class DeleteGroupTest(TestCase):
         )
 
         group = event.group
-        group.update(status=GroupStatus.PENDING_DELETION)
+        group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
         GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
         GroupHash.objects.create(project=project, group=group, hash=uuid4().hex)

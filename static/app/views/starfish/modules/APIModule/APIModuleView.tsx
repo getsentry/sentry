@@ -1,44 +1,29 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
+import EndpointTable from './endpointTable';
+import {ENDPOINT_GRAPH_QUERY} from './queries';
 
-const HOST = 'http://localhost:8080';
+export const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
+  onSelect: (row: DataRow) => void;
 };
 
-type DataRow = {
+export type DataRow = {
   count: number;
   description: string;
+  domain: string;
 };
 
-const COLUMN_ORDER = [
-  {
-    key: 'description',
-    name: 'Transaction',
-    width: 600,
-  },
-  {
-    key: 'count',
-    name: 'Count',
-  },
-];
-
-export default function APIModuleView({location}: Props) {
-  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints'],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_LIST_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
+export default function APIModuleView({location, onSelect}: Props) {
   const {isLoading: isGraphLoading, data: graphData} = useQuery({
     queryKey: ['graph'],
     queryFn: () =>
@@ -66,7 +51,9 @@ export default function APIModuleView({location}: Props) {
     });
   });
 
-  const data = Object.values(seriesByQuantile);
+  const data = Object.values(seriesByQuantile).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   return (
     <Fragment>
@@ -89,25 +76,7 @@ export default function APIModuleView({location}: Props) {
         stacked
       />
 
-      <GridEditable
-        isLoading={areEndpointsLoading}
-        data={endpointsData}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location}
-      />
+      <EndpointTable location={location} onSelect={onSelect} />
     </Fragment>
   );
-}
-
-function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  return <span>{column.name}</span>;
-}
-
-function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-  return <span>{row[column.key]}</span>;
 }

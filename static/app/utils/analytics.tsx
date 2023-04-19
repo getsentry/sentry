@@ -3,6 +3,7 @@ import {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Hooks} from 'sentry/types/hooks';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 /**
  * Analytics and metric tracking functionality.
@@ -26,13 +27,33 @@ import {Hooks} from 'sentry/types/hooks';
  * This should be with all analytics events regardless of the analytics destination
  * which includes Reload, Amplitude, and Google Analytics.
  * All events go to Reload. If eventName is defined, events also go to Amplitude.
+ * For more details, refer to makeAnalyticsFunction.
+ *
+ * Should be used for all analytics that are defined in Sentry.
+ */
+
+export function trackAnalytics(
+  eventKey: Parameters<typeof trackAdvancedAnalyticsEvent>[0],
+  analyticsParams: Parameters<typeof trackAdvancedAnalyticsEvent>[1],
+  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[2]
+) {
+  // TODO: Stop using trackAdvancedAnalyticsEvent
+  return trackAdvancedAnalyticsEvent(eventKey, analyticsParams, options);
+}
+
+/**
+ * This should be with all analytics events regardless of the analytics destination
+ * which includes Reload, Amplitude, and Google Analytics.
+ * All events go to Reload. If eventName is defined, events also go to Amplitude.
  * For more details, refer to the API defined in hooks.
  *
  * Should NOT be used directly.
  * Instead, use makeAnalyticsFunction to generate an analytics function.
  */
-export const trackAnalyticsEventV2: Hooks['analytics:track-event-v2'] = (data, options) =>
-  HookStore.get('analytics:track-event-v2').forEach(cb => cb(data, options));
+export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
+  data,
+  options
+) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
 /**
  * This should be used to log when a `organization.experiments` experiment

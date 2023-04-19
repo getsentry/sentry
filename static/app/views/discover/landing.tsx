@@ -16,7 +16,7 @@ import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -166,7 +166,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleSortChange = (value: string) => {
     const {location, organization} = this.props;
-    trackAdvancedAnalyticsEvent('discover_v2.change_sort', {organization, sort: value});
+    trackAnalytics('discover_v2.change_sort', {organization, sort: value});
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -283,7 +283,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                   size="sm"
                   priority="primary"
                   onClick={() => {
-                    trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {
+                    trackAnalytics('discover_v2.build_new_query', {
                       organization,
                     });
                   }}
