@@ -1,3 +1,7 @@
+"""This module has the logic for querying Snuba for the hourly event count for a list of groups.
+This is later used for generating group forecasts for determining when a group may be escalating.
+"""
+
 from datetime import datetime, timedelta
 from typing import List, Tuple, TypedDict
 
@@ -16,11 +20,17 @@ from snuba_sdk import (
 )
 
 from sentry.models import Group
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.snuba import raw_snql_query
 
+__all__ = [
+    "query_groups_past_counts",
+]
+
+REFERRER = "sentry.issues.escalating"
 QUERY_LIMIT = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
-SEVEN_DAYS_IN_HOURS = 7 * 24
+BUCKETS_PER_GROUP = 7 * 24
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -29,16 +39,35 @@ GroupsCountResponse = TypedDict(
 
 
 def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
-    """Query Snuba for the counts for every group bucketed into hours"""
-    offset = 0
-    all_results = []
+    """Query Snuba for the counts for every group bucketed into hours.
+
+    It optimizes the query by guaranteeing that we look at group_ids that are from the same project id.
+    This is important for Snuba as the data is stored in blocks related to the project id.
+
+    We maximize the number of projects and groups to reduce the total number of Snuba queries.
+    Each project may not have enough groups in order to reach the max number of returned
+    elements (QUERY_LIMIT), thus, projects with few groups should be grouped together until
+    we get at least a certain number of groups.
+
+    NOTE: Groups with less than the maximum number of buckets (think of groups with just 1 event or less
+    than 7 days old) will skew the optimization since we may only get one page and less elements than the max
+    QUERY_LIMIT.
+    """
     start_date, end_date = _start_and_end_dates()
     project_ids, group_ids = _extract_project_and_group_ids(groups)
+    return _query_with_pagination(project_ids, group_ids, start_date, end_date)
 
+
+def _query_with_pagination(
+    project_ids: List[int], group_ids: List[int], start_date: datetime, end_date: datetime
+) -> List[GroupsCountResponse]:
+
+    all_results = []
+    offset = 0
     while True:
-        query = _generate_query(group_ids, project_ids, offset, start_date, end_date)
-        request = Request(dataset="events", app_id="sentry.issues.escalating", query=query)
-        results = raw_snql_query(request, referrer="sentry.issues.escalating")["data"]
+        query = _generate_query(project_ids, group_ids, offset, start_date, end_date)
+        request = Request(dataset=Dataset.Events.value, app_id=REFERRER, query=query)
+        results = raw_snql_query(request, referrer=REFERRER)["data"]
         if not results:
             break
         else:
@@ -49,8 +78,8 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
 
 
 def _generate_query(
-    group_ids: List[int],
     project_ids: List[int],
+    group_ids: List[int],
     offset: int,
     start_date: datetime,
     end_date: datetime,
@@ -59,7 +88,7 @@ def _generate_query(
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
     return Query(
-        match=Entity("events"),
+        match=Entity(EntityKey.Events.value),
         select=[
             proj_id_col,
             group_id_col,
@@ -83,7 +112,7 @@ def _generate_query(
     )
 
 
-def _start_and_end_dates(hours: int = SEVEN_DAYS_IN_HOURS) -> Tuple[datetime, datetime]:
+def _start_and_end_dates(hours: int = BUCKETS_PER_GROUP) -> Tuple[datetime, datetime]:
     """Return the start and end date of N hours time range."""
     end_datetime = datetime.now()
     return end_datetime - timedelta(hours=hours), end_datetime
