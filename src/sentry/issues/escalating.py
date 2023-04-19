@@ -39,20 +39,7 @@ GroupsCountResponse = TypedDict(
 
 
 def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
-    """Query Snuba for the counts for every group bucketed into hours.
-
-    It optimizes the query by guaranteeing that we look at group_ids that are from the same project id.
-    This is important for Snuba as the data is stored in blocks related to the project id.
-
-    We maximize the number of projects and groups to reduce the total number of Snuba queries.
-    Each project may not have enough groups in order to reach the max number of returned
-    elements (QUERY_LIMIT), thus, projects with few groups should be grouped together until
-    we get at least a certain number of groups.
-
-    NOTE: Groups with less than the maximum number of buckets (think of groups with just 1 event or less
-    than 7 days old) will skew the optimization since we may only get one page and less elements than the max
-    QUERY_LIMIT.
-    """
+    """Query Snuba for the counts for every group bucketed into hours"""
     start_date, end_date = _start_and_end_dates()
     project_ids, group_ids = _extract_project_and_group_ids(groups)
     return _query_with_pagination(project_ids, group_ids, start_date, end_date)
