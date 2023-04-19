@@ -94,9 +94,13 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
-      result.current.handleExpandTreeNode(result.current.tree.roots[0], {
-        expandChildren: true,
-      });
+      result.current.handleExpandTreeNode(
+        result.current.tree.roots[0],
+        !result.current.tree.roots[0].expanded,
+        {
+          expandChildren: true,
+        }
+      );
     });
 
     for (let i = 0; i < 10; i++) {
@@ -121,9 +125,13 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
-      result.current.handleExpandTreeNode(result.current.tree.roots[0], {
-        expandChildren: true,
-      });
+      result.current.handleExpandTreeNode(
+        result.current.tree.roots[0],
+        !result.current.tree.roots[0].expanded,
+        {
+          expandChildren: true,
+        }
+      );
       result.current.dispatch({type: 'set scroll top', payload: 50});
     });
 
@@ -152,9 +160,13 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
-      result.current.handleExpandTreeNode(result.current.tree.roots[0], {
-        expandChildren: true,
-      });
+      result.current.handleExpandTreeNode(
+        result.current.tree.roots[0],
+        !result.current.tree.roots[0].expanded,
+        {
+          expandChildren: true,
+        }
+      );
       result.current.dispatch({type: 'set scroll top', payload: 100});
     });
 
@@ -183,9 +195,13 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
-      result.current.handleExpandTreeNode(result.current.tree.roots[0], {
-        expandChildren: true,
-      });
+      result.current.handleExpandTreeNode(
+        result.current.tree.roots[0],
+        !result.current.tree.roots[0].expanded,
+        {
+          expandChildren: true,
+        }
+      );
       result.current.dispatch({type: 'set scroll top', payload: 50});
     });
 
@@ -212,9 +228,13 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
-      result.current.handleExpandTreeNode(result.current.tree.roots[0], {
-        expandChildren: true,
-      });
+      result.current.handleExpandTreeNode(
+        result.current.tree.roots[0],
+        !result.current.tree.roots[0].expanded,
+        {
+          expandChildren: true,
+        }
+      );
       result.current.dispatch({type: 'set scroll top', payload: 50});
     });
 

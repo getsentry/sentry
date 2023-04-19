@@ -126,7 +126,9 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         <Node
           id={key}
           label={getNodeLabel(r.item.node)}
-          onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
+          onExpandClick={() =>
+            handleExpandTreeNode(r.item, !r.item.expanded, {expandChildren: false})
+          }
           collapsible={!!r.item.node.children?.length}
           isExpanded={r.item.expanded}
           isFocused={selectedNodeIndex === r.key}
