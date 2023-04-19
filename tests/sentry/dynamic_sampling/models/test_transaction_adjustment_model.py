@@ -1,16 +1,14 @@
+from typing import List, Mapping
+
 import pytest
 
-from sentry.dynamic_sampling.models.transaction_adjustment_model import (
-    adjust_sample_rate,
-    get_num_sampled_elements,
-    get_total,
-)
+from sentry.dynamic_sampling.models.utils import DSElement, adjust_sample_rates, get_total
 
 
 def create_transaction_counts(big: int, med: int, small: int):
-    big_t = [(f"tb{i}", 1000 + i) for i in range(big)]
-    med_t = [(f"tm{i}", 100 + i) for i in range(med)]
-    small_t = [(f"ts{i}", 1 + i) for i in range(small)]
+    big_t = [DSElement(id=f"tb{i}", count=1000 + i) for i in range(big)]
+    med_t = [DSElement(id=f"tm{i}", count=100 + i) for i in range(med)]
+    small_t = [DSElement(id=f"ts{i}", count=1 + i) for i in range(small)]
     return [*big_t, *med_t, *small_t]
 
 
@@ -32,6 +30,19 @@ excluded_transactions = [
 ]
 
 
+def get_num_sampled_elements(
+    transactions: List[DSElement], trans_dict: Mapping[str, float], global_rate: float
+) -> float:
+    num_transactions = 0.0
+    for transaction in transactions:
+        transaction_rate = trans_dict.get(transaction.id)
+        if transaction_rate:
+            num_transactions += transaction_rate * transaction.count
+        else:
+            num_transactions += global_rate * transaction.count
+    return num_transactions
+
+
 @pytest.mark.parametrize("sample_rate", sample_rates)
 @pytest.mark.parametrize("transactions", test_resample_cases)
 @pytest.mark.parametrize("idx_low,idx_high", excluded_transactions)
@@ -43,13 +54,15 @@ def test_maintains_overall_sample_rate(sample_rate, transactions, idx_low, idx_h
     total = get_total(transactions)
     total_classes = len(transactions)
 
-    trans, global_rate = adjust_sample_rate(
+    trans, global_rate = adjust_sample_rates(
         explict_transactions, sample_rate, total_num_classes=total_classes, total=total
     )
 
+    trans_dict = {t.id: t.new_sample_rate for t in trans}
+
     # make sure we maintain the required sample rate
     old_sampled_transactions = get_num_sampled_elements(transactions, {}, sample_rate)
-    new_sampled_transactions = get_num_sampled_elements(transactions, trans, global_rate)
+    new_sampled_transactions = get_num_sampled_elements(transactions, trans_dict, global_rate)
 
     assert new_sampled_transactions == pytest.approx(old_sampled_transactions)
 
@@ -69,14 +82,17 @@ def test_explicit_elements_ideal_rate(sample_rate, transactions, idx_low, idx_hi
     total = get_total(transactions)
     total_classes = len(transactions)
 
-    trans, global_rate = adjust_sample_rate(
+    trans, global_rate = adjust_sample_rates(
         explict_transactions, sample_rate, total_num_classes=total_classes, total=total
     )
 
     ideal_number_of_elements_per_class = total * sample_rate / total_classes
 
-    for name, count in explict_transactions:
-        actual_rate = trans[name]
+    trans_dict = {t.id: t.new_sample_rate for t in trans}
+
+    for transaction in explict_transactions:
+        count = transaction.count
+        actual_rate = trans_dict[transaction.id]
 
         if ideal_number_of_elements_per_class > count:
             assert actual_rate == 1.0  # tiny transactions not sampled

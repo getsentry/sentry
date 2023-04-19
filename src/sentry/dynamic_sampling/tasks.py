@@ -7,8 +7,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from snuba_sdk import Granularity
 
 from sentry import options, quotas
+from sentry.dynamic_sampling.models import utils
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
-from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
 from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
@@ -253,9 +253,11 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
 
     org_id = project_transactions["org_id"]
     project_id = project_transactions["project_id"]
-    transactions = project_transactions["transaction_counts"]
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
+    transactions = [
+        DSElement(id=elm[0], count=elm[1]) for elm in project_transactions["transaction_counts"]
+    ]
     try:
         project = Project.objects.get_from_cache(id=project_id)
     except ObjectDoesNotExist:
@@ -267,7 +269,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         # no sampling => no rebalancing
         return
 
-    named_rates, implicit_rate = adjust_sample_rate(
+    named_rates, implicit_rate = utils.adjust_sample_rates(
         classes=transactions,
         rate=sample_rate,
         total_num_classes=total_num_classes,
