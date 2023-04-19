@@ -262,15 +262,7 @@ export function AggregateFlamegraph(): ReactElement {
         payload: threadID,
       });
     }
-  }, [
-    profileGroup,
-    highlightFrames,
-    profiles.threadId,
-    hideSystemFrames,
-    dispatch,
-    flamegraph,
-    sorting,
-  ]);
+  }, [profileGroup, profiles.threadId, dispatch]);
 
   return (
     <Fragment>
