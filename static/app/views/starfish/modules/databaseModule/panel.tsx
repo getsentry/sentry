@@ -1,21 +1,22 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {DataRow} from 'sentry/views/starfish/modules/cacheModule/cacheTableView';
 
-type CacheDetailBodyProps = {
-  row: DataRow;
-};
+import {DataRow} from './databaseTableView';
 
 const HOST = 'http://localhost:8080';
+
+type EndpointDetailBodyProps = {
+  row: DataRow;
+};
 
 const COLUMN_ORDER = [
   {
@@ -33,26 +34,26 @@ const COLUMN_ORDER = [
   },
 ];
 
-export default function CacheDetail({
+export default function QueryDetail({
   row,
   onClose,
-}: Partial<CacheDetailBodyProps> & {onClose: () => void}) {
+}: Partial<EndpointDetailBodyProps> & {onClose: () => void}) {
   return (
     <Detail detailKey={row?.desc} onClose={onClose}>
-      {row && <EndpointDetailBody row={row} />}
+      {row && <QueryDetailBody row={row} />}
     </Detail>
   );
 }
 
-function EndpointDetailBody({row}: CacheDetailBodyProps) {
+function QueryDetailBody({row}: EndpointDetailBodyProps) {
   const theme = useTheme();
   const location = useLocation();
 
   const TABLE_QUERY = `
     SELECT transaction, count() AS count, quantile(0.5)(exclusive_time) as p50
     FROM spans_experimental_starfish
-    WHERE module = 'cache'
-    AND description = '${row.desc.replaceAll("'", "\\'")}'
+    WHERE module = 'db'
+    AND description = '${row.desc}'
     GROUP BY transaction
     ORDER BY count DESC
     LIMIT 10
@@ -63,8 +64,8 @@ function EndpointDetailBody({row}: CacheDetailBodyProps) {
       quantile(0.5)(exclusive_time) as p50,
       count() as count
       FROM spans_experimental_starfish
-      WHERE module = 'cache'
-      AND description = '${row.desc.replaceAll("'", "\\'")}'
+      WHERE module = 'db'
+      AND description = '${row.desc}'
       GROUP BY interval
       ORDER BY interval asc
    `;
@@ -83,13 +84,19 @@ function EndpointDetailBody({row}: CacheDetailBodyProps) {
     initialData: [],
   });
 
+  // console.log(row.desc);
+
   const [countSeries, p50Series] = throughputQueryToChartData(graphData);
 
   return (
     <div>
-      <h2>{t('Command detail')}</h2>
-      <p>{t('Detailed summary of redis span.')}</p>
-      <SubHeader>{t('Command')}</SubHeader>
+      <h2>{t('Query Detail')}</h2>
+      <p>
+        {t(
+          'Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans.'
+        )}
+      </p>
+      <SubHeader>{t('Query Description')}</SubHeader>
       <pre>{row.desc}</pre>
       <FlexRowContainer>
         <FlexRowItem>
