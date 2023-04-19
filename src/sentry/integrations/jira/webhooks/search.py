@@ -12,6 +12,10 @@ from ..utils import build_user_choice
 
 @control_silo_endpoint
 class JiraSearchEndpoint(IntegrationEndpoint):
+    """
+    Called by our front end when it needs to make requests to Jira's API for data.
+    """
+
     provider = "jira"
 
     def _get_integration(self, organization, integration_id):

@@ -1,5 +1,6 @@
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.core.cache import cache
@@ -142,7 +143,7 @@ class GroupTest(TestCase, SnubaTestCase):
                 group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
             )
 
-        group.update(status=GroupStatus.PENDING_DELETION)
+        group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(group.organization.id, short_id)
 
@@ -162,7 +163,7 @@ class GroupTest(TestCase, SnubaTestCase):
             )
         )
 
-        group.update(status=GroupStatus.PENDING_DELETION)
+        group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id_bulk(
                 group.organization.id, [group_short_id, group_2_short_id]
@@ -313,6 +314,25 @@ class GroupTest(TestCase, SnubaTestCase):
             GroupStatus.REPROCESSING,
         ):
             assert self.create_group(status=nullable_status).substatus is None
+
+    @patch("sentry.models.group.logger")
+    def test_group_invalid_substatus(self, logger):
+        group = self.create_group(status=GroupStatus.RESOLVED)
+        assert group.substatus is None
+
+        group = self.create_group(
+            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
+        )
+        assert group.substatus is GroupSubStatus.ESCALATING
+
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        assert group.substatus is GroupSubStatus.ONGOING
+
+        # Test that we log an error when we try to set an invalid substatus
+        self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.UNTIL_ESCALATING)
+        self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING)
+        self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ESCALATING)
+        assert logger.exception.call_count == 3
 
 
 @region_silo_test
