@@ -549,6 +549,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
 const SidebarSectionGroup = styled('div')`
   ${responsiveFlex};
   flex-shrink: 0; /* prevents shrinking on Safari */
+  gap: 1px;
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
@@ -569,6 +570,7 @@ const PrimaryItems = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.gray400};
