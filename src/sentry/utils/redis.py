@@ -235,7 +235,7 @@ class _RedisCluster:
                 return (
                     import_string(config["client_class"])
                     if "client_class" in config
-                    else StrictRedis
+                    else FailoverRedis
                 )(**host)
 
         return SimpleLazyObject(cluster_factory)
