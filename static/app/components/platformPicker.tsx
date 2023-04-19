@@ -32,16 +32,12 @@ const PlatformList = styled('div')`
 
 export type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
 
+type Platform = PlatformIntegration & {
+  category: Category;
+};
+
 interface PlatformPickerProps {
-  setPlatform: (
-    props:
-      | (PlatformIntegration & {
-          category: Category;
-          key: PlatformKey;
-          type: string;
-        })
-      | null
-  ) => void;
+  setPlatform: (props: Platform | null) => void;
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -168,7 +164,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
                     source: this.props.source,
                     organization: this.props.organization ?? null,
                   });
-                  setPlatform({...platform, key: platform.id as PlatformKey, category});
+                  setPlatform({...platform, category});
                 }}
               />
             );

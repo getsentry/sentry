@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import omit from 'lodash/omit';
 
 import PlatformPicker from 'sentry/components/platformPicker';
 import platforms from 'sentry/data/platforms';
@@ -49,7 +50,9 @@ export function PlatformSelection(props: StepProps) {
             if (clientState) {
               setClientState({
                 ...clientState,
-                selectedPlatforms: platform ? [platform] : [],
+                selectedPlatforms: platform
+                  ? [{...omit(platform, 'id'), key: platform.id}]
+                  : [],
               });
             }
           }}

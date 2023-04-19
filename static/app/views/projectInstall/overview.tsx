@@ -101,7 +101,7 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
         )}
         <PlatformPicker
           setPlatform={selectedPlatform =>
-            this.redirectToDocs(selectedPlatform?.key ?? null)
+            this.redirectToDocs(selectedPlatform?.id ?? null)
           }
           showOther={false}
           organization={this.props.organization}

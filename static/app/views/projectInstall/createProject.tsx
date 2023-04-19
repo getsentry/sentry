@@ -305,7 +305,7 @@ class CreateProject extends Component<Props, State> {
             platform={platform}
             defaultCategory={this.defaultCategory}
             setPlatform={selectedPlatform =>
-              this.setPlatform(selectedPlatform?.key ?? null)
+              this.setPlatform(selectedPlatform?.id ?? null)
             }
             organization={this.props.organization}
             showOther
