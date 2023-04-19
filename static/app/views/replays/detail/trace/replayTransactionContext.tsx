@@ -30,22 +30,28 @@ type Options = {
   replayRecord: undefined | ReplayRecord;
 };
 
-type State = {
-  detailsComplete: boolean;
+type InternalState = {
+  detailsErrors: Error[];
   detailsRequests: number;
   detailsResponses: number;
-  error: null | Error;
   indexComplete: boolean;
+  indexError: undefined | Error;
   isFetching: boolean;
   traces: undefined | TraceFullDetailed[];
 };
 
-const INITIAL_STATE: State = {
-  detailsComplete: true,
+type ExternalState = {
+  errors: Error[];
+  isFetching: boolean;
+  traces: undefined | TraceFullDetailed[];
+};
+
+const INITIAL_STATE: InternalState = {
+  detailsErrors: [],
   detailsRequests: 0,
   detailsResponses: 0,
-  error: null,
   indexComplete: true,
+  indexError: undefined,
   isFetching: false,
   traces: undefined,
 };
@@ -53,12 +59,13 @@ const INITIAL_STATE: State = {
 type TxnContextProps = {
   eventView: null | EventView;
   fetchTransactionData: () => void;
-  state: State;
+  state: ExternalState;
 };
+
 const TxnContext = createContext<TxnContextProps>({
   eventView: null,
   fetchTransactionData: () => {},
-  state: INITIAL_STATE,
+  state: {errors: [], isFetching: false, traces: []},
 });
 
 function ReplayTransactionContext({children, replayRecord}: Options) {
@@ -66,7 +73,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const [state, setState] = useState<State>(INITIAL_STATE);
+  const [state, setState] = useState<InternalState>(INITIAL_STATE);
 
   const orgSlug = organization.slug;
 
@@ -100,38 +107,28 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     return getTraceRequestPayload({eventView: traceEventView, location});
   }, [replayRecord, location]);
 
-  const fetchTraceIdData = useCallback(
-    async (traceIds: string[]) => {
-      setState(prev => ({
-        ...prev,
-        detailsRequests: prev.detailsRequests + traceIds.length,
-      }));
+  const fetchSingleTraceData = useCallback(
+    async traceId => {
+      try {
+        const [trace, , _traceResp] = await doDiscoverQuery(
+          api,
+          `/organizations/${orgSlug}/events-trace/${traceId}/`,
+          tracePayload
+        );
 
-      await Promise.allSettled(
-        traceIds.map(traceId => {
-          const promise = doDiscoverQuery(
-            api,
-            `/organizations/${orgSlug}/events-trace/${traceId}/`,
-            tracePayload
-          );
-          promise.then(([trace, , _traceResp]) => {
-            setState(prev => ({
-              ...prev,
-              detailsResponses: prev.detailsResponses + 1,
-              traces: sortBy(
-                (prev.traces || []).concat(trace as TraceFullDetailed),
-                'start_timestamp'
-              ),
-            }));
-          });
-          return promise;
-        })
-      );
-
-      setState(prev => ({
-        ...prev,
-        detailsComplete: prev.detailsRequests === prev.detailsResponses,
-      }));
+        setState(prev => ({
+          ...prev,
+          traces: sortBy(
+            (prev.traces || []).concat(trace as TraceFullDetailed),
+            'start_timestamp'
+          ),
+        }));
+      } catch (error) {
+        setState(prev => ({
+          ...prev,
+          detailsErrors: prev.detailsErrors.concat(error),
+        }));
+      }
     },
     [api, orgSlug, tracePayload]
   );
@@ -144,12 +141,12 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
     setState({
-      error: null,
-      isFetching: true,
-      indexComplete: false,
+      detailsErrors: [],
       detailsRequests: 0,
       detailsResponses: 0,
-      detailsComplete: false,
+      indexComplete: false,
+      indexError: undefined,
+      isFetching: true,
       traces: [],
     });
 
@@ -168,33 +165,73 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         cursor: cursor.cursor,
       };
 
-      const [{data}, , listResp] = await doDiscoverQuery<TableData>(
-        api,
-        `/organizations/${orgSlug}/events/`,
-        payload
-      );
+      try {
+        const [{data}, , listResp] = await doDiscoverQuery<TableData>(
+          api,
+          `/organizations/${orgSlug}/events/`,
+          payload
+        );
 
-      const traceIds = data.map(({trace}) => String(trace)).filter(trace => trace);
+        const traceIds = data.map(({trace}) => String(trace)).filter(Boolean);
 
-      // Do not await this, send off the requests and keep working on the while-loop here
-      fetchTraceIdData(traceIds);
+        // Do not await results here. Do the fetches async and let the loop continue
+        (async function () {
+          setState(
+            prev =>
+              ({
+                ...prev,
+                detailsRequests: prev.detailsRequests + traceIds.length,
+              } as InternalState)
+          );
+          await Promise.allSettled(traceIds.map(fetchSingleTraceData));
+          setState(
+            prev =>
+              ({
+                ...prev,
+                detailsResponses: prev.detailsResponses + traceIds.length,
+              } as InternalState)
+          );
+        })();
 
-      const pageLinks = listResp?.getResponseHeader('Link') ?? null;
-      cursor = parseLinkHeader(pageLinks)?.next;
+        const pageLinks = listResp?.getResponseHeader('Link') ?? null;
+        cursor = parseLinkHeader(pageLinks)?.next;
+      } catch (indexError) {
+        setState(prev => ({...prev, indexError} as InternalState));
+        cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
+      }
     }
 
-    setState(prev => ({
-      ...prev,
-      indexComplete: true,
-      error: null,
-    }));
-  }, [api, fetchTraceIdData, listEventView, orgSlug, replayRecord, state]);
+    setState(prev => ({...prev, indexComplete: true} as InternalState));
+  }, [api, fetchSingleTraceData, listEventView, orgSlug, replayRecord, state]);
 
   return (
-    <TxnContext.Provider value={{eventView: listEventView, fetchTransactionData, state}}>
+    <TxnContext.Provider
+      value={{
+        eventView: listEventView,
+        fetchTransactionData,
+        state: internalToExternalState(state),
+      }}
+    >
       {children}
     </TxnContext.Provider>
   );
+}
+
+function internalToExternalState({
+  detailsErrors,
+  detailsRequests,
+  detailsResponses,
+  indexComplete,
+  indexError,
+  traces,
+}: InternalState): ExternalState {
+  const isComplete = indexComplete && detailsRequests === detailsResponses;
+
+  return {
+    errors: indexError ? [indexError] : detailsErrors,
+    isFetching: !isComplete,
+    traces,
+  };
 }
 
 export default ReplayTransactionContext;
