@@ -88,8 +88,8 @@ class SlackRequestParser(BaseRequestParser):
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
             slack_request = self.match.func.view_class.slack_request_class(drf_request)
             try:
-                slack_request._authorize()
-                slack_request._validate_integration()
+                slack_request.authorize()
+                slack_request.validate_integration()
             except SlackRequestError as error:
                 logger.error("validation_error", extra={"path": self.request.path, "error": error})
                 return None
