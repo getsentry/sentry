@@ -26,8 +26,6 @@ if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
     from sentry.services.hybrid_cloud.user import RpcUser
 
-SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
-
 
 class TeamManager(BaseManager):
     def get_for_user(
@@ -186,7 +184,7 @@ class Team(Model, SnowflakeIdMixin):
             lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
-        if SENTRY_USE_SNOWFLAKE:
+        if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "team_snowflake_key"
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Team, self).save(*args, **kwargs)
