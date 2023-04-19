@@ -5,6 +5,7 @@ from sentry.issues.ignored import handle_archived_until_escalating, handle_ignor
 from sentry.models import GroupInbox, GroupInboxReason, GroupSnooze, add_group_to_inbox
 from sentry.testutils import TestCase
 
+
 class HandleIgnoredTest(TestCase):  # type: ignore
     def setUp(self) -> None:
         super().setUp()
