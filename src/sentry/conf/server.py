@@ -904,11 +904,6 @@ CELERYBEAT_SCHEDULE = {
         # Run job every 5 minutes
         "schedule": timedelta(minutes=5),
     },
-    "dynamic-sampling-prioritize-transactions": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
-        # Run every 5 minutes
-        "schedule": timedelta(minutes=6),
-    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
