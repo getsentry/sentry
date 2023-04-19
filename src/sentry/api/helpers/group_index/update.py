@@ -17,9 +17,9 @@ from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
-from sentry.issues.mark_reviewed import mark_reviewed
 from sentry.issues.merge import handle_merge
 from sentry.issues.status_change import handle_status_update
+from sentry.issues.update_inbox import update_inbox
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -717,7 +717,7 @@ def update_groups(
 
     inbox = result.get("inbox", None)
     if inbox is not None:
-        result["inbox"] = mark_reviewed(
+        result["inbox"] = update_inbox(
             inbox,
             group_list,
             project_lookup,

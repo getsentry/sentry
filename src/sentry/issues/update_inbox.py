@@ -12,7 +12,7 @@ from sentry.models.groupinbox import (
 from sentry.signals import issue_mark_reviewed
 
 
-def mark_reviewed(
+def update_inbox(
     in_inbox: bool,
     group_list: List[Group],
     project_lookup: Dict[int, Project],

@@ -1,4 +1,4 @@
-from sentry.issues.mark_reviewed import mark_reviewed
+from sentry.issues.update_inbox import update_inbox
 from sentry.models import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.testutils import TestCase
 
@@ -13,7 +13,7 @@ class MarkReviewedTest(TestCase):  # type: ignore
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
 
     def test_mark_reviewed(self) -> None:
-        mark_reviewed(
+        update_inbox(
             in_inbox=False,
             group_list=self.group_list,
             project_lookup=self.project_lookup,
@@ -25,7 +25,7 @@ class MarkReviewedTest(TestCase):  # type: ignore
 
     def test_add_to_inbox(self) -> None:
         new_group = self.create_group()
-        _ = mark_reviewed(
+        _ = update_inbox(
             in_inbox=True,
             group_list=self.group_list + [new_group],
             project_lookup=self.project_lookup,
