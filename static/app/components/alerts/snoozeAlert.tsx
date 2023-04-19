@@ -49,7 +49,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
     } catch (err) {
       if (err.status === 403) {
         addErrorMessage(t('You do not have permission to mute this alert'));
-      } else if (err.stats === 410) {
+      } else if (err.status === 410) {
         addErrorMessage(t('This alert has already been muted'));
       } else {
         addErrorMessage(t('Unable to mute this alert'));
