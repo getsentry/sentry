@@ -20,6 +20,7 @@ const EventsRequest = withApi(_EventsRequest);
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 
 import EndpointList from './endpointList';
 
@@ -113,6 +114,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
           if (!transformedData) {
             return null;
           }
+
+          insertClickableAreasIntoSeries(transformedData);
 
           return (
             <FailureRateChart
