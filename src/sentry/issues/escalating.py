@@ -24,9 +24,7 @@ from sentry.models import Group
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.snuba import raw_snql_query
 
-__all__ = [
-    "query_groups_past_counts",
-]
+__all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
 REFERRER = "sentry.issues.escalating"
 QUERY_LIMIT = 10000  # This is the maximum value for Snuba
