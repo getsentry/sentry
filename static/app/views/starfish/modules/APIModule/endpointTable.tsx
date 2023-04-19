@@ -65,11 +65,11 @@ export default function EndpointTable({location, onSelect}: Props) {
   );
 }
 
-function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
   return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
 }
 
-function renderBodyCell(
+export function renderBodyCell(
   column: GridColumnHeader,
   row: DataRow,
   onSelect?: (row: DataRow) => void

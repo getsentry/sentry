@@ -4,6 +4,7 @@
 // and discard the rest of the JSON so we do not end up bloating bundle size.
 
 const iOSDeviceMapping: Record<string, string> = {
+  '': 'Siri Remote (2nd generation)',
   'iPod1,1': 'iPod touch',
   'iPod2,1': 'iPod touch (2nd generation)',
   'iPod3,1': 'iPod touch (3rd generation)',
