@@ -254,7 +254,7 @@ def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[b
     )
 
     # Map all of the segments to a worker process for download.
-    with ThreadPoolExecutor(max_workers=4) as exe:
+    with ThreadPoolExecutor(max_workers=10) as exe:
         results = exe.map(download_segment_with_fixed_args, segments)
 
     yield b"["
