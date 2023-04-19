@@ -1,0 +1,104 @@
+import {useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from 'sentry/components/button';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import domId from 'sentry/utils/domId';
+
+import SidebarItem, {SidebarItemProps} from './sidebarItem';
+
+type SidebarAccordionProps = SidebarItemProps & {
+  children?: React.ReactNode;
+};
+
+function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
+  const [expanded, setExpanded] = useState(true);
+  const {collapsed: sidebarCollapsed} = itemProps;
+
+  const mainItemId = useMemo(() => domId('sidebar-accordion-item-'), []);
+  const contentId = useMemo(() => domId('sidebar-accordion-content-'), []);
+
+  return (
+    <SidebarAccordionWrapper>
+      <SidebarAccordionHeaderWrap>
+        <SidebarItem
+          {...itemProps}
+          id={mainItemId}
+          aria-expanded={expanded}
+          aria-owns={contentId}
+          trailingItems={
+            <SidebarItemExandButton
+              size="zero"
+              borderless
+              onClick={() => setExpanded(cur => !cur)}
+              aria-controls={mainItemId}
+              aria-label={expanded ? t('Collapse') : t('Expand')}
+              sidebarCollapsed={sidebarCollapsed}
+            >
+              <IconChevron
+                size="xs"
+                direction={expanded ? 'up' : 'down'}
+                role="presentation"
+              />
+            </SidebarItemExandButton>
+          }
+        />
+      </SidebarAccordionHeaderWrap>
+      {expanded && (
+        <SidebarAccordionSubitemsWrap id={contentId}>
+          {children}
+        </SidebarAccordionSubitemsWrap>
+      )}
+    </SidebarAccordionWrapper>
+  );
+}
+
+export {SidebarAccordion};
+
+const SidebarAccordionWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    flex-direction: row;
+  }
+`;
+
+const SidebarAccordionHeaderWrap = styled('div')`
+  position: relative;
+  display: flex;
+  & > *:first-child {
+    width: 100%;
+    flex-shrink: 1;
+  }
+`;
+
+const SidebarItemExandButton = styled(Button)<{sidebarCollapsed?: boolean}>`
+  height: calc(100% - ${space(1)});
+  margin: 0 -${space(0.5)};
+  padding: 0 ${space(0.75)};
+  border-radius: calc(${p => p.theme.borderRadius} - 2px);
+  color: ${p => p.theme.subText};
+
+  &:hover,
+  a:hover &,
+  a[active] & {
+    color: ${p => p.theme.white};
+  }
+
+  ${p => p.sidebarCollapsed && `display: none;`}
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const SidebarAccordionSubitemsWrap = styled('div')`
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    flex-direction: row;
+  }
+`;

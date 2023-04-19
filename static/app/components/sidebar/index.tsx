@@ -50,6 +50,7 @@ import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
+import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
@@ -227,35 +228,37 @@ function Sidebar({location, organization}: Props) {
       features={['starfish-view']}
       organization={organization}
     >
-      <SidebarItem
+      <SidebarAccordion
         {...sidebarItemProps}
         icon={<IconStar />}
+        aria-label={t('Starfish')}
         label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/`}
         id="starfish"
         exact
-      />
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconStar />}
-        label={<GuideAnchor target="starfish">{t('Api')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/starfish/api/`}
-        id="starfish"
-      />
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconStar />}
-        label={<GuideAnchor target="starfish">{t('Cache')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/starfish/cache/`}
-        id="starfish"
-      />
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconStar />}
-        label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/starfish/database/`}
-        id="starfish"
-      />
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Api')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/starfish/api/`}
+          id="starfish"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Cache')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/starfish/cache/`}
+          id="starfish"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/starfish/database/`}
+          id="starfish"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
+      </SidebarAccordion>
     </Feature>
   );
 
@@ -592,6 +595,18 @@ const PrimaryItems = styled('div')`
     ::-webkit-scrollbar {
       display: none;
     }
+  }
+`;
+
+const SubitemDot = styled('div')<{collapsed: boolean}>`
+  width: 3px;
+  height: 3px;
+  background: currentcolor;
+  border-radius: 50%;
+
+  opacity: ${p => (p.collapsed ? 1 : 0)};
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    opacity: 1;
   }
 `;
 
