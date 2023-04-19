@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import {hashQueryKey} from '@tanstack/react-query';
 import {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
@@ -68,6 +69,21 @@ const TxnContext = createContext<TxnContextProps>({
   state: {errors: [], isFetching: false, traces: []},
 });
 
+const cache = new Map();
+
+async function doDiscoverQueryWithCache<T>(
+  ...args: Parameters<typeof doDiscoverQuery<T>>
+) {
+  const [, url, payload] = args;
+  const cacheKey = hashQueryKey([url, payload]);
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+  const result = await doDiscoverQuery(...args);
+  cache.set(cacheKey, result);
+  return result;
+}
+
 function ReplayTransactionContext({children, replayRecord}: Options) {
   const api = useApi();
   const location = useLocation();
@@ -110,7 +126,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const fetchSingleTraceData = useCallback(
     async traceId => {
       try {
-        const [trace, , _traceResp] = await doDiscoverQuery(
+        const [trace, , _traceResp] = await doDiscoverQueryWithCache(
           api,
           `/organizations/${orgSlug}/events-trace/${traceId}/`,
           tracePayload
@@ -167,7 +183,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
       };
 
       try {
-        const [{data}, , listResp] = await doDiscoverQuery<TableData>(
+        const [{data}, , listResp] = await doDiscoverQueryWithCache<TableData>(
           api,
           `/organizations/${orgSlug}/events/`,
           payload
