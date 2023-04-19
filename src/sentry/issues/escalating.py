@@ -53,24 +53,41 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
     than 7 days old) will skew the optimization since we may only get one page and less elements than the max
     QUERY_LIMIT.
     """
-    offset = 0
+
     all_results = []
     start_date, end_date = _start_and_end_dates()
     group_ids_by_project = _extract_project_and_group_ids(groups)
     proj_ids, group_ids = [], []
-    counter = 1
-    projects_count = len(group_ids_by_project)
+    processed_projects = 1
+    total_projects_count = len(group_ids_by_project)
 
     for proj_id in group_ids_by_project.keys():
         _group_ids: List[int] = group_ids_by_project[proj_id]
         # Add them to the list of projects and groups to query
         proj_ids.append(proj_id)
         group_ids += _group_ids
+        processed_projects += 1
         # We still have room for more projects and groups
-        if counter < projects_count and len(_group_ids) < QUERY_LIMIT / BUCKETS_PER_GROUP:
-            counter += 1
+        if (
+            processed_projects < total_projects_count
+            and len(_group_ids) < QUERY_LIMIT / BUCKETS_PER_GROUP
+        ):
             continue
 
+        all_results += _query_with_pagination(proj_ids, group_ids, start_date, end_date)
+        # We're ready for a new set of projects and ids
+        proj_ids, group_ids = [], []
+
+    return all_results
+
+
+def _query_with_pagination(
+    proj_ids: List[int], group_ids: List[int], start_date: datetime, end_date: datetime
+) -> List[GroupsCountResponse]:
+
+    all_results = []
+    offset = 0
+    while True:
         query = _generate_query(proj_ids, group_ids, offset, start_date, end_date)
         request = Request(dataset=Dataset.Events.value, app_id=REFERRER, query=query)
         results = raw_snql_query(request, referrer=REFERRER)["data"]
@@ -79,9 +96,6 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
         else:
             all_results += results
             offset += QUERY_LIMIT
-            counter += 1
-            # We're ready for a new set of projects and ids
-            proj_ids, group_ids = [], []
 
     return all_results
 
