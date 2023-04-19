@@ -2,8 +2,10 @@ import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
+import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 const HOST = 'http://localhost:8080';
 
@@ -91,44 +93,46 @@ export default function APIModuleView({}: Props) {
 
   return (
     <Fragment>
-      Slowest Queries
-      <Chart
-        statsPeriod="24h"
-        height={180}
-        data={topData}
-        start=""
-        end=""
-        loading={isTopGraphLoading}
-        utc={false}
-        grid={{
-          left: '0',
-          right: '0',
-          top: '16px',
-          bottom: '8px',
-        }}
-        disableMultiAxis
-        definedAxisTicks={4}
-        isLineChart
-      />
-      Throughput
-      <Chart
-        statsPeriod="24h"
-        height={180}
-        data={data}
-        start=""
-        end=""
-        loading={isGraphLoading}
-        utc={false}
-        grid={{
-          left: '0',
-          right: '0',
-          top: '16px',
-          bottom: '8px',
-        }}
-        disableMultiAxis
-        definedAxisTicks={4}
-        isLineChart
-      />
+      <ChartPanel title={t('Slowest Queries')}>
+        <Chart
+          statsPeriod="24h"
+          height={180}
+          data={topData}
+          start=""
+          end=""
+          loading={isTopGraphLoading}
+          utc={false}
+          grid={{
+            left: '0',
+            right: '0',
+            top: '16px',
+            bottom: '8px',
+          }}
+          disableMultiAxis
+          definedAxisTicks={4}
+          isLineChart
+        />
+      </ChartPanel>
+      <ChartPanel title={t('Throughput')}>
+        <Chart
+          statsPeriod="24h"
+          height={180}
+          data={data}
+          start=""
+          end=""
+          loading={isGraphLoading}
+          utc={false}
+          grid={{
+            left: '0',
+            right: '0',
+            top: '16px',
+            bottom: '8px',
+          }}
+          disableMultiAxis
+          definedAxisTicks={4}
+          isLineChart
+        />
+      </ChartPanel>
     </Fragment>
   );
 }

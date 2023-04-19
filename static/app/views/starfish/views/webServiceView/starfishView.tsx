@@ -20,6 +20,7 @@ const EventsRequest = withApi(_EventsRequest);
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 import EndpointList from './endpointList';
 
@@ -140,25 +141,27 @@ export function StarfishView(props: BasePerformanceViewProps) {
     <div data-test-id="starfish-view">
       <StyledRow minSize={200}>
         <Fragment>
-          <Chart
-            statsPeriod="24h"
-            height={180}
-            data={data}
-            start=""
-            end=""
-            loading={isDurationDataLoading}
-            utc={false}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '16px',
-              bottom: '8px',
-            }}
-            disableMultiAxis
-            definedAxisTicks={4}
-            stacked
-            chartColors={['#444674', '#7a5088', '#b85586']}
-          />
+          <ChartPanel title={t('Response Time')}>
+            <Chart
+              statsPeriod="24h"
+              height={180}
+              data={data}
+              start=""
+              end=""
+              loading={isDurationDataLoading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '8px',
+              }}
+              disableMultiAxis
+              definedAxisTicks={4}
+              stacked
+              chartColors={['#444674', '#7a5088', '#b85586']}
+            />
+          </ChartPanel>
           {renderFailureRateChart()}
         </Fragment>
       </StyledRow>
