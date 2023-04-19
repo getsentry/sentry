@@ -1,4 +1,9 @@
-export const ENDPOINT_LIST_QUERY = `SELECT description, domain, quantile(0.5)(exclusive_time) AS "p50(exclusive_time)", uniq(user) as user_count, uniq(transaction) as transaction_count
+export const ENDPOINT_LIST_QUERY = `SELECT
+ description,
+ domain,
+ quantile(0.5)(exclusive_time) AS "p50(exclusive_time)",
+ uniq(user) as user_count, uniq(transaction) as transaction_count,
+ count() as count
  FROM spans_experimental_starfish
  WHERE module = 'http'
  GROUP BY description, domain
@@ -20,15 +25,29 @@ export const ENDPOINT_GRAPH_QUERY = `SELECT
 
 export const getEndpointDetailSeriesQuery = description => {
   return `SELECT
-    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-    quantile(0.5)(exclusive_time) as p50,
-    count() as count
-    FROM spans_experimental_starfish
-    WHERE module = 'http'
-    AND description = '${description}'
-    GROUP BY interval
-    ORDER BY interval asc
- `;
+     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+     quantile(0.5)(exclusive_time) as p50,
+     quantile(0.95)(exclusive_time) as p95,
+     count() as count
+     FROM spans_experimental_starfish
+     WHERE module = 'http'
+     AND description = '${description}'
+     GROUP BY interval
+     ORDER BY interval asc
+  `;
+};
+
+export const getEndpointDetailErrorRateSeriesQuery = description => {
+  return `SELECT
+     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+     count() as count
+     FROM spans_experimental_starfish
+     WHERE module = 'http'
+     AND description = '${description}'
+     AND status >= 400 AND status < 600
+     GROUP BY interval
+     ORDER BY interval asc
+  `;
 };
 
 export const getEndpointDetailQuery = description => {
@@ -39,6 +58,6 @@ export const getEndpointDetailQuery = description => {
     AND description = '${description}'
     GROUP BY transaction
     ORDER BY count DESC
-    LIMIT 10
+    LIMIT 5
  `;
 };

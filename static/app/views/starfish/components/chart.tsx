@@ -279,6 +279,7 @@ function Chart({
               yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
               tooltip={areaChartProps.tooltip}
               colors={colors}
+              grid={grid}
             />
           );
         }
