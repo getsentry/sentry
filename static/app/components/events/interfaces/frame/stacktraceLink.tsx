@@ -27,7 +27,7 @@ import {
   StacktraceLinkResult,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -89,7 +89,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       }
     );
 
-    trackAdvancedAnalyticsEvent('integrations.stacktrace_link_cta_dismissed', {
+    trackAnalytics('integrations.stacktrace_link_cta_dismissed', {
       view: 'stacktrace_issue_details',
       organization,
       ...getAnalyticsDataForEvent(event),
@@ -158,7 +158,7 @@ function CodecovLink({
   }
 
   const onOpenCodecovLink = () => {
-    trackAdvancedAnalyticsEvent('integrations.stacktrace_codecov_link_clicked', {
+    trackAnalytics('integrations.stacktrace_codecov_link_clicked', {
       view: 'stacktrace_issue_details',
       organization,
       group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
@@ -237,7 +237,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const onOpenLink = () => {
     const provider = match!.config?.provider;
     if (provider) {
-      trackAdvancedAnalyticsEvent(
+      trackAnalytics(
         'integrations.stacktrace_link_clicked',
         {
           view: 'stacktrace_issue_details',
@@ -319,7 +319,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               : undefined
           }
           onClick={() => {
-            trackAdvancedAnalyticsEvent(
+            trackAnalytics(
               'integrations.stacktrace_start_setup',
               {
                 view: 'stacktrace_issue_details',
