@@ -121,6 +121,25 @@ class UUIDField(Field):
         return super().as_condition(field_alias, operator, value)
 
 
+class IPAddress(Field):
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = str
+
+    def as_condition(
+        self,
+        field_alias: str,
+        operator: Op,
+        value: Union[List[str], str],
+        is_wildcard: bool = False,
+    ) -> Condition:
+        if isinstance(value, list):
+            value = [Function("IPv4StringToNum", parameters=[v]) for v in value]
+        else:
+            value = Function("IPv4StringToNum", parameters=[value])
+
+        return Condition(Column(self.query_alias or self.attribute_name), operator, value)
+
+
 class String(Field):
     _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
     _python_type = str

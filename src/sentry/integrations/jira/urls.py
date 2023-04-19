@@ -1,18 +1,22 @@
 from django.conf.urls import url
 
-from .views import JiraExtensionConfigurationView, JiraIssueHookView, JiraUiHookView
+from .views import (
+    JiraExtensionConfigurationView,
+    JiraSentryInstallationView,
+    JiraSentryIssueDetailsView,
+)
 from .webhooks import (
     JiraDescriptorEndpoint,
-    JiraInstalledEndpoint,
     JiraIssueUpdatedWebhook,
     JiraSearchEndpoint,
-    JiraUninstalledEndpoint,
+    JiraSentryInstalledWebhook,
+    JiraSentryUninstalledWebhook,
 )
 
 urlpatterns = [
     url(
         r"^ui-hook/$",
-        JiraUiHookView.as_view(),
+        JiraSentryInstallationView.as_view(),
     ),
     url(
         r"^descriptor/$",
@@ -20,12 +24,12 @@ urlpatterns = [
     ),
     url(
         r"^installed/$",
-        JiraInstalledEndpoint.as_view(),
+        JiraSentryInstalledWebhook.as_view(),
         name="sentry-extensions-jira-installed",
     ),
     url(
         r"^uninstalled/$",
-        JiraUninstalledEndpoint.as_view(),
+        JiraSentryUninstalledWebhook.as_view(),
     ),
     url(
         r"^issue-updated/$",
@@ -43,7 +47,7 @@ urlpatterns = [
     ),
     url(
         r"^issue/(?P<issue_key>[^\/]+)/$",
-        JiraIssueHookView.as_view(),
+        JiraSentryIssueDetailsView.as_view(),
         name="sentry-extensions-jira-issue-hook",
     ),
 ]
