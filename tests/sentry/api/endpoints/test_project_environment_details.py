@@ -94,7 +94,7 @@ class ProjectEnvironmentsTest(APITestCase):
             == 404
         )
 
-    def test_escaped_slash_hide(self):
+    def test_escaped_character_put(self):
         project = self.create_project()
 
         env_name = "PROD/STAGE"
