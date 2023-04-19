@@ -1,15 +1,17 @@
 import logging
 
-from requests import Request
+from django.http import HttpResponse
+from requests import Request, Response
 
+from sentry.constants import ObjectStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
-
-PROXY_ADDRESS = "/api/0/internal/proxy/"
-PROXY_HOST_HEADER = "X-SENTRY-PROXY-HOST"
-PROXY_OI_HEADER = "X-SENTRY-ORG-INTEGRATION"
-
+from sentry.silo.util import clean_proxy_headers
 
 logger = logging.getLogger(__name__)
+PROXY_ADDRESS = "/api/0/internal/proxy/"
+PROXY_OI_HEADER = "X-Sentry-Organization-Integration"
 
 
 class IntegrationProxyMiddleware:
@@ -25,35 +27,72 @@ class IntegrationProxyMiddleware:
         return is_correct_silo and is_proxy
 
     def __call__(self, request: Request):
-        from sentry.integrations.slack.client import SlackClient
-        from sentry.silo.client import BaseSiloClient
+        from sentry.silo.proxy.client import IntegrationProxyClient
+
+        # TODO(Leander): Add shared secret validation in headers
 
         if not self._should_operate(request):
             return self.get_response(request)
 
-        desitination_path = request.path[len(PROXY_ADDRESS) :]
-        desitination_host = request.headers.get(f"{PROXY_HOST_HEADER}")
-        if desitination_host is None:
+        destination_path = request.path[len(PROXY_ADDRESS) :]
+
+        headers = clean_proxy_headers(request.headers)
+        log_extra = {"path": destination_path}
+
+        org_integration_id = headers.pop(f"{PROXY_OI_HEADER}", None)
+        if org_integration_id is None:
+            logger.info("missing_org_integration", extra=log_extra)
             return self.get_response(request)
-        organization_integration_id = request.headers.get(f"{PROXY_OI_HEADER}")
-        if organization_integration_id is None:
+        log_extra["org_integration_id"] = org_integration_id
+
+        org_integration = OrganizationIntegration.objects.filter(
+            id=org_integration_id,
+            status=ObjectStatus.ACTIVE,
+        ).first()
+        if org_integration is None:
+            logger.info("invalid_org_integration", extra=log_extra)
+            return self.get_response(request)
+        log_extra["integration_id"] = org_integration.integration_id
+
+        integration = Integration.objects.filter(
+            status=ObjectStatus.ACTIVE,
+            id=org_integration.integration_id,
+        ).first()
+        if integration is None:
+            logger.info("invalid_integration", extra=log_extra)
             return self.get_response(request)
 
-        headers = BaseSiloClient.clean_headers(request.headers)
-        prepared_request = Request(
+        installation = integration.get_installation(organization_id=org_integration.organization_id)
+        client: IntegrationProxyClient = installation.get_client()
+        client_type = type(client)
+        log_extra["client_type"] = client_type
+
+        if not issubclass(client_type, IntegrationProxyClient):
+            logger.info("invalid_client", extra=log_extra)
+            return self.get_response(request)
+
+        destination_host = client.base_url
+        # Might need to coerce slashes here
+
+        proxy_request = Request(
             method=request.method,
-            url=f"{desitination_host}/{desitination_path}",
+            url=f"{destination_host}/{destination_path}",
             headers=headers,
             data=request.body,
         )
-
-        client = SlackClient(org_integration_id=organization_integration_id)
-        prepared_request = client.authorize_request(prepared_request).prepare()
-
-        return client._request(
+        prepared_request = client.authorize_request(proxy_request).prepare()
+        raw_response: Response = client._request(
             request.method,
-            desitination_path,
+            destination_path,
             allow_text=True,
             prepared_request=prepared_request,
             raw_response=True,
         )
+        response = HttpResponse(
+            content=raw_response.content,
+            status=raw_response.status_code,
+            reason=raw_response.reason,
+            content_type=raw_response.headers.get("Coƒntent-Type"),
+        )
+        response.headers = raw_response.headers
+        return response

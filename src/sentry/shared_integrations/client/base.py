@@ -140,7 +140,7 @@ class BaseApiClient(TrackResponseMixin):
                         )
                     )
                     if raw_response:
-                        return raw_response
+                        return resp
                     resp.raise_for_status()
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)

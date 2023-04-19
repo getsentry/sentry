@@ -8,6 +8,7 @@ from requests import Request
 
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
+from sentry.silo.util import clean_proxy_headers
 from sentry.types.region import Region, get_region_by_id
 
 INVALID_PROXY_HEADERS = ["Host"]
@@ -36,15 +37,6 @@ class BaseSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
-    @classmethod
-    def clean_headers(self, headers: Mapping[str, Any] | None) -> Mapping[str, Any]:
-        if not headers:
-            headers = {}
-        modified_headers = {**headers}
-        for invalid_header in INVALID_PROXY_HEADERS:
-            modified_headers.pop(invalid_header, None)
-        return modified_headers
-
     def proxy_request(self, incoming_request: HttpRequest) -> BaseApiResponseX:
         """
         Directly proxy the provided request to the appropriate silo with minimal header changes
@@ -52,7 +44,7 @@ class BaseSiloClient(BaseApiClient):
         prepared_request = Request(
             method=incoming_request.method,
             url=self.build_url(incoming_request.path),
-            headers=self.clean_headers(incoming_request.headers),
+            headers=clean_proxy_headers(incoming_request.headers),
             data=incoming_request.body,
         ).prepare()
         client_response = super()._request(
@@ -80,7 +72,7 @@ class BaseSiloClient(BaseApiClient):
         client_response = super()._request(
             method,
             path,
-            headers=self.clean_headers(headers),
+            headers=clean_proxy_headers(headers),
             data=data,
             params=params,
             json=True,
