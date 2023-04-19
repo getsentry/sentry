@@ -1,5 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
@@ -10,50 +15,79 @@ describe('Onboarding', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
+
   it('renders the welcome page', function () {
-    const {router, routerContext} = initializeOrg({
+    const routeParams = {
+      step: 'welcome',
+    };
+
+    const {router, route, routerContext} = initializeOrg({
+      ...initializeOrg(),
       router: {
-        params: {
-          step: 'welcome',
-        },
+        params: routeParams,
       },
     });
+
     render(
       <PersistedStoreProvider>
-        <Onboarding {...router} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </PersistedStoreProvider>,
       {
         context: routerContext,
       }
     );
+
     expect(screen.getByLabelText('Start')).toBeInTheDocument();
     expect(screen.getByLabelText('Invite Team')).toBeInTheDocument();
   });
+
   it('renders the select platform step', async () => {
-    const {organization, router, routerContext} = initializeOrg({
+    const routeParams = {
+      step: 'select-platform',
+    };
+
+    const {router, route, routerContext, organization} = initializeOrg({
+      ...initializeOrg(),
       router: {
-        params: {
-          step: 'select-platform',
-        },
+        params: routeParams,
       },
     });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/client-state/`,
       body: {},
     });
+
     OrganizationStore.onUpdate(organization);
+
     render(
       <PersistedStoreProvider>
-        <Onboarding {...router} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </PersistedStoreProvider>,
       {
         context: routerContext,
       }
     );
+
     expect(
       await screen.findByText('Select the platforms you want to monitor')
     ).toBeInTheDocument();
   });
+
   it('renders the setup docs step', async () => {
     const projects = [
       TestStubs.Project({
@@ -68,14 +102,18 @@ describe('Onboarding', function () {
         slug: 'javascript-nextslug',
       }),
     ];
-    const {organization, router, routerContext} = initializeOrg({
-      projects,
+
+    const routeParams = {
+      step: 'setup-docs',
+    };
+
+    const {router, route, routerContext, organization} = initializeOrg({
+      ...initializeOrg(),
       router: {
-        params: {
-          step: 'setup-docs',
-        },
+        params: routeParams,
       },
     });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/client-state/`,
       body: {
@@ -97,30 +135,43 @@ describe('Onboarding', function () {
         },
       },
     });
+
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/ruby-slug/`,
       body: {
         firstEvent: false,
       },
     });
+
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/javascript-nextslug/docs/javascript-nextjs/`,
       body: null,
     });
+
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/ruby-slug/docs/ruby/`,
       body: null,
     });
+
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/ruby-slug/issues/`,
       body: [],
     });
+
     ProjectsStore.loadInitialData(projects);
+
     OrganizationStore.onUpdate(organization);
 
     render(
       <PersistedStoreProvider>
-        <Onboarding {...router} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </PersistedStoreProvider>,
       {
         context: routerContext,
@@ -128,5 +179,48 @@ describe('Onboarding', function () {
     );
 
     expect(await screen.findAllByTestId('sidebar-error-indicator')).toHaveLength(2);
+  });
+
+  it.only('renders framework selection modal if vanilla js is selected', async function () {
+    const routeParams = {
+      step: 'select-platform',
+    };
+
+    const {router, route, routerContext, organization} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features: ['onboarding-remove-multiselect-platform'],
+      },
+      router: {
+        params: routeParams,
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/client-state/`,
+      body: {},
+    });
+
+    render(
+      <PersistedStoreProvider>
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
+      </PersistedStoreProvider>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByText('JavaScript'));
   });
 });
