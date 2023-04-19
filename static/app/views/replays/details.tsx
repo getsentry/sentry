@@ -20,6 +20,7 @@ import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
+import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = RouteComponentProps<
@@ -115,12 +116,14 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       replay={replay}
       initialTimeOffsetMs={initialTimeOffsetMs}
     >
-      <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
+      <ReplayTransactionContext replayRecord={replayRecord}>
+        <DetailsInsideContext orgSlug={orgSlug} replayRecord={replayRecord} />
+      </ReplayTransactionContext>
     </ReplayContextProvider>
   );
 }
 
-function LoadedDetails({
+function DetailsInsideContext({
   orgSlug,
   replayRecord,
 }: {
