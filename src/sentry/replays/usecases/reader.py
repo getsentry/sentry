@@ -266,6 +266,7 @@ def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[b
 
             if i < len(segments) - 1:
                 yield b","
+    yield b"]"
     transaction.finish()
 
 
