@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from django.urls import reverse
 
 from sentry.models import Environment, EnvironmentProject
@@ -90,4 +92,31 @@ class ProjectEnvironmentsTest(APITestCase):
                 format="json",
             ).status_code
             == 404
+        )
+
+    def test_escaped_slash_hide(self):
+        project = self.create_project()
+
+        env_name = "PROD/STAGE"
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name=env_name
+        )
+        environment.add_project(project)
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-environment-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "environment": quote(env_name, safe=""),
+            },
+        )
+        response = self.client.put(url, {"isHidden": True}, format="json")
+        assert response.status_code == 200, response.content
+
+        assert (
+            EnvironmentProject.objects.get(project=project, environment=environment).is_hidden
+            is True
         )
