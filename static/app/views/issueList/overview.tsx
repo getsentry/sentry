@@ -37,7 +37,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
@@ -644,7 +644,7 @@ class IssueListOverview extends Component<Props, State> {
         });
 
         if (data.length === 0) {
-          trackAdvancedAnalyticsEvent('issue_search.empty', {
+          trackAnalytics('issue_search.empty', {
             organization: this.props.organization,
             search_type: 'issues',
             search_source: 'main_search',
@@ -653,7 +653,7 @@ class IssueListOverview extends Component<Props, State> {
         }
       },
       error: err => {
-        trackAdvancedAnalyticsEvent('issue_search.failed', {
+        trackAnalytics('issue_search.failed', {
           organization: this.props.organization,
           search_type: 'issues',
           search_source: 'main_search',
@@ -711,7 +711,7 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());
     this.setState({realtimeActive: realtime});
-    trackAdvancedAnalyticsEvent('issues_stream.realtime_clicked', {
+    trackAnalytics('issues_stream.realtime_clicked', {
       organization: this.props.organization,
       enabled: realtime,
     });
@@ -825,7 +825,7 @@ class IssueListOverview extends Component<Props, State> {
       moment(new Date(group.firstSeen)).isAfter(moment().subtract(7, 'd'))
     ).length;
 
-    trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+    trackAnalytics('issues_tab.viewed', {
       organization,
       tab: tab?.analyticsName,
       page: page ? parseInt(page, 10) : 0,
@@ -848,7 +848,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onSortChange = (sort: string) => {
-    trackAdvancedAnalyticsEvent('issues_stream.sort_changed', {
+    trackAnalytics('issues_stream.sort_changed', {
       organization: this.props.organization,
       sort,
     });
@@ -874,7 +874,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   paginationAnalyticsEvent = (direction: string) => {
-    trackAdvancedAnalyticsEvent('issues_stream.paginate', {
+    trackAnalytics('issues_stream.paginate', {
       organization: this.props.organization,
       direction,
     });
@@ -963,7 +963,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   onSavedSearchSelect = (savedSearch: SavedSearch) => {
-    trackAdvancedAnalyticsEvent('organization_saved_search.selected', {
+    trackAnalytics('organization_saved_search.selected', {
       organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
