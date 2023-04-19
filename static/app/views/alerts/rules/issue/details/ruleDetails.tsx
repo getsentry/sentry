@@ -1,10 +1,8 @@
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -63,47 +61,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     });
   }
 
-  async componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props) {
     const {organization: prevOrg, params: prevParams} = prevProps;
-    const {organization: currOrg, params: currParams, location} = this.props;
-
-    const {ruleId, projectId: projectSlug} = currParams;
-
-    const rule = this.state.rule;
-    const urlParams = new URLSearchParams(location.search);
-    if (urlParams.get('mute') === '1' && rule && !rule.snooze) {
-      try {
-        await this.api.requestPromise(
-          `/projects/${currOrg.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
-          {
-            method: 'POST',
-            data: {
-              target: 'me',
-            },
-          }
-        );
-
-        urlParams.delete('mute');
-        browserHistory.push({
-          pathname: location.pathname,
-          query: urlParams,
-        });
-
-        this.onSnooze({
-          snooze: !rule.snooze,
-          snoozeCreatedBy: 'You',
-          snoozeForEveryone: false,
-        });
-      } catch (err) {
-        if (err.status === 403) {
-          addErrorMessage(t('You do not have permission to mute this alert'));
-        } else if (err.status === 410) {
-          addErrorMessage(t('This alert has already been muted'));
-        } else {
-          addErrorMessage(t('Unable to mute this alert'));
-        }
-      }
-    }
+    const {organization: currOrg, params: currParams} = this.props;
 
     if (
       prevParams.ruleId !== currParams.ruleId ||

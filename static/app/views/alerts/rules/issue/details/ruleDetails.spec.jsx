@@ -18,12 +18,17 @@ describe('AlertRuleDetails', () => {
     lastTriggered: moment().subtract(2, 'day').format(),
   });
 
-  const createWrapper = (props = {}) => {
+  const createWrapper = (props = {}, queryParameter) => {
     const params = {
       orgId: organization.slug,
       projectId: project.slug,
       ruleId: rule.id,
     };
+
+    if (queryParameter) {
+      context.router.location.query = {mute: '1'};
+    }
+
     return render(
       <RuleDetailsContainer
         params={params}
@@ -218,5 +223,18 @@ describe('AlertRuleDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
 
     expect(deleteRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('mutes alert if query parameter is set', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
+      method: 'POST',
+      data: {target: 'me'},
+    });
+
+    createWrapper({}, true);
+
+    expect(await screen.findByText('Unmute')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(1);
   });
 });
