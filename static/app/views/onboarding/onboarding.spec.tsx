@@ -10,6 +10,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Onboarding from 'sentry/views/onboarding/onboarding';
+import * as usePersistedOnboardingStateHook from 'sentry/views/onboarding/utils';
 
 describe('Onboarding', function () {
   afterEach(function () {
@@ -181,7 +182,26 @@ describe('Onboarding', function () {
     expect(await screen.findAllByTestId('sidebar-error-indicator')).toHaveLength(2);
   });
 
-  it.only('renders framework selection modal if vanilla js is selected', async function () {
+  it('renders framework selection modal if vanilla js is selected', async function () {
+    jest
+      .spyOn(usePersistedOnboardingStateHook, 'usePersistedOnboardingState')
+      .mockImplementation(() => [
+        {
+          platformToProjectIdMap: {
+            javascript: 'javascript',
+          },
+          selectedPlatforms: [
+            {
+              key: 'javascript',
+              type: 'language',
+              language: 'javascript',
+              category: 'browser',
+            },
+          ],
+        },
+        jest.fn(),
+      ]);
+
     const routeParams = {
       step: 'select-platform',
     };
@@ -190,7 +210,7 @@ describe('Onboarding', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        features: ['onboarding-remove-multiselect-platform'],
+        features: ['onboarding-remove-multiselect-platform', 'onboarding-sdk-selection'],
       },
       router: {
         params: routeParams,
@@ -199,7 +219,21 @@ describe('Onboarding', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/client-state/`,
-      body: {},
+      body: {
+        onboarding: {
+          platformToProjectIdMap: {
+            javascript: 'javascript',
+          },
+          selectedPlatforms: [
+            {
+              key: 'javascript',
+              type: 'language',
+              language: 'javascript',
+              category: 'browser',
+            },
+          ],
+        },
+      },
     });
 
     render(
@@ -221,6 +255,97 @@ describe('Onboarding', function () {
 
     renderGlobalModal();
 
-    await userEvent.click(screen.getByText('JavaScript'));
+    // Select the JavaScript platform
+    await userEvent.click(screen.getByTestId('platform-javascript'));
+
+    // Click on create project button
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    // Modal is open
+    await screen.findByText('Do you use a framework?');
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Skip'}));
+  });
+
+  it('does not render framework selection modal if vanilla js is NOT selected', async function () {
+    jest
+      .spyOn(usePersistedOnboardingStateHook, 'usePersistedOnboardingState')
+      .mockImplementation(() => [
+        {
+          platformToProjectIdMap: {
+            'javascript-react': 'javascript-react',
+          },
+          selectedPlatforms: [
+            {
+              key: 'javascript-react',
+              type: 'framework',
+              language: 'javascript',
+              category: 'browser',
+            },
+          ],
+        },
+        jest.fn(),
+      ]);
+
+    const routeParams = {
+      step: 'select-platform',
+    };
+
+    const {router, route, routerContext, organization} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features: ['onboarding-remove-multiselect-platform', 'onboarding-sdk-selection'],
+      },
+      router: {
+        params: routeParams,
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/client-state/`,
+      body: {
+        onboarding: {
+          platformToProjectIdMap: {
+            'javascript-react': 'javascript-react',
+          },
+          selectedPlatforms: [
+            {
+              key: 'javascript-react',
+              type: 'framework',
+              language: 'javascript',
+              category: 'browser',
+            },
+          ],
+        },
+      },
+    });
+
+    render(
+      <PersistedStoreProvider>
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
+      </PersistedStoreProvider>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    // Select the React platform
+    await userEvent.click(screen.getByTestId('platform-javascript-react'));
+
+    // Click on create project button
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    // Modal shall not be open
+    expect(screen.queryByText('Do you use a framework?')).not.toBeInTheDocument();
   });
 });

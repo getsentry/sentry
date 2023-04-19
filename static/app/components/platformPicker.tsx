@@ -116,8 +116,6 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     const {setPlatform, listProps, listClassName} = this.props;
     const {filter, category} = this.state;
 
-    console.log({platformList});
-
     return (
       <Fragment>
         <NavContainer>
