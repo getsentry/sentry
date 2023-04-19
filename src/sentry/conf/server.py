@@ -1102,6 +1102,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
+    # Enable the new issue states and substates
+    "organizations:issues-states": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1170,8 +1172,6 @@ SENTRY_FEATURES = {
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
     "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
-    # Try to derive normalization rules by clustering transaction names.
-    "organizations:transaction-name-clusterer": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1241,7 +1241,7 @@ SENTRY_FEATURES = {
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
-    "organizations:project-stats": False,
+    "organizations:project-stats": True,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for anomaly detection
@@ -1337,8 +1337,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable a banner on the issue details page guiding the user to setup source maps
-    "organizations:source-maps-cta": False,
     # Enable a UI where users can see bundles and their artifacts which only have debug IDs
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
@@ -1368,8 +1366,6 @@ SENTRY_FEATURES = {
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
-    # Enable OpenAI suggestions in the issue details page (New Design)
-    "organizations:open-ai-suggestion-new-design": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
@@ -1415,6 +1411,8 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
+    # Enables occurrence-backed performance issues
+    "projects:use-occurrences-for-perf-issues": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

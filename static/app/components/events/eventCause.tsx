@@ -10,7 +10,7 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, Commit, Group} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';
@@ -55,7 +55,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
   }
 
   const handlePullRequestClick = () => {
-    trackAdvancedAnalyticsEvent('issue_details.suspect_commits.pull_request_clicked', {
+    trackAnalytics('issue_details.suspect_commits.pull_request_clicked', {
       organization,
       project_id: parseInt(project.id as string, 10),
       ...getAnalyticsDataForGroup(group),
@@ -63,7 +63,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
   };
 
   const handleCommitClick = (commit: Commit) => {
-    trackAdvancedAnalyticsEvent('issue_details.suspect_commits.commit_clicked', {
+    trackAnalytics('issue_details.suspect_commits.commit_clicked', {
       organization,
       project_id: parseInt(project.id as string, 10),
       has_pull_request: commit.pullRequest?.id !== undefined,
