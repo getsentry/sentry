@@ -28,10 +28,6 @@ make_manager = functools.partial(
             "foo": {"hosts": {0: {"db": 0}}},
             "bar": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
             "baz": {"is_redis_cluster": True, "hosts": {0: {}}},
-            "failover": {
-                "client_class": "sentry.utils.redis.FailoverRedis",
-                "hosts": {0: {"db": 0}},
-            },
         }
     },
 )
@@ -59,9 +55,7 @@ class ClusterManagerTestCase(TestCase):
         # object to verify it's correct.
 
         # cluster foo is fine since it's a single node, without specific client_class
-        assert manager.get("foo")._setupfunc() is StrictRedis.return_value
-        # failover cluster is single host and specifies client_class to FailoverRedis
-        assert manager.get("failover")._setupfunc() is FailoverRedis.return_value
+        assert manager.get("foo")._setupfunc() is FailoverRedis.return_value
         # baz works becasue it's explicitly is_redis_cluster
         assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value
 
