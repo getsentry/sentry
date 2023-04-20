@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from sentry import features
 from sentry.models import Group, Project, User
 from sentry.models.groupinbox import (
     GroupInboxReason,
@@ -30,16 +31,17 @@ def update_inbox(
             add_group_to_inbox(group, GroupInboxReason.MANUAL)
     elif not in_inbox:
         for group in group_list:
-            remove_group_from_inbox(
-                group,
-                action=GroupInboxRemoveAction.MARK_REVIEWED,
-                user=acting_user,
-                referrer=http_referrer,
-            )
-            issue_mark_reviewed.send_robust(
-                project=project_lookup[group.project_id],
-                user=acting_user,
-                group=group,
-                sender=sender,
-            )
+            if not features.has("organizations:issue-states", group.project.organization):
+                remove_group_from_inbox(
+                    group,
+                    action=GroupInboxRemoveAction.MARK_REVIEWED,
+                    user=acting_user,
+                    referrer=http_referrer,
+                )
+                issue_mark_reviewed.send_robust(
+                    project=project_lookup[group.project_id],
+                    user=acting_user,
+                    group=group,
+                    sender=sender,
+                )
     return in_inbox
