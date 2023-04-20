@@ -16,7 +16,6 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
-from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
@@ -74,12 +73,13 @@ LATEST_DEPLOYS_KEY = "latestDeploys"
 def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
-        return ()
+        return []
 
-    team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
-        organizationmember__user_id=user.id, team__in=team_list
-    ).values_list("team", flat=True)
-    return set(team_ids)
+    return list(
+        OrganizationMemberTeam.objects.filter(
+            organizationmember__user_id=user.id, team__in=team_list
+        )
+    )
 
 
 def get_access_by_project(
@@ -93,22 +93,44 @@ def get_access_by_project(
     for pt in project_teams:
         project_team_map[pt.project_id].append(pt.team)
 
-    team_memberships = set(_get_team_memberships([pt.team for pt in project_teams], user))
-    all_org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    team_memberships = _get_team_memberships([pt.team for pt in project_teams], user)
+
+    org_ids = {i.organization_id for i in projects}
+    all_org_roles = get_org_roles(org_ids, user)
+    is_superuser = request and is_active_superuser(request) and request.user == user
     prefetch_related_objects(projects, "organization")
 
-    is_superuser = request and is_active_superuser(request) and request.user == user
     result = {}
     for project in projects:
-        is_member = any(t.id in team_memberships for t in project_team_map.get(project.id, []))
+        parent_teams = [t.id for t in project_team_map.get(project.id, [])]
+        member_teams = [m for m in team_memberships if m.team_id in parent_teams]
+        is_member = any(member_teams)
         org_roles = all_org_roles.get(project.organization_id) or []
+
         has_access = bool(
             is_member
             or is_superuser
             or project.organization.flags.allow_joinleave
             or any(roles.get(org_role).is_global for org_role in org_roles)
         )
-        result[project] = {"is_member": is_member, "has_access": has_access}
+
+        team_scopes = set()
+        if has_access:
+            # Project can be the child of several Teams, and the User can join
+            # several Teams and receive roles at each of them,
+            team_scopes = set().union(*[m.get_scopes() for m in member_teams])
+
+            # User may have elevated team-roles from their org-role
+            top_org_role = org_roles[0] if org_roles else None
+            if top_org_role is not None:
+                minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                team_scopes = team_scopes.union(minimum_team_role.scopes)
+
+        result[project] = {
+            "is_member": is_member,
+            "has_access": has_access,
+            "access": team_scopes,
+        }
     return result
 
 
@@ -207,13 +229,14 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     dateCreated: datetime
     isBookmarked: bool
     isMember: bool
+    features: List[str]
     firstEvent: Optional[datetime]
     firstTransactionEvent: bool
-    features: List[str]
+    access: List[str]
     hasAccess: bool
+    hasMonitors: bool
     hasProfiles: bool
     hasReplays: bool
-    hasMonitors: bool
     hasSessions: bool
 
 
@@ -447,7 +470,9 @@ class ProjectSerializer(Serializer):  # type: ignore
 
         return options_by_project
 
-    def serialize(self, obj, attrs, user) -> ProjectSerializerResponse:
+    def serialize(
+        self, obj: Project, attrs: Mapping[str, Any], user: User
+    ) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
         if attrs.get("avatar"):
@@ -465,11 +490,11 @@ class ProjectSerializer(Serializer):  # type: ignore
             "platform": obj.platform,
             "dateCreated": obj.date_added,
             "isBookmarked": attrs["is_bookmarked"],
-            "isPublic": obj.public,
             "isMember": attrs["is_member"],
             "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": bool(obj.flags.has_transactions),
+            "access": attrs["access"],
             "hasAccess": attrs["has_access"],
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "hasMonitors": bool(obj.flags.has_cron_monitors),
@@ -477,6 +502,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             "hasReplays": bool(obj.flags.has_replays),
             "hasSessions": bool(obj.flags.has_sessions),
             "isInternal": obj.is_internal_project(),
+            "isPublic": obj.public,
             "avatar": avatar,
             "color": obj.color,
             "status": status_label,
@@ -581,12 +607,6 @@ class OrganizationProjectResponse(
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    access: Access | None
-
-    def __init__(self, access: Access | None = None, **kwargs):
-        self.access = access
-        super().__init__(**kwargs)
-
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(
@@ -692,6 +712,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             slug=obj.slug,
             isBookmarked=attrs["is_bookmarked"],
             isMember=attrs["is_member"],
+            access=attrs["access"],
             hasAccess=attrs["has_access"],
             dateCreated=obj.date_added,
             environments=attrs["environments"],
