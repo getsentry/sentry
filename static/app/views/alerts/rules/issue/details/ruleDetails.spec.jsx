@@ -19,26 +19,28 @@ describe('AlertRuleDetails', () => {
   });
   const member = TestStubs.Member();
 
-  const createWrapper = (props = {}) => {
+  const createWrapper = (props = {}, contextWithQueryParam) => {
     const params = {
       orgId: organization.slug,
       projectId: project.slug,
       ruleId: rule.id,
     };
+
+    const router = contextWithQueryParam ? contextWithQueryParam.router : context.router;
+    const routerContext = contextWithQueryParam
+      ? contextWithQueryParam.routerContext
+      : context.routerContext;
+
     return render(
-      <RuleDetailsContainer
-        params={params}
-        location={{query: {}}}
-        router={context.router}
-      >
+      <RuleDetailsContainer params={params} location={{query: {}}} router={router}>
         <AlertRuleDetails
           params={params}
           location={{query: {}}}
-          router={context.router}
+          router={router}
           {...props}
         />
       </RuleDetailsContainer>,
-      {context: context.routerContext, organization}
+      {context: routerContext, organization}
     );
   };
 
@@ -210,6 +212,25 @@ describe('AlertRuleDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
 
     expect(deleteRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('mutes alert if query parameter is set', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
+      method: 'POST',
+      data: {target: 'me'},
+    });
+    const contextWithQueryParam = initializeOrg({
+      organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
+      router: {
+        location: {query: {mute: '1'}},
+      },
+    });
+
+    createWrapper({}, contextWithQueryParam);
+
+    expect(await screen.findByText('Unmute')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(1);
   });
 
   it('inserts user email into rule notify action', async () => {
