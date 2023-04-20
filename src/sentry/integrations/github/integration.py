@@ -363,6 +363,9 @@ class GitHubInstallationRedirect(PipelineView):
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
+        if request.subdomain:
+            pipeline.bind_state("subdomain", request.subdomain)
+
         if "installation_id" in request.GET:
             self.determine_active_organization(request)
 

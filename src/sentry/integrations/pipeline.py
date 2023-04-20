@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sentry.api.utils import generate_organization_url
+
 __all__ = ["IntegrationPipeline"]
 
 from django.db import IntegrityError
@@ -175,5 +177,12 @@ class IntegrationPipeline(Pipeline):
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
-        context = {"payload": {"success": success, "data": data}}
+        subdomain = self.fetch_state("subdomain")
+        document_origin = "document.origin"
+        if subdomain:
+            document_origin = generate_organization_url(subdomain)
+        context = {
+            "payload": {"success": success, "data": data},
+            "document_origin": document_origin,
+        }
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
