@@ -665,7 +665,7 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         assert response.status_code == 204
 
     @with_feature("organizations:mute-alerts")
-    def test_cant_delete_metric_alert_rule_mute_everyone(self):
+    def test_can_delete_metric_alert_rule_mute_everyone(self):
         """Test that a user can unsnooze a metric rule that's snoozed for everyone if they do not belong to the team the owns the rule"""
         other_team = self.create_team()
         other_metric_alert_rule = self.create_alert_rule(
