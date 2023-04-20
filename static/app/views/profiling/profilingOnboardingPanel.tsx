@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
@@ -8,17 +9,24 @@ import {t} from 'sentry/locale';
 
 interface ProfilingOnboardingPanelProps {
   children: React.ReactNode;
+  content?: React.ReactNode;
 }
 
 export function ProfilingOnboardingPanel(props: ProfilingOnboardingPanelProps) {
   return (
     <OnboardingPanel image={<HeroImage src={emptyStateImg} />}>
-      <h3>{t('Function level insights')}</h3>
-      <p>
-        {t(
-          'Discover slow-to-execute or resource intensive functions within your application'
-        )}
-      </p>
+      {props.content ? (
+        props.content
+      ) : (
+        <Fragment>
+          <h3>{t('Function level insights')}</h3>
+          <p>
+            {t(
+              'Discover slow-to-execute or resource intensive functions within your application'
+            )}
+          </p>
+        </Fragment>
+      )}
       <ButtonList gap={1}>{props.children}</ButtonList>
     </OnboardingPanel>
   );

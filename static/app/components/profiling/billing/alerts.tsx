@@ -7,3 +7,7 @@ export const ProfilingBetaAlertBanner = HookOrDefault({
 export const ProfilingUpgradeButton = HookOrDefault({
   hookName: 'component:profiling-upgrade-plan-button',
 });
+
+export const ProfilingAM1OrMMXUpgrade = HookOrDefault({
+  hookName: 'component:profiling-am1-or-mmx-upgrade',
+});
