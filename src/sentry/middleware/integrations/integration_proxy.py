@@ -32,14 +32,20 @@ class IntegrationProxyMiddleware:
         """
         Returns True if the sender is deemed sufficiently trustworthy.
         """
+        log_extra = {"path": request.path, "host": request.headers.get("Host")}
         timestamp = request.headers.get(PROXY_TIMESTAMP_HEADER)
         signature = request.headers.get(PROXY_SIGNATURE_HEADER)
         if timestamp is None or signature is None:
+            logger.error("invalid_sender_headers", extra=log_extra)
             return False
 
-        return verify_subnet_signature(
+        is_valid = verify_subnet_signature(
             timestamp=timestamp, request_body=request.body, provided_signature=signature
         )
+        if not is_valid:
+            logger.error("invalid_sender_signature", extra=log_extra)
+
+        return is_valid
 
     def _validate_request(self, request: Request) -> bool:
         """
@@ -92,14 +98,17 @@ class IntegrationProxyMiddleware:
 
     def _should_operate(self, request: Request) -> bool:
         """
-        Determines whether this middleware will operate or just pass the request along.
+        Returns True if the business logic of this integration should run.
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         is_proxy = request.path.startswith(PROXY_ADDRESS)
+        if not is_correct_silo and not is_proxy:
+            # Avoid more expensive checks if we can
+            return False
+
         is_valid_sender = self._validate_sender(request=request)
         is_valid_request = self._validate_request(request=request)
-
-        return is_correct_silo and is_proxy and is_valid_sender and is_valid_request
+        return is_valid_sender and is_valid_request
 
     def __call__(self, request: Request):
         if not self._should_operate(request):
@@ -125,7 +134,8 @@ class IntegrationProxyMiddleware:
             status=raw_response.status_code,
             reason=raw_response.reason,
             content_type=raw_response.headers.get("Content-Type"),
-            # headers=raw_response.headers # Can be added in Django 3.2
+            # XXX: Can be added in Django 3.2
+            # headers=raw_response.headers
         )
         response.headers = raw_response.headers
         return response
