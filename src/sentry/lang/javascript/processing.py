@@ -48,12 +48,12 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
-    if symbolicated.get("status"):
+    if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
         frame_meta = new_frame.setdefault("data", {})
-        if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
-            frame_meta["sourcemap"] = data_sourcemap
-        # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
-        # frame_meta["symbolicator_status"] = symbolicated["status"]
+        frame_meta["sourcemap"] = data_sourcemap
+    # if symbolicated.get("status"):
+    # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
+    # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
 
