@@ -152,7 +152,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     return _eventView;
   }, [location, query, selection.projects]);
 
-  const isProfilingGA = organization.features.includes('profiling-ga');
+  const isProfilingGA = true || organization.features.includes('profiling-ga');
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -194,7 +194,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                       </Button>
                     }
                   >
-                    {t('Upgrade plan')}
+                    {t('Update plan')}
                   </ProfilingUpgradeButton>
                 ) : (
                   <Button size="sm" onClick={onSetupProfilingClick}>
@@ -280,7 +280,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                         </Button>
                       }
                     >
-                      {t('Upgrade plan')}
+                      {t('Update plan')}
                     </ProfilingUpgradeButton>
                     <Button href="https://docs.sentry.io/product/profiling/" external>
                       {t('Read Docs')}
