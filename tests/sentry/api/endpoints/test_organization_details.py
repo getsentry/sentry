@@ -767,7 +767,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             ).exists()
 
     def test_update_name_with_mapping(self):
-        self.create_organization_mapping(self.organization)
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
         organization_id = response.data["id"]
