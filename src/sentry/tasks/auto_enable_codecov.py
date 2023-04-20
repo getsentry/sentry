@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
     queue="auto_enable_codecov",
     max_retries=0,
 )  # type: ignore
-def enable_for_org(dry_run=False) -> None:
+def enable_for_org(dry_run: bool = False) -> None:
     """
     Set the codecov_access flag to True for organizations with a valid Codecov integration.
     """
@@ -80,7 +80,9 @@ def enable_for_org(dry_run=False) -> None:
             )
 
 
-def disable_codecov_access(organization, integration_enabled, task_enabled):
+def disable_codecov_access(
+    organization: Organization, integration_enabled: bool, task_enabled: bool
+) -> None:
     organization.flags.codecov_access = False
     organization.save()
     logger.info(
