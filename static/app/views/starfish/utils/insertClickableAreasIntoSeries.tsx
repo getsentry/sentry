@@ -13,7 +13,7 @@ export function insertClickableAreasIntoSeries(series: LineChartSeries[], color:
     seriesName: 'Clickable Area',
     color,
     data: [],
-    silent: true,
+    silent: false,
     markArea: MarkArea({
       silent: false,
       itemStyle: {

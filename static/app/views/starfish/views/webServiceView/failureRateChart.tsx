@@ -75,6 +75,7 @@ function FailureRateChart({
     showTimeInTooltip: true,
     colors,
     tooltip: {
+      trigger: 'axis',
       valueFormatter: value => {
         return tooltipFormatter(value, 'percentage');
       },
@@ -98,6 +99,7 @@ function FailureRateChart({
       <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <LineChart
+            onClick={console.dir}
             height={height}
             {...zoomRenderProps}
             series={data}
