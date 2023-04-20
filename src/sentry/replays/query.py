@@ -624,6 +624,7 @@ class ReplaySubqueryConfig(QueryConfig):
     user_id = String(field_alias="user.id")
     user_ip_address = IPAddress(field_alias="user.ip", query_alias="ip_address_v4")
     user_name = String(field_alias="user.username")
+    tags = Tag(field_alias="*")
 
 
 # Pagination.
