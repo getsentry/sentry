@@ -231,7 +231,7 @@ describe('AlertRuleDetails', () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
-  it('mute button is disabled if no alert:edit permission', async () => {
+  it('mute button is disabled if no alerts:write permission', async () => {
     const contextWithoutAccess = initializeOrg({
       organization: {
         features: ['issue-alert-incompatible-rules', 'mute-alerts'],
