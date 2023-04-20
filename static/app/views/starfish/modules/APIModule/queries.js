@@ -60,8 +60,7 @@ export const getSpanInTransactionQuery = (spanDescription, transactionName) => {
   return `
     SELECT count() AS count, quantile(0.5)(exclusive_time) as p50
     FROM spans_experimental_starfish
-    WHERE module = 'http'
-    AND description = '${spanDescription}'
+    WHERE description = '${spanDescription}'
     AND transaction = '${transactionName}'
  `;
 };
