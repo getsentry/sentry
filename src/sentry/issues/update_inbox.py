@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from sentry import features
 from sentry.models import Group, Project, User
 from sentry.models.groupinbox import (
     GroupInboxReason,
@@ -28,7 +29,9 @@ def update_inbox(
     if in_inbox:
         for group in group_list:
             add_group_to_inbox(group, GroupInboxReason.MANUAL)
-    elif not in_inbox:
+    elif not in_inbox and not features.has(
+        "organizations:remove-mark-reviewed", group_list[0].project.organization
+    ):
         for group in group_list:
             remove_group_from_inbox(
                 group,
