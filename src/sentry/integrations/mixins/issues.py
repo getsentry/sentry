@@ -373,7 +373,7 @@ class IssueSyncMixin(IssueBasicMixin):
 
     def should_sync(self, attribute: str) -> bool:
         key = getattr(self, f"{attribute}_key", None)
-        if key is None:
+        if key is None or self.org_integration is None:
             return False
         value: bool = self.org_integration.config.get(key, False)
         return value

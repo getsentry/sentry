@@ -63,8 +63,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
       description: t('File IO operations on your main thread may lead to app hangs.'),
       links: [
         {
-          text: t('Sentry Docs: File IO on the Main Thread'),
-          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/main-thread-io/',
+          text: t('Sentry Docs: file IO on the Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/file-io-main-thread-io/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PERFORMANCE_DB_MAIN_THREAD]: {
+    resources: {
+      description: t('Database operations on your main thread may lead to app hangs.'),
+      links: [
+        {
+          text: t('Sentry Docs: database on the Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/db-main-thread-io/',
         },
       ],
       linksByPlatform: {},
@@ -139,7 +151,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
-
+  [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
+    resources: {
+      description: t(
+        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold'
+      ),
+      links: [
+        {
+          text: t('Sentry Docs: Large HTTP Payload'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/large-http-payload/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: {
     resources: {
       description: t(

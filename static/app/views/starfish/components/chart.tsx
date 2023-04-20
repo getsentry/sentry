@@ -28,6 +28,7 @@ type Props = {
   disableXAxis?: boolean;
   grid?: AreaChartProps['grid'];
   height?: number;
+  hideYAxisSplitLine?: boolean;
   isLineChart?: boolean;
   log?: boolean;
   previousData?: Series[];
@@ -91,6 +92,7 @@ function Chart({
   isLineChart,
   stacked,
   log,
+  hideYAxisSplitLine,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -147,6 +149,7 @@ function Chart({
               );
             },
           },
+          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
         },
       ]
     : [
@@ -166,6 +169,7 @@ function Chart({
               );
             },
           },
+          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
         },
         {
           gridIndex: 1,
@@ -183,6 +187,7 @@ function Chart({
               );
             },
           },
+          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
         },
       ];
 
@@ -217,6 +222,10 @@ function Chart({
     xAxes,
     yAxes,
     utc,
+    legend: {
+      top: 0,
+      right: 10,
+    },
     isGroupedByDate: true,
     showTimeInTooltip: true,
     colors,
@@ -273,6 +282,8 @@ function Chart({
               xAxis={xAxis}
               yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
               tooltip={areaChartProps.tooltip}
+              colors={colors}
+              grid={grid}
             />
           );
         }

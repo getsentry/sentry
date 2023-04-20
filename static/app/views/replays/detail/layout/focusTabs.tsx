@@ -4,7 +4,7 @@ import queryString from 'query-string';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,7 +39,7 @@ function FocusTabs({className}: Props) {
             e.preventDefault();
             setActiveTab(tab);
 
-            trackAdvancedAnalyticsEvent('replay.details-tab-changed', {
+            trackAnalytics('replay.details-tab-changed', {
               tab,
               organization,
             });

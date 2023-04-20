@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Iterable, Mapping, MutableMapping
+from urllib.parse import urlencode
 
 import pytz
 
+from sentry import features
 from sentry.db.models import Model
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models import UserOption
@@ -26,11 +28,7 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
-from sentry.notifications.utils.participants import (
-    get_owner_reason,
-    get_send_to,
-    should_use_smaller_issue_alert_fallback,
-)
+from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
@@ -77,6 +75,7 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             notification_type=self.notification_setting_type,
             fallthrough_choice=self.fallthrough_choice,
+            rules=self.rules,
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -106,6 +105,11 @@ class AlertRuleNotification(ProjectNotification):
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
         rule_details = get_rules(self.rules, self.organization, self.project)
+        sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
+        for rule in rule_details:
+            rule.url = rule.url + sentry_query_params
+            rule.status_url = rule.url + sentry_query_params
+
         notification_reason = get_owner_reason(
             project=self.project,
             target_type=self.target_type,
@@ -113,10 +117,6 @@ class AlertRuleNotification(ProjectNotification):
             fallthrough_choice=self.fallthrough_choice,
         )
         fallback_params: MutableMapping[str, str] = {}
-        # Piggybacking off of notification_reason that already determines if we're using the fallback
-        if notification_reason and self.fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-            _, fallback_experiment = should_use_smaller_issue_alert_fallback(org=self.organization)
-            fallback_params = {"ref_fallback": fallback_experiment}
 
         context = {
             "project_label": self.project.get_full_name(),
@@ -133,7 +133,7 @@ class AlertRuleNotification(ProjectNotification):
             "slack_link": get_integration_link(self.organization, "slack"),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
-                "/settings/account/notifications/alerts/?referrer=alert_email"
+                f"/settings/account/notifications/alerts/{sentry_query_params}"
             ),
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
@@ -152,6 +152,12 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
+
+        if features.has("organizations:mute-alerts", self.organization) and len(self.rules) > 0:
+            context["snooze_alert"] = True
+            context[
+                "snooze_alert_url"
+            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
 
         if getattr(self.event, "occurrence", None):
             context["issue_title"] = self.event.occurrence.issue_title
@@ -225,10 +231,8 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
-        _, fallback_experiment = should_use_smaller_issue_alert_fallback(org=self.organization)
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "fallback_experiment": fallback_experiment,
             **super().get_log_params(recipient),
         }

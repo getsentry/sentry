@@ -30,11 +30,6 @@ module.exports = {
   },
 
   rules: {
-    'react/function-component-definition': [
-      'error',
-      {namedComponents: 'function-declaration'},
-    ],
-
     'react-hooks/exhaustive-deps': [
       'warn',
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
@@ -48,6 +43,9 @@ module.exports = {
       rules: {},
     },
     {
+      // We specify rules explicitly for the sdk-loader here so we do not have
+      // eslint ignore comments included in the source file, which is consumed
+      // by users.
       files: ['**/js-sdk-loader.ts'],
       rules: {
         'no-console': 'off',

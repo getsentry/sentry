@@ -35,12 +35,13 @@ import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -77,7 +78,7 @@ type Props = {
   relatedErrors: TraceError[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
@@ -85,6 +86,8 @@ function SpanDetail(props: Props) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = useTransactionProfileId();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === props.event.projectID);
 
   useEffect(() => {
     // Run on mount.
@@ -94,7 +97,7 @@ function SpanDetail(props: Props) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('performance_views.event_details.open_span_details', {
+    trackAnalytics('performance_views.event_details.open_span_details', {
       organization,
       operation: span.op ?? 'undefined',
       project_platform: event.platform ?? 'undefined',
@@ -431,13 +434,13 @@ function SpanDetail(props: Props) {
               <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              {profileId && event.projectSlug && (
+              {profileId && project?.slug && (
                 <Row
                   title="Profile ID"
                   extra={
                     <TransactionToProfileButton
                       size="xs"
-                      projectSlug={event.projectSlug}
+                      projectSlug={project.slug}
                       query={{
                         spanId: span.span_id,
                       }}

@@ -44,8 +44,10 @@ delivered. Outbox messages will be delivered by cross-region RPC calls.
 
 When an outbox message is received via RPC, it is processed by a signal handler. Signal handlers can
 be found in sentry.receivers.outbox.control and sentry.receivers.outbox.region. Outbox receivers are
-fired according to the message type. For example a ControlOutbox message is received and processed
-on Region Silos, and RegionOutbox messages are received and processed on Control Silo.
+fired according to the message type. For example when a ControlOutbox message is received and processed
+on Region Silos the relevant receiver in `receivers.outbox.control` will be called.
+Similarily, when a RegionOutbox message is received and processed on Control Silo the relevant
+receiver in `receivers.outbox.region` will be called.
 
 See https://www.notion.so/sentry/Async-cross-region-updates-outbox-9330293c8d2f4bd497361a505fd355d3
 """
