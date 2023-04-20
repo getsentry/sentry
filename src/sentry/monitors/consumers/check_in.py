@@ -85,9 +85,10 @@ def _process_message(wrapper: Dict) -> None:
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
 
+    environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
 
-    ratelimit_key = params["monitor_slug"]
+    ratelimit_key = f"{params['monitor_slug']}:{environment}"
 
     if ratelimits.is_limited(
         f"monitor-checkins:{ratelimit_key}",
@@ -107,11 +108,15 @@ def _process_message(wrapper: Dict) -> None:
             monitor = _ensure_monitor_with_config(project, params["monitor_slug"], monitor_config)
 
             if not monitor:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={"source": "consumer", "status": "failed_validation"},
+                )
                 logger.debug("monitor does not exist: %s", params["monitor_slug"])
                 return
 
             monitor_environment = MonitorEnvironment.objects.ensure_environment(
-                project, monitor, params.get("environment")
+                project, monitor, environment
             )
 
             status = getattr(CheckInStatus, params["status"].upper())
@@ -161,8 +166,17 @@ def _process_message(wrapper: Dict) -> None:
             else:
                 monitor.mark_ok(check_in, start_time)
                 monitor_environment.mark_ok(check_in, start_time)
+
+            metrics.incr(
+                "monitors.checkin.result",
+                tags={"source": "consumer", "status": "complete"},
+            )
     except Exception:
         # Skip this message and continue processing in the consumer.
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={"source": "consumer", "status": "error"},
+        )
         logger.exception("Failed to process check-in", exc_info=True)
 
 
