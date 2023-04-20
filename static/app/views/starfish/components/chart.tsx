@@ -288,7 +288,7 @@ function Chart({
               tooltip={areaChartProps.tooltip}
               colors={colors}
               grid={grid}
-              legend={showLegend ? {top: 0, right: 0} : null}
+              legend={showLegend ? {top: 0, right: 0} : undefined}
             />
           );
         }
