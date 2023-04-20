@@ -157,6 +157,7 @@ class ProjectKeys extends AsyncView<Props, State> {
             key={key.id}
             orgId={organization.slug}
             projectId={`${projectId}`}
+            project={this.props.project}
             data={key}
             onToggle={this.handleToggleKey}
             onRemove={this.handleRemoveKey}

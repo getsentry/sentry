@@ -18,7 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
+import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
 export function SetupDocsLoader({
   organization,
