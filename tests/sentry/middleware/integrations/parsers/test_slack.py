@@ -40,8 +40,8 @@ class SlackRequestParserTest(TestCase):
         pass
 
     @patch.object(SlackCommandRequest, "integration")
-    @patch.object(SlackCommandRequest, "_validate_integration")
-    @patch.object(SlackCommandRequest, "_authorize")
+    @patch.object(SlackCommandRequest, "validate_integration")
+    @patch.object(SlackCommandRequest, "authorize")
     def test_webhook(self, mock_authorize, mock_validate_integration, mock_integration):
         # Retrieve the correct integration
         mock_integration.id = self.integration.id
