@@ -5,7 +5,6 @@ import FileSize from 'sentry/components/fileSize';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconContract, IconExpand} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
@@ -14,15 +13,6 @@ import {operationName} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 const EMPTY_CELL = '\u00A0';
-
-const DetailsOpenIcon = styled(IconContract)`
-  margin-inline: ${space(0.5)};
-  margin-top: -4px;
-`;
-const DetailsCloseIcon = styled(IconExpand)`
-  margin-inline: ${space(0.5)};
-  margin-top: -4px;
-`;
 
 type Props = {
   columnIndex: number;
@@ -113,14 +103,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Tooltip title={operationName(span.op)} isHoverable showOnlyOnOverflow>
-            <Text>
-              {isDetailsOpen ? (
-                <DetailsCloseIcon size="xs" />
-              ) : (
-                <DetailsOpenIcon size="xs" />
-              )}
-              {operationName(span.op)}
-            </Text>
+            <Text>{operationName(span.op)}</Text>
           </Tooltip>
         </Cell>
       ),

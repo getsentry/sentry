@@ -3,13 +3,9 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconClose, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -148,19 +144,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <StyledAlert
-        icon={<IconInfo />}
-        opaque={false}
-        showIcon
-        type="info"
-        trailingItems={
-          <StyledButton priority="link" size="sm" onClick={() => {}}>
-            <IconClose color="gray500" size="sm" />
-          </StyledButton>
-        }
-      >
-        You can now see the body of requests and responses. <a>Learn More</a>
-      </StyledAlert>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable>
         <FluidHeight>
@@ -215,14 +198,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
     </FluidHeight>
   );
 }
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
-`;
-
-const StyledButton = styled(Button)`
-  color: inherit;
-`;
 
 const OverflowHidden = styled('div')`
   position: relative;

@@ -21,7 +21,7 @@ export type TabKey = keyof typeof TABS;
 
 function NetworkRequestTabs({className, underlined = true}: Props) {
   const {pathname, query} = useLocation();
-  const {getParamValue, setParamValue} = useUrlParams('n_detail_tab', 'request');
+  const {getParamValue, setParamValue} = useUrlParams('n_detail_tab', 'general');
   const activeTab = getParamValue();
 
   return (

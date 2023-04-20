@@ -1,7 +1,6 @@
-import {Fragment, ReactNode} from 'react';
+import {ReactNode} from 'react';
 import queryString from 'query-string';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {t} from 'sentry/locale';
@@ -12,11 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const ReplayTabs: Record<TabKey, ReactNode> = {
   [TabKey.console]: t('Console'),
-  [TabKey.network]: (
-    <Fragment>
-      {t('Network')} <FeatureBadge type="new" />
-    </Fragment>
-  ),
+  [TabKey.network]: t('Network'),
   [TabKey.dom]: t('DOM Events'),
   [TabKey.issues]: t('Issues'),
   [TabKey.memory]: t('Memory'),
