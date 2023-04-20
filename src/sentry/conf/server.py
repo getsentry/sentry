@@ -759,22 +759,26 @@ CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celer
 CELERYBEAT_SCHEDULE = {
     "check-auth": {
         "task": "sentry.tasks.check_auth",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth"},
     },
     "enqueue-scheduled-jobs": {
         "task": "sentry.tasks.enqueue_scheduled_jobs",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
-        "schedule": timedelta(hours=1),
+        # Run every hour
+        "schedule": crontab(minute=0, hour="*/1"),
         "options": {"expires": 3600},
     },
     "send-ping": {
         "task": "sentry.tasks.send_ping",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "flush-buffers": {
@@ -794,22 +798,26 @@ CELERYBEAT_SCHEDULE = {
     },
     "check-monitors": {
         "task": "sentry.monitors.tasks.check_monitors",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
-        "schedule": timedelta(minutes=5),
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 300},
     },
     "clear-expired-rulesnoozes": {
         "task": "sentry.tasks.clear_expired_rulesnoozes",
-        "schedule": timedelta(minutes=5),
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 300},
     },
     "clear-expired-raw-events": {
         "task": "sentry.tasks.clear_expired_raw_events",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 300},
     },
     "collect-project-platforms": {
@@ -819,27 +827,32 @@ CELERYBEAT_SCHEDULE = {
     },
     "deliver-from-outbox": {
         "task": "sentry.tasks.enqueue_outbox_jobs",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 30},
     },
     "update-user-reports": {
         "task": "sentry.tasks.update_user_reports",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 300},
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "auto-remove-inbox": {
         "task": "sentry.tasks.auto_remove_inbox",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "schedule-deletions": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "reattempt-deletions": {
@@ -861,7 +874,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
     },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
@@ -870,17 +884,20 @@ CELERYBEAT_SCHEDULE = {
     },
     "fetch-release-registry-data": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
-        "schedule": timedelta(minutes=5),
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "fetch-appstore-builds": {
         "task": "sentry.tasks.app_store_connect.refresh_all_builds",
-        "schedule": timedelta(hours=1),
+        # Run every hour
+        "schedule": crontab(minute=0, hour="*/1"),
         "options": {"expires": 3600},
     },
     "snuba-subscription-checker": {
         "task": "sentry.snuba.tasks.subscription_checker",
-        "schedule": timedelta(minutes=20),
+        # Run every 20 minutes
+        "schedule": crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
     },
     "transaction-name-clusterer": {
@@ -890,7 +907,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "hybrid-cloud-repair-mappings": {
         "task": "sentry.tasks.organization_mapping.repair_mappings",
-        "schedule": timedelta(hours=1),
+        # Run every hour
+        "schedule": crontab(minute=0, hour="*/1"),
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
@@ -901,13 +919,13 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
-        # Run job every 5 minutes
-        "schedule": timedelta(minutes=5),
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
     },
     "dynamic-sampling-prioritize-transactions": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
         # Run every 5 minutes
-        "schedule": timedelta(minutes=6),
+        "schedule": crontab(minute="*/5"),
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -916,6 +934,13 @@ CELERYBEAT_SCHEDULE = {
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
+}
+
+# We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
+TIMEDELTA_ALLOW_LIST = {
+    "flush-buffers",
+    "sync-options",
+    "schedule-digests",
 }
 
 BGTASKS = {
