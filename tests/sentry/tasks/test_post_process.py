@@ -61,6 +61,7 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -679,6 +680,8 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.save()
 
         self.call_post_process_group(
             is_new=True,
@@ -705,6 +708,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
         assert GroupInbox.objects.filter(
             group=group, reason=GroupInboxReason.REGRESSION.value
         ).exists()
