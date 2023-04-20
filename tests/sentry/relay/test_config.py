@@ -314,6 +314,12 @@ def test_project_config_with_all_biases_enabled(
         "rules": [],
         "rulesV2": [
             {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1004,
+                "samplingValue": {"type": "factor", "value": default_factor},
+                "type": "trace",
+            },
+            {
                 "samplingValue": {"type": "sampleRate", "value": 0.02},
                 "type": "transaction",
                 "condition": {
@@ -400,12 +406,6 @@ def test_project_config_with_all_biases_enabled(
                     "end": "2022-10-21T19:50:25Z",
                 },
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
-            },
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1004,
-                "samplingValue": {"type": "factor", "value": default_factor},
-                "type": "trace",
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.1},
