@@ -4,8 +4,11 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
+import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
 export default function FailureDetailView() {
+  const location = useLocation();
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -18,6 +21,7 @@ export default function FailureDetailView() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
+            <EndpointTable location={location} onSelect={() => {}} />
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>

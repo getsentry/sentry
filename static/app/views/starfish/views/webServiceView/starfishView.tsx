@@ -23,6 +23,7 @@ import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/
 
 const EventsRequest = withApi(_EventsRequest);
 
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
@@ -126,9 +127,14 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '16px',
                 bottom: '8px',
               }}
-              handleSpikeAreaClick={e =>
-                e.componentType === 'markArea' && setSelectedSpike(e)
-              }
+              handleSpikeAreaClick={e => {
+                if (e.componentType === 'markArea') {
+                  setSelectedSpike(e);
+                  browserHistory.push({
+                    pathname: `${location.pathname}failure-detail`,
+                  });
+                }
+              }}
             />
           );
         }}
