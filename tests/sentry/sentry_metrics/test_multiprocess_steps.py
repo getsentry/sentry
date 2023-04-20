@@ -282,7 +282,7 @@ def __translated_payload(
     )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
-    payload["use_case_id"] = "sessions"
+    payload["use_case_id"] = "release-health"
 
     payload.pop("unit", None)
     del payload["name"]
@@ -443,6 +443,9 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     rate_limited_payload = deepcopy(distribution_payload)
     rate_limited_payload["tags"]["custom_tag"] = "rate_limited_test"
 
+    rate_limited_payload2 = deepcopy(distribution_payload)
+    rate_limited_payload2["name"] = "rate_limited_test"
+
     message_batch = [
         Message(
             BrokerValue(
@@ -457,6 +460,14 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 1,
+                datetime.now(),
+            )
+        ),
+        Message(
+            BrokerValue(
+                KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                2,
                 datetime.now(),
             )
         ),
