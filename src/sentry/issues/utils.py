@@ -11,6 +11,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 def can_create_group(
     entity: Union[IssueOccurrence, IssueOccurrenceData, PerformanceProblem, Group], project: Project
 ) -> bool:
+    return True
     if isinstance(entity, dict):
         group_type = get_group_type_by_type_id(entity["type"])
     elif isinstance(entity, Group):
@@ -22,18 +23,19 @@ def can_create_group(
         or (
             group_type.category == GroupCategory.PERFORMANCE.value
             # system-wide option
-            and options.get("performance.issues.create_issues_through_platform", False)
+            and options.get("performance.issues.create_issues_through_platform", True)
             # more-granular per-project option
-            and project.get_option("sentry:performance_issue_create_issue_through_platform", False)
+            and project.get_option("sentry:performance_issue_create_issue_through_platform", True)
         )
     )
 
 
 def write_occurrence_to_platform(performance_problem: PerformanceProblem, project: Project) -> bool:
+    return True
     return bool(
         performance_problem.type.category == GroupCategory.PERFORMANCE.value
         # system-wide option
-        and options.get("performance.issues.send_to_issues_platform", False)
+        and options.get("performance.issues.send_to_issues_platform", True)
         # more-granular per-project option
         and project.get_option("sentry:performance_issue_send_to_issues_platform", True)
     )
