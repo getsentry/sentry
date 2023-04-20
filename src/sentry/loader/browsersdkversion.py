@@ -36,13 +36,24 @@ def get_highest_browser_sdk_version(versions):
     )
 
 
-def get_browser_sdk_version_versions():
+def get_all_browser_sdk_version_versions():
     return ["latest", "7.x", "6.x", "5.x", "4.x"]
 
 
-def get_browser_sdk_version_choices():
+def get_all_browser_sdk_version_choices():
+    versions = get_all_browser_sdk_version_versions()
+
     rv = []
-    for version in get_browser_sdk_version_versions():
+    for version in versions:
+        rv.append((version, version))
+    return tuple(rv)
+
+
+def get_browser_sdk_version_choices(project):
+    versions = get_available_sdk_versions_for_project(project)
+
+    rv = []
+    for version in versions:
         rv.append((version, version))
     return tuple(rv)
 
@@ -82,3 +93,7 @@ def get_selected_browser_sdk_version(project_key):
 
 def get_default_sdk_version_for_project(project):
     return project.get_option("sentry:default_loader_version")
+
+
+def get_available_sdk_versions_for_project(project):
+    return project.get_option("sentry:loader_available_sdk_versions")
