@@ -280,7 +280,6 @@ def login(
     Returns boolean indicating if the user was logged in.
     """
     if passed_2fa is None:
-        metrics.incr("2fa.login_attempt", sample_rate=1.0, skip_internal=False)
         passed_2fa = request.session.get(MFA_SESSION_KEY, "") == str(user.id)
 
     if user.has_2fa() and not passed_2fa:
