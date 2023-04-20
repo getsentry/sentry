@@ -47,6 +47,7 @@ class RpcSentryApp(RpcModel):
     events: List[str] = Field(default_factory=list)
     webhook_url: Optional[str] = None
     is_published: bool = False
+    is_internal: bool = True
 
 
 class RpcSentryAppInstallation(RpcModel):
@@ -181,6 +182,7 @@ class AppService(RpcService):
             events=app.events,
             webhook_url=app.webhook_url,
             is_published=app.is_published,
+            is_internal=app.is_internal,
         )
 
     @rpc_method
