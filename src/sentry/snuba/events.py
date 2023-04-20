@@ -289,7 +289,7 @@ class Columns(Enum):
         event_name="contexts[response.status_code]",
         transaction_name="contexts[response.status_code]",
         discover_name="contexts[response.status_code]",
-        issue_platform_name="contexts[response.status_code",
+        issue_platform_name="contexts[response.status_code]",
         alias="http.status_code",
     )
     OS_BUILD = Column(
