@@ -6,25 +6,39 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 
 const CalendarStylesWrapper = styled('div')`
-  padding: ${space(3)};
+  padding: ${space(2)};
 
   .rdrCalendarWrapper:not(.rdrDateRangeWrapper) .rdrDayHovered .rdrDayNumber:after {
     border: 0;
   }
 
-  .rdrSelected,
-  .rdrInRange,
-  .rdrStartEdge,
-  .rdrEndEdge {
-    background-color: ${p => p.theme.active};
+  :not(active) {
+    .rdrSelected,
+    .rdrInRange,
+    .rdrStartEdge,
+    .rdrEndEdge {
+      left: 0;
+      right: 0;
+      top: 3px;
+      bottom: 3px;
+      background-color: ${p => p.theme.active};
+    }
   }
 
-  .rdrStartEdge + .rdrDayStartPreview {
-    background-color: transparent;
+  .rdrDayNumber {
+    top: 3px;
+    bottom: 3px;
+    font-weight: normal;
   }
 
   .rdrDayNumber span {
     color: ${p => p.theme.textColor};
+  }
+
+  .rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
+  .rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span,
+  .rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
+    color: ${p => p.theme.white};
   }
 
   .rdrDayDisabled {
@@ -36,11 +50,21 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrDayToday .rdrDayNumber span {
-    color: ${p => p.theme.active};
+    color: ${p => p.theme.activeText};
+
+    &:after {
+      display: none;
+    }
+  }
+
+  .rdrDayToday .rdrDayNumber {
+    border-radius: 2rem;
+    box-shadow: inset 0 0 0 2px ${p => p.theme.active};
   }
 
   .rdrDayNumber span:after {
     background-color: ${p => p.theme.active};
+    font-variant-numeric: tabular-nums;
   }
 
   .rdrDefinedRangesWrapper,
@@ -78,21 +102,62 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDayInPreview {
     border: 0;
     background: rgba(200, 200, 200, 0.3);
+    z-index: -1;
+  }
+
+  .rdrDayStartOfMonth {
+    .rdrInRange,
+    .rdrDayInPreview {
+      border-top-left-radius: ${p => p.theme.borderRadius};
+      border-bottom-left-radius: ${p => p.theme.borderRadius};
+    }
+  }
+
+  .rdrDayStartOfWeek {
+    .rdrInRange,
+    .rdrEndEdge,
+    .rdrDayInPreview,
+    /* Adjust radii on last hovered day, unless it's also the start of a selected range */
+    .rdrDayEndPreview:not(.rdrDayStartPreview):first-child,
+    :not(.rdrStartEdge) ~ .rdrDayEndPreview:not(.rdrDayStartPreview) {
+      border-top-left-radius: ${p => p.theme.borderRadius};
+      border-bottom-left-radius: ${p => p.theme.borderRadius};
+    }
+  }
+
+  .rdrDayEndOfMonth {
+    .rdrInRange,
+    .rdrDayInPreview {
+      border-top-right-radius: ${p => p.theme.borderRadius};
+      border-bottom-right-radius: ${p => p.theme.borderRadius};
+    }
+  }
+
+  .rdrDayEndOfWeek {
+    .rdrInRange,
+    .rdrStartEdge,
+    .rdrDayInPreview,
+    /* Adjust radii on first hovered day, unless it's also the end of a selected range */
+    .rdrDayStartPreview:not(.rdrDayEndPreview):first-child,
+    :not(.rdrEndEdge) ~ .rdrDayStartPreview:not(.rdrDayEndPreview) {
+      border-top-right-radius: ${p => p.theme.borderRadius};
+      border-bottom-right-radius: ${p => p.theme.borderRadius};
+    }
   }
 
   .rdrDayStartOfMonth,
   .rdrDayStartOfWeek {
-    .rdrInRange {
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
+    .rdrInRange,
+    .rdrEndEdge {
+      left: 0;
     }
   }
 
   .rdrDayEndOfMonth,
   .rdrDayEndOfWeek {
-    .rdrInRange {
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
+    .rdrInRange,
+    .rdrStartEdge {
+      right: 0;
     }
   }
 
@@ -101,9 +166,10 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrMonthAndYearWrapper {
+    height: 32px;
+    align-items: stretch;
     padding-bottom: ${space(1)};
     padding-top: 0;
-    height: 32px;
   }
 
   .rdrDay {
@@ -116,7 +182,7 @@ const CalendarStylesWrapper = styled('div')`
     color: ${p => p.theme.textColor};
     font-weight: normal;
     font-size: ${p => p.theme.fontSizeLarge};
-    padding: 0;
+    padding: ${space(0.25)} ${space(1)};
   }
 
   .rdrMonthsVertical {
@@ -129,16 +195,31 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrNextPrevButton {
+    width: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: auto;
     background-color: transparent;
-    border: 1px solid ${p => p.theme.border};
+    border: none;
+  }
+
+  .rdrPprevButton {
+    margin-left: 0;
+  }
+
+  .rdrNextButton {
+    margin-right: 0;
   }
 
   .rdrPprevButton i {
     border-right-color: ${p => p.theme.textColor};
+    margin: 0;
   }
 
   .rdrNextButton i {
     border-left-color: ${p => p.theme.textColor};
+    margin: 0;
   }
 `;
 
