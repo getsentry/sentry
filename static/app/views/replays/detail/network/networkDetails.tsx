@@ -1,25 +1,19 @@
-import {Fragment, MouseEvent, ReactNode, useCallback, useMemo} from 'react';
+import {Fragment, MouseEvent, useCallback} from 'react';
 import styled from '@emotion/styled';
-import queryString from 'query-string';
 
 import {Button} from 'sentry/components/button';
-import {KeyValueTable} from 'sentry/components/keyValueTable';
-import ObjectInspector from 'sentry/components/objectInspector';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
-import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
+import NetworkDetailsContent from 'sentry/views/replays/detail/network/networkDetailsContent';
 import NetworkDetailsTabs, {
   TabKey,
 } from 'sentry/views/replays/detail/network/networkDetailsTabs';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
@@ -62,13 +56,15 @@ function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) 
     [setDetailRow]
   );
 
-  const data = useMemo(() => getData(item, startTimestampMs), [item, startTimestampMs]);
-  if (!data) {
-    return null;
-  }
+  const visibleTab = getDetailTab() as TabKey;
 
-  const visibleTab = getDetailTab();
-  const sections = data[visibleTab] ?? data.request;
+  const tab = item ? (
+    <NetworkDetailsContent
+      visibleTab={visibleTab}
+      item={item}
+      startTimestampMs={startTimestampMs}
+    />
+  ) : null;
 
   return (
     <Fragment>
@@ -90,101 +86,9 @@ function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) 
           />
         </CloseButtonWrapper>
       </StyledStacked>
-      {visibleTab === 'general' ? (
-        <KeyValueSections containerSize={containerSize} sections={sections} />
-      ) : (
-        <ObjectSections containerSize={containerSize} sections={sections} />
-      )}
+      <FluidHeight style={{height: containerSize}}>{tab}</FluidHeight>
     </Fragment>
   );
-}
-
-type SectionsProps = {
-  containerSize: number;
-  sections: Record<string, any>;
-};
-
-function KeyValueSections({containerSize, sections}: SectionsProps) {
-  return (
-    <FluidHeight style={{height: containerSize}}>
-      <FluidPanel>
-        <KeyValueTable noMargin>
-          {Object.entries(sections).map(([key, values]) => (
-            <ReplayTagsTableRow key={key} name={key} values={[values]} />
-          ))}
-        </KeyValueTable>
-      </FluidPanel>
-    </FluidHeight>
-  );
-}
-
-function ObjectSections({containerSize, sections}: SectionsProps) {
-  return (
-    <SectionList style={{height: containerSize}}>
-      {Object.entries(sections).map(([label, sectionData]) => (
-        <Fragment key={label}>
-          <SectionTitle>{label}</SectionTitle>
-          <SectionData>{sectionData}</SectionData>
-        </Fragment>
-      ))}
-    </SectionList>
-  );
-}
-function getData(
-  span: NetworkSpan | null,
-  startTimestampMs: number
-): undefined | Record<TabKey, Record<string, ReactNode>> {
-  if (!span) {
-    return undefined;
-  }
-
-  const queryParams = queryString.parse(span.description?.split('?')?.[1] ?? '');
-
-  const startMs = span.startTimestamp * 1000;
-  const endMs = span.endTimestamp * 1000;
-
-  return {
-    // It would be better if the General tab rendered in a grid, like tags
-    general: {
-      [t('URL')]: span.description,
-      [t('Type')]: span.op,
-      [t('Method')]: span.data.method,
-      [t('Status Code')]: span.data.statusCode,
-      [t('Request Body Size')]: formatBytesBase10(span.data.request?.size ?? 0),
-      [t('Response Body Size')]: formatBytesBase10(span.data.response?.size ?? 0),
-      [t('Duration')]: `${(endMs - startMs).toFixed(2)}ms`,
-      [t('Timestamp')]: (
-        <TimestampButton
-          format="mm:ss.SSS"
-          onClick={(event: MouseEvent) => {
-            event.stopPropagation();
-            // handleClick(span);
-          }}
-          startTimestampMs={startTimestampMs}
-          timestampMs={startMs}
-        />
-      ),
-    },
-    request: {
-      [t('Query String Parameters')]: queryParams ? (
-        <ObjectInspector data={queryParams} expandLevel={3} />
-      ) : (
-        <NotFoundText>{t('Query Params not found')}</NotFoundText>
-      ),
-      [t('Request Payload')]: span.data?.request?.body ? (
-        <ObjectInspector data={span.data?.request?.body} expandLevel={3} />
-      ) : (
-        <NotFoundText>{t('Request Body not found')}</NotFoundText>
-      ),
-    },
-    response: {
-      [t('Response Body')]: span.data?.response?.body ? (
-        <ObjectInspector data={span.data?.response?.body} expandLevel={3} />
-      ) : (
-        <NotFoundText>{t('Response body not found')}</NotFoundText>
-      ),
-    },
-  };
 }
 
 const StyledStacked = styled(Stacked)`
@@ -234,29 +138,6 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   :hover {
     z-index: ${p => p.theme.zIndex.initial + 1};
   }
-`;
-
-const SectionList = styled('dl')`
-  margin: 0;
-  overflow: scroll;
-  padding: ${space(1)};
-`;
-
-const SectionTitle = styled('dt')`
-  ${p => p.theme.overflowEllipsis};
-  text-transform: capitalize;
-  font-weight: 600;
-  color: ${p => p.theme.gray400};
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const SectionData = styled('dd')`
-  margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-`;
-
-const NotFoundText = styled('code')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
 export default NetworkRequestDetails;
