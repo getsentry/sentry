@@ -13,12 +13,12 @@ import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {useQuery} from 'sentry/utils/queryClient';
 import Chart from 'sentry/views/starfish/components/chart';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 import {
   ModuleButtonType,
   ModuleLinkButton,
 } from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
