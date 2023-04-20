@@ -102,7 +102,14 @@ describe('Onboarding Setup Docs', function () {
         value={[
           {
             onboarding: {
-              selectedPlatforms: ['python'],
+              selectedPlatforms: [
+                {
+                  category: 'server',
+                  key: 'python',
+                  language: 'python',
+                  type: 'language',
+                },
+              ],
               platformToProjectIdMap: {
                 python: 'python',
               },
@@ -180,7 +187,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript-react',
+                    language: 'javascript',
+                    type: 'framework',
+                  },
+                ],
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -256,7 +270,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript-react',
+                    language: 'javascript',
+                    type: 'framework',
+                  },
+                ],
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -328,7 +349,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript-react',
+                    language: 'javascript',
+                    type: 'framework',
+                  },
+                ],
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -400,7 +428,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript-react',
+                    language: 'javascript',
+                    type: 'framework',
+                  },
+                ],
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -480,7 +515,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript',
+                    language: 'javascript',
+                    type: 'language',
+                  },
+                ],
                 platformToProjectIdMap: {
                   javascript: 'javascript-browser',
                 },
@@ -538,7 +580,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript',
+                    language: 'javascript',
+                    type: 'language',
+                  },
+                ],
                 platformToProjectIdMap: {
                   javascript: 'javascript-browser',
                 },
