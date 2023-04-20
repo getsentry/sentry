@@ -262,6 +262,8 @@ function Chart({
       }
     : undefined;
 
+  const showLineGraphChart = data.length > 1;
+
   return (
     <ChartZoom
       router={router}
@@ -284,10 +286,14 @@ function Chart({
               tooltip={areaChartProps.tooltip}
               colors={colors}
               grid={grid}
-              legend={{
-                top: 0,
-                right: 10,
-              }}
+              {...(showLineGraphChart
+                ? {
+                    legend: {
+                      top: 0,
+                      right: 10,
+                    },
+                  }
+                : {})}
             />
           );
         }
