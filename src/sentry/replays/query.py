@@ -26,6 +26,7 @@ from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
+    InvalidField,
     IPAddress,
     ListField,
     Number,
@@ -254,7 +255,6 @@ def query_replays_dataset_with_subquery(
     if len(replay_ids_to_filter_results["data"]) == 0:
         # if no results, no need to carry on
         return {"data": []}
-
     max_subquery_ts = 0
     min_subquery_ts = datetime.now().timestamp()
     replay_ids_to_filter = []
@@ -624,7 +624,35 @@ class ReplaySubqueryConfig(QueryConfig):
     user_id = String(field_alias="user.id")
     user_ip_address = IPAddress(field_alias="user.ip", query_alias="ip_address_v4")
     user_name = String(field_alias="user.username")
-    tags = Tag(field_alias="*")
+
+    tags = Tag(field_alias="*", tag_key_alias="tags.key", tag_value_alias="tags.value")
+
+    # we have to explicitly define the rest of the fields as invalid fields or else
+    # they will be parsed as tags for the subquery
+    releases = InvalidField()
+    release = InvalidField()
+    click_alt = InvalidField(field_alias="click.alt")
+    click_class = InvalidField(field_alias="click.class", query_alias="clickClass")
+    click_id = InvalidField(field_alias="click.id")
+    click_aria_label = InvalidField(field_alias="click.label")
+    click_role = InvalidField(field_alias="click.role")
+    click_tag = InvalidField(field_alias="click.tag")
+    click_testid = InvalidField(field_alias="click.testid")
+    click_text = InvalidField(field_alias="click.textContent")
+    click_title = InvalidField(field_alias="click.title")
+    click_selector = InvalidField(field_alias="click.selector")
+    duration = InvalidField()
+    count_errors = InvalidField(query_alias="count_errors")
+    count_segments = InvalidField(query_alias="count_segments")
+    count_urls = InvalidField(query_alias="count_urls")
+    activity = InvalidField()
+    error_ids = InvalidField(query_alias="errorIds")
+    error_id = InvalidField(query_alias="errorIds")
+    trace_ids = InvalidField(query_alias="traceIds")
+    trace_id = InvalidField(query_alias="traceIds")
+    trace = InvalidField(query_alias="traceIds")
+    urls = InvalidField(query_alias="urls_sorted")
+    url = InvalidField(query_alias="urls_sorted")
 
 
 # Pagination.
