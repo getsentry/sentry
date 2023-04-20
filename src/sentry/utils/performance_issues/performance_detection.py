@@ -270,16 +270,16 @@ def _detect_performance_problems(
 
     problems: List[PerformanceProblem] = []
     for detector in detectors:
-        if all(
-            [
-                detector.is_creation_allowed_for_system(),
-                detector.is_creation_allowed_for_organization(organization),
-                detector.is_creation_allowed_for_project(project),
-            ]
-        ):
-            problems.extend(detector.stored_problems.values())
-        else:
-            continue
+        # if all(
+        #     [
+        #         detector.is_creation_allowed_for_system(),
+        #         detector.is_creation_allowed_for_organization(organization),
+        #         detector.is_creation_allowed_for_project(project),
+        #     ]
+        # ):
+        problems.extend(detector.stored_problems.values())
+        # else:
+        #     continue
 
     truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
