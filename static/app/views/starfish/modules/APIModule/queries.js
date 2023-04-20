@@ -57,6 +57,7 @@ export const getEndpointDetailTableQuery = description => {
 };
 
 export const getSpanInTransactionQuery = (spanDescription, transactionName) => {
+  // TODO - add back `module = <moudle> to filter data
   return `
     SELECT count() AS count, quantile(0.5)(exclusive_time) as p50
     FROM spans_experimental_starfish
