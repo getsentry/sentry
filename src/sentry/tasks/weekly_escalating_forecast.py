@@ -3,7 +3,7 @@ from typing import Dict, List, TypedDict
 
 from sentry_sdk.crons.decorator import monitor
 
-from sentry.issues.forecasts import get_forecasts
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import Group, GroupStatus
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
@@ -46,4 +46,4 @@ def run_escalating_forecast() -> None:
     if not until_escalating_groups:
         return
 
-    get_forecasts(until_escalating_groups)
+    generate_and_save_forecasts(until_escalating_groups)
