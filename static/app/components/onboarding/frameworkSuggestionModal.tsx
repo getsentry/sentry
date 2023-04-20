@@ -28,7 +28,7 @@ export enum SUPPORTED_LANGUAGES {
   NODE = 'node',
 }
 
-const languageDetails = {
+export const languageDetails = {
   [SUPPORTED_LANGUAGES.JAVASCRIPT]: {
     description: t(
       'Our JavaScript framework SDK’s include all the features of our Browser Javascript SDK with additional features specific to that framework'
@@ -133,7 +133,6 @@ export function FrameworkSuggestionModal({
                   <Framework key={framework.id}>
                     <RadioLabel
                       index={index}
-                      role="radio"
                       onClick={() =>
                         setSelectedFramework({
                           key: framework.id,

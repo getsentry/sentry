@@ -44,7 +44,7 @@ export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
+  gap: ${space(2)};
 `;
 
 const Wrapper = styled(EventDataSection)<{configResources: boolean}>`
