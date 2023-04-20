@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -26,6 +26,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
+import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
 
 import EndpointList from './endpointList';
 
@@ -41,6 +42,7 @@ const HOST = 'http://localhost:8080';
 export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView} = props;
   const theme = useTheme();
+  const [selectedSpike, setSelectedSpike] = useState<any | undefined>();
 
   const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
     queryKey: ['durationBreakdown'],
@@ -118,6 +120,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '16px',
                 bottom: '8px',
               }}
+              handleSpikeAreaClick={e =>
+                e.componentType === 'markArea' && setSelectedSpike(e)
+              }
             />
           );
         }}
@@ -127,6 +132,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
+      <FailureDetailPanel onClose={() => {}} spikeObject={selectedSpike} />
       <StyledRow minSize={200}>
         <Fragment>
           <ChartPanel title={t('Response Time')}>

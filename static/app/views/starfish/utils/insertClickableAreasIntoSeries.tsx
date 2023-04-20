@@ -7,13 +7,17 @@ export function insertClickableAreasIntoSeries(series: LineChartSeries[], color:
   const endTime = data[data.length - 1].name;
   const intervals = divideIntoIntervals(startTime as number, endTime as number, 8);
 
-  const areaMarkData = intervals.map(([start, end]) => [{xAxis: start}, {xAxis: end}]);
+  const areaMarkData = intervals.map(([start, end]) => [
+    {name: 'start', xAxis: start, emphasis: {disabled: false}},
+    {name: 'end', xAxis: end, emphasis: {disabled: false}},
+  ]);
 
   series.push({
     seriesName: 'Clickable Area',
     color,
     data: [],
     silent: false,
+    emphasis: {disabled: false},
     markArea: MarkArea({
       silent: false,
       itemStyle: {
@@ -23,6 +27,7 @@ export function insertClickableAreasIntoSeries(series: LineChartSeries[], color:
       label: {
         show: false,
       },
+      emphasis: {disabled: false},
       // I know this is gross but we don't have access to the types needed to satisfy the linter
       data: areaMarkData as any,
     }),
