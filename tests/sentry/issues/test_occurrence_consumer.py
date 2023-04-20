@@ -5,6 +5,7 @@ from copy import deepcopy
 from typing import Any, Dict, Optional, Sequence, Type
 
 import pytest
+import pytz
 from jsonschema import ValidationError
 
 from sentry import eventstore
@@ -98,6 +99,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @pytest.mark.django_db
     def test_process_profiling_occurrence(self) -> None:
         event_data = load_data("generic-event-profiling")
+        event_data["detection_time"] = datetime.datetime.now(tz=pytz.UTC)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(event_data)
         assert result is not None
