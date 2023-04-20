@@ -11,7 +11,6 @@ from random import Random
 from typing import Any, MutableMapping
 
 import pytz
-from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -28,7 +27,6 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
-from sentry.integrations.slack.client import SlackClient
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
 from sentry.models import (
@@ -47,7 +45,6 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -378,10 +375,6 @@ class ActivityMailDebugView(View):
         raise NotImplementedError
 
     def get(self, request: Request) -> Response:
-        client = SlackClient(org_integration_id=9)
-        data = {"text": "a brand new messagge", "channel": "C02LGHWRG57"}
-        resp = client.post("/chat.postMessage", data=data)
-        return HttpResponse(resp)
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 

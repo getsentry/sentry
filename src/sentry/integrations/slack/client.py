@@ -1,30 +1,21 @@
 from typing import Any, Mapping, Optional, Union
 
-from requests import Request, Response
+from requests import Response
 from sentry_sdk.tracing import Transaction
 
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.client import BaseApiResponse
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 
 
-class SlackClient(IntegrationProxyClient):  # type: ignore
+class SlackClient(ApiClient):  # type: ignore
     allow_redirects = False
     integration_name = "slack"
     base_url = "https://slack.com/api"
     metrics_prefix = "integrations.slack"
-
-    def authorize_request(self, request: Request) -> Request:
-        integration = Integration.objects.get(id=4)
-        token = (
-            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-        )
-        request.headers["Authorization"] = f"Bearer {token}"
-        return request
 
     def track_response_data(
         self,
