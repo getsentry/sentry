@@ -904,6 +904,11 @@ CELERYBEAT_SCHEDULE = {
         # Run job every 5 minutes
         "schedule": timedelta(minutes=5),
     },
+    "dynamic-sampling-prioritize-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+        # Run every 5 minutes
+        "schedule": timedelta(minutes=6),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -1166,7 +1171,7 @@ SENTRY_FEATURES = {
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
-    "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
+    "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
@@ -12,6 +13,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {useQuery} from 'sentry/utils/queryClient';
 import Chart from 'sentry/views/starfish/components/chart';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
 
@@ -57,33 +59,13 @@ export function StarfishView(props: BasePerformanceViewProps) {
     };
   });
 
-  // cross-reference the series, and makes sure
-  // they have the same number of points by backfilling
-  // missing timestamps for each other series with a 0
-  let lastInterval = undefined;
-  modules.forEach(module => {
-    moduleDurationData.forEach(value => {
-      if (module === value.module) {
-        if (lastInterval === value.interval) {
-          seriesByModule[module].data.pop();
-        }
-        seriesByModule[module].data.push({
-          value: value.p75,
-          name: value.interval,
-        });
-      } else {
-        if (lastInterval !== value.interval) {
-          seriesByModule[module].data.push({
-            value: 0,
-            name: value.interval,
-          });
-        }
-      }
-      lastInterval = value.interval;
-    });
+  moduleDurationData.forEach(value => {
+    seriesByModule[value.module].data.push({value: value.p75, name: value.interval});
   });
 
-  const data = Object.values(seriesByModule);
+  const data = Object.values(seriesByModule).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -146,25 +128,27 @@ export function StarfishView(props: BasePerformanceViewProps) {
     <div data-test-id="starfish-view">
       <StyledRow minSize={200}>
         <Fragment>
-          <Chart
-            statsPeriod="24h"
-            height={180}
-            data={data}
-            start=""
-            end=""
-            loading={isDurationDataLoading}
-            utc={false}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '16px',
-              bottom: '8px',
-            }}
-            disableMultiAxis
-            definedAxisTicks={4}
-            stacked
-            chartColors={['#444674', '#7a5088', '#b85586']}
-          />
+          <ChartPanel title={t('Response Time')}>
+            <Chart
+              statsPeriod="24h"
+              height={180}
+              data={data}
+              start=""
+              end=""
+              loading={isDurationDataLoading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '8px',
+              }}
+              disableMultiAxis
+              definedAxisTicks={4}
+              stacked
+              chartColors={['#444674', '#7a5088', '#b85586']}
+            />
+          </ChartPanel>
           {renderFailureRateChart()}
         </Fragment>
       </StyledRow>
@@ -178,6 +162,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'tpm',
           'p50(duration)',
           'p95(duration)',
+          'failure count',
           'cumulative time',
         ]}
       />
