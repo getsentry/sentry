@@ -27,12 +27,14 @@ import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/failureDetails';
 
 import EndpointList from './endpointList';
 
 type BasePerformanceViewProps = {
   eventView: EventView;
   location: Location;
+  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
   projects: Project[];
 };
@@ -40,7 +42,7 @@ type BasePerformanceViewProps = {
 const HOST = 'http://localhost:8080';
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView} = props;
+  const {organization, eventView, onSelect} = props;
 
   const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
     queryKey: ['durationBreakdown'],
@@ -158,7 +160,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <EndpointList
         {...props}
         setError={usePageError().setPageError}
-        dataset="discover" // Metrics dataset can't do equations yet
+        dataset="discover" // Metrics dataset can't do total.transaction_duration yet
+        onSelect={onSelect}
         columnTitles={[
           'endpoint',
           'tpm',

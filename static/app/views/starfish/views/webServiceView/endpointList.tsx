@@ -23,7 +23,6 @@ import {
   getAggregateAlias,
 } from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 
@@ -33,13 +32,8 @@ import Duration from 'sentry/components/duration';
 import {t, tct} from 'sentry/locale';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {getProjectID} from 'sentry/views/performance/utils';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
-
-import {
-  createUnnamedTransactionsDiscoverTarget,
-  UNPARAMETERIZED_TRANSACTION,
-} from '../../utils/createUnnamedTransactionsDiscoverTarget';
+import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/failureDetails';
 
 // HACK: Overrides ColumnType for TIME_SPENT_IN_SERVICE which is
 // returned as a number because it's an equation, but we
@@ -51,6 +45,7 @@ const TABLE_META_OVERRIDES: Record<string, ColumnType> = {
 type Props = {
   eventView: EventView;
   location: Location;
+  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
@@ -73,7 +68,7 @@ class EndpointList extends Component<Props, State> {
     dataRow: TableDataRow,
     deltaColumnMap: Record<string, string>
   ): React.ReactNode {
-    const {eventView, organization, projects, location} = this.props;
+    const {onSelect, organization, location} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -85,31 +80,27 @@ class EndpointList extends Component<Props, State> {
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     if (field === 'transaction') {
-      const projectID = getProjectID(dataRow, projects);
-      const summaryView = eventView.clone();
       let prefix = '';
       if (dataRow['http.method']) {
-        summaryView.additionalConditions.setFilterValues('http.method', [
-          dataRow['http.method'] as string,
-        ]);
         prefix = `${dataRow['http.method']} `;
       }
-      summaryView.query = summaryView.getQueryWithAdditionalConditions();
-      const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
-      const target = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
-          })
-        : transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: String(dataRow.transaction) || '',
-            query: summaryView.generateQueryStringObject(),
-            projectID,
-          });
+
+      const row = {
+        endpoint: `${prefix}${dataRow.transaction}`,
+        aggregateDetails: {
+          failureCount: dataRow['count_if(http.status_code,greaterOrEquals,500)'],
+          p50: dataRow['p50()'],
+          tpm: dataRow['tpm()'],
+          p50Delta: dataRow[deltaColumnMap['p50()']],
+        },
+      } as EndpointDataRow;
 
       return (
-        <Link to={target} style={{display: `block`, width: `100%`}}>
+        <Link
+          onClick={() => onSelect(row)}
+          to=""
+          style={{display: `block`, width: `100%`}}
+        >
           {prefix}
           {dataRow.transaction}
         </Link>
