@@ -262,7 +262,7 @@ function Chart({
       }
     : undefined;
 
-  const showLineGraphChart = data.length > 1;
+  const showLineGraphLegent = data.length > 1;
 
   return (
     <ChartZoom
@@ -286,14 +286,7 @@ function Chart({
               tooltip={areaChartProps.tooltip}
               colors={colors}
               grid={grid}
-              {...(showLineGraphChart
-                ? {
-                    legend: {
-                      top: 0,
-                      right: 10,
-                    },
-                  }
-                : {})}
+              legend={showLineGraphLegent ? {top: 0, right: 10} : undefined}
             />
           );
         }
