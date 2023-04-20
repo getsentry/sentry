@@ -30,7 +30,7 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   formatError,
@@ -88,7 +88,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     transactions.status === 'error' ? formatError(transactions.error) : null;
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.landing', {
+    trackAnalytics('profiling_views.landing', {
       organization,
     });
   }, [organization]);
@@ -109,7 +109,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
 
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.onboarding', {
+    trackAnalytics('profiling_views.onboarding', {
       organization,
     });
     SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
@@ -206,7 +206,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   href="https://discord.gg/zrMjKA4Vnz"
                   external
                   onClick={() => {
-                    trackAdvancedAnalyticsEvent('profiling_views.visit_discord_channel', {
+                    trackAnalytics('profiling_views.visit_discord_channel', {
                       organization,
                     });
                   }}
@@ -317,7 +317,7 @@ function ProfilingBetaEndAlertBanner({organization}: {organization: Organization
   return (
     <StyledAlert system type="info">
       {t(
-        'Profiling beta is now over. Please wait for general availability in the next few weeks to access this feature.'
+        ' The beta program for Profiling is closed. Profiling will generally available soon. Check out the What’s New tab for updates.'
       )}
     </StyledAlert>
   );

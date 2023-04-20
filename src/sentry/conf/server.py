@@ -904,6 +904,11 @@ CELERYBEAT_SCHEDULE = {
         # Run job every 5 minutes
         "schedule": timedelta(minutes=5),
     },
+    "dynamic-sampling-prioritize-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+        # Run every 5 minutes
+        "schedule": timedelta(minutes=6),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -1406,8 +1411,6 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
-    # Enables occurrence-backed performance issues
-    "projects:use-occurrences-for-perf-issues": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

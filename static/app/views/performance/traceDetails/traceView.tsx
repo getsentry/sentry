@@ -19,7 +19,7 @@ import {
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -112,7 +112,7 @@ export default function TraceView({
     description: 'trace-view-content',
   });
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('performance_views.trace_view.view', {
+    trackAnalytics('performance_views.trace_view.view', {
       organization,
     });
   }, [organization]);

@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import {OnboardingCustomComponentProps, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import SkipConfirm from './skipConfirm';
 
@@ -49,7 +49,7 @@ export default function OnboardingProjectsCard({
             key={p.id}
             to={`/onboarding/${org.slug}/setup-docs/?project_id=${p.id}`}
             onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
+              trackAnalytics('growth.onboarding_quick_start_cta', {
                 platform: p.platform,
                 organization: org,
               });
@@ -68,7 +68,7 @@ export default function OnboardingProjectsCard({
           <OnboardingTaskProjectListItem
             to={`/onboarding/${org.slug}/setup-docs/`}
             onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
+              trackAnalytics('growth.onboarding_quick_start_cta', {
                 organization: org,
               });
             }}
