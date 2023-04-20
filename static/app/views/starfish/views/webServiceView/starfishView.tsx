@@ -30,8 +30,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
-import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
+import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
 
 import EndpointList from './endpointList';
 
