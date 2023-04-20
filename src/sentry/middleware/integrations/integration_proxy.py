@@ -7,11 +7,17 @@ from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
-from sentry.silo.util import clean_proxy_headers
+from sentry.silo.util import clean_proxy_headers, verify_subnet_signature
 
 logger = logging.getLogger(__name__)
-PROXY_ADDRESS = "/api/0/internal/proxy/"
+PROXY_ADDRESS = "/api/0/internal/integration-proxy/"
+"""
+This path is reserved on url patterns by InternalIntegrationProxyEndpoint and both should update
+if this is modified
+"""
 PROXY_OI_HEADER = "X-Sentry-Organization-Integration"
+PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
+PROXY_TIMESTAMP_HEADER = "X-Sentry-Subnet-Timestamp"
 
 
 class IntegrationProxyMiddleware:
@@ -22,11 +28,20 @@ class IntegrationProxyMiddleware:
     def full_url(self) -> str:
         return f"{self.client.base_url}/{self.proxy_path}"
 
-    def _validate_sender(self, request) -> bool:
-        # TODO(Leander): Add shared secret
-        return True
+    def _validate_sender(self, request: Request) -> bool:
+        """
+        Returns True if the sender is deemed sufficiently trustworthy.
+        """
+        timestamp = request.headers.get(PROXY_TIMESTAMP_HEADER)
+        signature = request.headers.get(PROXY_SIGNATURE_HEADER)
+        if timestamp is None or signature is None:
+            return False
 
-    def _validate_request(self, request) -> bool:
+        return verify_subnet_signature(
+            timestamp=timestamp, request_body=request.body, provided_signature=signature
+        )
+
+    def _validate_request(self, request: Request) -> bool:
         """
         Returns True if a client could be generated from the request
         """
@@ -75,15 +90,16 @@ class IntegrationProxyMiddleware:
 
         return True
 
-    def _should_operate(self, request) -> bool:
+    def _should_operate(self, request: Request) -> bool:
         """
         Determines whether this middleware will operate or just pass the request along.
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         is_proxy = request.path.startswith(PROXY_ADDRESS)
-        is_valid_request = self._validate_request(request=request)
         is_valid_sender = self._validate_sender(request=request)
-        return is_correct_silo and is_proxy and is_valid_request and is_valid_sender
+        is_valid_request = self._validate_request(request=request)
+
+        return is_correct_silo and is_proxy and is_valid_sender and is_valid_request
 
     def __call__(self, request: Request):
         if not self._should_operate(request):

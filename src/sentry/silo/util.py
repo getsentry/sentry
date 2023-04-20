@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import hmac
+from hashlib import sha256
 from typing import Any, Mapping
+
+from django.conf import settings
 
 INVALID_PROXY_HEADERS = ["Host"]
 
@@ -12,3 +16,31 @@ def clean_proxy_headers(headers: Mapping[str, Any] | None) -> Mapping[str, Any]:
     for invalid_header in INVALID_PROXY_HEADERS:
         modified_headers.pop(invalid_header, None)
     return modified_headers
+
+
+def encode_subnet_signature(
+    secret: str,
+    timestamp: str,
+    request_body: str | bytes,
+):
+    """v0: Silo subnet signature encoding"""
+    raw_signature = b"v0|%s|%s" % (timestamp.encode("utf-8"), request_body)
+    signature = hmac.new(secret.encode("utf-8"), raw_signature, sha256).hexdigest()
+    return f"v0={signature}"
+
+
+def verify_subnet_signature(
+    timestamp: str,
+    request_body: bytes,
+    provided_signature: str,
+) -> bool:
+    """v0: Silo subnet signature decoding and verification"""
+    secret = getattr(settings, "SENTRY_SILO_SHARED_SECRET", None)
+    if not secret:
+        return False
+
+    assembled_signature = encode_subnet_signature(secret, timestamp, request_body)
+
+    return hmac.compare_digest(
+        assembled_signature.encode("utf-8"), provided_signature.encode("utf-8")
+    )

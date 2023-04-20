@@ -5,7 +5,7 @@ from typing import Any, Callable, Mapping, Sequence, Type, Union
 
 import sentry_sdk
 from django.core.cache import cache
-from requests import PreparedRequest, Response
+from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry.http import build_session
@@ -68,6 +68,12 @@ class BaseApiClient(TrackResponseMixin):
             return f"{self.base_url}{path}"
         return path
 
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        """
+        Allows subclasses to add hooks before sending requests out
+        """
+        return prepared_request
+
     def _request(
         self,
         method: str,
@@ -83,7 +89,6 @@ class BaseApiClient(TrackResponseMixin):
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = False,
-        proxies: Mapping[str, str] = None,
     ) -> BaseApiResponseX | Response:
         if allow_text is None:
             allow_text = self.allow_text
@@ -113,6 +118,17 @@ class BaseApiClient(TrackResponseMixin):
                 parent_span_id = None
                 trace_id = None
 
+        request = Request(
+            method=method.upper(),
+            url=full_url,
+            headers=headers,
+            json=data if json else None,
+            data=data if not json else None,
+            params=params,
+            auth=auth,
+        )
+        _prepared_request = prepared_request if prepared_request is not None else request.prepare()
+
         with sentry_sdk.start_transaction(
             op=f"{self.integration_type}.http",
             name=f"{self.integration_type}.http_response.{self.name}",
@@ -122,22 +138,12 @@ class BaseApiClient(TrackResponseMixin):
         ) as span:
             try:
                 with build_session() as session:
-                    if proxies is not None:
-                        session.proxies = proxies
-                    resp = (
-                        session.send(prepared_request)
-                        if prepared_request is not None
-                        else getattr(session, method.lower())(
-                            url=full_url,
-                            headers=headers,
-                            json=data if json else None,
-                            data=data if not json else None,
-                            params=params,
-                            auth=auth,
-                            verify=self.verify_ssl,
-                            allow_redirects=allow_redirects,
-                            timeout=timeout,
-                        )
+                    finalized_request = self.finalize_request(_prepared_request)
+                    resp = session.send(
+                        finalized_request,
+                        allow_redirects=allow_redirects,
+                        timeout=timeout,
+                        verify=self.verify_ssl,
                     )
                     if raw_response:
                         return resp

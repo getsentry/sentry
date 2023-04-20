@@ -378,9 +378,9 @@ class ActivityMailDebugView(View):
         raise NotImplementedError
 
     def get(self, request: Request) -> Response:
-        headers = {"User-Agent": "Chrome"}
         client = SlackClient(org_integration_id=9)
-        resp = client.get("/team.info", headers=headers)
+        data = {"text": "a brand new messagge", "channel": "C02LGHWRG57"}
+        resp = client.post("/chat.postMessage", data=data)
         return HttpResponse(resp)
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
