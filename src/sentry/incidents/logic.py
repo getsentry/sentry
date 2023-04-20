@@ -1091,8 +1091,8 @@ def create_alert_rule_trigger_action(
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
-    input_channel_id: int | None = None,
-    sentry_app_config: Dict[str, Any] | None = None,
+    input_channel_id=None,
+    sentry_app_config=None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1147,8 +1147,8 @@ def update_alert_rule_trigger_action(
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
-    input_channel_id: int | None = None,
-    sentry_app_config: Dict[str, Any] | None = None,
+    input_channel_id=None,
+    sentry_app_config=None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1441,7 +1441,7 @@ def get_slack_channel_ids(organization, user, data):
                 action["type"].value,
                 action["target_identifier"],
                 organization,
-                action["integration"].id,
+                action["integration_id"],
                 use_async_lookup=True,
                 input_channel_id=None,
             )
