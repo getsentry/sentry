@@ -680,6 +680,8 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.save()
 
         self.call_post_process_group(
             is_new=True,
