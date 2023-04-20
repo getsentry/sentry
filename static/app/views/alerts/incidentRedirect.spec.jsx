@@ -3,10 +3,10 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import IncidentRedirect from 'sentry/views/alerts/incidentRedirect';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('IncidentRedirect', () => {
   const params = {alertId: '123'};
@@ -34,7 +34,7 @@ describe('IncidentRedirect', () => {
       context: routerContext,
     });
 
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_details.viewed',
       expect.objectContaining({
         alert_id: 123,

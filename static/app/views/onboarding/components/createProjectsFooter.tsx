@@ -20,7 +20,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {OnboardingSelectedPlatform, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -84,7 +83,7 @@ export function CreateProjectsFooter({
           state: 'projects_selected',
           url: 'setup-docs/',
         });
-        trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
+        trackAnalytics('growth.onboarding_set_up_your_projects', {
           platforms: selectedPlatforms.join(','),
           platform_count: selectedPlatforms.length,
           organization,
@@ -119,7 +118,7 @@ export function CreateProjectsFooter({
 
         responses.forEach(data => ProjectsStore.onCreateSuccess(data, organization.slug));
 
-        trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
+        trackAnalytics('growth.onboarding_set_up_your_projects', {
           platforms: selectedPlatforms.join(','),
           platform_count: selectedPlatforms.length,
           organization,

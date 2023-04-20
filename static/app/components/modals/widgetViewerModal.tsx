@@ -32,7 +32,7 @@ import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -457,7 +457,7 @@ function WidgetViewerModal(props: Props) {
         ),
       },
     });
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.toggle_legend', {
+    trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
       display_type: widget.displayType,
@@ -521,7 +521,7 @@ function WidgetViewerModal(props: Props) {
                 setChartUnmodified(false);
               }
 
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+              trackAnalytics('dashboards_views.widget_viewer.paginate', {
                 organization,
                 widget_type: WidgetType.DISCOVER,
                 display_type: widget.displayType,
@@ -596,7 +596,7 @@ function WidgetViewerModal(props: Props) {
                 setChartUnmodified(false);
               }
 
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+              trackAnalytics('dashboards_views.widget_viewer.paginate', {
                 organization,
                 widget_type: WidgetType.ISSUE,
                 display_type: widget.displayType,
@@ -659,7 +659,7 @@ function WidgetViewerModal(props: Props) {
                     [WidgetViewerQueryField.CURSOR]: newCursor,
                   },
                 });
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                trackAnalytics('dashboards_views.widget_viewer.paginate', {
                   organization,
                   widget_type: WidgetType.RELEASE,
                   display_type: widget.displayType,
@@ -711,7 +711,7 @@ function WidgetViewerModal(props: Props) {
         [WidgetViewerQueryField.END]: newEnd,
       },
     });
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
+    trackAnalytics('dashboards_views.widget_viewer.zoom', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
       display_type: widget.displayType,
@@ -898,14 +898,11 @@ function WidgetViewerModal(props: Props) {
                   },
                 });
 
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.select_query',
-                  {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  }
-                );
+                trackAnalytics('dashboards_views.widget_viewer.select_query', {
+                  organization,
+                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  display_type: widget.displayType,
+                });
               }}
               components={{
                 // Replaces the displayed selected value
@@ -1028,14 +1025,11 @@ function WidgetViewerModal(props: Props) {
                             onClick={() => {
                               closeModal();
                               onEdit();
-                              trackAdvancedAnalyticsEvent(
-                                'dashboards_views.widget_viewer.edit',
-                                {
-                                  organization,
-                                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                                  display_type: widget.displayType,
-                                }
-                              );
+                              trackAnalytics('dashboards_views.widget_viewer.edit', {
+                                organization,
+                                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                                display_type: widget.displayType,
+                              });
                             }}
                           >
                             {t('Edit Widget')}
@@ -1106,7 +1100,7 @@ function OpenButton({
       to={path}
       priority="primary"
       onClick={() => {
-        trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
+        trackAnalytics('dashboards_views.widget_viewer.open_source', {
           organization,
           widget_type: widget.widgetType ?? WidgetType.DISCOVER,
           display_type: widget.displayType,

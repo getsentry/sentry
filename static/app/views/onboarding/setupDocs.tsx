@@ -19,7 +19,7 @@ import platforms, {ReactDocVariant} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -332,7 +332,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.js_loader_npm_docs_shown', {
+    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
       organization,
       platform: currentPlatform,
       project_id: project?.id,
@@ -421,7 +421,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
 
   const selectProject = (newProjectId: string) => {
     const matchedProject = projects.find(p => p.id === newProjectId);
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_project_in_sidebar', {
+    trackAnalytics('growth.onboarding_clicked_project_in_sidebar', {
       organization,
       platform: matchedProject?.platform || 'unknown',
     });
@@ -519,14 +519,11 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
             hasFirstEvent={checkProjectHasFirstEvent(project)}
             onClickSetupLater={() => {
               const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
-              trackAdvancedAnalyticsEvent(
-                'growth.onboarding_clicked_setup_platform_later',
-                {
-                  organization,
-                  platform: currentPlatform,
-                  project_index: projectIndex,
-                }
-              );
+              trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
+                organization,
+                platform: currentPlatform,
+                project_index: projectIndex,
+              });
               if (!project.platform || !clientState) {
                 browserHistory.push(orgIssuesURL);
                 return;
@@ -556,14 +553,11 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
             const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
-            trackAdvancedAnalyticsEvent(
-              'growth.onboarding_clicked_setup_platform_later',
-              {
-                organization,
-                platform: currentPlatform,
-                project_index: projectIndex,
-              }
-            );
+            trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
+              organization,
+              platform: currentPlatform,
+              project_index: projectIndex,
+            });
             if (!project.platform || !clientState) {
               browserHistory.push(orgIssuesURL);
               return;
