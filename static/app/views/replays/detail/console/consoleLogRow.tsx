@@ -112,6 +112,7 @@ const ConsoleLog = styled('div')<{
   grid-template-columns: 12px 1fr max-content;
   gap: ${space(0.75)};
   padding: ${space(0.5)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
@@ -144,13 +145,15 @@ const ICONS = {
   warning: <IconWarning size="xs" />,
 };
 
-function Icon({level}: {level: Extract<Crumb, BreadcrumbTypeDefault>['level']}) {
-  return <span>{ICONS[level]}</span>;
-}
+const Icon = styled(({level, ...props}) => <span {...props}>{ICONS[level]}</span>)<{
+  level: Extract<Crumb, BreadcrumbTypeDefault>['level'];
+}>`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const Message = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+
   white-space: pre-wrap;
   word-break: break-word;
 `;

@@ -120,7 +120,7 @@ function KeyValueSections({containerSize, sections}: SectionsProps) {
 
 function ObjectSections({containerSize, sections}: SectionsProps) {
   return (
-    <SectionList height={containerSize}>
+    <SectionList style={{height: containerSize}}>
       {Object.entries(sections).map(([label, sectionData]) => (
         <Fragment key={label}>
           <SectionTitle>{label}</SectionTitle>
@@ -236,9 +236,8 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   }
 `;
 
-const SectionList = styled('dl')<{height: number}>`
+const SectionList = styled('dl')`
   margin: 0;
-  height: ${p => p.height}px;
   overflow: scroll;
   padding: ${space(1)};
 `;
@@ -256,6 +255,8 @@ const SectionData = styled('dd')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
-const NotFoundText = styled('code')``;
+const NotFoundText = styled('code')`
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+`;
 
 export default NetworkRequestDetails;
