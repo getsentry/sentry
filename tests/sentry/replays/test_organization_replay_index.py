@@ -578,7 +578,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             # Assert returns empty result sets.
             null_queries = [
                 "!replay_type:session",
-                "!!a3a62ef6ac86415b83c2416fc2f76db1",
+                "!error_ids:a3a62ef6ac86415b83c2416fc2f76db1",
                 "error_ids:123",
                 "!error_id:a3a62ef6ac86415b83c2416fc2f76db1",
                 "error_id:123",
