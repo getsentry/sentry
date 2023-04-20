@@ -48,6 +48,12 @@ class RpcSentryApp(RpcModel):
     webhook_url: Optional[str] = None
     is_published: bool = False
     is_internal: bool = True
+    show_auth_info: bool = False
+    is_publish_request_inprogress: bool = False
+
+    def show_auth_info(self, access):
+        encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
+        return set(self.scope_list).issubset(encoded_scopes)
 
 
 class RpcSentryAppInstallation(RpcModel):
@@ -183,6 +189,7 @@ class AppService(RpcService):
             webhook_url=app.webhook_url,
             is_published=app.is_published,
             is_internal=app.is_internal,
+            is_publish_request_inprogress=app.is_publish_request_inprogress,
         )
 
     @rpc_method
