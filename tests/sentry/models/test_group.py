@@ -304,10 +304,10 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group2.get_last_release() is None
 
     def test_group_substatus_defaults(self):
-        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus == GroupSubStatus.ONGOING
-        assert self.create_group(status=GroupStatus.IGNORED).substatus is None
-        assert self.create_group(status=GroupStatus.MUTED).substatus is None
+        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus is GroupSubStatus.ONGOING
         for nullable_status in (
+            GroupStatus.IGNORED,
+            GroupStatus.MUTED,
             GroupStatus.RESOLVED,
             GroupStatus.PENDING_DELETION,
             GroupStatus.DELETION_IN_PROGRESS,
@@ -315,23 +315,30 @@ class GroupTest(TestCase, SnubaTestCase):
         ):
             assert self.create_group(status=nullable_status).substatus is None
 
+    def test_group_valid_substatus(self):
+        desired_status_substatus_pairs = [
+            (GroupStatus.UNRESOLVED, GroupSubStatus.ESCALATING),
+            (GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED),
+            (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
+            (GroupStatus.IGNORED, GroupSubStatus.FOREVER),
+            (GroupStatus.IGNORED, GroupSubStatus.UNTIL_CONDITION_MET),
+            (GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING),
+        ]
+        for status, substatus in desired_status_substatus_pairs:
+            group = self.create_group(status=status, substatus=substatus)
+            assert group.substatus is substatus
+
     @patch("sentry.models.group.logger")
     def test_group_invalid_substatus(self, logger):
-        group = self.create_group(status=GroupStatus.RESOLVED)
-        assert group.substatus is None
+        status_substatus_pairs = [
+            (GroupStatus.UNRESOLVED, GroupSubStatus.UNTIL_ESCALATING),
+            (GroupStatus.IGNORED, GroupSubStatus.ONGOING),
+            (GroupStatus.IGNORED, GroupSubStatus.ESCALATING),
+        ]
 
-        group = self.create_group(
-            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
-        )
-        assert group.substatus is GroupSubStatus.ESCALATING
+        for status, substatus in status_substatus_pairs:
+            self.create_group(status=status, substatus=substatus)
 
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-        assert group.substatus is GroupSubStatus.ONGOING
-
-        # Test that we log an error when we try to set an invalid substatus
-        self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.UNTIL_ESCALATING)
-        self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ONGOING)
-        self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.ESCALATING)
         assert logger.exception.call_count == 3
 
 
