@@ -273,7 +273,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
   const projectSlugs = selectedPlatforms
-    .map(platform => platformToProjectIdMap[platform])
+    .map(platform => platformToProjectIdMap[platform.key])
     .filter((slug): slug is string => slug !== undefined);
 
   const selectedProjectsSet = new Set(projectSlugs);
@@ -437,8 +437,8 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
               projects={projects}
               selectedPlatformToProjectIdMap={Object.fromEntries(
                 selectedPlatforms.map(platform => [
-                  platform,
-                  platformToProjectIdMap[platform],
+                  platform.key,
+                  platformToProjectIdMap[platform.key],
                 ])
               )}
               activeProject={project}

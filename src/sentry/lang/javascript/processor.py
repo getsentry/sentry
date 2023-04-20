@@ -2108,6 +2108,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                         symbolicator_frame["module"] = generate_module(abs_path)
 
                     python_frame = filtered_frame(python_frame)
+
                     if symbolicator_frame != python_frame:
                         different_frames.append(
                             {"symbolicator": symbolicator_frame, "python": python_frame}

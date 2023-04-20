@@ -437,10 +437,6 @@ def transform_mqb_query_to_metrics_query(
             f"Unsupported entity name for {query.match.name} MQB to MetricsQuery " f"Transformation"
         )
 
-    if query.having:
-        raise MQBQueryTransformationException(
-            "Having clauses are not supported by the metrics layer"
-        )
     # Handle groupby
     groupby, include_series, interval = _transform_groupby(query.groupby)
 
@@ -455,6 +451,7 @@ def transform_mqb_query_to_metrics_query(
         "orderby": _transform_orderby(query.orderby),
         "interval": interval,
         "is_alerts_query": is_alerts_query,
+        "having": query.having,
         **_get_mq_dict_params_from_where(query.where, is_alerts_query),
     }
 
