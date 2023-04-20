@@ -50,12 +50,17 @@ const Wrapper = styled(Panel)`
 `;
 
 const Body = styled(PanelBody)`
-  display: grid;
-  grid-template-columns: 1fr max-content;
+  display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: ${space(1)};
 
+  > *:first-child {
+    flex: 1;
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    display: grid;
     grid-template-columns: 42% 1fr;
   }
 `;
@@ -69,6 +74,7 @@ const Title = styled('div')`
   /* to be consistent with the feature badge size */
   height: ${space(2)};
   line-height: ${space(2)};
+  white-space: nowrap;
 `;
 
 const Description = styled(TextBlock)`
