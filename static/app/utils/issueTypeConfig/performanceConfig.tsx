@@ -63,8 +63,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
       description: t('File IO operations on your main thread may lead to app hangs.'),
       links: [
         {
-          text: t('Sentry Docs: File IO on the Main Thread'),
-          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/main-thread-io/',
+          text: t('Sentry Docs: file IO on the Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/file-io-main-thread-io/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PERFORMANCE_DB_MAIN_THREAD]: {
+    resources: {
+      description: t('Database operations on your main thread may lead to app hangs.'),
+      links: [
+        {
+          text: t('Sentry Docs: database on the Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/db-main-thread-io/',
         },
       ],
       linksByPlatform: {},

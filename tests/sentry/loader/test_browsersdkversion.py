@@ -3,7 +3,7 @@ from unittest import mock
 from django.conf import settings
 
 from sentry.loader.browsersdkversion import (
-    get_browser_sdk_version_versions,
+    get_all_browser_sdk_version_versions,
     get_highest_browser_sdk_version,
     match_selected_version_to_browser_sdk_version,
 )
@@ -22,9 +22,9 @@ MOCK_VERSIONS = [
 
 
 class BrowserSdkVersionTestCase(TestCase):
-    def test_get_browser_sdk_version_versions(self):
-        assert "latest" in get_browser_sdk_version_versions()
-        assert "4.x" in get_browser_sdk_version_versions()
+    def test_get_all_browser_sdk_version_versions(self):
+        assert "latest" in get_all_browser_sdk_version_versions()
+        assert "4.x" in get_all_browser_sdk_version_versions()
 
     @mock.patch(
         "sentry.loader.browsersdkversion.load_version_from_file", return_value=MOCK_VERSIONS

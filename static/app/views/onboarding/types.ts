@@ -1,9 +1,10 @@
 import {RouteComponentProps} from 'react-router';
 
 import {PlatformKey} from 'sentry/data/platformCategories';
+import {OnboardingSelectedPlatform} from 'sentry/types';
 
 export type StepData = {
-  platform?: PlatformKey | null;
+  platform?: OnboardingSelectedPlatform | null;
 };
 
 // Not sure if we need platform info to be passed down
@@ -14,7 +15,7 @@ export type StepProps = Pick<
   active: boolean;
   genSkipOnboardingLink: () => React.ReactNode;
   jumpToSetupProject: () => void;
-  onComplete: (selectedPlatforms?: PlatformKey[]) => void;
+  onComplete: (selectedPlatforms?: OnboardingSelectedPlatform[]) => void;
   orgId: string;
   search: string;
   stepIndex: number;
@@ -35,7 +36,7 @@ export type OnboardingState = {
 
   // Contains platforms currently selected. This is different from `platforms` because
   // a project created by onboarding could be unselected by the user in the future.
-  selectedPlatforms: PlatformKey[];
+  selectedPlatforms: OnboardingSelectedPlatform[];
   state?: 'started' | 'projects_selected' | 'finished' | 'skipped';
   url?: string;
 };

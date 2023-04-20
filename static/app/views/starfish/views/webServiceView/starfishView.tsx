@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
@@ -12,7 +13,12 @@ import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {useQuery} from 'sentry/utils/queryClient';
 import Chart from 'sentry/views/starfish/components/chart';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
+import {
+  ModuleButtonType,
+  ModuleLinkButton,
+} from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
 import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
@@ -21,12 +27,14 @@ import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 import EndpointList from './endpointList';
 
 type BasePerformanceViewProps = {
   eventView: EventView;
   location: Location;
+  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
   projects: Project[];
 };
@@ -34,7 +42,7 @@ type BasePerformanceViewProps = {
 const HOST = 'http://localhost:8080';
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView} = props;
+  const {organization, eventView, onSelect} = props;
 
   const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
     queryKey: ['durationBreakdown'],
@@ -54,33 +62,13 @@ export function StarfishView(props: BasePerformanceViewProps) {
     };
   });
 
-  // cross-reference the series, and makes sure
-  // they have the same number of points by backfilling
-  // missing timestamps for each other series with a 0
-  let lastInterval = undefined;
-  modules.forEach(module => {
-    moduleDurationData.forEach(value => {
-      if (module === value.module) {
-        if (lastInterval === value.interval) {
-          seriesByModule[module].data.pop();
-        }
-        seriesByModule[module].data.push({
-          value: value.p75,
-          name: value.interval,
-        });
-      } else {
-        if (lastInterval !== value.interval) {
-          seriesByModule[module].data.push({
-            value: 0,
-            name: value.interval,
-          });
-        }
-      }
-      lastInterval = value.interval;
-    });
+  moduleDurationData.forEach(value => {
+    seriesByModule[value.module].data.push({value: value.p75, name: value.interval});
   });
 
-  const data = Object.values(seriesByModule);
+  const data = Object.values(seriesByModule).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -139,6 +127,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
+      <ModuleLinkButton type={ModuleButtonType.API} />
+      <ModuleLinkButton type={ModuleButtonType.CACHE} />
+      <ModuleLinkButton type={ModuleButtonType.DB} />
       <StyledRow minSize={200}>
         <Fragment>
           <ChartPanel title={t('Response Time')}>
@@ -169,12 +160,14 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <EndpointList
         {...props}
         setError={usePageError().setPageError}
-        dataset="discover" // Metrics dataset can't do equations yet
+        dataset="discover" // Metrics dataset can't do total.transaction_duration yet
+        onSelect={onSelect}
         columnTitles={[
           'endpoint',
           'tpm',
           'p50(duration)',
           'p95(duration)',
+          'failure count',
           'cumulative time',
         ]}
       />
