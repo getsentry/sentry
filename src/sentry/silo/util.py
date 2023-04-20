@@ -35,7 +35,7 @@ def verify_subnet_signature(
     provided_signature: str,
 ) -> bool:
     """v0: Silo subnet signature decoding and verification"""
-    secret = getattr(settings, "SENTRY_SILO_SHARED_SECRET", None)
+    secret = getattr(settings, "SENTRY_SUBNET_SECRET")
     if not secret:
         return False
 

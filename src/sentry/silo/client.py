@@ -109,4 +109,9 @@ class ControlSiloClient(BaseSiloClient):
 
     def __init__(self) -> None:
         super().__init__()
-        self.base_url = settings.SENTRY_CONTROL_ADDRESS
+
+        self.base_url = getattr(settings, "SENTRY_CONTROL_ADDRESS")
+        if not self.base_url:
+            raise AttributeError(
+                "Configure 'SENTRY_CONTROL_ADDRESS' in sentry configuration settings to use the ControlSiloClient"
+            )
