@@ -408,7 +408,9 @@ class IssueTrackingPlugin2(Plugin):
         if self.needs_auth(project=group.project, request=request):
             return {
                 "error_type": "auth",
-                "auth_url": reverse("socialauth_associate", args=[self.auth_provider]),
+                "auth_url": absolute_uri(
+                    reverse("socialauth_associate", args=[self.auth_provider])
+                ),
             }
 
     # TODO: should we get rid of this (move it to react?)
