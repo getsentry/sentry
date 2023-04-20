@@ -159,6 +159,7 @@ STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
+    "archived": GroupStatus.IGNORED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
     "reprocessing": GroupStatus.REPROCESSING,

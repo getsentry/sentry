@@ -92,6 +92,24 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
+    def test_query_for_archived(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        )
+        group = event.group
+        Group.objects.update_group_status(
+            groups=[group],
+            status=GroupStatus.IGNORED,
+            substatus=None,
+            activity_type=ActivityType.SET_IGNORED,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(sort_by="date", query="is:archived")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
+
     def test_sort_by_trend(self):
         group = self.store_event(
             data={
