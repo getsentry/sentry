@@ -31,12 +31,14 @@ import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
+import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 import EndpointList from './endpointList';
 
 type BasePerformanceViewProps = {
   eventView: EventView;
   location: Location;
+  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
   projects: Project[];
 };
@@ -44,7 +46,7 @@ type BasePerformanceViewProps = {
 const HOST = 'http://localhost:8080';
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView} = props;
+  const {organization, eventView, onSelect} = props;
   const theme = useTheme();
   const [selectedSpike, setSelectedSpike] = useState<any | undefined>();
 
@@ -170,7 +172,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <EndpointList
         {...props}
         setError={usePageError().setPageError}
-        dataset="discover" // Metrics dataset can't do equations yet
+        dataset="discover" // Metrics dataset can't do total.transaction_duration yet
+        onSelect={onSelect}
         columnTitles={[
           'endpoint',
           'tpm',
