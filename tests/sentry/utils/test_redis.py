@@ -4,8 +4,6 @@ from unittest import TestCase, mock
 
 import pytest
 from django.utils.functional import SimpleLazyObject
-from redis.exceptions import ConnectionError, ReadOnlyError
-from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import imports
@@ -123,66 +121,3 @@ def test_get_cluster_from_options_both_options_invalid():
             {"hosts": {0: {"db": 0}}, "cluster": "foo", "foo": "bar"},
             cluster_manager=manager,
         )
-
-
-class TestFailoverRedis(TestCase):
-    def setUp(self):
-        # clear previously cached FailoverRedis mock from import cache
-        imports._cache.clear()
-
-    def _get_client(self, **kwargs):
-        return ClusterManager(
-            {
-                "redis.clusters": {
-                    "c": {
-                        "client_class": "sentry.utils.redis.FailoverRedis",
-                        "hosts": {0: {"db": 0, **kwargs}},
-                    }
-                }
-            },
-            cluster_type=_RedisCluster,
-        ).get("c")
-
-    @mock.patch("sentry.utils.redis.StrictRedis.execute_command")
-    @mock.patch("sentry.utils.redis.time.sleep")
-    def test_retries(self, time_sleep, execute_command):
-        client = self._get_client(_retries=5)
-        assert client._retries == 5
-        execute_command.side_effect = ConnectionError()
-        with pytest.raises(ConnectionError):
-            client.get("key")
-        assert time_sleep.call_count == 5
-
-    @mock.patch("sentry.utils.redis.StrictRedis.execute_command")
-    @mock.patch("sentry.utils.redis.time.sleep")
-    def test_recover(self, time_sleep, execute_command):
-        client = self._get_client(_retries=5)
-        assert client._retries == 5
-        execute_command.side_effect = [
-            ConnectionError(),
-            RedisTimeoutError(),
-            ReadOnlyError(),
-            "value",
-        ]
-        assert client.get("key") == "value"
-        assert time_sleep.call_count == 3
-
-    @mock.patch("sentry.utils.redis.StrictRedis.execute_command")
-    @mock.patch("sentry.utils.redis.time.sleep")
-    def test_fixed_backoff(self, time_sleep, execute_command):
-        client = self._get_client(_backoff_max=1.0, _backoff_min=1.0)
-        assert client._retries == 10
-        execute_command.side_effect = ConnectionError()
-        with pytest.raises(ConnectionError):
-            client.get("key")
-        assert time_sleep.call_args_list == 10 * [((1.0,), {})]
-
-    @mock.patch("sentry.utils.redis.StrictRedis.execute_command")
-    @mock.patch("sentry.utils.redis.time.sleep")
-    def test_max_backoff(self, time_sleep, execute_command):
-        client = self._get_client(_backoff_max=1.0, _backoff_min=0.5)
-        assert client._retries == 10
-        execute_command.side_effect = ConnectionError()
-        with pytest.raises(ConnectionError):
-            client.get("key")
-        assert all(a[0][0] <= 1.0 for a in time_sleep.call_args_list)
