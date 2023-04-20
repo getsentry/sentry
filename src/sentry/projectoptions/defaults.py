@@ -1,7 +1,7 @@
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 10
+LATEST_EPOCH = 11
 
 # grouping related configs
 #
@@ -135,4 +135,10 @@ register(
             "hasReplay": True,
         }
     },
+)
+
+# The available loader SDK versions
+register(
+    key="sentry:loader_available_sdk_versions",
+    epoch_defaults={1: ["latest", "7.x", "6.x", "5.x", "4.x"], 11: ["latest", "7.x"]},
 )

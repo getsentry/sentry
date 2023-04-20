@@ -65,6 +65,7 @@ export {SidebarAccordion};
 const SidebarAccordionWrapper = styled('div')`
   display: flex;
   flex-direction: column;
+  gap: 1px;
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     flex-direction: row;
@@ -102,6 +103,7 @@ const SidebarAccordionExpandButton = styled(Button)<{sidebarCollapsed?: boolean}
 const SidebarAccordionSubitemsWrap = styled('div')`
   display: flex;
   flex-direction: column;
+  gap: 1px;
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     flex-direction: row;

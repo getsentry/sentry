@@ -22,7 +22,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DateString, Member, Organization, Project} from 'sentry/types';
+import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
@@ -38,7 +38,6 @@ type Props = AsyncComponent['props'] & {
 } & RouteComponentProps<{projectId: string; ruleId: string}, {}>;
 
 type State = AsyncComponent['state'] & {
-  memberList: Member[];
   rule: IssueAlertRule | null;
 };
 
@@ -78,7 +77,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       rule: null,
-      memberList: [],
     };
   }
 
@@ -91,11 +89,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         `/projects/${organization.slug}/${projectId}/rules/${ruleId}/`,
         {query: {expand: 'lastTriggered'}},
         {allowError: error => error.status === 404},
-      ],
-      [
-        'memberList',
-        `/organizations/${organization.slug}/users/`,
-        {query: {projectSlug: projectId}},
       ],
     ];
   }
@@ -239,7 +232,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     const {ruleId, projectId} = params;
     const {cursor} = location.query;
     const {period, start, end, utc} = this.getDataDatetime();
-    const {rule, memberList} = this.state;
+    const {rule} = this.state;
 
     if (!rule) {
       return (
@@ -379,7 +372,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             />
           </Layout.Main>
           <Layout.Side>
-            <Sidebar rule={rule} memberList={memberList} teams={project.teams} />
+            <Sidebar rule={rule} projectSlug={project.slug} teams={project.teams} />
           </Layout.Side>
         </Layout.Body>
       </PageFiltersContainer>
