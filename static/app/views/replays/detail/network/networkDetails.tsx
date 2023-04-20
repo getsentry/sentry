@@ -88,7 +88,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
           <Fragment key={label}>
             <SectionTitle>{label}</SectionTitle>
             <SectionData>
-              <ObjectInspector data={sectionData} />
+              <ObjectInspector data={sectionData} expandLevel={1} />
             </SectionData>
           </Fragment>
         ))}
