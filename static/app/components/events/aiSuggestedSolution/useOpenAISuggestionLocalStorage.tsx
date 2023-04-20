@@ -4,7 +4,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 type LocalState = {
-  hideDetails: boolean;
   individualConsent: boolean;
 };
 
@@ -19,7 +18,6 @@ export function useOpenAISuggestionLocalStorage(): [
     {
       // agree forward data to OpenAI
       individualConsent: false,
-      hideDetails: false,
     }
   );
 
