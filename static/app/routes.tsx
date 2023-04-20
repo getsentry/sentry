@@ -1708,6 +1708,12 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/views/webServiceView'))}
       />
       <Route
+        path="failure-detail/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/failureDetailView')
+        )}
+      />
+      <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
       />
