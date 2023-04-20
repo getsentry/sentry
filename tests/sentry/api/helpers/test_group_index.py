@@ -22,6 +22,7 @@ from sentry.models import (
     GroupInboxReason,
     GroupSeen,
     GroupShare,
+    GroupSnooze,
     GroupStatus,
     GroupSubscription,
     GroupSubStatus,
@@ -131,13 +132,13 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignoring_group(self, send_robust):
+    def test_ignoring_group_forever(self, send_robust):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
-        request.data = {"status": "ignored"}
+        request.data = {"status": "ignored", "substatus": "forever"}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
@@ -148,8 +149,36 @@ class UpdateGroupsTest(TestCase):
         group.refresh_from_db()
 
         assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.FOREVER
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
+
+    @patch("sentry.signals.issue_ignored.send_robust")
+    def test_ignoring_group_until_condition(self, send_robust):
+        group = self.create_group()
+        add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {
+            "status": "ignored",
+            "substatus": "until_condition_met",
+            "statusDetails": {"ignoreDuration": 1},
+        }
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        search_fn = Mock()
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
+        assert send_robust.called
+        assert not GroupInbox.objects.filter(group=group).exists()
+        assert GroupSnooze.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_unignoring_group(self, send_robust):
