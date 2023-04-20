@@ -21,7 +21,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 
 type Props = ModalRenderProps & {
@@ -41,7 +41,7 @@ class SuggestProjectModal extends Component<Props, State> {
 
   handleGetStartedClick = () => {
     const {matchedUserAgentString, organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.clicked_mobile_prompt_setup_project', {
+    trackAnalytics('growth.clicked_mobile_prompt_setup_project', {
       matchedUserAgentString,
       organization,
     });
@@ -50,7 +50,7 @@ class SuggestProjectModal extends Component<Props, State> {
   handleAskTeammate = () => {
     const {matchedUserAgentString, organization} = this.props;
     this.setState({askTeammate: true});
-    trackAdvancedAnalyticsEvent('growth.clicked_mobile_prompt_ask_teammate', {
+    trackAnalytics('growth.clicked_mobile_prompt_ask_teammate', {
       matchedUserAgentString,
       organization,
     });
@@ -63,7 +63,7 @@ class SuggestProjectModal extends Component<Props, State> {
   handleSubmitSuccess = () => {
     const {matchedUserAgentString, organization, closeModal} = this.props;
     addSuccessMessage('Notified teammate successfully');
-    trackAdvancedAnalyticsEvent('growth.submitted_mobile_prompt_ask_teammate', {
+    trackAnalytics('growth.submitted_mobile_prompt_ask_teammate', {
       matchedUserAgentString,
       organization,
     });

@@ -1102,6 +1102,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
+    # Enable the new issue states and substates
+    "organizations:issues-states": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1169,7 +1171,7 @@ SENTRY_FEATURES = {
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
-    "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
+    "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1239,7 +1241,7 @@ SENTRY_FEATURES = {
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
-    "organizations:project-stats": False,
+    "organizations:project-stats": True,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for anomaly detection

@@ -1,19 +1,23 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
+import EndpointTable from './endpointTable';
+import {ENDPOINT_GRAPH_QUERY} from './queries';
 
 export const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
-  onSelect: (row: DataRow) => void;
+  onSelect: (row: EndpointDataRow) => void;
 };
 
 export type DataRow = {
@@ -22,26 +26,7 @@ export type DataRow = {
   domain: string;
 };
 
-const COLUMN_ORDER = [
-  {
-    key: 'description',
-    name: 'Transaction',
-    width: 600,
-  },
-  {
-    key: 'count',
-    name: 'Count',
-  },
-];
-
 export default function APIModuleView({location, onSelect}: Props) {
-  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints'],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_LIST_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
   const {isLoading: isGraphLoading, data: graphData} = useQuery({
     queryKey: ['graph'],
     queryFn: () =>
@@ -69,56 +54,34 @@ export default function APIModuleView({location, onSelect}: Props) {
     });
   });
 
-  const data = Object.values(seriesByQuantile);
-
-  // TODO: Moved these into the component for easy acces to onSelect. Clean this up later.
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    return <span>{column.name}</span>;
-  }
-
-  function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-    if (column.key === 'description') {
-      return (
-        <Link onClick={() => onSelect(row)} to="">
-          {row[column.key]}
-        </Link>
-      );
-    }
-    return <span>{row[column.key]}</span>;
-  }
+  const data = Object.values(seriesByQuantile).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   return (
     <Fragment>
-      <Chart
-        statsPeriod="24h"
-        height={180}
-        data={data}
-        start=""
-        end=""
-        loading={isGraphLoading}
-        utc={false}
-        grid={{
-          left: '0',
-          right: '0',
-          top: '16px',
-          bottom: '8px',
-        }}
-        disableMultiAxis
-        definedAxisTicks={4}
-        stacked
-      />
+      <ChartPanel title={t('Response Time')}>
+        <Chart
+          statsPeriod="24h"
+          height={180}
+          data={data}
+          start=""
+          end=""
+          loading={isGraphLoading}
+          utc={false}
+          grid={{
+            left: '0',
+            right: '0',
+            top: '16px',
+            bottom: '8px',
+          }}
+          disableMultiAxis
+          definedAxisTicks={4}
+          stacked
+        />
+      </ChartPanel>
 
-      <GridEditable
-        isLoading={areEndpointsLoading}
-        data={endpointsData}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location}
-      />
+      <EndpointTable location={location} onSelect={onSelect} />
     </Fragment>
   );
 }

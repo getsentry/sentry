@@ -44,6 +44,7 @@ export type SearchItem = {
   ignoreMaxSearchItems?: boolean;
   kind?: FieldKind;
   title?: string;
+  titleBadge?: React.ReactNode;
   type?: ItemType;
   /**
    * A value of null means that this item is not selectable in the search dropdown

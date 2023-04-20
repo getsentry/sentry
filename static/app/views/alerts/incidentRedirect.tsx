@@ -4,7 +4,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -23,7 +23,7 @@ function IncidentRedirect({organization, params}: Props) {
   const [hasError, setHasError] = useState(false);
 
   const track = useCallback(() => {
-    trackAdvancedAnalyticsEvent('alert_details.viewed', {
+    trackAnalytics('alert_details.viewed', {
       organization,
       alert_id: parseInt(params.alertId, 10),
     });

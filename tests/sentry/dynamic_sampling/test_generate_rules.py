@@ -701,13 +701,13 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             },
             "id": boost_low_transactions_id,
             "samplingValue": {"type": "factor", "value": t1_rate},
-            "type": "transaction",
+            "type": "trace",
         },
         {
             "condition": {"inner": [], "op": "and"},
-            "id": 1401,
+            "id": boost_low_transactions_id + 1,
             "samplingValue": {"type": "factor", "value": implicit_rate},
-            "type": "transaction",
+            "type": "trace",
         },
         {
             "condition": {"inner": [], "op": "and"},

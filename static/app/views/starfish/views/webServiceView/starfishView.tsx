@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -15,7 +17,16 @@ import {
   ModuleButtonType,
   ModuleLinkButton,
 } from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
+
+const EventsRequest = withApi(_EventsRequest);
+
+import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 import EndpointList from './endpointList';
 
@@ -29,10 +40,10 @@ type BasePerformanceViewProps = {
 const HOST = 'http://localhost:8080';
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  // const {organization, eventView} = props;
+  const {organization, eventView} = props;
 
   const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
-    queryKey: ['graph'],
+    queryKey: ['durationBreakdown'],
     queryFn: () =>
       fetch(`${HOST}/?query=${MODULE_DURATION_QUERY}`).then(res => res.json()),
     retry: false,
@@ -49,33 +60,68 @@ export function StarfishView(props: BasePerformanceViewProps) {
     };
   });
 
-  // cross-reference the series, and makes sure
-  // they have the same number of points by backfilling
-  // missing timestamps for each other series with a 0
-  let lastInterval = undefined;
-  modules.forEach(module => {
-    moduleDurationData.forEach(value => {
-      if (module === value.module) {
-        if (lastInterval === value.interval) {
-          seriesByModule[module].data.pop();
-        }
-        seriesByModule[module].data.push({
-          value: value.p75,
-          name: value.interval,
-        });
-      } else {
-        if (lastInterval !== value.interval) {
-          seriesByModule[module].data.push({
-            value: 0,
-            name: value.interval,
-          });
-        }
-      }
-      lastInterval = value.interval;
-    });
+  moduleDurationData.forEach(value => {
+    seriesByModule[value.module].data.push({value: value.p75, name: value.interval});
   });
 
-  const data = Object.values(seriesByModule);
+  const data = Object.values(seriesByModule).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
+
+  function renderFailureRateChart() {
+    const query = new MutableSearch(['event.type:transaction']);
+
+    return (
+      <EventsRequest
+        query={query.formatString()}
+        includePrevious={false}
+        partial
+        interval="1h"
+        includeTransformedData
+        limit={1}
+        environment={eventView.environment}
+        project={eventView.project}
+        period={eventView.statsPeriod}
+        referrer="starfish-homepage-failure-rate"
+        start={eventView.start}
+        end={eventView.end}
+        organization={organization}
+        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
+      >
+        {eventData => {
+          const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
+            series => ({
+              data: series.data,
+              seriesName: t('Failure Rate'),
+              color: CHART_PALETTE[5][3],
+            })
+          );
+
+          if (!transformedData) {
+            return null;
+          }
+
+          return (
+            <FailureRateChart
+              statsPeriod={eventView.statsPeriod}
+              height={180}
+              data={transformedData}
+              start={eventView.start as string}
+              end={eventView.end as string}
+              loading={eventData.loading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '8px',
+              }}
+            />
+          );
+        }}
+      </EventsRequest>
+    );
+  }
 
   return (
     <div data-test-id="starfish-view">
@@ -84,25 +130,28 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <ModuleLinkButton type={ModuleButtonType.DB} />
       <StyledRow minSize={200}>
         <Fragment>
-          <Chart
-            statsPeriod="24h"
-            height={180}
-            data={data}
-            start=""
-            end=""
-            loading={isDurationDataLoading}
-            utc={false}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '16px',
-              bottom: '8px',
-            }}
-            disableMultiAxis
-            definedAxisTicks={4}
-            stacked
-            chartColors={['#444674', '#7a5088', '#b85586']}
-          />
+          <ChartPanel title={t('Response Time')}>
+            <Chart
+              statsPeriod="24h"
+              height={180}
+              data={data}
+              start=""
+              end=""
+              loading={isDurationDataLoading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '8px',
+              }}
+              disableMultiAxis
+              definedAxisTicks={4}
+              stacked
+              chartColors={['#444674', '#7a5088', '#b85586']}
+            />
+          </ChartPanel>
+          {renderFailureRateChart()}
         </Fragment>
       </StyledRow>
 
@@ -115,7 +164,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'tpm',
           'p50(duration)',
           'p95(duration)',
-          '% time spent',
+          'failure count',
+          'cumulative time',
         ]}
       />
     </div>

@@ -3,7 +3,119 @@ import {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Hooks} from 'sentry/types/hooks';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+
+import {
+  aiSuggestedSolutionEventMap,
+  AiSuggestedSolutionEventParameters,
+} from './analytics/aiSuggestedSolutionAnalyticsEvents';
+import {coreUIEventMap, CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
+import {
+  dashboardsEventMap,
+  DashboardsEventParameters,
+} from './analytics/dashboardsAnalyticsEvents';
+import {
+  discoverEventMap,
+  DiscoverEventParameters,
+} from './analytics/discoverAnalyticsEvents';
+import {
+  dynamicSamplingEventMap,
+  DynamicSamplingEventParameters,
+} from './analytics/dynamicSamplingAnalyticsEvents';
+import {
+  ecosystemEventMap,
+  EcosystemEventParameters,
+} from './analytics/ecosystemAnalyticsEvents';
+import {growthEventMap, GrowthEventParameters} from './analytics/growthAnalyticsEvents';
+import {integrationEventMap, IntegrationEventParameters} from './analytics/integrations';
+import {issueEventMap, IssueEventParameters} from './analytics/issueAnalyticsEvents';
+import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
+import {
+  monitorsEventMap,
+  MonitorsEventParameters,
+} from './analytics/monitorsAnalyticsEvents';
+import {
+  onboardingEventMap,
+  OnboardingEventParameters,
+} from './analytics/onboardingAnalyticsEvents';
+import {
+  performanceEventMap,
+  PerformanceEventParameters,
+} from './analytics/performanceAnalyticsEvents';
+import {
+  profilingEventMap,
+  ProfilingEventParameters,
+} from './analytics/profilingAnalyticsEvents';
+import {
+  releasesEventMap,
+  ReleasesEventParameters,
+} from './analytics/releasesAnalyticsEvents';
+import {replayEventMap, ReplayEventParameters} from './analytics/replayAnalyticsEvents';
+import {searchEventMap, SearchEventParameters} from './analytics/searchAnalyticsEvents';
+import {
+  settingsEventMap,
+  SettingsEventParameters,
+} from './analytics/settingsAnalyticsEvents';
+import {
+  stackTraceEventMap,
+  StackTraceEventParameters,
+} from './analytics/stackTraceAnalyticsEvents';
+import {
+  TeamInsightsEventParameters,
+  workflowEventMap,
+} from './analytics/workflowAnalyticsEvents';
+
+type EventParameters = GrowthEventParameters &
+  CoreUIEventParameters &
+  DashboardsEventParameters &
+  DiscoverEventParameters &
+  IssueEventParameters &
+  MonitorsEventParameters &
+  PerformanceEventParameters &
+  ProfilingEventParameters &
+  ReleasesEventParameters &
+  ReplayEventParameters &
+  SearchEventParameters &
+  SettingsEventParameters &
+  TeamInsightsEventParameters &
+  DynamicSamplingEventParameters &
+  OnboardingEventParameters &
+  StackTraceEventParameters &
+  AiSuggestedSolutionEventParameters &
+  EcosystemEventParameters &
+  IntegrationEventParameters;
+
+const allEventMap: Record<string, string | null> = {
+  ...coreUIEventMap,
+  ...dashboardsEventMap,
+  ...discoverEventMap,
+  ...growthEventMap,
+  ...issueEventMap,
+  ...monitorsEventMap,
+  ...performanceEventMap,
+  ...profilingEventMap,
+  ...releasesEventMap,
+  ...replayEventMap,
+  ...searchEventMap,
+  ...settingsEventMap,
+  ...workflowEventMap,
+  ...dynamicSamplingEventMap,
+  ...onboardingEventMap,
+  ...stackTraceEventMap,
+  ...aiSuggestedSolutionEventMap,
+  ...ecosystemEventMap,
+  ...integrationEventMap,
+};
+
+/**
+ * This should be with all analytics events regardless of the analytics destination
+ * which includes Reload, Amplitude, and Google Analytics.
+ * All events go to Reload. If eventName is defined, events also go to Amplitude.
+ * For more details, refer to makeAnalyticsFunction.
+ *
+ * Should be used for all analytics that are defined in Sentry.
+ */
+
+export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
 /**
  * Analytics and metric tracking functionality.
@@ -27,23 +139,15 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
  * This should be with all analytics events regardless of the analytics destination
  * which includes Reload, Amplitude, and Google Analytics.
  * All events go to Reload. If eventName is defined, events also go to Amplitude.
- * For more details, refer to makeAnalyticsFunction.
- *
- * Should be used for all analytics that are defined in Sentry.
- */
-export const trackAnalytics = trackAdvancedAnalyticsEvent;
-
-/**
- * This should be with all analytics events regardless of the analytics destination
- * which includes Reload, Amplitude, and Google Analytics.
- * All events go to Reload. If eventName is defined, events also go to Amplitude.
  * For more details, refer to the API defined in hooks.
  *
  * Should NOT be used directly.
  * Instead, use makeAnalyticsFunction to generate an analytics function.
  */
-export const trackAnalyticsEventV2: Hooks['analytics:track-event-v2'] = (data, options) =>
-  HookStore.get('analytics:track-event-v2').forEach(cb => cb(data, options));
+export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
+  data,
+  options
+) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
 /**
  * This should be used to log when a `organization.experiments` experiment
