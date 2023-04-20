@@ -32,22 +32,17 @@ with transaction.atomic():
     return super().delete(**kwargs)
 ```
 
-### Outbox message delivery
+### Outbox message processing
 
 Outbox messages are delivered periodically (each minute) by the `sentry.tasks.enqueue_outbox_jobs`.
-This task runs in both Control and Region Silos and delivers messages to their destination Silo.
+This task runs in both Control and Region Silos and triggers the `send_signal()` method on outbox
+model records.
 
-Should delivery fail for any reason, it will remain in the outbox until it can be successfully
-delivered. Outbox messages will be delivered by cross-region RPC calls.
+Attached signal handlers are triggered in the 'source' region, and are responsible for doing any
+local changes (recording tombstones) and sending RPC calls to update state on the 'other' region.
 
-### Processing outbox messages
-
-When an outbox message is received via RPC, it is processed by a signal handler. Signal handlers can
-be found in sentry.receivers.outbox.control and sentry.receivers.outbox.region. Outbox receivers are
-fired according to the message type. For example when a ControlOutbox message is received and processed
-on Region Silos the relevant receiver in `receivers.outbox.control` will be called.
-Similarily, when a RegionOutbox message is received and processed on Control Silo the relevant
-receiver in `receivers.outbox.region` will be called.
+Should the signal handler raise an error for any reason, it will remain in the outbox until it can
+be successfully delivered.
 
 See https://www.notion.so/sentry/Async-cross-region-updates-outbox-9330293c8d2f4bd497361a505fd355d3
 """
