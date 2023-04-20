@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from copy import deepcopy
 from dataclasses import replace
@@ -34,6 +36,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import Integration, PagerDutyService, Project
+from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -1081,16 +1084,16 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger,
-    type,
-    target_type,
-    target_identifier=None,
-    integration_id=None,
-    sentry_app_id=None,
-    use_async_lookup=False,
-    input_channel_id=None,
-    sentry_app_config=None,
-):
+    trigger: AlertRuleTrigger,
+    type: ActionService,
+    target_type: ActionTarget,
+    target_identifier: str | None = None,
+    integration_id: int | None = None,
+    sentry_app_id: int | None = None,
+    use_async_lookup: bool = False,
+    input_channel_id: int | None = None,
+    sentry_app_config: Dict[str, Any] | None = None,
+) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
     :param trigger: The trigger to create the action on
@@ -1137,16 +1140,16 @@ def create_alert_rule_trigger_action(
 
 
 def update_alert_rule_trigger_action(
-    trigger_action,
-    type=None,
-    target_type=None,
-    target_identifier=None,
-    integration_id=None,
-    sentry_app_id=None,
-    use_async_lookup=False,
-    input_channel_id=None,
-    sentry_app_config=None,
-):
+    trigger_action: AlertRuleTriggerAction,
+    type: ActionService | None = None,
+    target_type: ActionTarget | None = None,
+    target_identifier: str = None,
+    integration_id: int | None = None,
+    sentry_app_id: int | None = None,
+    use_async_lookup: bool = False,
+    input_channel_id: int | None = None,
+    sentry_app_config: Dict[str, Any] | None = None,
+) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
     :param trigger_action: The trigger action to update
