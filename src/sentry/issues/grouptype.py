@@ -198,6 +198,7 @@ class ErrorGroupType(GroupType):
 # used as an additional superclass for Performance GroupType defaults
 class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()
+    released = True
 
 
 @dataclass(frozen=True)
@@ -206,7 +207,7 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_slow_db_query"
     description = "Slow DB Query"
     category = GroupCategory.PERFORMANCE.value
-    noise_config = NoiseConfig(ignore_limit=100)
+    # noise_config = NoiseConfig(ignore_limit=1)
 
 
 @dataclass(frozen=True)
@@ -231,7 +232,7 @@ class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, Gro
     slug = "performance_consecutive_db_queries"
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
-    noise_config = NoiseConfig(ignore_limit=15)
+    # noise_config = NoiseConfig(ignore_limit=1)
 
 
 @dataclass(frozen=True)
@@ -248,7 +249,7 @@ class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, G
     slug = "performance_consecutive_http"
     description = "Consecutive HTTP"
     category = GroupCategory.PERFORMANCE.value
-    noise_config = NoiseConfig(ignore_limit=5)
+    # noise_config = NoiseConfig(ignore_limit=1)
 
 
 @dataclass(frozen=True)

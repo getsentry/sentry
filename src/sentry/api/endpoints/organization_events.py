@@ -255,6 +255,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         use_custom_dataset = use_metrics or use_profiles
         dataset = self.get_dataset(request) if use_custom_dataset else discover
+        from sentry import options
+
+        if options.get("performance.issues.send_to_issues_platform", True):
+            from sentry.api.bases import DATASET_OPTIONS
+
+            dataset = DATASET_OPTIONS["issuePlatform"]
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
