@@ -149,7 +149,7 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
             target_identifier="some_id",
             target_display="#hello",
             integration_id=integration.id,
-            sentry_app=None,
+            sentry_app_id=None,
         )
         integration.delete()
         handler = SlackActionHandler(action, incident, self.project)
