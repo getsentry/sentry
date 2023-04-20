@@ -12,20 +12,17 @@ PROXY_ADDRESS = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_ADDRESS}"
 class IntegrationProxyClient(ApiClient):
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
-    Requests to third parties always exit the Sentry subnet via the Control Silo.
+    Requests to third parties must always exit the Sentry subnet via the Control Silo, and only
+    add sensitive credentials at that stage.
     """
 
-    active = True
-    is_direct = True
-
-    proxies = {"http": PROXY_ADDRESS, "https": PROXY_ADDRESS}
-    host_url = PROXY_ADDRESS
+    should_proxy = False
 
     def __init__(self, org_integration_id: int) -> None:
         super().__init__()
         self.org_integration_id = org_integration_id
-        if SiloMode.get_current_mode() != SiloMode.REGION:
-            self.active = False
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            self.should_proxy = True
 
     def authorize_request(self, request: Request) -> Request:
         raise NotImplementedError(
@@ -33,23 +30,19 @@ class IntegrationProxyClient(ApiClient):
         )
 
     def build_url(self, path: str) -> str:
-        base = self.base_url if not self.active else self.host_url
+        """
+        Overriding build_url here allows us to use a direct proxy, rather than a transparent one.
+        """
+        base = PROXY_ADDRESS if self.should_proxy else self.base_url
         if path.startswith("/"):
             return f"{base}{path}"
         return path
 
-    def _proxy_request(self, *args, **kwargs) -> BaseApiResponseX:
-        headers = kwargs.get("headers", {})
+    def _request(self, *args, **kwargs) -> BaseApiResponseX:
+        headers = kwargs.pop("headers", {})
         headers[PROXY_OI_HEADER] = f"{self.org_integration_id}"
         return (
             super()._request(*args, **{**kwargs, "headers": headers})
-            if self.is_direct
-            else super()._request(*args, **kwargs, proxies=self.proxies)
-        )
-
-    def _request(self, *args, **kwargs) -> BaseApiResponseX:
-        return (
-            self._proxy_request(*args, **kwargs)
-            if self.active
+            if self.should_proxy
             else super()._request(*args, **kwargs)
         )

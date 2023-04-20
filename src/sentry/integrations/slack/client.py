@@ -5,8 +5,8 @@ from sentry_sdk.tracing import Transaction
 
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.client import BaseApiResponse
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo.proxy.client import IntegrationProxyClient
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"

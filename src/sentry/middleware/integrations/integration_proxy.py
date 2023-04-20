@@ -22,11 +22,15 @@ class IntegrationProxyMiddleware:
     def full_url(self) -> str:
         return f"{self.client.base_url}/{self.proxy_path}"
 
+    def _validate_sender(self, request) -> bool:
+        # TODO(Leander): Add shared secret
+        return True
+
     def _validate_request(self, request) -> bool:
         """
         Returns True if a client could be generated from the request
         """
-        from sentry.silo.proxy.client import IntegrationProxyClient
+        from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
         self.proxy_path = request.path[len(PROXY_ADDRESS) :]
         self.headers = clean_proxy_headers(request.headers)
@@ -77,8 +81,9 @@ class IntegrationProxyMiddleware:
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         is_proxy = request.path.startswith(PROXY_ADDRESS)
-        is_valid = self._validate_request(request)
-        return is_correct_silo and is_proxy and is_valid
+        is_valid_request = self._validate_request(request=request)
+        is_valid_sender = self._validate_sender(request=request)
+        return is_correct_silo and is_proxy and is_valid_request and is_valid_sender
 
     def __call__(self, request: Request):
         if not self._should_operate(request):
