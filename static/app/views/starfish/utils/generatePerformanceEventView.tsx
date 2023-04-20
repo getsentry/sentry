@@ -9,6 +9,7 @@ import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
+import {getMiddleTimestamp} from 'sentry/views/starfish/utils/dates';
 
 const DEFAULT_STATS_PERIOD = '7d';
 
@@ -54,15 +55,7 @@ function generateGenericPerformanceEventView(
 ): EventView {
   const {query} = location;
 
-  const fields = [
-    'team_key_transaction',
-    'transaction',
-    'http.method',
-    'tpm()',
-    'p50()',
-    'p95()',
-    'project',
-  ];
+  const fields = ['transaction', 'http.method', 'tpm()', 'p50()', 'p95()', 'project'];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -126,24 +119,35 @@ export function generateWebServiceEventView(
   organization: Organization
 ) {
   const {query} = location;
+  const hasStartAndEnd = query.start && query.end;
+  const middleTimestamp = getMiddleTimestamp({
+    start: decodeScalar(query.start),
+    end: decodeScalar(query.end),
+    statsPeriod:
+      !query.statsPeriod && !hasStartAndEnd
+        ? getDefaultStatsPeriod(organization)
+        : decodeScalar(query.statsPeriod),
+  });
 
   const fields = [
-    'team_key_transaction',
     'transaction',
     'http.method',
     'tpm()',
     'p50()',
     'p95()',
+    'count_if(http.status_code,greaterOrEquals,500)',
     TIME_SPENT_IN_SERVICE,
+    `equation|percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})-percentile_range(transaction.duration,0.50,greater,${middleTimestamp})`,
     'total.transaction_duration',
     'sum(transaction.duration)',
+    `percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})`,
+    `percentile_range(transaction.duration,0.50,greater,${middleTimestamp})`,
   ];
 
-  const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction has:http.method',
+    query: 'event.type:transaction has:http.method transaction.op:http.server',
     projects: [],
     fields,
     version: 2,
@@ -159,10 +163,12 @@ export function generateWebServiceEventView(
   savedQuery.orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
 
   const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
+  savedQuery.query = `${savedQuery.query} ${prepareQueryForLandingPage(
+    searchQuery,
+    withStaticFilters
+  )}`;
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }

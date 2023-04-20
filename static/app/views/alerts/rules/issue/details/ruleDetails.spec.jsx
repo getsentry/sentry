@@ -10,13 +10,14 @@ import AlertRuleDetails from 'sentry/views/alerts/rules/issue/details/ruleDetail
 
 describe('AlertRuleDetails', () => {
   const context = initializeOrg({
-    organization: {features: ['issue-alert-incompatible-rules']},
+    organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
   });
   const organization = context.organization;
   const project = TestStubs.Project();
   const rule = TestStubs.ProjectAlertRule({
     lastTriggered: moment().subtract(2, 'day').format(),
   });
+  const member = TestStubs.Member();
 
   const createWrapper = (props = {}) => {
     const params = {
@@ -77,7 +78,7 @@ describe('AlertRuleDetails', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
-      body: [],
+      body: [member],
     });
 
     ProjectsStore.init();
@@ -161,20 +162,11 @@ describe('AlertRuleDetails', () => {
 
   it('renders incompatible rule filter', async () => {
     const incompatibleRule = TestStubs.ProjectAlertRule({
-      lastTriggered: moment().subtract(2, 'day').format(),
       conditions: [
         {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
         {id: 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
       ],
     });
-    MockApiClient.mockResponses.splice(
-      MockApiClient.mockResponses.findIndex(
-        response =>
-          response.url ===
-          `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`
-      ),
-      1
-    );
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
       body: incompatibleRule,
@@ -190,11 +182,57 @@ describe('AlertRuleDetails', () => {
 
   it('incompatible rule banner hidden for good rule', async () => {
     createWrapper();
-    expect(await screen.getAllByText('My alert rule')).toHaveLength(2);
+    expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
     expect(
-      await screen.queryByText(
+      screen.queryByText(
         'The conditions in this alert rule conflict and might not be working properly.'
       )
     ).not.toBeInTheDocument();
+  });
+
+  it('renders the mute button and can mute/unmute alerts', async () => {
+    const postRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
+      method: 'POST',
+      data: {target: 'me'},
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
+      method: 'DELETE',
+    });
+    createWrapper();
+    expect(await screen.findByText('Mute')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Mute'}));
+    expect(postRequest).toHaveBeenCalledTimes(1);
+
+    expect(await screen.findByText('Unmute')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
+
+    expect(deleteRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('inserts user email into rule notify action', async () => {
+    // Alert rule with "send a notification to member" action
+    const sendNotificationRule = TestStubs.ProjectAlertRule({
+      actions: [
+        {
+          id: 'sentry.mail.actions.NotifyEmailAction',
+          name: 'Send a notification to Member and if none can be found then send a notification to ActiveMembers',
+          targetIdentifier: member.id,
+          targetType: 'Member',
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      body: sendNotificationRule,
+    });
+
+    createWrapper();
+
+    expect(
+      await screen.findByText(`Send a notification to ${member.email}`)
+    ).toBeInTheDocument();
   });
 });

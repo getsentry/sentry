@@ -104,7 +104,12 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
         checkin_validator = MonitorCheckInValidator(
             data=request.data,
-            context={"project": project, "request": request, "monitor_slug": monitor_slug},
+            context={
+                "project": project,
+                "request": request,
+                "monitor_slug": monitor_slug,
+                "monitor": monitor,
+            },
         )
         if not checkin_validator.is_valid():
             return self.respond(checkin_validator.errors, status=400)
@@ -119,7 +124,10 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             limit=CHECKIN_QUOTA_LIMIT,
             window=CHECKIN_QUOTA_WINDOW,
         ):
-            metrics.incr("monitors.checkin.dropped.ratelimited")
+            metrics.incr(
+                "monitors.checkin.dropped.ratelimited",
+                tags={"source": "api"},
+            )
             raise Throttled(
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
             )

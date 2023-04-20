@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -254,7 +254,7 @@ function WidgetBuilder({
   >(null);
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
+    trackAnalytics('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
     });
@@ -477,7 +477,7 @@ function WidgetBuilder({
   function handleDisplayTypeOrTitleChange<
     F extends keyof Pick<State, 'displayType' | 'title'>
   >(field: F, value: State[F]) {
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
+    trackAnalytics('dashboards_views.widget_builder.change', {
       from: source,
       field,
       value,
@@ -501,7 +501,7 @@ function WidgetBuilder({
   }
 
   function handleDataSetChange(newDataSet: string) {
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
+    trackAnalytics('dashboards_views.widget_builder.change', {
       from: source,
       field: 'dataSet',
       value: newDataSet,
@@ -760,7 +760,7 @@ function WidgetBuilder({
 
     if (latestLibrarySelectionTitle) {
       // User has selected a widget library in this session
-      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.add_widget', {
+      trackAnalytics('dashboards_views.widget_library.add_widget', {
         organization,
         title: latestLibrarySelectionTitle,
       });
@@ -791,7 +791,7 @@ function WidgetBuilder({
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-      trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
+      trackAnalytics('dashboards_views.widget_builder.save', {
         organization,
         data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
         new_widget: false,
@@ -802,7 +802,7 @@ function WidgetBuilder({
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
+    trackAnalytics('dashboards_views.widget_builder.save', {
       organization,
       data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
       new_widget: true,

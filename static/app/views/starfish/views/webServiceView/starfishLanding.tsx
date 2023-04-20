@@ -1,13 +1,12 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -16,9 +15,15 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import useTeams from 'sentry/utils/useTeams';
+import EndpointDetail, {
+  EndpointDataRow,
+} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 import {StarfishView} from './starfishView';
+
+type WebServiceViewState = {
+  selectedRow?: EndpointDataRow;
+};
 
 type Props = {
   eventView: EventView;
@@ -31,15 +36,17 @@ type Props = {
 };
 
 export function StarfishLanding(props: Props) {
-  const {organization, eventView} = props;
-
-  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
-
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
+      <ProjectPageFilter />
       <DatePageFilter alignDropdown="left" />
     </PageFilterBar>
   );
+
+  const [state, setState] = useState<WebServiceViewState>({selectedRow: undefined});
+  const unsetSelectedEndpoint = () => setState({selectedRow: undefined});
+  const {selectedRow} = state;
+  const setSelectedEndpoint = (row: EndpointDataRow) => setState({selectedRow: row});
 
   return (
     <Layout.Page>
@@ -58,18 +65,8 @@ export function StarfishLanding(props: Props) {
                 {pageFilters}
               </SearchContainerWithFilterAndMetrics>
 
-              {initiallyLoaded ? (
-                <TeamKeyTransactionManager.Provider
-                  organization={organization}
-                  teams={teams}
-                  selectedTeams={['myteams']}
-                  selectedProjects={eventView.project.map(String)}
-                >
-                  <StarfishView {...props} />
-                </TeamKeyTransactionManager.Provider>
-              ) : (
-                <LoadingIndicator />
-              )}
+              <StarfishView {...props} onSelect={setSelectedEndpoint} />
+              <EndpointDetail row={selectedRow} onClose={unsetSelectedEndpoint} />
             </Fragment>
           </Layout.Main>
         </Layout.Body>

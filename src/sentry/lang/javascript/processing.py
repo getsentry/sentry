@@ -48,11 +48,12 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
-    if symbolicated.get("status"):
-        new_frame.setdefault("data", {})
-        # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
-        # frame_meta = new_frame.setdefault("data", {})
-        # frame_meta["symbolicator_status"] = symbolicated["status"]
+    if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
+        frame_meta = new_frame.setdefault("data", {})
+        frame_meta["sourcemap"] = data_sourcemap
+    # if symbolicated.get("status"):
+    # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
+    # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
 
@@ -132,7 +133,7 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
-def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
+def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     project = symbolicator.project
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
@@ -208,7 +209,7 @@ def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
+def get_js_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
     if should_use_symbolicator_for_sourcemaps(data.get("project")):
-        return process_payload
+        return process_js_stacktraces
     return None
