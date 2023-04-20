@@ -1,5 +1,9 @@
 import click
+import yaml
 
+from sentry import options
+from sentry.options import manager
+from sentry.options.manager import UnknownOption
 from sentry.runner.decorators import configuration
 
 
@@ -15,8 +19,6 @@ def list():
     from sentry import options
 
     for opt in options.all():
-        # click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
-        # click.echo(type(opt))
         if can_change(opt.name):
             click.echo(f"{opt.name}: {options.get(opt.name)}")
 
@@ -33,13 +35,11 @@ def list():
 @configuration
 def patch(filename: str, dryrun: bool):
     "Updates, gets, and deletes options that are each subsectioned in the given file."
-    import yaml
 
     if dryrun:
         click.echo("Dryrun flag on. ")
     with open(filename) as stream:
-        configmap_data = yaml.safe_load(stream)
-        data = configmap_data.get("data", {}).get("options-patch.yaml", "")
+        data = yaml.safe_load(stream)
 
         keysToFetch = data.get("fetch", {})
         keysToUpdate = data.get("update", {})
@@ -48,8 +48,9 @@ def patch(filename: str, dryrun: bool):
         for key in keysToFetch:
             _get(key, dryrun)
 
-        for key, val in keysToUpdate.items():
-            _set(key, val, dryrun)
+        if keysToUpdate is not None:
+            for key, val in keysToUpdate.items():
+                _set(key, val, dryrun)
 
         for key in keysToDelete:
             _delete(key, dryrun)
@@ -73,9 +74,12 @@ def strict(filename: str, dryrun: bool):
         click.echo("Dryrun flag on. ")
 
     with open(filename) as stream:
-        configmap_data = yaml.safe_load(stream)
-        data = configmap_data.get("data", {}).get("options-strict.yaml", "")
+        data = yaml.safe_load(stream)
 
+        if data is None:
+            for key in TRACKED:
+                _delete(key)
+            return
         for key in TRACKED:
             if key not in data.keys():
                 _delete(key)
@@ -101,8 +105,6 @@ def get(key: str, dryrun: bool = False) -> str:
 
 
 def _get(key: str, dryrun: bool = False) -> str:
-    from sentry import options
-    from sentry.options.manager import UnknownOption
 
     try:
         opt = options.lookup_key(key)
@@ -110,8 +112,6 @@ def _get(key: str, dryrun: bool = False) -> str:
         return opt
     except UnknownOption:
         raise click.ClickException("unknown option: %s" % key)
-    except TypeError as e:
-        raise click.ClickException(str(e))
 
 
 @configoptions.command()
@@ -131,8 +131,6 @@ def set(key: str, val: object, dryrun: bool = False) -> bool:
 
 
 def _set(key: str, val: object, dryrun: bool = False) -> bool:
-    from sentry import options
-    from sentry.options.manager import UnknownOption
 
     try:
         opt = options.lookup_key(key)
@@ -165,8 +163,6 @@ def delete(key: str, dryrun: bool = False) -> bool:
 
 
 def _delete(key: str, dryrun: bool = False) -> bool:
-    from sentry import options
-    from sentry.options.manager import UnknownOption
 
     try:
         options.lookup_key(key)
@@ -180,8 +176,6 @@ def _delete(key: str, dryrun: bool = False) -> bool:
         return options.get(key)
     except UnknownOption:
         raise click.ClickException("unknown option: %s" % key)
-    except TypeError as e:
-        raise click.ClickException(str(e))
 
 
 TRACKED = {
@@ -197,33 +191,9 @@ TRACKED = {
 }
 
 
-def create_key_value_generator(data: str, newline_separator: str, kv_separator: str):
-    return (line.split(kv_separator) for line in data.split(newline_separator) if line)
-
-
 def can_change(key: str) -> bool:
-    from sentry import options
-    from sentry.options import manager
 
     opt = options.lookup_key(key)
     return (key in TRACKED) and not (
         (opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE)
     )
-
-    # changable = not ((opt.flags & manager.FLAG_NOSTORE) and (opt.flags & manager.FLAG_IMMUTABLE))
-    # changable = False
-    # TODO: Figure out how to look this up
-    # for i in tracked:
-    #     is_match = i.match(key)
-    #     if is_match:
-    #         click.echo(f"Key({key}) matches {is_match} a tracked Regex({i})")
-    #         changable = True
-    #         return changable
-
-    # if changable:
-    #     # click.echo(f"Key({key}) is mutable!")
-    #     pass
-    # else:
-    #     # click.echo(f"Key({key}) is not mutable!")
-    #     pass
-    # return changable
