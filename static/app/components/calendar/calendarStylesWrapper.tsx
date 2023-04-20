@@ -12,17 +12,15 @@ const CalendarStylesWrapper = styled('div')`
     border: 0;
   }
 
-  :not(active) {
-    .rdrSelected,
-    .rdrInRange,
-    .rdrStartEdge,
-    .rdrEndEdge {
-      left: 0;
-      right: 0;
-      top: 3px;
-      bottom: 3px;
-      background-color: ${p => p.theme.active};
-    }
+  .rdrSelected,
+  .rdrInRange,
+  .rdrStartEdge,
+  .rdrEndEdge {
+    left: 0;
+    right: 0;
+    top: 3px;
+    bottom: 3px;
+    background-color: ${p => p.theme.active};
   }
 
   .rdrDayNumber {
