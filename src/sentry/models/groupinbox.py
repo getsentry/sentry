@@ -99,7 +99,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
 def remove_group_from_inbox(group, action=None, user=None, referrer=None):
     # The MARK_REVIEWED feature is going away as part of the issue states project
     if action == GroupInboxRemoveAction.MARK_REVIEWED and features.has(
-        "organizations:issue-states", group.project.organization
+        "organizations:remove-mark-reviewed", group.project.organization
     ):
         return
 

@@ -29,19 +29,20 @@ def update_inbox(
     if in_inbox:
         for group in group_list:
             add_group_to_inbox(group, GroupInboxReason.MANUAL)
-    elif not in_inbox:
+    elif not in_inbox and not features.has(
+        "organizations:remove-mark-reviewed", group_list[0].project.organization
+    ):
         for group in group_list:
-            if not features.has("organizations:issue-states", group.project.organization):
-                remove_group_from_inbox(
-                    group,
-                    action=GroupInboxRemoveAction.MARK_REVIEWED,
-                    user=acting_user,
-                    referrer=http_referrer,
-                )
-                issue_mark_reviewed.send_robust(
-                    project=project_lookup[group.project_id],
-                    user=acting_user,
-                    group=group,
-                    sender=sender,
-                )
+            remove_group_from_inbox(
+                group,
+                action=GroupInboxRemoveAction.MARK_REVIEWED,
+                user=acting_user,
+                referrer=http_referrer,
+            )
+            issue_mark_reviewed.send_robust(
+                project=project_lookup[group.project_id],
+                user=acting_user,
+                group=group,
+                sender=sender,
+            )
     return in_inbox

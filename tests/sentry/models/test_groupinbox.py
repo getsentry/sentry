@@ -46,7 +46,7 @@ class GroupInboxTestCase(TestCase):
         assert activities[0].type == ActivityType.MARK_REVIEWED.value
         assert inbox_out.called
 
-    @with_feature("organizations:issue-states")
+    @with_feature("organizations:remove-mark-reviewed")
     @patch("sentry.signals.inbox_out.send_robust")
     def test_remove_from_inbox_disabled(self, inbox_out):
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
