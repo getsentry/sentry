@@ -5,8 +5,10 @@ import bannerSentaur from 'sentry-images/spot/ai-suggestion-banner-sentaur.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
 import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {t} from 'sentry/locale';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -23,6 +25,18 @@ export function Banner({onViewSuggestion}: Props) {
         <div>
           <Title>
             {t('AI Solutions')}
+            <MoreInfoTooltip
+              isHoverable
+              size="sm"
+              title={tct(
+                'This is an OpenAI generated solution that suggests a fix for this issue. Be aware that this may not be accurate. [learnMore:Learn more]',
+                {
+                  learnMore: (
+                    <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/ai-suggested-solution/" />
+                  ),
+                }
+              )}
+            />
             <ExperimentalFeatureBadge />
           </Title>
           <Description>
@@ -134,4 +148,8 @@ const ViewSuggestionButton = styled(Button)`
     right: 1rem;
     top: 1.5rem;
   }
+`;
+
+const MoreInfoTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;
