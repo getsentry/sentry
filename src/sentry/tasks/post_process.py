@@ -16,6 +16,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name

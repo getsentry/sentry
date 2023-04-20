@@ -44,12 +44,7 @@ class GroupHistoryStatus:
     DELETED_AND_DISCARDED = 9
     REVIEWED = 10
     ESCALATING = 14
-
-    # Ignored/Archived statuses
     ARCHIVED_UNTIL_ESCALATING = 15
-    ARCHIVED_FOREVER = 16
-    ARCHIVED_UNTIL_CONDITION_MET = 17
-
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
@@ -73,8 +68,6 @@ STRING_TO_STATUS_LOOKUP = {
     "new": GroupHistoryStatus.NEW,
     "escalating": GroupHistoryStatus.ESCALATING,
     "archived_until_escalating": GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
-    "archived_forever": GroupHistoryStatus.ARCHIVED_FOREVER,
-    "archived_until_condition_met": GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET,
 }
 STATUS_TO_STRING_LOOKUP = {status: string for string, status in STRING_TO_STATUS_LOOKUP.items()}
 
