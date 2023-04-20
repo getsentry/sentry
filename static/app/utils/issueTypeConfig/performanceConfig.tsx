@@ -64,7 +64,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
       links: [
         {
           text: t('Sentry Docs: file IO on the Main Thread'),
-          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/file-io-main-thread-io/',
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/file-main-thread-io/',
         },
       ],
       linksByPlatform: {},
