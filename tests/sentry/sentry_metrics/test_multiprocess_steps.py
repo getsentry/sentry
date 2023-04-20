@@ -2,7 +2,7 @@ import logging
 import pickle
 import time
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, MutableMapping, Sequence, Union
 from unittest.mock import Mock, call
 
@@ -32,6 +32,13 @@ pytestmark = pytest.mark.sentry_metrics
 MESSAGE_PROCESSOR = MessageProcessor(
     get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
 )
+
+BROKER_START_TIMESTAMP = datetime.now(tz=timezone.utc)
+
+
+def _format_received_timestamp(seconds: int) -> bytes:
+    timestamp = BROKER_START_TIMESTAMP + timedelta(seconds=seconds)
+    return bytes(f"{timestamp.timestamp()}", "utf-8")
 
 
 @pytest.fixture(autouse=True)
@@ -74,7 +81,10 @@ def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_ba
 
     message1 = Message(
         BrokerValue(
-            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
+            KafkaPayload(None, b"some value", []),
+            Partition(Topic("topic"), 0),
+            1,
+            BROKER_START_TIMESTAMP,
         )
     )
     message2 = Message(
@@ -82,7 +92,7 @@ def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_ba
             KafkaPayload(None, b"another value", []),
             Partition(Topic("topic"), 0),
             2,
-            datetime.now(),
+            BROKER_START_TIMESTAMP + timedelta(seconds=1),
         )
     )
     return (batch_messages_step, message1, message2)
@@ -297,7 +307,7 @@ def test_process_messages() -> None:
                 KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 i + 1,
-                datetime.now(),
+                BROKER_START_TIMESTAMP + timedelta(seconds=i),
             )
         )
         for i, payload in enumerate(message_payloads)
@@ -314,7 +324,13 @@ def test_process_messages() -> None:
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                    [("metric_type", message_payloads[i]["type"])],
+                    [
+                        ("metric_type", message_payloads[i]["type"]),
+                        (
+                            "sentry_received_timestamp",
+                            _format_received_timestamp(i),
+                        ),
+                    ],
                 ),
                 m.value.partition,
                 m.value.offset,
@@ -396,7 +412,7 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 0,
-                datetime.now(),
+                BROKER_START_TIMESTAMP,
             )
         ),
         Message(
@@ -404,7 +420,7 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(None, formatted_payload, []),
                 Partition(Topic("topic"), 0),
                 1,
-                datetime.now(),
+                BROKER_START_TIMESTAMP + timedelta(seconds=1),
             )
         ),
     ]
@@ -424,7 +440,10 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", "c")],
+                    [
+                        ("metric_type", "c"),
+                        ("sentry_received_timestamp", _format_received_timestamp(0)),
+                    ],
                 ),
                 expected_msg.committable,
             )
@@ -449,7 +468,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 0,
-                datetime.now(),
+                BROKER_START_TIMESTAMP,
             )
         ),
         Message(
@@ -457,7 +476,15 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 1,
-                datetime.now(),
+                BROKER_START_TIMESTAMP + timedelta(seconds=1),
+            )
+        ),
+        Message(
+            BrokerValue(
+                KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                2,
+                BROKER_START_TIMESTAMP + timedelta(seconds=2),
             )
         ),
     ]
@@ -483,7 +510,10 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", "c")],
+                    [
+                        ("metric_type", "c"),
+                        ("sentry_received_timestamp", _format_received_timestamp(0)),
+                    ],
                 ),
                 expected_msg.value.partition,
                 expected_msg.value.offset,
