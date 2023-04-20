@@ -15,6 +15,7 @@ import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
   OverflowEllipsisTextContainer,
   renderHeadCell,
+  TextAlignRight,
 } from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailSeriesQuery,
@@ -174,6 +175,8 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   );
 }
 
+// TODO: A lot of this is duplicate from endpointTable.tsx renderBodyCell.
+// Only difference is the links. Come up with a better way to share this.
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanTransactionDataRow,
@@ -191,8 +194,20 @@ function renderBodyCell(
     );
   }
 
+  // TODO: come up with a better way to identify number columns to align to the right
   if (column.key.toString().match(/^p\d\d/)) {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+    return (
+      <TextAlignRight>
+        <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
+      </TextAlignRight>
+    );
+  }
+  if (!['description', 'transaction'].includes(column.key.toString())) {
+    return (
+      <TextAlignRight>
+        <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
+      </TextAlignRight>
+    );
   }
 
   return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
