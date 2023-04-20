@@ -1,7 +1,12 @@
+import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {Location} from 'history';
 
+import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -11,9 +16,23 @@ import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule
 
 import {getSpanSamplesQuery} from './queries';
 
-type Props = RouteComponentProps<{slug: string}, {}>;
+const COLUMN_ORDER = [
+  {
+    key: 'transaction_id',
+    name: 'Event ID',
+    width: 600,
+  },
+];
 
-export default function SpanInTransactionView({params}: Props) {
+type EventsDataRow = {
+  transaction_id: string;
+};
+
+type Props = {
+  location: Location;
+} & RouteComponentProps<{slug: string}, {}>;
+
+export default function SpanInTransactionView({location, params}: Props) {
   const slug = parseSlug(params.slug);
 
   const {spanDescription, transactionName} = slug || {
@@ -70,16 +89,18 @@ export default function SpanInTransactionView({params}: Props) {
               <span>LOADING SAMPLE LIST</span>
             ) : (
               <div>
-                <h2>SAMPLE EVENTS</h2>
-                <ul>
-                  {spanSampleData.map(span => (
-                    <li key={span.transaction_id}>
-                      <a href={`/performance/sentry:${span.transaction_id}`}>
-                        {span.transaction_id}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <GridEditable
+                  isLoading={isLoading}
+                  data={spanSampleData}
+                  columnOrder={COLUMN_ORDER}
+                  columnSortBy={[]}
+                  grid={{
+                    renderHeadCell,
+                    renderBodyCell: (column: GridColumnHeader, row: EventsDataRow) =>
+                      renderBodyCell(column, row),
+                  }}
+                  location={location}
+                />
               </div>
             )}
           </Layout.Main>
@@ -87,6 +108,28 @@ export default function SpanInTransactionView({params}: Props) {
       </PageErrorProvider>
     </Layout.Page>
   );
+}
+
+function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
+}
+
+export const OverflowEllipsisTextContainer = styled('span')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+`;
+
+function renderBodyCell(column: GridColumnHeader, row: EventsDataRow): React.ReactNode {
+  if (column.key === 'transaction_id') {
+    return (
+      <Link to={`/performance/sentry:${row.transaction_id}`}>
+        {row.transaction_id.slice(0, 8)}
+      </Link>
+    );
+  }
+
+  return <span>{row[column.key]}</span>;
 }
 
 type SpanInTransactionSlug = {
