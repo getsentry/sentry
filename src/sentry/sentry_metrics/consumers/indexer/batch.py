@@ -121,6 +121,12 @@ class IndexerBatch:
                 )
                 continue
             try:
+                if self.__input_codec:
+                    self.__input_codec.validate(parsed_payload)
+            except ValidationError:
+                if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
+                    raise
+            try:
                 parsed_payload["use_case_id"] = extract_use_case_id(parsed_payload["name"])
             except ValidationError:
                 self.skipped_offsets.add(partition_offset)
@@ -130,12 +136,6 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
-            try:
-                if self.__input_codec:
-                    self.__input_codec.validate(parsed_payload)
-            except ValidationError:
-                if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
-                    raise
 
                 # For now while this is still experimental, those errors are
                 # not supposed to be fatal.
