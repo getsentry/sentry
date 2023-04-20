@@ -19,7 +19,7 @@ type TabProps = {
   startTimestampMs: number;
 };
 
-function GeneralTab({item, startTimestampMs}: TabProps) {
+function DetailsTab({item, startTimestampMs}: TabProps) {
   const {handleClick} = useCrumbHandlers(startTimestampMs);
 
   const startMs = item.startTimestamp * 1000;
@@ -106,9 +106,9 @@ function NetworkDetailsContent({
       return <RequestTab {...tabProps} />;
     case 'response':
       return <ResponseTab {...tabProps} />;
-    case 'general':
+    case 'details':
     default:
-      return <GeneralTab {...tabProps} />;
+      return <DetailsTab {...tabProps} />;
   }
 }
 

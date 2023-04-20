@@ -2,7 +2,7 @@ import {CSSProperties, forwardRef, Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconFix, IconInfo} from 'sentry/icons';
+import {IconArrow, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
@@ -14,11 +14,6 @@ type Props = {
   sortConfig: SortConfig;
   style: CSSProperties;
 };
-
-// `block` so that it's vertically centered :lolsob:
-const TypeConfigIcon = styled(IconFix)`
-  display: block;
-`;
 
 const SizeInfoIcon = styled(IconInfo)`
   display: block;
@@ -32,21 +27,7 @@ const COLUMNS: {
   {field: 'description', label: t('Path')},
   {
     field: 'op',
-    label: (
-      <Fragment>
-        {t('Type')}
-        <Tooltip
-          title={
-            <Fragment>
-              <code>Fetch</code> and <code>XHR</code> requests may include request and
-              response bodies along with header data. <a>Read the Docs</a> to set it up.
-            </Fragment>
-          }
-        >
-          <TypeConfigIcon size="xs" />
-        </Tooltip>
-      </Fragment>
-    ),
+    label: t('Type'),
   },
   {
     field: 'size',

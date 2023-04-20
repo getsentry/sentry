@@ -48,15 +48,9 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     // Rows include the sortable header, the dataIndex does not
     const dataIndex = String(rowIndex - 1);
 
-    // const organization = useOrganization();
     const {currentTime} = useReplayContext();
     const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
-
     const isDetailsOpen = getParamValue() === dataIndex;
-
-    // const hasNetworkDetails =
-    //   organization.features.includes('session-replay-network-details') &&
-    //   ['resource.fetch', 'resource.xhr'].includes(span.op);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;

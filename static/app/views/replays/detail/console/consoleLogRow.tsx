@@ -143,7 +143,9 @@ const ICONS = {
   warning: <IconWarning size="xs" />,
 };
 
-const Icon = styled(({level, ...props}) => <span {...props}>{ICONS[level]}</span>)<{
+const Icon = styled(({level, className}) => (
+  <span className={className}>{ICONS[level]}</span>
+))<{
   level: Extract<Crumb, BreadcrumbTypeDefault>['level'];
 }>`
   font-size: ${p => p.theme.fontSizeMedium};
