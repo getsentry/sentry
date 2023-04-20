@@ -117,7 +117,7 @@ function ReplaySearchBar(props: Props) {
       onGetTagValues={getTagValues}
       supportedTags={getSupportedTags(tags, organization)}
       placeholder={t(
-        'Search for users, duration, clicks elements, count_errors, and more'
+        'Search for users, duration, clicked elements, count_errors, and more'
       )}
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
