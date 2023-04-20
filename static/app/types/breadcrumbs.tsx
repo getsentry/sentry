@@ -60,6 +60,15 @@ export interface BreadcrumbTypeNavigation extends BreadcrumbTypeBase {
   };
 }
 
+export interface BreadcrumbTypeInit extends BreadcrumbTypeBase {
+  data: {
+    action: 'replay-init';
+    label: string;
+    url: string;
+  };
+  type: BreadcrumbType.INIT;
+}
+
 export interface BreadcrumbTypeHTTP extends BreadcrumbTypeBase {
   type: BreadcrumbType.HTTP;
   data?: null | {
