@@ -44,8 +44,6 @@ MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
 OrgId = int
 
-SENTRY_RECEIVED_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-
 
 class PartitionIdxOffset(NamedTuple):
     partition_idx: int
