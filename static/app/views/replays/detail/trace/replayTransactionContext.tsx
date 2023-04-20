@@ -21,6 +21,7 @@ import {
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -33,7 +34,6 @@ type InternalState = {
   detailsErrors: Error[];
   detailsRequests: number;
   detailsResponses: number;
-  didInit: boolean;
   indexComplete: boolean;
   indexError: undefined | Error;
   isFetching: boolean;
@@ -41,7 +41,6 @@ type InternalState = {
 };
 
 type ExternalState = {
-  didInit: boolean;
   errors: Error[];
   isFetching: boolean;
   traces: undefined | TraceFullDetailed[];
@@ -51,7 +50,6 @@ const INITIAL_STATE: InternalState = {
   detailsErrors: [],
   detailsRequests: 0,
   detailsResponses: 0,
-  didInit: false,
   indexComplete: true,
   indexError: undefined,
   isFetching: false,
@@ -67,11 +65,12 @@ type TxnContextProps = {
 const TxnContext = createContext<TxnContextProps>({
   eventView: null,
   fetchTransactionData: () => {},
-  state: {didInit: false, errors: [], isFetching: false, traces: []},
+  state: {errors: [], isFetching: false, traces: []},
 });
 
 function ReplayTransactionContext({children, replayRecord}: Options) {
   const api = useApi();
+  const location = useLocation();
   const organization = useOrganization();
 
   const [state, setState] = useState<InternalState>(INITIAL_STATE);
@@ -100,13 +99,13 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     });
   }, [replayRecord]);
 
-  const singleTracePayload = useMemo(() => {
+  const tracePayload = useMemo(() => {
     const start = getUtcDateString(replayRecord?.started_at.getTime());
     const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
     const traceEventView = makeEventView({start, end});
-    return getTraceRequestPayload({eventView: traceEventView, location: {} as Location});
-  }, [replayRecord]);
+    return getTraceRequestPayload({eventView: traceEventView, location});
+  }, [replayRecord, location]);
 
   const fetchSingleTraceData = useCallback(
     async traceId => {
@@ -114,7 +113,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         const [trace, , _traceResp] = await doDiscoverQuery(
           api,
           `/organizations/${orgSlug}/events-trace/${traceId}/`,
-          singleTracePayload
+          tracePayload
         );
 
         setState(prev => ({
@@ -131,7 +130,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         }));
       }
     },
-    [api, orgSlug, singleTracePayload]
+    [api, orgSlug, tracePayload]
   );
 
   const fetchTransactionData = useCallback(async () => {
@@ -145,7 +144,6 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
       detailsErrors: [],
       detailsRequests: 0,
       detailsResponses: 0,
-      didInit: true,
       indexComplete: false,
       indexError: undefined,
       isFetching: true,
@@ -198,23 +196,21 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
 
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
         cursor = parseLinkHeader(pageLinks)?.next;
-        const indexComplete = !cursor.results;
-        setState(prev => ({...prev, indexComplete} as InternalState));
       } catch (indexError) {
-        setState(prev => ({...prev, indexError, indexComplete: true} as InternalState));
+        setState(prev => ({...prev, indexError} as InternalState));
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }
-  }, [api, fetchSingleTraceData, listEventView, orgSlug, replayRecord]);
 
-  const externalState = useMemo(() => internalToExternalState(state), [state]);
+    setState(prev => ({...prev, indexComplete: true} as InternalState));
+  }, [api, fetchSingleTraceData, listEventView, orgSlug, replayRecord]);
 
   return (
     <TxnContext.Provider
       value={{
         eventView: listEventView,
         fetchTransactionData,
-        state: externalState,
+        state: internalToExternalState(state),
       }}
     >
       {children}
@@ -226,7 +222,6 @@ function internalToExternalState({
   detailsErrors,
   detailsRequests,
   detailsResponses,
-  didInit,
   indexComplete,
   indexError,
   traces,
@@ -234,7 +229,6 @@ function internalToExternalState({
   const isComplete = indexComplete && detailsRequests === detailsResponses;
 
   return {
-    didInit,
     errors: indexError ? [indexError] : detailsErrors,
     isFetching: !isComplete,
     traces,
@@ -244,13 +238,9 @@ function internalToExternalState({
 export default ReplayTransactionContext;
 
 export const useFetchTransactions = () => {
-  const {fetchTransactionData, state} = useContext(TxnContext);
+  const {fetchTransactionData} = useContext(TxnContext);
 
-  useEffect(() => {
-    if (!state.isFetching && state.traces === undefined) {
-      fetchTransactionData();
-    }
-  }, [fetchTransactionData, state]);
+  useEffect(fetchTransactionData, [fetchTransactionData]);
 };
 
 export const useTransactionData = () => {
