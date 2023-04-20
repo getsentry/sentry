@@ -49,11 +49,21 @@ function getTableOptions() {
 
   return [
     'auth_user',
+    'sentry_useroption',
+    'sentry_organizationmember',
+    'sentry_organization',
+    'sentry_project',
+    'sentry_useremail',
     'sentry_auditlogentry',
     'accounts_charge',
     'sentry_organizationmember_teams',
     'sentry_team',
+    'sentry_useravatar',
     'sentry_groupmeta',
+    'sentry_release_project',
+    'auth_authenticator',
+    'policy_policy',
+    'sentry_grouplink',
   ].map(action => {
     return {
       value: action,
