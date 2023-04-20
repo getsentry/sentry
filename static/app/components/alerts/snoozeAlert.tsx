@@ -13,6 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
+  hasAccess: boolean;
   isSnoozed: boolean;
   onSnooze: (nextState: {
     snooze: boolean;
@@ -23,12 +24,12 @@ type Props = {
   ruleId: string;
 };
 
-function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
+function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const location = useLocation();
 
-  const [disabled, setDisabled] = useState(false);
+  const [disabled, setDisabled] = useState(!hasAccess);
 
   const handleMute = useCallback(
     async (target: 'me' | 'everyone', autoMute = false) => {

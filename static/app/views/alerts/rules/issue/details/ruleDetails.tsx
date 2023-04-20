@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
+import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -303,12 +304,17 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               {hasSnoozeFeature && (
-                <SnoozeAlert
-                  isSnoozed={isSnoozed}
-                  onSnooze={this.onSnooze}
-                  ruleId={rule.id}
-                  projectSlug={projectId}
-                />
+                <Access access={['alerts:write']}>
+                  {({hasAccess}) => (
+                    <SnoozeAlert
+                      isSnoozed={isSnoozed}
+                      onSnooze={this.onSnooze}
+                      ruleId={rule.id}
+                      projectSlug={projectId}
+                      hasAccess={hasAccess}
+                    />
+                  )}
+                </Access>
               )}
               <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
                 {t('Duplicate')}
