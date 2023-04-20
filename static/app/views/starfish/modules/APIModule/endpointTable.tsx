@@ -26,11 +26,23 @@ const COLUMN_ORDER = [
   {
     key: 'description',
     name: 'URL',
-    width: 600,
+    width: 300,
+  },
+  {
+    key: 'action',
+    name: 'Operation',
+  },
+  {
+    key: 'count',
+    name: 'Count',
   },
   {
     key: 'p50(exclusive_time)',
     name: 'p50',
+  },
+  {
+    key: 'failure_rate',
+    name: 'Error %',
   },
   {
     key: 'user_count',
