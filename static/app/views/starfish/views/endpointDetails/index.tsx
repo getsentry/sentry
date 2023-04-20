@@ -17,9 +17,8 @@ import {
   renderHeadCell,
 } from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
-  getEndpointDetailErrorRateSeriesQuery,
-  getEndpointDetailQuery,
   getEndpointDetailSeriesQuery,
+  getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
@@ -27,6 +26,9 @@ export type EndpointDataRow = {
   count: number;
   description: string;
   domain: string;
+  failure_count: number;
+  'p50(exclusive_time)': number;
+  'p95(exclusive_time)': number;
   transaction_count: number;
 };
 
@@ -43,7 +45,7 @@ const COLUMN_ORDER = [
   {
     key: 'transaction',
     name: 'Transaction',
-    width: 350,
+    width: 300,
   },
   {
     key: 'count',
@@ -52,6 +54,10 @@ const COLUMN_ORDER = [
   {
     key: 'p50',
     name: 'p50',
+  },
+  {
+    key: 'failure_rate',
+    name: 'Error %',
   },
 ];
 export default function EndpointDetail({
@@ -68,18 +74,10 @@ export default function EndpointDetail({
 function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   const location = useLocation();
   const seriesQuery = getEndpointDetailSeriesQuery(row.description);
-  const errorRateSeriesQuery = getEndpointDetailErrorRateSeriesQuery(row.description);
-  const tableQuery = getEndpointDetailQuery(row.description);
+  const tableQuery = getEndpointDetailTableQuery(row.description);
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: errorRateSeriesIsLoading, data: errorRateSeriesData} = useQuery({
-    queryKey: [errorRateSeriesQuery],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${errorRateSeriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -89,12 +87,10 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     retry: false,
     initialData: [],
   });
-  const [p50Series, p95Series, countSeries] = endpointDetailDataToChartData(
-    seriesData
-  ).map(series => zeroFillSeries(series, moment.duration(12, 'hours')));
-  const [errorRateSeries] = endpointDetailDataToChartData(errorRateSeriesData).map(
-    series => zeroFillSeries(series, moment.duration(12, 'hours'))
-  );
+  const [p50Series, p95Series, countSeries, errorRateSeries] =
+    endpointDetailDataToChartData(seriesData).map(series =>
+      zeroFillSeries(series, moment.duration(12, 'hours'))
+    );
 
   return (
     <div>
@@ -111,7 +107,13 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Duration (P50)')}</SubHeader>
-          <SubSubHeader>{'123ms'}</SubSubHeader>
+          <SubSubHeader>
+            <Duration
+              seconds={row['p50(exclusive_time)'] / 1000}
+              fixedDigits={2}
+              abbreviation
+            />
+          </SubSubHeader>
           <APIDetailChart
             series={p50Series}
             isLoading={seriesIsLoading}
@@ -121,7 +123,13 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>{t('Duration (P95)')}</SubHeader>
-          <SubSubHeader>{'123ms'}</SubSubHeader>
+          <SubSubHeader>
+            <Duration
+              seconds={row['p95(exclusive_time)'] / 1000}
+              fixedDigits={2}
+              abbreviation
+            />
+          </SubSubHeader>
           <APIDetailChart
             series={p95Series}
             isLoading={seriesIsLoading}
@@ -141,10 +149,10 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>{t('Error Rate')}</SubHeader>
-          <SubSubHeader>{row.count}</SubSubHeader>
+          <SubSubHeader>{row.failure_count}</SubSubHeader>
           <APIDetailChart
             series={errorRateSeries}
-            isLoading={errorRateSeriesIsLoading}
+            isLoading={seriesIsLoading}
             index={1}
             outOf={4}
           />

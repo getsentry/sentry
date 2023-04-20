@@ -15,6 +15,10 @@ import {useQuery} from 'sentry/utils/queryClient';
 import Chart from 'sentry/views/starfish/components/chart';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
+import {
+  ModuleButtonType,
+  ModuleLinkButton,
+} from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
 import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
@@ -133,6 +137,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
   return (
     <div data-test-id="starfish-view">
       <FailureDetailPanel onClose={() => {}} spikeObject={selectedSpike} />
+      <ModuleLinkButton type={ModuleButtonType.API} />
+      <ModuleLinkButton type={ModuleButtonType.CACHE} />
+      <ModuleLinkButton type={ModuleButtonType.DB} />
       <StyledRow minSize={200}>
         <Fragment>
           <ChartPanel title={t('Response Time')}>
