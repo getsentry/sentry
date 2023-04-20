@@ -19,29 +19,27 @@ UPDATE_QUERY = """
 
 def backfill_substatus(apps, schema_editor):
     Group = apps.get_model("sentry", "Group")
-    Project = apps.get_model("sentry", "Project")
 
-    for project in RangeQuerySetWrapper(Project.objects.all()):
-        queryset = RangeQuerySetWrapper(
-            Group.objects.filter(project_id=project.id, status=GroupStatus.IGNORED).values_list(
-                "id", "status", "substatus"
-            ),
-            result_value_getter=lambda item: item[0],
-        )
+    cursor = connection.cursor()
+    batch = []
 
-        cursor = connection.cursor()
-        batch = []
+    for row in RangeQuerySetWrapper(Group.objects.all()):
+        group_id = row.id
+        status = row.status
+        substatus = row.substatus
 
-        for group_id, status, substatus in queryset:
-            if substatus is not None:
-                batch.append((group_id, status))
+        if status is not GroupStatus.IGNORED:
+            continue
 
-            if len(batch) >= BATCH_SIZE:
-                execute_values(cursor, UPDATE_QUERY, batch, page_size=BATCH_SIZE)
-                batch = []
+        if substatus is not None:
+            batch.append((group_id, status))
 
-        if batch:
+        if len(batch) >= BATCH_SIZE:
             execute_values(cursor, UPDATE_QUERY, batch, page_size=BATCH_SIZE)
+            batch = []
+
+    if batch:
+        execute_values(cursor, UPDATE_QUERY, batch, page_size=BATCH_SIZE)
 
 
 class Migration(CheckedMigration):
