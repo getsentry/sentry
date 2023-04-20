@@ -2,6 +2,7 @@
 This module is for helper functions for escalating issues forecasts.
 """
 
+import logging
 from datetime import datetime
 from typing import List
 
@@ -13,6 +14,8 @@ from sentry.issues.escalating import (
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import generate_issue_forecast
 from sentry.models import Group
+
+logger = logging.getLogger(__name__)
 
 
 def save_forecast_per_group(
@@ -33,6 +36,10 @@ def save_forecast_per_group(
             group_dict[group_id].project.id, group_id, forecasts_list, datetime.now()
         )
         escalating_group_forecast.save()
+    logger.info(
+        "Saved forecasts in nodestore",
+        extra={"num_groups": len(group_counts.keys())},
+    )
 
 
 def get_forecasts(groups: List[Group]) -> None:
@@ -41,5 +48,9 @@ def get_forecasts(groups: List[Group]) -> None:
     `groups`: List of groups to be forecasted
     """
     past_counts = query_groups_past_counts(groups)
+    logger.info(
+        "Queried groups from snuba",
+        extra={"num_groups": len(past_counts)},
+    )
     group_counts = parse_groups_past_counts(past_counts)
     save_forecast_per_group(groups, group_counts)
