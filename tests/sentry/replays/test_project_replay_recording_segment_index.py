@@ -137,6 +137,19 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
             )
         )
 
+        # Insert an empty segment row into ClickHouse (this should not be returned). If the tests
+        # do not error it means these empty rows were not retured.
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                self.replay_id,
+                segment_id=None,
+                retention_days=30,
+                **metadata,
+            )
+        )
+
         # Store the binary blob in the remote storage provider.
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
