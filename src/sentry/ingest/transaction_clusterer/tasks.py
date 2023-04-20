@@ -59,11 +59,6 @@ def cluster_projects(projects: Sequence[Project]) -> None:
     num_clustered = 0
     try:
         for project in projects:
-            # NOTE: The probability that the feature flag is True is high, because
-            # we know at this point that a redis set exists for the project.
-            # It's still worth checking the feature flag though, because we don't
-            # want to keep clustering projects for which the feature flag has been
-            # turned off.
             with sentry_sdk.start_span(op="txcluster_project") as span:
                 span.set_data("project_id", project.id)
                 tx_names = list(redis.get_transaction_names(project))
