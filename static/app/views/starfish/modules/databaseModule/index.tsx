@@ -27,6 +27,7 @@ function getOptions() {
   const prefix = <span>{t('Operation')}</span>;
 
   return [
+    'ALL',
     'DELETE',
     'INSERT',
     'ROLLBACK',
@@ -48,6 +49,7 @@ function getTableOptions() {
   const prefix = <span>{t('Table')}</span>;
 
   return [
+    'ALL',
     'auth_user',
     'sentry_useroption',
     'sentry_organizationmember',
@@ -82,9 +84,9 @@ type State = {
 
 class DatabaseModule extends Component<Props, State> {
   state: State = {
-    action: 'SELECT',
+    action: 'ALL',
     transaction: '',
-    table: 'auth_user',
+    table: 'ALL',
   };
 
   handleOptionChange(value) {
@@ -146,8 +148,8 @@ class DatabaseModule extends Component<Props, State> {
               />
               <DatabaseTableView
                 location={location}
-                action={action}
-                table={table}
+                action={action !== 'ALL' ? action : undefined}
+                table={table !== 'ALL' ? table : undefined}
                 transaction={transaction}
                 onSelect={setSelectedRow}
               />
