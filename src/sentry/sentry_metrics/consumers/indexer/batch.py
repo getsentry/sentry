@@ -389,9 +389,7 @@ class IndexerBatch:
 
             # timestamp when the message was produced to ingest-* topic,
             # used for end-to-end latency metrics
-            sentry_received_timestamp = bytes(
-                message.value.timestamp.strftime(SENTRY_RECEIVED_FORMAT), "utf-8"
-            )
+            sentry_received_timestamp = bytes(f"{message.value.timestamp.timestamp()}", "utf-8")
 
             if self.__should_index_tag_values:
                 new_payload_v1: Metric = {
