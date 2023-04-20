@@ -234,15 +234,13 @@ def test_project_config_exposed_features_raise_exc(default_project):
 @pytest.mark.django_db
 @region_silo_test(stable=True)
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_all_biases_enabled(
-    eval_dynamic_factor_tk, eval_dynamic_factor_lr, default_project, default_team
+    eval_dynamic_factor_lr, default_project, default_team
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
-    eval_dynamic_factor_tk.return_value = 2.0
     eval_dynamic_factor_lr.return_value = 1.5
 
     redis_client = get_redis_client_for_ds()
@@ -255,7 +253,6 @@ def test_project_config_with_all_biases_enabled(
             {"id": "boostEnvironments", "active": True},
             {"id": "ignoreHealthChecks", "active": True},
             {"id": "boostLatestRelease", "active": True},
-            {"id": "boostKeyTransactions", "active": True},
         ],
     )
     default_project.add_team(default_team)
@@ -333,22 +330,6 @@ def test_project_config_with_all_biases_enabled(
                     ],
                 },
                 "id": 1002,
-            },
-            {
-                "condition": {
-                    "inner": [
-                        {
-                            "name": "event.transaction",
-                            "op": "eq",
-                            "options": {"ignoreCase": True},
-                            "value": ["/foo"],
-                        }
-                    ],
-                    "op": "or",
-                },
-                "id": 1003,
-                "samplingValue": {"type": "factor", "value": 2.0},
-                "type": "transaction",
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},

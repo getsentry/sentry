@@ -7,14 +7,12 @@ from sentry_relay.processing import validate_project_config
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
-    BOOSTED_KEY_TRANSACTION_LIMIT,
     ENVIRONMENT_GLOBS,
     HEALTH_CHECK_GLOBS,
     generate_rules,
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.rules.utils import (
-    KEY_TRANSACTIONS_BOOST_FACTOR,
     LATEST_RELEASES_BOOST_DECAYED_FACTOR,
     LATEST_RELEASES_BOOST_FACTOR,
     RESERVED_IDS,
@@ -166,177 +164,6 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                 ],
             },
             "id": 1001,
-        },
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1000,
-            "samplingValue": {"type": "sampleRate", "value": 0.1},
-            "type": "trace",
-        },
-    ]
-    get_blended_sample_rate.assert_called_with(default_project)
-    _validate_rules(default_project)
-
-
-@pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
-    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
-):
-    get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
-
-    default_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransactions", "active": True},
-        ],
-    )
-    default_project.add_team(default_team)
-
-    TeamKeyTransaction.objects.create(
-        organization=default_project.organization,
-        transaction="/foo",
-        project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
-    )
-    assert generate_rules(default_project) == [
-        {
-            "condition": {
-                "inner": [
-                    {
-                        "name": "event.transaction",
-                        "op": "eq",
-                        "options": {"ignoreCase": True},
-                        "value": ["/foo"],
-                    }
-                ],
-                "op": "or",
-            },
-            "id": 1003,
-            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
-            "type": "transaction",
-        },
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1000,
-            "samplingValue": {"type": "sampleRate", "value": 0.1},
-            "type": "trace",
-        },
-    ]
-    get_blended_sample_rate.assert_called_with(default_project)
-    _validate_rules(default_project)
-
-
-@pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
-    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
-):
-    get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
-
-    default_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransactions", "active": True},
-        ],
-    )
-    team_a = Factories.create_team(organization=default_project.organization, name="Team A")
-    default_project.add_team(default_team)
-    default_project.add_team(team_a)
-
-    TeamKeyTransaction.objects.create(
-        organization=default_project.organization,
-        transaction="/foo",
-        project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
-    )
-    # Let's assume another team for this project selects same transaction
-    # so we will have dups
-    TeamKeyTransaction.objects.create(
-        organization=default_project.organization,
-        transaction="/foo",
-        project_team=ProjectTeam.objects.get(project=default_project, team=team_a),
-    )
-    assert generate_rules(default_project) == [
-        {
-            "condition": {
-                "inner": [
-                    {
-                        "name": "event.transaction",
-                        "op": "eq",
-                        "options": {"ignoreCase": True},
-                        "value": ["/foo"],
-                    }
-                ],
-                "op": "or",
-            },
-            "id": 1003,
-            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
-            "type": "transaction",
-        },
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1000,
-            "samplingValue": {"type": "sampleRate", "value": 0.1},
-            "type": "trace",
-        },
-    ]
-    get_blended_sample_rate.assert_called_with(default_project)
-    _validate_rules(default_project)
-
-
-@pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_records(
-    get_blended_sample_rate, apply_dynamic_factor, default_project, default_team
-):
-    get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = KEY_TRANSACTIONS_BOOST_FACTOR
-
-    default_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransactions", "active": True},
-        ],
-    )
-    default_project.add_team(default_team)
-
-    # Let's create more then transaction limit
-    for tx_suffix in range(BOOSTED_KEY_TRANSACTION_LIMIT + 1):
-        TeamKeyTransaction.objects.create(
-            organization=default_project.organization,
-            transaction=f"/foo_{tx_suffix:02d}",
-            project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
-        )
-
-    assert generate_rules(default_project) == [
-        {
-            "condition": {
-                "inner": [
-                    {
-                        "name": "event.transaction",
-                        "op": "eq",
-                        "options": {"ignoreCase": True},
-                        "value": [f"/foo_{i:02d}" for i in range(BOOSTED_KEY_TRANSACTION_LIMIT)],
-                    }
-                ],
-                "op": "or",
-            },
-            "id": 1003,
-            "samplingValue": {"type": "factor", "value": KEY_TRANSACTIONS_BOOST_FACTOR},
-            "type": "transaction",
         },
         {
             "condition": {"inner": [], "op": "and"},
