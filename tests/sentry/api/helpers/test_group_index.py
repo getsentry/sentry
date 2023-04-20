@@ -240,6 +240,26 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @patch("sentry.signals.issue_unignored.send_robust")
+    def test_unresolve_ongoing_ignored_group(self, send_robust):
+        group = self.create_group(status=GroupStatus.IGNORED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "unresolved", "substatus": "ongoing"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        search_fn = Mock()
+        update_groups(
+            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
+        )
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus is GroupSubStatus.ONGOING
+        assert send_robust.called
+
 
 class TestHandleIsSubscribed(TestCase):  # type: ignore[misc]
     def setUp(self) -> None:
