@@ -1,13 +1,15 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -24,38 +26,59 @@ type Props = {
 function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
   const organization = useOrganization();
   const api = useApi();
+  const location = useLocation();
 
   const [disabled, setDisabled] = useState(false);
 
-  async function handleMute(target: 'me' | 'everyone') {
-    setDisabled(true);
-    try {
-      await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
-        {
-          method: 'POST',
-          data: {
-            target,
-          },
-        }
-      );
+  const handleMute = useCallback(
+    async (target: 'me' | 'everyone', autoMute = false) => {
+      setDisabled(true);
+      try {
+        await api.requestPromise(
+          `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
+          {
+            method: 'POST',
+            data: {
+              target,
+            },
+          }
+        );
 
-      setDisabled(false);
-      onSnooze({
-        snooze: !isSnoozed,
-        snoozeCreatedBy: 'You',
-        snoozeForEveryone: target === 'me' ? false : true,
-      });
-    } catch (err) {
-      if (err.status === 403) {
-        addErrorMessage(t('You do not have permission to mute this alert'));
-      } else if (err.stats === 410) {
-        addErrorMessage(t('This alert has already been muted'));
-      } else {
-        addErrorMessage(t('Unable to mute this alert'));
+        if (autoMute) {
+          browserHistory.replace({
+            pathname: location.pathname,
+            query: {...location.query, mute: undefined},
+          });
+        }
+
+        setDisabled(false);
+        addSuccessMessage(t('Alert muted'));
+        onSnooze({
+          snooze: !isSnoozed,
+          snoozeCreatedBy: 'You',
+          snoozeForEveryone: target === 'me' ? false : true,
+        });
+      } catch (err) {
+        if (err.status === 403) {
+          addErrorMessage(t('You do not have permission to mute this alert'));
+        } else if (err.status === 410) {
+          addErrorMessage(t('This alert has already been muted'));
+        } else {
+          addErrorMessage(t('Unable to mute this alert'));
+        }
       }
-    }
-  }
+    },
+    [
+      api,
+      isSnoozed,
+      location.pathname,
+      location.query,
+      onSnooze,
+      organization.slug,
+      projectSlug,
+      ruleId,
+    ]
+  );
 
   async function handleUnmute() {
     setDisabled(true);
@@ -69,6 +92,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
       );
 
       setDisabled(false);
+      addSuccessMessage(t('Alert unmuted'));
       onSnooze({snooze: !isSnoozed});
     } catch (err) {
       if (err.status === 403) {
@@ -78,6 +102,12 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
       }
     }
   }
+
+  useEffect(() => {
+    if (location.query.mute === '1' && !isSnoozed) {
+      handleMute('me', true);
+    }
+  }, [location.query, isSnoozed, handleMute]);
 
   const dropdownItems: MenuItemProps[] = [
     {

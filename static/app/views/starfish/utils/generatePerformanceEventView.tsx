@@ -135,6 +135,7 @@ export function generateWebServiceEventView(
     'tpm()',
     'p50()',
     'p95()',
+    'count_if(http.status_code,greaterOrEquals,500)',
     TIME_SPENT_IN_SERVICE,
     `equation|percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})-percentile_range(transaction.duration,0.50,greater,${middleTimestamp})`,
     'total.transaction_duration',

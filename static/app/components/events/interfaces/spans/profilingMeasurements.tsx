@@ -88,6 +88,7 @@ function Chart({data, type, transactionDuration}: ChartProps) {
         show: false,
         axisLabel: {show: false},
         axisTick: {show: false},
+        max: type === CPU_USAGE ? 100 : undefined,
       }}
       xAxis={{
         show: false,

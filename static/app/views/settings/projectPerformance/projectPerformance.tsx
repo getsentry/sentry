@@ -268,7 +268,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
         type: 'boolean',
         label: retentionPrioritiesLabels.boostEnvironments,
         help: t(
-          'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
+          'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
         ),
         getData: this.getRetentionPrioritiesData,
       },
