@@ -266,8 +266,6 @@ function Chart({
       }
     : undefined;
 
-  const showLineGraphLegent = data.length > 1;
-
   return (
     <ChartZoom
       router={router}
