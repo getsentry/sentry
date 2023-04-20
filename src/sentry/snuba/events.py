@@ -91,7 +91,7 @@ class Columns(Enum):
         event_name="location",
         transaction_name=None,
         discover_name="location",
-        issue_platform_name="location",
+        issue_platform_name=None,
         alias="location",
     )
     MESSAGE = Column(
