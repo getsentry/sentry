@@ -9,6 +9,7 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.utils import imports
 from sentry.utils.redis import (
     ClusterManager,
+    FailoverRedis,
     _RedisCluster,
     _shared_pool,
     get_cluster_from_options,
@@ -44,16 +45,14 @@ class ClusterManagerTestCase(TestCase):
             manager.get("invalid")
 
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
-    @mock.patch("sentry.utils.redis.StrictRedis")
-    @mock.patch("sentry.utils.redis.FailoverRedis")
-    def test_specific_cluster(self, FailoverRedis, StrictRedis, RetryingRedisCluster):
+    def test_specific_cluster(self, RetryingRedisCluster):
         manager = make_manager(cluster_type=_RedisCluster)
 
         # We wrap the cluster in a Simple Lazy Object, force creation of the
         # object to verify it's correct.
 
         # cluster foo is fine since it's a single node, without specific client_class
-        assert manager.get("foo")._setupfunc() is FailoverRedis.return_value
+        assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)
         # baz works becasue it's explicitly is_redis_cluster
         assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value
 
