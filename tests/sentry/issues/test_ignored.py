@@ -59,9 +59,13 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
     ) -> None:
         self.group = self.create_group()
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
+        assert GroupInbox.objects.filter(
+            group=self.group, reason=GroupInboxReason.NEW.value
+        ).exists()
 
         handle_archived_until_escalating([self.group], self.user)
         assert not GroupInbox.objects.filter(group=self.group).exists()
+        # Make sure we don't create a snooze for until_escalating
         assert not GroupSnooze.objects.filter(group=self.group).exists()
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
@@ -78,9 +82,13 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         )
 
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
+        assert GroupInbox.objects.filter(
+            group=self.group, reason=GroupInboxReason.NEW.value
+        ).exists()
 
         handle_archived_until_escalating([self.group], self.user)
         assert not GroupInbox.objects.filter(group=self.group).exists()
+        # Make sure we don't create a snooze for until_escalating
         assert not GroupSnooze.objects.filter(group=self.group).exists()
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)

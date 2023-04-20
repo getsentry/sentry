@@ -35,7 +35,7 @@ def save_forecast_per_group(
         escalating_group_forecast.save()
 
 
-def get_forecasts(groups: List[Group]) -> None:
+def generate_and_save_forecasts(groups: List[Group]) -> None:
     """
     Generates and saves a list of forecasted values for each group.
     `groups`: List of groups to be forecasted
