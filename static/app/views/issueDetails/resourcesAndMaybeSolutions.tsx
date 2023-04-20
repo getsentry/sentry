@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Project} from 'sentry/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   event: Event;
@@ -17,7 +18,12 @@ type Props = {
 
 // This section provides users with resources and maybe solutions on how to resolve an issue
 export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
+  const organization = useOrganization();
   const config = getConfigForIssueType(group);
+
+  if (!config.resources && !organization.features.includes('open-ai-suggestion')) {
+    return null;
+  }
 
   return (
     <Wrapper
