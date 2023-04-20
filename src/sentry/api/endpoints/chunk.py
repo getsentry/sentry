@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, options
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import all_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
 from sentry.ratelimits.config import RateLimitConfig
@@ -31,7 +31,9 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
-    # TODO: This is currently turned on by a feature flag
+    # TODO: at a later point when we return artifact bundles here
+    #   users will by default upload artifact bundles as this is what
+    #   sentry-cli looks for.
     # "artifact_bundles",  # Artifact bundles containing source maps.
 )
 
@@ -44,7 +46,7 @@ class GzipChunk(BytesIO):
         super().__init__(data)
 
 
-@pending_silo_endpoint
+@all_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
     rate_limits = RateLimitConfig(group="CLI")
@@ -81,7 +83,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
-        # TODO: artifact bundles are still feature flagged.
         accept = CHUNK_UPLOAD_ACCEPT
         if features.has(
             "organizations:artifact-bundles", organization=organization, actor=request.user

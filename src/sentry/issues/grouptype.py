@@ -48,6 +48,26 @@ class GroupTypeRegistry:
     def all(self) -> List[Type[GroupType]]:
         return list(self._registry.values())
 
+    def get_visible(
+        self, organization: Organization, actor: Optional[Any] = None
+    ) -> List[Type[GroupType]]:
+        released = [gt for gt in self.all() if gt.released]
+        feature_to_grouptype = {
+            gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
+        }
+        batch_features = features.batch_has(
+            list(feature_to_grouptype.keys()), actor=actor, organization=organization
+        )
+        enabled = []
+        if batch_features:
+            feature_results = batch_features.get(f"organization:{organization.id}", {})
+            enabled = [
+                feature_to_grouptype[feature]
+                for feature, active in feature_results.items()
+                if active
+            ]
+        return released + enabled
+
     def get_all_group_type_ids(self) -> Set[int]:
         return {type.type_id for type in self._registry.values()}
 
@@ -261,6 +281,14 @@ class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1013
     slug = "performance_db_main_thread"
     description = "DB on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
+class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1015
+    slug = "performance_large_http_payload"
+    description = "Large HTTP payload"
     category = GroupCategory.PERFORMANCE.value
 
 

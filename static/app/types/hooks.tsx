@@ -1,11 +1,14 @@
 import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
+import {Location} from 'history';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {Platform} from 'sentry/data/platformCategories';
+import type {Group} from 'sentry/types';
 import {UseExperiment} from 'sentry/utils/useExperiment';
 import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -70,9 +73,15 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 
-type DisabledAppStoreConnectMultiple = {organization: Organization};
+type DisabledAppStoreConnectMultiple = {
+  children: React.ReactNode;
+  organization: Organization;
+};
 
-type DisabledCustomSymbolSources = {organization: Organization};
+type DisabledCustomSymbolSources = {
+  children: React.ReactNode;
+  organization: Organization;
+};
 
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
@@ -80,7 +89,26 @@ type DashboardHeadersProps = {organization: Organization};
 
 type ReplayGracePeriodAlertProps = {organization: Organization};
 
-type ReplayOnboardinCTAProps = {children: React.ReactNode; organization: Organization};
+type ReplayOnboardingAlertProps = {children: React.ReactNode};
+type ReplayFeedbackButton = {children: React.ReactNode};
+type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
+
+type ProfilingBetaAlertBannerProps = {
+  organization: Organization;
+};
+
+type ProfilingUpgradePlanButtonProps = ButtonProps & {
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
+type SetUpSdkDocProps = {
+  location: Location;
+  organization: Organization;
+  platform: Platform;
+  project: Project;
+};
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
@@ -98,6 +126,11 @@ type AttemptCloseAttemptProps = {
 };
 
 type CodecovLinkProps = {
+  organization: Organization;
+};
+
+type QualitativeIssueFeedbackProps = {
+  group: Group;
   organization: Organization;
 };
 
@@ -121,12 +154,17 @@ export type ComponentHooks = {
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
+  'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
-  'component:replay-feedback-button': () => React.ComponentType<{}>;
-  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardinCTAProps>;
-  'component:superuser-access-category': React.FC<any>;
+  'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
+  'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
+  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
+  'component:set-up-sdk-doc': () => React.ComponentType<SetUpSdkDocProps>;
+  'component:superuser-access-category': React.ComponentType<any>;
 };
 
 /**
@@ -145,13 +183,9 @@ export type CustomizationHooks = {
  * Analytics / tracking / and operational metrics backend hooks.
  */
 export type AnalyticsHooks = {
-  // TODO(scefali): Below are deprecated and should be replaced
-  'analytics:event': LegacyAnalyticsEvent;
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
-  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
-  'analytics:track-event': AnalyticsTrackEvent;
-  'analytics:track-event-v2': AnalyticsTrackEventV2;
+  'analytics:raw-track-event': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
 
@@ -194,6 +228,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
+  'feature-disabled:starfish-view': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
 };
 
@@ -327,26 +362,7 @@ type AnalyticsInitUser = (user: User) => void;
 /**
  * Trigger analytics tracking in the hook store.
  */
-type AnalyticsTrackEvent = (opts: {
-  /**
-   * Arbitrary data to track
-   */
-  [key: string]: any;
-  /**
-   * The key used to identify the event.
-   */
-  eventKey: string;
-  /**
-   * The English string used as the name of the event.
-   */
-  eventName: string;
-  organization_id: string | number | null;
-}) => void;
-
-/**
- * Trigger analytics tracking in the hook store.
- */
-type AnalyticsTrackEventV2 = (
+type AnalyticsRawTrackEvent = (
   data: {
     /**
      * Arbitrary data to track
@@ -387,20 +403,6 @@ type AnalyticsTrackEventV2 = (
 ) => void;
 
 /**
- * Trigger ad hoc analytics tracking in the hook store.
- */
-type AnalyticsTrackAdhocEvent = (opts: {
-  /**
-   * Arbitrary data to track
-   */
-  [key: string]: any;
-  /**
-   * The key used to identify the event.
-   */
-  eventKey: string;
-}) => void;
-
-/**
  * Trigger experiment observed logging.
  */
 type AnalyticsLogExperiment = (opts: {
@@ -413,24 +415,6 @@ type AnalyticsLogExperiment = (opts: {
    */
   organization?: Organization;
 }) => void;
-
-/**
- * Trigger analytics tracking in the hook store.
- *
- * Prefer using `analytics:track-event` or `analytics:track-adhock-event`.
- *
- * @deprecated This is the legacy interface.
- */
-type LegacyAnalyticsEvent = (
-  /**
-   * The key used to identify the event.
-   */
-  name: string,
-  /**
-   * Arbitrary data to track
-   */
-  data: {[key: string]: any}
-) => void;
 
 /**
  * Trigger recording a metric in the hook store.

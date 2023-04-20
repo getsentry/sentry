@@ -10,7 +10,7 @@ import moment from 'moment';
 import {Organization} from 'sentry/types';
 import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -286,17 +286,15 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
 }
 
 export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
-  if (isGapSpan(span)) {
-    return undefined;
-  }
-
   const label = span?.description ?? getSpanID(span);
 
-  if (span.op === 'http.client') {
-    try {
-      return decodeURIComponent(label);
-    } catch {
-      // Do nothing
+  if (!isGapSpan(span)) {
+    if (span.op === 'http.client') {
+      try {
+        return decodeURIComponent(label);
+      } catch {
+        // Do nothing
+      }
     }
   }
 
@@ -713,7 +711,7 @@ export function scrollToSpan(
       hash,
     });
 
-    trackAdvancedAnalyticsEvent('performance_views.event_details.anchor_span', {
+    trackAnalytics('performance_views.event_details.anchor_span', {
       organization,
       span_id: spanId,
     });

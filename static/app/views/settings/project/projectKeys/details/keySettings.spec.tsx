@@ -8,12 +8,16 @@ import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 import {DynamicSDKLoaderOption, KeySettings, sdkLoaderOptions} from './keySettings';
 
-const ORG_FEATURES = ['js-sdk-dynamic-loader'];
-
 const dynamicSdkLoaderOptions = {
   [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
   [DynamicSDKLoaderOption.HAS_REPLAY]: true,
   [DynamicSDKLoaderOption.HAS_DEBUG]: false,
+};
+
+const fullDynamicSdkLoaderOptions = {
+  [DynamicSDKLoaderOption.HAS_PERFORMANCE]: true,
+  [DynamicSDKLoaderOption.HAS_REPLAY]: true,
+  [DynamicSDKLoaderOption.HAS_DEBUG]: true,
 };
 
 function renderMockRequests(
@@ -42,7 +46,6 @@ describe('Key Settings', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: ORG_FEATURES,
         },
         router: {
           params,
@@ -119,6 +122,168 @@ describe('Key Settings', function () {
           })
         );
       });
+    });
+
+    it('resets performance & replay when selecting SDK version <7', async function () {
+      const params = {
+        projectId: '1',
+        keyId: '1',
+      };
+
+      const {organization} = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          ...initializeOrg().organization,
+        },
+        router: {
+          params,
+        },
+      });
+
+      const data = {
+        ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+        dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+      } as ProjectKey;
+
+      const mockRequests = renderMockRequests(
+        organization.slug,
+        params.projectId,
+        params.keyId
+      );
+
+      render(
+        <KeySettings
+          data={data}
+          onRemove={jest.fn()}
+          organization={organization}
+          params={params}
+        />
+      );
+
+      // Update SDK version - should reset performance & replay
+      await selectEvent.select(screen.getByText('latest'), '6.x');
+
+      await waitFor(() => {
+        expect(mockRequests.projectKeys).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${params.projectId}/keys/${params.keyId}/`,
+          expect.objectContaining({
+            data: {
+              browserSdkVersion: '6.x',
+              dynamicSdkLoaderOptions: {
+                ...fullDynamicSdkLoaderOptions,
+                [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
+                [DynamicSDKLoaderOption.HAS_REPLAY]: false,
+                [DynamicSDKLoaderOption.HAS_DEBUG]: true,
+              },
+            },
+          })
+        );
+      });
+    });
+
+    it('disabled performance & replay when SDK version <7 is selected', function () {
+      const params = {
+        projectId: '1',
+        keyId: '1',
+      };
+
+      const {organization} = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          ...initializeOrg().organization,
+        },
+        router: {
+          params,
+        },
+      });
+
+      const data = {
+        ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+        dynamicSdkLoaderOptions: {
+          [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
+          [DynamicSDKLoaderOption.HAS_REPLAY]: false,
+          [DynamicSDKLoaderOption.HAS_DEBUG]: true,
+        },
+        browserSdkVersion: '6.x',
+      } as ProjectKey;
+
+      render(
+        <KeySettings
+          data={data}
+          onRemove={jest.fn()}
+          organization={organization}
+          params={params}
+        />
+      );
+
+      for (const key of Object.keys(sdkLoaderOptions)) {
+        const toggle = screen.getByRole('checkbox', {name: sdkLoaderOptions[key].label});
+
+        if (key === DynamicSDKLoaderOption.HAS_DEBUG) {
+          expect(toggle).toBeEnabled();
+          expect(toggle).toBeChecked();
+        } else {
+          expect(toggle).toBeDisabled();
+          expect(toggle).not.toBeChecked();
+        }
+      }
+
+      const infos = screen.getAllByText('Only available in SDK version 7.x and above');
+      expect(infos.length).toBe(2);
+    });
+
+    it('shows replay message when it is enabled', function () {
+      const params = {
+        projectId: '1',
+        keyId: '1',
+      };
+
+      const {organization} = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          ...initializeOrg().organization,
+        },
+        router: {
+          params,
+        },
+      });
+
+      const data = {
+        ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+        dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+      } as ProjectKey;
+
+      const {rerender} = render(
+        <KeySettings
+          data={data}
+          onRemove={jest.fn()}
+          organization={organization}
+          params={params}
+        />
+      );
+
+      expect(
+        screen.queryByText(
+          'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        )
+      ).toBeInTheDocument();
+
+      data.dynamicSdkLoaderOptions.hasReplay = false;
+
+      rerender(
+        <KeySettings
+          data={data}
+          onRemove={jest.fn()}
+          organization={organization}
+          params={params}
+        />
+      );
+
+      expect(
+        screen.queryByText(
+          'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        )
+      ).not.toBeInTheDocument();
     });
   });
 });

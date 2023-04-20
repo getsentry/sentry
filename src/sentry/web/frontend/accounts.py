@@ -38,7 +38,7 @@ def login_redirect(request):
 
 
 def expired(request, user):
-    hash = lost_password_hash_service.get_or_create(user.id).hash
+    hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
     LostPasswordHash.send_email(user, hash, request)
 
     context = {"email": user.email}
@@ -74,7 +74,7 @@ def recover(request):
     if form.is_valid():
         email = form.cleaned_data["user"]
         if email:
-            password_hash = lost_password_hash_service.get_or_create(email.id)
+            password_hash = lost_password_hash_service.get_or_create(user_id=email.id)
             LostPasswordHash.send_email(email, password_hash.hash, request)
 
             extra["passwordhash_id"] = password_hash.id

@@ -6,12 +6,14 @@ type Props = {
   command: string;
 };
 
-const Terminal = ({command}: Props) => (
-  <Wrapper>
-    <Prompt>{'\u0024'}</Prompt>
-    {command}
-  </Wrapper>
-);
+function Terminal({command}: Props) {
+  return (
+    <Wrapper>
+      <Prompt>{'\u0024'}</Prompt>
+      {command}
+    </Wrapper>
+  );
+}
 
 export default Terminal;
 

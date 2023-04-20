@@ -1,5 +1,3 @@
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t, tct} from 'sentry/locale';
@@ -15,7 +13,7 @@ interface Props {
 
 function MonitorOnboarding({orgId, monitor}: Props) {
   return (
-    <OnboardingPanel image={<img src={onboardingImg} />}>
+    <OnboardingPanel noCenter>
       <h3>{t('Instrument your monitor')}</h3>
       <p>
         {tct(

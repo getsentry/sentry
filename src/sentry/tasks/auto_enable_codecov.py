@@ -23,7 +23,11 @@ def enable_for_org(dry_run=False) -> None:
     for organization in RangeQuerySetWrapper(
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):
-        if not features.has("organizations:auto-enable-codecov", organization):
+        integration_enabled = features.has("organizations:codecov-integration", organization)
+        task_enabled = features.has("organizations:auto-enable-codecov", organization)
+        if not integration_enabled or not task_enabled:
+            if organization.flags.codecov_access.is_set:
+                disable_codecov_access(organization)
             continue
 
         logger.info("Processing organization", extra={"organization_id": organization.id})
@@ -67,3 +71,21 @@ def enable_for_org(dry_run=False) -> None:
                 "Error checking for Codecov integration",
                 extra={"organization_id": organization.id},
             )
+
+
+def disable_codecov_access(organization):
+    organization.flags.codecov_access = False
+    organization.save()
+    logger.info(
+        "Disabled Codecov Access flag for dev organization",
+        extra={
+            "organization_id": organization.id,
+            "codecov_access": organization.flags.codecov_access,
+        },
+    )
+    create_system_audit_entry(
+        organization=organization,
+        target_object=organization.id,
+        event=audit_log.get_event_id("ORG_EDIT"),
+        data={"codecov_access": "to False"},
+    )

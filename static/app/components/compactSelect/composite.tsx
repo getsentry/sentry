@@ -27,7 +27,7 @@ export interface SingleCompositeSelectRegion<Value extends React.Key>
   extends BaseCompositeSelectRegion<Value>,
     Omit<
       SingleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'size' | 'limitOptions'
     > {}
 
 /**
@@ -40,7 +40,7 @@ export interface MultipleCompositeSelectRegion<Value extends React.Key>
   extends BaseCompositeSelectRegion<Value>,
     Omit<
       MultipleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'size' | 'limitOptions'
     > {}
 
 /**

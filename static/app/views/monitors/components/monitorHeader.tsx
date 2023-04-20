@@ -10,12 +10,17 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {MonitorStatus} from '../types';
+import {Monitor, MonitorEnvironment, MonitorStatus} from '../types';
 
 import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';
 
-type Props = React.ComponentProps<typeof MonitorHeaderActions>;
+interface Props {
+  monitor: Monitor;
+  onUpdate: (data: Monitor) => void;
+  orgId: string;
+  monitorEnv?: MonitorEnvironment;
+}
 
 const statusToLabel: Record<MonitorStatus, string> = {
   ok: t('Ok'),
@@ -25,7 +30,7 @@ const statusToLabel: Record<MonitorStatus, string> = {
   missed_checkin: t('Missed'),
 };
 
-const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
+function MonitorHeader({monitor, monitorEnv, orgId, onUpdate}: Props) {
   const crumbs = [
     {
       label: t('Crons'),
@@ -61,17 +66,39 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
           <MonitorStatLabel>{t('Last Check-in')}</MonitorStatLabel>
           <MonitorStatLabel>{t('Next Check-in')}</MonitorStatLabel>
           <MonitorStatLabel>{t('Status')}</MonitorStatLabel>
-          <div>{monitor.lastCheckIn && <TimeSince date={monitor.lastCheckIn} />}</div>
-          <div>{monitor.nextCheckIn && <TimeSince date={monitor.nextCheckIn} />}</div>
-          <Status>
-            <MonitorIcon status={monitor.status} size={16} />
-            <MonitorStatusLabel>{statusToLabel[monitor.status]}</MonitorStatusLabel>
-          </Status>
+          <div>
+            {monitorEnv?.lastCheckIn && (
+              <TimeSince
+                unitStyle="regular"
+                liveUpdateInterval="second"
+                date={monitorEnv.lastCheckIn}
+              />
+            )}
+          </div>
+          <div>
+            {monitorEnv?.nextCheckIn && (
+              <TimeSince
+                unitStyle="regular"
+                liveUpdateInterval="second"
+                date={monitorEnv.nextCheckIn}
+              />
+            )}
+          </div>
+          <div>
+            {monitorEnv?.status && (
+              <Status>
+                <MonitorIcon status={monitorEnv.status} size={16} />
+                <MonitorStatusLabel>
+                  {statusToLabel[monitorEnv.status]}
+                </MonitorStatusLabel>
+              </Status>
+            )}
+          </div>
         </MonitorStats>
       </Layout.HeaderActions>
     </Layout.Header>
   );
-};
+}
 
 const MonitorSlug = styled('div')`
   margin-top: ${space(1)};

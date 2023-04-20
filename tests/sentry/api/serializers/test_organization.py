@@ -74,6 +74,7 @@ class OrganizationSerializerTest(TestCase):
             "invite-members-rate-limits",
             "minute-resolution-sessions",
             "open-membership",
+            "project-stats",
             "relay",
             "shared-issues",
             "session-replay-ui",
@@ -82,6 +83,7 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "performance-issues-search",
+            "transaction-name-normalize",
         }
 
     @mock.patch("sentry.features.batch_has")
@@ -207,10 +209,10 @@ class OnboardingTasksSerializerTest(TestCase):
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.PENDING,
-            user=self.user,
+            user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
@@ -226,10 +228,10 @@ class TrustedRelaySerializer(TestCase):
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.PENDING,
-            user=self.user,
+            user_id=self.user.id,
             completion_seen=completion_seen,
         )
 

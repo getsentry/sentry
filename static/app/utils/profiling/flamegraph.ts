@@ -1,4 +1,4 @@
-import {lastOfArray} from 'sentry/utils';
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Profile} from './profile/profile';
@@ -96,8 +96,10 @@ export class Flamegraph {
       inverted = false,
       sort = 'call order',
       configSpace,
+      filterFn,
     }: {
       configSpace?: Rect;
+      filterFn?: (node: CallTreeNode) => boolean;
       inverted?: boolean;
       sort?: 'left heavy' | 'alphabetical' | 'call order';
     } = {}
@@ -112,20 +114,20 @@ export class Flamegraph {
     // If a custom config space is provided, use it and draw the chart in it
     switch (this.sort) {
       case 'left heavy': {
-        this.frames = this.buildSortedChart(profile, leftHeavyTreeSort);
+        this.frames = this.buildSortedChart(profile, leftHeavyTreeSort, filterFn);
         break;
       }
       case 'alphabetical':
         if (this.profile.type === 'flamechart') {
           throw new TypeError('Flamechart does not support alphabetical sorting');
         }
-        this.frames = this.buildSortedChart(profile, alphabeticTreeSort);
+        this.frames = this.buildSortedChart(profile, alphabeticTreeSort, filterFn);
         break;
       case 'call order':
         if (this.profile.type === 'flamegraph') {
           throw new TypeError('Flamegraph does not support call order sorting');
         }
-        this.frames = this.buildCallOrderChart(profile);
+        this.frames = this.buildCallOrderChart(profile, filterFn);
         break;
       default:
         throw new TypeError(`Unknown flamechart sort type: ${this.sort}`);
@@ -168,13 +170,16 @@ export class Flamegraph {
     this.root.frame.totalWeight += weight;
   }
 
-  buildCallOrderChart(profile: Profile): FlamegraphFrame[] {
+  buildCallOrderChart(
+    profile: Profile,
+    filterFn?: (node: CallTreeNode) => boolean
+  ): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack) ?? this.root;
+      const parent = stack[stack.length - 1] ?? this.root;
 
       const frame: FlamegraphFrame = {
         key: idx,
@@ -216,13 +221,14 @@ export class Flamegraph {
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 
-    profile.forEach(openFrame, closeFrame);
+    profile.forEach(openFrame, closeFrame, filterFn);
     return frames;
   }
 
   buildSortedChart(
     profile: Profile,
-    sortFn: (tree: CallTreeNode) => void
+    sortFn: (tree: CallTreeNode) => void,
+    filterFn?: (node: CallTreeNode) => boolean
   ): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
@@ -244,7 +250,7 @@ export class Flamegraph {
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack) ?? this.root;
+      const parent = stack[stack.length - 1] ?? this.root;
       const frame: FlamegraphFrame = {
         key: idx,
         frame: node.frame,
@@ -286,12 +292,21 @@ export class Flamegraph {
     };
 
     function visit(node: CallTreeNode, start: number) {
+      // If the node should not be shown, skip it and just descend into its children
+      if (filterFn && !filterFn(node)) {
+        let childTime = 0;
+        node.children.forEach(child => {
+          visit(child, start + childTime);
+          childTime += child.totalWeight;
+        });
+        return;
+      }
+
       if (!node.frame.isRoot) {
         openFrame(node, start);
       }
 
       let childTime = 0;
-
       node.children.forEach(child => {
         visit(child, start + childTime);
         childTime += child.totalWeight;
@@ -335,6 +350,8 @@ export class Flamegraph {
   }
 
   findAllMatchingFrames(frameName?: string, framePackage?: string): FlamegraphFrame[] {
+    framePackage = tryTrimPackage(framePackage);
+
     const matches: FlamegraphFrame[] = [];
 
     for (let i = 0; i < this.frames.length; i++) {
@@ -342,7 +359,7 @@ export class Flamegraph {
         this.frames[i].frame.name === frameName &&
         // the framePackage can match either the package or the module
         // this is an artifact of how we previously used image
-        (this.frames[i].frame.package === framePackage ||
+        (tryTrimPackage(this.frames[i].frame.package) === framePackage ||
           this.frames[i].frame.module === framePackage)
       ) {
         matches.push(this.frames[i]);
@@ -351,4 +368,8 @@ export class Flamegraph {
 
     return matches;
   }
+}
+
+function tryTrimPackage(pkg?: string): string | undefined {
+  return pkg ? trimPackage(pkg) : pkg;
 }

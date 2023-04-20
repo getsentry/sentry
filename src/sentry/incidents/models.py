@@ -366,7 +366,11 @@ class AlertRule(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
-    owner = FlexibleForeignKey("sentry.Actor", null=True)
+    owner = FlexibleForeignKey(
+        "sentry.Actor",
+        null=True,
+        on_delete=models.SET_NULL,
+    )
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
@@ -394,12 +398,12 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     @property
-    def created_by(self):
+    def created_by_id(self):
         try:
             created_activity = AlertRuleActivity.objects.get(
                 alert_rule=self, type=AlertRuleActivityType.CREATED.value
             )
-            return user_service.get_user(user_id=created_activity.user_id)
+            return created_activity.user_id
         except AlertRuleActivity.DoesNotExist:
             pass
         return None

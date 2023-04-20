@@ -37,7 +37,9 @@ class CustomSCMRepositoryProvider(IntegrationRepositoryProvider):
                 integration_id__isnull=True,
                 provider__isnull=True,
             )
-            integration = Integration.objects.get(organizations=organization, id=integration_id)
+            integration = Integration.objects.get(
+                organizationintegration__organization_id=organization.id, id=integration_id
+            )
         except (Repository.DoesNotExist, Integration.DoesNotExist):
             raise Http404
 

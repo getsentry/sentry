@@ -4,7 +4,7 @@ import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import {
   clearAllHighlights,
@@ -192,7 +192,7 @@ type Props = {
   /**
    * Time, in seconds, when the video should start
    */
-  initialTimeOffset?: number;
+  initialTimeOffsetMs?: number;
 
   /**
    * Override return fields for testing
@@ -212,7 +212,7 @@ function updateSavedReplayConfig(config: ReplayConfig) {
 
 export function Provider({
   children,
-  initialTimeOffset = 0,
+  initialTimeOffsetMs = 0,
   isFetching,
   replay,
   value = {},
@@ -441,7 +441,7 @@ export function Provider({
       }
       setIsPlaying(play);
 
-      trackAdvancedAnalyticsEvent('replay.play-pause', {
+      trackAnalytics('replay.play-pause', {
         organization,
         user_email: config.user.email,
         play,
@@ -495,8 +495,8 @@ export function Provider({
 
   // Only on pageload: set the initial playback timestamp
   useEffect(() => {
-    if (initialTimeOffset && events && replayerRef.current) {
-      setCurrentTime(initialTimeOffset * 1000);
+    if (initialTimeOffsetMs && events && replayerRef.current) {
+      setCurrentTime(initialTimeOffsetMs);
     }
 
     return () => {

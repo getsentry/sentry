@@ -68,7 +68,7 @@ def mock_symbolicate_event_low_priority():
 
 @pytest.fixture
 def mock_get_symbolication_function():
-    with mock.patch("sentry.lang.native.processing.get_symbolication_function") as m:
+    with mock.patch("sentry.lang.native.processing.get_native_symbolication_function") as m:
         yield m
 
 

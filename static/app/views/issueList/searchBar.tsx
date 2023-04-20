@@ -5,7 +5,12 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  DEVICE_CLASS_TAG_VALUES,
+  FieldKind,
+  getFieldDefinition,
+  isDeviceClass,
+} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withIssueTags, {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
@@ -64,6 +69,11 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
 
   const getTagValues = useCallback(
     async (tag: Tag, query: string): Promise<string[]> => {
+      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+      // and low search filter values because discover maps device.class to these values.
+      if (isDeviceClass(tag.key)) {
+        return DEVICE_CLASS_TAG_VALUES;
+      }
       const values = await tagValueLoader(tag.key, query);
       return values.map(({value}) => value);
     },

@@ -370,6 +370,10 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     django.setup()
 
+    if getattr(settings, "SENTRY_REGION_CONFIG", None) is not None:
+        for region in settings.SENTRY_REGION_CONFIG:
+            region.validate()
+
     monkeypatch_django_migrations()
 
     apply_legacy_settings(settings)

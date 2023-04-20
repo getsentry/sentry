@@ -288,6 +288,14 @@ def test_project_config_with_all_biases_enabled(
             timestamp,
         )
 
+    # Set factor
+    default_factor = 0.5
+    redis_client.hset(
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
+        f"{default_project.id}",
+        default_factor,
+    )
+
     with Feature(
         {
             "organizations:dynamic-sampling": True,
@@ -305,6 +313,12 @@ def test_project_config_with_all_biases_enabled(
     assert dynamic_sampling == {
         "rules": [],
         "rulesV2": [
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1004,
+                "samplingValue": {"type": "factor", "value": default_factor},
+                "type": "trace",
+            },
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.02},
                 "type": "transaction",

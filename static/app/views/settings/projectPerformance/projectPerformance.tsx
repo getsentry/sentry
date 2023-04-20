@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -26,7 +26,6 @@ export const retentionPrioritiesLabels = {
   boostLatestRelease: t('Prioritize new releases'),
   boostEnvironments: t('Prioritize dev environments'),
   boostKeyTransactions: t('Prioritize key transactions'),
-  boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
 };
 
@@ -109,10 +108,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
       {
         method: 'DELETE',
         success: () => {
-          trackAdvancedAnalyticsEvent(
-            'performance_views.project_transaction_threshold.clear',
-            {organization}
-          );
+          trackAnalytics('performance_views.project_transaction_threshold.clear', {
+            organization,
+          });
         },
         complete: () => this.fetchData(),
       }
@@ -282,16 +280,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         getData: this.getRetentionPrioritiesData,
       },
       {
-        name: 'boostLowVolumeTransactions',
-        type: 'boolean',
-        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
-        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-        visible: this.props.organization.features.includes(
-          'dynamic-sampling-transaction-name-priority'
-        ),
-        getData: this.getRetentionPrioritiesData,
-      },
-      {
         name: 'ignoreHealthChecks',
         type: 'boolean',
         label: retentionPrioritiesLabels.ignoreHealthChecks,
@@ -332,15 +320,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
           onSubmitSuccess={resp => {
             const initial = this.initialData;
             const changedThreshold = initial.metric === resp.metric;
-            trackAdvancedAnalyticsEvent(
-              'performance_views.project_transaction_threshold.change',
-              {
-                organization,
-                from: changedThreshold ? initial.threshold : initial.metric,
-                to: changedThreshold ? resp.threshold : resp.metric,
-                key: changedThreshold ? 'threshold' : 'metric',
-              }
-            );
+            trackAnalytics('performance_views.project_transaction_threshold.change', {
+              organization,
+              from: changedThreshold ? initial.threshold : initial.metric,
+              to: changedThreshold ? resp.threshold : resp.metric,
+              key: changedThreshold ? 'threshold' : 'metric',
+            });
             this.setState({threshold: resp});
           }}
         >
@@ -371,7 +356,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             }
             onSubmitSuccess={(response, _instance, id, change) => {
               ProjectsStore.onUpdateSuccess(response);
-              trackAdvancedAnalyticsEvent(
+              trackAnalytics(
                 change?.new === true
                   ? 'dynamic_sampling_settings.priority_enabled'
                   : 'dynamic_sampling_settings.priority_disabled',
@@ -414,6 +399,10 @@ class ProjectPerformance extends AsyncView<Props, State> {
               initialData={{
                 performanceIssueCreationRate:
                   this.state.project.performanceIssueCreationRate,
+                performanceIssueSendToPlatform:
+                  this.state.project.performanceIssueSendToPlatform,
+                performanceIssueCreationThroughPlatform:
+                  this.state.project.performanceIssueCreationThroughPlatform,
               }}
               apiMethod="PUT"
               apiEndpoint={projectEndpoint}

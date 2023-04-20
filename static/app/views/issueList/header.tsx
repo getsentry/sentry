@@ -16,7 +16,6 @@ import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
@@ -44,8 +43,6 @@ type IssueListHeaderTabProps = {
   tooltipHoverable?: boolean;
   tooltipTitle?: ReactNode;
 };
-
-const EXTRA_TAB_KEY = 'extra-tab-key';
 
 function IssueListHeaderTabContent({
   count = 0,
@@ -93,17 +90,6 @@ function IssueListHeader({
   const sortParam =
     queryParms.sort === IssueSortOptions.INBOX ? undefined : queryParms.sort;
 
-  function trackTabClick(tabQuery: string) {
-    // Clicking on inbox tab and currently another tab is active
-    if (tabQuery === Query.FOR_REVIEW && query !== Query.FOR_REVIEW) {
-      trackAnalyticsEvent({
-        eventKey: 'inbox_tab.clicked',
-        eventName: 'Clicked Inbox Tab',
-        organization_id: organization.id,
-      });
-    }
-  }
-
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
@@ -139,12 +125,7 @@ function IssueListHeader({
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      <StyledTabs
-        onSelectionChange={key =>
-          trackTabClick(key === EXTRA_TAB_KEY ? query : key.toString())
-        }
-        selectedKey={query}
-      >
+      <StyledTabs selectedKey={query} onSelectionChange={() => {}}>
         <TabList hideBorder>
           {[
             ...visibleTabs.map(

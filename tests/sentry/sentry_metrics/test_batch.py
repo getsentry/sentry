@@ -3,7 +3,9 @@ from collections.abc import MutableMapping
 from datetime import datetime, timezone
 
 import pytest
+import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -23,8 +25,9 @@ counter_payload = {
     },
     "timestamp": ts,
     "type": "c",
-    "value": 1.0,
+    "value": 1,
     "org_id": 1,
+    "retention_days": 90,
     "project_id": 3,
 }
 
@@ -37,8 +40,8 @@ distribution_payload = {
     "timestamp": ts,
     "type": "d",
     "value": [4, 5, 6],
-    "unit": "seconds",
     "org_id": 1,
+    "retention_days": 90,
     "project_id": 3,
 }
 
@@ -52,6 +55,7 @@ set_payload = {
     "type": "s",
     "value": [3],
     "org_id": 1,
+    "retention_days": 90,
     "project_id": 3,
 }
 
@@ -68,6 +72,8 @@ extracted_string_output = {
         "session.status",
     }
 }
+
+_INGEST_SCHEMA = JsonCodec(schema=sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
 
 
 def _construct_messages(payloads):
@@ -96,7 +102,7 @@ def _construct_outer_message(payloads):
     return outer_message
 
 
-def _deconstruct_messages(snuba_messages):
+def _deconstruct_messages(snuba_messages, kafka_logical_topic="snuba-metrics"):
     """
     Convert a list of messages returned by `reconstruct_messages` into python
     primitives, to run assertions on:
@@ -109,10 +115,17 @@ def _deconstruct_messages(snuba_messages):
 
     ...because pytest's assertion diffs work better with python primitives.
     """
-    return [
-        (json.loads(msg.payload.value.decode("utf-8")), msg.payload.headers)
-        for msg in snuba_messages
-    ]
+
+    rv = []
+
+    codec = JsonCodec(schema=sentry_kafka_schemas.get_schema(kafka_logical_topic)["schema"])
+
+    for msg in snuba_messages:
+        decoded = json.loads(msg.payload.value.decode("utf-8"))
+        codec.validate(decoded)
+        rv.append((decoded, msg.payload.headers))
+
+    return rv
 
 
 def _deconstruct_routing_messages(snuba_messages):
@@ -203,7 +216,13 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
             (set_payload, []),
         ]
     )
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, should_index_tag_values, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE,
+        outer_message,
+        should_index_tag_values,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
 
     assert batch.extract_strings() == expected
 
@@ -218,7 +237,13 @@ def test_all_resolved(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE,
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
     assert batch.extract_strings() == (
         {
             1: {
@@ -308,7 +333,6 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "unit": "seconds",
                 "use_case_id": "performance",
                 "value": [4, 5, 6],
             },
@@ -350,7 +374,13 @@ def test_all_resolved_with_routing_information(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, True)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE,
+        outer_message,
+        True,
+        True,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
     assert batch.extract_strings() == (
         {
             1: {
@@ -442,7 +472,6 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "unit": "seconds",
                 "use_case_id": "performance",
                 "value": [4, 5, 6],
             },
@@ -493,7 +522,13 @@ def test_all_resolved_retention_days_honored(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE,
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
     assert batch.extract_strings() == (
         {
             1: {
@@ -583,7 +618,6 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "unit": "seconds",
                 "use_case_id": "performance",
                 "value": [4, 5, 6],
             },
@@ -634,7 +668,13 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, False, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE,
+        outer_message,
+        False,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
     assert batch.extract_strings() == (
         {
             1: {
@@ -670,7 +710,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     )
 
     assert _get_string_indexer_log_records(caplog) == []
-    assert _deconstruct_messages(snuba_payloads) == [
+    assert _deconstruct_messages(snuba_payloads, kafka_logical_topic="snuba-generic-metrics") == [
         (
             {
                 "version": 2,
@@ -710,7 +750,6 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "healthy"},
                 "timestamp": ts,
                 "type": "d",
-                "unit": "seconds",
                 "use_case_id": "performance",
                 "value": [4, 5, 6],
             },
@@ -751,7 +790,9 @@ def test_metric_id_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
+    )
     assert batch.extract_strings() == (
         {
             1: {
@@ -847,7 +888,9 @@ def test_tag_key_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
+    )
     assert batch.extract_strings() == (
         {
             1: {
@@ -925,7 +968,9 @@ def test_tag_value_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
+    )
     assert batch.extract_strings() == (
         {
             1: {
@@ -1024,7 +1069,6 @@ def test_tag_value_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "unit": "seconds",
                 "use_case_id": "performance",
                 "value": [4, 5, 6],
             },
@@ -1042,7 +1086,13 @@ def test_one_org_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE,
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
     assert batch.extract_strings() == (
         {
             1: {
@@ -1128,7 +1178,6 @@ def test_one_org_limited(caplog, settings):
                 "tags": {"2": 4, "5": 3},
                 "timestamp": ts,
                 "type": "d",
-                "unit": "seconds",
                 "use_case_id": "performance",
                 "value": [4, 5, 6],
             },
@@ -1156,7 +1205,13 @@ def test_cardinality_limiter(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE,
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
     keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
     # their insertion order. So we can hardcode offsets here.

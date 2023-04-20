@@ -17,7 +17,7 @@ type Props = Relay & {
   onEdit: (publicKey: Relay['publicKey']) => () => void;
 };
 
-const CardHeader = ({
+function CardHeader({
   publicKey,
   name,
   description,
@@ -25,7 +25,7 @@ const CardHeader = ({
   disabled,
   onEdit,
   onDelete,
-}: Props) => {
+}: Props) {
   const deleteButton = (
     <Button
       size="sm"
@@ -74,7 +74,7 @@ const CardHeader = ({
       </StyledButtonBar>
     </Header>
   );
-};
+}
 
 export default CardHeader;
 

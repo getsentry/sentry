@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
 import type {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
@@ -14,6 +14,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
+import {ReplaySearchAlert} from 'sentry/views/replays/list/replaySearchAlert';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -72,6 +73,7 @@ function ReplaysListTable({
 
   return (
     <Fragment>
+      <ReplaySearchAlert />
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
@@ -89,7 +91,7 @@ function ReplaysListTable({
       <Pagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
-          trackAdvancedAnalyticsEvent('replay.list-paginated', {
+          trackAnalytics('replay.list-paginated', {
             organization,
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
           });

@@ -34,6 +34,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
+    ArtifactBundle,
     BaseManager,
     CommitFileChange,
     GroupInbox,
@@ -1146,7 +1147,7 @@ class Release(Model):
                     },
                 )
                 group = Group.objects.get(id=group_id)
-                group.update(status=GroupStatus.RESOLVED)
+                group.update(status=GroupStatus.RESOLVED, substatus=None)
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
                 record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 
@@ -1201,6 +1202,24 @@ class Release(Model):
         """
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
+
+    def last_weakly_associated_artifact_bundle(self):
+        """Counts the number of artifacts in the most recent "ArtifactBundle" that is weakly associated
+        with this release.
+        """
+        bundles = (
+            ArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                releaseartifactbundle__release_name=self.version,
+            )
+            .order_by("-date_uploaded")
+            .select_related("file")[:1]
+        )
+
+        if len(bundles) == 0:
+            return None
+
+        return bundles[0]
 
     def clear_commits(self):
         """

@@ -18,6 +18,36 @@ from sentry.types.integrations import ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
+    def uninstall_slack_settings(self, organization_id: int, project_ids: List[int]) -> None:
+        provider = ExternalProviders.SLACK
+        users = User.objects.get_users_with_only_one_integration_for_provider(
+            provider, organization_id
+        )
+
+        NotificationSetting.objects.remove_parent_settings_for_organization(
+            organization_id, project_ids, provider
+        )
+        NotificationSetting.objects.disable_settings_for_users(provider, users)
+
+    def update_settings(
+        self,
+        *,
+        external_provider: ExternalProviders,
+        notification_type: NotificationSettingTypes,
+        setting_option: NotificationSettingOptionValues,
+        actor: RpcActor,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+    ) -> None:
+        NotificationSetting.objects.update_settings(
+            provider=external_provider,
+            type=notification_type,
+            value=setting_option,
+            actor=actor,
+            project=project_id,
+            organization=organization_id,
+        )
+
     def get_settings_for_users(
         self,
         *,
@@ -85,31 +115,12 @@ class DatabaseBackedNotificationsService(NotificationsService):
             )
         ]
 
-    def close(self) -> None:
-        pass
-
-    def update_settings(
-        self,
-        *,
-        external_provider: ExternalProviders,
-        notification_type: NotificationSettingTypes,
-        setting_option: NotificationSettingOptionValues,
-        actor: RpcActor,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-    ) -> None:
-        NotificationSetting.objects.update_settings(
-            provider=external_provider,
-            type=notification_type,
-            value=setting_option,
-            actor=actor,
-            project=project_id,
-            organization=organization_id,
-        )
-
     def remove_notification_settings(self, *, actor_id: int, provider: ExternalProviders) -> None:
         """
         Delete notification settings based on an actor_id
         There is no foreign key relationship so we have to manually cascade.
         """
         NotificationSetting.objects._filter(target_ids=[actor_id], provider=provider).delete()
+
+    def close(self) -> None:
+        pass

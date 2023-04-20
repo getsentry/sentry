@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import abc
+import time
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -13,6 +14,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
@@ -53,7 +55,7 @@ from sentry.tasks.post_process import (
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
@@ -169,10 +171,16 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         assert event_processing_store.get(cache_key) is None
 
 
-@apply_feature_flag_on_cls("organizations:derive-code-mappings")
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
-    def _call_post_process_group(self, data: Dict[str, str]) -> None:
-        event = self.create_event(data=data, project_id=self.project.id)
+    def _create_event(
+        self,
+        data: dict[str, Any],
+        project_id: int | None = None,
+    ) -> Event:
+        data.setdefault("platform", "javascript")
+        return self.store_event(data=data, project_id=project_id or self.project.id)
+
+    def _call_post_process_group(self, event: Event) -> None:
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
@@ -182,14 +190,151 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
     def test_derive_invalid_platform(self, mock_derive_code_mappings):
-        self._call_post_process_group({"platform": "elixir"})
+        event = self._create_event({"platform": "elixir"})
+        self._call_post_process_group(event)
+
         assert mock_derive_code_mappings.delay.call_count == 0
 
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
         for platform in SUPPORTED_LANGUAGES:
-            self._call_post_process_group({"platform": platform})
+            event = self._create_event({"platform": platform})
+            self._call_post_process_group(event)
+
             assert mock_derive_code_mappings.delay.call_count == 1
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_only_maps_a_given_project_once_per_hour(self, mock_derive_code_mappings):
+        dogs_project = self.create_project()
+        maisey_event = self._create_event(
+            {
+                "fingerprint": ["themaiseymasieydog"],
+            },
+            dogs_project.id,
+        )
+        charlie_event = self._create_event(
+            {
+                "fingerprint": ["charliebear"],
+            },
+            dogs_project.id,
+        )
+        cory_event = self._create_event(
+            {
+                "fingerprint": ["thenudge"],
+            },
+            dogs_project.id,
+        )
+        bodhi_event = self._create_event(
+            {
+                "fingerprint": ["theescapeartist"],
+            },
+            dogs_project.id,
+        )
+
+        self._call_post_process_group(maisey_event)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # second event from project should bail (no increase in call count)
+        self._call_post_process_group(charlie_event)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # advance the clock 59 minutes, and it should still bail
+        with patch("time.time", return_value=time.time() + 60 * 59):
+            self._call_post_process_group(cory_event)
+            assert mock_derive_code_mappings.delay.call_count == 1
+
+        # now advance the clock 61 minutes, and this time it should go through
+        with patch("time.time", return_value=time.time() + 60 * 61):
+            self._call_post_process_group(bodhi_event)
+            assert mock_derive_code_mappings.delay.call_count == 2
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_only_maps_a_given_issue_once_per_day(self, mock_derive_code_mappings):
+        dogs_project = self.create_project()
+        maisey_event1 = self._create_event(
+            {
+                "fingerprint": ["themaiseymaiseydog"],
+            },
+            dogs_project.id,
+        )
+        maisey_event2 = self._create_event(
+            {
+                "fingerprint": ["themaiseymaiseydog"],
+            },
+            dogs_project.id,
+        )
+        maisey_event3 = self._create_event(
+            {
+                "fingerprint": ["themaiseymaiseydog"],
+            },
+            dogs_project.id,
+        )
+        maisey_event4 = self._create_event(
+            {
+                "fingerprint": ["themaiseymaiseydog"],
+            },
+            dogs_project.id,
+        )
+        # because of the fingerprint, the events should always end up in the same group,
+        # but the rest of the test is bogus if they aren't, so let's be sure
+        assert maisey_event1.group_id == maisey_event2.group_id
+        assert maisey_event2.group_id == maisey_event3.group_id
+        assert maisey_event3.group_id == maisey_event4.group_id
+
+        self._call_post_process_group(maisey_event1)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # second event from group should bail (no increase in call count)
+        self._call_post_process_group(maisey_event2)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # advance the clock 23 hours and 59 minutes, and it should still bail
+        with patch("time.time", return_value=time.time() + (60 * 60 * 23) + (60 * 59)):
+            self._call_post_process_group(maisey_event3)
+            assert mock_derive_code_mappings.delay.call_count == 1
+
+        # now advance the clock 24 hours and 1 minute, and this time it should go through
+        with patch("time.time", return_value=time.time() + (60 * 60 * 24) + (60 * 1)):
+            self._call_post_process_group(maisey_event4)
+            assert mock_derive_code_mappings.delay.call_count == 2
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_skipping_an_issue_doesnt_mark_it_processed(self, mock_derive_code_mappings):
+        dogs_project = self.create_project()
+        maisey_event = self._create_event(
+            {
+                "fingerprint": ["themaiseymasieydog"],
+            },
+            dogs_project.id,
+        )
+        charlie_event1 = self._create_event(
+            {
+                "fingerprint": ["charliebear"],
+            },
+            dogs_project.id,
+        )
+        charlie_event2 = self._create_event(
+            {
+                "fingerprint": ["charliebear"],
+            },
+            dogs_project.id,
+        )
+        # because of the fingerprint, the two Charlie events should always end up in the same group,
+        # but the rest of the test is bogus if they aren't, so let's be sure
+        assert charlie_event1.group_id == charlie_event2.group_id
+
+        self._call_post_process_group(maisey_event)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # second event from project should bail (no increase in call count)
+        self._call_post_process_group(charlie_event1)
+        assert mock_derive_code_mappings.delay.call_count == 1
+
+        # now advance the clock 61 minutes (so the project should clear the cache), and another
+        # event from the Charlie group should go through
+        with patch("time.time", return_value=time.time() + 60 * 61):
+            self._call_post_process_group(charlie_event2)
+            assert mock_derive_code_mappings.delay.call_count == 2
 
 
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
@@ -1439,6 +1584,9 @@ class PostProcessGroupPerformanceTest(
             is_new_group_environment=True,
         )
 
+        # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
+        # but because post-processing is async, this causes the assert to fail because it doesn't
+        # wait for the side effects to happen
         call_order = []
         mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
         mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
@@ -1463,7 +1611,6 @@ class PostProcessGroupPerformanceTest(
 
 
 class TransactionClustererTestCase(TestCase, SnubaTestCase):
-    @with_feature("organizations:transaction-name-clusterer")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
     def test_process_transaction_event_clusterer(
         self,

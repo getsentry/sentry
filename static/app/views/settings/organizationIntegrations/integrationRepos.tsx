@@ -138,10 +138,9 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   renderDropdown() {
-    const access = new Set(this.props.organization.access);
     if (
       !['github', 'gitlab'].includes(this.props.integration.provider.key) &&
-      !access.has('org:integrations')
+      !this.props.organization.access.includes('org:integrations')
     ) {
       return (
         <DropdownButton

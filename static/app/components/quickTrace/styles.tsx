@@ -45,6 +45,7 @@ const nodeColors = (theme: Theme) => ({
 });
 
 export const EventNode = styled(Tag)`
+  height: 20px;
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};

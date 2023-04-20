@@ -13,6 +13,7 @@ import {
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
@@ -20,8 +21,6 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeatureBadge from 'sentry/components/featureBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCheckmark,
   IconEllipsis,
@@ -41,8 +40,7 @@ import {
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {analytics} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -53,8 +51,6 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import {OpenAIFixSuggestionButton} from 'sentry/views/issueDetails/openAIFixSuggestion/openAIFixSuggestionButton';
-import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
@@ -111,12 +107,11 @@ class Actions extends Component<Props> {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
-      | 'open_ai_suggested_fix'
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
     const {alert_date, alert_rule_id, alert_type} = query;
-    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+    trackAnalytics('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: action,
@@ -198,7 +193,7 @@ class Actions extends Component<Props> {
   onToggleShare = () => {
     const newIsPublic = !this.props.group.isPublic;
     if (newIsPublic) {
-      trackAdvancedAnalyticsEvent('issue.shared_publicly', {
+      trackAnalytics('issue.shared_publicly', {
         organization: this.props.organization,
       });
     }
@@ -313,12 +308,7 @@ class Actions extends Component<Props> {
     ));
 
   openDiscardModal = () => {
-    const {organization} = this.props;
-
     openModal(this.renderDiscardModal);
-    analytics('feature.discard_group.modal_opened', {
-      org_id: parseInt(organization.id, 10),
-    });
   };
 
   openShareModal = () => {
@@ -351,8 +341,6 @@ class Actions extends Component<Props> {
     const {group, project, organization, disabled, event} = this.props;
     const {status, isBookmarked} = group;
 
-    const orgFeatures = new Set(organization.features);
-
     const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
@@ -368,9 +356,13 @@ class Actions extends Component<Props> {
       share: shareCap,
     } = getConfigForIssueType(group).actions;
 
+    const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     const hasDeleteAccess = organization.access.includes('event:admin');
 
     const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
+    const {dropdownItems: archiveDropdownItems} = getArchiveActions({
+      onUpdate: this.onUpdate,
+    });
     return (
       <ActionWrapper>
         <DropdownMenu
@@ -381,7 +373,7 @@ class Actions extends Component<Props> {
             size: 'sm',
           }}
           items={[
-            ...(isIgnored
+            ...(isIgnored || hasEscalatingIssues
               ? []
               : [
                   {
@@ -400,27 +392,26 @@ class Actions extends Component<Props> {
                     ],
                   },
                 ]),
+            ...(hasEscalatingIssues
+              ? isIgnored
+                ? []
+                : [
+                    {
+                      key: 'Archive',
+                      className: 'hidden-sm hidden-md hidden-lg',
+                      label: t('Archive'),
+                      isSubmenu: true,
+                      disabled,
+                      children: archiveDropdownItems,
+                    },
+                  ]
+              : []),
             {
               key: 'open-in-discover',
               className: 'hidden-sm hidden-md hidden-lg',
               label: t('Open in Discover'),
               to: disabled ? '' : this.getDiscoverUrl(),
               onAction: () => this.trackIssueAction('open_in_discover'),
-            },
-            {
-              key: 'suggested-fix',
-              className: 'hidden-sm hidden-md hidden-lg',
-              label: (
-                <Tooltip
-                  title={experimentalFeatureTooltipDesc}
-                  containerDisplayMode="inline-flex"
-                >
-                  {t('Suggested Fix')}
-                  <FeatureBadge type="experimental" noTooltip />
-                </Tooltip>
-              ),
-              onAction: () => this.trackIssueAction('open_ai_suggested_fix'),
-              hidden: !orgFeatures.has('open-ai-suggestion'),
             },
             {
               key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
@@ -441,7 +432,7 @@ class Actions extends Component<Props> {
               key: 'share',
               label: t('Share'),
               disabled: disabled || !shareCap.enabled,
-              hidden: !orgFeatures.has('shared-issues'),
+              hidden: !organization.features.includes('shared-issues'),
               onAction: this.openShareModal,
             },
             {
@@ -502,17 +493,6 @@ class Actions extends Component<Props> {
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         </Feature>
-        <Feature features={['open-ai-suggestion']} organization={organization}>
-          <GuideAnchor target="suggested-fix" position="bottom" offset={20}>
-            <OpenAIFixSuggestionButton
-              className="hidden-xs"
-              size="sm"
-              disabled={disabled}
-              groupId={group.id}
-              onClick={() => this.trackIssueAction('open_ai_suggested_fix')}
-            />
-          </GuideAnchor>
-        </Feature>
         {isResolved || isIgnored ? (
           <ActionButton
             priority="primary"
@@ -534,7 +514,17 @@ class Actions extends Component<Props> {
           </ActionButton>
         ) : (
           <Fragment>
-            <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
+            {hasEscalatingIssues ? (
+              <ArchiveActions
+                className="hidden-xs"
+                size="sm"
+                isArchived={isIgnored}
+                onUpdate={this.onUpdate}
+                disabled={disabled}
+                hideIcon
+                disableTooltip
+              />
+            ) : (
               <IgnoreActions
                 className="hidden-xs"
                 isIgnored={isIgnored}
@@ -544,7 +534,7 @@ class Actions extends Component<Props> {
                 hideIcon
                 disableTooltip
               />
-            </GuideAnchor>
+            )}
             <GuideAnchor target="resolve" position="bottom" offset={20}>
               <ResolveActions
                 disableTooltip

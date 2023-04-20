@@ -18,8 +18,9 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Props) => {
+function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Props) {
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
+  const {releaseFileCount, bundleId} = releaseMeta;
 
   return (
     <SidebarSection.Wrap>
@@ -54,12 +55,18 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
             keyName={t('Source Maps')}
             value={
               <Link
-                to={`/settings/${orgSlug}/projects/${projectSlug}/source-maps/${encodeURIComponent(
-                  version
-                )}/`}
+                to={
+                  bundleId
+                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/${encodeURIComponent(
+                        bundleId
+                      )}/`
+                    : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/release-bundles/${encodeURIComponent(
+                        version
+                      )}/`
+                }
               >
-                <Count value={releaseMeta.releaseFileCount} />{' '}
-                {tn('artifact', 'artifacts', releaseMeta.releaseFileCount)}
+                <Count value={releaseFileCount} />{' '}
+                {tn('artifact', 'artifacts', releaseFileCount)}
               </Link>
             }
           />
@@ -67,7 +74,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-};
+}
 
 const StyledTextOverflow = styled(TextOverflow)`
   line-height: inherit;

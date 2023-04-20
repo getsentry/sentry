@@ -324,23 +324,29 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
+    def _get_use_case_key(self) -> UseCaseKey:
+        if self.dataset == Dataset.PerformanceMetrics:
+            return UseCaseKey.PERFORMANCE
+        else:
+            return UseCaseKey.RELEASE_HEALTH
+
     def resolve_tag_key_if_needed(self, string: str) -> str:
         if self.use_metrics_layer:
             return string
 
-        return resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, string)
+        return resolve_tag_key(self._get_use_case_key(), self.org_id, string)
 
     def resolve_tag_value_if_needed(self, string: str) -> Union[str, int]:
         if self.use_metrics_layer:
             return string
 
-        return resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, string)
+        return resolve_tag_value(self._get_use_case_key(), self.org_id, string)
 
     def resolve_tag_values_if_needed(self, strings: Sequence[str]) -> Sequence[Union[str, int]]:
         if self.use_metrics_layer:
             return strings
 
-        return resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, strings)
+        return resolve_tag_values(self._get_use_case_key(), self.org_id, strings)
 
     def _get_environment_condition(self, environment_name: str) -> Condition:
         return Condition(

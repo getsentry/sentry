@@ -28,7 +28,7 @@ class SlackUninstallTest(APITestCase):
 
     def uninstall(self) -> None:
         org_integration = OrganizationIntegration.objects.get(
-            integration=self.integration, organization=self.organization
+            integration=self.integration, organization_id=self.organization.id
         )
 
         with self.tasks():
@@ -38,7 +38,7 @@ class SlackUninstallTest(APITestCase):
 
         assert not OrganizationIntegration.objects.filter(
             integration=self.integration,
-            organization=self.organization,
+            organization_id=self.organization.id,
             status=ObjectStatus.VISIBLE,
         ).exists()
         assert ScheduledDeletion.objects.filter(
@@ -112,7 +112,7 @@ class SlackUninstallTest(APITestCase):
         # No changes to second organization.
         assert Integration.objects.filter(id=integration.id).exists()
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=organization
+            integration=integration, organization_id=organization.id
         ).exists()
 
         self.assert_settings(ExternalProviders.EMAIL, NotificationSettingOptionValues.NEVER)

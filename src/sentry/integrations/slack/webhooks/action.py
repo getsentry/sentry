@@ -92,12 +92,15 @@ def update_group(
 def get_group(slack_request: SlackActionRequest) -> Group | None:
     """Determine the issue group on which an action is being taken."""
     group_id = slack_request.callback_data["issue"]
-    try:
-        return Group.objects.select_related("project__organization").get(
-            id=group_id,
-            project__organization__organizationintegration__integration_id=slack_request.integration.id,
-        )
-    except Group.DoesNotExist:
+    group = Group.objects.select_related("project__organization").filter(id=group_id).first()
+    if group:
+        if not integration_service.get_organization_integration(
+            organization_id=group.project.organization_id,
+            integration_id=slack_request.integration.id,
+        ):
+            group = None
+
+    if not group:
         logger.info(
             "slack.action.invalid-issue",
             extra={
@@ -106,6 +109,8 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
             },
         )
         return None
+
+    return group
 
 
 def _is_message(data: Mapping[str, Any]) -> bool:

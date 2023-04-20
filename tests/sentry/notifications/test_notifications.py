@@ -21,6 +21,7 @@ from sentry.models import (
     Rule,
     UserOption,
 )
+from sentry.models.actor import Actor
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -200,7 +201,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -208,7 +209,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -257,7 +258,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=None,
         )
@@ -265,7 +266,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=None,
         )
@@ -285,6 +286,7 @@ class ActivityNotificationTest(APITestCase):
 
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
         assert group.is_resolved()
 
@@ -313,7 +315,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=group.id,
         )
@@ -321,7 +323,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=group.id,
         )
@@ -365,7 +367,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -373,7 +375,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -442,7 +444,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=event.group_id,
         )
@@ -450,7 +452,7 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=self.user.actor_id,
+            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=event.group_id,
         )

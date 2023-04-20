@@ -12,7 +12,7 @@ import TransactionEvents from 'sentry/views/performance/transactionSummary/trans
 
 import {EVENTS_TABLE_RESPONSE_FIELDS, MOCK_EVENTS_TABLE_DATA} from './eventsTable.spec';
 
-const WrappedComponent = ({data}) => {
+function WrappedComponent({data}) {
   return (
     <MEPSettingProvider>
       <TransactionEvents
@@ -21,7 +21,7 @@ const WrappedComponent = ({data}) => {
       />
     </MEPSettingProvider>
   );
-};
+}
 
 const setupMockApiResponeses = () => {
   MockApiClient.addMockResponse({

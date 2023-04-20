@@ -6,7 +6,13 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 
-jest.mock('sentry/components/sidebar', () => () => <div />);
+jest.mock(
+  'sentry/components/sidebar',
+  () =>
+    function () {
+      return <div />;
+    }
+);
 
 describe('OrganizationDetails', function () {
   let getTeamsMock;

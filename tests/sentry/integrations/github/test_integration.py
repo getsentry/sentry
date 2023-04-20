@@ -257,7 +257,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "account_type": "Organization",
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -293,7 +293,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
         OrganizationIntegration.objects.filter(
-            organization=self.organization, integration=integration
+            organization_id=self.organization.id, integration=integration
         ).delete()
         integration.delete()
 
@@ -303,7 +303,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
         assert OrganizationIntegration.objects.filter(
-            organization=self.organization_2, integration=integration
+            organization_id=self.organization_2.id, integration=integration
         ).exists()
 
     @responses.activate
@@ -551,7 +551,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         # set installation to pending deletion
         oi.status = ObjectStatus.PENDING_DELETION
@@ -587,7 +587,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
         assert OrganizationIntegration.objects.filter(
-            organization=self.organization, integration=integration
+            organization_id=self.organization.id, integration=integration
         ).exists()
 
     def set_rate_limit(

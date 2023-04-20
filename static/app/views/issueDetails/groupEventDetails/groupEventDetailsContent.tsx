@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -20,7 +21,6 @@ import {Resources} from 'sentry/components/events/interfaces/performance/resourc
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import {EventSdkUpdates} from 'sentry/components/events/sdkUpdates';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,7 +42,7 @@ type GroupEventEntryProps = {
   project: Project;
 };
 
-const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProps) => {
+function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProps) {
   const organization = useOrganization();
   const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
@@ -58,13 +58,13 @@ const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProp
       {...{organization, event}}
     />
   );
-};
+}
 
-const GroupEventDetailsContent = ({
+function GroupEventDetailsContent({
   group,
   event,
   project,
-}: GroupEventDetailsContentProps) => {
+}: GroupEventDetailsContentProps) {
   const organization = useOrganization();
   const location = useLocation();
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
@@ -127,8 +127,9 @@ const GroupEventDetailsContent = ({
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
       <Resources {...{event, group}} />
-      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
+      <AiSuggestedSolution event={event} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
+      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
@@ -136,7 +137,6 @@ const GroupEventDetailsContent = ({
       <EventViewHierarchy event={event} project={project} />
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      <EventSdkUpdates event={event} />
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}
@@ -157,7 +157,7 @@ const GroupEventDetailsContent = ({
       )}
     </Fragment>
   );
-};
+}
 
 const NotFoundMessage = styled('div')`
   padding: ${space(2)} ${space(4)};

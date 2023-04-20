@@ -21,7 +21,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project, SelectValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -132,7 +132,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       orientation={orientation}
       collapsed={collapsed}
       hidePanel={() => {
-        trackAdvancedAnalyticsEvent('profiling_views.onboarding_action', {
+        trackAnalytics('profiling_views.onboarding_action', {
           organization,
           action: 'dismissed',
         });
@@ -310,7 +310,7 @@ function OnboardingContent({
         project={currentProject}
         eventType="profile"
         onIssueReceived={() => {
-          trackAdvancedAnalyticsEvent('profiling_views.onboarding_action', {
+          trackAnalytics('profiling_views.onboarding_action', {
             organization,
             action: 'done',
           });
@@ -323,17 +323,21 @@ function OnboardingContent({
   );
 }
 
-const EventReceivedIndicator = () => (
-  <EventIndicator status="received">
-    {t("We've received this project's first profile!")}
-  </EventIndicator>
-);
+function EventReceivedIndicator() {
+  return (
+    <EventIndicator status="received">
+      {t("We've received this project's first profile!")}
+    </EventIndicator>
+  );
+}
 
-const EventWaitingIndicator = () => (
-  <EventIndicator status="waiting">
-    {t("Waiting for this project's first profile.")}
-  </EventIndicator>
-);
+function EventWaitingIndicator() {
+  return (
+    <EventIndicator status="waiting">
+      {t("Waiting for this project's first profile.")}
+    </EventIndicator>
+  );
+}
 
 const Heading = styled('div')`
   display: flex;

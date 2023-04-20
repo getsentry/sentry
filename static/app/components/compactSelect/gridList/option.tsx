@@ -34,6 +34,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
     leadingItems,
     trailingItems,
     priority,
+    hideCheck,
     tooltip,
     tooltipOptions,
     selectionMode,
@@ -42,7 +43,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
     ? selectionMode === 'multiple'
     : listState.selectionManager.selectionMode === 'multiple';
 
-  const {rowProps, gridCellProps, isSelected, isDisabled} = useGridListItem(
+  const {rowProps, gridCellProps, isSelected, isDisabled, isPressed} = useGridListItem(
     {node, shouldSelectOnPressUp: true},
     listState,
     ref
@@ -84,26 +85,33 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
 
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
+
+    if (hideCheck && !leadingItems) {
+      return null;
+    }
+
     return (
       <Fragment>
-        <CheckWrap multiple={multiple} isSelected={isSelected} role="presentation">
-          {multiple ? (
-            <Checkbox
-              {...checkboxProps}
-              size={checkboxSize}
-              checked={isSelected}
-              disabled={isDisabled}
-              readOnly
-            />
-          ) : (
-            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
-          )}
-        </CheckWrap>
+        {!hideCheck && (
+          <CheckWrap multiple={multiple} isSelected={isSelected} role="presentation">
+            {multiple ? (
+              <Checkbox
+                {...checkboxProps}
+                size={checkboxSize}
+                checked={isSelected}
+                disabled={isDisabled}
+                readOnly
+              />
+            ) : (
+              isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+            )}
+          </CheckWrap>
+        )}
         {leadingItems}
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [multiple, isSelected, isDisabled, size, leadingItems]);
+  }, [multiple, isSelected, isDisabled, size, leadingItems, hideCheck]);
 
   return (
     <MenuListItem
@@ -114,6 +122,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
       details={details}
       disabled={isDisabled}
       isSelected={isSelected}
+      isPressed={isPressed}
       isFocused={isFocusWithin}
       priority={priority ?? (isSelected && !multiple) ? 'primary' : 'default'}
       innerWrapProps={gridCellPropsMemo}
