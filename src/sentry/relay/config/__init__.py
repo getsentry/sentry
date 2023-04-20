@@ -47,8 +47,8 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:transaction-name-normalize",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
+    "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",

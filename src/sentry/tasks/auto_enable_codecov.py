@@ -23,11 +23,11 @@ def enable_for_org(dry_run=False) -> None:
     for organization in RangeQuerySetWrapper(
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):
-        if not features.has("organizations:codecov-integration", organization):
+        integration_enabled = features.has("organizations:codecov-integration", organization)
+        task_enabled = features.has("organizations:auto-enable-codecov", organization)
+        if not integration_enabled or not task_enabled:
             if organization.flags.codecov_access.is_set:
                 disable_codecov_access(organization)
-
-        if not features.has("organizations:auto-enable-codecov", organization):
             continue
 
         logger.info("Processing organization", extra={"organization_id": organization.id})
