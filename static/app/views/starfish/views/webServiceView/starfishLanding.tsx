@@ -15,9 +15,9 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import FailureDetail, {
+import EndpointDetail, {
   EndpointDataRow,
-} from 'sentry/views/starfish/views/webServiceView/failureDetails';
+} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 import {StarfishView} from './starfishView';
 
@@ -66,7 +66,7 @@ export function StarfishLanding(props: Props) {
               </SearchContainerWithFilterAndMetrics>
 
               <StarfishView {...props} onSelect={setSelectedEndpoint} />
-              <FailureDetail row={selectedRow} onClose={unsetSelectedEndpoint} />
+              <EndpointDetail row={selectedRow} onClose={unsetSelectedEndpoint} />
             </Fragment>
           </Layout.Main>
         </Layout.Body>

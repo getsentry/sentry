@@ -33,7 +33,7 @@ import {t, tct} from 'sentry/locale';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
-import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/failureDetails';
+import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 // HACK: Overrides ColumnType for TIME_SPENT_IN_SERVICE which is
 // returned as a number because it's an equation, but we

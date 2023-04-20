@@ -19,27 +19,27 @@ export type EndpointDataRow = {
   endpoint: string;
 };
 
-type FailureDetailBodyProps = {
+type EndpointDetailBodyProps = {
   row: EndpointDataRow;
 };
 
-export default function FailureDetail({
+export default function EndpointDetail({
   row,
   onClose,
-}: Partial<FailureDetailBodyProps> & {onClose: () => void}) {
+}: Partial<EndpointDetailBodyProps> & {onClose: () => void}) {
   return (
     <Detail detailKey={row?.endpoint} onClose={onClose}>
-      {row && <FailureDetailBody row={row} />}
+      {row && <EndpointDetailBody row={row} />}
     </Detail>
   );
 }
 
-function FailureDetailBody({row}: FailureDetailBodyProps) {
+function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   const {aggregateDetails} = row;
   return (
     <div>
-      <h2>{t('Failure Detail')}</h2>
-      <p>{t('Details of endpoint failures')}</p>
+      <h2>{t('Endpoint Detail')}</h2>
+      <p>{t('Details of endpoint. More breakdowns, etc. Maybe some trends?')}</p>
       <SubHeader>{t('Endpoint URL')}</SubHeader>
       <pre>{row?.endpoint}</pre>
       <FlexRowContainer>

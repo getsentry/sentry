@@ -27,7 +27,7 @@ import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/failureDetails';
+import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 import EndpointList from './endpointList';
 
