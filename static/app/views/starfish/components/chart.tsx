@@ -222,6 +222,10 @@ function Chart({
     xAxes,
     yAxes,
     utc,
+    legend: {
+      top: 0,
+      right: 10,
+    },
     isGroupedByDate: true,
     showTimeInTooltip: true,
     colors,
@@ -279,6 +283,7 @@ function Chart({
               yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
               tooltip={areaChartProps.tooltip}
               colors={colors}
+              grid={grid}
             />
           );
         }

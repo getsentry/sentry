@@ -72,12 +72,16 @@ export function TextAction({
     const user = memberList.find(
       member => member.user.id === `${action.targetIdentifier}`
     );
-    return <Fragment>{t('Send a notification to %s', user?.email)}</Fragment>;
+    return (
+      <Fragment>{t('Send a notification to %s', user?.email ?? t('unknown'))}</Fragment>
+    );
   }
 
   if (action.targetType === 'Team') {
     const team = teams.find(tm => tm.id === `${action.targetIdentifier}`);
-    return <Fragment>{t('Send a notification to #%s', team?.name)}</Fragment>;
+    return (
+      <Fragment>{t('Send a notification to #%s', team?.name ?? t('unknown'))}</Fragment>
+    );
   }
 
   if (action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {

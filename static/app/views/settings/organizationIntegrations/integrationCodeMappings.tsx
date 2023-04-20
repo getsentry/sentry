@@ -20,7 +20,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
@@ -105,7 +105,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   trackDocsClick = () => {
-    trackAdvancedAnalyticsEvent('integrations.stacktrace_docs_clicked', {
+    trackAnalytics('integrations.stacktrace_docs_clicked', {
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,
       organization: this.props.organization,
@@ -135,7 +135,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
-    trackAdvancedAnalyticsEvent('integrations.stacktrace_complete_setup', {
+    trackAnalytics('integrations.stacktrace_complete_setup', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,
@@ -151,7 +151,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, projects, integration} = this.props;
-    trackAdvancedAnalyticsEvent('integrations.stacktrace_start_setup', {
+    trackAnalytics('integrations.stacktrace_start_setup', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,
