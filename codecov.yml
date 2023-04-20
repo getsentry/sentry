@@ -62,10 +62,9 @@ flags:
 
 # Read more here: https://docs.codecov.com/docs/pull-request-comments
 comment:
-  # after_n_builds declared in flags cannot control when to make comments
-  # A value of 16 will mean that only BE PRs will get a comment (only if the score changes)
-  # XXX: Once commenting pays attention to the value in flags we can add comments to FE PRs
-  after_n_builds: 16
+  # This is the addition of carry forward builds and fresh builds, thus, it's the addition
+  # of the FE and BE builds
+  after_n_builds: 20
   layout: "diff, files"
   # Update, if comment exists. Otherwise post new.
   behavior: default

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -15,20 +15,30 @@ import {useQuery} from 'sentry/utils/queryClient';
 import Chart from 'sentry/views/starfish/components/chart';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
+import {
+  ModuleButtonType,
+  ModuleLinkButton,
+} from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
 import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
+
+import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
+import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
+import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
 
 import EndpointList from './endpointList';
 
 type BasePerformanceViewProps = {
   eventView: EventView;
   location: Location;
+  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
   projects: Project[];
 };
@@ -36,7 +46,9 @@ type BasePerformanceViewProps = {
 const HOST = 'http://localhost:8080';
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView} = props;
+  const {organization, eventView, onSelect} = props;
+  const theme = useTheme();
+  const [selectedSpike, setSelectedSpike] = useState<any | undefined>();
 
   const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
     queryKey: ['durationBreakdown'],
@@ -97,6 +109,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
             return null;
           }
 
+          insertClickableAreasIntoSeries(transformedData, theme.red300);
+
           return (
             <FailureRateChart
               statsPeriod={eventView.statsPeriod}
@@ -112,6 +126,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '16px',
                 bottom: '8px',
               }}
+              handleSpikeAreaClick={e =>
+                e.componentType === 'markArea' && setSelectedSpike(e)
+              }
             />
           );
         }}
@@ -121,6 +138,10 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
+      <FailureDetailPanel onClose={() => {}} spikeObject={selectedSpike} />
+      <ModuleLinkButton type={ModuleButtonType.API} />
+      <ModuleLinkButton type={ModuleButtonType.CACHE} />
+      <ModuleLinkButton type={ModuleButtonType.DB} />
       <StyledRow minSize={200}>
         <Fragment>
           <ChartPanel title={t('Response Time')}>
@@ -151,7 +172,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <EndpointList
         {...props}
         setError={usePageError().setPageError}
-        dataset="discover" // Metrics dataset can't do equations yet
+        dataset="discover" // Metrics dataset can't do total.transaction_duration yet
+        onSelect={onSelect}
         columnTitles={[
           'endpoint',
           'tpm',
