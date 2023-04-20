@@ -70,6 +70,7 @@ class OrganizationMemberMappingService(RpcService):
     def create_mapping(
         self,
         *,
+        organizationmember_id: int,
         organization_id: int,
         role: str,
         user_id: Optional[int] = None,
