@@ -10,6 +10,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -28,7 +29,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 
-import AlertChart from './alertChart';
+import {IssueAlertDetailsChart} from './alertChart';
 import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
 
@@ -351,15 +352,16 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               utc={utc ?? null}
               onUpdate={this.handleUpdateDatetime}
             />
-            <AlertChart
-              organization={organization}
-              project={project}
-              rule={rule}
-              period={period ?? ''}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-            />
+            <ErrorBoundary>
+              <IssueAlertDetailsChart
+                project={project}
+                rule={rule}
+                period={period ?? ''}
+                start={start ?? null}
+                end={end ?? null}
+                utc={utc ?? null}
+              />
+            </ErrorBoundary>
             <AlertRuleIssuesList
               organization={organization}
               project={project}
