@@ -284,6 +284,10 @@ function Chart({
               tooltip={areaChartProps.tooltip}
               colors={colors}
               grid={grid}
+              legend={{
+                top: 0,
+                right: 10,
+              }}
             />
           );
         }

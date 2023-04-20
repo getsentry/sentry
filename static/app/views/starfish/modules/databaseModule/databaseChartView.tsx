@@ -75,19 +75,21 @@ export default function APIModuleView({}: Props) {
   const data = Object.values(seriesByAction);
 
   const seriesByQuery: {[action: string]: Series} = {};
-  topGraphData.forEach(datum => {
-    seriesByQuery[datum.description] = {
-      seriesName: datum.description.substring(0, 50),
-      data: [],
-    };
-  });
-
-  topGraphData.forEach(datum => {
-    seriesByQuery[datum.description].data.push({
-      value: datum.p50,
-      name: datum.interval,
+  if (!isTopGraphLoading) {
+    topGraphData.forEach(datum => {
+      seriesByQuery[datum.description] = {
+        seriesName: datum.description.substring(0, 50),
+        data: [],
+      };
     });
-  });
+
+    topGraphData.forEach(datum => {
+      seriesByQuery[datum.description].data.push({
+        value: datum.p50,
+        name: datum.interval,
+      });
+    });
+  }
 
   const topData = Object.values(seriesByQuery);
 
