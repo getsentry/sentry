@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -73,17 +74,17 @@ export default function SpanInTransactionView({location, params}: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <h2>Span Description</h2>
-            Description: {spanDescription}
             {isLoading ? (
               <span>LOADING</span>
             ) : (
-              <div>
-                <h2>Span Stats</h2>
-                <span>Count: {data?.[0]?.count}</span>
-                <br />
-                <span>p50: {data?.[0]?.p50}</span>
-              </div>
+              <KeyValueList
+                data={[
+                  {key: 'desc', value: spanDescription, subject: 'Description'},
+                  {key: 'count', value: data?.[0]?.count, subject: 'Count'},
+                  {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
+                ]}
+                shouldSort={false}
+              />
             )}
             {areSpanSamplesLoading ? (
               <span>LOADING SAMPLE LIST</span>
