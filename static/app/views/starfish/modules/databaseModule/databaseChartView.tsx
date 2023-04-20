@@ -113,6 +113,7 @@ export default function APIModuleView({}: Props) {
           disableMultiAxis
           definedAxisTicks={4}
           isLineChart
+          showLegend
         />
       </ChartPanel>
       <ChartPanel title={t('Throughput')}>
@@ -133,6 +134,7 @@ export default function APIModuleView({}: Props) {
           disableMultiAxis
           definedAxisTicks={4}
           isLineChart
+          showLegend
         />
       </ChartPanel>
     </Fragment>
