@@ -34,6 +34,11 @@ MESSAGE_PROCESSOR = MessageProcessor(
 )
 
 
+@pytest.fixture(autouse=True)
+def update_sentry_settings(settings):
+    settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = True
+
+
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
     assert actual.committable == expected.committable
 
@@ -223,6 +228,7 @@ counter_payload = {
     "value": 1.0,
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 distribution_payload = {
     "name": SessionMRI.RAW_DURATION.value,
@@ -233,9 +239,9 @@ distribution_payload = {
     "timestamp": ts,
     "type": "d",
     "value": [4, 5, 6],
-    "unit": "seconds",
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 
 set_payload = {
@@ -249,6 +255,7 @@ set_payload = {
     "value": [3],
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 
 
@@ -275,15 +282,14 @@ def __translated_payload(
     )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
-    payload["use_case_id"] = "release-health"
+    payload["use_case_id"] = "sessions"
 
     payload.pop("unit", None)
     del payload["name"]
     return payload
 
 
-def test_process_messages(set_sentry_option) -> None:
-    set_sentry_option("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", 0.0)
+def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(
@@ -333,6 +339,7 @@ invalid_payloads = [
             "value": [3],
             "org_id": 1,
             "project_id": 3,
+            "retention_days": 90,
         },
         "invalid_tags",
         True,
@@ -349,6 +356,7 @@ invalid_payloads = [
             "value": [3],
             "org_id": 1,
             "project_id": 3,
+            "retention_days": 90,
         },
         "invalid_metric_name",
         True,
@@ -435,9 +443,6 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     rate_limited_payload = deepcopy(distribution_payload)
     rate_limited_payload["tags"]["custom_tag"] = "rate_limited_test"
 
-    rate_limited_payload2 = deepcopy(distribution_payload)
-    rate_limited_payload2["name"] = "rate_limited_test"
-
     message_batch = [
         Message(
             BrokerValue(
@@ -452,14 +457,6 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 1,
-                datetime.now(),
-            )
-        ),
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                2,
                 datetime.now(),
             )
         ),
