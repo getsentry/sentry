@@ -662,6 +662,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     get_transactions_resampling_rates.return_value = {
         "t1": t1_rate,
     }, implicit_rate
+    boost_low_transactions_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS]
     uniform_id = RESERVED_IDS[RuleType.UNIFORM_RULE]
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -685,6 +686,29 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     t1_rate /= project_sample_rate
     t1_rate /= implicit_rate
     assert rules == [
+        # transaction boosting rule
+        {
+            "condition": {
+                "inner": [
+                    {
+                        "name": "event.transaction",
+                        "op": "eq",
+                        "options": {"ignoreCase": True},
+                        "value": ["t1"],
+                    }
+                ],
+                "op": "or",
+            },
+            "id": boost_low_transactions_id,
+            "samplingValue": {"type": "factor", "value": t1_rate},
+            "type": "trace",
+        },
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": boost_low_transactions_id + 1,
+            "samplingValue": {"type": "factor", "value": implicit_rate},
+            "type": "trace",
+        },
         {
             "condition": {"inner": [], "op": "and"},
             "id": uniform_id,

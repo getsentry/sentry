@@ -39,7 +39,7 @@ class RareTransactionsRulesBias(Bias):
                         "type": "factor",
                         "value": transaction_rate,
                     },
-                    "type": "transaction",
+                    "type": "trace",
                     "condition": {
                         "op": "or",
                         "inner": [
@@ -61,7 +61,7 @@ class RareTransactionsRulesBias(Bias):
                     "type": "factor",
                     "value": implicit_rate,
                 },
-                "type": "transaction",
+                "type": "trace",
                 "condition": {
                     "op": "and",
                     "inner": [],
