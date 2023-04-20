@@ -95,7 +95,6 @@ def handle_status_update(
     for group in group_list:
         group.status = new_status
         group.substatus = new_substatus
-        group.save()
 
         activity = Activity.objects.create(
             project=project_lookup[group.project_id],
