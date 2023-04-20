@@ -194,6 +194,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         group.refresh_from_db()
 
         assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus is GroupSubStatus.ONGOING
         assert send_robust.called
 
     @patch("sentry.signals.issue_mark_reviewed.send_robust")
