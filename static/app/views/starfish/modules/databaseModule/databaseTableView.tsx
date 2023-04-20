@@ -8,11 +8,11 @@ import ArrayValue from 'sentry/utils/discover/arrayValue';
 const HOST = 'http://localhost:8080';
 
 type Props = {
-  action: string;
   location: Location;
   onSelect: (row: DataRow) => void;
-  table: string;
   transaction: string;
+  action?: string;
+  table?: string;
 };
 
 export type DataRow = {
@@ -66,8 +66,18 @@ export default function APIModuleView({
   table,
 }: Props) {
   const transactionFilter =
-    transaction.length > 0 ? `and transaction='${transaction}'` : '';
-  const ENDPOINT_QUERY = `select description as desc, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
+    transaction.length > 0 ? `transaction='${transaction}'` : null;
+  const tableFilter = table ? `domain = '${table}'` : null;
+  const actionFilter = action ? `action = '${action}'` : null;
+
+  const filters = [
+    `startsWith(span_operation, 'db')`,
+    `span_operation != 'db.redis'`,
+    transactionFilter,
+    tableFilter,
+    actionFilter,
+  ].filter(fil => !!fil);
+  const TABLE_LIST_QUERY = `select description as desc, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
     uniq(transaction) as transactions,
     sum(exclusive_time) as total_time,
     domain,
@@ -75,15 +85,18 @@ export default function APIModuleView({
     data_keys,
     data_values
     from default.spans_experimental_starfish
-    where startsWith(span_operation, 'db') and span_operation != 'db.redis' and action='${action}' and domain='${table}' ${transactionFilter}
+    where
+    ${filters.join(' and ')}
     group by action, description, domain, data_keys, data_values
     order by -pow(10, floor(log10(count()))), -quantile(0.5)(exclusive_time)
     limit 100
   `;
 
+  console;
+
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
     queryKey: ['endpoints', action, transaction, table],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_QUERY}`).then(res => res.json()),
+    queryFn: () => fetch(`${HOST}/?query=${TABLE_LIST_QUERY}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
