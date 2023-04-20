@@ -297,6 +297,16 @@ describe('IssueListActions', function () {
 
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
+
+    it('hides mark reviewed button with remove-mark-reviewed flag', function () {
+      render(<WrappedComponent {...defaultProps} />, {
+        organization: {...organization, features: ['remove-mark-reviewed']},
+      });
+
+      expect(
+        screen.queryByRole('button', {name: 'Mark Reviewed'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('sort', function () {
