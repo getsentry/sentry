@@ -30,7 +30,14 @@ def enable_for_org(dry_run=False) -> None:
                 disable_codecov_access(organization, integration_enabled, task_enabled)
             continue
 
-        logger.info("Processing organization", extra={"organization_id": organization.id})
+        logger.info(
+            "Processing organization",
+            extra={
+                "organization_id": organization.id,
+                "integration_enabled": integration_enabled,
+                "task_enabled": task_enabled,
+            },
+        )
         try:
             if organization.flags.codecov_access.is_set:
                 logger.info(
