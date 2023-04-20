@@ -152,7 +152,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     return _eventView;
   }, [location, query, selection.projects]);
 
-  const isProfilingGA = true || organization.features.includes('profiling-ga');
+  const isProfilingGA = organization.features.includes('profiling-ga');
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -189,7 +189,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     organization={organization}
                     size="sm"
                     fallback={
-                      <Button onClick={onSetupProfilingClick} priority="primary">
+                      <Button onClick={onSetupProfilingClick} size="sm">
                         {t('Set Up Profiling')}
                       </Button>
                     }
