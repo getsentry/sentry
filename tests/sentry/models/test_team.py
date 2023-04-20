@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
@@ -56,6 +58,14 @@ class TeamTest(TestCase):
 
         projects = team.get_projects()
         assert {_.id for _ in projects} == {project.id}
+
+    @override_settings(SENTRY_USE_SNOWFLAKE=False)
+    def test_without_snowflake(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org)
+        assert team.id < 1_000_000_000
+        assert Team.objects.filter(id=team.id).exists()
 
 
 class TransferTest(TestCase):
