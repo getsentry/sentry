@@ -12,8 +12,12 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
 
-def is_valid_image(image):
+def is_valid_proguard_image(image):
     return bool(image) and image.get("type") == "proguard" and image.get("uuid") is not None
+
+
+def is_valid_jvm_image(image):
+    return bool(image) and image.get("type") == "jvm" and image.get("debug_id") is not None
 
 
 def has_proguard_file(data):
@@ -26,8 +30,17 @@ def has_proguard_file(data):
 
 def get_proguard_images(event: Event):
     images = set()
-    for image in get_path(event, "debug_meta", "images", filter=is_valid_image, default=()):
+    for image in get_path(
+        event, "debug_meta", "images", filter=is_valid_proguard_image, default=()
+    ):
         images.add(str(image["uuid"]).lower())
+    return images
+
+
+def get_jvm_images(event: Event):
+    images = set()
+    for image in get_path(event, "debug_meta", "images", filter=is_valid_jvm_image, default=()):
+        images.add(str(image["debug_id"]).lower())
     return images
 
 

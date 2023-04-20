@@ -34,6 +34,11 @@ MESSAGE_PROCESSOR = MessageProcessor(
 )
 
 
+@pytest.fixture(autouse=True)
+def update_sentry_settings(settings):
+    settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = True
+
+
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
     assert actual.committable == expected.committable
 
@@ -223,6 +228,7 @@ counter_payload = {
     "value": 1.0,
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 distribution_payload = {
     "name": SessionMRI.RAW_DURATION.value,
@@ -233,9 +239,9 @@ distribution_payload = {
     "timestamp": ts,
     "type": "d",
     "value": [4, 5, 6],
-    "unit": "seconds",
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 
 set_payload = {
@@ -249,6 +255,7 @@ set_payload = {
     "value": [3],
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 
 
@@ -282,8 +289,7 @@ def __translated_payload(
     return payload
 
 
-def test_process_messages(set_sentry_option) -> None:
-    set_sentry_option("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", 0.0)
+def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(
@@ -333,6 +339,7 @@ invalid_payloads = [
             "value": [3],
             "org_id": 1,
             "project_id": 3,
+            "retention_days": 90,
         },
         "invalid_tags",
         True,
@@ -349,6 +356,7 @@ invalid_payloads = [
             "value": [3],
             "org_id": 1,
             "project_id": 3,
+            "retention_days": 90,
         },
         "invalid_metric_name",
         True,

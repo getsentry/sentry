@@ -5,23 +5,40 @@ import {motion} from 'framer-motion';
 import ExternalLink from 'sentry/components/links/externalLink';
 import MultiPlatformPicker from 'sentry/components/multiPlatformPicker';
 import {PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import {OnboardingSelectedPlatform} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
-import CreateProjectsFooter from './components/createProjectsFooter';
+import {CreateProjectsFooter} from './components/createProjectsFooter';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
 function OnboardingPlatform(props: StepProps) {
   const organization = useOrganization();
-  const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<
+    OnboardingSelectedPlatform[]
+  >([]);
   const addPlatform = (platform: PlatformKey) => {
-    setSelectedPlatforms([...selectedPlatforms, platform]);
+    const foundPlatform = platforms.find(p => p.id === platform);
+    if (!foundPlatform) {
+      return;
+    }
+    setSelectedPlatforms([
+      ...selectedPlatforms,
+      {
+        key: platform,
+        type: foundPlatform.type,
+        language: foundPlatform.language,
+        category: 'all',
+      },
+    ]);
   };
   const removePlatform = (platform: PlatformKey) => {
-    setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform));
+    setSelectedPlatforms(selectedPlatforms.filter(p => p.key !== platform));
   };
 
   const [clientState] = usePersistedOnboardingState();
@@ -60,14 +77,29 @@ function OnboardingPlatform(props: StepProps) {
           organization={organization}
           removePlatform={removePlatform}
           addPlatform={addPlatform}
-          platforms={selectedPlatforms}
+          platforms={selectedPlatforms.map(selectedPlatform => selectedPlatform.key)}
         />
       </motion.div>
       <CreateProjectsFooter
         {...props}
         organization={organization}
         clearPlatforms={clearPlatforms}
-        platforms={selectedPlatforms}
+        selectedPlatforms={selectedPlatforms
+          .map(selectedPlatform => {
+            const foundPlatform = platforms.find(p => p.id === selectedPlatform.key);
+
+            if (!foundPlatform) {
+              return undefined;
+            }
+
+            return {
+              key: foundPlatform.id,
+              type: foundPlatform.type,
+              language: foundPlatform.language,
+              category: selectedPlatform.category,
+            };
+          })
+          .filter(defined)}
       />
     </Wrapper>
   );

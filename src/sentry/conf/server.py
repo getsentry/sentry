@@ -759,22 +759,26 @@ CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celer
 CELERYBEAT_SCHEDULE = {
     "check-auth": {
         "task": "sentry.tasks.check_auth",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth"},
     },
     "enqueue-scheduled-jobs": {
         "task": "sentry.tasks.enqueue_scheduled_jobs",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
-        "schedule": timedelta(hours=1),
+        # Run every hour
+        "schedule": crontab(minute=0, hour="*/1"),
         "options": {"expires": 3600},
     },
     "send-ping": {
         "task": "sentry.tasks.send_ping",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "flush-buffers": {
@@ -794,22 +798,26 @@ CELERYBEAT_SCHEDULE = {
     },
     "check-monitors": {
         "task": "sentry.monitors.tasks.check_monitors",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
-        "schedule": timedelta(minutes=5),
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 300},
     },
     "clear-expired-rulesnoozes": {
         "task": "sentry.tasks.clear_expired_rulesnoozes",
-        "schedule": timedelta(minutes=5),
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 300},
     },
     "clear-expired-raw-events": {
         "task": "sentry.tasks.clear_expired_raw_events",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 300},
     },
     "collect-project-platforms": {
@@ -819,27 +827,32 @@ CELERYBEAT_SCHEDULE = {
     },
     "deliver-from-outbox": {
         "task": "sentry.tasks.enqueue_outbox_jobs",
-        "schedule": timedelta(minutes=1),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 30},
     },
     "update-user-reports": {
         "task": "sentry.tasks.update_user_reports",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 300},
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "auto-remove-inbox": {
         "task": "sentry.tasks.auto_remove_inbox",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "schedule-deletions": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "reattempt-deletions": {
@@ -861,7 +874,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
-        "schedule": timedelta(minutes=15),
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
     },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
@@ -870,17 +884,20 @@ CELERYBEAT_SCHEDULE = {
     },
     "fetch-release-registry-data": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
-        "schedule": timedelta(minutes=5),
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "fetch-appstore-builds": {
         "task": "sentry.tasks.app_store_connect.refresh_all_builds",
-        "schedule": timedelta(hours=1),
+        # Run every hour
+        "schedule": crontab(minute=0, hour="*/1"),
         "options": {"expires": 3600},
     },
     "snuba-subscription-checker": {
         "task": "sentry.snuba.tasks.subscription_checker",
-        "schedule": timedelta(minutes=20),
+        # Run every 20 minutes
+        "schedule": crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
     },
     "transaction-name-clusterer": {
@@ -890,7 +907,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "hybrid-cloud-repair-mappings": {
         "task": "sentry.tasks.organization_mapping.repair_mappings",
-        "schedule": timedelta(hours=1),
+        # Run every hour
+        "schedule": crontab(minute=0, hour="*/1"),
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
@@ -901,13 +919,13 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
-        # Run job every 5 minutes
-        "schedule": timedelta(minutes=5),
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
     },
     "dynamic-sampling-prioritize-transactions": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
         # Run every 5 minutes
-        "schedule": timedelta(minutes=6),
+        "schedule": crontab(minute="*/5"),
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -916,6 +934,13 @@ CELERYBEAT_SCHEDULE = {
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
+}
+
+# We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
+TIMEDELTA_ALLOW_LIST = {
+    "flush-buffers",
+    "sync-options",
+    "schedule-digests",
 }
 
 BGTASKS = {
@@ -1102,6 +1127,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
+    # Enable the new issue states and substates
+    "organizations:issue-states": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1169,9 +1196,7 @@ SENTRY_FEATURES = {
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
-    "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
-    # Try to derive normalization rules by clustering transaction names.
-    "organizations:transaction-name-clusterer": False,
+    "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1241,7 +1266,7 @@ SENTRY_FEATURES = {
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
-    "organizations:project-stats": False,
+    "organizations:project-stats": True,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for anomaly detection
@@ -1337,8 +1362,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable a banner on the issue details page guiding the user to setup source maps
-    "organizations:source-maps-cta": False,
     # Enable a UI where users can see bundles and their artifacts which only have debug IDs
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
@@ -1368,8 +1391,6 @@ SENTRY_FEATURES = {
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
-    # Enable OpenAI suggestions in the issue details page (New Design)
-    "organizations:open-ai-suggestion-new-design": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
@@ -3202,3 +3223,7 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
 
 # Killswitch to ignore checkins for explicit monitors
 SENTRY_MONITORS_IGNORED_MONITORS = []
+
+# Raise schema validation errors and make the indexer crash (only useful in
+# tests)
+SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False

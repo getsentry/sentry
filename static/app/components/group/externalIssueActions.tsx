@@ -8,7 +8,7 @@ import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, GroupIntegration} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -67,7 +67,7 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
   };
 
   const doOpenModal = (integration: GroupIntegration) => {
-    trackAdvancedAnalyticsEvent('issue_details.external_issue_modal_opened', {
+    trackAnalytics('issue_details.external_issue_modal_opened', {
       organization,
       ...getAnalyticsDataForGroup(group),
       external_issue_provider: integration.provider.key,

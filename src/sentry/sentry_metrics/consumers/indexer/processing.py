@@ -85,18 +85,11 @@ class MessageProcessor:
         )
         is_output_sliced = self._config.is_output_sliced or False
 
-        arroyo_input_codec_should_sample = (
-            self._config.input_schema_validation_option_name
-            and 0.0
-            < options.get(self._config.input_schema_validation_option_name)
-            < random.random()
-        )
-
         batch = IndexerBatch(
             outer_message,
             should_index_tag_values=should_index_tag_values,
             is_output_sliced=is_output_sliced,
-            arroyo_input_codec=_INGEST_SCHEMA if arroyo_input_codec_should_sample else None,
+            arroyo_input_codec=_INGEST_SCHEMA,
         )
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))

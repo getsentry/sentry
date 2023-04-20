@@ -1,11 +1,11 @@
 import datetime
 
 from rest_framework import serializers, status
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import analytics, audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
@@ -76,8 +76,8 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         user_id = request.user.id if data.get("target") == "me" else None
         if not can_edit_alert_rule(rule, project.organization, user_id, request.user):
-            raise AuthenticationFailed(
-                detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
+            raise PermissionDenied(
+                detail="Requesting user cannot mute this rule.", code=status.HTTP_403_FORBIDDEN
             )
 
         kwargs = {self.rule_field: rule}
@@ -110,6 +110,17 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
                 data=rule.get_audit_log_data(),
             )
 
+        analytics.record(
+            "rule.snoozed",
+            user_id=request.user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            rule_id=rule_id,
+            rule_type=self.rule_field,
+            target=data.get("target"),
+            until=data.get("until"),
+        )
+
         return Response(
             serialize(rule_snooze, request.user, RuleSnoozeSerializer()),
             status=status.HTTP_201_CREATED,
@@ -125,7 +136,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         # find if there is a mute for all that I can remove
         shared_snooze = None
-        made_delete = False
+        deletion_type = None
         kwargs = {self.rule_field: rule, "user_id": None}
         try:
             shared_snooze = RuleSnooze.objects.get(**kwargs)
@@ -135,7 +146,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         # if user can edit then delete it
         if shared_snooze and can_edit_alert_rule(rule, project.organization, None, request.user):
             shared_snooze.delete()
-            made_delete = True
+            deletion_type = "everyone"
 
         # next check if there is a mute for me that I can remove
         kwargs = {self.rule_field: rule, "user_id": request.user.id}
@@ -146,15 +157,26 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             pass
         else:
             my_snooze.delete()
-            made_delete = True
+            # everyone takes priority over me
+            if not deletion_type:
+                deletion_type = "me"
 
-        if made_delete:
+        if deletion_type:
+            analytics.record(
+                "rule.unsnoozed",
+                user_id=request.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                rule_id=rule_id,
+                rule_type=self.rule_field,
+                target=deletion_type,
+            )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # didn't find a match but there is a shared snooze
         if shared_snooze:
-            raise AuthenticationFailed(
-                detail="Requesting user cannot mute this rule.", code=status.HTTP_401_UNAUTHORIZED
+            raise PermissionDenied(
+                detail="Requesting user cannot unmute this rule.", code=status.HTTP_403_FORBIDDEN
             )
         # no snooze at all found
         return Response(

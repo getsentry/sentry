@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -12,9 +13,10 @@ import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
@@ -55,7 +57,7 @@ function TransactionHeader({
   hasWebVitals,
 }: Props) {
   function handleCreateAlertSuccess() {
-    trackAdvancedAnalyticsEvent('performance_views.summary.create_alert_clicked', {
+    trackAnalytics('performance_views.summary.create_alert_clicked', {
       organization,
     });
   }
@@ -137,7 +139,9 @@ function TransactionHeader({
               avatarProps={{hasTooltip: true, tooltip: project.slug}}
             />
           )}
-          {transactionName}
+          <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+            <TransactionName>{transactionName}</TransactionName>
+          </Tooltip>
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
@@ -236,5 +240,9 @@ function TransactionHeader({
     </Layout.Header>
   );
 }
+
+const TransactionName = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+`;
 
 export default TransactionHeader;

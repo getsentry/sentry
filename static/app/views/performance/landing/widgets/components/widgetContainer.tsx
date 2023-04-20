@@ -12,7 +12,7 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -58,7 +58,7 @@ function trackChartSettingChange(
   fromDefault: boolean,
   organization: Organization
 ) {
-  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.switch', {
+  trackAnalytics('performance_views.landingv3.widget.switch', {
     organization,
     from_widget: previousChartSetting,
     to_widget: chartSetting,
