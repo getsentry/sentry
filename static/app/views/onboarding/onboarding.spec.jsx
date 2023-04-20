@@ -85,7 +85,15 @@ describe('Onboarding', function () {
             ruby: projects[1].slug,
             'javascript-nextjs': projects[2].slug,
           },
-          selectedPlatforms: ['ruby', 'javascript-nextjs'],
+          selectedPlatforms: [
+            {key: 'ruby', type: 'language', language: 'ruby', category: 'server'},
+            {
+              key: 'javascript-nextjs',
+              type: 'framework',
+              language: 'javascript',
+              category: 'browser',
+            },
+          ],
         },
       },
     });
@@ -109,6 +117,7 @@ describe('Onboarding', function () {
     });
     ProjectsStore.loadInitialData(projects);
     OrganizationStore.onUpdate(organization);
+
     render(
       <PersistedStoreProvider>
         <Onboarding {...router} />
@@ -117,6 +126,7 @@ describe('Onboarding', function () {
         context: routerContext,
       }
     );
+
     expect(await screen.findAllByTestId('sidebar-error-indicator')).toHaveLength(2);
   });
 });

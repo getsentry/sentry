@@ -1,6 +1,8 @@
 import {RouteContextInterface} from 'react-router';
 
-import {Organization, Project} from 'sentry/types';
+import {Category} from 'sentry/components/platformPicker';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {Organization, PlatformIntegration, Project} from 'sentry/types';
 import {OnboardingState} from 'sentry/views/onboarding/types';
 
 import type {AvatarUser} from './user';
@@ -132,3 +134,10 @@ export enum OnboardingStatus {
   PROCESSING = 'processing',
   PROCESSED = 'processed',
 }
+
+export type OnboardingSelectedPlatform = {
+  category: Category;
+  key: PlatformKey;
+  language: PlatformIntegration['language'];
+  type: PlatformIntegration['type'];
+};

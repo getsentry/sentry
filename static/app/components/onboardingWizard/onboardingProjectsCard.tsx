@@ -34,7 +34,7 @@ export default function OnboardingProjectsCard({
   };
   // Projects selected during onboarding but not received first event
   const projects = onboardingState.selectedPlatforms
-    .map(platform => onboardingState.platformToProjectIdMap[platform])
+    .map(platform => onboardingState.platformToProjectIdMap[platform.key])
     .map(projectId => allProjects.find(p => p.slug === projectId))
     .filter(project => project && !project.firstEvent) as Project[];
   if (projects.length === 0) {
