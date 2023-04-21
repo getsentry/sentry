@@ -93,9 +93,8 @@ def process_organization_member_updates(
     )
 
     organizationmember_mapping_service.update_with_organization_member(
+        organizationmember_id=org_member.id,
         organization_id=shard_identifier,
-        user_id=prev_user_id,
-        email=prev_email,
         rpc_update_org_member=rpc_org_member_update,
     )
 

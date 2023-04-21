@@ -61,13 +61,13 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
     def update_with_organization_member(
         self,
         *,
+        organizationmember_id: int,
         organization_id: int,
-        user_id: Optional[int],
-        email: Optional[str],
         rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
         org_member_map = OrganizationMemberMapping.objects.get(
-            organization_id=organization_id, user_id=user_id, email=email
+            organization_id=organization_id,
+            organizationmember_id=organizationmember_id,
         )
         update_dict = {
             attr_name: getattr(rpc_update_org_member, attr_name)
