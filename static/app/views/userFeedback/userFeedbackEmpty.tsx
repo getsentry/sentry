@@ -9,7 +9,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -44,7 +44,7 @@ export function UserFeedbackEmpty({projectIds}: Props) {
 
     if (hasAnyFeedback === false) {
       // send to reload only due to higher event volume
-      trackAdvancedAnalyticsEvent('user_feedback.viewed', {
+      trackAnalytics('user_feedback.viewed', {
         organization,
         projects: projectIds?.join(',') || '',
       });
@@ -54,10 +54,10 @@ export function UserFeedbackEmpty({projectIds}: Props) {
     };
   }, [hasAnyFeedback, organization, projectIds]);
 
-  function trackAnalytics(
+  function trackAnalyticsInternal(
     eventKey: 'user_feedback.docs_clicked' | 'user_feedback.dialog_opened'
   ) {
-    trackAdvancedAnalyticsEvent(eventKey, {
+    trackAnalytics(eventKey, {
       organization,
       projects: selectedProjects?.join(','),
     });
@@ -88,7 +88,7 @@ export function UserFeedbackEmpty({projectIds}: Props) {
         <Button
           external
           priority="primary"
-          onClick={() => trackAnalytics('user_feedback.docs_clicked')}
+          onClick={() => trackAnalyticsInternal('user_feedback.docs_clicked')}
           href="https://docs.sentry.io/product/user-feedback/"
         >
           {t('Read the docs')}
@@ -99,7 +99,7 @@ export function UserFeedbackEmpty({projectIds}: Props) {
               // should never make it to the Sentry API, but just in case, use throwaway id
               eventId: '00000000000000000000000000000000',
             });
-            trackAnalytics('user_feedback.dialog_opened');
+            trackAnalyticsInternal('user_feedback.dialog_opened');
           }}
         >
           {t('See an example')}

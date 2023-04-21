@@ -159,13 +159,16 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
 
   const {tooltipText, tooltipDescription, reasonBadgeText, tagType} = getReasonDetails();
 
+  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
   const tooltip = (tooltipText || tooltipDescription) && (
     <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
-      <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
+      {disabledMarkReviewed ? null : (
+        <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
+      )}
     </TooltipWrapper>
   );
 

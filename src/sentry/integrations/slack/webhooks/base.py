@@ -21,6 +21,8 @@ ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
 
 
 class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
+    slack_request_class = SlackDMRequest
+
     def post_dispatcher(self, request: SlackDMRequest) -> Response:
         """
         All Slack commands are handled by this endpoint. This block just

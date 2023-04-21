@@ -40,7 +40,7 @@ import {
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -111,7 +111,7 @@ class Actions extends Component<Props> {
   ) {
     const {group, project, organization, query = {}} = this.props;
     const {alert_date, alert_rule_id, alert_type} = query;
-    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+    trackAnalytics('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: action,
@@ -193,7 +193,7 @@ class Actions extends Component<Props> {
   onToggleShare = () => {
     const newIsPublic = !this.props.group.isPublic;
     if (newIsPublic) {
-      trackAdvancedAnalyticsEvent('issue.shared_publicly', {
+      trackAnalytics('issue.shared_publicly', {
         organization: this.props.organization,
       });
     }
@@ -358,6 +358,7 @@ class Actions extends Component<Props> {
 
     const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     const hasDeleteAccess = organization.access.includes('event:admin');
+    const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
 
     const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
     const {dropdownItems: archiveDropdownItems} = getArchiveActions({
@@ -420,14 +421,18 @@ class Actions extends Component<Props> {
               disabled: disabled || group.subscriptionDetails?.disabled,
               onAction: this.onToggleSubscribe,
             },
-            {
-              key: 'mark-review',
-              label: t('Mark reviewed'),
-              disabled: !group.inbox || disabled,
-              details:
-                !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-              onAction: () => this.onUpdate({inbox: false}),
-            },
+            ...(disabledMarkReviewed
+              ? []
+              : [
+                  {
+                    key: 'mark-review',
+                    label: t('Mark reviewed'),
+                    disabled: !group.inbox || disabled,
+                    details:
+                      !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
+                    onAction: () => this.onUpdate({inbox: false}),
+                  },
+                ]),
             {
               key: 'share',
               label: t('Share'),

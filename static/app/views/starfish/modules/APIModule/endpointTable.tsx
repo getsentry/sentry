@@ -5,6 +5,7 @@ import {Location} from 'history';
 import Duration from 'sentry/components/duration';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import {ENDPOINT_LIST_QUERY} from './queries';
 
@@ -12,7 +13,7 @@ export const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
-  onSelect: (row: DataRow) => void;
+  onSelect: (row: EndpointDataRow) => void;
 };
 
 export type DataRow = {
@@ -25,11 +26,23 @@ const COLUMN_ORDER = [
   {
     key: 'description',
     name: 'URL',
-    width: 600,
+    width: 300,
+  },
+  {
+    key: 'action',
+    name: 'Operation',
+  },
+  {
+    key: 'count',
+    name: 'Count',
   },
   {
     key: 'p50(exclusive_time)',
     name: 'p50',
+  },
+  {
+    key: 'failure_rate',
+    name: 'Error %',
   },
   {
     key: 'user_count',
@@ -57,7 +70,7 @@ export default function EndpointTable({location, onSelect}: Props) {
       columnSortBy={[]}
       grid={{
         renderHeadCell,
-        renderBodyCell: (column: GridColumnHeader, row: DataRow) =>
+        renderBodyCell: (column: GridColumnHeader, row: EndpointDataRow) =>
           renderBodyCell(column, row, onSelect),
       }}
       location={location}
@@ -66,13 +79,24 @@ export default function EndpointTable({location, onSelect}: Props) {
 }
 
 export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  // TODO: come up with a better way to identify number columns to align to the right
+  if (
+    column.key.toString().match(/^p\d\d/) ||
+    !['description', 'transaction'].includes(column.key.toString())
+  ) {
+    return (
+      <TextAlignRight>
+        <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
+      </TextAlignRight>
+    );
+  }
   return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
 }
 
 export function renderBodyCell(
   column: GridColumnHeader,
-  row: DataRow,
-  onSelect?: (row: DataRow) => void
+  row: EndpointDataRow,
+  onSelect?: (row: EndpointDataRow) => void
 ): React.ReactNode {
   if (column.key === 'description' && onSelect) {
     return (
@@ -82,15 +106,32 @@ export function renderBodyCell(
     );
   }
 
+  // TODO: come up with a better way to identify number columns to align to the right
   if (column.key.toString().match(/^p\d\d/)) {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+    return (
+      <TextAlignRight>
+        <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
+      </TextAlignRight>
+    );
+  }
+  if (!['description', 'transaction'].includes(column.key.toString())) {
+    return (
+      <TextAlignRight>
+        <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
+      </TextAlignRight>
+    );
   }
 
   return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
 }
 
-const OverflowEllipsisTextContainer = styled('span')`
+export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+`;
+
+export const TextAlignRight = styled('span')`
+  text-align: right;
+  width: 100%;
 `;
