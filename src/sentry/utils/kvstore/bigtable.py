@@ -172,11 +172,11 @@ class BigtableKVStorage(KVStorage[str, bytes]):
     def set(self, key: str, value: bytes, ttl: Optional[timedelta] = None) -> None:
         try:
             return self._set(key, value, ttl)
-        except exceptions.InternalServerError:
+        except (exceptions.InternalServerError, exceptions.ServiceUnavailable):
             # Delete cached client before retry
             with self.__table_lock:
                 del self.__table
-            # Retry once on InternalServerError
+            # Retry once on InternalServerError or ServiceUnavailable
             # 500 Received RST_STREAM with error code 2
             # SENTRY-S6D
             return self._set(key, value, ttl)
