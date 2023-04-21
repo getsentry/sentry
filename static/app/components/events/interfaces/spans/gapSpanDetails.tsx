@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
@@ -220,7 +220,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
   });
 
   function handleGoToProfile() {
-    trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source: 'performance.missing_instrumentation',
     });
@@ -239,8 +239,8 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <Button icon={<IconProfiling />} size="xs" onClick={handleGoToProfile} to={target}>
-        {t('Go to Profile')}
+      <Button size="xs" onClick={handleGoToProfile} to={target}>
+        {t('View Profile')}
       </Button>
     </HeaderContainer>
   );

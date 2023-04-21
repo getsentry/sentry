@@ -11,6 +11,7 @@ from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.db.models import get_model_if_available
+from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
 from sentry.signals import project_created
 
@@ -128,8 +129,12 @@ def create_keys_for_project(instance, created, app=None, **kwargs):
     if not created or kwargs.get("raw"):
         return
 
-    if not ProjectKey.objects.filter(project=instance).exists():
-        ProjectKey.objects.create(project=instance, label="Default")
+    if ProjectKey.objects.filter(project=instance).exists():
+        return
+
+    ProjectKey.objects.create(
+        project=instance, label="Default", data=get_default_loader_data(instance)
+    )
 
 
 def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
@@ -151,14 +156,14 @@ post_migrate.connect(
 )
 
 post_save.connect(
-    handle_db_failure(create_keys_for_project),
-    sender=Project,
-    dispatch_uid="create_keys_for_project",
-    weak=False,
-)
-post_save.connect(
     handle_db_failure(freeze_option_epoch_for_project),
     sender=Project,
     dispatch_uid="freeze_option_epoch_for_project",
+    weak=False,
+)
+post_save.connect(
+    handle_db_failure(create_keys_for_project),
+    sender=Project,
+    dispatch_uid="create_keys_for_project",
     weak=False,
 )

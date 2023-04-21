@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
     queue="auto_enable_codecov",
     max_retries=0,
 )  # type: ignore
-def enable_for_org(dry_run=False) -> None:
+def enable_for_org(dry_run: bool = False) -> None:
     """
     Set the codecov_access flag to True for organizations with a valid Codecov integration.
     """
@@ -23,14 +23,21 @@ def enable_for_org(dry_run=False) -> None:
     for organization in RangeQuerySetWrapper(
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):
-        if not features.has("organizations:codecov-integration", organization):
+        integration_enabled = features.has("organizations:codecov-integration", organization)
+        task_enabled = features.has("organizations:auto-enable-codecov", organization)
+        if not integration_enabled or not task_enabled:
             if organization.flags.codecov_access.is_set:
-                disable_codecov_access(organization)
-
-        if not features.has("organizations:auto-enable-codecov", organization):
+                disable_codecov_access(organization, integration_enabled, task_enabled)
             continue
 
-        logger.info("Processing organization", extra={"organization_id": organization.id})
+        logger.info(
+            "Processing organization",
+            extra={
+                "organization_id": organization.id,
+                "integration_enabled": integration_enabled,
+                "task_enabled": task_enabled,
+            },
+        )
         try:
             if organization.flags.codecov_access.is_set:
                 logger.info(
@@ -73,7 +80,9 @@ def enable_for_org(dry_run=False) -> None:
             )
 
 
-def disable_codecov_access(organization):
+def disable_codecov_access(
+    organization: Organization, integration_enabled: bool, task_enabled: bool
+) -> None:
     organization.flags.codecov_access = False
     organization.save()
     logger.info(
@@ -81,6 +90,8 @@ def disable_codecov_access(organization):
         extra={
             "organization_id": organization.id,
             "codecov_access": organization.flags.codecov_access,
+            "integration_enabled": integration_enabled,
+            "task_enabled": task_enabled,
         },
     )
     create_system_audit_entry(

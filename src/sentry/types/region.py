@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import functools
-import sys
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Iterable, Set
 from urllib.parse import urljoin
 
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode
+from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.models import Organization
@@ -51,6 +52,9 @@ class Region:
 
     category: RegionCategory
     """The region's category."""
+
+    api_token: str | None = None
+    """An API token to authorize RPCs from here to the region's silo."""
 
     def validate(self) -> None:
         from sentry import options
@@ -97,6 +101,13 @@ class _RegionMapping:
         self.by_id = {r.id: r for r in self.regions}
 
 
+def _parse_config(region_config: str) -> Iterable[Region]:
+    config_values = json.loads(region_config)
+    for config_value in config_values:
+        config_value["category"] = RegionCategory[config_value["category"]]
+        yield Region(**config_value)
+
+
 @functools.lru_cache(maxsize=1)
 def _load_global_regions() -> _RegionMapping:
     from django.conf import settings
@@ -104,7 +115,10 @@ def _load_global_regions() -> _RegionMapping:
     # For now, assume that all region configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    return _RegionMapping(settings.SENTRY_REGION_CONFIG)
+    config = settings.SENTRY_REGION_CONFIG
+    if isinstance(config, str):
+        config = _parse_config(config)
+    return _RegionMapping(config)
 
 
 def get_region_by_name(name: str) -> Region:
@@ -164,13 +178,13 @@ def get_local_region() -> Region:
     return get_region_by_name(settings.SENTRY_REGION)
 
 
+@control_silo_function
 def _find_orgs_for_user(user_id: int) -> Set[int]:
-    # TODO: This must be changed to the org member mapping in the control silo eventually.
-    from sentry.models import OrganizationMember
+    from sentry.models import OrganizationMemberMapping
 
     return {
         m["organization_id"]
-        for m in OrganizationMember.objects.filter(user_id=user_id).values("organization_id")
+        for m in OrganizationMemberMapping.objects.filter(user_id=user_id).values("organization_id")
     }
 
 
@@ -190,16 +204,9 @@ def find_regions_for_orgs(org_ids: Iterable[int]) -> Set[str]:
         }
 
 
+@control_silo_function
 def find_regions_for_user(user_id: int) -> Set[str]:
-    org_ids: Set[int]
-    if "pytest" in sys.modules:
-        from sentry.testutils.silo import exempt_from_silo_limits
-
-        with exempt_from_silo_limits():
-            org_ids = _find_orgs_for_user(user_id)
-    else:
-        org_ids = _find_orgs_for_user(user_id)
-
+    org_ids = _find_orgs_for_user(user_id)
     return find_regions_for_orgs(org_ids)
 
 

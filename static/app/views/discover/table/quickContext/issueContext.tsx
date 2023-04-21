@@ -15,7 +15,7 @@ import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {NoContext} from './quickContextWrapper';
@@ -33,7 +33,7 @@ function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+    trackAnalytics('discover_v2.quick_context_hover_contexts', {
       organization,
       contextType: ContextType.ISSUE,
     });

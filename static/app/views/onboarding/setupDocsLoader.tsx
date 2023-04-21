@@ -14,11 +14,11 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
+import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
 export function SetupDocsLoader({
   organization,
@@ -113,7 +113,7 @@ export function SetupDocsLoader({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.setup_loader_docs_rendered', {
+    trackAnalytics('onboarding.setup_loader_docs_rendered', {
       organization,
       platform: currentPlatform,
       project_id: project?.id,
@@ -208,7 +208,7 @@ Sentry.onLoad(function() {
     setShowOptionalConfig(show);
 
     if (show) {
-      trackAdvancedAnalyticsEvent('onboarding.js_loader_optional_configuration_shown', {
+      trackAnalytics('onboarding.js_loader_optional_configuration_shown', {
         organization,
         platform: currentPlatform,
         project_id: project.id,

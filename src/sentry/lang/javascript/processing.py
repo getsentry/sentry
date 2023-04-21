@@ -1,9 +1,13 @@
 import logging
+from typing import Any, Callable, Optional
 
-from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
+from sentry.lang.javascript.utils import (
+    do_sourcemaps_processing_ab_test,
+    should_use_symbolicator_for_sourcemaps,
+)
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import EventError, Project
+from sentry.models import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
@@ -44,11 +48,12 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
-    if symbolicated.get("status"):
-        new_frame.setdefault("data", {})
-        # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
-        # frame_meta = new_frame.setdefault("data", {})
-        # frame_meta["symbolicator_status"] = symbolicated["status"]
+    if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
+        frame_meta = new_frame.setdefault("data", {})
+        frame_meta["sourcemap"] = data_sourcemap
+    # if symbolicated.get("status"):
+    # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
+    # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
 
@@ -128,14 +133,11 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
-def process_payload(data):
-    project = Project.objects.get_from_cache(id=data.get("project"))
-
+def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
+    project = symbolicator.project
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
-
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
     modules = sourcemap_images_from_data(data)
 
@@ -161,11 +163,13 @@ def process_payload(data):
     if not _handle_response_status(data, response):
         return data
 
+    should_do_ab_test = do_sourcemaps_processing_ab_test()
+    symbolicator_stacktraces = []
+
     processing_errors = response.get("errors", [])
-    if len(processing_errors) > 0:
+    if len(processing_errors) > 0 and not should_do_ab_test:
         data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
 
-    # TODO: should this really be a hard assert? Or rather an internal log?
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
     for sinfo, raw_stacktrace, complete_stacktrace in zip(
@@ -185,16 +189,27 @@ def process_payload(data):
             merged_frame = _merge_frame(merged_context_frame, complete_frame)
             new_frames.append(merged_frame)
 
-        if sinfo.container is not None:
-            sinfo.container["raw_stacktrace"] = {
-                "frames": new_raw_frames,
-            }
+        # NOTE: we do *not* write the symbolicated frames into `data` (via the `sinfo` indirection)
+        # but we rather write that to a different event property that we will use for A/B testing.
+        if should_do_ab_test:
+            symbolicator_stacktraces.append(new_frames)
+        else:
+            sinfo.stacktrace["frames"] = new_frames
 
-        sinfo.stacktrace["frames"] = new_frames
+            if sinfo.container is not None:
+                sinfo.container["raw_stacktrace"] = {
+                    "frames": new_raw_frames,
+                }
+
+    if should_do_ab_test:
+        data["symbolicator_stacktraces"] = symbolicator_stacktraces
+    else:
+        data["processed_by_symbolicator"] = True
 
     return data
 
 
-def get_symbolication_function(data):
+def get_js_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
     if should_use_symbolicator_for_sourcemaps(data.get("project")):
-        return process_payload
+        return process_js_stacktraces
+    return None

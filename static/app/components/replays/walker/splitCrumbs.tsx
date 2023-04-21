@@ -8,23 +8,40 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
+import {
+  BreadcrumbType,
+  BreadcrumbTypeInit,
+  BreadcrumbTypeNavigation,
+  Crumb,
+} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 
 type MaybeOnClickHandler = null | ((crumb: Crumb) => void);
+
+type InitOrNavCrumb = BreadcrumbTypeNavigation | BreadcrumbTypeInit;
+
+function getUrl(crumb: undefined | InitOrNavCrumb) {
+  if (crumb?.type === BreadcrumbType.NAVIGATION) {
+    return crumb.data?.to?.split('?')?.[0];
+  }
+  if (crumb?.type === BreadcrumbType.INIT) {
+    return crumb.data.url;
+  }
+  return undefined;
+}
 
 function splitCrumbs({
   crumbs,
   onClick,
   startTimestampMs,
 }: {
-  crumbs: BreadcrumbTypeNavigation[];
+  crumbs: InitOrNavCrumb[];
   onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const firstUrl = first(crumbs)?.data?.to?.split('?')?.[0];
+  const firstUrl = getUrl(first(crumbs));
   const summarizedCrumbs = crumbs.slice(1, -1) as Crumb[];
-  const lastUrl = last(crumbs)?.data?.to?.split('?')?.[0];
+  const lastUrl = getUrl(last(crumbs));
 
   if (crumbs.length === 0) {
     // This one shouldn't overflow, but by including the component css stays
@@ -60,7 +77,7 @@ function splitCrumbs({
   return crumbs.map((crumb, i) => (
     <SingleLinkSegment
       key={i}
-      path={crumb.data?.to?.split('?')?.[0]}
+      path={getUrl(crumb)}
       onClick={onClick ? () => onClick(crumb as Crumb) : null}
     />
   ));

@@ -24,7 +24,7 @@ import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -68,6 +68,7 @@ type Props = {
   trendView: TrendView;
   previousTrendColumn?: TrendColumnField;
   previousTrendFunction?: TrendFunctionField;
+  withBreakpoint?: boolean;
 };
 
 type TrendsCursorQuery = {
@@ -151,7 +152,7 @@ function handleChangeSelected(
       query,
     });
 
-    trackAdvancedAnalyticsEvent('performance_views.trends.widget_interaction', {
+    trackAnalytics('performance_views.trends.widget_interaction', {
       organization,
       widget_type: trendChangeType,
     });
@@ -216,7 +217,7 @@ function handleFilterDuration(
     },
   });
 
-  trackAdvancedAnalyticsEvent('performance_views.trends.change_duration', {
+  trackAnalytics('performance_views.trends.change_duration', {
     organization,
     widget_type: getChartTitle(trendChangeType),
     value: `${symbol}${value}`,
@@ -232,6 +233,7 @@ function ChangedTransactions(props: Props) {
     organization,
     projects,
     setError,
+    withBreakpoint,
   } = props;
   const api = useApi();
 
@@ -242,7 +244,7 @@ function ChangedTransactions(props: Props) {
   const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
   const paginationAnalyticsEvent = (direction: string) => {
-    trackAdvancedAnalyticsEvent('performance_views.trends.widget_pagination', {
+    trackAnalytics('performance_views.trends.widget_pagination', {
       organization,
       direction,
       widget_type: getChartTitle(trendChangeType),
@@ -258,6 +260,7 @@ function ChangedTransactions(props: Props) {
       cursor={cursor}
       limit={5}
       setError={error => setError(error?.message)}
+      withBreakpoint={withBreakpoint}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
@@ -295,7 +298,7 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle}
+                {chartTitle} {withBreakpoint && '- With Breakpoints'}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
               {isLoading ? (

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
@@ -20,6 +21,7 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -154,8 +156,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {start, end} = getTraceTimeRangeFromEvent(event);
 
     const hasProfilingFeature = organization.features.includes('profiling');
-    const hasProfilingPreviewsFeature =
-      hasProfilingFeature && organization.features.includes('profiling-previews');
 
     const profileId = (event as EventTransaction).contexts?.profile?.profile_id ?? null;
 
@@ -186,7 +186,11 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       }}
                       eventSlug={eventSlug}
                     />
-                    <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
+                    <Layout.Title data-test-id="event-header">
+                      <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+                        <EventTitle>{event.title}</EventTitle>
+                      </Tooltip>
+                    </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <ButtonBar gap={1}>
@@ -240,7 +244,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           }}
                         >
                           <QuickTraceContext.Provider value={results}>
-                            {hasProfilingPreviewsFeature ? (
+                            {hasProfilingFeature ? (
                               <ProfilesProvider
                                 orgSlug={organization.slug}
                                 projectSlug={this.projectId}
@@ -353,5 +357,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const EventTitle = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+`;
 
 export default withRouteAnalytics(EventDetailsContent);
