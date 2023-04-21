@@ -413,7 +413,7 @@ class StringIndexer(Service):
     )
 
     def bulk_record(
-        self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         """
         Takes in a mapping with use case IDs mapped to Org IDs mapped to set of strings.
@@ -449,7 +449,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseId, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be

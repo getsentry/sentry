@@ -14,7 +14,6 @@ from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
     StringIndexer,
-    UseCaseId,
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
@@ -23,6 +22,7 @@ from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCac
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import metrics
 
 __all__ = ["PostgresIndexer"]
@@ -103,7 +103,7 @@ class PGStringIndexerV2(StringIndexer):
             raise last_seen_exception
 
     def bulk_record(
-        self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
 
@@ -161,7 +161,8 @@ class PGStringIndexerV2(StringIndexer):
             }
         }
         """
-        use_case_id = self._get_metric_path_key(strings.keys())
+        use_case_id = next(iter(strings.keys()))
+        use_case_path_key = self._get_metric_path_key(strings.keys())
         with writes_limiter.check_write_limits(db_write_keys) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
@@ -174,7 +175,7 @@ class PGStringIndexerV2(StringIndexer):
                 key_result = dropped_string.key_result
                 rate_limited_key_results.add_use_case_key_result(
                     UseCaseKeyResult(
-                        use_case_id.value, key_result.org_id, key_result.string, key_result.id
+                        use_case_id, key_result.org_id, key_result.string, key_result.id
                     ),
                     fetch_type=dropped_string.fetch_type,
                     fetch_type_ext=dropped_string.fetch_type_ext,
@@ -183,7 +184,7 @@ class PGStringIndexerV2(StringIndexer):
             if filtered_db_write_keys.size == 0:
                 return db_read_key_results.merge(rate_limited_key_results)
 
-            if use_case_id is not UseCaseKey.RELEASE_HEALTH:
+            if use_case_path_key is not UseCaseKey.RELEASE_HEALTH:
                 new_records = [
                     self._get_table(strings.keys())(
                         organization_id=int(organization_id),
@@ -208,13 +209,13 @@ class PGStringIndexerV2(StringIndexer):
         db_write_key_results.add_use_case_key_results(
             [
                 UseCaseKeyResult(
-                    use_case_id=use_case_id.value,
+                    use_case_id,
                     org_id=db_obj.organization_id,
                     string=db_obj.string,
                     id=db_obj.id,
                 )
                 for db_obj in self._get_db_records(
-                    UseCaseKeyCollection({use_case_id.value: filtered_db_write_keys})
+                    UseCaseKeyCollection({use_case_id: filtered_db_write_keys})
                 )
             ],
             fetch_type=FetchType.FIRST_SEEN,
@@ -222,7 +223,7 @@ class PGStringIndexerV2(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
-    def record(self, use_case_id: UseCaseId, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
@@ -233,7 +234,7 @@ class PGStringIndexerV2(StringIndexer):
         Returns None if the entry cannot be found.
 
         """
-        table = self._get_table([use_case_id.value])
+        table = TABLE_MAPPING[use_case_id]
         try:
             id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
         except table.DoesNotExist:
@@ -246,7 +247,7 @@ class PGStringIndexerV2(StringIndexer):
 
         Returns None if the entry cannot be found.
         """
-        table = self._get_table([use_case_id.value])
+        table = TABLE_MAPPING[use_case_id]
         try:
             obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
@@ -256,12 +257,12 @@ class PGStringIndexerV2(StringIndexer):
         string: str = obj.string
         return string
 
-    def _get_metric_path_key(self, use_case_ids: Collection[str]) -> UseCaseKey:
-        if UseCaseKey.RELEASE_HEALTH.value in use_case_ids:
+    def _get_metric_path_key(self, use_case_ids: Collection[UseCaseID]) -> UseCaseKey:
+        if UseCaseID.SESSIONS in use_case_ids:
             return UseCaseKey.RELEASE_HEALTH
         return UseCaseKey.PERFORMANCE
 
-    def _get_table(self, use_case_ids: Collection[str]) -> IndexerTable:
+    def _get_table(self, use_case_ids: Collection[UseCaseID]) -> IndexerTable:
         return TABLE_MAPPING[self._get_metric_path_key(use_case_ids)]
 
     def resolve_shared_org(self, string: str) -> Optional[int]:

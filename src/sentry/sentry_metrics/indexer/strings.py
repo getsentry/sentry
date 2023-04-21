@@ -5,11 +5,11 @@ from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
     StringIndexer,
-    UseCaseId,
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
 )
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -146,7 +146,7 @@ class StaticStringIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         static_keys = UseCaseKeyCollection(strings)
         static_key_results = UseCaseKeyResults()
@@ -171,7 +171,7 @@ class StaticStringIndexer(StringIndexer):
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, use_case_id: UseCaseId, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)

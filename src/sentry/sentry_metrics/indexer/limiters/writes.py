@@ -19,6 +19,7 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResult,
     UseCaseKeyCollection,
 )
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING
 from sentry.utils import metrics
 
 OrgId = int
@@ -133,9 +134,13 @@ class WritesLimiter:
 
         Upon (successful) exit, rate limits are consumed.
         """
-        use_case_id = UseCaseKey(next(iter(use_case_keys.mapping.keys())))
+        use_case_id = next(iter(use_case_keys.mapping.keys()))
         keys = next(iter(use_case_keys.mapping.values()))
-        org_ids, requests = _construct_quota_requests(use_case_id, self.namespace, keys)
+        org_ids, requests = _construct_quota_requests(
+            METRIC_PATH_MAPPING[use_case_id],
+            self.namespace,
+            keys,
+        )
         timestamp, grants = self.rate_limiter.check_within_quotas(requests)
 
         granted_key_collection = dict(keys.mapping)

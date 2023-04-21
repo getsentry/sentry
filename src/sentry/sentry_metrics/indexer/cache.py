@@ -10,11 +10,11 @@ from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
     StringIndexer,
-    UseCaseId,
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
 )
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -101,7 +101,7 @@ class CachingIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         cache_keys = UseCaseKeyCollection(strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
@@ -146,7 +146,7 @@ class CachingIndexer(StringIndexer):
         self.cache.set_many(db_record_key_results.get_mapped_strings_to_ints())
         return cache_key_results.merge(db_record_key_results)
 
-    def record(self, use_case_id: UseCaseId, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 

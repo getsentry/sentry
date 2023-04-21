@@ -7,12 +7,12 @@ from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
     StringIndexer,
-    UseCaseId,
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
 )
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 class RawSimpleIndexer(StringIndexer):
@@ -22,12 +22,12 @@ class RawSimpleIndexer(StringIndexer):
     def __init__(self) -> None:
         self._counter = itertools.count(start=10000)
         self._strings: DefaultDict[
-            UseCaseId, DefaultDict[OrgId, DefaultDict[str, Optional[int]]]
+            UseCaseID, DefaultDict[OrgId, DefaultDict[str, Optional[int]]]
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(self._counter.__next__)))
         self._reverse: Dict[int, str] = {}
 
     def bulk_record(
-        self, strings: Mapping[UseCaseId, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
         db_read_key_results = UseCaseKeyResults()
@@ -60,17 +60,23 @@ class RawSimpleIndexer(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results)
 
-    def record(self, use_case_id: UseCaseId, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         return self._record(use_case_id, org_id, string)
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        strs = self._strings[use_case_id.value][org_id]
+        strs = self._strings[
+            (
+                UseCaseID.SESSIONS
+                if use_case_id is UseCaseKey.RELEASE_HEALTH
+                else UseCaseID.TRANSACTIONS
+            )
+        ][org_id]
         return strs.get(string)
 
     def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         return self._reverse.get(id)
 
-    def _record(self, use_case_id: UseCaseId, org_id: OrgId, string: str) -> Optional[int]:
+    def _record(self, use_case_id: UseCaseID, org_id: OrgId, string: str) -> Optional[int]:
         index = self._strings[use_case_id][org_id][string]
         if index is not None:
             self._reverse[index] = string

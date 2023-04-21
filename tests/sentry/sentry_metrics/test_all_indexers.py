@@ -16,6 +16,7 @@ from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCac
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.helpers.options import override_options
 
 BACKENDS = [
@@ -46,7 +47,8 @@ def indexer_cache():
     indexer_cache.cache.clear()
 
 
-use_case_id = UseCaseKey("release-health")
+use_case_key = UseCaseKey.RELEASE_HEALTH
+use_case_id = UseCaseID.SESSIONS
 
 
 def assert_fetch_type_for_tag_string_set(
@@ -57,76 +59,64 @@ def assert_fetch_type_for_tag_string_set(
 
 def test_static_and_non_static_strings_release_health(indexer):
     static_indexer = StaticStringIndexer(indexer)
-    use_case_id = UseCaseKey("release-health")
+    use_case_id = UseCaseID.SESSIONS
     strings = {
-        use_case_id.value: {
+        use_case_id: {
             2: {"release", "1.0.0"},
             3: {"production", "environment", "release", "2.0.0"},
         }
     }
     results = static_indexer.bulk_record(strings=strings)
 
-    v1 = indexer.resolve(use_case_id, 2, "1.0.0")
-    v2 = indexer.resolve(use_case_id, 3, "2.0.0")
+    v1 = indexer.resolve(UseCaseKey.RELEASE_HEALTH, 2, "1.0.0")
+    v2 = indexer.resolve(UseCaseKey.RELEASE_HEALTH, 3, "2.0.0")
 
-    assert results[use_case_id.value][2]["release"] == SHARED_STRINGS["release"]
-    assert results[use_case_id.value][3]["production"] == SHARED_STRINGS["production"]
-    assert results[use_case_id.value][3]["environment"] == SHARED_STRINGS["environment"]
-    assert results[use_case_id.value][3]["release"] == SHARED_STRINGS["release"]
+    assert results[use_case_id][2]["release"] == SHARED_STRINGS["release"]
+    assert results[use_case_id][3]["production"] == SHARED_STRINGS["production"]
+    assert results[use_case_id][3]["environment"] == SHARED_STRINGS["environment"]
+    assert results[use_case_id][3]["release"] == SHARED_STRINGS["release"]
 
-    assert results[use_case_id.value][2]["1.0.0"] == v1
-    assert results[use_case_id.value][3]["2.0.0"] == v2
+    assert results[use_case_id][2]["1.0.0"] == v1
+    assert results[use_case_id][3]["2.0.0"] == v2
 
     meta = results.get_fetch_metadata()
+    assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.HARDCODED, {"release"})
     assert_fetch_type_for_tag_string_set(
-        meta[use_case_id.value][2], FetchType.HARDCODED, {"release"}
+        meta[use_case_id][3], FetchType.HARDCODED, {"release", "production", "environment"}
     )
-    assert_fetch_type_for_tag_string_set(
-        meta[use_case_id.value][3], FetchType.HARDCODED, {"release", "production", "environment"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[use_case_id.value][2], FetchType.FIRST_SEEN, {"1.0.0"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[use_case_id.value][3], FetchType.FIRST_SEEN, {"2.0.0"}
-    )
+    assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.FIRST_SEEN, {"1.0.0"})
+    assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
 def test_static_and_non_static_strings_generic_metrics(indexer):
     static_indexer = StaticStringIndexer(indexer)
-    use_case_id = UseCaseKey("performance")
+    use_case_id = UseCaseID.TRANSACTIONS
     strings = {
-        use_case_id.value: {
+        use_case_id: {
             2: {"release", "1.0.0"},
             3: {"production", "environment", "release", "2.0.0"},
         }
     }
     results = static_indexer.bulk_record(strings=strings)
 
-    v1 = indexer.resolve(use_case_id, 2, "1.0.0")
-    v2 = indexer.resolve(use_case_id, 3, "2.0.0")
+    v1 = indexer.resolve(UseCaseKey.PERFORMANCE, 2, "1.0.0")
+    v2 = indexer.resolve(UseCaseKey.PERFORMANCE, 3, "2.0.0")
 
-    assert results[use_case_id.value][2]["release"] == SHARED_STRINGS["release"]
-    assert results[use_case_id.value][3]["production"] == SHARED_STRINGS["production"]
-    assert results[use_case_id.value][3]["environment"] == SHARED_STRINGS["environment"]
-    assert results[use_case_id.value][3]["release"] == SHARED_STRINGS["release"]
+    assert results[use_case_id][2]["release"] == SHARED_STRINGS["release"]
+    assert results[use_case_id][3]["production"] == SHARED_STRINGS["production"]
+    assert results[use_case_id][3]["environment"] == SHARED_STRINGS["environment"]
+    assert results[use_case_id][3]["release"] == SHARED_STRINGS["release"]
 
-    assert results[use_case_id.value][2]["1.0.0"] == v1
-    assert results[use_case_id.value][3]["2.0.0"] == v2
+    assert results[use_case_id][2]["1.0.0"] == v1
+    assert results[use_case_id][3]["2.0.0"] == v2
 
     meta = results.get_fetch_metadata()
+    assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.HARDCODED, {"release"})
     assert_fetch_type_for_tag_string_set(
-        meta[use_case_id.value][2], FetchType.HARDCODED, {"release"}
+        meta[use_case_id][3], FetchType.HARDCODED, {"release", "production", "environment"}
     )
-    assert_fetch_type_for_tag_string_set(
-        meta[use_case_id.value][3], FetchType.HARDCODED, {"release", "production", "environment"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[use_case_id.value][2], FetchType.FIRST_SEEN, {"1.0.0"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[use_case_id.value][3], FetchType.FIRST_SEEN, {"2.0.0"}
-    )
+    assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.FIRST_SEEN, {"1.0.0"})
+    assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
 def test_indexer(indexer, indexer_cache):
@@ -140,27 +130,27 @@ def test_indexer(indexer, indexer_cache):
     org_strings = {org1_id: strings, org2_id: {"sup"}}
 
     # create a record with diff org_id but same string that we test against
-    indexer.record(use_case_id, 999, "hey")
+    indexer.record(use_case_key, 999, "hey")
 
     assert list(
         indexer_cache.get_many(
             [f"{org1_id}:{string}" for string in strings],
-            cache_namespace=use_case_id.value,
+            cache_namespace=use_case_key.value,
         ).values()
     ) == [None, None, None]
 
-    results = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings).results
+    results = indexer.bulk_record(use_case_id=use_case_key, org_strings=org_strings).results
 
     org1_string_ids = {
-        raw_indexer.resolve(use_case_id, org1_id, "hello"),
-        raw_indexer.resolve(use_case_id, org1_id, "hey"),
-        raw_indexer.resolve(use_case_id, org1_id, "hi"),
+        raw_indexer.resolve(use_case_key, org1_id, "hello"),
+        raw_indexer.resolve(use_case_key, org1_id, "hey"),
+        raw_indexer.resolve(use_case_key, org1_id, "hi"),
     }
 
     assert None not in org1_string_ids
     assert len(org1_string_ids) == 3  # no overlapping ids
 
-    org2_string_id = raw_indexer.resolve(use_case_id, org2_id, "sup")
+    org2_string_id = raw_indexer.resolve(use_case_key, org2_id, "sup")
     assert org2_string_id not in org1_string_ids
 
     # verify org1 results and cache values
@@ -169,13 +159,13 @@ def test_indexer(indexer, indexer_cache):
 
     for cache_value in indexer_cache.get_many(
         [f"{org1_id}:{string}" for string in strings],
-        cache_namespace=use_case_id.value,
+        cache_namespace=use_case_key.value,
     ).values():
         assert cache_value in org1_string_ids
 
     # verify org2 results and cache values
     assert results[org2_id]["sup"] == org2_string_id
-    assert indexer_cache.get(f"{org2_id}:sup", cache_namespace=use_case_id.value) == org2_string_id
+    assert indexer_cache.get(f"{org2_id}:sup", cache_namespace=use_case_key.value) == org2_string_id
 
     # we should have no results for org_id 999
     assert not results.get(999)
@@ -192,20 +182,20 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     indexer = CachingIndexer(indexer_cache, indexer)
 
     org_strings = {org1_id: strings}
-    indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+    indexer.bulk_record(use_case_id=use_case_key, org_strings=org_strings)
 
     # test resolve and reverse_resolve
-    id = indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello")
+    id = indexer.resolve(use_case_id=use_case_key, org_id=org1_id, string="hello")
     assert id is not None
-    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=id) == "hello"
+    assert indexer.reverse_resolve(use_case_id=use_case_key, org_id=org1_id, id=id) == "hello"
 
     # test record on a string that already exists
-    indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
-    assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello") == id
+    indexer.record(use_case_id=use_case_key, org_id=org1_id, string="hello")
+    assert indexer.resolve(use_case_id=use_case_key, org_id=org1_id, string="hello") == id
 
     # test invalid values
-    assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="beep") is None
-    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
+    assert indexer.resolve(use_case_id=use_case_key, org_id=org1_id, string="beep") is None
+    assert indexer.reverse_resolve(use_case_id=use_case_key, org_id=org1_id, id=1234) is None
 
 
 def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
@@ -218,25 +208,22 @@ def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
 
-    v0 = raw_indexer.record(use_case_id, org_id, "v1.2.0")
-    v1 = raw_indexer.record(use_case_id, org_id, "v1.2.1")
-    v2 = raw_indexer.record(use_case_id, org_id, "v1.2.2")
+    v0 = raw_indexer.record(use_case_key, org_id, "v1.2.0")
+    v1 = raw_indexer.record(use_case_key, org_id, "v1.2.1")
+    v2 = raw_indexer.record(use_case_key, org_id, "v1.2.2")
 
     expected_mapping = {"v1.2.0": v0, "v1.2.1": v1, "v1.2.2": v2}
 
-    results = indexer.bulk_record(
-        use_case_id=use_case_id, org_strings={org_id: {"v1.2.0", "v1.2.1", "v1.2.2"}}
-    )
+    results = indexer.bulk_record({use_case_id: {org_id: {"v1.2.0", "v1.2.1", "v1.2.2"}}})
     assert len(results[org_id]) == len(expected_mapping) == 3
 
     for string, id in results[org_id].items():
         assert expected_mapping[string] == id
 
     results = indexer.bulk_record(
-        use_case_id=use_case_id,
-        org_strings={org_id: {"v1.2.0", "v1.2.1", "v1.2.2", "v1.2.3"}},
+        {use_case_id: {org_id: {"v1.2.0", "v1.2.1", "v1.2.2", "v1.2.3"}}},
     )
-    v3 = raw_indexer.resolve(use_case_id, org_id, "v1.2.3")
+    v3 = raw_indexer.resolve(use_case_key, org_id, "v1.2.3")
     expected_mapping["v1.2.3"] = v3
 
     assert len(results[org_id]) == len(expected_mapping) == 4
@@ -258,26 +245,24 @@ def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
     """
     org_id = 8
     cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
-    indexer_cache.set_many(cached, use_case_id.value)
+    indexer_cache.set_many(cached, use_case_key.value)
 
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
 
-    results = indexer.bulk_record(use_case_id=use_case_id, org_strings={org_id: {"beep", "boop"}})
+    results = indexer.bulk_record({use_case_id: {org_id: {"beep", "boop"}}})
     assert len(results[org_id]) == 2
     assert results[org_id]["beep"] == 10
     assert results[org_id]["boop"] == 11
 
     # confirm we did not write to the db if results were already cached
-    assert not raw_indexer.resolve(use_case_id, org_id, "beep")
-    assert not raw_indexer.resolve(use_case_id, org_id, "boop")
+    assert not raw_indexer.resolve(use_case_key, org_id, "beep")
+    assert not raw_indexer.resolve(use_case_key, org_id, "boop")
 
-    bam = raw_indexer.record(use_case_id, org_id, "bam")
+    bam = raw_indexer.record(use_case_key, org_id, "bam")
     assert bam is not None
 
-    results = indexer.bulk_record(
-        use_case_id=use_case_id, org_strings={org_id: {"beep", "boop", "bam"}}
-    )
+    results = indexer.bulk_record({use_case_id: {org_id: {"beep", "boop", "bam"}}})
     assert len(results[org_id]) == 3
     assert results[org_id]["beep"] == 10
     assert results[org_id]["boop"] == 11
@@ -308,17 +293,17 @@ def test_rate_limited(indexer):
             ],
         }
     ):
-        results = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        results = indexer.bulk_record({use_case_id: org_strings})
 
-    assert len(results[1]) == 3
-    assert len(results[2]) == 2
-    assert len(results[3]) == 1
-    assert results[3]["g"] is not None
+    assert len(results[use_case_id][1]) == 3
+    assert len(results[use_case_id][2]) == 2
+    assert len(results[use_case_id][3]) == 1
+    assert results[use_case_id][3]["g"] is not None
 
     rate_limited_strings = set()
 
     for org_id in 1, 2, 3:
-        for k, v in results[org_id].items():
+        for k, v in results[use_case_id][org_id].items():
             if v is None:
                 rate_limited_strings.add((org_id, k))
 
@@ -326,7 +311,7 @@ def test_rate_limited(indexer):
     assert (3, "g") not in rate_limited_strings
 
     for org_id, string in rate_limited_strings:
-        assert results.get_fetch_metadata()[org_id][string] == Metadata(
+        assert results.get_fetch_metadata()[use_case_id][org_id][string] == Metadata(
             id=None,
             fetch_type=FetchType.RATE_LIMITED,
             fetch_type_ext=FetchTypeExt(is_global=False),
@@ -342,11 +327,11 @@ def test_rate_limited(indexer):
             ],
         }
     ):
-        results = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        results = indexer.bulk_record({use_case_id: org_strings})
 
-    assert results[1] == {"x": None, "y": None, "z": None}
+    assert results[use_case_id][1] == {"x": None, "y": None, "z": None}
     for letter in "xyz":
-        assert results.get_fetch_metadata()[1][letter] == Metadata(
+        assert results.get_fetch_metadata()[use_case_id][1][letter] == Metadata(
             id=None,
             fetch_type=FetchType.RATE_LIMITED,
             fetch_type_ext=FetchTypeExt(is_global=False),
@@ -362,10 +347,10 @@ def test_rate_limited(indexer):
             ],
         }
     ):
-        results = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        results = indexer.bulk_record({use_case_id: org_strings})
 
     rate_limited_strings2 = set()
-    for k, v in results[1].items():
+    for k, v in results[use_case_id][1].items():
         if v is None:
             rate_limited_strings2.add(k)
 
