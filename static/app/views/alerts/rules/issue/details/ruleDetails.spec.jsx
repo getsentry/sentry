@@ -241,8 +241,7 @@ describe('AlertRuleDetails', () => {
 
     createWrapper({}, contextWithoutAccess);
 
-    expect(await screen.findByText('Mute')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Mute'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Mute'})).toBeDisabled();
   });
 
   it('inserts user email into rule notify action', async () => {

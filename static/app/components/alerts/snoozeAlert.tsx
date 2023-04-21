@@ -29,7 +29,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Prop
   const api = useApi();
   const location = useLocation();
 
-  const [disabled, setDisabled] = useState(!hasAccess);
+  const [disabled, setDisabled] = useState(false);
 
   const handleMute = useCallback(
     async (target: 'me' | 'everyone', autoMute = false) => {
@@ -128,7 +128,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Prop
       <Button
         size="sm"
         icon={<IconMute />}
-        disabled={disabled}
+        disabled={disabled || !hasAccess}
         onClick={() => handleUnmute()}
       >
         {t('Unmute')}
@@ -140,7 +140,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Prop
       <MuteButton
         size="sm"
         icon={<IconSound />}
-        disabled={disabled}
+        disabled={disabled || !hasAccess}
         onClick={() => handleMute('me')}
       >
         {t('Mute')}
@@ -155,7 +155,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Prop
           />
         )}
         items={dropdownItems}
-        isDisabled={disabled}
+        isDisabled={disabled || !hasAccess}
       />
     </ButtonBar>
   );
