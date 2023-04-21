@@ -30,7 +30,7 @@ WITH duplicate_users AS (
   SELECT user_id FROM sentry_actor WHERE user_id IS NOT NULL GROUP BY user_id HAVING count(*) > 1
 ),
 cleanup_actors AS (
-    SELECT * FROM sentry_actor AS actor
+    SELECT actor.id AS id FROM sentry_actor AS actor
     LEFT JOIN auth_user AS u ON u.actor_id = actor.id
     WHERE actor.user_id IN (SELECT user_id FROM duplicate_users)
     AND u.actor_id IS NULL
