@@ -5,7 +5,8 @@ import {Series} from 'sentry/types/echarts';
 export function zeroFillSeries(
   series: Series,
   interval: moment.Duration,
-  startTime?: moment.Moment
+  startTime?: moment.Moment,
+  endTime?: moment.Moment
 ): Series {
   if (!series?.data?.length) {
     return series;
@@ -20,13 +21,11 @@ export function zeroFillSeries(
 
   const newData = [firstDatum];
 
-  const seriesData = startTime
-    ? [
-        {value: 0, name: startTime.format(dateFormat)},
-        ...series.data,
-        moment().format(dateFormat),
-      ]
-    : [series.data, moment().format(dateFormat)];
+  const seriesData = [
+    ...(startTime ? [{value: 0, name: startTime.format(dateFormat)}] : []),
+    ...series.data,
+    ...(endTime ? [{value: 0, name: endTime.format(dateFormat)}] : []),
+  ];
 
   let currentDatum, nextDatum, lastSeenDate, nextDate, diff;
   for (let index = 1; index < seriesData.length; index++) {

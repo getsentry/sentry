@@ -109,13 +109,14 @@ export default function APIModuleView({location, onSelect}: Props) {
     num && unit
       ? moment().subtract(num, unit as 'h' | 'd')
       : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
   const [zeroFilledQuantiles, zeroFilledCounts, zeroFilledFailureRate] = [
     seriesByQuantile,
     [countSeries],
     [failureRateSeries],
   ].map(seriesGroup =>
     Object.values(seriesGroup).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'), startTime)
+      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
     )
   );
 
