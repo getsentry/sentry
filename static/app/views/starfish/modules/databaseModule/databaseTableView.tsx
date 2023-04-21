@@ -2,6 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 
@@ -27,18 +28,14 @@ export type DataRow = {
 
 const COLUMN_ORDER = [
   {
-    key: 'action',
-    name: 'Operation',
+    key: 'desc',
+    name: 'Query',
+    width: 600,
   },
   {
     key: 'domain',
     name: 'Table',
     width: 200,
-  },
-  {
-    key: 'conditions',
-    name: 'Conditions',
-    width: 400,
   },
   {
     key: 'epm',
@@ -110,12 +107,27 @@ export default function APIModuleView({
       const value = row.data_values[row.data_keys.indexOf('columns')];
       return value ? <ArrayValue value={value?.split(',')} /> : <span />;
     }
+    if (column.key === 'order') {
+      const value = row.data_values[row.data_keys.indexOf('order')];
+      return value ? <ArrayValue value={value?.split(',')} /> : <span />;
+    }
+    if (column.key === 'desc') {
+      const value = row[column.key];
+      return (
+        <Hovercard header="Query" body={value}>
+          <Link onClick={() => onSelect(row)} to="">
+            {value.substring(0, 30)}
+            {value.length > 30 ? '...' : ''}
+            {value.length > 30 ? value.substring(value.length - 30) : ''}
+          </Link>
+        </Hovercard>
+      );
+    }
     if (column.key === 'conditions') {
       const value = row.data_values[row.data_keys.indexOf('where')];
-      const prefix = value.length > 60 ? '...' : '';
       return value ? (
         <Link onClick={() => onSelect(row)} to="">
-          {prefix}
+          {value.length > 60 ? '...' : ''}
           {value.substring(value.length - 60)}
         </Link>
       ) : (
