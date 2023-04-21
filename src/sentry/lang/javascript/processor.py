@@ -2082,7 +2082,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             def filtered_frame(frame: dict) -> dict:
                 new_frame = {key: value for key, value in frame.items() if key in interesting_keys}
-                new_frame["data.sourcemap"] = get_path(frame, "data", "sourcemap")
+                ds = get_path(frame, "data", "sourcemap")
+                # The python code does some trimming of the `data.sourcemap` prop to
+                # 150 characters with a trailing `...`, so replicate this here to avoid some
+                # bogus differences
+                if ds is not None and len(ds) > 150:
+                    ds = ds[:147] + "..."
+                new_frame["data.sourcemap"] = ds
                 return new_frame
 
             different_frames = []
