@@ -13,11 +13,14 @@ from sentry import features, quotas
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
+from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equation
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models import Group, Organization, Project, Team
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
@@ -86,11 +89,87 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         return [team for team in teams]
 
-    def get_dataset(self, request: Request) -> Any:
+    def get_dataset(self, request: Request, organization: Organization = None) -> Any:
         dataset_label = request.GET.get("dataset", "discover")
+        query = request.GET.get("query")
+
+        if query:
+            parsed_terms = self.parse_query(query)
+            issue_id_filters = [term for term in parsed_terms if term.key.name == "issue.id"]
+            issue_short_filters = [term for term in parsed_terms if term.key.name == "issue"]
+
+            issue_ids = []
+            issue_slugs = []
+
+            if issue_id_filters:
+                for issue_id_filter in issue_id_filters:
+                    raw = issue_id_filter.value.raw_value
+                    if isinstance(raw, Sequence):
+                        for item in raw:
+                            if isinstance(item, int):
+                                issue_ids.append(item)
+                            else:
+                                raise ParseError(
+                                    detail="filtering on 'issue.id' must contain only int ids"
+                                )
+                    elif isinstance(raw, int):
+                        issue_ids.append(raw)
+                    else:
+                        raise ParseError(detail="filtering on 'issue.id' but contain only int ids")
+
+            if issue_short_filters:
+                for issue_short_filter in issue_short_filters:
+                    raw = issue_short_filter.value.raw_value
+                    if isinstance(raw, Sequence):
+                        for item in raw:
+                            if isinstance(item, str):
+                                issue_slugs.append(item)
+                            else:
+                                raise ParseError(
+                                    detail="filtering on 'issue' but contain only string values"
+                                )
+                    elif isinstance(raw, str):
+                        issue_slugs.append(raw)
+                    else:
+                        raise ParseError(
+                            detail="filtering on 'issue' but contain only string values"
+                        )
+
+            if issue_ids or issue_slugs:
+                groups_by_short = []
+                if organization is not None:
+                    groups_by_short = Group.objects.by_qualified_short_id_bulk(
+                        organization, issue_slugs
+                    )
+                groups_by_id = Group.objects.filter(id__in=issue_ids)
+
+                categories = {
+                    get_group_type_by_type_id(group.type).category
+                    for group in groups_by_id + groups_by_short
+                }
+                if len(categories) == 1:
+                    cat = next(iter(categories))
+                    if cat == GroupCategory.PROFILE:
+                        return issue_platform
+
         if dataset_label not in DATASET_OPTIONS:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
         return DATASET_OPTIONS[dataset_label]
+
+    @staticmethod
+    def parse_query(query: Optional[str]) -> Sequence[SearchFilter]:
+        if query is None:
+            return []
+
+        try:
+            parsed_terms = parse_search_query(query)
+        except ParseError as e:
+            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
+
+        if not parsed_terms:
+            return []
+
+        return parsed_terms
 
     def get_snuba_dataclass(
         self, request: Request, organization: Organization, check_global_views: bool = True
