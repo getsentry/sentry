@@ -6,6 +6,7 @@ import isEqual from 'lodash/isEqual';
 
 import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
 import {Client} from 'sentry/api';
+import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import GroupSidebar from 'sentry/components/group/sidebar';
@@ -178,10 +179,16 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
   }
 
   renderGroupStatusBanner() {
+    const hasEscalatingIssuesUi =
+      this.props.organization.features.includes('escalating-issues-ui');
     if (this.props.group.status === 'ignored') {
       return (
         <GroupStatusBannerWrapper>
-          <MutedBox statusDetails={this.props.group.statusDetails} />
+          {hasEscalatingIssuesUi ? (
+            <ArchivedBox statusDetails={this.props.group.statusDetails} />
+          ) : (
+            <MutedBox statusDetails={this.props.group.statusDetails} />
+          )}
         </GroupStatusBannerWrapper>
       );
     }
