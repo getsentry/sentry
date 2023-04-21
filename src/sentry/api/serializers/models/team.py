@@ -212,7 +212,7 @@ class TeamSerializer(Serializer):  # type: ignore
         optimization = (
             maybe_singular_rpc_access_org_context(self.access, org_ids) if self.access else None
         )
-        all_org_roles = get_org_roles(org_ids, user, optimization=optimization)
+        roles_by_org = get_org_roles(org_ids, user, optimization=optimization)
 
         member_totals = get_member_totals(item_list, user)
         team_memberships = _get_team_memberships(item_list, user, optimization=optimization)
@@ -225,7 +225,7 @@ class TeamSerializer(Serializer):  # type: ignore
 
         for team in item_list:
             is_member = team.id in team_memberships
-            org_roles = all_org_roles.get(team.organization_id) or []
+            org_roles = roles_by_org.get(team.organization_id) or []
             team_role_id = team_memberships.get(team.id)
             effective_team_role, team_scopes = None, set()
 
