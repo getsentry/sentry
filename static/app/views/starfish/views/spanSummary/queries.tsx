@@ -1,6 +1,6 @@
 export const getSpanSamplesQuery = (spanDescription, transactionName) => {
   return `
-    SELECT transaction_id
+    SELECT transaction_id, span_id
     FROM spans_experimental_starfish
     WHERE description = '${spanDescription}'
     AND transaction = '${transactionName}'

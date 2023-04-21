@@ -26,6 +26,7 @@ const COLUMN_ORDER = [
 ];
 
 type EventsDataRow = {
+  span_id: string;
   transaction_id: string;
 };
 
@@ -124,7 +125,11 @@ export const OverflowEllipsisTextContainer = styled('span')`
 function renderBodyCell(column: GridColumnHeader, row: EventsDataRow): React.ReactNode {
   if (column.key === 'transaction_id') {
     return (
-      <Link to={`/performance/sentry:${row.transaction_id}`}>
+      <Link
+        to={`/performance/sentry:${row.transaction_id}#span-${row.span_id
+          .slice(19)
+          .replace('-', '')}`}
+      >
         {row.transaction_id.slice(0, 8)}
       </Link>
     );
