@@ -386,14 +386,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
             org_member = OrganizationMember.objects.get(
                 organization_id=organization_id, user_id=user_id
             )
-            prev_user_id = org_member.user_id
-            prev_email = org_member.email
             org_member.remove_user()
             org_member.save()
-            region_outbox = org_member.outbox_for_update(
-                prev_user_id=prev_user_id,
-                prev_email=prev_email,
-            )
+            region_outbox = org_member.outbox_for_update()
             region_outbox.save()
         region_outbox.drain_shard(max_updates_to_drain=10)
         return self.serialize_member(org_member)
