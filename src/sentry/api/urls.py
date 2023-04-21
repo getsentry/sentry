@@ -2531,9 +2531,9 @@ INTERNAL_URLS = [
         InternalMailEndpoint.as_view(),
     ),
     url(
-        r"^proxy/$",
+        r"^integration-proxy/$",
         InternalIntegrationProxyEndpoint.as_view(),
-        name="sentry-api-0-internal-proxy",
+        name="sentry-api-0-internal-integration-proxy",
     ),
     url(
         r"^project-config/$",

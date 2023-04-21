@@ -4,13 +4,12 @@ from django.http import HttpResponse
 from requests import Request, Response
 
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import clean_proxy_headers, verify_subnet_signature
 
 logger = logging.getLogger(__name__)
-PROXY_ADDRESS = "/api/0/internal/integration-proxy/"
+PROXY_BASE_PATH = "/api/0/internal/integration-proxy/"
 """
 This path is reserved on url patterns by InternalIntegrationProxyEndpoint and both should update
 if this is modified
@@ -53,33 +52,34 @@ class IntegrationProxyMiddleware:
         """
         from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
-        self.proxy_path = request.path[len(PROXY_ADDRESS) :]
+        self.proxy_path = request.path[len(PROXY_BASE_PATH) :]
         self.headers = clean_proxy_headers(request.headers)
 
         log_extra = {"path": self.proxy_path}
 
         # Get the organization integration
-        org_integration_id = self.headers.pop(f"{PROXY_OI_HEADER}", None)
+        org_integration_id = self.headers.pop(PROXY_OI_HEADER, None)
         if org_integration_id is None:
             logger.info("missing_org_integration", extra=log_extra)
             return False
         log_extra["org_integration_id"] = org_integration_id
 
-        self.org_integration = OrganizationIntegration.objects.filter(
-            id=org_integration_id,
-            status=ObjectStatus.ACTIVE,
-        ).first()
+        self.org_integration = (
+            OrganizationIntegration.objects.filter(
+                id=org_integration_id,
+                status=ObjectStatus.ACTIVE,
+            )
+            .select_related("integration")
+            .first()
+        )
         if self.org_integration is None:
             logger.info("invalid_org_integration", extra=log_extra)
             return False
         log_extra["integration_id"] = self.org_integration.integration_id
 
         # Get the integration
-        self.integration = Integration.objects.filter(
-            status=ObjectStatus.ACTIVE,
-            id=self.org_integration.integration_id,
-        ).first()
-        if self.integration is None:
+        self.integration = self.org_integration.integration
+        if not self.integration or self.integration.status is not ObjectStatus.ACTIVE:
             logger.info("invalid_integration", extra=log_extra)
             return False
 
@@ -101,7 +101,7 @@ class IntegrationProxyMiddleware:
         Returns True if the business logic of this integration should run.
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
-        is_proxy = request.path.startswith(PROXY_ADDRESS)
+        is_proxy = request.path.startswith(PROXY_BASE_PATH)
         if not is_correct_silo and not is_proxy:
             # Avoid more expensive checks if we can
             return False

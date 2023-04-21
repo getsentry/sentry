@@ -5,7 +5,7 @@ from requests import PreparedRequest, Request
 
 from sentry.integrations.client import ApiClient
 from sentry.middleware.integrations.integration_proxy import (
-    PROXY_ADDRESS,
+    PROXY_BASE_PATH,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     PROXY_TIMESTAMP_HEADER,
@@ -33,7 +33,7 @@ class IntegrationProxyClient(ApiClient):
 
         if is_region_silo and subnet_secret and control_address:
             self.should_proxy = True
-            self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_ADDRESS}"
+            self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
     def authorize_request(self, request: Request) -> Request:
         raise NotImplementedError(
@@ -59,7 +59,7 @@ class IntegrationProxyClient(ApiClient):
             request_body = request_body.encode("utf-8")
         prepared_request.headers = {
             **prepared_request.headers,
-            PROXY_OI_HEADER: f"{self.org_integration_id}",
+            PROXY_OI_HEADER: str(self.org_integration_id),
             PROXY_TIMESTAMP_HEADER: timestamp,
             PROXY_SIGNATURE_HEADER: encode_subnet_signature(
                 secret=settings.SENTRY_SUBNET_SECRET,
