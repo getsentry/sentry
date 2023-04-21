@@ -27,6 +27,7 @@ import {
   getAggregateAlias,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
@@ -138,6 +139,10 @@ type EventsRequestPartialProps = {
    * Optional callback to further process raw events request response data
    */
   dataLoadedCallback?: (any: EventsStats | MultiSeriesEventsStats | null) => void;
+  /**
+   * Specify the dataset to query from. Defaults to discover.
+   */
+  dataset?: DiscoverDatasets;
   /**
    * List of environments to query
    */

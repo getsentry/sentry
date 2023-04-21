@@ -13,6 +13,7 @@ import {
   OrganizationSummary,
 } from 'sentry/types';
 import {LocationQuery} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
@@ -32,6 +33,7 @@ type Options = {
   organization: OrganizationSummary;
   partial: boolean;
   comparisonDelta?: number;
+  dataset?: DiscoverDatasets;
   end?: DateString;
   environment?: Readonly<string[]>;
   excludeOther?: boolean;
@@ -100,6 +102,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     queryExtras,
     excludeOther,
     includeAllArgs,
+    dataset,
   }: {includeAllArgs?: IncludeAllArgsType} & Options
 ): IncludeAllArgsType extends true
   ? Promise<
@@ -127,6 +130,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
+      dataset,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -154,6 +158,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
 export type EventQuery = {
   field: string[];
   query: string;
+  dataset?: DiscoverDatasets;
   environment?: string[];
   equation?: string[];
   noPagination?: boolean;
