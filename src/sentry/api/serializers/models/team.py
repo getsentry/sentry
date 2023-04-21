@@ -256,7 +256,7 @@ class TeamSerializer(Serializer):  # type: ignore
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
-                "team_role": team_role_id,
+                "team_role": effective_team_role.id if is_member else None,
                 "access": team_scopes,
                 "has_access": has_access,
                 "avatar": avatars.get(team.id),
