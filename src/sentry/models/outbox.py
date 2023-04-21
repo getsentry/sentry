@@ -174,6 +174,8 @@ class OutboxBase(Model):
         # result in a future processing, we should always converge on non stale values.
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
+
+        # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
             deleted_count, _ = (
