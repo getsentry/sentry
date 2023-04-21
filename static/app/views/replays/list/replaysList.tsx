@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
 import type {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
@@ -91,7 +91,7 @@ function ReplaysListTable({
       <Pagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
-          trackAdvancedAnalyticsEvent('replay.list-paginated', {
+          trackAnalytics('replay.list-paginated', {
             organization,
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
           });

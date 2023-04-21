@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import useKeyPress from 'sentry/utils/useKeyPress';
 import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
 
 type DetailProps = {
@@ -19,6 +20,7 @@ type DetailState = {
 
 export default function Detail({children, detailKey, onClose}: DetailProps) {
   const [state, setState] = useState<DetailState>({collapsed: true});
+  const escapeKeyPressed = useKeyPress('Escape');
 
   // Any time the key prop changes (due to user interaction), we want to open the panel
   useEffect(() => {
@@ -26,6 +28,14 @@ export default function Detail({children, detailKey, onClose}: DetailProps) {
       setState({collapsed: false});
     }
   }, [detailKey]);
+
+  useEffect(() => {
+    if (escapeKeyPressed) {
+      onClose?.();
+      setState({collapsed: true});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [escapeKeyPressed]);
 
   return (
     <SlideOverPanel collapsed={state.collapsed}>

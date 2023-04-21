@@ -16,7 +16,6 @@ import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader'
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatBytesBase10} from 'sentry/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
@@ -48,6 +47,8 @@ export function getDataPoints(
   data: {unit: string; values: Profiling.MeasurementValue[]},
   maxDurationInMs: number
 ) {
+  // Use uniqBy since we can't guarantee the interval between recordings and
+  // we're converting to lower fidelity (ns -> ms). This can result in duplicate entries
   return uniqBy(
     data.values.map(value => {
       return {
@@ -73,18 +74,7 @@ function Chart({data, type, transactionDuration}: ChartProps) {
   const series: LineChartSeries[] = [
     {
       seriesName: getChartName(type),
-      // Use uniqBy since we can't guarantee the interval between recordings and
-      // we're converting to lower fidelity (ns -> ms). This can result in duplicate entries
-      data: uniqBy<SeriesDataUnit>(
-        [
-          // Zerofill the start and end so the chart is aligned properly with the
-          // transaction timeline
-          {name: 0, value: 0},
-          ...getDataPoints(data, transactionDuration),
-          {name: parseFloat(transactionDuration.toFixed(2)), value: 0},
-        ],
-        'name'
-      ),
+      data: getDataPoints(data, transactionDuration),
       yAxisIndex: 0,
       xAxisIndex: 0,
     },
@@ -98,6 +88,7 @@ function Chart({data, type, transactionDuration}: ChartProps) {
         show: false,
         axisLabel: {show: false},
         axisTick: {show: false},
+        max: type === CPU_USAGE ? 100 : undefined,
       }}
       xAxis={{
         show: false,
@@ -108,6 +99,9 @@ function Chart({data, type, transactionDuration}: ChartProps) {
           triggerOn: 'mousemove',
         },
         boundaryGap: false,
+        type: 'value',
+        alignTicks: false,
+        max: parseFloat(transactionDuration.toFixed(2)),
       }}
       series={series}
       renderer="svg"

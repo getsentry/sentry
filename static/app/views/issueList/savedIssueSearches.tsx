@@ -15,7 +15,7 @@ import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
@@ -139,7 +139,7 @@ function CreateNewSavedSearchButton({
   sort,
 }: CreateNewSavedSearchButtonProps) {
   const onClick = () => {
-    trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+    trackAnalytics('search.saved_search_open_create_modal', {
       organization,
     });
     openModal(deps => (

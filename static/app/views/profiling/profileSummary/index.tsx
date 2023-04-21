@@ -22,7 +22,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey, isAggregateField} from 'sentry/utils/discover/fields';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
@@ -55,7 +55,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   );
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
+    trackAnalytics('profiling_views.profile_summary', {
       organization,
       project_platform: project?.platform,
       project_id: project?.id,

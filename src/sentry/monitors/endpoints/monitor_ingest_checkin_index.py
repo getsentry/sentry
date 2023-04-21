@@ -104,15 +104,28 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
         checkin_validator = MonitorCheckInValidator(
             data=request.data,
-            context={"project": project, "request": request, "monitor_slug": monitor_slug},
+            context={
+                "project": project,
+                "request": request,
+                "monitor_slug": monitor_slug,
+                "monitor": monitor,
+            },
         )
         if not checkin_validator.is_valid():
             return self.respond(checkin_validator.errors, status=400)
 
+        result = checkin_validator.validated_data
+
+        # MonitorEnvironment.ensure_environment handles empty environments, but
+        # we don't wan to call that before the rate limit, for the rate limit
+        # key we don't care as much about a user not sending an environment, so
+        # let's be explicit about it not being production
+        env_rate_limit_key = result.get("environment", "-")
+
         if not monitor:
-            ratelimit_key = monitor_slug
+            ratelimit_key = f"{monitor_slug}:{env_rate_limit_key}"
         else:
-            ratelimit_key = monitor.id
+            ratelimit_key = f"{monitor.id}:{env_rate_limit_key}"
 
         if ratelimits.is_limited(
             f"monitor-checkins:{ratelimit_key}",
@@ -126,8 +139,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             raise Throttled(
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
             )
-
-        result = checkin_validator.validated_data
 
         with transaction.atomic():
             monitor_data = result.get("monitor")

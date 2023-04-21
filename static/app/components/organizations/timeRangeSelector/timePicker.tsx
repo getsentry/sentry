@@ -2,6 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import space from 'sentry/styles/space';
+
 type Props = {
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -86,9 +88,8 @@ const TimePicker = styled(
     grid-template-columns: 48% 48%;
     grid-column-gap: 4%;
     align-items: center;
-    font-size: 0.875em;
     color: ${p => p.theme.subText};
-    width: 70%;
+    width: 100%;
     padding: 0;
   }
 `;
@@ -96,11 +97,12 @@ const TimePicker = styled(
 const Input = styled('input')`
   &.rdrDateDisplayItem {
     width: 100%;
-    padding-left: 5%;
     background: ${p => p.theme.backgroundSecondary};
     border: 1px solid ${p => p.theme.border};
     color: ${p => p.theme.gray300};
+    padding: ${space(0.25)} ${space(0.5)};
     box-shadow: none;
+    font-variant-numeric: tabular-nums;
   }
 `;
 
