@@ -25,6 +25,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 export const retentionPrioritiesLabels = {
   boostLatestRelease: t('Prioritize new releases'),
   boostEnvironments: t('Prioritize dev environments'),
+  boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
 };
 
@@ -268,6 +269,16 @@ class ProjectPerformance extends AsyncView<Props, State> {
         label: retentionPrioritiesLabels.boostEnvironments,
         help: t(
           'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostLowVolumeTransactions',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
+        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+        visible: this.props.organization.features.includes(
+          'dynamic-sampling-transaction-name-priority'
         ),
         getData: this.getRetentionPrioritiesData,
       },
