@@ -10,8 +10,9 @@ from sentry.middleware.integrations.integration_proxy import (
     PROXY_SIGNATURE_HEADER,
     PROXY_TIMESTAMP_HEADER,
 )
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo.base import SiloMode
-from sentry.silo.util import encode_subnet_signature
+from sentry.silo.util import encode_subnet_signature, trim_leading_slash
 
 
 class IntegrationProxyClient(ApiClient):
@@ -35,6 +36,7 @@ class IntegrationProxyClient(ApiClient):
             self.should_proxy = True
             self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
+    @control_silo_function
     def authorize_request(self, request: Request) -> Request:
         raise NotImplementedError(
             "'authorize_request' method must be implemented to safely proxy requests."
@@ -45,9 +47,8 @@ class IntegrationProxyClient(ApiClient):
         Overriding build_url here allows us to use a direct proxy, rather than a transparent one.
         """
         base = self.proxy_url if self.should_proxy else self.base_url
-        if path.startswith("/"):
-            return f"{base}{path}"
-        return path
+        self.client_path = trim_leading_slash(path)
+        return f"{base}/{self.client_path}"
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         if not self.should_proxy:
@@ -64,6 +65,8 @@ class IntegrationProxyClient(ApiClient):
             PROXY_SIGNATURE_HEADER: encode_subnet_signature(
                 secret=settings.SENTRY_SUBNET_SECRET,
                 timestamp=timestamp,
+                path=self.client_path,
+                identifier=str(self.org_integration_id),
                 request_body=request_body,
             ),
         }

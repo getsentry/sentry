@@ -14,7 +14,7 @@ PROXY_BASE_PATH = "/api/0/internal/integration-proxy/"
 This path is reserved on url patterns by InternalIntegrationProxyEndpoint and both should update
 if this is modified
 """
-PROXY_OI_HEADER = "X-Sentry-Organization-Integration"
+PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 PROXY_TIMESTAMP_HEADER = "X-Sentry-Subnet-Timestamp"
 
@@ -34,12 +34,16 @@ class IntegrationProxyMiddleware:
         log_extra = {"path": request.path, "host": request.headers.get("Host")}
         timestamp = request.headers.get(PROXY_TIMESTAMP_HEADER)
         signature = request.headers.get(PROXY_SIGNATURE_HEADER)
-        if timestamp is None or signature is None:
+        identifier = request.headers.get(PROXY_OI_HEADER)
+        if timestamp is None or signature is None or identifier is None:
             logger.error("invalid_sender_headers", extra=log_extra)
             return False
-
         is_valid = verify_subnet_signature(
-            timestamp=timestamp, request_body=request.body, provided_signature=signature
+            timestamp=timestamp,
+            request_body=request.body,
+            path=self.proxy_path,
+            identifier=identifier,
+            provided_signature=signature,
         )
         if not is_valid:
             logger.error("invalid_sender_signature", extra=log_extra)
@@ -52,7 +56,6 @@ class IntegrationProxyMiddleware:
         """
         from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
-        self.proxy_path = request.path[len(PROXY_BASE_PATH) :]
         self.headers = clean_proxy_headers(request.headers)
 
         log_extra = {"path": self.proxy_path}
@@ -102,9 +105,10 @@ class IntegrationProxyMiddleware:
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         is_proxy = request.path.startswith(PROXY_BASE_PATH)
-        if not is_correct_silo and not is_proxy:
+        if not is_correct_silo or not is_proxy:
             # Avoid more expensive checks if we can
             return False
+        self.proxy_path = request.path[len(PROXY_BASE_PATH) :]
 
         is_valid_sender = self._validate_sender(request=request)
         is_valid_request = self._validate_request(request=request)
