@@ -31,22 +31,34 @@ class DummyEndpoint(Endpoint):
 
 class DummyErroringEndpoint(Endpoint):
     permission_classes = ()
+    # `as_view` requires that any init args passed to it match attributes already on the
+    # class, so even though they're really meant to be instance attributes, we have to
+    # add them here as class attributes first
     error = None
+    handler_context_arg = None
+    scope_arg = None
 
-    def __init__(self, error: Exception, *args, **kwargs):
-        # We allow the error to be passed in so that we have access to it in the test for use
-        # in equality checks
+    def __init__(
+        self,
+        *args,
+        error: Exception,
+        handler_context_arg=None,
+        scope_arg=None,
+        **kwargs,
+    ):
+        # The error which will be thrown when a GET request is made
         self.error = error
+        # The argumets which will be passed on to `Endpoint.handle_exception` via `super`
+        self.handler_context_arg = handler_context_arg
+        self.scope_arg = scope_arg
+
         super().__init__(*args, **kwargs)
 
     def get(self, request):
         raise self.error
 
-    def handle_exception(self, request, exc, handler_context=None):
-        handler_context = handler_context or {
-            "api_request_URL": exc.request.url if exc.request else "unknown"
-        }
-        return super().handle_exception(request, exc, handler_context)
+    def handle_exception(self, request, exc, handler_context=None, scope=None):
+        return super().handle_exception(request, exc, self.handler_context_arg, self.scope_arg)
 
 
 class DummyPaginationEndpoint(Endpoint):
