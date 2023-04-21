@@ -7,12 +7,14 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import EndpointDetail from 'sentry/views/starfish/views/endpointDetails';
+import EndpointDetail, {
+  EndpointDataRow,
+} from 'sentry/views/starfish/views/endpointDetails';
 
-import APIModuleView, {DataRow} from './APIModuleView';
+import APIModuleView from './APIModuleView';
 
 type APIModuleState = {
-  selectedRow?: DataRow;
+  selectedRow?: EndpointDataRow;
 };
 
 type Props = {
@@ -23,7 +25,7 @@ export default function APIModule(props: Props) {
   const [state, setState] = useState<APIModuleState>({selectedRow: undefined});
   const unsetSelectedSpanGroup = () => setState({selectedRow: undefined});
   const {selectedRow} = state;
-  const setSelectedRow = (row: DataRow) => setState({selectedRow: row});
+  const setSelectedRow = (row: EndpointDataRow) => setState({selectedRow: row});
   return (
     <Layout.Page>
       <PageErrorProvider>

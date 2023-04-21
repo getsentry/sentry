@@ -243,5 +243,11 @@ class MonitorConsumerTest(TestCase):
             _process_message(self.get_message("my-monitor"))
             _process_message(self.get_message("my-monitor"))
 
-        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
-        assert len(checkins) == 1
+            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            assert len(checkins) == 1
+
+            # Same monitor, diff environments
+            _process_message(self.get_message("my-monitor", environment="dev"))
+
+            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            assert len(checkins) == 2

@@ -100,6 +100,7 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
 
   const menuItems: MenuItemProps[] = [
     {
@@ -117,13 +118,17 @@ function ActionSet({
         });
       },
     },
-    {
-      key: 'mark-reviewed',
-      label: t('Mark Reviewed'),
-      hidden: !nestMergeAndReview,
-      disabled: !canMarkReviewed,
-      onAction: () => onUpdate({inbox: false}),
-    },
+    ...(disabledMarkReviewed
+      ? []
+      : [
+          {
+            key: 'mark-reviewed',
+            label: t('Mark Reviewed'),
+            hidden: !nestMergeAndReview,
+            disabled: !canMarkReviewed,
+            onAction: () => onUpdate({inbox: false}),
+          },
+        ]),
     {
       key: 'bookmark',
       label: t('Add to Bookmarks'),
@@ -249,7 +254,7 @@ function ActionSet({
           disabled={ignoreDisabled}
         />
       )}
-      {!nestMergeAndReview && (
+      {!nestMergeAndReview && !disabledMarkReviewed && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
       {!nestMergeAndReview && (

@@ -103,6 +103,11 @@ type ProfilingUpgradePlanButtonProps = ButtonProps & {
   organization: Organization;
 };
 
+type ProfilingAM1OrMMXUpgrade = {
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
 type SetUpSdkDocProps = {
   location: Location;
   organization: Organization;
@@ -157,6 +162,7 @@ export type ComponentHooks = {
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgrade>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
@@ -186,8 +192,6 @@ export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
-  // TODO: remove this hook once we've migrated to the new one
-  'analytics:track-event-v2': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
 

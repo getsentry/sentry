@@ -32,6 +32,7 @@ type Props = {
   isLineChart?: boolean;
   log?: boolean;
   previousData?: Series[];
+  showLegend?: boolean;
   stacked?: boolean;
 };
 
@@ -93,6 +94,7 @@ function Chart({
   stacked,
   log,
   hideYAxisSplitLine,
+  showLegend,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -222,6 +224,12 @@ function Chart({
     xAxes,
     yAxes,
     utc,
+    legend: showLegend
+      ? {
+          top: 0,
+          right: 10,
+        }
+      : undefined,
     isGroupedByDate: true,
     showTimeInTooltip: true,
     colors,
@@ -279,6 +287,8 @@ function Chart({
               yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
               tooltip={areaChartProps.tooltip}
               colors={colors}
+              grid={grid}
+              legend={showLegend ? {top: 0, right: 0} : undefined}
             />
           );
         }

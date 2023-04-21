@@ -11,7 +11,7 @@ import CommandSource from 'sentry/components/search/sources/commandSource';
 import FormSource from 'sentry/components/search/sources/formSource';
 import RouteSource from 'sentry/components/search/sources/routeSource';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
@@ -86,7 +86,7 @@ function Search({
 
   const params = useParams<{orgId: string}>();
   useEffect(() => {
-    trackAdvancedAnalyticsEvent(`${entryPoint}.open`, {
+    trackAnalytics(`${entryPoint}.open`, {
       organization: null,
     });
   }, [entryPoint]);
@@ -97,7 +97,7 @@ function Search({
         return;
       }
 
-      trackAdvancedAnalyticsEvent(`${entryPoint}.select`, {
+      trackAnalytics(`${entryPoint}.select`, {
         query: state?.inputValue,
         result_type: item.resultType,
         source_type: item.sourceType,
@@ -143,7 +143,7 @@ function Search({
         return;
       }
 
-      trackAdvancedAnalyticsEvent(`${entryPoint}.query`, {
+      trackAnalytics(`${entryPoint}.query`, {
         query,
         organization: null,
       });

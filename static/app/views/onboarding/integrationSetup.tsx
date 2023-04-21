@@ -12,7 +12,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IntegrationProvider, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
@@ -178,7 +178,7 @@ function IntegrationSetup(props: Props) {
         />
         <ExternalLink
           onClick={() => {
-            trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {
+            trackAnalytics('growth.onboarding_view_full_docs', {
               organization,
             });
           }}

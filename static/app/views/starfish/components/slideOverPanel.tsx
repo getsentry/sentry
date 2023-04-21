@@ -1,3 +1,4 @@
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -16,7 +17,7 @@ export default function SlideOverPanel({collapsed, children}: SlideOverPanelProp
       animate={!collapsed ? {opacity: 1, x: 0} : {opacity: 0, x: PANEL_WIDTH}}
       transition={{
         type: 'spring',
-        stiffness: 1000,
+        stiffness: 500,
         damping: 50,
       }}
     >
@@ -25,7 +26,11 @@ export default function SlideOverPanel({collapsed, children}: SlideOverPanelProp
   );
 }
 
-const _SlideOverPanel = styled(motion.div)<{
+const _SlideOverPanel = styled(motion.div, {
+  shouldForwardProp: prop =>
+    ['animate', 'transition'].includes(prop) ||
+    (prop !== 'collapsed' && isPropValid(prop)),
+})<{
   collapsed: boolean;
 }>`
   width: ${PANEL_WIDTH};
@@ -38,5 +43,5 @@ const _SlideOverPanel = styled(motion.div)<{
   border-left: 1px solid ${p => p.theme.border};
   text-align: left;
   z-index: ${p => p.theme.zIndex.sidebar - 1};
-  ${p => (p.collapsed ? 'overflow: hidden;' : '')}
+  ${p => (p.collapsed ? 'overflow: hidden;' : 'overflow:scroll')}
 `;

@@ -46,14 +46,14 @@ function getOptions() {
 }
 
 function CacheModule(props: Props) {
-  const [operation, setOperation] = useState<string>('SET');
+  const [action, setAction] = useState<string>('SET');
   const [transaction, setTransaction] = useState<string>('');
   const [selectedRow, setSelectedRow] = useState<DataRow | null>(null);
   const {location, organization} = props;
   const eventView = EventView.fromLocation(location);
 
   const handleOptionChange = value => {
-    setOperation(value);
+    setAction(value);
   };
 
   const handleSearch = query => {
@@ -84,7 +84,7 @@ function CacheModule(props: Props) {
             <PageErrorAlert />
             <CacheChartView location={location} />
             <CompactSelect
-              value={operation}
+              value={action}
               options={getOptions()}
               onChange={opt => handleOptionChange(opt.value)}
             />
@@ -96,7 +96,7 @@ function CacheModule(props: Props) {
             />
             <CacheTableView
               location={location}
-              operation={operation}
+              action={action}
               transaction={transaction}
               setSelectedRow={setSelectedRow}
             />

@@ -53,13 +53,13 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
     expected = [
         {
             "samplingValue": {"type": "factor", "value": t1_factor},
-            "type": "transaction",
+            "type": "trace",
             "condition": {
                 "op": "or",
                 "inner": [
                     {
                         "op": "eq",
-                        "name": "event.transaction",
+                        "name": "trace.transaction",
                         "value": ["t1"],
                         "options": {"ignoreCase": True},
                     }
@@ -69,13 +69,13 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
         },
         {
             "samplingValue": {"type": "factor", "value": t2_factor},
-            "type": "transaction",
+            "type": "trace",
             "condition": {
                 "op": "or",
                 "inner": [
                     {
                         "op": "eq",
-                        "name": "event.transaction",
+                        "name": "trace.transaction",
                         "value": ["t2"],
                         "options": {"ignoreCase": True},
                     }
@@ -85,7 +85,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
         },
         {
             "samplingValue": {"type": "factor", "value": implicit_factor},
-            "type": "transaction",
+            "type": "trace",
             "condition": {
                 "op": "and",
                 "inner": [],

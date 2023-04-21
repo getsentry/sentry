@@ -4,12 +4,12 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('AlertRulesList', () => {
   const {routerContext, organization, router} = initializeOrg({
@@ -81,7 +81,7 @@ describe('AlertRulesList', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
-    trackAdvancedAnalyticsEvent.mockClear();
+    trackAnalytics.mockClear();
   });
 
   it('displays list', async () => {
@@ -98,7 +98,7 @@ describe('AlertRulesList', () => {
 
     expect(screen.getAllByTestId('badge-display-name')[0]).toHaveTextContent('earth');
 
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_rules.viewed',
       expect.objectContaining({
         sort: 'incident_status,date_triggered',
