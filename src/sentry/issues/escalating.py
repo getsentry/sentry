@@ -2,6 +2,7 @@
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
 
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, TypedDict
 
@@ -62,8 +63,7 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
     processed_projects = 1
     total_projects_count = len(group_ids_by_project)
 
-    for proj_id in group_ids_by_project.keys():
-        _group_ids: List[int] = group_ids_by_project[proj_id]
+    for proj_id, _group_ids in group_ids_by_project.items():
         # Add them to the list of projects and groups to query
         proj_ids.append(proj_id)
         group_ids += _group_ids
@@ -75,6 +75,7 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
         ):
             continue
 
+        # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
         all_results += _query_with_pagination(proj_ids, group_ids, start_date, end_date)
         # We're ready for a new set of projects and ids
         proj_ids, group_ids = [], []
@@ -85,18 +86,18 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
 def _query_with_pagination(
     project_ids: List[int], group_ids: List[int], start_date: datetime, end_date: datetime
 ) -> List[GroupsCountResponse]:
-
+    """Query Snuba for event counts for the given list of project ids and groups ids in
+    a time range."""
     all_results = []
     offset = 0
     while True:
         query = _generate_query(project_ids, group_ids, offset, start_date, end_date)
         request = Request(dataset=Dataset.Events.value, app_id=REFERRER, query=query)
         results = raw_snql_query(request, referrer=REFERRER)["data"]
-        if not results:
+        all_results += results
+        offset += QUERY_LIMIT
+        if not results or len(results) < QUERY_LIMIT:
             break
-        else:
-            all_results += results
-            offset += QUERY_LIMIT
 
     return all_results
 
@@ -166,11 +167,8 @@ def _start_and_end_dates(hours: int = BUCKETS_PER_GROUP) -> Tuple[datetime, date
 
 def _extract_project_and_group_ids(groups: List[Group]) -> Dict[int, List[int]]:
     """Return all project and group IDs from a list of Group"""
-    group_ids_by_project: Dict[int, List[int]] = {}
+    group_ids_by_project: Dict[int, List[int]] = defaultdict(list)
     for group in groups:
-        if not group_ids_by_project.get(group.project_id):
-            group_ids_by_project[group.project_id] = []
-
         group_ids_by_project[group.project_id].append(group.id)
 
     return group_ids_by_project
