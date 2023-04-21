@@ -436,6 +436,8 @@ class Group(Model):
             (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
+            (GroupSubStatus.UNTIL_CONDITION_MET, _("Until condition met")),
+            (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)

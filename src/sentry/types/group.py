@@ -1,6 +1,10 @@
 class GroupSubStatus:
     # GroupStatus.IGNORED
     UNTIL_ESCALATING = 1
+    # Group is ignored/archived for a count/user count/duration
+    UNTIL_CONDITION_MET = 4
+    # Group is ignored/archived forever
+    FOREVER = 5
 
     # GroupStatus.UNRESOLVED
     ESCALATING = 2
