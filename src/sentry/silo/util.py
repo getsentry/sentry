@@ -19,7 +19,7 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS + [
 ]
 
 
-def base_clean_headers(
+def clean_headers(
     headers: Mapping[str, str] | None, invalid_headers: List[str]
 ) -> Mapping[str, str]:
     if not headers:
@@ -30,12 +30,12 @@ def base_clean_headers(
     return modified_headers
 
 
-def clean_proxy_headers(headers: Mapping[str, str]) -> Mapping[str, str]:
-    return base_clean_headers(headers, invalid_headers=INVALID_PROXY_HEADERS)
+def clean_proxy_headers(headers: Mapping[str, str] | None) -> Mapping[str, str]:
+    return clean_headers(headers, invalid_headers=INVALID_PROXY_HEADERS)
 
 
-def clean_outbound_headers(headers: Mapping[str, str]) -> Mapping[str, str]:
-    return base_clean_headers(headers, invalid_headers=INVALID_OUTBOUND_HEADERS)
+def clean_outbound_headers(headers: Mapping[str, str] | None) -> Mapping[str, str]:
+    return clean_headers(headers, invalid_headers=INVALID_OUTBOUND_HEADERS)
 
 
 def trim_leading_slash(path: str) -> str:
@@ -58,7 +58,7 @@ def encode_subnet_signature(
         trim_leading_slash(path).encode("utf-8"),
         identifier.encode("utf-8"),
         request_body,
-    )
+    )  # type: ignore
     signature = hmac.new(secret.encode("utf-8"), raw_signature, sha256).hexdigest()
     return f"v0={signature}"
 

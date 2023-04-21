@@ -18,7 +18,7 @@ from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 
 # TODO(mgaeta): HACK Fix the line where _request() returns "{}".
-BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any]]
+BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any], Response]
 
 
 class BaseApiClient(TrackResponseMixin):
@@ -89,7 +89,7 @@ class BaseApiClient(TrackResponseMixin):
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = False,
-    ) -> BaseApiResponseX | Response:
+    ) -> BaseApiResponseX:
         if allow_text is None:
             allow_text = self.allow_text
 
@@ -139,7 +139,7 @@ class BaseApiClient(TrackResponseMixin):
             try:
                 with build_session() as session:
                     finalized_request = self.finalize_request(_prepared_request)
-                    resp = session.send(
+                    resp: Response = session.send(
                         finalized_request,
                         allow_redirects=allow_redirects,
                         timeout=timeout,
@@ -155,8 +155,8 @@ class BaseApiClient(TrackResponseMixin):
                 self.track_response_data("timeout", span, e)
                 raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
-                resp = e.response
-                if resp is None:
+                error_resp = e.response
+                if error_resp is None:
                     self.track_response_data("unknown", span, e)
 
                     # It shouldn't be possible for integration_type to be null.
@@ -166,8 +166,8 @@ class BaseApiClient(TrackResponseMixin):
                     self.logger.exception("request.error", extra=extra)
 
                     raise ApiError("Internal Error", url=full_url) from e
-                self.track_response_data(resp.status_code, span, e)
-                raise ApiError.from_response(resp, url=full_url) from e
+                self.track_response_data(error_resp.status_code, span, e)
+                raise ApiError.from_response(error_resp, url=full_url) from e
 
             except Exception as e:
                 # Sometimes a ConnectionResetError shows up two or three deep in an exception

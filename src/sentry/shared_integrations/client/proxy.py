@@ -16,7 +16,7 @@ from sentry.silo.util import (
 )
 
 
-class IntegrationProxyClient(ApiClient):
+class IntegrationProxyClient(ApiClient):  # type: ignore
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
     Requests to third parties must always exit the Sentry subnet via the Control Silo, and only
@@ -58,17 +58,14 @@ class IntegrationProxyClient(ApiClient):
         timestamp = str(int(time.time()))
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):
-            request_body = request_body.encode("utf-8")
-        prepared_request.headers = {
-            **prepared_request.headers,
-            PROXY_OI_HEADER: str(self.org_integration_id),
-            PROXY_TIMESTAMP_HEADER: timestamp,
-            PROXY_SIGNATURE_HEADER: encode_subnet_signature(
-                secret=settings.SENTRY_SUBNET_SECRET,
-                timestamp=timestamp,
-                path=self.client_path,
-                identifier=str(self.org_integration_id),
-                request_body=request_body,
-            ),
-        }
+            request_body = request_body.encode("utf-8") if request_body else b"{}"
+        prepared_request.headers[PROXY_OI_HEADER] = str(self.org_integration_id)
+        prepared_request.headers[PROXY_TIMESTAMP_HEADER] = timestamp
+        prepared_request.headers[PROXY_SIGNATURE_HEADER] = encode_subnet_signature(
+            secret=settings.SENTRY_SUBNET_SECRET,
+            timestamp=timestamp,
+            path=self.client_path,
+            identifier=str(self.org_integration_id),
+            request_body=request_body,
+        )
         return prepared_request
