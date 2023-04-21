@@ -109,7 +109,7 @@ class TeamSerializerTest(TestCase):
         assert result["access"] == TEAM_CONTRIBUTOR["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
-        assert result["teamRole"] is TEAM_CONTRIBUTOR["id"]
+        assert result["teamRole"] == TEAM_CONTRIBUTOR["id"]
 
     def test_member_with_team_role(self):
         user = self.create_user(username="foo")
@@ -167,7 +167,7 @@ class TeamSerializerTest(TestCase):
         assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
-        assert result["teamRole"] is TEAM_ADMIN["id"]
+        assert result["teamRole"] == TEAM_ADMIN["id"]
 
     def test_manager(self):
         user = self.create_user(username="foo")
@@ -196,7 +196,7 @@ class TeamSerializerTest(TestCase):
         assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
-        assert result["teamRole"] is TEAM_ADMIN["id"]
+        assert result["teamRole"] == TEAM_ADMIN["id"]
 
     def test_owner(self):
         user = self.create_user(username="foo")
@@ -225,7 +225,7 @@ class TeamSerializerTest(TestCase):
         assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
-        assert result["teamRole"] is TEAM_ADMIN["id"]
+        assert result["teamRole"] == TEAM_ADMIN["id"]
 
     def test_member_on_owner_team(self):
         user = self.create_user(username="foo")
@@ -258,7 +258,7 @@ class TeamSerializerTest(TestCase):
         assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
-        assert result["teamRole"] is TEAM_ADMIN["id"]
+        assert result["teamRole"] == TEAM_ADMIN["id"]
 
     def test_member_with_team_role_on_owner_team(self):
         user = self.create_user(username="foo")
