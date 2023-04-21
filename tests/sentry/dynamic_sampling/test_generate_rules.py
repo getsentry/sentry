@@ -518,7 +518,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "condition": {
                 "inner": [
                     {
-                        "name": "event.transaction",
+                        "name": "trace.transaction",
                         "op": "eq",
                         "options": {"ignoreCase": True},
                         "value": ["t1"],

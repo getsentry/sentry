@@ -45,7 +45,7 @@ class RareTransactionsRulesBias(Bias):
                         "inner": [
                             {
                                 "op": "eq",
-                                "name": "event.transaction",
+                                "name": "trace.transaction",
                                 "value": [name],
                                 "options": {"ignoreCase": True},
                             }
