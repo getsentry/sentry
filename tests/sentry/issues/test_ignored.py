@@ -71,7 +71,10 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         assert not GroupSnooze.objects.filter(group=self.group).exists()
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
-        assert fetched_forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+        assert fetched_forecast is not None
+        assert fetched_forecast.project_id == self.group.project.id
+        assert fetched_forecast.group_id == self.group.id
+        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
 
     @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_archive_until_escalating_with_counts(

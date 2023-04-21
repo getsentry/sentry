@@ -48,7 +48,12 @@ class EscalatingGroupForecast:
         results = nodestore.get(cls.build_storage_identifier(project_id, group_id))
         if results:
             return EscalatingGroupForecast.from_dict(results)
-        return DEFAULT_MINIMUM_CEILING_FORECAST
+        return EscalatingGroupForecast(
+            project_id=project_id,
+            group_id=group_id,
+            forecast=DEFAULT_MINIMUM_CEILING_FORECAST,
+            date_added=datetime.now(),
+        )
 
     @classmethod
     def build_storage_identifier(cls, project_id: int, group_id: int) -> str:

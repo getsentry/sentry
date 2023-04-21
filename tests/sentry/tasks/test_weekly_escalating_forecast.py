@@ -36,7 +36,10 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):  # type: ignore
 
         run_escalating_forecast()
         fetched_forecast = EscalatingGroupForecast.fetch(group_list[0].project.id, group_list[0].id)
-        assert fetched_forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+        assert fetched_forecast is not None
+        assert fetched_forecast.project_id == group_list[0].project.id
+        assert fetched_forecast.group_id == group_list[0].id
+        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
 
     @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_single_group_escalating_forecast(
