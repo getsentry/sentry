@@ -1,7 +1,6 @@
 """This module has the logic for querying Snuba for the hourly event count for a list of groups.
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
-
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, TypedDict
@@ -28,7 +27,7 @@ from sentry.utils.snuba import raw_snql_query
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
 REFERRER = "sentry.issues.escalating"
-QUERY_LIMIT = 10000  # This is the maximum value for Snuba
+ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
 BUCKETS_PER_GROUP = 7 * 24
 
@@ -48,21 +47,24 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
 
     We maximize the number of projects and groups to reduce the total number of Snuba queries.
     Each project may not have enough groups in order to reach the max number of returned
-    elements (QUERY_LIMIT), thus, projects with few groups should be grouped together until
+    elements (ELEMENTS_PER_SNUBA_PAGE), thus, projects with few groups should be grouped together until
     we get at least a certain number of groups.
 
     NOTE: Groups with less than the maximum number of buckets (think of groups with just 1 event or less
     than 7 days old) will skew the optimization since we may only get one page and less elements than the max
-    QUERY_LIMIT.
+    ELEMENTS_PER_SNUBA_PAGE.
     """
-
     all_results = []
     start_date, end_date = _start_and_end_dates()
-    group_ids_by_project = _extract_project_and_group_ids(groups)
+    # groups.order_by() guarantees that the call to items() down below will always iterate in the
+    # same order of projects (making the assertion in the tests reliable rather than changing order)
+    group_ids_by_project = _extract_project_and_group_ids(groups.order_by("project__id"))
     proj_ids, group_ids = [], []
-    processed_projects = 1
+    processed_projects = 0
     total_projects_count = len(group_ids_by_project)
 
+    # This iteration guarantees that all groups for a project will be queried in the same call
+    # and only one page where the groups could be mixed with groups from another project
     for proj_id, _group_ids in group_ids_by_project.items():
         # Add them to the list of projects and groups to query
         proj_ids.append(proj_id)
@@ -71,7 +73,7 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
         # We still have room for more projects and groups
         if (
             processed_projects < total_projects_count
-            and len(_group_ids) < QUERY_LIMIT / BUCKETS_PER_GROUP
+            and len(_group_ids) < ELEMENTS_PER_SNUBA_PAGE / BUCKETS_PER_GROUP
         ):
             continue
 
@@ -95,8 +97,8 @@ def _query_with_pagination(
         request = Request(dataset=Dataset.Events.value, app_id=REFERRER, query=query)
         results = raw_snql_query(request, referrer=REFERRER)["data"]
         all_results += results
-        offset += QUERY_LIMIT
-        if not results or len(results) < QUERY_LIMIT:
+        offset += ELEMENTS_PER_SNUBA_PAGE
+        if not results or len(results) < ELEMENTS_PER_SNUBA_PAGE:
             break
 
     return all_results
@@ -149,7 +151,7 @@ def _generate_query(
             Condition(Column("timestamp"), Op.GTE, start_date),
             Condition(Column("timestamp"), Op.LT, end_date),
         ],
-        limit=Limit(QUERY_LIMIT),
+        limit=Limit(ELEMENTS_PER_SNUBA_PAGE),
         offset=Offset(offset),
         orderby=[
             OrderBy(proj_id_col, Direction.ASC),

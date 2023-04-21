@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Dict, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -38,6 +38,15 @@ class HistoricGroupCounts(TestCase):  # type: ignore
             },
         )
 
+    def _count_bucket(self, count: int, event: Event) -> Dict[str, int]:
+        """It simplifies writing the expected data structures"""
+        return {
+            "count()": count,
+            "group_id": event.group_id,
+            "hourBucket": to_start_of_hour(event.datetime),
+            "project_id": event.project_id,
+        }
+
     def test_query_single_group(self) -> None:
         event = self._load_event_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
@@ -62,7 +71,7 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         self._load_event_for_group(fingerprint="group-2", minutes_ago=59)
 
         # This forces to test the iteration over the Snuba data
-        with patch("sentry.issues.escalating.QUERY_LIMIT", new=2):
+        with patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=2):
             assert query_groups_past_counts(Group.objects.all()) == [
                 {
                     "count()": 2,
