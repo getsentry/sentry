@@ -33,7 +33,7 @@ type Props = {
   location: Location;
 } & RouteComponentProps<{slug: string}, {}>;
 
-export default function SpanInTransactionView({location, params}: Props) {
+export default function SpanSummary({location, params}: Props) {
   const slug = parseSlug(params.slug);
 
   const {spanDescription, transactionName} = slug || {
@@ -44,7 +44,7 @@ export default function SpanInTransactionView({location, params}: Props) {
   const query = getSpanInTransactionQuery(spanDescription, transactionName);
 
   const {isLoading, data} = useQuery({
-    queryKey: ['spanInTransaction', spanDescription, transactionName],
+    queryKey: ['spanSummary', spanDescription, transactionName],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
