@@ -1,3 +1,5 @@
+import pytest
+from django.db import ProgrammingError, transaction
 from django.test import override_settings
 
 from sentry.models import (
@@ -10,8 +12,13 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Team,
 )
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
+from sentry.types.integrations import ExternalProviders
 
 
 @region_silo_test(stable=True)
@@ -110,7 +117,8 @@ class TransferTest(TestCase):
         team = self.create_team(name="foo", organization=org)
         team2 = self.create_team(name="foo", organization=org2)
         project = self.create_project(teams=[team])
-        team.transfer_to(org2)
+        with outbox_runner():
+            team.transfer_to(org2)
 
         project = Project.objects.get(id=project.id)
         assert ProjectTeam.objects.filter(project=project, team=team2).exists()
@@ -159,4 +167,45 @@ class TransferTest(TestCase):
 
         assert not ReleaseProjectEnvironment.objects.filter(
             release=release, project=project, environment=env
+        ).exists()
+
+
+@region_silo_test
+class TeamDeletionTest(TestCase):
+    def test_cannot_delete_with_queryset(self):
+        team = self.create_team(self.organization)
+        assert Team.objects.filter(id=team.id).exists()
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            Team.objects.filter(id=team.id).delete()
+        assert Team.objects.filter(id=team.id).exists()
+
+    def test_hybrid_cloud_deletion(self):
+        team = self.create_team(self.organization)
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            team=team,
+        )
+
+        assert Team.objects.filter(id=team.id).exists()
+        assert NotificationSetting.objects.find_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            team=team,
+        ).exists()
+
+        with outbox_runner():
+            team.delete()
+
+        assert not Team.objects.filter(id=team.id).exists()
+
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        assert not Team.objects.filter(id=team.id).exists()
+        assert not NotificationSetting.objects.find_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            team=team,
         ).exists()
