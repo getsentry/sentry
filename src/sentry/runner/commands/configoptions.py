@@ -1,9 +1,6 @@
 import click
 import yaml
 
-from sentry import options
-from sentry.options import manager
-from sentry.options.manager import UnknownOption
 from sentry.runner.decorators import configuration
 
 
@@ -104,14 +101,15 @@ def get(key: str, dryrun: bool = False) -> str:
     return _get(key, dryrun)
 
 
-def _get(key: str, dryrun: bool = False) -> str:
+def _get(
+    key: str,
+    dryrun: bool = False,
+) -> str:
+    from sentry import options
 
-    try:
-        opt = options.lookup_key(key)
-        click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
-        return opt
-    except UnknownOption:
-        raise click.ClickException("unknown option: %s" % key)
+    opt = options.lookup_key(key)
+    click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
+    return opt
 
 
 @configoptions.command()
@@ -131,20 +129,16 @@ def set(key: str, val: object, dryrun: bool = False) -> bool:
 
 
 def _set(key: str, val: object, dryrun: bool = False) -> bool:
+    from sentry import options
 
-    try:
-        opt = options.lookup_key(key)
-        if not dryrun:
-            options.set(key, val)
-            click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
-            return opt
-        else:
-            click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
-            return opt
-    except UnknownOption:
-        raise click.ClickException("unknown option: %s" % key)
-    except TypeError as e:
-        raise click.ClickException(str(e))
+    opt = options.lookup_key(key)
+    if not dryrun:
+        options.set(key, val)
+        click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
+        return opt
+    else:
+        click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
+        return opt
 
 
 @configoptions.command()
@@ -163,19 +157,17 @@ def delete(key: str, dryrun: bool = False) -> bool:
 
 
 def _delete(key: str, dryrun: bool = False) -> bool:
+    from sentry import options
 
-    try:
-        options.lookup_key(key)
+    options.lookup_key(key)
 
-        if not can_change(key):
-            raise click.ClickException(f"Option {key} cannot be changed.")
+    if not can_change(key):
+        raise click.ClickException(f"Option {key} cannot be changed.")
 
-        if not dryrun:
-            options.delete(key)
-        click.echo(f"Deleted key: {key}")
-        return options.get(key)
-    except UnknownOption:
-        raise click.ClickException("unknown option: %s" % key)
+    if not dryrun:
+        options.delete(key)
+    click.echo(f"Deleted key: {key}")
+    return options.get(key)
 
 
 TRACKED = {
@@ -192,6 +184,8 @@ TRACKED = {
 
 
 def can_change(key: str) -> bool:
+    from sentry import options
+    from sentry.options import manager
 
     opt = options.lookup_key(key)
     return (key in TRACKED) and not (

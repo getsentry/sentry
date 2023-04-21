@@ -35,7 +35,6 @@ class ConfigOptionsTest(CliTestCase):
     def test_bad_get(self):
         rv = self.invoke("get", "testkey3")
         assert rv.exit_code != 0, rv.output
-        assert "unknown option" in rv.output
 
     def test_list(self):
         rv = self.invoke("list")
@@ -53,7 +52,6 @@ class ConfigOptionsTest(CliTestCase):
     def test_bad_set(self):
         rv = self.invoke("set", "badKey", "val")
         assert rv.exit_code != 0, rv.output
-        assert "unknown option" in rv.output
 
     def test_delete(self):
         rv = self.invoke("delete", "github-login.api-domain")
@@ -64,7 +62,6 @@ class ConfigOptionsTest(CliTestCase):
     def test_bad_delete(self):
         rv = self.invoke("delete", "badKey")
         assert rv.exit_code != 0, rv.output
-        assert "unknown option" in rv.output
 
     def test_strict(self):
         rv = self.invoke("strict", "tests/sentry/runner/commands/strict.yaml")
@@ -83,7 +80,6 @@ class ConfigOptionsTest(CliTestCase):
     def test_bad_strict(self):
         rv = self.invoke("strict", "tests/sentry/runner/commands/badstrict.yaml")
         assert rv.exit_code != 0, rv.output
-        assert "Error" in rv.output
 
     def test_patch(self):
         rv = self.invoke("patch", "tests/sentry/runner/commands/patch.yaml")
@@ -101,4 +97,3 @@ class ConfigOptionsTest(CliTestCase):
     def test_bad_patch(self):
         rv = self.invoke("patch", "tests/sentry/runner/commands/badpatch.yaml")
         assert rv.exit_code != 0, rv.output
-        assert "Error" in rv.output
