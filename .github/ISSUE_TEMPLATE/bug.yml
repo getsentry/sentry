@@ -26,6 +26,7 @@ body:
       description: Where in the product did you find the bug?
       options:
         # Keep in sync with feature.yml and labels.yml
+        - 'Unknown'
         - 'Sign in'
         - 'Issues'
         - 'Projects'
@@ -56,7 +57,6 @@ body:
         - 'Service status'
         - 'Footer'
         - 'Other'
-        - 'Unknown'
     validations:
       required: true
   - type: input

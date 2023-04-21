@@ -8,6 +8,7 @@ body:
       description: What is the most relevant part of the product?
       options:
         # Keep in sync with bug.yml and labels.yml
+        - 'Unknown'
         - 'Sign in'
         - 'Issues'
         - 'Projects'
@@ -38,7 +39,6 @@ body:
         - 'Service status'
         - 'Footer'
         - 'Other'
-        - 'Unknown'
     validations:
       required: true
   - type: textarea

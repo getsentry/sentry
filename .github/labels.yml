@@ -191,6 +191,8 @@
   description: ''
 
 # Product Areas - keep in sync with feature.yml and bug.yml issue templates
+- name: 'Product Area: Unknown'
+  color: '8D5494'
 - name: 'Product Area: Sign in'
   color: '8D5494'
 - name: 'Product Area: Issues'
@@ -250,8 +252,6 @@
 - name: 'Product Area: Footer'
   color: '8D5494'
 - name: 'Product Area: Other'
-  color: '8D5494'
-- name: 'Product Area: Unknown'
   color: '8D5494'
 
 # Teams
