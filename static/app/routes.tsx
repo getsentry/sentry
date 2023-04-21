@@ -1733,9 +1733,7 @@ function buildRoutes() {
       />
       <Route
         path="span/:slug/"
-        component={make(
-          () => import('sentry/views/starfish/views/spanInTransactionView')
-        )}
+        component={make(() => import('sentry/views/starfish/views/spanSummary'))}
       />
     </Fragment>
   );
