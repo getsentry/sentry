@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 from django.http import HttpRequest, QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
-from requests.models import Request
 from rest_framework.response import Response
+from sentry_sdk import Scope
 
 from sentry.api.base import Endpoint, EndpointSiloLimit, resolve_region
 from sentry.api.paginator import GenericOffsetPaginator
@@ -194,43 +194,50 @@ class EndpointHandleExceptionTest(APITestCase):
 
     @mock.patch("rest_framework.views.APIView.handle_exception", new=reraise)
     @mock.patch("sentry.api.base.capture_exception", return_value="1231201211212012")
-    def test_handle_exception_when_super_reraises_and_no_handler_data(
+    def test_handle_exception_when_super_reraises(
         self,
-        mock_capture_exception,
+        mock_capture_exception: MagicMock,
     ):
         handler_error = Exception("nope")
-        _dummy_erroring_endpoint = DummyErroringEndpoint.as_view(error=handler_error)
+        handler_context = {"api_request_URL": "http://dogs.are.great/"}
+        scope = Scope()
+        tags = {"maisey": "silly", "charlie": "goofy"}
+        for tag, value in tags.items():
+            scope.set_tag(tag, value)
 
-        request = self.make_request(method="GET")
-        response = _dummy_erroring_endpoint(request)
+        cases = [
+            # The first half of each tuple is what's passed to `handle_exception`, and the second
+            # half is what we expect in the scope passed to `capture_exception`
+            (None, None, {}, {}),
+            (handler_context, None, {"Request Handler Data": handler_context}, {}),
+            (None, scope, {}, tags),
+            (
+                handler_context,
+                scope,
+                {"Request Handler Data": handler_context},
+                tags,
+            ),
+        ]
 
-        mock_capture_exception.assert_called_with(handler_error, contexts=None)
+        for handler_context_arg, scope_arg, expected_scope_contexts, expected_scope_tags in cases:
+            mock_endpoint = DummyErroringEndpoint.as_view(
+                error=handler_error,
+                handler_context_arg=handler_context_arg,
+                scope_arg=scope_arg,
+            )
+            response = mock_endpoint(self.make_request(method="GET"))
 
-        assert response.status_code == 500
-        assert response.data == {"detail": "Internal Error", "errorId": "1231201211212012"}
-        assert response.exception is True
+            assert response.status_code == 500
+            assert response.data == {"detail": "Internal Error", "errorId": "1231201211212012"}
+            assert response.exception is True
 
-    @mock.patch("rest_framework.views.APIView.handle_exception", new=reraise)
-    @mock.patch("sentry.api.base.capture_exception", return_value="1231201211212012")
-    def test_handle_exception_when_super_reraises_and_handler_data(
-        self,
-        mock_capture_exception: mock.MagicMock,
-    ):
-        handler_error = Exception("nope")
-        handler_error.request = Request("GET", "http://dogs.are.great/")
-        _dummy_erroring_endpoint = DummyErroringEndpoint.as_view(error=handler_error)
+            capture_exception_handler_context_arg = mock_capture_exception.call_args.args[0]
+            capture_exception_scope_kwarg = mock_capture_exception.call_args.kwargs.get("scope")
 
-        request = self.make_request(method="GET")
-        response = _dummy_erroring_endpoint(request)
-
-        mock_capture_exception.assert_called_with(
-            handler_error,
-            contexts={"Request Handler Data": {"api_request_URL": "http://dogs.are.great/"}},
-        )
-
-        assert response.status_code == 500
-        assert response.data == {"detail": "Internal Error", "errorId": "1231201211212012"}
-        assert response.exception is True
+            assert capture_exception_handler_context_arg == handler_error
+            assert isinstance(capture_exception_scope_kwarg, Scope)
+            assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
+            assert capture_exception_scope_kwarg._tags == expected_scope_tags
 
 
 class CursorGenerationTest(APITestCase):
