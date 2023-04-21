@@ -3,16 +3,17 @@ import time
 from django.conf import settings
 from requests import PreparedRequest, Request
 
+from sentry.api.endpoints.internal.integration_proxy import PROXY_BASE_PATH
 from sentry.integrations.client import ApiClient
-from sentry.middleware.integrations.integration_proxy import (
-    PROXY_BASE_PATH,
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.silo.base import SiloMode
+from sentry.silo.util import (
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     PROXY_TIMESTAMP_HEADER,
+    encode_subnet_signature,
+    trim_leading_slash,
 )
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo.base import SiloMode
-from sentry.silo.util import encode_subnet_signature, trim_leading_slash
 
 
 class IntegrationProxyClient(ApiClient):

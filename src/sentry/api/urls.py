@@ -2531,14 +2531,15 @@ INTERNAL_URLS = [
         InternalMailEndpoint.as_view(),
     ),
     url(
-        r"^integration-proxy/\S+$",
-        InternalIntegrationProxyEndpoint.as_view(),
-        name="sentry-api-0-internal-integration-proxy",
-    ),
-    url(
         r"^project-config/$",
         AdminRelayProjectConfigsEndpoint.as_view(),
         name="sentry-api-0-internal-project-config",
+    ),
+    url(
+        # If modifying, ensure PROXY_BASE_PATH is updated as well
+        r"^integration-proxy/\S+$",
+        InternalIntegrationProxyEndpoint.as_view(),
+        name="sentry-api-0-internal-integration-proxy",
     ),
     url(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",

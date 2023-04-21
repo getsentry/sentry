@@ -3,20 +3,39 @@ from __future__ import annotations
 import hmac
 import re
 from hashlib import sha256
-from typing import Any, Mapping
+from typing import List, Mapping
 
 from django.conf import settings
 
-INVALID_PROXY_HEADERS = ["Host"]
+PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
+PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
+PROXY_TIMESTAMP_HEADER = "X-Sentry-Subnet-Timestamp"
+
+INVALID_PROXY_HEADERS = ["Host", "Content-Length"]
+INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS + [
+    PROXY_OI_HEADER,
+    PROXY_SIGNATURE_HEADER,
+    PROXY_TIMESTAMP_HEADER,
+]
 
 
-def clean_proxy_headers(headers: Mapping[str, Any] | None) -> Mapping[str, Any]:
+def base_clean_headers(
+    headers: Mapping[str, str] | None, invalid_headers: List[str]
+) -> Mapping[str, str]:
     if not headers:
         headers = {}
     modified_headers = {**headers}
-    for invalid_header in INVALID_PROXY_HEADERS:
+    for invalid_header in invalid_headers:
         modified_headers.pop(invalid_header, None)
     return modified_headers
+
+
+def clean_proxy_headers(headers: Mapping[str, str]) -> Mapping[str, str]:
+    return base_clean_headers(headers, invalid_headers=INVALID_PROXY_HEADERS)
+
+
+def clean_outbound_headers(headers: Mapping[str, str]) -> Mapping[str, str]:
+    return base_clean_headers(headers, invalid_headers=INVALID_OUTBOUND_HEADERS)
 
 
 def trim_leading_slash(path: str) -> str:
