@@ -1,87 +1,161 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Duration from 'sentry/components/duration';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {NewQuery, Organization} from 'sentry/types';
+import DiscoverQuery, {
+  TableData,
+  TableDataRow,
+} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {TableColumn} from 'sentry/views/discover/table/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 type Props = {
   location: Location;
-  onSelect: (row: EndpointDataRow) => void;
-};
-
-export type DataRow = {
-  count: number;
-  description: string;
-  domain: string;
+  organization: Organization;
 };
 
 const COLUMN_ORDER = [
   {
-    key: 'description',
-    name: 'URL',
-    width: 600,
+    key: 'transaction',
+    name: 'Transaction',
+    width: 800,
   },
   {
-    key: 'p50(exclusive_time)',
-    name: 'p50',
+    key: 'count_if(http.status_code,greaterOrEquals,500)',
+    name: 'failure_count()',
+    width: 300,
   },
   {
-    key: 'user_count',
-    name: 'Users',
-  },
-  {
-    key: 'transaction_count',
-    name: 'Transactions',
+    key: 'equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))',
+    name: 'failure_rate()',
   },
 ];
 
-export default function EndpointTable({location, onSelect}: Props) {
-  const data = [];
+export default function EndpointTable({organization, location}: Props) {
+  function renderHeadCell(
+    tableMeta: TableData['meta'],
+    column: TableColumn<keyof TableDataRow>
+  ): React.ReactNode {
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    return <StyledNonLink align={align}>{column.name}</StyledNonLink>;
+  }
 
+  function renderBodyCell(
+    tableData: TableData | null,
+    column: TableColumn<keyof TableDataRow>,
+    dataRow: TableDataRow,
+    _onSelect?: (row: EndpointDataRow) => void
+  ): React.ReactNode {
+    if (!tableData || !tableData.meta) {
+      return dataRow[column.key];
+    }
+    const field = String(column.key);
+    const fieldRenderer = getFieldRenderer(field, tableData.meta, false);
+    const rendered = fieldRenderer(dataRow, {organization, location});
+
+    if (column.key === 'transaction') {
+      let prefix = '';
+      if (dataRow['http.method']) {
+        prefix = `${dataRow['http.method']} `;
+      }
+      return (
+        <Link
+          to={{
+            pathname: `/starfish/failure-detail/${
+              dataRow['http.method']
+            }:${encodeURIComponent(dataRow.transaction)}`,
+            query: {start: location.query.start, end: location.query.end},
+          }}
+        >
+          {prefix}
+          {dataRow.transaction}
+        </Link>
+      );
+    }
+
+    return rendered;
+  }
+
+  const {query} = location;
+  const hasStartAndEnd = query.start && query.end;
+  const newQuery: NewQuery = {
+    name: t('Failure Sample'),
+    projects: [],
+    start: decodeScalar(query.start),
+    end: decodeScalar(query.end),
+    range: !hasStartAndEnd
+      ? decodeScalar(query.statsPeriod) || DEFAULT_STATS_PERIOD
+      : undefined,
+    fields: [
+      'transaction',
+      'count_if(http.status_code,greaterOrEquals,500)',
+      'equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))',
+      'http.method',
+      'count_if(http.status_code,equals,200)',
+    ],
+    query:
+      'event.type:transaction has:http.method transaction.op:http.server count_if(http.status_code,greaterOrEquals,500):>0',
+    version: 2,
+  };
+
+  newQuery.orderby = '-count_if_http_status_code_greaterOrEquals_500';
+
+  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   return (
-    <GridEditable
-      isLoading={false}
-      data={data}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell,
-        renderBodyCell: (column: GridColumnHeader, row: EndpointDataRow) =>
-          renderBodyCell(column, row, onSelect),
-      }}
-      location={location}
-    />
+    <div>
+      <DiscoverQuery
+        eventView={eventView}
+        orgSlug={organization.slug}
+        location={location}
+        referrer="api.starfish.failure-event-list"
+        queryExtras={{dataset: 'discover'}}
+        limit={5}
+      >
+        {({pageLinks, isLoading, tableData}) => (
+          <Fragment>
+            <GridEditable
+              isLoading={isLoading}
+              data={tableData ? tableData.data : []}
+              columnOrder={COLUMN_ORDER}
+              columnSortBy={eventView.getSorts()}
+              grid={{
+                renderHeadCell: (column: GridColumnHeader) =>
+                  renderHeadCell(
+                    tableData?.meta,
+                    column as TableColumn<keyof TableDataRow>
+                  ),
+                renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
+                  renderBodyCell(
+                    tableData,
+                    column as TableColumn<keyof TableDataRow>,
+                    dataRow
+                  ) as any,
+              }}
+              location={location}
+            />
+
+            <Pagination pageLinks={pageLinks} />
+          </Fragment>
+        )}
+      </DiscoverQuery>
+    </div>
   );
 }
 
-export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
-}
-
-export function renderBodyCell(
-  column: GridColumnHeader,
-  row: EndpointDataRow,
-  onSelect?: (row: EndpointDataRow) => void
-): React.ReactNode {
-  if (column.key === 'description' && onSelect) {
-    return (
-      <Link onClick={() => onSelect(row)} to="">
-        {row[column.key]}
-      </Link>
-    );
-  }
-
-  if (column.key.toString().match(/^p\d\d/)) {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
-  }
-
-  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
-}
-
-export const OverflowEllipsisTextContainer = styled('span')`
-  text-overflow: ellipsis;
-  overflow: hidden;
+const StyledNonLink = styled('div')<{align: Alignments}>`
+  display: block;
+  width: 100%;
   white-space: nowrap;
+  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
 `;
