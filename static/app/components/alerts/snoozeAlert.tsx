@@ -13,6 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
+  hasAccess: boolean;
   isSnoozed: boolean;
   onSnooze: (nextState: {
     snooze: boolean;
@@ -23,7 +24,7 @@ type Props = {
   ruleId: string;
 };
 
-function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
+function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const location = useLocation();
@@ -127,7 +128,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
       <Button
         size="sm"
         icon={<IconMute />}
-        disabled={disabled}
+        disabled={disabled || !hasAccess}
         onClick={() => handleUnmute()}
       >
         {t('Unmute')}
@@ -139,7 +140,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
       <MuteButton
         size="sm"
         icon={<IconSound />}
-        disabled={disabled}
+        disabled={disabled || !hasAccess}
         onClick={() => handleMute('me')}
       >
         {t('Mute')}
@@ -154,7 +155,7 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId}: Props) {
           />
         )}
         items={dropdownItems}
-        isDisabled={disabled}
+        isDisabled={disabled || !hasAccess}
       />
     </ButtonBar>
   );
