@@ -179,6 +179,8 @@ class EndpointTest(APITestCase):
         # did not try to convert args
         assert not mock_convert_args.info.called
 
+
+class EndpointHandleExceptionTest(APITestCase):
     @mock.patch("rest_framework.views.APIView.handle_exception", return_value=Response(status=500))
     def test_handle_exception_when_super_returns_response(self, mock_super_handle_request):
         request = self.make_request(method="GET")
