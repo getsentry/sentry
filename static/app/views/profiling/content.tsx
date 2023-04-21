@@ -179,7 +179,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
                   )}
                 />
-                <FeatureBadge type="beta" />
+                {isProfilingGA ? null : <FeatureBadge type="beta" />}
               </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
