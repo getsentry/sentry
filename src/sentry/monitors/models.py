@@ -177,14 +177,11 @@ class Monitor(Model):
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
     config = JSONField(default=dict)
-    next_checkin = models.DateTimeField(null=True)
-    last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        index_together = (("type", "next_checkin"),)
         unique_together = (("organization_id", "slug"),)
 
     __repr__ = sane_repr("guid", "project_id", "name")
@@ -218,43 +215,6 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
-
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
-
-        affected = (
-            type(self)
-            .objects.filter(
-                Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
-            )
-            .update(
-                next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
-                status=new_status,
-                last_checkin=last_checkin,
-            )
-        )
-        if not affected:
-            return False
-
-        return True
-
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        params = {
-            "last_checkin": ts,
-            "next_checkin": self.get_next_scheduled_checkin(ts),
-        }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
-
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
@@ -262,7 +222,6 @@ class MonitorCheckIn(Model):
 
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
-    monitor = FlexibleForeignKey("sentry.Monitor")
     monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", null=True)
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     status = BoundedPositiveIntegerField(
@@ -280,7 +239,7 @@ class MonitorCheckIn(Model):
         app_label = "sentry"
         db_table = "sentry_monitorcheckin"
         indexes = [
-            models.Index(fields=["monitor", "date_added", "status"]),
+            models.Index(fields=["monitor_environment", "date_added", "status"]),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "status")

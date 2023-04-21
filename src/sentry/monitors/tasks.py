@@ -66,17 +66,17 @@ def check_monitors(current_datetime=None):
         # add missed checkin
         checkin = MonitorCheckIn.objects.create(
             project_id=monitor_environment.monitor.project_id,
-            monitor=monitor_environment.monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.MISSED,
         )
-        monitor_environment.monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
         monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
     qs = (
         MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS)
-        .select_related("monitor")
-        .exclude(monitor_id__in=settings.SENTRY_MONITORS_IGNORED_MONITORS)[:CHECKINS_LIMIT]
+        .select_related("monitor_environment")
+        .exclude(monitorenvironment__monitor_id__in=settings.SENTRY_MONITORS_IGNORED_MONITORS)[
+            :CHECKINS_LIMIT
+        ]
     )
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
@@ -106,5 +106,4 @@ def check_monitors(current_datetime=None):
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
         ).exists()
         if not has_newer_result:
-            monitor_environment.monitor.mark_failed(reason=MonitorFailure.DURATION)
             monitor_environment.mark_failed(reason=MonitorFailure.DURATION)

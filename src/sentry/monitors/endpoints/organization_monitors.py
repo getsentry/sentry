@@ -83,7 +83,9 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                 monitor__id=OuterRef("id"), environment__in=environments
             )
             .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
-            .order_by("status_ordering", "-last_checkin")
+            .order_by(
+                "status_ordering"
+            )  # TODO (rjo100): add back last_checkin ordering w/environments
             .values("status_ordering")[:1],
             output_field=IntegerField(),
         )

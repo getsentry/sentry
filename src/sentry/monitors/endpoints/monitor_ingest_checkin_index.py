@@ -171,7 +171,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
-                monitor_id=monitor.id,
                 monitor_environment=monitor_environment,
                 duration=result.get("duration"),
                 status=getattr(CheckInStatus, result["status"].upper()),
@@ -180,14 +179,12 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
-                monitor_environment.mark_failed(last_checkin=checkin.date_added)
+                monitor_failed = monitor_environment.mark_failed(last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
-                monitor.mark_ok(checkin, checkin.date_added)
                 monitor_environment.mark_ok(checkin, checkin.date_added)
 
         if isinstance(request.auth, ProjectKey):
