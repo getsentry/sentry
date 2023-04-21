@@ -1714,6 +1714,12 @@ function buildRoutes() {
         )}
       />
       <Route
+        path="failure-detail/:slug/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
+        )}
+      />
+      <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
       />
