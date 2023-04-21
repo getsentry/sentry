@@ -46,6 +46,8 @@ type BasePerformanceViewProps = {
 
 const HOST = 'http://localhost:8080';
 
+const handleClose = () => {};
+
 export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect} = props;
   const theme = useTheme();
@@ -144,7 +146,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <FailureDetailPanel onClose={() => {}} spikeObject={selectedSpike} />
+      <FailureDetailPanel onClose={handleClose} spikeObject={selectedSpike} />
       <ModuleLinkButton type={ModuleButtonType.API} />
       <ModuleLinkButton type={ModuleButtonType.CACHE} />
       <ModuleLinkButton type={ModuleButtonType.DB} />

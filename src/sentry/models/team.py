@@ -20,6 +20,7 @@ from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
@@ -131,7 +132,7 @@ class TeamStatus:
 
 
 @region_silo_only_model
-class Team(Model):
+class Team(Model, SnowflakeIdMixin):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
@@ -183,7 +184,13 @@ class Team(Model):
             lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
-        super().save(*args, **kwargs)
+        if settings.SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "team_snowflake_key"
+            self.save_with_snowflake_id(
+                snowflake_redis_key, lambda: super(Team, self).save(*args, **kwargs)
+            )
+        else:
+            super().save(*args, **kwargs)
 
     @property
     def member_set(self):
