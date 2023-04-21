@@ -43,10 +43,6 @@ class DummyErroringEndpoint(Endpoint):
     def get(self, request):
         raise self.error
 
-
-class DummyErroringEndpointWithScope(DummyErroringEndpoint):
-    permission_classes = ()
-
     def handle_exception(self, request, exc, handler_context=None):
         handler_context = handler_context or {
             "api_request_URL": exc.request.url if exc.request else "unknown"
@@ -207,7 +203,7 @@ class EndpointTest(APITestCase):
     ):
         handler_error = Exception("nope")
         handler_error.request = Request("GET", "http://dogs.are.great/")
-        _dummy_erroring_endpoint = DummyErroringEndpointWithScope.as_view(error=handler_error)
+        _dummy_erroring_endpoint = DummyErroringEndpoint.as_view(error=handler_error)
 
         request = self.make_request(method="GET")
         response = _dummy_erroring_endpoint(request)
