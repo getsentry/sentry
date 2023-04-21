@@ -38,8 +38,9 @@ Outbox messages are delivered periodically (each minute) by the `sentry.tasks.en
 This task runs in both Control and Region Silos and triggers the `send_signal()` method on outbox
 model records.
 
-Attached signal handlers are triggered in the 'source' region, and are responsible for doing any
-local changes (recording tombstones) and sending RPC calls to update state on the 'other' region.
+Attached signal handlers are triggered in the region that the outbox message was generated in.
+Signal handlers are responsible for doing any local changes (recording tombstones) and sending RPC
+calls to update state on the other region.
 
 Should the signal handler raise an error for any reason, it will remain in the outbox until it can
 be successfully delivered.
