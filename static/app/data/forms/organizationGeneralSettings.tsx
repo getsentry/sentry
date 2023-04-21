@@ -42,6 +42,19 @@ const formGroups: JsonFormObject[] = [
           ),
         }),
       },
+      {
+        name: 'aiSuggestedSolution',
+        type: 'boolean',
+        label: t('AI Suggested Solution'),
+        help: tct(
+          'Opt-in to [link:ai suggested solution] to get AI help on how to solve an issue.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/ai-suggested-solution/" />
+            ),
+          }
+        ),
+      },
     ],
   },
 
