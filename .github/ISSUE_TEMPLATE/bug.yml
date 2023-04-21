@@ -19,12 +19,52 @@ body:
       description: If on self-hosted, what version are you running?
     validations:
       required: false
+  - type: dropdown
+    id: product-area
+    attributes:
+      label: Product Area
+      description: Where in the product did you find the bug?
+      options:
+        # Keep in sync with feature.yml and labels.yml
+        - 'Unknown'
+        - 'Sign in'
+        - 'Issues'
+        - 'Projects'
+        - 'Performance'
+        - 'Profiling'
+        - 'Replays'
+        - 'Crons'
+        - 'Alerts'
+        - 'Discover'
+        - 'Dashboards'
+        - 'Releases'
+        - 'User Feedback'
+        - 'Stats'
+        - 'Settings'
+        - 'Settings - General'
+        - 'Settings - Projects'
+        - 'Settings - Teams'
+        - 'Settings - Members'
+        - 'Settings - Security & Privacy'
+        - 'Settings - Auth'
+        - 'Settings - Relay'
+        - 'Settings - Repositories'
+        - 'Settings - Integrations'
+        - 'Settings - Developer Settings'
+        - 'Settings - Spike Protection'
+        - 'Help'
+        - 'What’s new'
+        - 'Service status'
+        - 'Footer'
+        - 'Other'
+    validations:
+      required: true
   - type: input
     id: link
     attributes:
       label: Link
       placeholder: https://sentry.io/organizations/{ORG_SLUG}/...
-      description: If on SaaS, where did you find the issue? **Note:** This will divulge your org slug publicly.
+      description: If on SaaS, where exactly did you find the bug? **Note:** This will divulge your org slug publicly.
     validations:
       required: false
   - type: input
