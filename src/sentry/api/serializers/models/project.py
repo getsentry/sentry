@@ -16,6 +16,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
@@ -607,6 +608,12 @@ class OrganizationProjectResponse(
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    access: Access | None
+
+    def __init__(self, access: Access | None = None, **kwargs):
+        self.access = access
+        super().__init__(**kwargs)
+
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(
