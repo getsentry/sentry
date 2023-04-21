@@ -16,6 +16,12 @@ from sentry.testutils import APITestCase
 from sentry.utils.cursors import Cursor
 
 
+# Though it looks weird to have a method outside a class, this isn't a mistake but rather
+# a mock for a method in Django REST Framework's `APIView` class
+def reraise(self, e: Exception):
+    raise e
+
+
 class DummyEndpoint(Endpoint):
     permission_classes = ()
 
@@ -39,12 +45,6 @@ class DummyErroringEndpoint(Endpoint):
 
 
 _dummy_erroring_endpoint = DummyErroringEndpoint.as_view()
-
-
-# Though it looks weird to have a method outside a class, this isn't a mistake but rather
-# a mock for a method in Django REST Framework's `APIView` class
-def reraise(self, e: Exception):
-    raise e
 
 
 class DummyErroringEndpointWithScope(DummyErroringEndpoint):
