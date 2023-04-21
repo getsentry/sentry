@@ -21,7 +21,9 @@ class OrganizationMemberMapping(Model):
     __include_in_export__ = False
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
-    organizationmember_id = BoundedBigIntegerField(db_index=True)
+    # TODO: allow null values for organizationmember_id column. We will later repair and populate these columns with
+    # values; and remove null=True.
+    organizationmember_id = BoundedBigIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
