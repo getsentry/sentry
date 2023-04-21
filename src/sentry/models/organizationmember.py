@@ -225,7 +225,7 @@ class OrganizationMember(Model):
 
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
-            self.outbox_for_update(prev_user_id=self.user_id, prev_email=self.email).save()
+            self.outbox_for_update().save()
             super().delete(*args, **kwds)
 
     @transaction.atomic
