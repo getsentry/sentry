@@ -126,7 +126,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
         )}
       </p>
       <SubHeader>{t('Query Description')}</SubHeader>
-      <pre>{row.desc}</pre>
+      <FormattedCode>{row.formatted_desc}</FormattedCode>
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Throughput')}</SubHeader>
@@ -212,4 +212,12 @@ const FlexRowContainer = styled('div')`
 const FlexRowItem = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
+`;
+
+const FormattedCode = styled('div')`
+  padding: ${space(1)};
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow-x: auto;
+  white-space: pre;
 `;
