@@ -6,16 +6,18 @@ from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, User
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
+@control_silo_function
 def get_identity_or_404(
     provider: ExternalProviders,
     user: User,
     integration_id: int,
     organization_id: Optional[int] = None,
 ) -> Tuple[RpcOrganization, Integration, IdentityProvider]:
-    """For endpoints, short-circuit with a 404 if we cannot find everything we need. CONTROL/MONOLITH silo modes only."""
+    """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
     if provider not in EXTERNAL_PROVIDERS:
         raise Http404
 
@@ -42,8 +44,11 @@ def get_identity_or_404(
     if len(valid_organization_ids) <= 0:
         raise Http404
 
+    selected_organization_id = (
+        organization_id if organization_id is not None else valid_organization_ids[0]
+    )
     context = organization_service.get_organization_by_id(
-        id=valid_organization_ids[0], user_id=user.id
+        id=selected_organization_id, user_id=user.id
     )
 
     if context is None:

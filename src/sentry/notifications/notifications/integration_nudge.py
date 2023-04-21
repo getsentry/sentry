@@ -88,6 +88,7 @@ class IntegrationNudgeNotification(BaseNotification):
         ]
 
     def get_callback_data(self) -> Mapping[str, Any]:
+        # Arbitrary payload to provide slack a callback id
         return {"enable_notifications": True}
 
     def get_context(self) -> MutableMapping[str, Any]:
