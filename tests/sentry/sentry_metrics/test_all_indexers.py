@@ -182,7 +182,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     indexer = CachingIndexer(indexer_cache, indexer)
 
     org_strings = {org1_id: strings}
-    indexer.bulk_record(use_case_id=use_case_key, org_strings=org_strings)
+    indexer.bulk_record({use_case_id: org_strings})
 
     # test resolve and reverse_resolve
     id = indexer.resolve(use_case_id=use_case_key, org_id=org1_id, string="hello")
@@ -190,7 +190,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     assert indexer.reverse_resolve(use_case_id=use_case_key, org_id=org1_id, id=id) == "hello"
 
     # test record on a string that already exists
-    indexer.record(use_case_id=use_case_key, org_id=org1_id, string="hello")
+    indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
     assert indexer.resolve(use_case_id=use_case_key, org_id=org1_id, string="hello") == id
 
     # test invalid values
