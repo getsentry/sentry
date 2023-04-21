@@ -36,6 +36,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
     authentication_classes = ()
     permission_classes = ()
+    slack_request_class = SlackEventRequest
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         headers = {"Authorization": f"Bearer {self._get_access_token(slack_request.integration)}"}
@@ -208,7 +209,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
     @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
         try:
-            slack_request = SlackEventRequest(request)
+            slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
             return self.respond(status=e.status)

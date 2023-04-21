@@ -1,4 +1,5 @@
 from unittest import mock
+from urllib.parse import parse_qs
 
 import responses
 
@@ -9,6 +10,7 @@ from sentry.notifications.notifications.integration_nudge import (
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment_no_text, send_notification
 from sentry.types.integrations import ExternalProviders
+from sentry.utils import json
 
 SEED = 0
 
@@ -33,3 +35,8 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
         assert attachment["actions"][0]["action_id"] == "enable_notifications"
         assert attachment["actions"][0]["name"] == "Turn on personal notifications"
         assert attachment["actions"][0]["value"] == "all_slack"
+
+        # Slack requires callback_id to handle enablement
+        request_data = parse_qs(responses.calls[0].request.body)
+        request_block_payload = json.loads(request_data["attachments"][0])
+        assert request_block_payload[0]["callback_id"]
