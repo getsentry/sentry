@@ -38,8 +38,9 @@ body:
         - 'Service status'
         - 'Footer'
         - 'Other'
+        - 'Unknown'
     validations:
-      required: false
+      required: true
   - type: textarea
     id: problem
     attributes:

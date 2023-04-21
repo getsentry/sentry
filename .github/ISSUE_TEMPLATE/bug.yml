@@ -56,8 +56,9 @@ body:
         - 'Service status'
         - 'Footer'
         - 'Other'
+        - 'Unknown'
     validations:
-      required: false
+      required: true
   - type: input
     id: link
     attributes:
