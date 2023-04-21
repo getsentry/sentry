@@ -12,13 +12,18 @@ type Props = {
 
 function MutedBox({statusDetails}: Props) {
   const organization = useOrganization();
+  const hasEscalatingUi = organization.features.includes('escalating-issues-ui');
+  const ignoredOrArchived = hasEscalatingUi ? t('archived') : t('ignored');
 
   function renderReason() {
-    const {ignoreUntil, ignoreCount, ignoreWindow, ignoreUserCount, ignoreUserWindow} =
-      statusDetails;
-
-    const hasEscalatingUi = organization.features.includes('escalating-issues-ui');
-    const ignoredOrArchived = hasEscalatingUi ? t('Archived') : t('Ignored');
+    const {
+      ignoreUntil,
+      ignoreCount,
+      ignoreWindow,
+      ignoreUserCount,
+      ignoreUserWindow,
+      untilEscalating,
+    } = statusDetails;
 
     if (ignoreUntil) {
       return t(
@@ -62,6 +67,9 @@ function MutedBox({statusDetails}: Props) {
         ignoredOrArchived,
         <strong>{ignoreUserCount.toLocaleString()}</strong>
       );
+    }
+    if (untilEscalating) {
+      return t('This issue has been archived until escalating');
     }
 
     return t('This issue has been %s', ignoredOrArchived);
