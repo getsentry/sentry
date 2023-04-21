@@ -15,7 +15,6 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
@@ -28,8 +27,8 @@ type Props = {
 const COLUMN_ORDER = [
   {
     key: 'transaction',
-    name: 'Transaction',
-    width: 800,
+    name: 'transaction',
+    width: 600,
   },
   {
     key: 'count_if(http.status_code,greaterOrEquals,500)',
@@ -43,11 +42,8 @@ const COLUMN_ORDER = [
 ];
 
 export default function EndpointTable({organization, location}: Props) {
-  function renderHeadCell(
-    tableMeta: TableData['meta'],
-    column: TableColumn<keyof TableDataRow>
-  ): React.ReactNode {
-    const align = fieldAlignment(column.name, column.type, tableMeta);
+  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+    const align = column.name === 'transaction' ? 'left' : 'right';
     return <StyledNonLink align={align}>{column.name}</StyledNonLink>;
   }
 
@@ -130,11 +126,7 @@ export default function EndpointTable({organization, location}: Props) {
               columnOrder={COLUMN_ORDER}
               columnSortBy={eventView.getSorts()}
               grid={{
-                renderHeadCell: (column: GridColumnHeader) =>
-                  renderHeadCell(
-                    tableData?.meta,
-                    column as TableColumn<keyof TableDataRow>
-                  ),
+                renderHeadCell,
                 renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
                   renderBodyCell(
                     tableData,
