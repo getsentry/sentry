@@ -47,18 +47,4 @@ describe('MutedBox', function () {
     expect(screen.getByText(/This issue has been ignored/)).toBeInTheDocument();
     expect(container).toSnapshot();
   });
-  it('swaps ignored for archived', function () {
-    render(<MutedBox statusDetails={{}} />, {
-      organization: TestStubs.Organization({features: ['escalating-issues-ui']}),
-    });
-    expect(screen.getByText(/This issue has been archived/)).toBeInTheDocument();
-  });
-  it('handes archived until escalating', function () {
-    render(<MutedBox statusDetails={{untilEscalating: true}} />, {
-      organization: TestStubs.Organization({features: ['escalating-issues-ui']}),
-    });
-    expect(
-      screen.getByText(/This issue has been archived until escalating/)
-    ).toBeInTheDocument();
-  });
 });
