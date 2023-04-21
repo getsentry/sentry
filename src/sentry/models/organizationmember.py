@@ -261,16 +261,13 @@ class OrganizationMember(Model):
             payload=dict(user_id=self.user_id),
         )
 
-    def outbox_for_update(self, prev_user_id: int | None, prev_email: int | None) -> RegionOutbox:
+    def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=self.organization_id,
             category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
             object_identifier=self.id,
-            payload=dict(
-                user_id=prev_user_id,
-                email=prev_email,
-            ),
+            payload=dict(user_id=self.user_id),
         )
 
     def refresh_expires_at(self):
