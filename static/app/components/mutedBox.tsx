@@ -1,7 +1,7 @@
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
-import {IconMute} from 'sentry/icons';
+import {IconArchive, IconMute} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ResolutionStatusDetails} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -78,7 +78,11 @@ function MutedBox({statusDetails}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <IconMute color="dangerText" size="sm" />
+        {hasEscalatingUi ? (
+          <IconArchive color="dangerText" size="sm" />
+        ) : (
+          <IconMute color="dangerText" size="sm" />
+        )}
         <span>
           {renderReason()}&nbsp;&mdash;&nbsp;
           {t(
