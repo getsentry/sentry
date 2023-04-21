@@ -190,8 +190,21 @@ function ActionSet({
     },
   ];
 
+  const hasEscalatingIssuesUI = organization.features.includes('escalating-issues-ui');
+
   return (
     <Fragment>
+      {hasEscalatingIssuesUI ? (
+        <ArchiveActions
+          onUpdate={onUpdate}
+          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          confirmMessage={() =>
+            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+          }
+          confirmLabel={label('archive')}
+          disabled={ignoreDisabled}
+        />
+      ) : null}
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -232,18 +245,7 @@ function ActionSet({
           }}
         />
       )}
-
-      {organization.features.includes('escalating-issues-ui') ? (
-        <ArchiveActions
-          onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-          confirmMessage={() =>
-            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
-          }
-          confirmLabel={label('archive')}
-          disabled={ignoreDisabled}
-        />
-      ) : (
+      {hasEscalatingIssuesUI ? null : (
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
