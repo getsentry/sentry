@@ -115,11 +115,7 @@ export function FrameworkSuggestionModal({
           src={languageDetails[selectedPlatform.key].topFrameworksImage}
         />
         <Heading>{t('Do you use a framework?')}</Heading>
-        <Description>
-          {t(
-            'Our JavaScript framework SDK’s include all the features of our Browser Javascript SDK with additional features specific to that framework'
-          )}
-        </Description>
+        <Description>{languageDetails[selectedPlatform.key].description}</Description>
         <Panel>
           <PanelBody>
             <Frameworks>
@@ -198,6 +194,7 @@ const Heading = styled('h6')`
 
 const Description = styled(TextBlock)`
   margin-bottom: ${space(2)};
+  text-align: center;
 `;
 
 const Frameworks = styled(List)`
