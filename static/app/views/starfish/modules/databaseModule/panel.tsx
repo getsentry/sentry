@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
@@ -16,6 +17,12 @@ const HOST = 'http://localhost:8080';
 
 type EndpointDetailBodyProps = {
   row: DataRow;
+};
+
+type TransactionListDataRow = {
+  count: number;
+  p50: number;
+  transaction: string;
 };
 
 const COLUMN_ORDER = [
@@ -88,6 +95,28 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
 
   const [countSeries, p50Series] = throughputQueryToChartData(graphData);
 
+  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+    return <span>{column.name}</span>;
+  }
+
+  const renderBodyCell = (
+    column: GridColumnHeader,
+    dataRow: TransactionListDataRow
+  ): React.ReactNode => {
+    if (column.key === 'transaction') {
+      return (
+        <Link
+          to={`/starfish/span/${encodeURIComponent(row.desc)}:${encodeURIComponent(
+            dataRow.transaction
+          )}`}
+        >
+          {dataRow[column.key]}
+        </Link>
+      );
+    }
+    return <span>{dataRow[column.key]}</span>;
+  };
+
   return (
     <div>
       <h2>{t('Query Detail')}</h2>
@@ -144,7 +173,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
         columnSortBy={[]}
         grid={{
           renderHeadCell,
-          renderBodyCell: (column: GridColumnHeader, dataRow: DataRow) =>
+          renderBodyCell: (column: GridColumnHeader, dataRow: TransactionListDataRow) =>
             renderBodyCell(column, dataRow),
         }}
         location={location}
@@ -152,14 +181,6 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     </div>
   );
 }
-
-function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  return <span>{column.name}</span>;
-}
-
-const renderBodyCell = (column: GridColumnHeader, row: DataRow): React.ReactNode => {
-  return <span>{row[column.key]}</span>;
-};
 
 const throughputQueryToChartData = (data: any): Series[] => {
   const countSeries: Series = {seriesName: 'count()', data: [] as any[]};

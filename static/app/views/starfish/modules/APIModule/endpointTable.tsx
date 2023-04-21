@@ -26,11 +26,23 @@ const COLUMN_ORDER = [
   {
     key: 'description',
     name: 'URL',
-    width: 600,
+    width: 300,
+  },
+  {
+    key: 'action',
+    name: 'Operation',
+  },
+  {
+    key: 'count',
+    name: 'Count',
   },
   {
     key: 'p50(exclusive_time)',
     name: 'p50',
+  },
+  {
+    key: 'failure_rate',
+    name: 'Error %',
   },
   {
     key: 'user_count',
@@ -67,6 +79,17 @@ export default function EndpointTable({location, onSelect}: Props) {
 }
 
 export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  // TODO: come up with a better way to identify number columns to align to the right
+  if (
+    column.key.toString().match(/^p\d\d/) ||
+    !['description', 'transaction'].includes(column.key.toString())
+  ) {
+    return (
+      <TextAlignRight>
+        <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
+      </TextAlignRight>
+    );
+  }
   return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
 }
 
@@ -83,8 +106,20 @@ export function renderBodyCell(
     );
   }
 
+  // TODO: come up with a better way to identify number columns to align to the right
   if (column.key.toString().match(/^p\d\d/)) {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+    return (
+      <TextAlignRight>
+        <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
+      </TextAlignRight>
+    );
+  }
+  if (!['description', 'transaction'].includes(column.key.toString())) {
+    return (
+      <TextAlignRight>
+        <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
+      </TextAlignRight>
+    );
   }
 
   return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
@@ -94,4 +129,9 @@ export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+`;
+
+export const TextAlignRight = styled('span')`
+  text-align: right;
+  width: 100%;
 `;

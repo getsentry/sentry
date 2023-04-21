@@ -7,6 +7,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -345,7 +346,7 @@ describe('OrganizationMembersList', function () {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Member'}));
 
     expect(searchMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/members/',
@@ -355,15 +356,18 @@ describe('OrganizationMembersList', function () {
       })
     );
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Member'}));
 
     for (const [filter, label] of [
       ['isInvited', 'Invited'],
       ['has2fa', '2FA'],
       ['ssoLinked', 'SSO Linked'],
     ]) {
+      const filterSection = screen.getByRole('listbox', {name: label});
       await userEvent.click(
-        screen.getByRole('checkbox', {name: `Enable ${label} filter`})
+        within(filterSection).getByRole('option', {
+          name: 'True',
+        })
       );
 
       expect(searchMock).toHaveBeenLastCalledWith(
@@ -374,7 +378,11 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      await userEvent.click(screen.getByRole('checkbox', {name: `Toggle ${label}`}));
+      await userEvent.click(
+        within(filterSection).getByRole('option', {
+          name: 'False',
+        })
+      );
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/members/',
@@ -385,7 +393,9 @@ describe('OrganizationMembersList', function () {
       );
 
       await userEvent.click(
-        screen.getByRole('checkbox', {name: `Enable ${label} filter`})
+        within(filterSection).getByRole('option', {
+          name: 'All',
+        })
       );
     }
   });
@@ -397,7 +407,7 @@ describe('OrganizationMembersList', function () {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Owner'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Owner'}));
     await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
 
     const owners = screen.queryAllByText('Owner');
