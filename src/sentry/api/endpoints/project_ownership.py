@@ -238,7 +238,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             if "raw" in change_data and "schema" in change_data:
                 del change_data["schema"]
                 del change_data["raw"]
-                change_data["ownership_rules"] = "edited"
+                change_data["ownership_rules"] = "modified"
 
             create_audit_entry(
                 request=self.request,

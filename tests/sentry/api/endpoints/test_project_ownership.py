@@ -138,7 +138,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             target_object=self.project.id,
         )
         assert len(auditlog) == 1
-        assert "edited" in auditlog[0].data["ownership_rules"]
+        assert "modified" in auditlog[0].data["ownership_rules"]
 
     @with_feature("organizations:streamline-targeting-context")
     def test_update_with_streamline_targeting(self):
