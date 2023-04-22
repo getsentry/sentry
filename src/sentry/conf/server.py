@@ -1294,7 +1294,7 @@ SENTRY_FEATURES = {
     # Enable metrics-backed transaction summary view
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable new trends
-    "organizations:performance-new-trends": True,
+    "organizations:performance-new-trends": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
