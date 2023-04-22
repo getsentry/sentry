@@ -99,7 +99,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 request,
                 organization,
                 get_event_stats,
-                top_events=20,
+                top_events=50,
                 query_column=trend_function,
                 params=params,
                 query=query,
