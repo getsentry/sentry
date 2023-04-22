@@ -66,10 +66,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         selected_columns = self.get_field_list(organization, request)
 
         top_columns = ["tpm()", "transaction", "project"]
-        # TODO use user query and remove trends-specific aliases
-        _query = (
-            "tpm():>0.01 transaction.duration:>0 transaction.duration:<15min event.type:transaction"
-        )
+        query = request.GET.get("query")
 
         request.yAxis = selected_columns.append(trend_function)
 
@@ -98,17 +95,29 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return results
 
         try:
-            response = Response(
-                self.get_event_stats_data(
-                    request,
-                    organization,
-                    get_event_stats,
-                    top_events=20,
-                    query_column=trend_function,
-                    params=params,
-                    query=_query,
-                )
+            stats_data = self.get_event_stats_data(
+                request,
+                organization,
+                get_event_stats,
+                top_events=20,
+                query_column=trend_function,
+                params=params,
+                query=query,
             )
+
+            # Handle empty response
+            if stats_data.get("data", None):
+                return Response(
+                    {
+                        "events": self.handle_results_with_meta(
+                            request, organization, params["project_id"], {"data": []}
+                        ),
+                        "stats": {},
+                    },
+                    status=200,
+                )
+
+            response = Response(stats_data)
 
             trends_request = {
                 "data": None,
