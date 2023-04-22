@@ -1,3 +1,4 @@
+import logging
 import time
 
 from django.conf import settings
@@ -14,6 +15,8 @@ from sentry.silo.util import (
     encode_subnet_signature,
     trim_leading_slash,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class IntegrationProxyClient(ApiClient):  # type: ignore
@@ -67,5 +70,12 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
             path=self.client_path,
             identifier=str(self.org_integration_id),
             request_body=request_body,
+        )
+        logger.info(
+            "prepare_proxy_request",
+            extra={
+                "desitination": prepared_request.path_url,
+                "organization_integration_id": self.org_integration_id,
+            },
         )
         return prepared_request

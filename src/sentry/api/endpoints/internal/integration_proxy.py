@@ -14,6 +14,7 @@ from sentry.silo.util import (
     clean_outbound_headers,
     verify_subnet_signature,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 PROXY_BASE_PATH = "/api/0/internal/integration-proxy/"
@@ -108,7 +109,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             return False
 
         is_valid_sender = self._validate_sender(request=request)
+        if not is_valid_sender:
+            metrics.incr("hc.integration_proxy.failure.invalid_sender")
         is_valid_request = self._validate_request(request=request)
+        if not is_valid_request:
+            metrics.incr("hc.integration_proxy.failure.invalid_request")
         return is_valid_sender and is_valid_request
 
     def http_method_not_allowed(self, request):
@@ -145,4 +150,5 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             # headers=raw_response.headers
         )
         response.headers = raw_response.headers
+        metrics.incr("hc.integration_proxy.success")
         return response
