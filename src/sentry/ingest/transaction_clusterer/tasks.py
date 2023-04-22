@@ -23,6 +23,11 @@ MERGE_THRESHOLD = 200
 #: The number 100 was chosen at random and might still need tweaking.
 PROJECTS_PER_TASK = 100
 
+#: Estimated limit for a clusterer run per project, in seconds.
+#: NOTE: using this in a per-project basis may not be enough. Consider using
+#: this estimation for project batches instead.
+CLUSTERING_TIMEOUT_PER_PROJECT = 0.1
+
 
 @instrumented_task(
     name="sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
@@ -47,28 +52,34 @@ def spawn_clusterers(**kwargs: Any) -> None:
     queue="transactions.name_clusterer",
     default_retry_delay=5,  # copied from release monitor
     max_retries=5,  # copied from release monitor
+    soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
+    time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
 )  # type: ignore
 def cluster_projects(projects: Sequence[Project]) -> None:
-    for project in projects:
-        # NOTE: The probability that the feature flag is True is high, because
-        # we know at this point that a redis set exists for the project.
-        # It's still worth checking the feature flag though, because we don't
-        # want to keep clustering projects for which the feature flag has been
-        # turned off.
-        with sentry_sdk.start_span(op="txcluster_project") as span:
-            span.set_data("project_id", project.id)
-            tx_names = list(redis.get_transaction_names(project))
-            new_rules = []
-            if len(tx_names) >= redis.MAX_SET_SIZE:
-                clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
-                clusterer.add_input(tx_names)
-                new_rules = clusterer.get_rules()
+    num_clustered = 0
+    try:
+        for project in projects:
+            with sentry_sdk.start_span(op="txcluster_project") as span:
+                span.set_data("project_id", project.id)
+                tx_names = list(redis.get_transaction_names(project))
+                new_rules = []
+                if len(tx_names) >= redis.MAX_SET_SIZE:
+                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                    clusterer.add_input(tx_names)
+                    new_rules = clusterer.get_rules()
 
-            # The Redis store may have more up-to-date last_seen values,
-            # so we must update the stores to bring these values to
-            # project options, even if there aren't any new rules.
-            rules.update_rules(project, new_rules)
+                # The Redis store may have more up-to-date last_seen values,
+                # so we must update the stores to bring these values to
+                # project options, even if there aren't any new rules.
+                rules.update_rules(project, new_rules)
 
-            # Clear transaction names to prevent the set from picking up
-            # noise over a long time range.
-            redis.clear_transaction_names(project)
+                # Clear transaction names to prevent the set from picking up
+                # noise over a long time range.
+                redis.clear_transaction_names(project)
+            num_clustered += 1
+    finally:
+        unclustered = len(projects) - num_clustered
+        if unclustered > 0:
+            metrics.incr(
+                "txcluster.cluster_projects.unclustered", amount=unclustered, sample_rate=1.0
+            )

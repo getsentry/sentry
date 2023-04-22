@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {
   TraceError,
@@ -91,7 +91,7 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
   const handleSpanFilter = (searchQuery: string) => {
     waterfallModel.querySpanSearch(searchQuery);
 
-    trackAdvancedAnalyticsEvent('performance_views.event_details.search_query', {
+    trackAnalytics('performance_views.event_details.search_query', {
       organization,
     });
   };

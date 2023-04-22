@@ -6,15 +6,18 @@ import {AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
 import {DateString} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {EChartClickHandler, Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import useRouter from 'sentry/utils/useRouter';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 type Props = {
   data: Series[];
   end: DateString;
+  handleSpikeAreaClick: EChartClickHandler;
   loading: boolean;
   start: DateString;
   statsPeriod: string | null | undefined;
@@ -43,6 +46,7 @@ function FailureRateChart({
   height,
   grid,
   disableXAxis,
+  handleSpikeAreaClick,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -73,6 +77,7 @@ function FailureRateChart({
     showTimeInTooltip: true,
     colors,
     tooltip: {
+      trigger: 'axis',
       valueFormatter: value => {
         return tooltipFormatter(value, 'percentage');
       },
@@ -92,19 +97,22 @@ function FailureRateChart({
     : undefined;
 
   return (
-    <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
-      {zoomRenderProps => (
-        <LineChart
-          height={height}
-          {...zoomRenderProps}
-          series={data}
-          previousPeriod={previousData}
-          xAxis={xAxis}
-          yAxis={yAxis}
-          tooltip={chartProps.tooltip}
-        />
-      )}
-    </ChartZoom>
+    <ChartPanel title={t('Error Rate')}>
+      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+        {zoomRenderProps => (
+          <LineChart
+            onClick={handleSpikeAreaClick}
+            height={height}
+            {...zoomRenderProps}
+            series={data}
+            previousPeriod={previousData}
+            xAxis={xAxis}
+            yAxis={yAxis}
+            tooltip={chartProps.tooltip}
+          />
+        )}
+      </ChartZoom>
+    </ChartPanel>
   );
 }
 

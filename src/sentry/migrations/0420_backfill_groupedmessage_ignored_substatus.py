@@ -20,15 +20,16 @@ UPDATE_QUERY = """
 def backfill_substatus(apps, schema_editor):
     Group = apps.get_model("sentry", "Group")
 
-    queryset = RangeQuerySetWrapper(
-        Group.objects.filter(status=GroupStatus.IGNORED).values_list("id", "status", "substatus"),
-        result_value_getter=lambda item: item[0],
-    )
-
     cursor = connection.cursor()
     batch = []
 
-    for group_id, status, substatus in queryset:
+    for group_id, status, substatus in RangeQuerySetWrapper(
+        Group.objects.all().values_list("id", "status", "substatus"),
+        result_value_getter=lambda item: item[0],
+    ):
+        if status is not GroupStatus.IGNORED:
+            continue
+
         if substatus is not None:
             batch.append((group_id, status))
 

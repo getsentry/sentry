@@ -1,4 +1,5 @@
 import re
+from urllib.parse import unquote
 
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
@@ -121,4 +122,4 @@ class Environment(Model):
         # environment name for historic reasons (see commit b09858f.) In all
         # other contexts (incl. request query string parameters), the empty
         # string should be used.
-        return segment if segment != "none" else ""
+        return unquote(segment) if segment != "none" else ""

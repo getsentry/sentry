@@ -4,7 +4,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.utils import json, redis
 from sentry.utils.client_state import STATE_CATEGORIES, get_client_state_key, get_redis_client
@@ -12,7 +12,7 @@ from sentry.utils.client_state import STATE_CATEGORIES, get_client_state_key, ge
 # This endpoint helps managing persisted client state with a TTL for a member, organization or user
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class ClientStateListEndpoint(OrganizationEndpoint):
     def __init__(self, **options) -> None:
         cluster_key = getattr(settings, "SENTRY_CLIENT_STATE_REDIS_CLUSTER", "default")
@@ -29,7 +29,7 @@ class ClientStateListEndpoint(OrganizationEndpoint):
         return Response(result)
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class ClientStateEndpoint(OrganizationEndpoint):
     def __init__(self, **options) -> None:
         self.client = get_redis_client()

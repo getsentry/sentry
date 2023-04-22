@@ -103,6 +103,11 @@ type ProfilingUpgradePlanButtonProps = ButtonProps & {
   organization: Organization;
 };
 
+type ProfilingAM1OrMMXUpgrade = {
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
 type SetUpSdkDocProps = {
   location: Location;
   organization: Organization;
@@ -157,6 +162,7 @@ export type ComponentHooks = {
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgrade>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
@@ -185,7 +191,7 @@ export type CustomizationHooks = {
 export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
-  'analytics:track-event-v2': AnalyticsTrackEventV2;
+  'analytics:raw-track-event': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
 
@@ -362,7 +368,7 @@ type AnalyticsInitUser = (user: User) => void;
 /**
  * Trigger analytics tracking in the hook store.
  */
-type AnalyticsTrackEventV2 = (
+type AnalyticsRawTrackEvent = (
   data: {
     /**
      * Arbitrary data to track
