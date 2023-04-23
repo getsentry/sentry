@@ -226,8 +226,7 @@ class TeamSerializer(Serializer):  # type: ignore
         for team in item_list:
             is_member = team.id in team_memberships
             org_roles = roles_by_org.get(team.organization_id) or []
-            team_role_id = team_memberships.get(team.id)
-            effective_team_role, team_scopes = None, set()
+            team_role_id, team_role_scopes = team_memberships.get(team.id), set()
 
             has_access = bool(
                 is_member
@@ -237,27 +236,23 @@ class TeamSerializer(Serializer):  # type: ignore
             )
 
             if has_access:
-                top_org_role = org_roles[0] if org_roles else None
-
                 effective_team_role = (
                     team_roles.get(team_role_id) if team_role_id else team_roles.get_default()
                 )
-                team_scopes = effective_team_role.scopes
 
-                if top_org_role is not None:
-                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
-                    if (
-                        not team_role_id
-                        or minimum_team_role.priority > effective_team_role.priority
-                    ):
-                        effective_team_role = minimum_team_role
-                    team_scopes = team_scopes.union(effective_team_role.scopes)
+                top_org_role = org_roles[0] if org_roles else None
+                minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                if minimum_team_role.priority > effective_team_role.priority:
+                    effective_team_role = minimum_team_role
+
+                team_role_scopes = effective_team_role.scopes
+                team_role_id = effective_team_role.id
 
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
-                "team_role": effective_team_role.id if is_member else None,
-                "access": team_scopes,
+                "team_role": team_role_id if is_member else None,
+                "access": team_role_scopes,
                 "has_access": has_access,
                 "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
