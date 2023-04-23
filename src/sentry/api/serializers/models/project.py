@@ -123,7 +123,7 @@ def get_access_by_project(
 
             # User may have elevated team-roles from their org-role
             top_org_role = org_roles[0] if org_roles else None
-            if top_org_role is not None:
+            if top_org_role:
                 minimum_team_role = roles.get_minimum_team_role(top_org_role)
                 team_scopes = team_scopes.union(minimum_team_role.scopes)
 

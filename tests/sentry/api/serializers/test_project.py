@@ -25,7 +25,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format, with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -71,6 +71,7 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
+    @with_feature("organizations:team-roles")
     def test_member_with_team_role(self):
         self.create_member(user=self.user, organization=self.organization)
 
