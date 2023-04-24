@@ -11,6 +11,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q, QuerySet
+from django.db.models.signals import post_delete
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -594,3 +595,15 @@ class OrganizationMember(Model):
             .exists()
         )
         return is_only_owner
+
+
+def organization_member_post_delete(instance: OrganizationMember, **kwargs):
+    region_outbox = None
+    with transaction.atomic():
+        region_outbox = instance.outbox_for_update()
+        region_outbox.save()
+    if region_outbox:
+        region_outbox.drain_shard(max_updates_to_drain=10)
+
+
+post_delete.connect(organization_member_post_delete, sender=OrganizationMember)
