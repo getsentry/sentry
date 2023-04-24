@@ -36,7 +36,7 @@ def handle_archived_until_escalating(
     metrics.incr("group.archived_until_escalating", skip_internal=True)
     for group in group_list:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
-    generate_and_save_forecasts(list(group_list))
+    generate_and_save_forecasts(group_list)
     logger.info(
         "archived_until_escalating.forecast_created",
         extra={
