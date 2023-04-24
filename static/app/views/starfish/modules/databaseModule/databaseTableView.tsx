@@ -125,6 +125,9 @@ export default function APIModuleView({
         </Hovercard>
       );
     }
+    if (column.key === 'p75') {
+      return <span>{row[column.key].toFixed(2)}ms</span>;
+    }
     if (column.key === 'conditions') {
       const value = row.data_values[row.data_keys.indexOf('where')];
       return value ? (
