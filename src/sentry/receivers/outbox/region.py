@@ -64,6 +64,9 @@ def process_organization_member_updates(
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier
             )
+        organizationmember_mapping_service.delete_with_organization_member(
+            organizationmember_id=object_identifier, organization_id=shard_identifier
+        )
         return
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
