@@ -219,11 +219,6 @@ def is_escalating(group: Group) -> bool:
     date_now = datetime.now().date()
     if escalating_forecast is None:
         escalating_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
-        if escalating_forecast is None:
-            logger.error(
-                f"Could not get forecast from nodestore for project:{group.project.id} and group:{group.id}. Investigate."
-            )
-            return False
         escalating_forecast = (
             escalating_forecast.date_added,
             escalating_forecast.forecast,

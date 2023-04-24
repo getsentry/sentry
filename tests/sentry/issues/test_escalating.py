@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.eventstore.models import Event
@@ -232,20 +232,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             )
             group_is_escalating = is_escalating(group)
             assert not group_is_escalating
-            assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
-            assert group.status == GroupStatus.IGNORED
-            assert not GroupInbox.objects.filter(group=group).exists()
-
-    @patch("sentry.issues.escalating.logger")
-    def test_no_forecasts_raises_error(self, logger: Mock) -> None:
-        """Test that an error is raised if the forecast cannot be fetched from nodestore"""
-        with self.feature("organizations:escalating-issues"):
-            group = self.create_group()
-            group.status = GroupStatus.IGNORED
-            group.substatus = GroupSubStatus.UNTIL_ESCALATING
-            group.save()
-            is_escalating(group)
-            assert logger.error.call_count == 1
             assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
