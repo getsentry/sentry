@@ -1,20 +1,16 @@
-from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from django.http import QueryDict
 
-from sentry.api.helpers.group_index import (
-    ValidationError,
-    update_groups,
-    validate_search_filter_permissions,
-)
+from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.update import (
     handle_has_seen,
     handle_is_bookmarked,
     handle_is_public,
     handle_is_subscribed,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
 from sentry.models import (
     Activity,
@@ -33,11 +29,11 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 
 
-class ValidateSearchFilterPermissionsTest(TestCase):  # type:ignore
-    def run_test(self, query: Any) -> None:
+class ValidateSearchFilterPermissionsTest(TestCase):  # type: ignore[misc]
+    def run_test(self, query: str) -> None:
         validate_search_filter_permissions(self.organization, parse_search_query(query), self.user)
 
-    def assert_analytics_recorded(self, mock_record: Any) -> None:
+    def assert_analytics_recorded(self, mock_record: Mock) -> None:
         mock_record.assert_called_with(
             "advanced_search.feature_gated",
             user_id=self.user.id,
@@ -46,7 +42,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):  # type:ignore
         )
 
     @patch("sentry.analytics.record")
-    def test_negative(self, mock_record: Any) -> None:
+    def test_negative(self, mock_record: Mock) -> None:
         query = "!has:user"
         with self.feature({"organizations:advanced-search": False}), pytest.raises(
             ValidationError, match=".*negative search.*"
@@ -66,7 +62,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):  # type:ignore
         self.assert_analytics_recorded(mock_record)
 
     @patch("sentry.analytics.record")
-    def test_wildcard(self, mock_record: Any) -> None:
+    def test_wildcard(self, mock_record: Mock) -> None:
         query = "abc:hello*"
         with self.feature({"organizations:advanced-search": False}), pytest.raises(
             ValidationError, match=".*wildcard search.*"
@@ -86,10 +82,10 @@ class ValidateSearchFilterPermissionsTest(TestCase):  # type:ignore
         self.assert_analytics_recorded(mock_record)
 
 
-class UpdateGroupsTest(TestCase):  # type: ignore
+class UpdateGroupsTest(TestCase):  # type: ignore[misc]
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_unresolving_resolved_group(self, send_robust: Any, send_unresolved: Any) -> None:
+    def test_unresolving_resolved_group(self, send_robust: Mock, send_unresolved: Mock) -> None:
         resolved_group = self.create_group(status=GroupStatus.RESOLVED)
         assert resolved_group.status == GroupStatus.RESOLVED
 
@@ -110,7 +106,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore
         assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
-    def test_resolving_unresolved_group(self, send_robust: Any) -> None:
+    def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
@@ -132,7 +128,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignoring_group(self, send_robust: Any) -> None:
+    def test_ignoring_group(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -153,7 +149,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_unignored.send_robust")
-    def test_unignoring_group(self, send_robust: Any) -> None:
+    def test_unignoring_group(self, send_robust: Mock) -> None:
         group = self.create_group(status=GroupStatus.IGNORED)
 
         request = self.make_request(user=self.user, method="GET")
@@ -172,7 +168,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore
         assert send_robust.called
 
     @patch("sentry.signals.issue_mark_reviewed.send_robust")
-    def test_mark_reviewed_group(self, send_robust: Any) -> None:
+    def test_mark_reviewed_group(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -191,9 +187,9 @@ class UpdateGroupsTest(TestCase):  # type: ignore
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
 
-    @with_feature("organizations:escalating-issues")  # type: ignore
+    @with_feature("organizations:escalating-issues")  # type: ignore[misc]
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignore_with_substatus_until_escalating(self, send_robust: Any) -> None:
+    def test_ignore_with_substatus_until_escalating(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -215,7 +211,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore
         assert not GroupInbox.objects.filter(group=group).exists()
 
 
-class TestHandleIsSubscribed(TestCase):  # type: ignore
+class TestHandleIsSubscribed(TestCase):  # type: ignore[misc]
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -240,7 +236,7 @@ class TestHandleIsSubscribed(TestCase):  # type: ignore
         assert resp["reason"] == "unknown"
 
 
-class TestHandleIsBookmarked(TestCase):  # type: ignore
+class TestHandleIsBookmarked(TestCase):  # type: ignore[misc]
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -262,7 +258,7 @@ class TestHandleIsBookmarked(TestCase):  # type: ignore
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
-class TestHandleHasSeen(TestCase):  # type: ignore
+class TestHandleHasSeen(TestCase):  # type: ignore[misc]
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -288,7 +284,7 @@ class TestHandleHasSeen(TestCase):  # type: ignore
         assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
-class TestHandleIsPublic(TestCase):  # type: ignore
+class TestHandleIsPublic(TestCase):  # type: ignore[misc]
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
