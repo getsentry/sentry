@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
@@ -146,8 +147,6 @@ from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
-from .endpoints.group_events_latest import GroupEventsLatestEndpoint
-from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
@@ -548,12 +547,8 @@ GROUP_URLS = [
         GroupEventsEndpoint.as_view(),
     ),
     url(
-        r"^(?P<issue_id>[^\/]+)/events/latest/$",
-        GroupEventsLatestEndpoint.as_view(),
-    ),
-    url(
-        r"^(?P<issue_id>[^\/]+)/events/oldest/$",
-        GroupEventsOldestEndpoint.as_view(),
+        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|\d+|[A-Fa-f0-9-]{32,36}))/$",
+        GroupEventDetailsEndpoint.as_view(),
     ),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$",
