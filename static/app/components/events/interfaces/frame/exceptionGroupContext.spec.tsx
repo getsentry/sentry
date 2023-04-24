@@ -30,13 +30,15 @@ describe('ExceptionGroupContext', function () {
     expect(items).toHaveLength(3);
 
     // ExceptionGroup should not link to itself
-    expect(within(items[0]).getByText('ExceptionGroup 1')).toBeInTheDocument();
+    expect(within(items[0]).getByText('ExceptionGroup 1: parent')).toBeInTheDocument();
     // Should have a link to child exception group
     expect(
-      within(items[1]).getByRole('button', {name: 'ExceptionGroup 2'})
+      within(items[1]).getByRole('button', {name: 'ExceptionGroup 2: child'})
     ).toBeInTheDocument();
     // Should have a link to TypeError exception
-    expect(within(items[2]).getByRole('button', {name: 'TypeError'})).toBeInTheDocument();
+    expect(
+      within(items[2]).getByRole('button', {name: 'TypeError: nested'})
+    ).toBeInTheDocument();
   });
 
   it('renders tree with child exception group', function () {
@@ -49,13 +51,13 @@ describe('ExceptionGroupContext', function () {
 
     // Should show and link to parent exception group
     expect(
-      within(items[0]).getByRole('button', {name: 'ExceptionGroup 1'})
+      within(items[0]).getByRole('button', {name: 'ExceptionGroup 1: parent'})
     ).toBeInTheDocument();
     // Should have a link to child exception group
-    expect(within(items[1]).getByText('ExceptionGroup 2')).toBeInTheDocument();
+    expect(within(items[1]).getByText('ExceptionGroup 2: child')).toBeInTheDocument();
     // Show show and link to child exception
     expect(
-      within(items[2]).getByRole('button', {name: 'ValueError'})
+      within(items[2]).getByRole('button', {name: 'ValueError: test'})
     ).toBeInTheDocument();
   });
 
