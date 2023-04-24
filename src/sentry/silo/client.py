@@ -60,6 +60,10 @@ class BaseSiloClient(BaseApiClient):
             allow_text=True,
             prepared_request=prepared_request,
         )
+        self.logger.info(
+            "proxy_request",
+            extra={"method": incoming_request.method, "path": incoming_request.path},
+        )
         return client_response
 
     def request(
