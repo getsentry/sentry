@@ -25,7 +25,7 @@ const platformIntegrations: PlatformIntegration[] = [
 ]
   .map(platform => {
     const integrations = platform.integrations.reduce((acc, value) => {
-      // filter out any javascript-[angular|angularjs|backbone|ember|gatsby|nextjs|react|remix|svelte|vue]-* platforms; as they're not meant to be used as a platform in the PlatformPicker component
+      // filter out any javascript-[angular|angularjs|ember|gatsby|nextjs|react|remix|svelte|vue]-* platforms; as they're not meant to be used as a platform in the PlatformPicker component
       if (value.id.match('^javascript-([A-Za-z]+)-([a-zA-Z0-9]+.*)$')) {
         return acc;
       }

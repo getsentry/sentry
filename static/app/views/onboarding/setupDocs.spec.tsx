@@ -227,7 +227,9 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - default (all checked)
       expect(
-        await screen.findByText('javascript-react-with-error-monitoring-and-replay')
+        await screen.findByText(
+          'javascript-react-with-error-monitoring-performance-and-replay'
+        )
       ).toBeInTheDocument();
     });
 
