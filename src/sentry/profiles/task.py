@@ -40,7 +40,6 @@ class VroomTimeout(Exception):
     default_retry_delay=5,  # retries after 5s
     max_retries=5,
     acks_late=True,
-    task_soft_time_limit=30,
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
 )
