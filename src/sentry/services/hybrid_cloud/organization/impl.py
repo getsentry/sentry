@@ -382,6 +382,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         )
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+        region_outbox = None
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member = OrganizationMember.objects.get(
                 organization_id=organization_id, user_id=user_id
@@ -390,5 +391,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
             org_member.save()
             region_outbox = org_member.outbox_for_update()
             region_outbox.save()
-        region_outbox.drain_shard(max_updates_to_drain=10)
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
         return self.serialize_member(org_member)
