@@ -36,7 +36,7 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
                 duration=1000.0,
                 data={
                     "Transfer Size": 1200000,
-                    "Encoded Body Size": 1200000,
+                    "encoded_body_size": 1200000,
                     "Decoded Body Size": 2000000,
                     "resource.render_blocking_status": "blocking",
                 },
@@ -119,7 +119,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             if span["op"] == "resource.script":
-                span["data"]["Encoded Body Size"] = 900000
+                span["data"]["encoded_body_size"] = 900000
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_missing_size(self):
@@ -134,7 +134,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
         for span in event["spans"]:
             if span["op"] == "resource.script":
                 # This is a real value we saw in production.
-                span["data"]["Encoded Body Size"] = 18446744073709552000
+                span["data"]["encoded_body_size"] = 18446744073709552000
         assert self.find_problems(event) == []
 
     def test_detects_if_render_blocking_status_is_missing(self):

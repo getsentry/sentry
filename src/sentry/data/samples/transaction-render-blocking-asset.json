@@ -123,7 +123,7 @@
       "parent_span_id": "d333ac34048040f7",
       "trace_id": "af6cd4ed98d1459a9d496071342ab3e7",
       "data": {
-        "Encoded Body Size": 1000001,
+        "encoded_body_size": 1000001,
         "duration": 1
       },
       "hash": "a8b09954a220aea9"

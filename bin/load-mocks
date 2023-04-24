@@ -1055,7 +1055,7 @@ def create_mock_transactions(
                     "hash": "858fea692d4d93e9",
                     "data": {
                         "Transfer Size": 1_000_000,
-                        "Encoded Body Size": 1_000_000,
+                        "encoded_body_size": 1_000_000,
                         "Decoded Body Size": 1_000_000,
                     },
                 },
@@ -1147,7 +1147,7 @@ def create_mock_transactions(
                     "parent_span_id": parent_span_id,
                     "span_id": uuid4().hex[:16],
                     "hash": "858fea692d4d93e8",
-                    "data": {"Encoded Body Size": 1000001},
+                    "data": {"encoded_body_size": 1000001},
                 }
             ]
 

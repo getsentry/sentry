@@ -1913,7 +1913,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 1434,
-          "Encoded Body Size": 377,
+          "encoded_body_size": 377,
           "Transfer Size": 873,
           "duration": 0.19784391574400753,
           "offset": 1.987476914226067
@@ -1929,7 +1929,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 2834,
-          "Encoded Body Size": 1031,
+          "encoded_body_size": 1031,
           "Transfer Size": 1181,
           "duration": 0.03448497280930315,
           "offset": 2.185320829970075
@@ -1945,7 +1945,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 393615,
-          "Encoded Body Size": 104822,
+          "encoded_body_size": 104822,
           "Transfer Size": 105241,
           "duration": 0.06483037331022606,
           "offset": 2.219805802779378
@@ -1974,7 +1974,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 14900,
-          "Encoded Body Size": 14900,
+          "encoded_body_size": 14900,
           "Transfer Size": 15249,
           "duration": 0.07117168916452873,
           "offset": 2.3922796225243945
@@ -1990,7 +1990,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 14904,
-          "Encoded Body Size": 14904,
+          "encoded_body_size": 14904,
           "Transfer Size": 15018,
           "duration": 0.01938506940816541,
           "offset": 2.463451311688923
@@ -2032,7 +2032,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 24838,
-          "Encoded Body Size": 3719,
+          "encoded_body_size": 3719,
           "Transfer Size": 4007,
           "duration": 0.13824814691353782,
           "offset": 2.7785280575866445
@@ -2048,7 +2048,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 0,
-          "Encoded Body Size": 0,
+          "encoded_body_size": 0,
           "Transfer Size": 0,
           "duration": 0.029537339013289896,
           "offset": 2.916776204500182
@@ -2064,7 +2064,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 0,
-          "Encoded Body Size": 0,
+          "encoded_body_size": 0,
           "Transfer Size": 0,
           "duration": 0.19305941897035148,
           "offset": 2.946313543513472
@@ -2080,7 +2080,7 @@
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
           "Decoded Body Size": 0,
-          "Encoded Body Size": 0,
+          "encoded_body_size": 0,
           "Transfer Size": 0,
           "duration": 0.8028300824075338,
           "offset": 3.1393729624838236

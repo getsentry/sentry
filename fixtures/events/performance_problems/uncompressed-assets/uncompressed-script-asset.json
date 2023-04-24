@@ -55,7 +55,7 @@
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "data": {
         "Decoded Body Size": 3,
-        "Encoded Body Size": 2,
+        "encoded_body_size": 2,
         "Transfer Size": 3
       },
       "hash": "b2978b51d54d9078"
@@ -71,7 +71,7 @@
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "data": {
         "Decoded Body Size": 571733,
-        "Encoded Body Size": 571733,
+        "encoded_body_size": 571733,
         "Transfer Size": 571833
       },
       "hash": "a2978b51d54d9079"

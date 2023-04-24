@@ -24,7 +24,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             return
 
         data = span.get("data", None)
-        encoded_body_size = data and data.get("Encoded Body Size", None)
+        encoded_body_size = data and (
+            data.get("encoded_body_size", None) or data.get("Encoded Body Size")
+        )
         if not (encoded_body_size):
             return
 

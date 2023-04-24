@@ -37,7 +37,9 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
         data = span.get("data", None)
         transfer_size = data and data.get("Transfer Size", None)
-        encoded_body_size = data and data.get("Encoded Body Size", None)
+        encoded_body_size = data and (
+            data.get("encoded_body_size", None) or data.get("Encoded Body Size", None)
+        )
         decoded_body_size = data and data.get("Decoded Body Size", None)
         if not (encoded_body_size and decoded_body_size and transfer_size):
             return
