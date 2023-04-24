@@ -5,14 +5,17 @@
 
 import abc
 import datetime
+import hmac
 from dataclasses import dataclass
+from hashlib import sha256
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, cast
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
 
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.models import SentryApp, SentryAppInstallation
+from sentry.models.apiapplication import ApiApplication
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -22,6 +25,12 @@ from sentry.silo import SiloMode
 if TYPE_CHECKING:
     from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
     from sentry.services.hybrid_cloud.auth import AuthenticationContext
+
+
+class RpcApiApplication(RpcModel):
+    id: int = -1
+    client_id: str = ""
+    client_secret: str = ""
 
 
 class RpcSentryAppService(RpcModel):
@@ -39,6 +48,7 @@ class RpcSentryApp(RpcModel):
     id: int = -1
     scope_list: List[str] = Field(default_factory=list)
     application_id: int = -1
+    application: RpcApiApplication = Field(default_factory=RpcApiApplication)
     proxy_user_id: Optional[int] = None  # can be null on deletion.
     owner_id: int = -1  # relation to an organization
     name: str = ""
@@ -49,10 +59,42 @@ class RpcSentryApp(RpcModel):
     is_published: bool = False
     is_internal: bool = True
     is_publish_request_inprogress: bool = False
+    status: str = ""
 
     def show_auth_info(self, access: Any) -> bool:
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)
+
+    def build_signature(self, body: str) -> str:
+        secret = self.application.client_secret
+        return hmac.new(
+            key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
+        ).hexdigest()
+
+    # Properties are copied from the sentry app ORM model. A bit annoying, but works
+    @property
+    def slug_for_metrics(self) -> str:
+        if self.is_internal:
+            return "internal"
+        if self.is_unpublished:
+            return "unpublished"
+        return self.slug
+
+    @property
+    def is_published(self):
+        return self.status == SentryAppStatus.PUBLISHED
+
+    @property
+    def is_unpublished(self):
+        return self.status == SentryAppStatus.UNPUBLISHED
+
+    @property
+    def is_internal(self):
+        return self.status == SentryAppStatus.INTERNAL
+
+    @property
+    def is_publish_request_inprogress(self):
+        return self.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
 
 
 class RpcSentryAppInstallation(RpcModel):
@@ -179,6 +221,7 @@ class AppService(RpcService):
             id=app.id,
             scope_list=app.scope_list,
             application_id=app.application_id,
+            application=cls.serialize_api_application(app.application),
             proxy_user_id=app.proxy_user_id,
             owner_id=app.owner_id,
             name=app.name,
@@ -189,6 +232,15 @@ class AppService(RpcService):
             is_published=app.is_published,
             is_internal=app.is_internal,
             is_publish_request_inprogress=app.is_publish_request_inprogress,
+            status=app.status,
+        )
+
+    @classmethod
+    def serialize_api_application(self, api_app: ApiApplication) -> RpcApiApplication:
+        return RpcApiApplication(
+            id=api_app.id,
+            client_id=api_app.client_id,
+            client_secret=api_app.client_secret,
         )
 
     @rpc_method
@@ -237,7 +289,7 @@ class AppService(RpcService):
             status=installation.status,
             sentry_app=cls.serialize_sentry_app(app),
             date_deleted=installation.date_deleted,
-            uuid=app.uuid,
+            uuid=installation.uuid,
         )
 
     @rpc_method

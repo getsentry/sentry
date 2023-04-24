@@ -13,7 +13,7 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
-from sentry.models import Organization, SentryAppInstallation
+from sentry.models import Organization
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud.app import app_service
@@ -346,16 +346,10 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationPermission,)
 
     def convert_args(self, request: Request, uuid, *args, **kwargs):
-        if SiloMode.get_current_mode() in [SiloMode.MONOLITH, SiloMode.CONTROL]:
-            try:
-                installation = SentryAppInstallation.objects.get(uuid=uuid)
-            except SentryAppInstallation.DoesNotExist:
-                raise Http404
-        else:
-            installations = app_service.get_many(filter=dict(uuids=[uuid]))
-            installation = installations[0] if installations else None
-            if installation is None:
-                raise Http404
+        installations = app_service.get_many(filter=dict(uuids=[uuid]))
+        installation = installations[0] if installations else None
+        if installation is None:
+            raise Http404
 
         self.check_object_permissions(request, installation)
 

@@ -6,6 +6,8 @@ from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import Group, Project
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.services.hybrid_cloud.app import app_service
 
 
 @region_silo_endpoint
@@ -34,6 +36,10 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         del data["uri"]
 
         try:
+            if isinstance(installation, SentryAppInstallation):
+                installation = app_service.serialize_sentry_app_installation(
+                    installation, installation.sentry_app
+                )
             external_issue = IssueLinkCreator.run(
                 install=installation,
                 group=group,
