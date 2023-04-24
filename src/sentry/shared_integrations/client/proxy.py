@@ -4,11 +4,11 @@ import time
 from django.conf import settings
 from requests import PreparedRequest, Request
 
-from sentry.api.endpoints.internal.integration_proxy import PROXY_BASE_PATH
 from sentry.integrations.client import ApiClient
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
+    PROXY_BASE_PATH,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     PROXY_TIMESTAMP_HEADER,

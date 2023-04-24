@@ -7,6 +7,7 @@ from typing import List, Mapping
 
 from django.conf import settings
 
+PROXY_BASE_PATH = "/api/0/internal/integration-proxy/"
 PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 PROXY_TIMESTAMP_HEADER = "X-Sentry-Subnet-Timestamp"

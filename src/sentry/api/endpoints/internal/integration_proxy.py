@@ -2,12 +2,14 @@ import logging
 
 from django.http import Http404, HttpResponse
 from requests import Request, Response
+from rest_framework.request import Request as DrfRequest
 
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
+    PROXY_BASE_PATH,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     PROXY_TIMESTAMP_HEADER,
@@ -17,7 +19,6 @@ from sentry.silo.util import (
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-PROXY_BASE_PATH = "/api/0/internal/integration-proxy/"
 
 
 @control_silo_endpoint
@@ -29,13 +30,26 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     integration on behalf of credentials stored in the control silo.
     """
 
-    def _validate_sender(self, request) -> bool:
+    @property
+    def client(self):
+        """
+        We need to use a property decorator and setter here to overwrite it for tests.
+        """
+        return self._client
+
+    @client.setter
+    def client(self, client):
+        self._client = client
+
+    def _validate_sender(self, request: DrfRequest) -> bool:
         """
         Returns True if the sender is deemed sufficiently trustworthy.
         """
         log_extra = {"path": request.path, "host": request.headers.get("Host")}
         timestamp = request.headers.get(PROXY_TIMESTAMP_HEADER)
         signature = request.headers.get(PROXY_SIGNATURE_HEADER)
+        # print(request.headers)
+        # print(request.path)
         identifier = request.headers.get(PROXY_OI_HEADER)
         if timestamp is None or signature is None or identifier is None:
             logger.error("invalid_sender_headers", extra=log_extra)
@@ -52,7 +66,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         return is_valid
 
-    def _validate_request(self, request) -> bool:
+    def _validate_request(self, request: DrfRequest) -> bool:
         """
         Returns True if a client could be generated from the request
         """
@@ -63,7 +77,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         # Get the organization integration
         org_integration_id = request.headers.get(PROXY_OI_HEADER, None)
         if org_integration_id is None:
-            logger.info("missing_org_integration", extra=log_extra)
+            logger.error("missing_org_integration", extra=log_extra)
             return False
         log_extra["org_integration_id"] = org_integration_id
 
@@ -76,14 +90,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             .first()
         )
         if self.org_integration is None:
-            logger.info("invalid_org_integration", extra=log_extra)
+            logger.error("invalid_org_integration", extra=log_extra)
             return False
         log_extra["integration_id"] = self.org_integration.integration_id
 
         # Get the integration
         self.integration = self.org_integration.integration
         if not self.integration or self.integration.status is not ObjectStatus.ACTIVE:
-            logger.info("invalid_integration", extra=log_extra)
+            logger.error("invalid_integration", extra=log_extra)
             return False
 
         # Get the integration client
@@ -94,27 +108,30 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         client_type = type(self.client)
         log_extra["client_type"] = client_type
         if not issubclass(client_type, IntegrationProxyClient):
-            logger.info("invalid_client", extra=log_extra)
+            logger.error("invalid_client", extra=log_extra)
             return False
 
         return True
 
-    def _should_operate(self, request) -> bool:
+    def _should_operate(self, request: DrfRequest) -> bool:
         """
         Returns True if this endpoint should proxy the incoming integration request.
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
-            # Avoid more expensive checks if we can
             return False
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
             metrics.incr("hc.integration_proxy.failure.invalid_sender")
+            return False
+
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
             metrics.incr("hc.integration_proxy.failure.invalid_request")
-        return is_valid_sender and is_valid_request
+            return False
+
+        return True
 
     def http_method_not_allowed(self, request):
         """
