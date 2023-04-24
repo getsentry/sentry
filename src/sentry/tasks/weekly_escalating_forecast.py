@@ -37,7 +37,7 @@ def run_escalating_forecast() -> None:
         result_value_getter=lambda item: item,
         step=10000,
     ):
-        generate_forecasts_for_projects(projects)
+        generate_forecasts_for_projects.delay(projects=projects)
 
 
 @instrumented_task(
