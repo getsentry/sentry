@@ -133,6 +133,7 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                         "city": {"type": ["string", "null"], "minLength": 1},
                         "country_code": {"type": ["string", "null"], "minLength": 1},
                         "region": {"type": ["string", "null"], "minLength": 1},
+                        "subdivision": {"type": ["string", "null"], "minLength": 1},
                     },
                     "additionalProperties": False,
                 },
