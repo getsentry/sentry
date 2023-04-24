@@ -48,8 +48,9 @@ class OrganizationMemberMapping(Model):
         app_label = "sentry"
         db_table = "sentry_organizationmembermapping"
         unique_together = (
-            ("organization_id", "organizationmember_id", "user"),
-            ("organization_id", "organizationmember_id", "email"),
+            ("organization_id", "user"),
+            ("organization_id", "email"),
+            ("organization_id", "organizationmember_id"),
         )
 
     __repr__ = sane_repr("organization_id", "user_id", "role")
