@@ -22,6 +22,7 @@ import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {
+  IconArchive,
   IconCheckmark,
   IconEllipsis,
   IconMute,
@@ -358,6 +359,7 @@ class Actions extends Component<Props> {
 
     const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     const hasDeleteAccess = organization.access.includes('event:admin');
+    const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
 
     const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
     const {dropdownItems: archiveDropdownItems} = getArchiveActions({
@@ -420,14 +422,18 @@ class Actions extends Component<Props> {
               disabled: disabled || group.subscriptionDetails?.disabled,
               onAction: this.onToggleSubscribe,
             },
-            {
-              key: 'mark-review',
-              label: t('Mark reviewed'),
-              disabled: !group.inbox || disabled,
-              details:
-                !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-              onAction: () => this.onUpdate({inbox: false}),
-            },
+            ...(disabledMarkReviewed
+              ? []
+              : [
+                  {
+                    key: 'mark-review',
+                    label: t('Mark reviewed'),
+                    disabled: !group.inbox || disabled,
+                    details:
+                      !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
+                    onAction: () => this.onUpdate({inbox: false}),
+                  },
+                ]),
             {
               key: 'share',
               label: t('Share'),
@@ -504,13 +510,25 @@ class Actions extends Component<Props> {
                 : t('Change status to unresolved')
             }
             size="sm"
-            icon={isResolved ? <IconCheckmark /> : <IconMute />}
+            icon={
+              isResolved ? (
+                <IconCheckmark />
+              ) : hasEscalatingIssues ? (
+                <IconArchive />
+              ) : (
+                <IconMute />
+              )
+            }
             disabled={disabled || isAutoResolved}
             onClick={() =>
               this.onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
             }
           >
-            {isIgnored ? t('Ignored') : t('Resolved')}
+            {isIgnored
+              ? hasEscalatingIssues
+                ? t('Archived')
+                : t('Ignored')
+              : t('Resolved')}
           </ActionButton>
         ) : (
           <Fragment>

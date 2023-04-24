@@ -159,6 +159,7 @@ STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
+    "archived": GroupStatus.IGNORED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
     "reprocessing": GroupStatus.REPROCESSING,
@@ -435,6 +436,8 @@ class Group(Model):
             (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
+            (GroupSubStatus.UNTIL_CONDITION_MET, _("Until condition met")),
+            (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
