@@ -43,15 +43,15 @@ class RpcOrganizationMemberMappingUpdate(RpcModel):
     inviter_id: Optional[int]
     invite_status: Optional[int]
 
-
-def rpc_update_organizationmember_mapping_from_instance(
-    organization_member: OrganizationMember,
-) -> RpcOrganizationMemberMappingUpdate:
-    attributes = {
-        attr_name: getattr(organization_member, attr_name)
-        for attr_name in RpcOrganizationMemberMappingUpdate.__annotations__.keys()
-    }
-    return RpcOrganizationMemberMappingUpdate(**attributes)
+    @classmethod
+    def from_orm(
+        cls, organization_member: OrganizationMember
+    ) -> "RpcOrganizationMemberMappingUpdate":
+        attributes = {
+            attr_name: getattr(organization_member, attr_name)
+            for attr_name in RpcOrganizationMemberMappingUpdate.__annotations__.keys()
+        }
+        return RpcOrganizationMemberMappingUpdate(**attributes)
 
 
 class OrganizationMemberMappingService(RpcService):

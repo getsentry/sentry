@@ -28,8 +28,8 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     update_organization_mapping_from_instance,
 )
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
-    rpc_update_organizationmember_mapping_from_instance,
 )
 
 
@@ -80,7 +80,7 @@ def process_organization_member_updates(
         )
         return
 
-    rpc_org_member_update = rpc_update_organizationmember_mapping_from_instance(
+    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(
         organization_member=org_member
     )
 
