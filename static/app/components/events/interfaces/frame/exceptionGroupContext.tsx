@@ -138,8 +138,8 @@ export function ExceptionGroupContext({
 
   const data = [
     {
-      key: 'Related Exceptions',
-      subject: 'Related Exceptions',
+      key: t('Related Exceptions'),
+      subject: t('Related Exceptions'),
       value: <ExceptionTree {...{parentException, exception, childExceptions}} />,
     },
   ];
