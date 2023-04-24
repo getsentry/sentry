@@ -1,7 +1,6 @@
 import pytest
 from django.conf import settings
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.cache import StringIndexerCache
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils.cache import cache
@@ -67,8 +66,8 @@ def test_ttl_jitter() -> None:
 
 
 def test_separate_namespacing() -> None:
-    indexer_cache.set("a", 1, UseCaseKey.RELEASE_HEALTH.value)
-    assert indexer_cache.get("a", UseCaseKey.RELEASE_HEALTH.value) == 1
-    indexer_cache.set("a", 2, UseCaseKey.PERFORMANCE.value)
-    assert indexer_cache.get("a", UseCaseKey.RELEASE_HEALTH.value) == 1
-    assert indexer_cache.get("a", UseCaseKey.PERFORMANCE.value) == 2
+    indexer_cache.set("sessions:3:what", 1)
+    assert indexer_cache.get("sessions:3:what") == 1
+    indexer_cache.set("transactions:3:what", 2)
+    assert indexer_cache.get("sessions:3:what") == 1
+    assert indexer_cache.get("transactions:3:what") == 2
