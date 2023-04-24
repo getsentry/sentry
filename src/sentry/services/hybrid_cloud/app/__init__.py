@@ -57,6 +57,7 @@ class RpcSentryApp(RpcModel):
     events: List[str] = Field(default_factory=list)
     webhook_url: Optional[str] = None
     is_published: bool = False
+    is_unpublished: bool = False
     is_internal: bool = True
     is_publish_request_inprogress: bool = False
     status: str = ""
@@ -71,7 +72,7 @@ class RpcSentryApp(RpcModel):
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
 
-    # Properties are copied from the sentry app ORM model. A bit annoying, but works
+    # Properties are copied from the sentry app ORM model.
     @property
     def slug_for_metrics(self) -> str:
         if self.is_internal:
@@ -79,22 +80,6 @@ class RpcSentryApp(RpcModel):
         if self.is_unpublished:
             return "unpublished"
         return self.slug
-
-    @property
-    def is_published(self):
-        return self.status == SentryAppStatus.PUBLISHED
-
-    @property
-    def is_unpublished(self):
-        return self.status == SentryAppStatus.UNPUBLISHED
-
-    @property
-    def is_internal(self):
-        return self.status == SentryAppStatus.INTERNAL
-
-    @property
-    def is_publish_request_inprogress(self):
-        return self.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
 
 
 class RpcSentryAppInstallation(RpcModel):
@@ -229,9 +214,10 @@ class AppService(RpcService):
             uuid=app.uuid,
             events=app.events,
             webhook_url=app.webhook_url,
-            is_published=app.is_published,
-            is_internal=app.is_internal,
-            is_publish_request_inprogress=app.is_publish_request_inprogress,
+            is_published=app.status == SentryAppStatus.PUBLISHED,
+            is_unpublished=app.status == SentryAppStatus.UNPUBLISHED,
+            is_internal=app.status == SentryAppStatus.INTERNAL,
+            is_publish_request_inprogress=app.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS,
             status=app.status,
         )
 
