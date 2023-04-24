@@ -58,7 +58,7 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 def process_organization_member_updates(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
 ):
-    if (org_member := maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
+    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
         # Delete all identities that may have been associated.  This is an implicit cascade.
         if payload and "user_id" in payload:
             identity_service.delete_identities(
