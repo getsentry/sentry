@@ -108,9 +108,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         with configure_scope() as scope:
             with transaction.atomic():
                 setting, created = self.get_or_create(
-                    provider=provider.value,
-                    type=type.value,
-                    scope_type=scope_type.value,
+                    provider=provider,
+                    type=type,
+                    scope_type=scope_type,
                     scope_identifier=scope_identifier,
                     target_id=target_id,
                     defaults=defaults,
@@ -405,8 +405,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
             else:
+                id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
                 self._update_settings(
-                    provider, type, value, scope_type, scope_identifier, target_id
+                    provider,
+                    type,
+                    value,
+                    scope_type,
+                    scope_identifier,
+                    target_id,
+                    **{id_key: actor.id},
                 )
         analytics.record(
             "notifications.settings_updated",

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Optional
 
 """
@@ -24,7 +24,7 @@ def get_notification_scope_name(value: int) -> Optional[str]:
     return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
-class NotificationSettingTypes(Enum):
+class NotificationSettingTypes(IntEnum):
     """
     Each of these categories of Notification settings has at least an option for
     "on" or "off". Workflow also includes SUBSCRIBE_ONLY and Deploy also
@@ -86,7 +86,7 @@ NOTIFICATION_SETTING_TYPES = {
 }
 
 
-class NotificationSettingOptionValues(Enum):
+class NotificationSettingOptionValues(IntEnum):
     """
     An empty row in the DB should be represented as
     NotificationSettingOptionValues.DEFAULT.
@@ -119,7 +119,7 @@ NOTIFICATION_SETTING_OPTION_VALUES = {
 }
 
 
-class NotificationScopeType(Enum):
+class NotificationScopeType(IntEnum):
     USER = 0
     ORGANIZATION = 10
     PROJECT = 20
