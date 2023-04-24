@@ -1708,6 +1708,18 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/views/webServiceView'))}
       />
       <Route
+        path="failure-detail/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/failureDetailView')
+        )}
+      />
+      <Route
+        path="failure-detail/:slug/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
+        )}
+      />
+      <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
       />
@@ -1721,9 +1733,7 @@ function buildRoutes() {
       />
       <Route
         path="span/:slug/"
-        component={make(
-          () => import('sentry/views/starfish/views/spanInTransactionView')
-        )}
+        component={make(() => import('sentry/views/starfish/views/spanSummary'))}
       />
     </Fragment>
   );

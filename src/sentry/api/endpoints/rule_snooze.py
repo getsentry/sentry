@@ -11,7 +11,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
-from sentry.models import Organization, Rule, RuleSnooze, Team
+from sentry.models import Organization, OrganizationMember, Rule, RuleSnooze
 
 
 class RuleSnoozeValidator(CamelSnakeSerializer):
@@ -34,17 +34,20 @@ class RuleSnoozeSerializer(Serializer):  # type: ignore
 
 
 def can_edit_alert_rule(rule, organization, user_id, user):
+    # make sure user has 'alert:write' scope
+    try:
+        org_member = OrganizationMember.objects.get(organization=organization, user=user)
+        if "alerts:write" not in org_member.get_scopes():
+            return False
+    except OrganizationMember.DoesNotExist:
+        pass
     # if the goal is to mute the rule just for the user, ensure they belong to the organization
     if user_id:
         if organization not in Organization.objects.get_for_user(user):
             return False
         return True
-    rule_owner = rule.owner
-    # if the rule is owned by a team, ensure the user belongs to the team
-    if rule_owner:
-        if rule_owner.team not in Team.objects.get_for_user(organization, user):
-            return False
-    # if the rule is unassigned, anyone can mute it
+    # if the rule is owned by a team, allow edit (same permission as delete)
+    # if the rule is unassigned, anyone can edit it
     return True
 
 
