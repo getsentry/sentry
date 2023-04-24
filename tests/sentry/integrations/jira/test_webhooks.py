@@ -11,7 +11,7 @@ from sentry.testutils import APITestCase
 TOKEN = "JWT anexampletoken"
 
 
-class JiraWebhooksTest(APITestCase):
+class JiraIssueUpdatedWebhookTest(APITestCase):
     endpoint = "sentry-extensions-jira-issue-updated"
     method = "post"
 
