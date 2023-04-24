@@ -2,7 +2,9 @@ import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import ArrayValue from 'sentry/utils/discover/arrayValue';
 
 const HOST = 'http://localhost:8080';
 
@@ -15,8 +17,11 @@ type Props = {
 };
 
 export type DataRow = {
+  data_keys: Array<string>;
+  data_values: Array<string>;
   desc: string;
   epm: number;
+  formatted_desc: string;
   p75: number;
   total_time: number;
   transactions: number;
@@ -27,6 +32,11 @@ const COLUMN_ORDER = [
     key: 'desc',
     name: 'Query',
     width: 600,
+  },
+  {
+    key: 'domain',
+    name: 'Table',
+    width: 200,
   },
   {
     key: 'epm',
@@ -67,11 +77,15 @@ export default function APIModuleView({
   ].filter(fil => !!fil);
   const TABLE_LIST_QUERY = `select description as desc, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
     uniq(transaction) as transactions,
-    sum(exclusive_time) as total_time
+    sum(exclusive_time) as total_time,
+    domain,
+    action,
+    data_keys,
+    data_values
     from default.spans_experimental_starfish
     where
     ${filters.join(' and ')}
-    group by description
+    group by action, description, domain, data_keys, data_values
     order by -pow(10, floor(log10(count()))), -quantile(0.5)(exclusive_time)
     limit 100
   `;
@@ -90,11 +104,35 @@ export default function APIModuleView({
   }
 
   function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
+    if (column.key === 'columns') {
+      const value = row.data_values[row.data_keys.indexOf('columns')];
+      return value ? <ArrayValue value={value?.split(',')} /> : <span />;
+    }
+    if (column.key === 'order') {
+      const value = row.data_values[row.data_keys.indexOf('order')];
+      return value ? <ArrayValue value={value?.split(',')} /> : <span />;
+    }
     if (column.key === 'desc') {
+      const value = row[column.key];
       return (
+        <Hovercard header="Query" body={value}>
+          <Link onClick={() => onSelect(row)} to="">
+            {value.substring(0, 30)}
+            {value.length > 30 ? '...' : ''}
+            {value.length > 30 ? value.substring(value.length - 30) : ''}
+          </Link>
+        </Hovercard>
+      );
+    }
+    if (column.key === 'conditions') {
+      const value = row.data_values[row.data_keys.indexOf('where')];
+      return value ? (
         <Link onClick={() => onSelect(row)} to="">
-          {row[column.key]}
+          {value.length > 60 ? '...' : ''}
+          {value.substring(value.length - 60)}
         </Link>
+      ) : (
+        <span />
       );
     }
     return <span>{row[column.key]}</span>;

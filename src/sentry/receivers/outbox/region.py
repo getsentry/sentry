@@ -1,3 +1,10 @@
+"""
+This module contains signal handler for region outbox messages.
+
+These receivers are triggered on the region silo as outbox messages
+are drained. Receivers are expected to make local state changes (tombstones)
+and perform RPC calls to propagate changes to Control Silo.
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -11,6 +18,7 @@ from sentry.models import (
     Project,
     process_region_outbox,
 )
+from sentry.models.team import Team
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
@@ -59,6 +67,13 @@ def process_organization_member_updates(
         return
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)
+def process_team_updates(
+    object_identifier: int, payload: Any, shard_identifier: int, **kwargs: Any
+):
+    maybe_process_tombstone(Team, object_identifier)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_UPDATE)

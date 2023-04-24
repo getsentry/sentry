@@ -538,7 +538,7 @@ def _track_outcome(
         reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
         event_id=event_id,
-        category=DataCategory.PROFILE,
+        category=DataCategory.PROFILE_INDEXED,
         quantity=1,
     )
 
