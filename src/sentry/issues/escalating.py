@@ -1,6 +1,8 @@
 """This module has the logic for querying Snuba for the hourly event count for a list of groups.
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
+
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Sequence, Tuple, TypedDict
 
@@ -18,10 +20,17 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.models import Group
+from sentry.models.group import GroupStatus
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.types.group import GroupSubStatus
+from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
@@ -29,6 +38,8 @@ REFERRER = "sentry.issues.escalating"
 ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
 BUCKETS_PER_GROUP = 7 * 24
+ONE_WEEK_DURATION = 7
+IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -137,3 +148,58 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Tuple[List[int], 
 
     # This also removes duplicated project ids
     return list(set(project_ids)), group_ids
+
+
+def get_group_daily_count(project_id: int, group_id: int) -> int:
+    """Return the number of events a group has had today"""
+    date_now = datetime.now().date()
+    start_date = date_now
+    end_date = date_now + timedelta(days=1)
+    query = Query(
+        match=Entity(EntityKey.Events.value),
+        select=[
+            Function("count", []),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("group_id"), Op.EQ, group_id),
+            Condition(Column("timestamp"), Op.GTE, start_date),
+            Condition(Column("timestamp"), Op.LT, end_date),
+        ],
+    )
+    request = Request(dataset=Dataset.Events.value, app_id=IS_ESCALATING_REFERRER, query=query)
+    return int(raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"])
+
+
+def is_escalating(group: Group) -> bool:
+    """Return boolean depending on if the group is escalating or not"""
+    forecast_cache_key = f"escalating-forecast:{group.id}"
+    escalating_forecast = cache.get(forecast_cache_key)
+    date_now = datetime.now().date()
+    if escalating_forecast is None:
+        escalating_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
+        if escalating_forecast is None:
+            logger.error(
+                f"Could not get forecast from nodestore for project:{group.project.id} and group:{group.id}. Investigate."
+            )
+            return False
+        escalating_forecast = (
+            escalating_forecast.date_added,
+            escalating_forecast.forecast,
+        )
+
+        # Set the cache to be valid until the next weekly escalating forecast task is run
+        forecast_cache_duration = (
+            (escalating_forecast[0] + timedelta(days=ONE_WEEK_DURATION)).date() - date_now
+        ).total_seconds()
+        cache.set(forecast_cache_key, escalating_forecast, forecast_cache_duration)
+
+    # Check if current event occurance is greater than forecast for today's date
+    group_daily_count = get_group_daily_count(group.project.id, group.id)
+    forecast_today_index = (date_now - escalating_forecast[0].date()).days
+    if group_daily_count > escalating_forecast[1][forecast_today_index]:
+        group.substatus = GroupSubStatus.ESCALATING
+        group.status = GroupStatus.UNRESOLVED
+        add_group_to_inbox(group, GroupInboxReason.ESCALATING)
+        return True
+    return False
