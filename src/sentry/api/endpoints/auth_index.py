@@ -67,6 +67,7 @@ class AuthIndexEndpoint(Endpoint):
 
     @staticmethod
     def _verify_user_via_inputs(validator, request):
+        # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
                 metrics.incr("2fa.login_attempt", sample_rate=1.0, skip_internal=False)
