@@ -30,6 +30,9 @@ class OrganizationMappingTest(TransactionTestCase):
             organization_id=self.organization.id
         )
 
+        assert (
+            rpc_orgmember_mapping.organizationmember_id == orgmember_mapping.organizationmember_id
+        )
         assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
@@ -66,6 +69,9 @@ class OrganizationMappingTest(TransactionTestCase):
             organizationmember_id=org_member.id,
         )
 
+        assert (
+            rpc_orgmember_mapping.organizationmember_id == orgmember_mapping.organizationmember_id
+        )
         assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
@@ -121,6 +127,9 @@ class OrganizationMappingTest(TransactionTestCase):
             organization_id=self.organization.id, email="mail@testserver.com"
         )
 
+        assert (
+            rpc_orgmember_mapping.organizationmember_id == orgmember_mapping.organizationmember_id
+        )
         assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
