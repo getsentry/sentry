@@ -307,6 +307,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         assert (user_id is None and email) or (
             user_id and email is None
         ), "Must set either user_id or email"
+        region_outbox = None
         with transaction.atomic():
             org_member: OrganizationMember = OrganizationMember.objects.create(
                 organization_id=organization_id,
@@ -319,7 +320,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
             region_outbox = org_member.outbox_for_create()
             region_outbox.save()
-        region_outbox.drain_shard(max_updates_to_drain=10)
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
         return self.serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
