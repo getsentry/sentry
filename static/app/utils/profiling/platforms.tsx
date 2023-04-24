@@ -12,6 +12,7 @@ export const supportedProfilingPlatformSDKs = [
   'php',
   'ruby',
   'javascript-nextjs',
+  'javascript-remix',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
 export type SupportedProfilingPlatformSDK =
@@ -38,6 +39,10 @@ export function getDocsPlatformSDKForPlatform(
 
   if (platform === 'javascript-nextjs') {
     return 'javascript-nextjs';
+  }
+
+  if (platform === 'javascript-remix') {
+    return 'javascript-remix';
   }
 
   if (platform.startsWith('python')) {
