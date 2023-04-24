@@ -94,7 +94,8 @@ export default function APIModuleView({
 
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
     queryKey: ['endpoints', action, transaction, table],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_LIST_QUERY}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${TABLE_LIST_QUERY}&format=sql`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
