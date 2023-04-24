@@ -422,6 +422,29 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "count_if",
+                    required_args=[
+                        fields.MetricArg("column", allow_custom_measurements=True),
+                        fields.ConditionArg("condition"),
+                        fields.SnQLStringArg(
+                            "value", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[
+                        resolve_metric_id,
+                        {
+                            "name": "typed_value",
+                            "fn": fields.normalize_count_if_value,
+                        },
+                        {
+                            "name": "normalized_condition",
+                            "fn": fields.normalize_count_if_condition,
+                        },
+                    ],
+                    snql_counter=self._resolve_count_if_proper,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -801,6 +824,20 @@ class MetricsDatasetConfig(DatasetConfig):
             ],
             alias,
         )
+
+    def _resolve_count_if_proper(
+        self,
+        metric_condition: Function,
+        condition: Function,
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        metric_condition = Function(
+            "has", [Column("metric_id"), Column("typed_value")]
+        )
+
+
+        condition = Function("equals", [1, 1])
+        return self._resolve_count_if(metric_condition, condition)
 
     def _resolve_apdex_function(
         self,

@@ -704,6 +704,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         snql_function = self.function_converter[name]
 
+        breakpoint()
         combinator = snql_function.find_combinator(combinator_name)
 
         if combinator_name is not None and combinator is None:
