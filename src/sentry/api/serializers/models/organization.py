@@ -35,6 +35,7 @@ from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
+    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -434,6 +435,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
+    aiSuggestedSolution: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -535,6 +537,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "codecovAccess": bool(obj.flags.codecov_access),
+                "aiSuggestedSolution": bool(
+                    obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
+                ),
             }
         )
 
