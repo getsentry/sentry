@@ -4,7 +4,10 @@ import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
 import Duration from 'sentry/components/duration';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -15,6 +18,7 @@ import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
   OverflowEllipsisTextContainer,
   renderHeadCell,
+  TextAlignRight,
 } from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailSeriesQuery,
@@ -27,6 +31,7 @@ export type EndpointDataRow = {
   description: string;
   domain: string;
   failure_count: number;
+  failure_rate: number;
   'p50(exclusive_time)': number;
   'p95(exclusive_time)': number;
   transaction_count: number;
@@ -45,19 +50,22 @@ const COLUMN_ORDER = [
   {
     key: 'transaction',
     name: 'Transaction',
-    width: 300,
+    width: 280,
   },
   {
     key: 'count',
     name: 'Count',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'p50',
     name: 'p50',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'failure_rate',
     name: 'Error %',
+    width: COL_WIDTH_UNDEFINED,
   },
 ];
 export default function EndpointDetail({
@@ -87,7 +95,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     retry: false,
     initialData: [],
   });
-  const [p50Series, p95Series, countSeries, errorRateSeries] =
+  const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
     endpointDetailDataToChartData(seriesData).map(series =>
       zeroFillSeries(series, moment.duration(12, 'hours'))
     );
@@ -149,7 +157,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>{t('Error Rate')}</SubHeader>
-          <SubSubHeader>{row.failure_count}</SubSubHeader>
+          <SubSubHeader>{row.failure_rate}</SubSubHeader>
           <APIDetailChart
             series={errorRateSeries}
             isLoading={seriesIsLoading}
@@ -174,6 +182,8 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   );
 }
 
+// TODO: A lot of this is duplicate from endpointTable.tsx renderBodyCell.
+// Only difference is the links. Come up with a better way to share this.
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanTransactionDataRow,
@@ -181,18 +191,32 @@ function renderBodyCell(
 ): React.ReactNode {
   if (column.key === 'transaction') {
     return (
-      <Link
-        to={`/starfish/span/${encodeURIComponent(spanDescription)}:${encodeURIComponent(
-          row.transaction
-        )}`}
-      >
-        {row[column.key]}
-      </Link>
+      <OverflowEllipsisTextContainer>
+        <Link
+          to={`/starfish/span/${encodeURIComponent(spanDescription)}:${encodeURIComponent(
+            row.transaction
+          )}`}
+        >
+          {row[column.key]}
+        </Link>
+      </OverflowEllipsisTextContainer>
     );
   }
 
+  // TODO: come up with a better way to identify number columns to align to the right
   if (column.key.toString().match(/^p\d\d/)) {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+    return (
+      <TextAlignRight>
+        <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
+      </TextAlignRight>
+    );
+  }
+  if (!['description', 'transaction'].includes(column.key.toString())) {
+    return (
+      <TextAlignRight>
+        <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
+      </TextAlignRight>
+    );
   }
 
   return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;

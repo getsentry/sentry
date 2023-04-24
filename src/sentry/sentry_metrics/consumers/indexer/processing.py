@@ -86,7 +86,6 @@ class MessageProcessor:
         is_output_sliced = self._config.is_output_sliced or False
 
         batch = IndexerBatch(
-            self._config.use_case_id,
             outer_message,
             should_index_tag_values=should_index_tag_values,
             is_output_sliced=is_output_sliced,
@@ -100,7 +99,7 @@ class MessageProcessor:
         ):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
             cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
-                batch.use_case_id, batch.parsed_payloads_by_offset
+                self._config.use_case_id, batch.parsed_payloads_by_offset
             )
 
         sdk.set_measurement(
@@ -108,7 +107,8 @@ class MessageProcessor:
         )
         batch.filter_messages(cardinality_limiter_state.keys_to_remove)
 
-        org_strings = batch.extract_strings()
+        extracted_strings = batch.extract_strings()
+        org_strings = next(iter(extracted_strings.values())) if extracted_strings else {}
 
         sdk.set_measurement("org_strings.len", len(org_strings))
 
