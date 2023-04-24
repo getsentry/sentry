@@ -141,8 +141,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         environment_name = request.query_params.get("environment")
         with transaction.atomic():
-            monitor_object = monitor
-
             if environment_name:
                 monitor_object = (
                     MonitorEnvironment.objects.filter(
@@ -162,9 +160,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     )
                     .first()
                 )
-                affected = monitor_object.update(status=MonitorStatus.PENDING_DELETION)
             else:
-                affected = (
+                monitor_object = (
                     Monitor.objects.filter(id=monitor.id)
                     .exclude(
                         status__in=[
@@ -172,9 +169,11 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                             MonitorStatus.DELETION_IN_PROGRESS,
                         ]
                     )
-                    .update(status=MonitorStatus.PENDING_DELETION)
+                    .first()
                 )
-            if not affected:
+            if not monitor_object or not monitor_object.update(
+                status=MonitorStatus.PENDING_DELETION
+            ):
                 return self.respond(status=404)
 
             schedule = ScheduledDeletion.schedule(monitor_object, days=0, actor=request.user)
