@@ -62,12 +62,9 @@ import {
 const DEFAULT_ERRORS_VISIBLE = 5;
 
 const SIZE_DATA_KEYS = [
-  // Legacy keys
   'Encoded Body Size',
   'Decoded Body Size',
   'Transfer Size',
-
-  // These follow to ensure they overwrite the legacy keys
   'encoded_body_size',
   'decoded_body_size',
   'transfer_size',

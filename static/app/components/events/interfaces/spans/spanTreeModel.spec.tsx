@@ -81,7 +81,7 @@ describe('SpanTreeModel', () => {
             data: {
               decoded_body_size: 159248,
               encoded_body_size: 159248,
-              'Transfer Size': 275,
+              transfer_size: 275,
             },
           },
         ],
@@ -300,7 +300,7 @@ describe('SpanTreeModel', () => {
           data: {
             decoded_body_size: 159248,
             encoded_body_size: 159248,
-            'Transfer Size': 275,
+            transfer_size: 275,
           },
         },
         numOfSpanChildren: 0,
