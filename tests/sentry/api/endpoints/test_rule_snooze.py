@@ -197,22 +197,24 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         assert "RuleSnooze already exists for this rule and scope." in response.data["detail"]
 
     @with_feature("organizations:mute-alerts")
-    def test_user_cant_mute_issue_alert_for_everyone(self):
-        """Test that if a user doesn't belong to the team that can edit an issue alert rule, we throw an error when they try to mute it for everyone."""
-        other_team = self.create_team()
-        other_issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=other_team.actor
+    def test_mute_issue_alert_without_alert_write(self):
+        """Test that a user without alerts:write cannot mute an issue alert rule"""
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
         )
-        data = {"target": "everyone"}
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(member_user)
+
+        data = {"target": "me"}
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
-            other_issue_alert_rule.id,
+            self.issue_alert_rule.id,
             **data,
         )
-        assert not RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
+        assert not RuleSnooze.objects.filter(rule=self.issue_alert_rule.id).exists()
         assert response.status_code == 403
-        assert "Requesting user cannot mute this rule" in response.data["detail"]
 
     @with_feature("organizations:mute-alerts")
     def test_user_can_mute_issue_alert_for_self(self):
@@ -311,21 +313,29 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
         assert response.status_code == 204
 
     @with_feature("organizations:mute-alerts")
-    def test_cant_delete_issue_alert_rule_mute_everyone(self):
-        """Test that a user can't unsnooze a rule that's snoozed for everyone if they do not belong to the team the owns the rule"""
-        other_team = self.create_team()
-        other_issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=other_team.actor
+    def test_delete_issue_alert_rule_without_alert_write(self):
+        """Test that a user without alerts:write access cannot unmute an issue alert rule"""
+        RuleSnooze.objects.create(
+            user_id=self.user.id, rule=self.issue_alert_rule, owner_id=self.user.id
         )
-        RuleSnooze.objects.create(rule=other_issue_alert_rule)
-        data = {"target": "everyone"}
+
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(member_user)
+
+        data = {"target": "me"}
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
-            other_issue_alert_rule.id,
+            self.issue_alert_rule.id,
             **data,
         )
-        assert RuleSnooze.objects.filter(rule=other_issue_alert_rule.id).exists()
+        assert RuleSnooze.objects.filter(
+            rule=self.issue_alert_rule.id, user_id=self.user.id
+        ).exists()
         assert response.status_code == 403
 
 
@@ -503,24 +513,24 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         assert "RuleSnooze already exists for this rule and scope." in response.data["detail"]
 
     @with_feature("organizations:mute-alerts")
-    def test_user_cant_snooze_metric_alert_for_everyone(self):
-        """Test that if a user doesn't belong to the team that can edit a metric alert rule, we throw an error when they try to mute it for everyone"""
-        other_team = self.create_team()
-        other_metric_alert_rule = self.create_alert_rule(
-            organization=self.project.organization,
-            projects=[self.project],
-            owner=ActorTuple.from_actor_identifier(f"team:{other_team.id}"),
+    def test_mute_metric_alert_without_alert_write(self):
+        """Test that a user without alerts:write access cannot mute an metric alert rule"""
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
         )
-        data = {"target": "everyone"}
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(member_user)
+
+        data = {"target": "me"}
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
-            other_metric_alert_rule.id,
+            self.metric_alert_rule.id,
             **data,
         )
-        assert not RuleSnooze.objects.filter(alert_rule=other_metric_alert_rule).exists()
+        assert not RuleSnooze.objects.filter(rule=self.metric_alert_rule.id).exists()
         assert response.status_code == 403
-        assert "Requesting user cannot mute this rule" in response.data["detail"]
 
     @with_feature("organizations:mute-alerts")
     def test_user_can_snooze_metric_alert_for_self(self):
@@ -601,17 +611,27 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         assert response.status_code == 204
 
     @with_feature("organizations:mute-alerts")
-    def test_cant_delete_metric_alert_rule_mute_everyone(self):
-        """Test that a user can't unsnooze a metric rule that's snoozed for everyone if they do not belong to the team the owns the rule"""
-        other_team = self.create_team()
-        other_metric_alert_rule = self.create_alert_rule(
-            organization=self.project.organization,
-            projects=[self.project],
-            owner=ActorTuple.from_actor_identifier(f"team:{other_team.id}"),
+    def test_delete_metric_alert_rule_without_alert_write(self):
+        """Test that a user without alerts:write access cannot unmute a metric alert rule"""
+        RuleSnooze.objects.create(
+            user_id=self.user.id, alert_rule=self.metric_alert_rule, owner_id=self.user.id
         )
-        RuleSnooze.objects.create(alert_rule=other_metric_alert_rule)
+
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(member_user)
+
+        data = {"target": "me"}
         response = self.get_response(
-            self.organization.slug, self.project.slug, other_metric_alert_rule.id
+            self.organization.slug,
+            self.project.slug,
+            self.metric_alert_rule.id,
+            **data,
         )
-        assert RuleSnooze.objects.filter(alert_rule=other_metric_alert_rule.id).exists()
+        assert RuleSnooze.objects.filter(
+            alert_rule=self.metric_alert_rule.id, user_id=self.user.id
+        ).exists()
         assert response.status_code == 403
