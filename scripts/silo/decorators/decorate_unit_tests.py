@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from scripts.silo.add_silo_decorators import SILO_KEYWORDS
+from sentry.testutils.modelmanifest import ModelManifest
 from sentry.utils.silo.decorate_unit_tests import decorate_unit_tests
 
 """Add silo mode decorators to unit test cases en masse.
@@ -23,5 +23,9 @@ repeated runs, you can instead do
     ./scripts/decorators/silo/decorate_unit_tests.py < pytest-collect.txt
 """
 
+_MODEL_MANIFEST_FILE_PATH = "./model-manifest.json"  # os.getenv("SENTRY_MODEL_MANIFEST_FILE_PATH")
+global _model_manifest
+_model_manifest = ModelManifest.open(_MODEL_MANIFEST_FILE_PATH)
+
 if __name__ == "__main__":
-    decorate_unit_tests(silo_keywords=SILO_KEYWORDS)
+    decorate_unit_tests(_model_manifest)

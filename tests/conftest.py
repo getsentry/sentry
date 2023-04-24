@@ -96,7 +96,7 @@ def _escape(s):
     return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
-_MODEL_MANIFEST_FILE_PATH = os.getenv("SENTRY_MODEL_MANIFEST_FILE_PATH")
+_MODEL_MANIFEST_FILE_PATH = "./model-manifest.json"  # os.getenv("SENTRY_MODEL_MANIFEST_FILE_PATH")
 _model_manifest = None
 
 
