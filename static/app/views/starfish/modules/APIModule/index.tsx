@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -6,14 +7,25 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import EndpointDetail, {
+  EndpointDataRow,
+} from 'sentry/views/starfish/views/endpointDetails';
 
 import APIModuleView from './APIModuleView';
+
+type APIModuleState = {
+  selectedRow?: EndpointDataRow;
+};
 
 type Props = {
   location: Location;
 };
 
 export default function APIModule(props: Props) {
+  const [state, setState] = useState<APIModuleState>({selectedRow: undefined});
+  const unsetSelectedSpanGroup = () => setState({selectedRow: undefined});
+  const {selectedRow} = state;
+  const setSelectedRow = (row: EndpointDataRow) => setState({selectedRow: row});
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -26,7 +38,8 @@ export default function APIModule(props: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <APIModuleView {...props} />
+            <APIModuleView {...props} onSelect={setSelectedRow} />
+            <EndpointDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>

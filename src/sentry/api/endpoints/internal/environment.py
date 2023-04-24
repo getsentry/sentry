@@ -4,12 +4,12 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.app import env
 
 
-@pending_silo_endpoint
+@all_silo_endpoint
 class InternalEnvironmentEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 

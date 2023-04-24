@@ -16,6 +16,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
 
@@ -25,6 +26,7 @@ def handle_status_update(
     projects: Sequence[Project],
     project_lookup: Dict[int, Project],
     new_status: GroupStatus,
+    new_substatus: GroupSubStatus | None,
     is_bulk: bool,
     status_details: Dict[str, Any],
     acting_user: User | None,
@@ -88,6 +90,7 @@ def handle_status_update(
 
     for group in group_list:
         group.status = new_status
+        group.substatus = new_substatus
 
         activity = Activity.objects.create(
             project=project_lookup[group.project_id],

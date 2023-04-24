@@ -1,44 +1,35 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {ENDPOINT_GRAPH_QUERY, ENDPOINT_LIST_QUERY} from './queries';
+import EndpointTable from './endpointTable';
+import {ENDPOINT_GRAPH_QUERY} from './queries';
 
-const HOST = 'http://localhost:8080';
+export const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
+  onSelect: (row: EndpointDataRow) => void;
 };
 
-type DataRow = {
+export type DataRow = {
   count: number;
   description: string;
+  domain: string;
 };
 
-const COLUMN_ORDER = [
-  {
-    key: 'description',
-    name: 'Transaction',
-    width: 600,
-  },
-  {
-    key: 'count',
-    name: 'Count',
-  },
-];
-
-export default function APIModuleView({location}: Props) {
-  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints'],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_LIST_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
+export default function APIModuleView({location, onSelect}: Props) {
   const {isLoading: isGraphLoading, data: graphData} = useQuery({
     queryKey: ['graph'],
     queryFn: () =>
@@ -56,6 +47,14 @@ export default function APIModuleView({location}: Props) {
       data: [],
     };
   });
+  const countSeries: Series = {
+    seriesName: 'count',
+    data: [],
+  };
+  const failureCountSeries: Series = {
+    seriesName: 'failure_count',
+    data: [],
+  };
 
   graphData.forEach(datum => {
     quantiles.forEach(quantile => {
@@ -64,50 +63,79 @@ export default function APIModuleView({location}: Props) {
         name: datum.interval,
       });
     });
+    countSeries.data.push({
+      value: datum.count,
+      name: datum.interval,
+    });
+    failureCountSeries.data.push({
+      value: datum.failure_count,
+      name: datum.interval,
+    });
   });
 
-  const data = Object.values(seriesByQuantile);
+  const data = Object.values(seriesByQuantile).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'))
+  );
 
   return (
     <Fragment>
-      <Chart
-        statsPeriod="24h"
-        height={180}
-        data={data}
-        start=""
-        end=""
-        loading={isGraphLoading}
-        utc={false}
-        grid={{
-          left: '0',
-          right: '0',
-          top: '16px',
-          bottom: '8px',
-        }}
-        disableMultiAxis
-        definedAxisTicks={4}
-        stacked
-      />
+      <ChartsContainer>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Throughput')}>
+            <APIModuleChart data={[countSeries]} loading={isGraphLoading} />
+          </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Response Time')}>
+            <APIModuleChart data={data} loading={isGraphLoading} />
+          </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Error Rate')}>
+            <APIModuleChart data={[failureCountSeries]} loading={isGraphLoading} />
+          </ChartPanel>
+        </ChartsContainerItem>
+      </ChartsContainer>
 
-      <GridEditable
-        isLoading={areEndpointsLoading}
-        data={endpointsData}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location}
-      />
+      <EndpointTable location={location} onSelect={onSelect} />
     </Fragment>
   );
 }
 
-function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  return <span>{column.name}</span>;
+function APIModuleChart({data, loading}: {data: Series[]; loading: boolean}) {
+  const themes = useTheme();
+  return (
+    <Chart
+      statsPeriod="24h"
+      height={180}
+      data={data}
+      start=""
+      end=""
+      loading={loading}
+      utc={false}
+      grid={{
+        left: '0',
+        right: '0',
+        top: '16px',
+        bottom: '8px',
+      }}
+      disableMultiAxis
+      definedAxisTicks={4}
+      stacked
+      isLineChart
+      showLegend
+      chartColors={themes.charts.getColorPalette(2)}
+    />
+  );
 }
 
-function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-  return <span>{row[column.key]}</span>;
-}
+const ChartsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1;
+`;
