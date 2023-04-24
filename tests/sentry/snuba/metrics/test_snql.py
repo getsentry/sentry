@@ -11,6 +11,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_weak
 from sentry.snuba.metrics import TransactionMRI
 from sentry.snuba.metrics.fields.snql import (
@@ -55,36 +56,38 @@ class DerivedMetricSnQLTestCase(TestCase):
             TransactionMRI.MEASUREMENTS_LCP.value,
             TransactionMRI.DURATION.value,
         ]:
-            self.metric_ids += [indexer.record(UseCaseKey.PERFORMANCE, self.org_id, metric_name)]
+            self.metric_ids += [indexer.record(UseCaseID.SESSIONS, self.org_id, metric_name)]
 
         indexer.bulk_record(
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
-            org_strings={
-                self.org_id: [
-                    "abnormal",
-                    "crashed",
-                    "errored_preaggr",
-                    "errored",
-                    "exited",
-                    "init",
-                    "session.status",
-                ]
-            },
+            {
+                UseCaseID.SESSIONS: {
+                    self.org_id: [
+                        "abnormal",
+                        "crashed",
+                        "errored_preaggr",
+                        "errored",
+                        "exited",
+                        "init",
+                        "session.status",
+                    ]
+                }
+            }
         )
         indexer.bulk_record(
-            use_case_id=UseCaseKey.PERFORMANCE,
-            org_strings={
-                self.org_id: [
-                    TransactionSatisfactionTagValue.FRUSTRATED.value,
-                    TransactionSatisfactionTagValue.SATISFIED.value,
-                    TransactionSatisfactionTagValue.TOLERATED.value,
-                    TransactionStatusTagValue.CANCELLED.value,
-                    TransactionStatusTagValue.OK.value,
-                    TransactionStatusTagValue.UNKNOWN.value,
-                    TransactionTagsKey.TRANSACTION_SATISFACTION.value,
-                    TransactionTagsKey.TRANSACTION_STATUS.value,
-                ]
-            },
+            {
+                UseCaseID.TRANSACTIONS: {
+                    self.org_id: [
+                        TransactionSatisfactionTagValue.FRUSTRATED.value,
+                        TransactionSatisfactionTagValue.SATISFIED.value,
+                        TransactionSatisfactionTagValue.TOLERATED.value,
+                        TransactionStatusTagValue.CANCELLED.value,
+                        TransactionStatusTagValue.OK.value,
+                        TransactionStatusTagValue.UNKNOWN.value,
+                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                        TransactionTagsKey.TRANSACTION_STATUS.value,
+                    ]
+                }
+            }
         )
 
     def test_counter_sum_aggregation_on_session_status(self):

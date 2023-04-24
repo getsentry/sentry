@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import responses
 
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+
 __all__ = (
     "TestCase",
     "TransactionTestCase",
@@ -1238,21 +1240,45 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         def metric_id(key: str):
             assert isinstance(key, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key)
+            res = indexer.record(
+                use_case_id=(
+                    UseCaseID.SESSIONS
+                    if use_case_id is UseCaseKey.RELEASE_HEALTH
+                    else UseCaseID.TRANSACTIONS
+                ),
+                org_id=org_id,
+                string=key,
+            )
             assert res is not None, key
             mapping_meta[str(res)] = key
             return res
 
         def tag_key(name):
             assert isinstance(name, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
+            res = indexer.record(
+                use_case_id=(
+                    UseCaseID.SESSIONS
+                    if use_case_id is UseCaseKey.RELEASE_HEALTH
+                    else UseCaseID.TRANSACTIONS
+                ),
+                org_id=org_id,
+                string=name,
+            )
             assert res is not None, name
             mapping_meta[str(res)] = name
             return res
 
         def tag_value(name):
             assert isinstance(name, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
+            res = indexer.record(
+                use_case_id=(
+                    UseCaseID.SESSIONS
+                    if use_case_id is UseCaseKey.RELEASE_HEALTH
+                    else UseCaseID.TRANSACTIONS
+                ),
+                org_id=org_id,
+                string=name,
+            )
             assert res is not None, name
             mapping_meta[str(res)] = name
             return res
@@ -1542,7 +1568,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        indexer.bulk_record(use_case_id=UseCaseKey.PERFORMANCE, org_strings=org_strings)
+        indexer.bulk_record({UseCaseID.TRANSACTIONS: org_strings})
 
     def store_transaction_metric(
         self,
@@ -2224,7 +2250,7 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
     def __indexer_record(self, org_id: int, value: str) -> int:
-        return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=value)
+        return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=value)
 
     def setUp(self):
         super().setUp()

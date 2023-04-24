@@ -13,6 +13,7 @@ from sentry.incidents.logic import query_datasets_to_type
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -39,7 +40,15 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    return indexer.record(
+        use_case_id=(
+            UseCaseID.SESSIONS
+            if use_case_id is UseCaseKey.RELEASE_HEALTH
+            else UseCaseID.TRANSACTIONS
+        ),
+        org_id=org_id,
+        string=string,
+    )
 
 
 perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
