@@ -19,7 +19,7 @@ type Props = {
 export type DataRow = {
   data_keys: Array<string>;
   data_values: Array<string>;
-  desc: string;
+  description: string;
   epm: number;
   formatted_desc: string;
   p75: number;
@@ -29,7 +29,7 @@ export type DataRow = {
 
 const COLUMN_ORDER = [
   {
-    key: 'desc',
+    key: 'description',
     name: 'Query',
     width: 600,
   },
@@ -75,7 +75,7 @@ export default function APIModuleView({
     tableFilter,
     actionFilter,
   ].filter(fil => !!fil);
-  const TABLE_LIST_QUERY = `select description as desc, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
+  const TABLE_LIST_QUERY = `select description, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
     uniq(transaction) as transactions,
     sum(exclusive_time) as total_time,
     domain,
@@ -112,7 +112,7 @@ export default function APIModuleView({
       const value = row.data_values[row.data_keys.indexOf('order')];
       return value ? <ArrayValue value={value?.split(',')} /> : <span />;
     }
-    if (column.key === 'desc') {
+    if (column.key === 'description') {
       const value = row[column.key];
       return (
         <Hovercard header="Query" body={value}>
