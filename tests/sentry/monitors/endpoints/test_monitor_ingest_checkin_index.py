@@ -315,3 +315,13 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 assert resp.status_code == 201, resp.content
                 resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
                 assert resp.status_code == 429, resp.content
+
+                # Keyed on environment
+                resp = self.client.post(
+                    path, {"status": "ok", "environment": "dev"}, **self.token_auth_headers
+                )
+                assert resp.status_code == 201, resp.content
+                resp = self.client.post(
+                    path, {"status": "ok", "environment": "dev"}, **self.token_auth_headers
+                )
+                assert resp.status_code == 429, resp.content

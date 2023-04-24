@@ -358,6 +358,7 @@ class Actions extends Component<Props> {
 
     const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     const hasDeleteAccess = organization.access.includes('event:admin');
+    const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
 
     const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
     const {dropdownItems: archiveDropdownItems} = getArchiveActions({
@@ -420,14 +421,18 @@ class Actions extends Component<Props> {
               disabled: disabled || group.subscriptionDetails?.disabled,
               onAction: this.onToggleSubscribe,
             },
-            {
-              key: 'mark-review',
-              label: t('Mark reviewed'),
-              disabled: !group.inbox || disabled,
-              details:
-                !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-              onAction: () => this.onUpdate({inbox: false}),
-            },
+            ...(disabledMarkReviewed
+              ? []
+              : [
+                  {
+                    key: 'mark-review',
+                    label: t('Mark reviewed'),
+                    disabled: !group.inbox || disabled,
+                    details:
+                      !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
+                    onAction: () => this.onUpdate({inbox: false}),
+                  },
+                ]),
             {
               key: 'share',
               label: t('Share'),

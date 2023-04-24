@@ -23,9 +23,12 @@ import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/
 
 const EventsRequest = withApi(_EventsRequest);
 
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
+import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -45,8 +48,10 @@ type BasePerformanceViewProps = {
 
 const HOST = 'http://localhost:8080';
 
+const handleClose = () => {};
+
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView, onSelect} = props;
+  const {organization, eventView, onSelect, location} = props;
   const theme = useTheme();
   const [selectedSpike, setSelectedSpike] = useState<any | undefined>();
 
@@ -126,9 +131,21 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '16px',
                 bottom: '8px',
               }}
-              handleSpikeAreaClick={e =>
-                e.componentType === 'markArea' && setSelectedSpike(e)
-              }
+              handleSpikeAreaClick={e => {
+                if (e.componentType === 'markArea') {
+                  setSelectedSpike(e);
+                  const startTime = new Date(e.data.coord[0][0]);
+                  const endTime = new Date(e.data.coord[1][0]);
+                  browserHistory.push({
+                    pathname: `${location.pathname}failure-detail/`,
+                    query: {
+                      start: normalizeDateTimeString(startTime),
+                      end: normalizeDateTimeString(endTime),
+                      project: decodeList(location.query.project),
+                    },
+                  });
+                }
+              }}
             />
           );
         }}
@@ -138,7 +155,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <FailureDetailPanel onClose={() => {}} spikeObject={selectedSpike} />
+      <FailureDetailPanel onClose={handleClose} spikeObject={selectedSpike} />
       <ModuleLinkButton type={ModuleButtonType.API} />
       <ModuleLinkButton type={ModuleButtonType.CACHE} />
       <ModuleLinkButton type={ModuleButtonType.DB} />
