@@ -21,6 +21,7 @@ export type DataRow = {
   data_values: Array<string>;
   desc: string;
   epm: number;
+  formatted_desc: string;
   p75: number;
   total_time: number;
   transactions: number;
