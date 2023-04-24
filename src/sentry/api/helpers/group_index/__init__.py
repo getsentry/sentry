@@ -23,6 +23,7 @@ __all__ = (
     "SEARCH_MAX_HITS",
     "delete_group_list",
     "update_groups",
+    "ValidationError",
 )
 
 from .delete import *  # NOQA
@@ -30,3 +31,4 @@ from .delete import delete_group_list
 from .index import *  # NOQA
 from .update import *  # NOQA
 from .update import update_groups
+from .validators import ValidationError
