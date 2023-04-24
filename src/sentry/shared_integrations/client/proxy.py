@@ -13,7 +13,7 @@ from sentry.silo.util import (
     PROXY_SIGNATURE_HEADER,
     PROXY_TIMESTAMP_HEADER,
     encode_subnet_signature,
-    trim_leading_slash,
+    trim_leading_slashes,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         Overriding build_url here allows us to use a direct proxy, rather than a transparent one.
         """
         base = self.proxy_url if self.should_proxy else self.base_url
-        self.client_path = trim_leading_slash(path)
+        self.client_path = trim_leading_slashes(path)
         return f"{base}/{self.client_path}"
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:

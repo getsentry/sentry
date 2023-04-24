@@ -19,6 +19,13 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS + [
 ]
 
 
+def trim_leading_slashes(path: str) -> str:
+    result = re.search(r"^\/+(\S+)", path)
+    if result is not None:
+        return result.groups()[0]
+    return path
+
+
 def clean_headers(
     headers: Mapping[str, str] | None, invalid_headers: List[str]
 ) -> Mapping[str, str]:
@@ -38,13 +45,6 @@ def clean_outbound_headers(headers: Mapping[str, str] | None) -> Mapping[str, st
     return clean_headers(headers, invalid_headers=INVALID_OUTBOUND_HEADERS)
 
 
-def trim_leading_slash(path: str) -> str:
-    result = re.search(r"^\/(\S+)", path)
-    if result is not None:
-        return result.groups()[0]
-    return path
-
-
 def encode_subnet_signature(
     secret: str,
     timestamp: str,
@@ -55,7 +55,7 @@ def encode_subnet_signature(
     """v0: Silo subnet signature encoding"""
     raw_signature = b"v0|%s|%s|%s|%s" % (
         timestamp.encode("utf-8"),
-        trim_leading_slash(path).encode("utf-8"),
+        trim_leading_slashes(path).encode("utf-8"),
         identifier.encode("utf-8"),
         request_body,
     )  # type: ignore
@@ -65,9 +65,9 @@ def encode_subnet_signature(
 
 def verify_subnet_signature(
     timestamp: str,
-    request_body: bytes,
     path: str,
     identifier: str,
+    request_body: bytes,
     provided_signature: str,
 ) -> bool:
     """v0: Silo subnet signature decoding and verification"""
