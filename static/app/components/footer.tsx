@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Hook from 'sentry/components/hook';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconSentry} from 'sentry/icons';
+import {IconSentry, IconSentryPride} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -39,7 +39,8 @@ function BaseFooter({className}: Props) {
         {privacyUrl && <FooterLink href={privacyUrl}>{t('Privacy Policy')}</FooterLink>}
         {termsUrl && <FooterLink href={termsUrl}>{t('Terms of Use')}</FooterLink>}
       </LeftLinks>
-      <LogoLink />
+      {/* Only display the pride logo on SaaS and during June (5). */}
+      <LogoLink isPride={!isSelfHosted && new Date().getMonth() === 5} />
       <RightLinks>
         {!isSelfHosted && (
           <FooterLink href="https://status.sentry.io/">{t('Service Status')}</FooterLink>
@@ -86,7 +87,7 @@ const FooterLink = styled(ExternalLink)`
 
 const LogoLink = styled(props => (
   <ExternalLink href="https://sentry.io/welcome/" tabIndex={-1} {...props}>
-    <IconSentry size="lg" />
+    {props.isPride ? <IconSentryPride size="lg" /> : <IconSentry size="lg" />}
   </ExternalLink>
 ))`
   display: flex;

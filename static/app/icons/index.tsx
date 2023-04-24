@@ -87,6 +87,7 @@ export {IconRewind10} from './iconRewind10';
 export {IconSad} from './iconSad';
 export {IconSearch} from './iconSearch';
 export {IconSentry} from './iconSentry';
+export {IconSentryPride} from './iconSentryPride';
 export {IconSettings} from './iconSettings';
 export {IconShow} from './iconShow';
 export {IconSiren} from './iconSiren';
