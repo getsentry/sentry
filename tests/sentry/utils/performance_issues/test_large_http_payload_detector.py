@@ -36,7 +36,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 "GET /api/0/organizations/endpoint1",
                 "hash1",
                 data={
-                    "Transfer Size": 50_000_000,
+                    "transfer_size": 50_000_000,
                     "encoded_body_size": 50_000_000,
                     "decoded_body_size": 50_000_000,
                 },
@@ -70,7 +70,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
                 duration=1000.0,
                 data={
-                    "Transfer Size": 50_000_000,
+                    "transfer_size": 50_000_000,
                     "encoded_body_size": 50_000_000,
                     "decoded_body_size": 50_000_000,
                 },

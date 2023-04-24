@@ -693,7 +693,7 @@
       "data": {
         "decoded_body_size": 48521,
         "encoded_body_size": 9251,
-        "Transfer Size": 9551
+        "transfer_size": 9551
       },
       "hash": "1f1dd0897c16565b"
     },
@@ -709,7 +709,7 @@
       "data": {
         "decoded_body_size": 4529244,
         "encoded_body_size": 1103151,
-        "Transfer Size": 1103451
+        "transfer_size": 1103451
       },
       "hash": "1f058070477778b8"
     },
@@ -725,7 +725,7 @@
       "data": {
         "decoded_body_size": 166604,
         "encoded_body_size": 49443,
-        "Transfer Size": 49743
+        "transfer_size": 49743
       },
       "hash": "254c644cff8b3e09"
     },
@@ -741,7 +741,7 @@
       "data": {
         "decoded_body_size": 1980965,
         "encoded_body_size": 507607,
-        "Transfer Size": 507907
+        "transfer_size": 507907
       },
       "hash": "779ec19f50f1ea39"
     },
@@ -754,7 +754,7 @@
       "span_id": "9d5b3c332aec7802",
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
-      "data": {"decoded_body_size": 296, "encoded_body_size": 296, "Transfer Size": 596},
+      "data": {"decoded_body_size": 296, "encoded_body_size": 296, "transfer_size": 596},
       "hash": "4f2043f50fc2f515"
     },
     {
@@ -766,7 +766,7 @@
       "span_id": "a92f3520fc053460",
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
-      "data": {"decoded_body_size": 76, "encoded_body_size": 76, "Transfer Size": 376},
+      "data": {"decoded_body_size": 76, "encoded_body_size": 76, "transfer_size": 376},
       "hash": "26d97630b7867f3e"
     },
     {
@@ -781,7 +781,7 @@
       "data": {
         "decoded_body_size": 78104,
         "encoded_body_size": 24604,
-        "Transfer Size": 24904
+        "transfer_size": 24904
       },
       "hash": "b7d184affa2b21b2"
     },
@@ -808,7 +808,7 @@
       "data": {
         "decoded_body_size": 25931,
         "encoded_body_size": 9296,
-        "Transfer Size": 300
+        "transfer_size": 300
       },
       "hash": "35a63c8a85b1279a"
     },

@@ -31,7 +31,7 @@ def create_compressed_asset_span():
         desc="https://someothersite.example.com/app.js",
         duration=1.0,
         data={
-            "Transfer Size": 5,
+            "transfer_size": 5,
             "encoded_body_size": 4,
             "decoded_body_size": 5,
         },
@@ -59,7 +59,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "Transfer Size": 1_000_000,
+                        "transfer_size": 1_000_000,
                         "encoded_body_size": 1_000_000,
                         "decoded_body_size": 1_000_000,
                     },
@@ -96,7 +96,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "Transfer Size": 1_000_000,
+                        "transfer_size": 1_000_000,
                         "encoded_body_size": 1_000_000,
                         "decoded_body_size": 1_000_000,
                     },
@@ -135,7 +135,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                     duration=1000.0,
                     data={
-                        "Transfer Size": 1_000_000,
+                        "transfer_size": 1_000_000,
                         "encoded_body_size": 1_000_000,
                         "decoded_body_size": 1_000_000,
                     },
@@ -174,7 +174,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.css",
                     duration=1000.0,
                     data={
-                        "Transfer Size": 1_000_000,
+                        "transfer_size": 1_000_000,
                         "encoded_body_size": 1_000_000,
                         "decoded_body_size": 1_000_000,
                     },
@@ -208,7 +208,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.woff2",
                 duration=1000.0,
                 data={
-                    "Transfer Size": 1_000_000,
+                    "transfer_size": 1_000_000,
                     "encoded_body_size": 1_000_000,
                     "decoded_body_size": 1_000_000,
                 },
@@ -227,7 +227,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "Transfer Size": 1_000_000,
+                        "transfer_size": 1_000_000,
                         "encoded_body_size": 1_000_000,
                         "decoded_body_size": 1_000_000,
                     },
@@ -246,7 +246,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "Transfer Size": 1_000_000,
+                        "transfer_size": 1_000_000,
                         "encoded_body_size": 99_999,
                         "decoded_body_size": 99_999,
                     },
@@ -265,7 +265,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=1000.0,
                     data={
-                        "Transfer Size": 1_000_000,
+                        "transfer_size": 1_000_000,
                         "encoded_body_size": 101_000,
                         "decoded_body_size": 100_999,
                     },
@@ -284,7 +284,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 create_asset_span(
                     duration=50.0,
                     data={
-                        "Transfer Size": 1_000_000,
+                        "transfer_size": 1_000_000,
                         "encoded_body_size": 101_000,
                         "decoded_body_size": 101_000,
                     },
