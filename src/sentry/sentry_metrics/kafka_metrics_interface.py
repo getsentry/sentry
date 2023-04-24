@@ -1,15 +1,30 @@
-from abc import ABC, abstractmethod
 from concurrent.futures import Future
 from typing import Mapping, Optional, Sequence, Union
 
-from arroyo import Message
-from arroyo.backends.kafka import KafkaPayload
+from arroyo import Message, Topic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from django.conf import settings
 
+from sentry.sentry_metrics.metrics_interface import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils import json
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
 
-class GenericMetricsBackend(ABC):
-    @abstractmethod
+def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
+    mri_unit = "none" if unit is None else unit
+    return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
+
+
+class KafkaMetricsBackend(GenericMetricsBackend):
+    def __init__(self) -> None:
+
+        self.kafka_topic = settings.KAFKA_INGEST_PERFORMANCE_METRICS
+
+        cluster_name = settings.KAFKA_TOPICS[self.kafka_topic]["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
     def counter(
         self,
         use_case_id: UseCaseID,
@@ -29,9 +44,21 @@ class GenericMetricsBackend(ABC):
         in the UseCaseID enum.
         """
 
-        raise NotImplementedError()
+        counter_metric = {
+            "org_id": org_id,
+            "project_id": project_id,
+            "name": build_mri(metric_name, "c", use_case_id, unit),
+            "value": value,
+            "timestamp": timestamp,
+            "tags": tags,
+            "retention_days": retention_days,
+        }
 
-    @abstractmethod
+        payload = KafkaPayload(None, json.dumps(counter_metric).encode("utf-8"), [])
+        future = self.producer.produce(Topic(self.kafka_topic), payload)
+
+        return future
+
     def set(
         self,
         use_case_id: UseCaseID,
@@ -52,7 +79,6 @@ class GenericMetricsBackend(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def distribution(
         self,
         use_case_id: UseCaseID,
