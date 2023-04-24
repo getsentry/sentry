@@ -7,6 +7,7 @@ import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
@@ -139,15 +140,19 @@ const ConsoleLog = styled('div')<{
 `;
 
 const ICONS = {
-  error: <IconFire size="xs" />,
-  warning: <IconWarning size="xs" />,
+  [BreadcrumbLevelType.ERROR]: <IconFire size="xs" />,
+  [BreadcrumbLevelType.WARNING]: <IconWarning size="xs" />,
 };
 
-const Icon = styled(({level, className}) => (
-  <span className={className}>{ICONS[level]}</span>
-))<{
-  level: Extract<Crumb, BreadcrumbTypeDefault>['level'];
-}>`
+const Icon = styled(
+  ({
+    level,
+    className,
+  }: {
+    level: BreadcrumbLevelType.ERROR | BreadcrumbLevelType.WARNING;
+    className?: string;
+  }) => <span className={className}>{ICONS[level]}</span>
+)`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
