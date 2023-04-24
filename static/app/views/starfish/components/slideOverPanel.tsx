@@ -43,5 +43,9 @@ const _SlideOverPanel = styled(motion.div, {
   border-left: 1px solid ${p => p.theme.border};
   text-align: left;
   z-index: ${p => p.theme.zIndex.sidebar - 1};
-  ${p => (p.collapsed ? 'overflow: hidden;' : 'overflow:scroll')}
+  ${p =>
+    p.collapsed
+      ? 'overflow: hidden;'
+      : `overflow-x: hidden;
+  overflow-y: scroll;`}
 `;

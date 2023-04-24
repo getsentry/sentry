@@ -46,7 +46,7 @@ export default function QueryDetail({
   onClose,
 }: Partial<EndpointDetailBodyProps> & {onClose: () => void}) {
   return (
-    <Detail detailKey={row?.desc} onClose={onClose}>
+    <Detail detailKey={row?.description} onClose={onClose}>
       {row && <QueryDetailBody row={row} />}
     </Detail>
   );
@@ -60,7 +60,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     SELECT transaction, count() AS count, quantile(0.5)(exclusive_time) as p50
     FROM spans_experimental_starfish
     WHERE module = 'db'
-    AND description = '${row.desc}'
+    AND description = '${row.description}'
     GROUP BY transaction
     ORDER BY count DESC
     LIMIT 10
@@ -72,13 +72,13 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
       count() as count
       FROM spans_experimental_starfish
       WHERE module = 'db'
-      AND description = '${row.desc}'
+      AND description = '${row.description}'
       GROUP BY interval
       ORDER BY interval asc
    `;
 
   const {isLoading, data: graphData} = useQuery({
-    queryKey: ['dbQueryDetailsGraph', row.desc],
+    queryKey: ['dbQueryDetailsGraph', row.description],
     queryFn: () =>
       fetch(`${HOST}/?query=${GRAPH_QUERY}?format=sql`).then(res => res.json()),
     retry: false,
@@ -86,7 +86,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   });
 
   const {isLoading: isTableLoading, data: tableData} = useQuery({
-    queryKey: ['dbQueryDetailsTable', row.desc],
+    queryKey: ['dbQueryDetailsTable', row.description],
     queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
     retry: true,
     initialData: [],
@@ -107,7 +107,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     if (column.key === 'transaction') {
       return (
         <Link
-          to={`/starfish/span/${encodeURIComponent(row.desc)}:${encodeURIComponent(
+          to={`/starfish/span/${encodeURIComponent(row.description)}:${encodeURIComponent(
             dataRow.transaction
           )}`}
         >
