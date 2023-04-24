@@ -62,9 +62,9 @@ class NotificationSetting(Model):
     target = FlexibleForeignKey(
         "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
     )
-    team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=False, on_delete="CASCADE")
+    team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
     user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, null=True, db_index=False, on_delete=models.CASCADE
+        settings.AUTH_USER_MODEL, null=True, db_index=True, on_delete=models.CASCADE
     )
     provider = BoundedPositiveIntegerField(
         choices=(
