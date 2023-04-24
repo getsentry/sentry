@@ -30,6 +30,15 @@ export const OTHER_DOMAINS = `SELECT
  ORDER BY interval
  `;
 
+export const DB_TIME_SPENT = `SELECT
+ quantile(0.75)(exclusive_time) as p75,
+ toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+ FROM default.spans_experimental_starfish
+ WHERE startsWith(span_operation, 'db')
+ GROUP BY interval
+ ORDER BY interval
+ `;
+
 export const FAILURE_RATE_QUERY = `SELECT
  toStartOfInterval(start_timestamp, INTERVAL 5 MINUTE) as interval,
  countIf(greaterOrEquals(status, 200) AND less(status, 300)) as successCount,
