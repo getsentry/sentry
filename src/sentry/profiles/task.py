@@ -6,7 +6,7 @@ from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
-from celery.exceptions import SoftTimeLimitExceeded
+from celery.exceptions import TimeLimitExceeded
 from django.conf import settings
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
@@ -50,13 +50,9 @@ def process_profile_task(
 ) -> None:
     try:
         process_profile_work(profile=profile)
-    except SoftTimeLimitExceeded as e:
+    except TimeLimitExceeded as e:
         sentry_sdk.capture_exception(e)
-        metrics.incr(
-            "process_profile.soft_time_limit_exceeded",
-            tags={"platform": profile["platform"]},
-            sample_rate=1.0,
-        )
+        raise e
 
 
 def process_profile_work(profile: Profile) -> None:
