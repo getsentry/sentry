@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
@@ -26,7 +26,7 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
     const handleClick = () => {
       // only call the analytics event if the URL is changing
       if (recordAnalytics && to !== window.location.pathname && organization) {
-        trackAdvancedAnalyticsEvent('sidebar.item_clicked', {
+        trackAnalytics('sidebar.item_clicked', {
           organization,
           project_id: project && project.id,
           sidebar_item_id: id,

@@ -40,7 +40,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        sentry_app_installation = SentryAppInstallation.objects.get(sentry_app_id=sentry_app.idp)
+        sentry_app_installation = SentryAppInstallation.objects.get(sentry_app_id=sentry_app.id)
         try:
             api_token = SentryAppInstallationTokenCreator(
                 sentry_app_installation=sentry_app_installation

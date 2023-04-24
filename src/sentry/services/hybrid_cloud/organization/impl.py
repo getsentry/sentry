@@ -207,7 +207,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         *,
         slug: str,
         user_id: Optional[int] = None,
-    ) -> Optional[RpcUserOrganizationContext]:
+    ) -> Optional[RpcOrganizationSummary]:
         query = Organization.objects.filter(slug=slug)
         if user_id is not None:
             query = query.filter(
@@ -215,7 +215,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 member_set__user_id=user_id,
             )
         try:
-            return self.serialize_organization(query.get())
+            return self._serialize_organization_summary(query.get())
         except Organization.DoesNotExist:
             return None
 

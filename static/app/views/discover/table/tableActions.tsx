@@ -10,7 +10,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {IconDownload, IconStack, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 
@@ -30,7 +30,7 @@ type Props = {
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
-  trackAdvancedAnalyticsEvent('discover_v2.results.download_csv', {
+  trackAnalytics('discover_v2.results.download_csv', {
     organization: organization.id, // org summary
   });
   downloadAsCsv(tableData, eventView.getColumns(), title);

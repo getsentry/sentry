@@ -6,7 +6,7 @@ import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 function SampleEventAlert({
   organization,
@@ -30,7 +30,7 @@ function SampleEventAlert({
           project.platform || ''
         }`}
         onClick={() =>
-          trackAdvancedAnalyticsEvent('growth.sample_error_onboarding_link_clicked', {
+          trackAnalytics('growth.sample_error_onboarding_link_clicked', {
             project_id: project.id?.toString(),
             organization,
             platform: project.platform,
