@@ -25,7 +25,8 @@ from sentry.models import (
     UserReport,
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format, with_feature
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
