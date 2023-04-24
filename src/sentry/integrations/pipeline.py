@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sentry import features
 from sentry.api.utils import generate_organization_url
 
 __all__ = ["IntegrationPipeline"]
@@ -177,10 +178,9 @@ class IntegrationPipeline(Pipeline):
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
-        subdomain = self.fetch_state("subdomain")
         document_origin = "document.origin"
-        if subdomain:
-            document_origin = generate_organization_url(subdomain)
+        if features.has("organizations:customer-domains", self.organization):
+            document_origin = f'"{generate_organization_url(self.organization.slug)}"'
         context = {
             "payload": {"success": success, "data": data},
             "document_origin": document_origin,
