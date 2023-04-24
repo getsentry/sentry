@@ -103,6 +103,7 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 404
 
 
+@control_silo_test
 class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     def test_update_published_app(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -424,6 +425,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         }
 
 
+@control_silo_test
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
     @patch("sentry.analytics.record")
     def test_delete_unpublished_app(self, record):
