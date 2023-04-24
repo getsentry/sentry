@@ -19,6 +19,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
     def create_mapping(
         self,
         *,
+        organizationmember_id: int,
         organization_id: int,
         role: str,
         user_id: Optional[int] = None,
@@ -31,6 +32,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         ), "Must set either user or email"
         with transaction.atomic():
             org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
+                organizationmember_id=organizationmember_id,
                 organization_id=organization_id,
                 user_id=user_id,
                 email=email,
@@ -46,6 +48,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         self, *, org_member: OrganizationMember
     ) -> RpcOrganizationMemberMapping:
         return self.create_mapping(
+            organizationmember_id=org_member.id,
             organization_id=org_member.organization_id,
             role=org_member.role,
             user_id=org_member.user_id,

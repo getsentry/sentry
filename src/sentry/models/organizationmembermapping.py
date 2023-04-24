@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.organizationmember import InviteStatus
@@ -21,6 +21,9 @@ class OrganizationMemberMapping(Model):
     __include_in_export__ = False
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
+    # TODO: allow null values for organizationmember_id column. We will later repair and populate these columns with
+    # values; and remove null=True.
+    organizationmember_id = BoundedBigIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
@@ -44,6 +47,10 @@ class OrganizationMemberMapping(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmembermapping"
-        unique_together = (("organization_id", "user"), ("organization_id", "email"))
+        unique_together = (
+            ("organization_id", "user"),
+            ("organization_id", "email"),
+            ("organization_id", "organizationmember_id"),
+        )
 
     __repr__ = sane_repr("organization_id", "user_id", "role")
