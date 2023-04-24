@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import {Location} from 'history';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
@@ -23,58 +22,6 @@ type Props = {
   organization: Organization;
 };
 
-function getOptions() {
-  const prefix = <span>{t('Operation')}</span>;
-
-  return [
-    'ALL',
-    'DELETE',
-    'INSERT',
-    'ROLLBACK',
-    'SAVEPOINT',
-    'SELECT',
-    'UPDATE',
-    'connect',
-    'delete',
-  ].map(action => {
-    return {
-      value: action,
-      prefix,
-      label: action,
-    };
-  });
-}
-
-function getTableOptions() {
-  const prefix = <span>{t('Table')}</span>;
-
-  return [
-    'ALL',
-    'auth_user',
-    'sentry_useroption',
-    'sentry_organizationmember',
-    'sentry_organization',
-    'sentry_project',
-    'sentry_useremail',
-    'sentry_auditlogentry',
-    'accounts_charge',
-    'sentry_organizationmember_teams',
-    'sentry_team',
-    'sentry_useravatar',
-    'sentry_groupmeta',
-    'sentry_release_project',
-    'auth_authenticator',
-    'policy_policy',
-    'sentry_grouplink',
-  ].map(action => {
-    return {
-      value: action,
-      prefix,
-      label: action,
-    };
-  });
-}
-
 type State = {
   action: string;
   table: string;
@@ -88,13 +35,6 @@ class DatabaseModule extends Component<Props, State> {
     transaction: '',
     table: 'ALL',
   };
-
-  handleOptionChange(value) {
-    this.setState({action: value});
-  }
-  handleTableChange(value) {
-    this.setState({table: value});
-  }
 
   handleSearch(query) {
     const conditions = new MutableSearch(query);
@@ -129,16 +69,18 @@ class DatabaseModule extends Component<Props, State> {
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageErrorAlert />
-              <DatabaseChartView location={location} />
-              <CompactSelect
-                value={action}
-                options={getOptions()}
-                onChange={opt => this.handleOptionChange(opt.value)}
-              />
-              <CompactSelect
-                value={table}
-                options={getTableOptions()}
-                onChange={opt => this.handleTableChange(opt.value)}
+              <DatabaseChartView
+                location={location}
+                action={action}
+                table={table}
+                onChange={(key, val) => {
+                  if (key === 'action') {
+                    this.setState({action: val});
+                    this.setState({table: 'ALL'});
+                  } else {
+                    this.setState({table: val});
+                  }
+                }}
               />
               <TransactionNameSearchBar
                 organization={organization}
