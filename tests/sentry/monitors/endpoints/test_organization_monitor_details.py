@@ -1,5 +1,5 @@
 from sentry.models import ScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -353,3 +353,25 @@ class DeleteMonitorTest(MonitorTestCase):
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
         self.get_error_response("asdf", monitor.slug, status_code=404)
+
+    def test_environment(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="DELETE",
+            status_code=202,
+            qs_params={"environment": "production"},
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == MonitorStatus.ACTIVE
+
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.PENDING_DELETION
+        # ScheduledDeletion only available in control silo
+        assert ScheduledDeletion.objects.filter(
+            object_id=monitor_environment.id, model_name="MonitorEnvironment"
+        ).exists()
