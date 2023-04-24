@@ -15,7 +15,7 @@ import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
 import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import platforms, {ReactDocVariant} from 'sentry/data/platforms';
+import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -76,12 +76,14 @@ function MissingExampleWarning({
   );
 }
 
-export function ProjectDocsReact({
+export function DocWithProductSelection({
   organization,
   location,
   projectSlug,
   newOrg,
+  currentPlatform,
 }: {
+  currentPlatform: PlatformKey;
   location: Location;
   organization: Organization;
   projectSlug: Project['slug'];
@@ -91,13 +93,13 @@ export function ProjectDocsReact({
     const products = location.query.product ?? [];
     return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
       products.includes(PRODUCT.SESSION_REPLAY)
-      ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
+      ? `${currentPlatform}-with-error-monitoring-performance-and-replay`
       : products.includes(PRODUCT.PERFORMANCE_MONITORING)
-      ? ReactDocVariant.ErrorMonitoringAndPerformance
+      ? `${currentPlatform}-with-error-monitoring-and-performance`
       : products.includes(PRODUCT.SESSION_REPLAY)
-      ? ReactDocVariant.ErrorMonitoringAndSessionReplay
-      : ReactDocVariant.ErrorMonitoring;
-  }, [location.query.product]);
+      ? `${currentPlatform}-with-error-monitoring-and-replay`
+      : `${currentPlatform}-with-error-monitoring`;
+  }, [location.query.product, currentPlatform]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
@@ -107,15 +109,14 @@ export function ProjectDocsReact({
     }
   );
 
+  const platformName = platforms.find(p => p.id === currentPlatform)?.name ?? '';
+
   return (
     <Fragment>
       {newOrg && (
         <SetupIntroduction
-          stepHeaderText={t(
-            'Configure %s SDK',
-            platforms.find(p => p.id === 'javascript-react')?.name ?? ''
-          )}
-          platform="javascript-react"
+          stepHeaderText={t('Configure %s SDK', platformName)}
+          platform={currentPlatform}
         />
       )}
       <ProductSelection
@@ -125,7 +126,7 @@ export function ProjectDocsReact({
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError
-          message={t('Failed to load documentation for the React platform.')}
+          message={t('Failed to load documentation for the %s platform.', platformName)}
           onRetry={refetch}
         />
       ) : (
@@ -136,7 +137,7 @@ export function ProjectDocsReact({
                 dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
               />
               <MissingExampleWarning
-                platform="javascript-react"
+                platform={currentPlatform}
                 platformDocs={{
                   html: data?.html ?? '',
                   link: data?.link ?? '',
@@ -287,8 +288,8 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   );
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
-  const showReactOnboarding =
-    currentPlatform === 'javascript-react' && docsWithProductSelection;
+  const showDocsWithProductSelection =
+    currentPlatform.match('^javascript-([A-Za-z]+)$') && docsWithProductSelection;
 
   const hideLoaderOnboarding = useCallback(() => {
     setShowLoaderOnboarding(false);
@@ -310,8 +311,8 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       return;
     }
 
-    // this will be fetched in the SetupDocsReact component
-    if (showReactOnboarding) {
+    // this will be fetched in the DocWithProductSelection component
+    if (showDocsWithProductSelection) {
       return;
     }
 
@@ -346,7 +347,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     project?.platform,
     api,
     organization.slug,
-    showReactOnboarding,
+    showDocsWithProductSelection,
     showIntegrationOnboarding,
     showLoaderOnboarding,
   ]);
@@ -420,11 +421,12 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
                 setIntegrationUseManualSetup(true);
               }}
             />
-          ) : showReactOnboarding ? (
-            <ProjectDocsReact
+          ) : showDocsWithProductSelection ? (
+            <DocWithProductSelection
               organization={organization}
               projectSlug={project.slug}
               location={location}
+              currentPlatform={currentPlatform}
               newOrg
             />
           ) : showLoaderOnboarding ? (

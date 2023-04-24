@@ -54,7 +54,7 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     than 7 days old) will skew the optimization since we may only get one page and less elements than the max
     ELEMENTS_PER_SNUBA_PAGE.
     """
-    all_results = []  # type: ignore
+    all_results = []  # type: ignore[var-annotated]
     if not groups:
         return all_results
 
