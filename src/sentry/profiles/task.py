@@ -6,6 +6,7 @@ from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
+from celery.exceptions import SoftTimeLimitExceeded
 from django.conf import settings
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
@@ -39,11 +40,26 @@ class VroomTimeout(Exception):
     default_retry_delay=5,  # retries after 5s
     max_retries=5,
     acks_late=True,
+    task_soft_time_limit=30,
+    task_time_limit=60,
+    task_acks_on_failure_or_timeout=False,
 )
 def process_profile_task(
     profile: Profile,
     **kwargs: Any,
 ) -> None:
+    try:
+        process_profile_work(profile=profile)
+    except SoftTimeLimitExceeded as e:
+        sentry_sdk.capture_exception(e)
+        metrics.incr(
+            "process_profile.soft_time_limit_exceeded",
+            tags={"platform": profile["platform"]},
+            sample_rate=1.0,
+        )
+
+
+def process_profile_work(profile: Profile) -> None:
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
     sentry_sdk.set_tag("organization", organization.id)
