@@ -25,7 +25,7 @@ function renderMockRequests({
     body: project,
   });
 
-  if (project.slug === 'javascript-browser') {
+  if (project.slug === 'javascript') {
     MockApiClient.addMockResponse({
       url: `/projects/${orgSlug}/${project.slug}/keys/`,
       body: [PROJECT_KEY],
@@ -77,10 +77,7 @@ describe('Onboarding Setup Docs', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        features: [
-          'onboarding-remove-multiselect-platform',
-          'onboarding-docs-with-product-selection',
-        ],
+        features: ['onboarding-docs-with-product-selection'],
       },
       projects: [
         {
@@ -101,14 +98,12 @@ describe('Onboarding Setup Docs', function () {
         value={[
           {
             onboarding: {
-              selectedPlatforms: [
-                {
-                  category: 'server',
-                  key: 'python',
-                  language: 'python',
-                  type: 'language',
-                },
-              ],
+              selectedPlatform: {
+                category: 'server',
+                key: 'python',
+                language: 'python',
+                type: 'language',
+              },
               platformToProjectIdMap: {
                 python: 'python',
               },
@@ -128,6 +123,7 @@ describe('Onboarding Setup Docs', function () {
           orgId={organization.slug}
           jumpToSetupProject={() => {}}
           search=""
+          selectedProjectSlug="python"
         />
       </PersistedStoreContext.Provider>,
       {
@@ -153,10 +149,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-docs-with-product-selection'],
         },
         router: {
           location: {
@@ -186,14 +179,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript-react',
-                    language: 'javascript',
-                    type: 'framework',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -213,6 +204,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -238,10 +230,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-docs-with-product-selection'],
         },
         router: {
           location: {
@@ -271,14 +260,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript-react',
-                    language: 'javascript',
-                    type: 'framework',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -298,6 +285,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -317,10 +305,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-docs-with-product-selection'],
         },
         router: {
           location: {
@@ -350,14 +335,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript-react',
-                    language: 'javascript',
-                    type: 'framework',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -377,6 +360,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -396,10 +380,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-docs-with-product-selection'],
         },
         router: {
           location: {
@@ -429,14 +410,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript-react',
-                    language: 'javascript',
-                    type: 'framework',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -456,6 +435,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -477,10 +457,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-docs-with-product-selection'],
         },
         router: {
           location: {
@@ -490,7 +467,7 @@ describe('Onboarding Setup Docs', function () {
         projects: [
           {
             ...initializeOrg().project,
-            slug: 'javascript-browser',
+            slug: 'javascript',
             platform: 'javascript',
           },
         ],
@@ -516,16 +493,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript',
-                    language: 'javascript',
-                    type: 'language',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript',
+                  language: 'javascript',
+                  type: 'language',
+                },
                 platformToProjectIdMap: {
-                  javascript: 'javascript-browser',
+                  javascript: 'javascript',
                 },
               },
             },
@@ -543,6 +518,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -581,16 +557,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript',
-                    language: 'javascript',
-                    type: 'language',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript',
+                  language: 'javascript',
+                  type: 'language',
+                },
                 platformToProjectIdMap: {
-                  javascript: 'javascript-browser',
+                  javascript: 'javascript',
                 },
               },
             },
@@ -608,6 +582,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript"
           />
         </PersistedStoreContext.Provider>
       );

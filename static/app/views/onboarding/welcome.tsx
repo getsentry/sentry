@@ -76,7 +76,7 @@ function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
 
     setClientState({
       platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
-      selectedPlatforms: [],
+      selectedPlatform: undefined,
       url: 'select-platform/',
       state: 'started',
     });
@@ -92,7 +92,7 @@ function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
 
     setClientState({
       platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
-      selectedPlatforms: [],
+      selectedPlatform: undefined,
       url: 'welcome/',
       state: 'skipped',
     });

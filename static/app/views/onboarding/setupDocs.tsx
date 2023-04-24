@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import {Location} from 'history';
-import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import {Alert} from 'sentry/components/alert';
@@ -31,7 +30,6 @@ import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduct
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 
 import FirstEventFooter from './components/firstEventFooter';
-import ProjectSidebarSection from './components/projectSidebarSection';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
@@ -42,10 +40,6 @@ import {usePersistedOnboardingState} from './utils';
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
 type PlatformDoc = {html: string; link: string};
-
-type Props = {
-  search: string;
-} & StepProps;
 
 function MissingExampleWarning({
   platformDocs,
@@ -207,14 +201,11 @@ function ProjectDocs(props: {
   );
 }
 
-function SetupDocs({search, route, router, location, ...props}: Props) {
+function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
   const api = useApi();
   const organization = useOrganization();
   const {projects: rawProjects} = useProjects();
   const [clientState, setClientState] = usePersistedOnboardingState();
-  const [selectedProjectSlug, _setSelectedProjectSlug] = useState(
-    props.selectedProjectSlug
-  );
 
   const {
     logExperiment: newFooterLogExperiment,
@@ -222,10 +213,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   } = useExperiment('OnboardingNewFooterExperiment', {
     logExperimentOnMount: false,
   });
-
-  const singleSelectPlatform = !!organization?.features.includes(
-    'onboarding-remove-multiselect-platform'
-  );
 
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
@@ -235,57 +222,25 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     'onboarding-docs-with-product-selection'
   );
 
-  const selectedPlatforms = clientState?.selectedPlatforms || [];
-  const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
-  // id is really slug here
-  const projectSlugs = selectedPlatforms
-    .map(platform => platformToProjectIdMap[platform.key])
-    .filter((slug): slug is string => slug !== undefined);
-
-  const selectedProjectsSet = new Set(projectSlugs);
-  // get projects in the order they appear in selectedPlatforms
-  const projects = projectSlugs
-    .map(slug => rawProjects.find(project => project.slug === slug))
-    .filter((project): project is Project => project !== undefined);
+  // get project
+  const projectIndex = selectedProjectSlug
+    ? rawProjects.findIndex(p => p.slug === selectedProjectSlug) ?? undefined
+    : undefined;
+  const project = projectIndex !== undefined ? rawProjects[projectIndex] : undefined;
 
   // SDK instrumentation
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
+  const [hasFirstEvent, setHasFirstEvent] = useState<boolean>(!!project?.firstEvent);
 
-  // store what projects have sent first event in state based project.firstEvent
-  const [hasFirstEventMap, setHasFirstEventMap] = useState<Record<string, boolean>>(
-    projects.reduce((accum, project: Project) => {
-      accum[project.id] = !!project.firstEvent;
-      return accum;
-    }, {} as Record<string, boolean>)
-  );
-
-  const checkProjectHasFirstEvent = (project: Project) => {
-    return !!hasFirstEventMap[project.id];
-  };
-
-  const {project_id: rawProjectId} = qs.parse(search);
-  const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const firstProjectNoError = projects.findIndex(p => selectedProjectsSet.has(p.slug));
-  // Select a project based on search params. If non exist, use the first project without first event.
-  const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
-  const project =
-    projects[projectIndex] ?? rawProjects.find(p => p.slug === selectedProjectSlug);
-
-  // find the next project that doesn't have a first event
-  const nextProject = projects.find(
-    (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
+  const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
+  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
+    currentPlatform === 'javascript'
   );
 
   const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
-
-  const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
-
-  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    currentPlatform === 'javascript'
-  );
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
   const showDocsWithProductSelection =
@@ -367,51 +322,9 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     return null;
   }
 
-  const setNewProject = (newProjectId: string) => {
-    setLoadedPlatform(null);
-    setPlatformDocs(null);
-    setHasError(false);
-    setIntegrationUseManualSetup(false);
-    const searchParams = new URLSearchParams({
-      sub_step: 'project',
-      project_id: newProjectId,
-    });
-    browserHistory.push(`${window.location.pathname}?${searchParams}`);
-    clientState &&
-      setClientState({
-        ...clientState,
-        state: 'projects_selected',
-        url: `setup-docs/?${searchParams}`,
-      });
-  };
-
-  const selectProject = (newProjectId: string) => {
-    const matchedProject = projects.find(p => p.id === newProjectId);
-    trackAnalytics('growth.onboarding_clicked_project_in_sidebar', {
-      organization,
-      platform: matchedProject?.platform || 'unknown',
-    });
-    setNewProject(newProjectId);
-  };
-
   return (
     <Fragment>
       <Wrapper>
-        {!singleSelectPlatform && (
-          <SidebarWrapper>
-            <ProjectSidebarSection
-              projects={projects}
-              selectedPlatformToProjectIdMap={Object.fromEntries(
-                selectedPlatforms.map(platform => [
-                  platform.key,
-                  platformToProjectIdMap[platform.key],
-                ])
-              )}
-              activeProject={project}
-              {...{checkProjectHasFirstEvent, selectProject}}
-            />
-          </SidebarWrapper>
-        )}
         <MainContent>
           {showIntegrationOnboarding ? (
             <IntegrationSetup
@@ -482,33 +395,27 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           <FirstEventFooter
             project={project}
             organization={organization}
-            isLast={!nextProject}
-            hasFirstEvent={checkProjectHasFirstEvent(project)}
+            isLast
+            hasFirstEvent={hasFirstEvent}
             onClickSetupLater={() => {
               const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
               trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
                 organization,
                 platform: currentPlatform,
-                project_index: projectIndex,
+                project_index: projectIndex ?? 0,
               });
               if (!project.platform || !clientState) {
                 browserHistory.push(orgIssuesURL);
                 return;
               }
-              // if we have a next project, switch to that
-              if (nextProject) {
-                setNewProject(nextProject.id);
-              } else {
-                setClientState({
-                  ...clientState,
-                  state: 'finished',
-                });
-                browserHistory.push(orgIssuesURL);
-              }
+              setClientState({
+                ...clientState,
+                state: 'finished',
+              });
+              browserHistory.push(orgIssuesURL);
             }}
             handleFirstIssueReceived={() => {
-              const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
-              setHasFirstEventMap(newHasFirstEventMap);
+              setHasFirstEvent(true);
             }}
           />
         )
@@ -516,33 +423,27 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
         <FirstEventFooter
           project={project}
           organization={organization}
-          isLast={!nextProject}
-          hasFirstEvent={checkProjectHasFirstEvent(project)}
+          isLast
+          hasFirstEvent={hasFirstEvent}
           onClickSetupLater={() => {
             const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
             trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
               organization,
               platform: currentPlatform,
-              project_index: projectIndex,
+              project_index: projectIndex ?? 0,
             });
             if (!project.platform || !clientState) {
               browserHistory.push(orgIssuesURL);
               return;
             }
-            // if we have a next project, switch to that
-            if (nextProject) {
-              setNewProject(nextProject.id);
-            } else {
-              setClientState({
-                ...clientState,
-                state: 'finished',
-              });
-              browserHistory.push(orgIssuesURL);
-            }
+            setClientState({
+              ...clientState,
+              state: 'finished',
+            });
+            browserHistory.push(orgIssuesURL);
           }}
           handleFirstIssueReceived={() => {
-            const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
-            setHasFirstEventMap(newHasFirstEventMap);
+            setHasFirstEvent(true);
           }}
         />
       )}
@@ -587,18 +488,4 @@ const MainContent = styled('div')`
   max-width: 850px;
   min-width: 0;
   flex-grow: 1;
-`;
-
-// the number icon will be space(2) + 30px to the left of the margin of center column
-// so we need to offset the right margin by that much
-// also hide the sidebar if the screen is too small
-const SidebarWrapper = styled('div')`
-  margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
-  @media (max-width: 1150px) {
-    display: none;
-  }
-  flex-basis: 240px;
-  flex-grow: 0;
-  flex-shrink: 0;
-  min-width: 240px;
 `;

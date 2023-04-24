@@ -49,7 +49,7 @@ describe('Onboarding', function () {
     expect(screen.getByLabelText('Invite Team')).toBeInTheDocument();
   });
 
-  it('renders the select platform step', async () => {
+  it('renders the select platform step', async function () {
     const routeParams = {
       step: 'select-platform',
     };
@@ -85,24 +85,22 @@ describe('Onboarding', function () {
     );
 
     expect(
-      await screen.findByText('Select the platforms you want to monitor')
+      await screen.findByText('Select the platform you want to monitor')
     ).toBeInTheDocument();
   });
 
-  it('renders the setup docs step', async () => {
-    const projects = [
-      TestStubs.Project({
-        platform: 'javascript-react',
-        id: '4',
-        slug: 'javascript-reactslug',
-      }),
-      TestStubs.Project({platform: 'ruby', id: '5', slug: 'ruby-slug'}),
-      TestStubs.Project({
-        platform: 'javascript-nextjs',
-        id: '6',
-        slug: 'javascript-nextslug',
-      }),
-    ];
+  it('renders the setup docs step', async function () {
+    const reactProject = TestStubs.Project({
+      platform: 'javascript-react',
+      id: '1',
+      slug: 'javascript-react-slug',
+    });
+
+    const nextJsProject = TestStubs.Project({
+      platform: 'javascript-nextjs',
+      id: '2',
+      slug: 'javascript-nextjs-slug',
+    });
 
     const routeParams = {
       step: 'setup-docs',
@@ -120,46 +118,35 @@ describe('Onboarding', function () {
       body: {
         onboarding: {
           platformToProjectIdMap: {
-            'javascript-react': projects[0].slug,
-            ruby: projects[1].slug,
-            'javascript-nextjs': projects[2].slug,
+            'javascript-react': reactProject.slug,
+            [nextJsProject.slug]: nextJsProject.slug,
           },
-          selectedPlatforms: [
-            {key: 'ruby', type: 'language', language: 'ruby', category: 'server'},
-            {
-              key: 'javascript-nextjs',
-              type: 'framework',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
+          selectedPlatform: {
+            key: nextJsProject.slug,
+            type: 'framework',
+            language: 'javascript',
+            category: 'browser',
+          },
         },
       },
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/ruby-slug/`,
-      body: {
-        firstEvent: false,
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/javascript-nextslug/docs/javascript-nextjs/`,
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/${nextJsProject.platform}/`,
       body: null,
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/ruby-slug/docs/ruby/`,
-      body: null,
+      url: `/projects/org-slug/${nextJsProject.slug}/`,
+      body: [nextJsProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/ruby-slug/issues/`,
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/issues/`,
       body: [],
     });
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData([nextJsProject]);
 
     OrganizationStore.onUpdate(organization);
 
@@ -179,7 +166,7 @@ describe('Onboarding', function () {
       }
     );
 
-    expect(await screen.findAllByTestId('sidebar-error-indicator')).toHaveLength(2);
+    expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
   });
 
   it('renders framework selection modal if vanilla js is selected', async function () {
@@ -190,14 +177,12 @@ describe('Onboarding', function () {
           platformToProjectIdMap: {
             javascript: 'javascript',
           },
-          selectedPlatforms: [
-            {
-              key: 'javascript',
-              type: 'language',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
+          selectedPlatform: {
+            key: 'javascript',
+            type: 'language',
+            language: 'javascript',
+            category: 'browser',
+          },
         },
         jest.fn(),
       ]);
@@ -210,7 +195,7 @@ describe('Onboarding', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        features: ['onboarding-remove-multiselect-platform', 'onboarding-sdk-selection'],
+        features: ['onboarding-sdk-selection'],
       },
       router: {
         params: routeParams,
@@ -224,7 +209,7 @@ describe('Onboarding', function () {
           platformToProjectIdMap: {
             javascript: 'javascript',
           },
-          selectedPlatforms: [
+          selectedPlatform: [
             {
               key: 'javascript',
               type: 'language',
@@ -276,14 +261,12 @@ describe('Onboarding', function () {
           platformToProjectIdMap: {
             'javascript-react': 'javascript-react',
           },
-          selectedPlatforms: [
-            {
-              key: 'javascript-react',
-              type: 'framework',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
+          selectedPlatform: {
+            key: 'javascript-react',
+            type: 'framework',
+            language: 'javascript',
+            category: 'browser',
+          },
         },
         jest.fn(),
       ]);
@@ -296,7 +279,7 @@ describe('Onboarding', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        features: ['onboarding-remove-multiselect-platform', 'onboarding-sdk-selection'],
+        features: ['onboarding-sdk-selection'],
       },
       router: {
         params: routeParams,
@@ -310,14 +293,12 @@ describe('Onboarding', function () {
           platformToProjectIdMap: {
             'javascript-react': 'javascript-react',
           },
-          selectedPlatforms: [
-            {
-              key: 'javascript-react',
-              type: 'framework',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
+          selectedPlatform: {
+            key: 'javascript-react',
+            type: 'framework',
+            language: 'javascript',
+            category: 'browser',
+          },
         },
       },
     });
