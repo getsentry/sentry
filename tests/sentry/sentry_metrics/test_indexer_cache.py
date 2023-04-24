@@ -3,6 +3,7 @@ from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.cache import StringIndexerCache
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -17,7 +18,7 @@ indexer_cache = StringIndexerCache(
 
 @pytest.fixture
 def use_case_id() -> str:
-    return UseCaseKey.RELEASE_HEALTH.value
+    return UseCaseID.SESSIONS.value
 
 
 def test_cache(use_case_id: str) -> None:
@@ -47,9 +48,9 @@ def test_make_cache_key(use_case_id: str) -> None:
 
 
 def test_formatted_results(use_case_id: str) -> None:
-    values = {"hello": 2, "bye": 3}
-    results = {indexer_cache.make_cache_key(k, use_case_id): v for k, v in values.items()}
-    assert indexer_cache._format_results(list(values.keys()), results, use_case_id) == values
+    values = {"sessions:3:hello": 2, "sessions:4:bye": 3}
+    results = {indexer_cache.make_cache_key(k): v for k, v in values.items()}
+    assert indexer_cache._format_results(list(values.keys()), results) == values
 
 
 def test_ttl_jitter() -> None:
