@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {hasExceptionGroupTree} from 'sentry/components/events/interfaces/frame/utils';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryType, Event, ExceptionValue, StackTraceMechanism} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -19,8 +20,16 @@ type ExceptionTreeProps = {
   parentException?: ExceptionValue;
 };
 
+function getExceptionName(exception: ExceptionValue) {
+  if (exception.type) {
+    return exception.value ? `${exception.type}: ${exception.value}` : exception.type;
+  }
+
+  return exception.value ?? t('Exception');
+}
+
 function ExceptionLink({exception, link}: {exception: ExceptionValue; link: boolean}) {
-  const exceptionName = exception.type || exception.value;
+  const exceptionName = getExceptionName(exception);
 
   if (!defined(exception.mechanism?.exception_id) || !link) {
     return <div>{exceptionName}</div>;
@@ -138,6 +147,7 @@ export function ExceptionGroupContext({
 }
 
 const TreeChildLineSvg = styled('svg')`
+  flex-shrink: 0;
   position: absolute;
   left: 6px;
   bottom: 50%;
@@ -154,6 +164,7 @@ const TreeItem = styled('div')<{level: number}>`
 `;
 
 const Circle = styled('div')`
+  flex-shrink: 0;
   border-radius: 50%;
   height: 12px;
   width: 12px;
