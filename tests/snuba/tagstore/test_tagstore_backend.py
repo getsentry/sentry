@@ -146,28 +146,29 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         }
         env = Environment.objects.get(name=env_name)
 
-        event = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "tags": {"foo": "bar", "biz": "baz"},
-                "release": "releaseme",
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "b" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=2)),
-                "tags": {"foo": "quux"},
-                "release": "releaseme",
-            },
-            project_id=self.project.id,
-        )
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            event = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                    "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                    "tags": {"foo": "bar", "biz": "baz"},
+                    "release": "releaseme",
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "b" * 32,
+                    "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                    "start_timestamp": iso_format(self.now - timedelta(seconds=2)),
+                    "tags": {"foo": "quux"},
+                    "release": "releaseme",
+                },
+                project_id=self.project.id,
+            )
         perf_group = event.groups[0]
         return perf_group, env
 
@@ -265,6 +266,52 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
 
+        # Just duplicating test with this flag. We can just remove this branch once we're migrated
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            result = list(self.ts.get_group_tag_keys_and_top_values(perf_group, [env.id]))
+            tags = [r.key for r in result]
+            assert set(tags) == {
+                "foo",
+                "biz",
+                "environment",
+                "sentry:release",
+                "level",
+                "transaction",
+            }
+
+            result.sort(key=lambda r: r.key)
+            assert result[0].key == "biz"
+            assert result[0].top_values[0].value == "baz"
+            assert result[0].count == 1
+
+            assert result[4].key == "sentry:release"
+            assert result[4].count == 2
+            top_release_values = result[4].top_values
+            assert len(top_release_values) == 1
+            assert {v.value for v in top_release_values} == {"releaseme"}
+            assert all(v.times_seen == 2 for v in top_release_values)
+
+            # Now with only a specific set of keys,
+            result = list(
+                self.ts.get_group_tag_keys_and_top_values(
+                    perf_group,
+                    [env.id],
+                    keys=["environment", "sentry:release"],
+                )
+            )
+            tags = [r.key for r in result]
+            assert set(tags) == {"environment", "sentry:release"}
+
+            result.sort(key=lambda r: r.key)
+            assert result[0].key == "environment"
+            assert result[0].top_values[0].value == "test"
+
+            assert result[1].key == "sentry:release"
+            top_release_values = result[1].top_values
+            assert len(top_release_values) == 1
+            assert {v.value for v in top_release_values} == {"releaseme"}
+            assert all(v.times_seen == 2 for v in top_release_values)
+
     def test_get_group_tag_keys_and_top_values_generic_issue(self):
         group, env = self.generic_group_and_env
         result = list(self.ts.get_group_tag_keys_and_top_values(group, [env.id]))
@@ -325,6 +372,18 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         assert resp[1].key == "foo"
         assert resp[1].value == "quux"
         assert resp[1].group_id == perf_group.id
+        # Just duplicating test with this flag. We can just remove this branch once we're migrated
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            resp = self.ts.get_top_group_tag_values(perf_group, env.id, "foo", 2)
+            assert len(resp) == 2
+            assert resp[0].times_seen == 1
+            assert resp[0].key == "foo"
+            assert resp[0].value == "bar"
+            assert resp[0].group_id == perf_group.id
+            assert resp[1].times_seen == 1
+            assert resp[1].key == "foo"
+            assert resp[1].value == "quux"
+            assert resp[1].group_id == perf_group.id
 
     def test_get_top_group_tag_values_generic(self):
         group, env = self.generic_group_and_env
@@ -342,6 +401,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         perf_group, env = self.perf_group_and_env
 
         assert self.ts.get_group_tag_value_count(perf_group, env.id, "foo") == 2
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            assert self.ts.get_group_tag_value_count(perf_group, env.id, "foo") == 2
 
     def test_get_group_tag_value_count_generic(self):
         group, env = self.generic_group_and_env
@@ -436,9 +497,27 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             ).key
             == "foo"
         )
-
         keys = {k.key: k for k in self.ts.get_group_tag_keys(perf_group, [env.id])}
         assert set(keys) == {"biz", "environment", "foo", "sentry:release", "transaction", "level"}
+        # Just duplicating test with this flag. We can just remove this branch once we're migrated
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            assert (
+                self.ts.get_group_tag_key(
+                    group=perf_group,
+                    environment_id=self.proj1env1.id,
+                    key="foo",
+                ).key
+                == "foo"
+            )
+            keys = {k.key: k for k in self.ts.get_group_tag_keys(perf_group, [env.id])}
+            assert set(keys) == {
+                "biz",
+                "environment",
+                "foo",
+                "sentry:release",
+                "transaction",
+                "level",
+            }
 
     def test_get_group_tag_key_generic(self):
         group, env = self.generic_group_and_env
@@ -887,6 +966,26 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
                 last_seen=self.now - timedelta(seconds=2),
             ),
         ]
+        # Just duplicating test with this flag. We can just remove this branch once we're migrated
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            assert list(self.ts.get_group_tag_value_iter(group, [env.id], "foo")) == [
+                GroupTagValue(
+                    group_id=group.id,
+                    key="foo",
+                    value="bar",
+                    times_seen=1,
+                    first_seen=self.now - timedelta(seconds=1),
+                    last_seen=self.now - timedelta(seconds=1),
+                ),
+                GroupTagValue(
+                    group_id=group.id,
+                    key="foo",
+                    value="quux",
+                    times_seen=1,
+                    first_seen=self.now - timedelta(seconds=2),
+                    last_seen=self.now - timedelta(seconds=2),
+                ),
+            ]
 
     def test_get_group_tag_value_paginator(self):
         from sentry.tagstore.types import GroupTagValue
@@ -939,6 +1038,29 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
                 last_seen=self.now - timedelta(seconds=2),
             ),
         ]
+
+        # Just duplicating test with this flag. We can just remove this branch once we're migrated
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            assert list(
+                self.ts.get_group_tag_value_paginator(group, [env.id], "foo").get_result(10)
+            ) == [
+                GroupTagValue(
+                    group_id=group.id,
+                    key="foo",
+                    value="bar",
+                    times_seen=1,
+                    first_seen=self.now - timedelta(seconds=1),
+                    last_seen=self.now - timedelta(seconds=1),
+                ),
+                GroupTagValue(
+                    group_id=group.id,
+                    key="foo",
+                    value="quux",
+                    times_seen=1,
+                    first_seen=self.now - timedelta(seconds=2),
+                    last_seen=self.now - timedelta(seconds=2),
+                ),
+            ]
 
     def test_get_group_tag_value_paginator_times_seen(self):
         from sentry.tagstore.types import GroupTagValue
@@ -994,22 +1116,23 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
 
         group, env = self.perf_group_and_env
 
-        self.store_event(
-            data={
-                "message": "hello",
-                "type": "transaction",
-                "culprit": "app/components/events/eventEntries in map",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "environment": env.name,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "tags": {"foo": "bar"},
-                # same fingerprint as group
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group"],
-            },
-            project_id=self.project.id,
-        )
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            self.store_event(
+                data={
+                    "message": "hello",
+                    "type": "transaction",
+                    "culprit": "app/components/events/eventEntries in map",
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                    "environment": env.name,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                    "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                    "tags": {"foo": "bar"},
+                    # same fingerprint as group
+                    "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group"],
+                },
+                project_id=self.project.id,
+            )
 
         assert list(
             self.ts.get_group_tag_value_paginator(
@@ -1036,6 +1159,33 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
                 last_seen=self.now - timedelta(seconds=2),
             ),
         ]
+        # Just duplicating test with this flag. We can just remove this branch once we're migrated
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            assert list(
+                self.ts.get_group_tag_value_paginator(
+                    group,
+                    [env.id],
+                    "foo",
+                    order_by="-times_seen",
+                ).get_result(10)
+            ) == [
+                GroupTagValue(
+                    group_id=group.id,
+                    key="foo",
+                    value="bar",
+                    times_seen=2,
+                    first_seen=self.now - timedelta(seconds=1),
+                    last_seen=self.now - timedelta(seconds=1),
+                ),
+                GroupTagValue(
+                    group_id=group.id,
+                    key="foo",
+                    value="quux",
+                    times_seen=1,
+                    first_seen=self.now - timedelta(seconds=2),
+                    last_seen=self.now - timedelta(seconds=2),
+                ),
+            ]
 
     def test_get_group_seen_values_for_environments(self):
         assert self.ts.get_group_seen_values_for_environments(
@@ -1140,6 +1290,16 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
         assert self.ts.get_perf_groups_user_counts(
             [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
         ) == {first_group.id: 3, second_group.id: 3}
+        # Just duplicating test with this flag. We can just remove this branch once we're migrated
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            assert self.ts.get_perf_groups_user_counts(
+                [self.project.id],
+                group_ids=[first_group.id, second_group.id],
+                environment_ids=[self.environment.id],
+            ) == {first_group.id: 2, second_group.id: 2}
+            assert self.ts.get_perf_groups_user_counts(
+                [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
+            ) == {first_group.id: 3, second_group.id: 3}
 
     def test_get_perf_group_list_tag_value_by_environment(self):
         group_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
@@ -1180,6 +1340,26 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
                 last_seen=last_event_ts.replace(microsecond=0),
             )
         }
+        # Just duplicating test with this flag. We can just remove this branch once we're migrated
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            group_seen_stats = self.ts.get_perf_group_list_tag_value(
+                [group.project_id],
+                [group.id],
+                [self.environment.id],
+                "environment",
+                self.environment.name,
+            )
+
+            assert group_seen_stats == {
+                group.id: GroupTagValue(
+                    key="environment",
+                    value=self.environment.name,
+                    group_id=group.id,
+                    times_seen=2,
+                    first_seen=first_event_ts.replace(microsecond=0),
+                    last_seen=last_event_ts.replace(microsecond=0),
+                )
+            }
 
 
 class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
