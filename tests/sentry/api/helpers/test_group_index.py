@@ -3,17 +3,14 @@ from unittest.mock import Mock, patch
 import pytest
 from django.http import QueryDict
 
-from sentry.api.helpers.group_index import (
-    ValidationError,
-    update_groups,
-    validate_search_filter_permissions,
-)
+from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.update import (
     handle_has_seen,
     handle_is_bookmarked,
     handle_is_public,
     handle_is_subscribed,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
 from sentry.models import (
     Activity,
@@ -32,11 +29,11 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 
 
-class ValidateSearchFilterPermissionsTest(TestCase):
-    def run_test(self, query):
+class ValidateSearchFilterPermissionsTest(TestCase):  # type: ignore[misc]
+    def run_test(self, query: str) -> None:
         validate_search_filter_permissions(self.organization, parse_search_query(query), self.user)
 
-    def assert_analytics_recorded(self, mock_record):
+    def assert_analytics_recorded(self, mock_record: Mock) -> None:
         mock_record.assert_called_with(
             "advanced_search.feature_gated",
             user_id=self.user.id,
@@ -45,7 +42,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_negative(self, mock_record):
+    def test_negative(self, mock_record: Mock) -> None:
         query = "!has:user"
         with self.feature({"organizations:advanced-search": False}), pytest.raises(
             ValidationError, match=".*negative search.*"
@@ -65,7 +62,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
     @patch("sentry.analytics.record")
-    def test_wildcard(self, mock_record):
+    def test_wildcard(self, mock_record: Mock) -> None:
         query = "abc:hello*"
         with self.feature({"organizations:advanced-search": False}), pytest.raises(
             ValidationError, match=".*wildcard search.*"
@@ -85,10 +82,10 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
 
-class UpdateGroupsTest(TestCase):
+class UpdateGroupsTest(TestCase):  # type: ignore[misc]
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_unresolving_resolved_group(self, send_robust, send_unresolved):
+    def test_unresolving_resolved_group(self, send_robust: Mock, send_unresolved: Mock) -> None:
         resolved_group = self.create_group(status=GroupStatus.RESOLVED)
         assert resolved_group.status == GroupStatus.RESOLVED
 
@@ -109,7 +106,7 @@ class UpdateGroupsTest(TestCase):
         assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
-    def test_resolving_unresolved_group(self, send_robust):
+    def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
@@ -131,7 +128,7 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignoring_group(self, send_robust):
+    def test_ignoring_group(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -152,7 +149,7 @@ class UpdateGroupsTest(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_unignored.send_robust")
-    def test_unignoring_group(self, send_robust):
+    def test_unignoring_group(self, send_robust: Mock) -> None:
         group = self.create_group(status=GroupStatus.IGNORED)
 
         request = self.make_request(user=self.user, method="GET")
@@ -171,7 +168,7 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.called
 
     @patch("sentry.signals.issue_mark_reviewed.send_robust")
-    def test_mark_reviewed_group(self, send_robust):
+    def test_mark_reviewed_group(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -190,9 +187,9 @@ class UpdateGroupsTest(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
 
-    @with_feature("organizations:escalating-issues")
+    @with_feature("organizations:escalating-issues")  # type: ignore[misc]
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignore_with_substatus_until_escalating(self, send_robust):
+    def test_ignore_with_substatus_until_escalating(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -214,7 +211,7 @@ class UpdateGroupsTest(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
 
-class TestHandleIsSubscribed(TestCase):
+class TestHandleIsSubscribed(TestCase):  # type: ignore[misc]
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -239,19 +236,19 @@ class TestHandleIsSubscribed(TestCase):
         assert resp["reason"] == "unknown"
 
 
-class TestHandleIsBookmarked(TestCase):
-    def setUp(self):
+class TestHandleIsBookmarked(TestCase):  # type: ignore[misc]
+    def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
         self.group_ids = [self.group]
         self.project_lookup = {self.group.project_id: self.group.project}
 
-    def test_is_bookmarked(self):
+    def test_is_bookmarked(self) -> None:
         handle_is_bookmarked(True, self.group_list, self.group_ids, self.project_lookup, self.user)
 
         assert GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
 
-    def test_not_is_bookmarked(self):
+    def test_not_is_bookmarked(self) -> None:
         GroupBookmark.objects.create(
             group=self.group, user_id=self.user.id, project_id=self.group.project_id
         )
@@ -261,21 +258,21 @@ class TestHandleIsBookmarked(TestCase):
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
-class TestHandleHasSeen(TestCase):
-    def setUp(self):
+class TestHandleHasSeen(TestCase):  # type: ignore[misc]
+    def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
         self.group_ids = [self.group]
         self.project_lookup = {self.group.project_id: self.group.project}
 
-    def test_has_seen(self):
+    def test_has_seen(self) -> None:
         handle_has_seen(
             True, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
         )
 
         assert GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
-    def test_not_has_seen(self):
+    def test_not_has_seen(self) -> None:
         GroupSeen.objects.create(
             group=self.group, user_id=self.user.id, project_id=self.group.project_id
         )
@@ -287,13 +284,13 @@ class TestHandleHasSeen(TestCase):
         assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
-class TestHandleIsPublic(TestCase):
-    def setUp(self):
+class TestHandleIsPublic(TestCase):  # type: ignore[misc]
+    def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
         self.project_lookup = {self.group.project_id: self.group.project}
 
-    def test_is_public(self):
+    def test_is_public(self) -> None:
         share_id = handle_is_public(True, self.group_list, self.project_lookup, self.user)
 
         new_share = GroupShare.objects.get(group=self.group)
@@ -302,7 +299,7 @@ class TestHandleIsPublic(TestCase):
         ).exists()
         assert share_id == new_share.uuid
 
-    def test_is_public_existing_shares(self):
+    def test_is_public_existing_shares(self) -> None:
         share = GroupShare.objects.create(group=self.group, project=self.group.project)
 
         share_id = handle_is_public(True, self.group_list, self.project_lookup, self.user)
@@ -317,7 +314,7 @@ class TestHandleIsPublic(TestCase):
         ).exists()
         assert share_id == new_share.uuid
 
-    def test_not_is_public(self):
+    def test_not_is_public(self) -> None:
         GroupShare.objects.create(group=self.group, project=self.group.project)
 
         share_id = handle_is_public(False, self.group_list, self.project_lookup, self.user)
