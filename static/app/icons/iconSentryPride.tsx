@@ -1,6 +1,6 @@
-import { forwardRef } from 'react';
+import {forwardRef} from 'react';
 
-import { SvgIcon, SVGIconProps } from './svgIcon';
+import {SvgIcon, SVGIconProps} from './svgIcon';
 
 const IconSentryPride = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
@@ -12,4 +12,4 @@ const IconSentryPride = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
 
 IconSentryPride.displayName = 'IconSentryPride';
 
-export { IconSentryPride };
+export {IconSentryPride};
