@@ -59,17 +59,16 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
         return all_results
 
     start_date, end_date = _start_and_end_dates()
-    # groups.order_by() guarantees that the call to items() down below will always iterate in the
-    # same order of projects (making the assertion in the tests reliable rather than changing order)
-    groups_by_project_id = groups.order_by("project__id")  # type: ignore
-    group_ids_by_project = _extract_project_and_group_ids(groups_by_project_id)
+    group_ids_by_project = _extract_project_and_group_ids(groups)
     proj_ids, group_ids = [], []
     processed_projects = 0
     total_projects_count = len(group_ids_by_project)
 
     # This iteration guarantees that all groups for a project will be queried in the same call
     # and only one page where the groups could be mixed with groups from another project
-    for proj_id, _group_ids in group_ids_by_project.items():
+    # Iterating over the sorted keys guarantees results for tests
+    for proj_id in sorted(group_ids_by_project.keys()):
+        _group_ids = group_ids_by_project[proj_id]
         # Add them to the list of projects and groups to query
         proj_ids.append(proj_id)
         group_ids += _group_ids
