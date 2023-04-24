@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {ReleaseWithHealth, User} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {NoContext} from './quickContextWrapper';
@@ -35,7 +35,7 @@ function ReleaseContext(props: BaseContextProps) {
   );
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+    trackAnalytics('discover_v2.quick_context_hover_contexts', {
       organization,
       contextType: ContextType.RELEASE,
     });

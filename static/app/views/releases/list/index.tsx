@@ -38,7 +38,7 @@ import {
   ReleaseStatus,
   Tag,
 } from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -247,7 +247,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization, selection} = this.props;
 
     if (organization.id && selection.projects[0]) {
-      trackAdvancedAnalyticsEvent('releases_list.click_add_release_health', {
+      trackAnalytics('releases_list.click_add_release_health', {
         organization,
         project_id: selection.projects[0],
       });

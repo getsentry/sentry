@@ -8,7 +8,7 @@ import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -76,7 +76,7 @@ export function CreateSavedSearchModal({
 
     addLoadingMessage(t('Saving Changes'));
 
-    trackAdvancedAnalyticsEvent('search.saved_search_create', {
+    trackAnalytics('search.saved_search_create', {
       name: data.name,
       organization,
       query: data.query,

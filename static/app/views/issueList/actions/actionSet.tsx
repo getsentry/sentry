@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
+import ArchiveActions from 'sentry/components/actions/archive';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -99,6 +100,7 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
 
   const menuItems: MenuItemProps[] = [
     {
@@ -116,13 +118,17 @@ function ActionSet({
         });
       },
     },
-    {
-      key: 'mark-reviewed',
-      label: t('Mark Reviewed'),
-      hidden: !nestMergeAndReview,
-      disabled: !canMarkReviewed,
-      onAction: () => onUpdate({inbox: false}),
-    },
+    ...(disabledMarkReviewed
+      ? []
+      : [
+          {
+            key: 'mark-reviewed',
+            label: t('Mark Reviewed'),
+            hidden: !nestMergeAndReview,
+            disabled: !canMarkReviewed,
+            onAction: () => onUpdate({inbox: false}),
+          },
+        ]),
     {
       key: 'bookmark',
       label: t('Add to Bookmarks'),
@@ -184,8 +190,21 @@ function ActionSet({
     },
   ];
 
+  const hasEscalatingIssuesUI = organization.features.includes('escalating-issues-ui');
+
   return (
     <Fragment>
+      {hasEscalatingIssuesUI ? (
+        <ArchiveActions
+          onUpdate={onUpdate}
+          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          confirmMessage={() =>
+            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+          }
+          confirmLabel={label('archive')}
+          disabled={ignoreDisabled}
+        />
+      ) : null}
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -226,15 +245,18 @@ function ActionSet({
           }}
         />
       )}
-
-      <IgnoreActions
-        onUpdate={onUpdate}
-        shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={() => confirm({action: ConfirmAction.IGNORE, canBeUndone: true})}
-        confirmLabel={label('ignore')}
-        disabled={ignoreDisabled}
-      />
-      {!nestMergeAndReview && (
+      {hasEscalatingIssuesUI ? null : (
+        <IgnoreActions
+          onUpdate={onUpdate}
+          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          confirmMessage={() =>
+            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+          }
+          confirmLabel={label('ignore')}
+          disabled={ignoreDisabled}
+        />
+      )}
+      {!nestMergeAndReview && !disabledMarkReviewed && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
       {!nestMergeAndReview && (

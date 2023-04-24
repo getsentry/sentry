@@ -76,6 +76,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
+    if symbolicated.get("source_link"):
+        new_frame["source_link"] = symbolicated["source_link"]
 
     addr_mode = symbolicated.get("addr_mode")
     if addr_mode is None:
@@ -366,7 +368,7 @@ def get_frames_for_symbolication(
     return rv
 
 
-def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
+def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktrace_infos = [
         stacktrace
         for stacktrace in find_stacktraces_in_data(data)
@@ -444,13 +446,13 @@ def process_payload(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_symbolication_function(data) -> Callable[[Symbolicator, Any], Any]:
+def get_native_symbolication_function(data) -> Callable[[Symbolicator, Any], Any]:
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
         return process_applecrashreport
     elif is_native_event(data):
-        return process_payload
+        return process_native_stacktraces
 
 
 def get_required_attachment_types(data) -> Set[str]:

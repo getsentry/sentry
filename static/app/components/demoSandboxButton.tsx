@@ -1,6 +1,6 @@
 import {Button, ButtonProps} from 'sentry/components/button';
 import {Organization, SandboxData} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type DemoSandboxButtonProps = ButtonProps & {
@@ -78,7 +78,7 @@ function DemoSandboxButton({
       external
       href={url.toString()}
       onClick={() =>
-        trackAdvancedAnalyticsEvent('growth.clicked_enter_sandbox', {
+        trackAnalytics('growth.clicked_enter_sandbox', {
           scenario,
           organization,
           source,

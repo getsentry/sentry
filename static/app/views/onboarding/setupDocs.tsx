@@ -15,11 +15,11 @@ import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
 import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import platforms, {ReactDocVariant} from 'sentry/data/platforms';
+import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -76,47 +76,30 @@ function MissingExampleWarning({
   );
 }
 
-export function ProjectDocsReact({
+export function DocWithProductSelection({
   organization,
   location,
   projectSlug,
   newOrg,
+  currentPlatform,
 }: {
+  currentPlatform: PlatformKey;
   location: Location;
   organization: Organization;
   projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
-  const {
-    experimentAssignment: productSelectionAssignment,
-    logExperiment: productSelectionLogExperiment,
-  } = useExperiment('OnboardingProductSelectionExperiment', {
-    logExperimentOnMount: false,
-  });
-
-  // This is an experiment we are doing with react.
-  // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
-  // and the docs will reflect that.
   const loadPlatform = useMemo(() => {
     const products = location.query.product ?? [];
-    return newOrg && productSelectionAssignment === 'baseline'
-      ? 'javascript-react'
-      : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-        products.includes(PRODUCT.SESSION_REPLAY)
-      ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
+    return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
+      products.includes(PRODUCT.SESSION_REPLAY)
+      ? `${currentPlatform}-with-error-monitoring-performance-and-replay`
       : products.includes(PRODUCT.PERFORMANCE_MONITORING)
-      ? ReactDocVariant.ErrorMonitoringAndPerformance
+      ? `${currentPlatform}-with-error-monitoring-and-performance`
       : products.includes(PRODUCT.SESSION_REPLAY)
-      ? ReactDocVariant.ErrorMonitoringAndSessionReplay
-      : ReactDocVariant.ErrorMonitoring;
-  }, [location.query.product, productSelectionAssignment, newOrg]);
-
-  useEffect(() => {
-    if (!newOrg) {
-      return;
-    }
-    productSelectionLogExperiment();
-  }, [productSelectionLogExperiment, newOrg]);
+      ? `${currentPlatform}-with-error-monitoring-and-replay`
+      : `${currentPlatform}-with-error-monitoring`;
+  }, [location.query.product, currentPlatform]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
@@ -126,41 +109,24 @@ export function ProjectDocsReact({
     }
   );
 
+  const platformName = platforms.find(p => p.id === currentPlatform)?.name ?? '';
+
   return (
     <Fragment>
-      {newOrg ? (
-        <Fragment>
-          <SetupIntroduction
-            stepHeaderText={t(
-              'Configure %s SDK',
-              platforms.find(p => p.id === 'javascript-react')?.name ?? ''
-            )}
-            platform="javascript-react"
-          />
-          {productSelectionAssignment === 'variant1' ? (
-            <ProductSelection
-              defaultSelectedProducts={[
-                PRODUCT.PERFORMANCE_MONITORING,
-                PRODUCT.SESSION_REPLAY,
-              ]}
-            />
-          ) : productSelectionAssignment === 'variant2' ? (
-            <ProductSelection />
-          ) : null}
-        </Fragment>
-      ) : (
-        <ProductSelection
-          defaultSelectedProducts={[
-            PRODUCT.PERFORMANCE_MONITORING,
-            PRODUCT.SESSION_REPLAY,
-          ]}
+      {newOrg && (
+        <SetupIntroduction
+          stepHeaderText={t('Configure %s SDK', platformName)}
+          platform={currentPlatform}
         />
       )}
+      <ProductSelection
+        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
+      />
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError
-          message={t('Failed to load documentation for the React platform.')}
+          message={t('Failed to load documentation for the %s platform.', platformName)}
           onRetry={refetch}
         />
       ) : (
@@ -171,7 +137,7 @@ export function ProjectDocsReact({
                 dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
               />
               <MissingExampleWarning
-                platform="javascript-react"
+                platform={currentPlatform}
                 platformDocs={{
                   html: data?.html ?? '',
                   link: data?.link ?? '',
@@ -273,7 +239,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
   const projectSlugs = selectedPlatforms
-    .map(platform => platformToProjectIdMap[platform])
+    .map(platform => platformToProjectIdMap[platform.key])
     .filter((slug): slug is string => slug !== undefined);
 
   const selectedProjectsSet = new Set(projectSlugs);
@@ -322,8 +288,8 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   );
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
-  const showReactOnboarding =
-    currentPlatform === 'javascript-react' && docsWithProductSelection;
+  const showDocsWithProductSelection =
+    currentPlatform.match('^javascript-([A-Za-z]+)$') && docsWithProductSelection;
 
   const hideLoaderOnboarding = useCallback(() => {
     setShowLoaderOnboarding(false);
@@ -332,7 +298,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.js_loader_npm_docs_shown', {
+    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
       organization,
       platform: currentPlatform,
       project_id: project?.id,
@@ -345,8 +311,8 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       return;
     }
 
-    // this will be fetched in the SetupDocsReact component
-    if (showReactOnboarding) {
+    // this will be fetched in the DocWithProductSelection component
+    if (showDocsWithProductSelection) {
       return;
     }
 
@@ -381,7 +347,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     project?.platform,
     api,
     organization.slug,
-    showReactOnboarding,
+    showDocsWithProductSelection,
     showIntegrationOnboarding,
     showLoaderOnboarding,
   ]);
@@ -421,7 +387,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
 
   const selectProject = (newProjectId: string) => {
     const matchedProject = projects.find(p => p.id === newProjectId);
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_project_in_sidebar', {
+    trackAnalytics('growth.onboarding_clicked_project_in_sidebar', {
       organization,
       platform: matchedProject?.platform || 'unknown',
     });
@@ -437,8 +403,8 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
               projects={projects}
               selectedPlatformToProjectIdMap={Object.fromEntries(
                 selectedPlatforms.map(platform => [
-                  platform,
-                  platformToProjectIdMap[platform],
+                  platform.key,
+                  platformToProjectIdMap[platform.key],
                 ])
               )}
               activeProject={project}
@@ -455,11 +421,12 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
                 setIntegrationUseManualSetup(true);
               }}
             />
-          ) : showReactOnboarding ? (
-            <ProjectDocsReact
+          ) : showDocsWithProductSelection ? (
+            <DocWithProductSelection
               organization={organization}
               projectSlug={project.slug}
               location={location}
+              currentPlatform={currentPlatform}
               newOrg
             />
           ) : showLoaderOnboarding ? (
@@ -519,14 +486,11 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
             hasFirstEvent={checkProjectHasFirstEvent(project)}
             onClickSetupLater={() => {
               const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
-              trackAdvancedAnalyticsEvent(
-                'growth.onboarding_clicked_setup_platform_later',
-                {
-                  organization,
-                  platform: currentPlatform,
-                  project_index: projectIndex,
-                }
-              );
+              trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
+                organization,
+                platform: currentPlatform,
+                project_index: projectIndex,
+              });
               if (!project.platform || !clientState) {
                 browserHistory.push(orgIssuesURL);
                 return;
@@ -556,14 +520,11 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
             const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
-            trackAdvancedAnalyticsEvent(
-              'growth.onboarding_clicked_setup_platform_later',
-              {
-                organization,
-                platform: currentPlatform,
-                project_index: projectIndex,
-              }
-            );
+            trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
+              organization,
+              platform: currentPlatform,
+              project_index: projectIndex,
+            });
             if (!project.platform || !clientState) {
               browserHistory.push(orgIssuesURL);
               return;

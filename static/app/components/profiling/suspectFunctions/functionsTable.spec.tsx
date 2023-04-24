@@ -59,6 +59,7 @@ describe('FunctionsTable', function () {
       p75: 10000000,
       p95: 12000000,
       p99: 12500000,
+      sum: 25000000,
       package: 'bar',
       path: 'baz',
       worst: 'cccccccccccccccccccccccccccccccc',
@@ -86,8 +87,11 @@ describe('FunctionsTable', function () {
     expect(screen.getByText('Occurrences')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
 
-    expect(screen.getByText('P75 Duration')).toBeInTheDocument();
+    expect(screen.getByText('P75 Self Time')).toBeInTheDocument();
     expect(screen.getByText('10.00ms')).toBeInTheDocument();
+
+    expect(screen.getByText('Total Self Time')).toBeInTheDocument();
+    expect(screen.getByText('25.00ms')).toBeInTheDocument();
   });
 
   it('renders empty name', function () {
@@ -99,6 +103,7 @@ describe('FunctionsTable', function () {
       p75: 10000000,
       p95: 12000000,
       p99: 12500000,
+      sum: 25000000,
       package: 'bar',
       path: 'baz',
       worst: 'cccccccccccccccccccccccccccccccc',
@@ -133,6 +138,7 @@ describe('FunctionsTable', function () {
       p75: 10000000,
       p95: 12000000,
       p99: 12500000,
+      sum: 25000000,
       package: '',
       path: 'baz',
       worst: 'cccccccccccccccccccccccccccccccc',

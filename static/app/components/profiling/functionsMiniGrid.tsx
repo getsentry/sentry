@@ -37,7 +37,9 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
   return (
     <FunctionsMiniGridContainer>
       <FunctionsMiniGridHeader>{t('Slowest app functions')}</FunctionsMiniGridHeader>
-      <FunctionsMiniGridHeader align="right">{t('P95')}</FunctionsMiniGridHeader>
+      <FunctionsMiniGridHeader align="right">
+        {t('Total Self Time')}
+      </FunctionsMiniGridHeader>
       <FunctionsMiniGridHeader align="right">{t('Count')}</FunctionsMiniGridHeader>
 
       {functions &&
@@ -57,7 +59,7 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
                 </FunctionNameTextTruncate>
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
-                <PerformanceDuration nanoseconds={f.p95} abbreviation />
+                <PerformanceDuration nanoseconds={f.sum} abbreviation />
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
                 <NumberContainer>{f.count}</NumberContainer>

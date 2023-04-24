@@ -32,6 +32,9 @@ export type CoreUIEventParameters = {
     filter: PinnedPageFilter;
     pin: boolean;
   };
+  'projectselector.bookmark_toggle': {
+    bookmarked: boolean;
+  };
   'user_feedback.dialog_opened': {
     projects: string;
   };
@@ -57,4 +60,5 @@ export const coreUIEventMap: Record<CoreUIAnalyticsKey, string | null> = {
   'environmentselector.update': null, // volume high
   'environmentselector.direct_selection': null, // volume high
   'deprecated_urls.redirect': null, // volume high
+  'projectselector.bookmark_toggle': null, // volume high
 };

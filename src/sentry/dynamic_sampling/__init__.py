@@ -1,6 +1,5 @@
 from .rules.base import generate_rules
 from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsBias
-from .rules.biases.boost_key_transactions_bias import BoostKeyTransactionsBias
 from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
 from .rules.biases.ignore_health_checks_bias import HEALTH_CHECK_GLOBS, IgnoreHealthChecksBias
 from .rules.helpers.latest_releases import (
@@ -12,7 +11,6 @@ from .rules.helpers.latest_releases import (
 from .rules.helpers.time_to_adoptions import LATEST_RELEASE_TTAS, Platform
 from .rules.logging import should_log_rules_change
 from .rules.utils import (
-    BOOSTED_KEY_TRANSACTION_LIMIT,
     DEFAULT_BIASES,
     RESERVED_IDS,
     RuleType,
@@ -38,12 +36,10 @@ __all__ = [
     "LatestReleaseBias",
     "LatestReleaseParams",
     "IgnoreHealthChecksBias",
-    "BoostKeyTransactionsBias",
     "BoostEnvironmentsBias",
     "BoostLatestReleasesBias",
     "LATEST_RELEASE_TTAS",
     "ENVIRONMENT_GLOBS",
-    "BOOSTED_KEY_TRANSACTION_LIMIT",
     "HEALTH_CHECK_GLOBS",
     "RESERVED_IDS",
     "DEFAULT_BIASES",
