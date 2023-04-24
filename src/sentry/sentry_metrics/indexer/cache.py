@@ -40,6 +40,7 @@ class StringIndexerCache:
         return int(cache_ttl + jitter)
 
     def make_cache_key(self, key: str) -> str:
+        # slow rollout option will be used here
         use_case_id, org_id, string = key.split(":")
         org_string = org_id + ":" + string
         hashed = md5_text(org_string).hexdigest()
@@ -51,10 +52,10 @@ class StringIndexerCache:
         """
         Takes in keys formatted like "use_case_id:org_id:string", and results that have the
         internally used hashed key such as:
-            {"indexer:org:str:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
+            {"indexer:org:str:transactions:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
         and returns results that replace the hashed internal key with the externally
         used key:
-            {"1.2.0": 2}
+            {"transactions:3:a": 2}
         """
         formatted: MutableMapping[str, Optional[int]] = {}
         for key in keys:
@@ -139,8 +140,8 @@ class CachingIndexer(StringIndexer):
 
         db_record_key_results = self.indexer.bulk_record(
             {
-                use_case_id: keyCollection.mapping
-                for use_case_id, keyCollection in db_record_keys.mapping.items()
+                use_case_id: key_collection.mapping
+                for use_case_id, key_collection in db_record_keys.mapping.items()
             }
         )
         self.cache.set_many(db_record_key_results.get_mapped_strings_to_ints())
