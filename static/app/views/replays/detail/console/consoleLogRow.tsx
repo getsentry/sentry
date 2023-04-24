@@ -145,13 +145,9 @@ const ICONS = {
 };
 
 const Icon = styled(
-  ({
-    level,
-    className,
-  }: {
-    level: BreadcrumbLevelType.ERROR | BreadcrumbLevelType.WARNING;
-    className?: string;
-  }) => <span className={className}>{ICONS[level]}</span>
+  ({level, className}: {level: BreadcrumbLevelType; className?: string}) => (
+    <span className={className}>{ICONS[level]}</span>
+  )
 )`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
