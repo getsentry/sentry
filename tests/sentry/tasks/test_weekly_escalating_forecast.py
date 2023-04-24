@@ -4,15 +4,16 @@ from unittest.mock import MagicMock, patch
 
 import pytz
 
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.escalating_group_forecast import (
+    DEFAULT_MINIMUM_CEILING_FORECAST,
+    EscalatingGroupForecast,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
-
-DEFAULT_MINIMUM_CEILING_FORECAST = [200] * 14
 
 
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):  # type: ignore
@@ -35,7 +36,10 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):  # type: ignore
 
         run_escalating_forecast()
         fetched_forecast = EscalatingGroupForecast.fetch(group_list[0].project.id, group_list[0].id)
-        assert fetched_forecast is None
+        assert fetched_forecast is not None
+        assert fetched_forecast.project_id == group_list[0].project.id
+        assert fetched_forecast.group_id == group_list[0].id
+        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
 
     @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_single_group_escalating_forecast(

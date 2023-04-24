@@ -1,12 +1,14 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.escalating_group_forecast import (
+    DEFAULT_MINIMUM_CEILING_FORECAST,
+    EscalatingGroupForecast,
+)
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.models import GroupInbox, GroupInboxReason, GroupSnooze, add_group_to_inbox
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
-from tests.sentry.tasks.test_weekly_escalating_forecast import DEFAULT_MINIMUM_CEILING_FORECAST
 
 
 class HandleIgnoredTest(TestCase):  # type: ignore
@@ -69,7 +71,10 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         assert not GroupSnooze.objects.filter(group=self.group).exists()
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
-        assert fetched_forecast is None
+        assert fetched_forecast is not None
+        assert fetched_forecast.project_id == self.group.project.id
+        assert fetched_forecast.group_id == self.group.id
+        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
 
     @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_archive_until_escalating_with_counts(
