@@ -54,6 +54,9 @@ class ApiError(Exception):
 
         super().__init__(text[:1024])
 
+    def __str__(self) -> str:
+        return self.text
+
     @classmethod
     def from_response(cls, response: Response, url: str | None = None) -> ApiError:
         from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized

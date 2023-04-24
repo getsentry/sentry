@@ -19,7 +19,10 @@ import {
   ModuleButtonType,
   ModuleLinkButton,
 } from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
-import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
+import {
+  OTHER_DOMAINS,
+  TOP_DOMAINS,
+} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -30,8 +33,10 @@ import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {PERIOD_REGEX} from 'sentry/views/starfish/modules/APIModule/queries';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
@@ -53,32 +58,58 @@ const handleClose = () => {};
 export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect, location} = props;
   const theme = useTheme();
+  const pageFilter = usePageFilters();
   const [selectedSpike, setSelectedSpike] = useState<any | undefined>();
 
   const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
-    queryKey: ['durationBreakdown'],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${MODULE_DURATION_QUERY}`).then(res => res.json()),
+    queryKey: ['topDomains'],
+    queryFn: () => fetch(`${HOST}/?query=${TOP_DOMAINS}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
-  const modules = ['db', 'cache', 'http'];
+  const {isLoading: isOtherDurationDataLoading, data: moduleOtherDurationData} = useQuery(
+    {
+      queryKey: ['otherDomains'],
+      queryFn: () => fetch(`${HOST}/?query=${OTHER_DOMAINS}`).then(res => res.json()),
+      retry: false,
+      initialData: [],
+    }
+  );
 
   const seriesByModule: {[module: string]: Series} = {};
-  modules.forEach(module => {
-    seriesByModule[module] = {
-      seriesName: `p75(${module})`,
+  if (!isDurationDataLoading && !isOtherDurationDataLoading) {
+    moduleDurationData.forEach(series => {
+      seriesByModule[series.domain] = {
+        seriesName: `${series.domain}`,
+        data: [],
+      };
+    });
+
+    moduleDurationData.forEach(value => {
+      seriesByModule[value.domain].data.push({value: value.p75, name: value.interval});
+    });
+
+    seriesByModule.Other = {
+      seriesName: `Other`,
       data: [],
     };
-  });
 
-  moduleDurationData.forEach(value => {
-    seriesByModule[value.module].data.push({value: value.p75, name: value.interval});
-  });
+    moduleOtherDurationData.forEach(value => {
+      seriesByModule.Other.data.push({value: value.p75, name: value.interval});
+    });
+  }
+
+  // TODO: Add to a util instead, copied from APIModuleView
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const start =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const end = moment(pageFilter.selection.datetime.end ?? undefined);
 
   const data = Object.values(seriesByModule).map(series =>
-    zeroFillSeries(series, moment.duration(12, 'hours'))
+    zeroFillSeries(series, moment.duration(1, 'day'), start, end)
   );
 
   function renderFailureRateChart() {
@@ -161,7 +192,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <ModuleLinkButton type={ModuleButtonType.DB} />
       <StyledRow minSize={200}>
         <Fragment>
-          <ChartPanel title={t('Response Time')}>
+          <ChartPanel title={t('p75 of Time Spent in HTTP Operations')}>
             <Chart
               statsPeriod="24h"
               height={180}
