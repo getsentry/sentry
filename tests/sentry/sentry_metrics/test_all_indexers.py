@@ -127,19 +127,18 @@ def test_indexer(indexer, indexer_cache):
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
 
-    org_strings = {org1_id: strings, org2_id: {"sup"}}
+    use_case_strings = {use_case_id: {org1_id: strings, org2_id: {"sup"}}}
 
     # create a record with diff org_id but same string that we test against
-    indexer.record(use_case_key, 999, "hey")
+    indexer.record(use_case_id, 999, "hey")
 
     assert list(
         indexer_cache.get_many(
-            [f"{org1_id}:{string}" for string in strings],
-            cache_namespace=use_case_key.value,
+            [f"{use_case_id}:{org1_id}:{string}" for string in strings],
         ).values()
     ) == [None, None, None]
 
-    results = indexer.bulk_record(use_case_id=use_case_key, org_strings=org_strings).results
+    results = indexer.bulk_record(use_case_strings).results
 
     org1_string_ids = {
         raw_indexer.resolve(use_case_key, org1_id, "hello"),
@@ -154,21 +153,20 @@ def test_indexer(indexer, indexer_cache):
     assert org2_string_id not in org1_string_ids
 
     # verify org1 results and cache values
-    for value in results[org1_id].values():
-        assert value in org1_string_ids
+    for id_value in results[use_case_id].results[org1_id].values():
+        assert id_value in org1_string_ids
 
     for cache_value in indexer_cache.get_many(
-        [f"{org1_id}:{string}" for string in strings],
-        cache_namespace=use_case_key.value,
+        [f"{use_case_id}:{org1_id}:{string}" for string in strings]
     ).values():
         assert cache_value in org1_string_ids
 
     # verify org2 results and cache values
-    assert results[org2_id]["sup"] == org2_string_id
-    assert indexer_cache.get(f"{org2_id}:sup", cache_namespace=use_case_key.value) == org2_string_id
+    assert results[use_case_id][org2_id]["sup"] == org2_string_id
+    assert indexer_cache.get(f"{use_case_id}:{org2_id}:sup") == org2_string_id
 
     # we should have no results for org_id 999
-    assert not results.get(999)
+    assert not results[use_case_id].results.get(999)
 
 
 def test_resolve_and_reverse_resolve(indexer, indexer_cache):
