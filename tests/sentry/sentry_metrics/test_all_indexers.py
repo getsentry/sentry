@@ -157,13 +157,13 @@ def test_indexer(indexer, indexer_cache):
         assert id_value in org1_string_ids
 
     for cache_value in indexer_cache.get_many(
-        [f"{use_case_id}:{org1_id}:{string}" for string in strings]
+        [f"{use_case_id.value}:{org1_id}:{string}" for string in strings]
     ).values():
         assert cache_value in org1_string_ids
 
     # verify org2 results and cache values
     assert results[use_case_id][org2_id]["sup"] == org2_string_id
-    assert indexer_cache.get(f"{use_case_id}:{org2_id}:sup") == org2_string_id
+    assert indexer_cache.get(f"{use_case_id.value}:{org2_id}:sup") == org2_string_id
 
     # we should have no results for org_id 999
     assert not results[use_case_id].results.get(999)
