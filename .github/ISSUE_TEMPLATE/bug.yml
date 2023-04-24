@@ -11,14 +11,6 @@ body:
         - self-hosted (https://develop.sentry.dev/self-hosted/)
     validations:
       required: true
-  - type: input
-    id: version
-    attributes:
-      label: Version
-      placeholder: 21.7.0 ← should look like this (check the footer)
-      description: If on self-hosted, what version are you running?
-    validations:
-      required: false
   - type: textarea
     id: repro
     attributes:
@@ -97,6 +89,14 @@ body:
       label: DSN
       placeholder: https://{tag}@o{ORG_ID}.ingest.sentry.io/{PROJECT_ID}
       description: If on SaaS, what is your DSN? This is an easy way to give us your org ID (non-PII).
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 21.7.0 ← should look like this (check the footer)
+      description: If on self-hosted, what version are you running?
     validations:
       required: false
   - type: markdown
