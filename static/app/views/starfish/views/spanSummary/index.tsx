@@ -62,23 +62,23 @@ type Props = {
 export default function SpanSummary({location, params}: Props) {
   const slug = parseSlug(params.slug);
 
-  const {spanDescription, transactionName} = slug || {
-    spanDescription: '',
+  const {groupId, transactionName} = slug || {
+    groupId: '',
     transactionName: '',
   };
 
-  const query = getSpanInTransactionQuery(spanDescription, transactionName);
+  const query = getSpanInTransactionQuery(groupId, groupId);
 
   const {isLoading, data} = useQuery({
-    queryKey: ['spanSummary', spanDescription, transactionName],
+    queryKey: ['spanSummary', groupId, transactionName],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
-  const spanSamplesQuery = getSpanSamplesQuery(spanDescription, transactionName);
+  const spanSamplesQuery = getSpanSamplesQuery(groupId, transactionName);
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
-    queryKey: ['spanSamples', spanDescription, transactionName],
+    queryKey: ['spanSamples', groupId, transactionName],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -125,7 +125,11 @@ export default function SpanSummary({location, params}: Props) {
             ) : (
               <KeyValueList
                 data={[
-                  {key: 'desc', value: spanDescription, subject: 'Description'},
+                  {
+                    key: 'desc',
+                    value: spanSampleData?.[0]?.description,
+                    subject: 'Description',
+                  },
                   {key: 'count', value: data?.[0]?.count, subject: 'Count'},
                   {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
                 ]}
@@ -210,7 +214,7 @@ function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.Reac
 }
 
 type SpanInTransactionSlug = {
-  spanDescription: string;
+  groupId: string;
   transactionName: string;
 };
 
@@ -224,8 +228,8 @@ function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
     return undefined;
   }
 
-  const spanDescription = slug.slice(0, delimiterPosition);
+  const groupId = slug.slice(0, delimiterPosition);
   const transactionName = slug.slice(delimiterPosition + 1);
 
-  return {spanDescription, transactionName};
+  return {groupId, transactionName};
 }

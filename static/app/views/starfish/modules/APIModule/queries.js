@@ -9,6 +9,7 @@ export const getEndpointListQuery = ({domain, action, datetime}) => {
   const end_timestamp = datetime.end && moment(datetime.end).format(DATE_FORMAT);
   return `SELECT
     description,
+    group_id,
     domain,
     action,
     quantile(0.5)(exclusive_time) AS "p50(exclusive_time)",
@@ -24,7 +25,7 @@ export const getEndpointListQuery = ({domain, action, datetime}) => {
     ${action ? `AND action = '${action}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY description, domain, action
+    GROUP BY description, domain, action, group_id
     ORDER BY count DESC
     LIMIT 10
   `;
@@ -95,12 +96,12 @@ export const getEndpointDetailTableQuery = description => {
  `;
 };
 
-export const getSpanInTransactionQuery = (spanDescription, transactionName) => {
+export const getSpanInTransactionQuery = (groupId, transactionName) => {
   // TODO - add back `module = <moudle> to filter data
   return `
     SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
     FROM spans_experimental_starfish
-    WHERE description = '${spanDescription}'
+    WHERE groupId = '${groupId}'
     AND transaction = '${transactionName}'
  `;
 };
