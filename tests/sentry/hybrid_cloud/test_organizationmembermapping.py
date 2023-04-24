@@ -149,7 +149,7 @@ class OrganizationMappingTest(TransactionTestCase):
 
 @region_silo_test(stable=True)
 class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_process_organization_member_updates_receiver(self):
+    def test_process_organization_member_create_receiver(self):
         with exempt_from_silo_limits():
             inviter = self.create_user("foo@example.com")
             assert OrganizationMember.objects.all().count() == 0
@@ -185,7 +185,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
         org_member = OrganizationMember.objects.create(**fields)
-        region_outbox = org_member.outbox_for_update()
+        region_outbox = org_member.outbox_for_create()
         region_outbox.save()
         region_outbox.drain_shard()
 
