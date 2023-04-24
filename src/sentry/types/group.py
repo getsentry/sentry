@@ -14,8 +14,6 @@ class GroupSubStatus:
 UNRESOLVED_SUBSTATUS_CHOICES = {
     GroupSubStatus.ONGOING,
     GroupSubStatus.ESCALATING,
-    GroupSubStatus.REGRESSED,
-    GroupSubStatus.NEW,
 }
 
 IGNORED_SUBSTATUS_CHOICES = {
@@ -30,15 +28,12 @@ SUBSTATUS_UPDATE_CHOICES = {
     "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
     "escalating": GroupSubStatus.ESCALATING,
     "ongoing": GroupSubStatus.ONGOING,
-    "regressed": GroupSubStatus.REGRESSED,
-    "new": GroupSubStatus.NEW,
     "forever": GroupSubStatus.FOREVER,
     "until_condition_met": GroupSubStatus.UNTIL_CONDITION_MET,
 }
 
 GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS = {
     GroupSubStatus.ESCALATING: "escalating",
-    GroupSubStatus.REGRESSED: "regressed",
     GroupSubStatus.ONGOING: "unresolved",
     GroupSubStatus.UNTIL_ESCALATING: "archived_until_escalating",
     GroupSubStatus.FOREVER: "archived_forever",

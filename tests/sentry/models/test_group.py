@@ -318,8 +318,6 @@ class GroupTest(TestCase, SnubaTestCase):
     def test_group_valid_substatus(self):
         desired_status_substatus_pairs = [
             (GroupStatus.UNRESOLVED, GroupSubStatus.ESCALATING),
-            (GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED),
-            (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
             (GroupStatus.IGNORED, GroupSubStatus.FOREVER),
             (GroupStatus.IGNORED, GroupSubStatus.UNTIL_CONDITION_MET),
             (GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING),

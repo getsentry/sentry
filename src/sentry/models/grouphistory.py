@@ -25,8 +25,6 @@ class GroupHistoryStatus:
     # Note that we don't record the initial group creation unresolved here to save on creating a row
     # for every group.
 
-    # UNRESOLVED should be used for ONGOING groups.
-    # Use REGRESSED/ESCALATING to specify other substatuses.
     UNRESOLVED = 0
     RESOLVED = 1
     SET_RESOLVED_IN_RELEASE = 11
