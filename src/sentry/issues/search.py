@@ -5,7 +5,7 @@ import logging
 from copy import deepcopy
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
-from sentry import features, options
+from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
@@ -246,13 +246,17 @@ def _query_params_for_generic(
     return None
 
 
-def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
+def get_search_strategies(
+    organization: Organization, actor: Optional[Any]
+) -> Mapping[int, GroupSearchStrategy]:
     strategies = {}
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error
         elif group_category == GroupCategory.PERFORMANCE:
-            if not options.get("performance.issues.create_issues_through_platform", False):
+            if not features.has(
+                "organizations:issue-platform-search-perf-issues", organization, actor=actor
+            ):
                 strategy = _query_params_for_perf
             else:
                 strategy = functools.partial(

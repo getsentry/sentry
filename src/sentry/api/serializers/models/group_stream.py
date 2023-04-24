@@ -8,7 +8,7 @@ from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 
-from sentry import release_health, tsdb
+from sentry import features, release_health, tsdb
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -53,7 +53,9 @@ class GroupStatsMixin:
     CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
 
     @abstractmethod
-    def query_tsdb(self, groups: Sequence[Group], query_params: MutableMapping[str, Any]):
+    def query_tsdb(
+        self, groups: Sequence[Group], query_params: MutableMapping[str, Any], user=None
+    ):
         pass
 
     def get_stats(
@@ -99,7 +101,7 @@ class GroupStatsMixin:
                     "rollup": int(interval.total_seconds()),
                 }
 
-            return self.query_tsdb(item_list, query_params, **kwargs)
+            return self.query_tsdb(item_list, query_params, user=user, **kwargs)
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
@@ -147,7 +149,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 
         return result
 
-    def query_tsdb(self, groups: Sequence[Group], query_params, **kwargs):
+    def query_tsdb(self, groups: Sequence[Group], query_params, user=None, **kwargs):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -334,15 +336,29 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return result
 
     def query_tsdb(
-        self, groups: Sequence[Group], query_params, conditions=None, environment_ids=None, **kwargs
+        self,
+        groups: Sequence[Group],
+        query_params,
+        conditions=None,
+        environment_ids=None,
+        user=None,
+        **kwargs,
     ):
+        if not groups:
+            return
+
+        organization = groups[0].organization
+        search_perf_issues = features.has(
+            "organizations:issue-platform-search-perf-issues", organization, actor=user
+        )
+
         error_issue_ids, perf_issue_ids, generic_issue_ids = [], [], []
         for group in groups:
             if GroupCategory.ERROR == group.issue_category:
                 error_issue_ids.append(group.id)
-            elif GroupCategory.PERFORMANCE == group.issue_category:
+            elif GroupCategory.PERFORMANCE == group.issue_category and not search_perf_issues:
                 perf_issue_ids.append(group.id)
-            elif group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE):
+            else:
                 generic_issue_ids.append(group.id)
 
         results = {}
