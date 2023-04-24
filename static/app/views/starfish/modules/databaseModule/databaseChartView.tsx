@@ -199,36 +199,42 @@ export default function APIModuleView({action, table, onChange}: Props) {
           onChange={opt => onChange('action', opt.value)}
         />
       </Selectors>
-      <ChartPanel title={t('Slowest Tables')}>
-        <Chart
-          statsPeriod="24h"
-          height={180}
-          data={topDomains}
-          start=""
-          end=""
-          loading={tableGraphLoading}
-          utc={false}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '16px',
-            bottom: '8px',
-          }}
-          disableMultiAxis
-          definedAxisTicks={4}
-          isLineChart
-          showLegend
-        />
-      </ChartPanel>
-      <Selectors>
-        Table:
-        <CompactSelect
-          value={table}
-          options={parseOptions(tableData, 'p75')}
-          menuTitle="Table"
-          onChange={opt => onChange('table', opt.value)}
-        />
-      </Selectors>
+      {tableData.length === 1 && tableData[0].key === '' ? (
+        <Fragment />
+      ) : (
+        <Fragment>
+          <ChartPanel title={t('Slowest Tables')}>
+            <Chart
+              statsPeriod="24h"
+              height={180}
+              data={topDomains}
+              start=""
+              end=""
+              loading={tableGraphLoading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '8px',
+              }}
+              disableMultiAxis
+              definedAxisTicks={4}
+              isLineChart
+              showLegend
+            />
+          </ChartPanel>
+          <Selectors>
+            Table:
+            <CompactSelect
+              value={table}
+              options={parseOptions(tableData, 'p75')}
+              menuTitle="Table"
+              onChange={opt => onChange('table', opt.value)}
+            />
+          </Selectors>
+        </Fragment>
+      )}
     </Fragment>
   );
 }
