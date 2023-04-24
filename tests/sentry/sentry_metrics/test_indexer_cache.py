@@ -22,23 +22,29 @@ def use_case_id() -> str:
 
 def test_cache(use_case_id: str) -> None:
     cache.clear()
-    assert indexer_cache.get("blah", use_case_id) is None
-    indexer_cache.set("blah", 1, use_case_id)
-    assert indexer_cache.get("blah", use_case_id) == 1
+    assert indexer_cache.get(f"blah:100:{use_case_id}") is None
+    indexer_cache.set(f"blah:100:{use_case_id}", 1)
+    assert indexer_cache.get(f"blah:100:{use_case_id}") == 1
 
-    indexer_cache.delete("blah", use_case_id)
-    assert indexer_cache.get("blah", use_case_id) is None
+    indexer_cache.delete(f"blah:100:{use_case_id}")
+    assert indexer_cache.get(f"blah:100:{use_case_id}") is None
 
 
 def test_cache_many(use_case_id: str) -> None:
     cache.clear()
-    values = {"hello": 2, "bye": 3}
-    assert indexer_cache.get_many(list(values.keys()), use_case_id) == {"hello": None, "bye": None}
-    indexer_cache.set_many(values, use_case_id)
-    assert indexer_cache.get_many(list(values.keys()), use_case_id) == values
+    values = {f"{use_case_id}:100:hello": 2, f"{use_case_id}:100:bye": 3}
+    assert indexer_cache.get_many(values.keys()) == {
+        f"{use_case_id}:100:hello": None,
+        f"{use_case_id}:100:bye": None,
+    }
+    indexer_cache.set_many(values)
+    assert indexer_cache.get_many(list(values.keys())) == values
 
-    indexer_cache.delete_many(list(values.keys()), use_case_id)
-    assert indexer_cache.get_many(list(values.keys()), use_case_id) == {"hello": None, "bye": None}
+    indexer_cache.delete_many(values.keys())
+    assert indexer_cache.get_many(values.keys()) == {
+        f"{use_case_id}:100:hello": None,
+        f"{use_case_id}:100:bye": None,
+    }
 
 
 def test_make_cache_key(use_case_id: str) -> None:
