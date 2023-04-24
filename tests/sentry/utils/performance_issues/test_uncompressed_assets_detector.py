@@ -33,7 +33,7 @@ def create_compressed_asset_span():
         data={
             "Transfer Size": 5,
             "encoded_body_size": 4,
-            "Decoded Body Size": 5,
+            "decoded_body_size": 5,
         },
     )
 
@@ -61,7 +61,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     data={
                         "Transfer Size": 1_000_000,
                         "encoded_body_size": 1_000_000,
-                        "Decoded Body Size": 1_000_000,
+                        "decoded_body_size": 1_000_000,
                     },
                 ),
                 create_compressed_asset_span(),
@@ -98,7 +98,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     data={
                         "Transfer Size": 1_000_000,
                         "encoded_body_size": 1_000_000,
-                        "Decoded Body Size": 1_000_000,
+                        "decoded_body_size": 1_000_000,
                     },
                 ),
                 create_compressed_asset_span(),
@@ -137,7 +137,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     data={
                         "Transfer Size": 1_000_000,
                         "encoded_body_size": 1_000_000,
-                        "Decoded Body Size": 1_000_000,
+                        "decoded_body_size": 1_000_000,
                     },
                 ),
                 create_compressed_asset_span(),
@@ -176,7 +176,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     data={
                         "Transfer Size": 1_000_000,
                         "encoded_body_size": 1_000_000,
-                        "Decoded Body Size": 1_000_000,
+                        "decoded_body_size": 1_000_000,
                     },
                 ),
                 create_compressed_asset_span(),
@@ -210,7 +210,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                 data={
                     "Transfer Size": 1_000_000,
                     "encoded_body_size": 1_000_000,
-                    "Decoded Body Size": 1_000_000,
+                    "decoded_body_size": 1_000_000,
                 },
             ),
             create_compressed_asset_span(),
@@ -229,7 +229,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     data={
                         "Transfer Size": 1_000_000,
                         "encoded_body_size": 1_000_000,
-                        "Decoded Body Size": 1_000_000,
+                        "decoded_body_size": 1_000_000,
                     },
                 ),
                 create_compressed_asset_span(),
@@ -248,7 +248,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     data={
                         "Transfer Size": 1_000_000,
                         "encoded_body_size": 99_999,
-                        "Decoded Body Size": 99_999,
+                        "decoded_body_size": 99_999,
                     },
                 ),
                 create_compressed_asset_span(),
@@ -267,7 +267,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     data={
                         "Transfer Size": 1_000_000,
                         "encoded_body_size": 101_000,
-                        "Decoded Body Size": 100_999,
+                        "decoded_body_size": 100_999,
                     },
                 ),
                 create_compressed_asset_span(),
@@ -286,7 +286,7 @@ class UncompressedAssetsDetectorTest(TestCase):
                     data={
                         "Transfer Size": 1_000_000,
                         "encoded_body_size": 101_000,
-                        "Decoded Body Size": 101_000,
+                        "decoded_body_size": 101_000,
                     },
                 ),
                 create_compressed_asset_span(),

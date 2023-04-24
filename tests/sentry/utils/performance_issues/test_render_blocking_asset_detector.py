@@ -37,7 +37,7 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
                 data={
                     "Transfer Size": 1200000,
                     "encoded_body_size": 1200000,
-                    "Decoded Body Size": 2000000,
+                    "decoded_body_size": 2000000,
                     "resource.render_blocking_status": "blocking",
                 },
             ),

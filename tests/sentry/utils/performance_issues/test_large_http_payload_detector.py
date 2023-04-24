@@ -37,8 +37,8 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 "hash1",
                 data={
                     "Transfer Size": 50_000_000,
-                    "encoded_response_body_size": 50_000_000,
-                    "Decoded Body Size": 50_000_000,
+                    "encoded_body_size": 50_000_000,
+                    "decoded_body_size": 50_000_000,
                 },
             )
         ]
@@ -71,8 +71,8 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 duration=1000.0,
                 data={
                     "Transfer Size": 50_000_000,
-                    "encoded_response_body_size": 50_000_000,
-                    "Decoded Body Size": 50_000_000,
+                    "encoded_body_size": 50_000_000,
+                    "decoded_body_size": 50_000_000,
                 },
             )
         ]
