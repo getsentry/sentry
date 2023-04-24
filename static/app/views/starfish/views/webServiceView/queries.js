@@ -34,7 +34,7 @@ export const DB_TIME_SPENT = `SELECT
  quantile(0.75)(exclusive_time) as p75,
  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
  FROM default.spans_experimental_starfish
- WHERE startsWith(span_operation, 'db')
+ WHERE startsWith(span_operation, 'db') and span_operation != 'db.redis'
  GROUP BY interval
  ORDER BY interval
  `;
