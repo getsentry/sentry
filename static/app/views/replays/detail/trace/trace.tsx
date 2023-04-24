@@ -29,7 +29,7 @@ function Trace({replayRecord}: Props) {
 
   useFetchTransactions();
 
-  if (!replayRecord || !didInit || isFetching) {
+  if (!replayRecord || !didInit || (isFetching && !traces?.length)) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">

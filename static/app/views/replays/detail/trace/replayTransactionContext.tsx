@@ -223,7 +223,6 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
 }
 
 function internalToExternalState({
-  detailsErrors,
   detailsRequests,
   detailsResponses,
   didInit,
@@ -235,7 +234,7 @@ function internalToExternalState({
 
   return {
     didInit,
-    errors: indexError ? [indexError] : detailsErrors,
+    errors: indexError ? [indexError] : [], // Ignoring detailsErrors for now
     isFetching: !isComplete,
     traces,
   };
