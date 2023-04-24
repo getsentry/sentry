@@ -229,7 +229,8 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
       0
     );
     const encoded = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Encoded Body Size'] ?? 0),
+      (acc, curr) =>
+        acc + (curr.data.encoded_body_size ?? curr.data['Encoded Body Size'] ?? 0),
       0
     );
 

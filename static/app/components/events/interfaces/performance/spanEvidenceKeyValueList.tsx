@@ -164,7 +164,8 @@ function LargeHTTPPayloadSpanEvidence({
           makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0])),
           makeRow(
             t('Payload Size'),
-            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
+            getSpanFieldBytes(offendingSpans[0], 'encoded_body_size') ??
+              getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
           ),
         ].filter(Boolean) as KeyValueListData
       }
@@ -311,7 +312,8 @@ function UncompressedAssetSpanEvidence({
         makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
         makeRow(
           t('Asset Size'),
-          getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
+          getSpanFieldBytes(offendingSpans[0], 'encoded_body_size') ??
+            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
         ),
         makeRow(
           t('Duration Impact'),

@@ -70,7 +70,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -84,7 +84,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -98,7 +98,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -112,7 +112,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -126,7 +126,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -140,7 +140,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -154,7 +154,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -168,7 +168,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -281,7 +281,7 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
           'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
+          encoded_body_size: 159248,
           'Transfer Size': 275,
         },
       },
@@ -308,7 +308,7 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
           'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
+          encoded_body_size: 159248,
           'Transfer Size': 275,
         },
       },
@@ -335,7 +335,7 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
           'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
+          encoded_body_size: 159248,
           'Transfer Size': 275,
         },
       },
@@ -362,7 +362,7 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
           'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
+          encoded_body_size: 159248,
           'Transfer Size': 275,
         },
       },
@@ -407,7 +407,7 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
           'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
+          encoded_body_size: 159248,
           'Transfer Size': 275,
         },
       },
@@ -434,7 +434,7 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
           'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
+          encoded_body_size: 159248,
           'Transfer Size': 275,
         },
       },
@@ -453,7 +453,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -480,7 +480,7 @@ describe('WaterfallModel', () => {
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
               'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
+              encoded_body_size: 159248,
               'Transfer Size': 275,
             },
           },
@@ -512,7 +512,7 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
           'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
+          encoded_body_size: 159248,
           'Transfer Size': 275,
         },
       },

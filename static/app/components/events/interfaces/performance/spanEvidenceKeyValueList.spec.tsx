@@ -673,7 +673,7 @@ describe('SpanEvidenceKeyValueList', () => {
       description: 'https://example.com/resource.js',
       problemSpan: ProblemSpan.OFFENDER,
       data: {
-        'Encoded Body Size': 31041901,
+        encoded_body_size: 31041901,
       },
     });
 
@@ -732,7 +732,7 @@ describe('SpanEvidenceKeyValueList', () => {
       description: 'https://example.com/api/users',
       problemSpan: ProblemSpan.OFFENDER,
       data: {
-        'Encoded Body Size': 31041901,
+        encoded_body_size: 31041901,
       },
     });
 
