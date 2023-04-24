@@ -241,4 +241,5 @@ export default function APIModuleView({action, table, onChange}: Props) {
 
 const Selectors = styled(`div`)`
   display: flex;
+  margin-bottom: 16px;
 `;
