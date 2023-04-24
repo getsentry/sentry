@@ -36,13 +36,13 @@ export default function EndpointFailureEvents({params, location}: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <IssueList
+            <EventList
+              httpOp={httpOp}
               location={location}
               organization={organization}
               transactionName={transactionName}
             />
-            <EventList
-              httpOp={httpOp}
+            <IssueList
               location={location}
               organization={organization}
               transactionName={transactionName}
