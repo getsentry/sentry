@@ -87,36 +87,17 @@ export function ProjectDocsReact({
   projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
-  const {
-    experimentAssignment: productSelectionAssignment,
-    logExperiment: productSelectionLogExperiment,
-  } = useExperiment('OnboardingProductSelectionExperiment', {
-    logExperimentOnMount: false,
-  });
-
-  // This is an experiment we are doing with react.
-  // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
-  // and the docs will reflect that.
   const loadPlatform = useMemo(() => {
     const products = location.query.product ?? [];
-    return newOrg && productSelectionAssignment === 'baseline'
-      ? 'javascript-react'
-      : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-        products.includes(PRODUCT.SESSION_REPLAY)
+    return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
+      products.includes(PRODUCT.SESSION_REPLAY)
       ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
       : products.includes(PRODUCT.PERFORMANCE_MONITORING)
       ? ReactDocVariant.ErrorMonitoringAndPerformance
       : products.includes(PRODUCT.SESSION_REPLAY)
       ? ReactDocVariant.ErrorMonitoringAndSessionReplay
       : ReactDocVariant.ErrorMonitoring;
-  }, [location.query.product, productSelectionAssignment, newOrg]);
-
-  useEffect(() => {
-    if (!newOrg) {
-      return;
-    }
-    productSelectionLogExperiment();
-  }, [productSelectionLogExperiment, newOrg]);
+  }, [location.query.product]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
@@ -128,34 +109,18 @@ export function ProjectDocsReact({
 
   return (
     <Fragment>
-      {newOrg ? (
-        <Fragment>
-          <SetupIntroduction
-            stepHeaderText={t(
-              'Configure %s SDK',
-              platforms.find(p => p.id === 'javascript-react')?.name ?? ''
-            )}
-            platform="javascript-react"
-          />
-          {productSelectionAssignment === 'variant1' ? (
-            <ProductSelection
-              defaultSelectedProducts={[
-                PRODUCT.PERFORMANCE_MONITORING,
-                PRODUCT.SESSION_REPLAY,
-              ]}
-            />
-          ) : productSelectionAssignment === 'variant2' ? (
-            <ProductSelection />
-          ) : null}
-        </Fragment>
-      ) : (
-        <ProductSelection
-          defaultSelectedProducts={[
-            PRODUCT.PERFORMANCE_MONITORING,
-            PRODUCT.SESSION_REPLAY,
-          ]}
+      {newOrg && (
+        <SetupIntroduction
+          stepHeaderText={t(
+            'Configure %s SDK',
+            platforms.find(p => p.id === 'javascript-react')?.name ?? ''
+          )}
+          platform="javascript-react"
         />
       )}
+      <ProductSelection
+        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
+      />
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
