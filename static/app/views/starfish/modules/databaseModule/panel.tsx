@@ -80,7 +80,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   const {isLoading, data: graphData} = useQuery({
     queryKey: ['dbQueryDetailsGraph', row.desc],
     queryFn: () =>
-      fetch(`${HOST}/?query=${GRAPH_QUERY}?format=sql`).then(res => res.json()),
+      fetch(`${HOST}/?query=${GRAPH_QUERY}&format=sql`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
