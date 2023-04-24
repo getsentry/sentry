@@ -123,9 +123,22 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         auditlog = AuditLogEntry.objects.filter(
             organization_id=self.project.organization.id,
             event=audit_log.get_event_id("PROJECT_EDIT"),
+            target_object=self.project.id,
         )
         assert len(auditlog) == 1
         assert "Auto Assign to Issue Owner" in auditlog[0].data["autoAssignment"]
+
+    def test_audit_log_ownership_change(self):
+        resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        assert resp.status_code == 200
+
+        auditlog = AuditLogEntry.objects.filter(
+            organization_id=self.project.organization.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            target_object=self.project.id,
+        )
+        assert len(auditlog) == 1
+        assert "modified" in auditlog[0].data["ownership_rules"]
 
     @with_feature("organizations:streamline-targeting-context")
     def test_update_with_streamline_targeting(self):
