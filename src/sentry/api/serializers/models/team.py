@@ -241,9 +241,10 @@ class TeamSerializer(Serializer):  # type: ignore
                 )
 
                 top_org_role = org_roles[0] if org_roles else None
-                minimum_team_role = roles.get_minimum_team_role(top_org_role)
-                if minimum_team_role.priority > effective_team_role.priority:
-                    effective_team_role = minimum_team_role
+                if top_org_role:
+                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                    if minimum_team_role.priority > effective_team_role.priority:
+                        effective_team_role = minimum_team_role
 
                 team_role_scopes = effective_team_role.scopes
                 team_role_id = effective_team_role.id
