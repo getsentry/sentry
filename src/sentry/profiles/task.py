@@ -42,7 +42,10 @@ class VroomTimeout(Exception):
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
 )
-def process_profile_work(profile: Profile) -> None:
+def process_profile_task(
+    profile: Profile,
+    **kwargs: Any,
+) -> None:
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
     sentry_sdk.set_tag("organization", organization.id)
