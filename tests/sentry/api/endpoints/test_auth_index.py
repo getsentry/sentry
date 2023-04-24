@@ -84,12 +84,20 @@ class AuthVerifyEndpointTest(APITestCase):
             },
         )
 
-    def test_valid_password(self):
+    @mock.patch("sentry.api.endpoints.auth_index.metrics")
+    def test_valid_password(self, mock_metrics):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "admin"})
         assert response.status_code == 200
         assert response.data["id"] == str(user.id)
+        mock_metrics.incr.assert_any_call(
+            "password.login_attempt", sample_rate=1.0, skip_internal=False
+        )
+        assert (
+            mock.call("2fa.login_attempt", sample_rate=1.0, skip_internal=False)
+            not in mock_metrics.incr.call_args_list
+        )
 
     def test_invalid_password(self):
         user = self.create_user("foo@example.com")
@@ -103,9 +111,10 @@ class AuthVerifyEndpointTest(APITestCase):
         response = self.client.put(self.path, data={})
         assert response.status_code == 400
 
+    @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_valid_password_u2f(self, validate_response, is_available):
+    def test_valid_password_u2f(self, validate_response, is_available, mock_metrics):
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
@@ -123,6 +132,11 @@ class AuthVerifyEndpointTest(APITestCase):
         assert validate_response.call_count == 1
         assert {"challenge": "challenge"} in validate_response.call_args[0]
         assert {"response": "response"} in validate_response.call_args[0]
+        mock_metrics.incr.assert_any_call("2fa.login_attempt", sample_rate=1.0, skip_internal=False)
+        assert (
+            mock.call("password", sample_rate=1.0, skip_internal=False)
+            not in mock_metrics.incr.call_args_list
+        )
 
 
 @control_silo_test(stable=True)
