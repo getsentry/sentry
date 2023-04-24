@@ -93,6 +93,32 @@ class HistoricGroupCounts(TestCase):  # type: ignore
                 },
             ]
 
+    def test_query_optimization(self) -> None:
+        px = Factories.create_project(self.project.organization)
+        py = Factories.create_project(self.project.organization)
+        pz = Factories.create_project(self.project.organization)
+
+        # Two different groups for proj x, one group for proj y and two groups for proj z
+        self._load_event_for_group(project_id=px.id)
+        self._load_event_for_group(project_id=px.id, fingerprint="group-b")
+        self._load_event_for_group(project_id=py.id)
+        self._load_event_for_group(project_id=pz.id)
+        self._load_event_for_group(project_id=pz.id, fingerprint="group-b")
+
+        groups = Group.objects.all()
+        assert len(groups) == 5
+
+        # Force pagination to only three elements per page
+        # Once we get to Python 3.10+ the formating of this multiple with statement will not be an eye sore
+        with patch("sentry.issues.escalating._query_with_pagination") as query_mock, patch(
+            "sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3
+        ), patch("sentry.issues.escalating.BUCKETS_PER_GROUP", new=2):
+            query_groups_past_counts(groups)
+            # Proj X will expect potentially 4 elements because it has two groups, thus, no other
+            # project will be called with it.
+            # Proj Y and Z will be grouped together
+            assert query_mock.call_count == 2
+
     def test_query_multiple_projects(self) -> None:
         proj_x = Factories.create_project(self.project.organization)
         proj_y = Factories.create_project(self.project.organization)

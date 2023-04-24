@@ -58,7 +58,8 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
     start_date, end_date = _start_and_end_dates()
     # groups.order_by() guarantees that the call to items() down below will always iterate in the
     # same order of projects (making the assertion in the tests reliable rather than changing order)
-    group_ids_by_project = _extract_project_and_group_ids(groups.order_by("project__id"))
+    groups_by_project_id = groups.order_by("project__id")  # type: ignore
+    group_ids_by_project = _extract_project_and_group_ids(groups_by_project_id)
     proj_ids, group_ids = [], []
     processed_projects = 0
     total_projects_count = len(group_ids_by_project)
@@ -70,10 +71,11 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
         proj_ids.append(proj_id)
         group_ids += _group_ids
         processed_projects += 1
-        # We still have room for more projects and groups
+        potential_num_elements = len(_group_ids) * BUCKETS_PER_GROUP
+        # This is trying to maximize the number of groups on the first page
         if (
             processed_projects < total_projects_count
-            and len(_group_ids) < ELEMENTS_PER_SNUBA_PAGE / BUCKETS_PER_GROUP
+            and potential_num_elements < ELEMENTS_PER_SNUBA_PAGE
         ):
             continue
 
