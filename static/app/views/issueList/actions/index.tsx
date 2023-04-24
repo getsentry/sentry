@@ -11,7 +11,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group, PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -273,10 +273,15 @@ function useSelectedGroupsState() {
   const selectedIds = useLegacyStore(SelectedGroupStore);
 
   const selected = SelectedGroupStore.getSelectedIds();
-  const projects = [...selected]
-    .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!(group && group.project))
-    .map(group => group.project.slug);
+  const projects: string[] = [];
+
+  for (const selectedGroup of selected) {
+    const group = GroupStore.get(selectedGroup);
+
+    if (group && group.project) {
+      projects.push(group.project.slug);
+    }
+  }
 
   const uniqProjects = uniq(projects);
   // we only want selectedProjectSlug set if there is 1 project

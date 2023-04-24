@@ -56,7 +56,13 @@ export default class TableField extends Component<InputFieldProps> {
     } = props;
 
     const mappedKeys = columnKeys || [];
-    const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {id: ''});
+    const emptyValue = mappedKeys.reduce(
+      (a, v) => {
+        a[v] = null;
+        return a;
+      },
+      {id: ''}
+    );
 
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? (props.value as any[]) : [];

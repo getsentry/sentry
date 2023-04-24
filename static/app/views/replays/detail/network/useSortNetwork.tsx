@@ -68,7 +68,10 @@ function useSortNetwork({items}: Opts) {
   };
 }
 
-function sortNetwork(network: NetworkSpan[], sortConfig: SortConfig): NetworkSpan[] {
+function sortNetwork(
+  network: ReadonlyArray<NetworkSpan>,
+  sortConfig: SortConfig
+): NetworkSpan[] {
   return [...network].sort((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);

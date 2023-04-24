@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -48,16 +48,19 @@ function Filter({
 
   // Memoize menuOptions to prevent CompactSelect from re-rendering every time
   // the value changes
-  const menuOptions = useMemo(
-    () =>
-      [...operationNameCounts].map(([operationName, operationCount]) => ({
+  const menuOptions = useMemo(() => {
+    const options: SelectOption<string>[] = [];
+
+    for (const [operationName, operationCount] of operationNameCounts.entries()) {
+      options.push({
         value: operationName,
         label: operationName,
         leadingItems: <OperationDot backgroundColor={pickBarColor(operationName)} />,
         trailingItems: <OperationCount>{operationCount}</OperationCount>,
-      })),
-    [operationNameCounts]
-  );
+      });
+    }
+    return options;
+  }, [operationNameCounts]);
 
   function onChange(selectedOpts) {
     const mappedValues = selectedOpts.map(opt => opt.value);
@@ -87,7 +90,8 @@ function Filter({
         selectedOpts.length !== 0 &&
           trackAnalytics('performance_views.event_details.filter_by_op', {
             organization,
-            operation: opt.label,
+            // @TODO the type here is wrong, label expects a react node and we are passing a string
+            operation: opt.label as string,
           });
       }
     });

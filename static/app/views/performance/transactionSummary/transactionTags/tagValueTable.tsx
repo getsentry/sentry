@@ -289,7 +289,7 @@ export class TagValueTable extends Component<Props, State> {
       onCursor,
     } = this.props;
 
-    const newColumns = [...TAGS_TABLE_COLUMN_ORDER].map(c => {
+    const newColumns = TAGS_TABLE_COLUMN_ORDER.map(c => {
       const newColumn = {...c};
       if (c.key === 'tagValue' && tagKey) {
         newColumn.name = tagKey;

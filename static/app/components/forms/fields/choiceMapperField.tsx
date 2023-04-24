@@ -125,7 +125,10 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     } = props;
 
     const mappedKeys = Object.keys(columnLabels);
-    const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {});
+    const emptyValue = mappedKeys.reduce((a, v) => {
+      a[v] = null;
+      return a;
+    }, {});
 
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? props.value : {};

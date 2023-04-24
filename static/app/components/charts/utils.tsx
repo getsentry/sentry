@@ -287,7 +287,7 @@ export const getPreviousSeriesName = (seriesName: string) => {
 
 function formatList(items: Array<string | number | undefined>) {
   const filteredItems = items.filter(item => !!item);
-  return [[...filteredItems].slice(0, -1).join(', '), [...filteredItems].slice(-1)]
+  return [filteredItems.slice(0, -1).join(', '), filteredItems.slice(-1)]
     .filter(type => !!type)
     .join(' and ');
 }

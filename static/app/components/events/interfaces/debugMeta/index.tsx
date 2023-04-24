@@ -355,7 +355,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
   ) {
     const checkedOptions = new Set(filterOptions.map(option => option.value));
 
-    if (![...checkedOptions].length) {
+    if (!checkedOptions.size) {
       return filteredImages;
     }
 

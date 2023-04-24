@@ -18,7 +18,10 @@ const strictRulesNotCi = {
 };
 
 module.exports = {
-  extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
+  extends: [
+    isRelaxed ? 'sentry-app' : 'sentry-app/strict',
+    'plugin:eslint-performance/recommended',
+  ],
   globals: {
     require: false,
     expect: false,

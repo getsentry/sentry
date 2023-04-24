@@ -208,13 +208,16 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   }
 
   get invites(): NormalizedInvite[] {
-    return this.state.pendingInvites.reduce<NormalizedInvite[]>(
-      (acc, row) => [
-        ...acc,
-        ...[...row.emails].map(email => ({email, teams: row.teams, role: row.role})),
-      ],
-      []
-    );
+    return this.state.pendingInvites.reduce<NormalizedInvite[]>((acc, row) => {
+      for (const email of row.emails) {
+        acc.push({
+          email,
+          teams: row.teams,
+          role: row.role,
+        });
+      }
+      return acc;
+    }, []);
   }
 
   get hasDuplicateEmails() {

@@ -127,7 +127,10 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   mergeItems(items: Item[]) {
-    const itemsById = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const itemsById = items.reduce((acc, item) => {
+      acc[item.id] = item;
+      return acc;
+    }, {});
 
     // Merge these items into the store and return a mapping of any that aren't already in the store
     this.items.forEach((item, itemIndex) => {
@@ -162,7 +165,10 @@ const storeConfig: GroupStoreDefinition = {
    */
   addToFront(items) {
     items = toArray(items);
-    const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const itemMap = items.reduce((acc, item) => {
+      acc[item.id] = item;
+      return acc;
+    }, {});
 
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
 
@@ -293,14 +299,19 @@ const storeConfig: GroupStoreDefinition = {
     });
 
     // Merge pending changes into the item if it has them
-    return this.items.map(item =>
-      pendingById[item.id] === undefined
-        ? item
-        : {
-            ...item,
-            ...pendingById[item.id].reduce((a, change) => ({...a, ...change.data}), {}),
-          }
-    );
+    return this.items.map(item => {
+      // If the item has no pending changes, return it as is
+      if (pendingById[item.id] === undefined) {
+        return item;
+      }
+
+      // Otherwise, merge the changes into the item
+      const merged = {...item};
+      for (const change of pendingById[item.id]) {
+        Object.assign(merged, change.data);
+      }
+      return merged;
+    });
   },
 
   getState() {
@@ -470,10 +481,10 @@ const storeConfig: GroupStoreDefinition = {
 
   onPopulateStats(itemIds, response) {
     // Organize stats by id
-    const groupStatsMap = response.reduce<Record<string, GroupStats>>(
-      (map, stats) => ({...map, [stats.id]: stats}),
-      {}
-    );
+    const groupStatsMap = response.reduce<Record<string, GroupStats>>((map, stats) => {
+      map[stats.id] = stats;
+      return map;
+    }, {});
 
     this.items.forEach((item, idx) => {
       if (itemIds?.includes(item.id)) {

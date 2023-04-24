@@ -213,7 +213,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
         .map(option => option.value.split('-')[1])
     );
 
-    if (!![...checkedTypeOptions].length && !![...checkedLevelOptions].length) {
+    if (checkedTypeOptions.size && !!checkedLevelOptions.size) {
       return breadcrumbs.filter(
         ({breadcrumb}) =>
           checkedTypeOptions.has(breadcrumb.type) &&
@@ -221,13 +221,13 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
       );
     }
 
-    if ([...checkedTypeOptions].length) {
+    if (checkedTypeOptions.size) {
       return breadcrumbs.filter(({breadcrumb}) =>
         checkedTypeOptions.has(breadcrumb.type)
       );
     }
 
-    if ([...checkedLevelOptions].length) {
+    if (checkedLevelOptions.size) {
       return breadcrumbs.filter(({breadcrumb}) =>
         checkedLevelOptions.has(breadcrumb.level)
       );

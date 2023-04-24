@@ -26,7 +26,7 @@ export const experimentList = [
   },
 ] as const;
 
-export const experimentConfig = experimentList.reduce(
-  (acc, exp) => ({...acc, [exp.key]: exp}),
-  {}
-) as Experiments;
+export const experimentConfig = experimentList.reduce((acc, exp) => {
+  acc[exp.key] = exp;
+  return acc;
+}, {}) as Experiments;

@@ -9,7 +9,7 @@ type WeightedSample = Profiling.SentrySampledProfile['profile']['samples'][0] & 
   weight: number;
 };
 
-function sortSentrySampledProfileSamples(samples: Readonly<WeightedSample[]>) {
+function sortSentrySampledProfileSamples(samples: ReadonlyArray<WeightedSample>) {
   return [...samples].sort((a, b) => {
     return a.stack_id - b.stack_id;
   });

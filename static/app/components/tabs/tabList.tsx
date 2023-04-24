@@ -68,13 +68,10 @@ function useOverflowTabs({
     return () => observer.disconnect();
   }, [tabListRef, tabItemsRef]);
 
-  const tabItemKeyToHiddenMap = tabItems.reduce(
-    (acc, next) => ({
-      ...acc,
-      [next.key]: next.hidden,
-    }),
-    {}
-  );
+  const tabItemKeyToHiddenMap = tabItems.reduce((acc, next) => {
+    acc[next.key] = next.hidden;
+    return acc;
+  }, {});
 
   // Tabs that are hidden will be rendered with display: none so won't intersect,
   // but we don't want to show them in the overflow menu

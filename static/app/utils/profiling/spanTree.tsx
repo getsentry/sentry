@@ -99,7 +99,7 @@ class SpanTree {
     return this === SpanTree.Empty;
   }
 
-  buildCollapsedSpanTree(spans: RawSpanType[]) {
+  buildCollapsedSpanTree(spans: ReadonlyArray<RawSpanType>) {
     const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
     const MISSING_INSTRUMENTATION_THRESHOLD_S = 0.1;
 
