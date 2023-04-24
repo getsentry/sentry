@@ -208,6 +208,7 @@ export function HierarchicalGroupingContent({
             registersMeta: meta?.registers,
             debugFrames,
             mechanism,
+            isNewestFrame: frameIndex === lastFrameIndex,
           };
 
           nRepeats = 0;

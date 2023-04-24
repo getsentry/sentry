@@ -37,6 +37,7 @@ type Props = Omit<
     registers: Record<string, string>;
     emptySourceNotation?: boolean;
     frameMeta?: Record<string, any>;
+    isNewestFrame?: boolean;
     isOnlyFrame?: boolean;
     mechanism?: StackTraceMechanism | null;
     registersMeta?: Record<string, any>;
@@ -61,6 +62,7 @@ function Line({
   registersMeta,
   emptySourceNotation = false,
   mechanism,
+  isNewestFrame,
   /**
    * Is the stack trace being previewed in a hovercard?
    */
@@ -167,6 +169,7 @@ function Line({
         registersMeta={registersMeta}
         frameMeta={frameMeta}
         mechanism={mechanism}
+        isNewestFrame={isNewestFrame}
       />
     </StyleListItem>
   );
