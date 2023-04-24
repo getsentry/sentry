@@ -42,8 +42,8 @@ def test_cache_many(use_case_id: str) -> None:
 
 
 def test_make_cache_key(use_case_id: str) -> None:
-    key = indexer_cache.make_cache_key("blah", "release-health")
-    assert key == f"indexer:test:org:str:{use_case_id}:{md5_text('blah').hexdigest()}"
+    key = indexer_cache.make_cache_key("sessions:3:blah")
+    assert key == f"indexer:test:org:str:{use_case_id}:{md5_text('3:blah').hexdigest()}"
 
 
 def test_formatted_results(use_case_id: str) -> None:
