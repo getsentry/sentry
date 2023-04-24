@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
 import {
   AssigneeSelectorDropdown,
   OnAssignCallback,
@@ -22,6 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {useAccess} from 'sentry/utils/useAccess';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -171,6 +171,10 @@ function AssignedTo({
   const organization = useOrganization();
   const api = useApi();
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
+  const hasProjectRead = useAccess({access: ['project:read']});
+  const hasStreamlineTargetingFeature = organization.features.includes(
+    'streamline-targeting-context'
+  );
   const {data} = useCommitters(
     {
       eventId: event?.id ?? '',
@@ -217,7 +221,7 @@ function AssignedTo({
     <SidebarSection.Wrap data-test-id="assigned-to">
       <StyledSidebarTitle>
         {t('Assigned To')}
-        <Access access={['project:read']}>
+        {hasStreamlineTargetingFeature && hasProjectRead && (
           <Button
             onClick={() => {
               openIssueOwnershipRuleModal({
@@ -232,7 +236,7 @@ function AssignedTo({
             borderless
             size="xs"
           />
-        </Access>
+        )}
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown
