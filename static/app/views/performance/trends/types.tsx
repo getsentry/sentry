@@ -77,6 +77,7 @@ export type TrendsTransaction = {
   transaction: string;
   trend_difference: number;
   trend_percentage: number;
+  breakpoint?: number;
 };
 
 export type TrendsDataEvents = {
