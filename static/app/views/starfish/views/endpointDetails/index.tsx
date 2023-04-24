@@ -4,7 +4,10 @@ import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
 import Duration from 'sentry/components/duration';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -28,6 +31,7 @@ export type EndpointDataRow = {
   description: string;
   domain: string;
   failure_count: number;
+  failure_rate: number;
   'p50(exclusive_time)': number;
   'p95(exclusive_time)': number;
   transaction_count: number;
@@ -46,19 +50,22 @@ const COLUMN_ORDER = [
   {
     key: 'transaction',
     name: 'Transaction',
-    width: 300,
+    width: 280,
   },
   {
     key: 'count',
     name: 'Count',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'p50',
     name: 'p50',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'failure_rate',
     name: 'Error %',
+    width: COL_WIDTH_UNDEFINED,
   },
 ];
 export default function EndpointDetail({
@@ -88,7 +95,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     retry: false,
     initialData: [],
   });
-  const [p50Series, p95Series, countSeries, errorRateSeries] =
+  const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
     endpointDetailDataToChartData(seriesData).map(series =>
       zeroFillSeries(series, moment.duration(12, 'hours'))
     );
@@ -150,7 +157,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>{t('Error Rate')}</SubHeader>
-          <SubSubHeader>{row.failure_count}</SubSubHeader>
+          <SubSubHeader>{row.failure_rate}</SubSubHeader>
           <APIDetailChart
             series={errorRateSeries}
             isLoading={seriesIsLoading}
@@ -184,13 +191,15 @@ function renderBodyCell(
 ): React.ReactNode {
   if (column.key === 'transaction') {
     return (
-      <Link
-        to={`/starfish/span/${encodeURIComponent(spanDescription)}:${encodeURIComponent(
-          row.transaction
-        )}`}
-      >
-        {row[column.key]}
-      </Link>
+      <OverflowEllipsisTextContainer>
+        <Link
+          to={`/starfish/span/${encodeURIComponent(spanDescription)}:${encodeURIComponent(
+            row.transaction
+          )}`}
+        >
+          {row[column.key]}
+        </Link>
+      </OverflowEllipsisTextContainer>
     );
   }
 
