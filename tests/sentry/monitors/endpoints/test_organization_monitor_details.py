@@ -375,3 +375,14 @@ class DeleteMonitorTest(MonitorTestCase):
         assert ScheduledDeletion.objects.filter(
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
+
+    def test_bad_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor)
+
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            status_code=404,
+            qs_params={"environment": "jungle"},
+        )
