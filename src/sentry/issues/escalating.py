@@ -32,7 +32,7 @@ BUCKETS_PER_GROUP = 7 * 24
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
-    {"group_id": int, "hourBucket": str, "count()": int},
+    {"group_id": int, "hourBucket": str, "count()": int, "project_id": int},
 )
 
 ParsedGroupsCount = Dict[int, GroupCount]
