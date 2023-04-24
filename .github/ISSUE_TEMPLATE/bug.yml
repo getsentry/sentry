@@ -19,6 +19,30 @@ body:
       description: If on self-hosted, what version are you running?
     validations:
       required: false
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      description: How can we see what you're seeing? Specific is terrific.
+      placeholder: |-
+        1. foo
+        2. bar
+        3. baz
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Result
+      description: Logs? Screenshots? Yes, please.
+    validations:
+      required: true
   - type: dropdown
     id: product-area
     attributes:
@@ -75,30 +99,6 @@ body:
       description: If on SaaS, what is your DSN? This is an easy way to give us your org ID (non-PII).
     validations:
       required: false
-  - type: textarea
-    id: repro
-    attributes:
-      label: Steps to Reproduce
-      description: How can we see what you're seeing? Specific is terrific.
-      placeholder: |-
-        1. foo
-        2. bar
-        3. baz
-    validations:
-      required: true
-  - type: textarea
-    id: expected
-    attributes:
-      label: Expected Result
-    validations:
-      required: true
-  - type: textarea
-    id: actual
-    attributes:
-      label: Actual Result
-      description: Logs? Screenshots? Yes, please.
-    validations:
-      required: true
   - type: markdown
     attributes:
       value: |-
