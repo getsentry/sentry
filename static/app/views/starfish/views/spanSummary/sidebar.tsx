@@ -81,9 +81,11 @@ export default function Sidebar({description, transactionName}) {
 
   // Average spans per event is just the total number of metrics spans divided by the total number of events
   const spansPerEvent =
-    count && transactionData?.data?.[0]?.['count()']
-      ? (count * 100000) / transactionData.data[0]['count()']
-      : 0;
+    Math.round(
+      (count && transactionData?.data?.[0]?.['count()']
+        ? (count * 100000) / transactionData.data[0]['count()']
+        : 0) * 100
+    ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
   return (
@@ -106,9 +108,7 @@ export default function Sidebar({description, transactionName}) {
       </FlexItem>
       <FlexItem>
         <SidebarItemHeader>{t('Spans Per Event')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          {formatPercentage(spansPerEvent)}
-        </SidebarItemValueContainer>
+        <SidebarItemValueContainer>{spansPerEvent}</SidebarItemValueContainer>
       </FlexItem>
       <FlexFullWidthItem>
         <SidebarItemHeader>{t('Throughput')}</SidebarItemHeader>
