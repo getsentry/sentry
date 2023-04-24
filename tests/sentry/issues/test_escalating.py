@@ -1,10 +1,14 @@
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Optional
 from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import _start_and_end_dates, query_groups_past_counts
+from sentry.issues.escalating import (
+    GroupsCountResponse,
+    _start_and_end_dates,
+    query_groups_past_counts,
+)
 from sentry.models import Group
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
@@ -38,7 +42,7 @@ class HistoricGroupCounts(TestCase):  # type: ignore
             },
         )
 
-    def _count_bucket(self, count: int, event: Event) -> Dict[str, int]:
+    def _count_bucket(self, count: int, event: Event) -> GroupsCountResponse:
         """It simplifies writing the expected data structures"""
         return {
             "count()": count,
@@ -49,23 +53,14 @@ class HistoricGroupCounts(TestCase):  # type: ignore
 
     def test_query_single_group(self) -> None:
         event = self._load_event_for_group()
-        assert query_groups_past_counts(Group.objects.all()) == [
-            {
-                "count()": 1,
-                "group_id": event.group_id,
-                "hourBucket": to_start_of_hour(event.datetime),
-                "project_id": event.project_id,
-            }
-        ]
+        assert query_groups_past_counts(Group.objects.all()) == [self._count_bucket(1, event)]
 
     def test_pagination(self) -> None:
         event1 = self._load_event_for_group(fingerprint="group-1", minutes_ago=1)
         # Increases the count of event1
         self._load_event_for_group(fingerprint="group-1", minutes_ago=59)
-        group_1_id = event1.group_id
         # one event in its own hour and two in another
         event2 = self._load_event_for_group(fingerprint="group-2", minutes_ago=61)
-        group_2_id = event2.group_id
         event3 = self._load_event_for_group(fingerprint="group-2", minutes_ago=60)
         # Increases the count of event3
         self._load_event_for_group(fingerprint="group-2", minutes_ago=59)
@@ -73,24 +68,9 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         # This forces to test the iteration over the Snuba data
         with patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=2):
             assert query_groups_past_counts(Group.objects.all()) == [
-                {
-                    "count()": 2,
-                    "group_id": group_1_id,
-                    "hourBucket": to_start_of_hour(event1.datetime),
-                    "project_id": self.project.id,
-                },
-                {
-                    "count()": 1,
-                    "group_id": group_2_id,
-                    "hourBucket": to_start_of_hour(event2.datetime),
-                    "project_id": self.project.id,
-                },
-                {
-                    "count()": 2,
-                    "group_id": group_2_id,
-                    "hourBucket": to_start_of_hour(event3.datetime),
-                    "project_id": self.project.id,
-                },
+                self._count_bucket(2, event1),
+                self._count_bucket(1, event2),
+                self._count_bucket(2, event3),
             ]
 
     def test_query_optimization(self) -> None:
@@ -134,24 +114,9 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         self._load_event_for_group(project_id=proj_y.id, fingerprint="group-1")
 
         assert query_groups_past_counts(Group.objects.all()) == [
-            {
-                "count()": 1,
-                "group_id": event1.group_id,
-                "hourBucket": to_start_of_hour(event1.datetime),
-                "project_id": proj_x.id,
-            },
-            {
-                "count()": 1,
-                "group_id": event_y_1.group_id,
-                "hourBucket": to_start_of_hour(event_y_1.datetime),
-                "project_id": proj_y.id,
-            },
-            {
-                "count()": 2,
-                "group_id": event_y_2.group_id,
-                "hourBucket": to_start_of_hour(event_y_2.datetime),
-                "project_id": proj_y.id,
-            },
+            self._count_bucket(1, event1),
+            self._count_bucket(1, event_y_1),
+            self._count_bucket(2, event_y_2),
         ]
 
     def test_query_different_orgs(self) -> None:
@@ -164,18 +129,8 @@ class HistoricGroupCounts(TestCase):  # type: ignore
 
         # Since proj_org_b is created
         assert query_groups_past_counts(Group.objects.all()) == [
-            {
-                "count()": 1,
-                "group_id": event1.group_id,
-                "hourBucket": to_start_of_hour(event1.datetime),
-                "project_id": proj_a.id,
-            },
-            {
-                "count()": 1,
-                "group_id": event_proj_org_b_1.group_id,
-                "hourBucket": to_start_of_hour(event_proj_org_b_1.datetime),
-                "project_id": proj_b.id,
-            },
+            self._count_bucket(1, event1),
+            self._count_bucket(1, event_proj_org_b_1),
         ]
 
     def test_query_no_groups(self) -> None:

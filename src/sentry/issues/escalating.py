@@ -3,7 +3,7 @@ This is later used for generating group forecasts for determining when a group m
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, TypedDict
+from typing import Dict, List, Sequence, Tuple, TypedDict
 
 from snuba_sdk import (
     Column,
@@ -33,13 +33,13 @@ BUCKETS_PER_GROUP = 7 * 24
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
-    {"group_id": int, "hourBucket": str, "count()": int},
+    {"group_id": int, "hourBucket": str, "count()": int, "project_id": int},
 )
 
 ParsedGroupsCount = Dict[int, GroupCount]
 
 
-def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
+def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountResponse]:
     """Query Snuba for the counts for every group bucketed into hours.
 
     It optimizes the query by guaranteeing that we look at group_ids that are from the same project id.
@@ -54,7 +54,10 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
     than 7 days old) will skew the optimization since we may only get one page and less elements than the max
     ELEMENTS_PER_SNUBA_PAGE.
     """
-    all_results = []
+    all_results = []  # type: ignore
+    if not groups:
+        return all_results
+
     start_date, end_date = _start_and_end_dates()
     # groups.order_by() guarantees that the call to items() down below will always iterate in the
     # same order of projects (making the assertion in the tests reliable rather than changing order)
@@ -88,7 +91,7 @@ def query_groups_past_counts(groups: List[Group]) -> List[GroupsCountResponse]:
 
 
 def _query_with_pagination(
-    project_ids: List[int], group_ids: List[int], start_date: datetime, end_date: datetime
+    project_ids: Sequence[int], group_ids: Sequence[int], start_date: datetime, end_date: datetime
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
@@ -106,7 +109,7 @@ def _query_with_pagination(
     return all_results
 
 
-def parse_groups_past_counts(response: List[GroupsCountResponse]) -> ParsedGroupsCount:
+def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedGroupsCount:
     """
     Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
     ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
@@ -129,8 +132,8 @@ def parse_groups_past_counts(response: List[GroupsCountResponse]) -> ParsedGroup
 
 
 def _generate_query(
-    project_ids: List[int],
-    group_ids: List[int],
+    project_ids: Sequence[int],
+    group_ids: Sequence[int],
     offset: int,
     start_date: datetime,
     end_date: datetime,
@@ -169,7 +172,7 @@ def _start_and_end_dates(hours: int = BUCKETS_PER_GROUP) -> Tuple[datetime, date
     return end_datetime - timedelta(hours=hours), end_datetime
 
 
-def _extract_project_and_group_ids(groups: List[Group]) -> Dict[int, List[int]]:
+def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[int]]:
     """Return all project and group IDs from a list of Group"""
     group_ids_by_project: Dict[int, List[int]] = defaultdict(list)
     for group in groups:
