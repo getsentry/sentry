@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {Series} from 'sentry/types/echarts';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 
 export function zeroFillSeries(
   series: Series,
@@ -13,24 +13,41 @@ export function zeroFillSeries(
   }
 
   const firstDatum = series.data[0];
+  const lastDatum = series.data[series.data.length - 1];
   const dateFormat = moment(firstDatum.name).creationData().format?.toString();
 
   if (!dateFormat) {
     return series;
   }
 
-  const newData = [firstDatum];
+  const newData: SeriesDataUnit[] = [];
+
+  const startTimeNearestInterval = startTime && roundUpToNearest12HourInterval(startTime);
+  const endTimeNearestInterval = endTime && roundDownToNearest12HourInterval(endTime);
 
   const seriesData = [
-    ...(startTime ? [{value: 0, name: startTime.format(dateFormat)}] : []),
+    ...(startTimeNearestInterval &&
+    startTimeNearestInterval.diff(moment(firstDatum.name)) < 0
+      ? [{value: 0, name: startTimeNearestInterval.format(dateFormat)}]
+      : []),
     ...series.data,
-    ...(endTime ? [{value: 0, name: endTime.format(dateFormat)}] : []),
+    ...(endTimeNearestInterval && endTimeNearestInterval.diff(moment(lastDatum.name)) > 0
+      ? [{value: 0, name: endTimeNearestInterval.format(dateFormat)}]
+      : []),
   ];
 
   let currentDatum, nextDatum, lastSeenDate, nextDate, diff;
-  for (let index = 1; index < seriesData.length; index++) {
-    currentDatum = seriesData[index - 1];
-    nextDatum = seriesData[index];
+  for (let index = 0; index < seriesData.length - 1; index++) {
+    // Push the first datapoint
+    if (index === 0) {
+      newData.push({
+        ...seriesData[index],
+        name: moment(seriesData[index].name).format(dateFormat),
+      });
+    }
+
+    currentDatum = seriesData[index];
+    nextDatum = seriesData[index + 1];
 
     lastSeenDate = moment(currentDatum.name);
     nextDate = moment(nextDatum.name);
@@ -61,4 +78,17 @@ export function zeroFillSeries(
     ...series,
     data: newData,
   };
+}
+
+function roundUpToNearest12HourInterval(time: moment.Moment) {
+  return roundDownToNearest12HourInterval(time.clone().add(12, 'hour'));
+}
+
+function roundDownToNearest12HourInterval(time: moment.Moment) {
+  const hour = time.hour();
+  const nearestDay = time.clone().startOf('day');
+  if (hour < 12) {
+    return nearestDay;
+  }
+  return nearestDay.add(12, 'hour');
 }
