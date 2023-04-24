@@ -12,6 +12,7 @@ import type {User} from './user';
  * Organization summaries are sent when you request a list of all organizations
  */
 export interface OrganizationSummary {
+  aiSuggestedSolution: boolean;
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
