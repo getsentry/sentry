@@ -6,7 +6,6 @@ from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
-from celery.exceptions import TimeLimitExceeded
 from django.conf import settings
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
@@ -43,17 +42,6 @@ class VroomTimeout(Exception):
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
 )
-def process_profile_task(
-    profile: Profile,
-    **kwargs: Any,
-) -> None:
-    try:
-        process_profile_work(profile=profile)
-    except TimeLimitExceeded as e:
-        sentry_sdk.capture_exception(e)
-        raise e
-
-
 def process_profile_work(profile: Profile) -> None:
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
