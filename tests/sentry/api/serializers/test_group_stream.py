@@ -70,10 +70,11 @@ class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixi
             "received": cur_time.timestamp(),
             "fingerprint": [f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         }
-        event = self.store_event(
-            data=event_data,
-            project_id=self.project.id,
-        )
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            event = self.store_event(
+                data=event_data,
+                project_id=self.project.id,
+            )
         group = event.groups[0]
         serialized = serialize(group, serializer=StreamGroupSerializerSnuba(stats_period="24h"))
         assert serialized["count"] == "1"
@@ -81,6 +82,13 @@ class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixi
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            serialized = serialize(group, serializer=StreamGroupSerializerSnuba(stats_period="24h"))
+            assert serialized["count"] == "1"
+            assert serialized["issueCategory"] == "performance"
+            assert serialized["issueType"] == "performance_n_plus_one_db_queries"
+            assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
+            assert serialized["stats"]["24h"][-1][1] == 1
 
     @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
     def test_profiling_issue(self):
