@@ -13,12 +13,13 @@ import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import EndpointTable from './endpointTable';
 import HostTable from './hostTable';
-import {getEndpointDomainsQuery, getEndpointGraphQuery, PERIOD_REGEX} from './queries';
+import {getEndpointDomainsQuery, getEndpointGraphQuery} from './queries';
 
 export const HOST = 'http://localhost:8080';
 
@@ -104,7 +105,6 @@ export default function APIModuleView({location, onSelect}: Props) {
     });
   });
 
-  // TODO: Some duplicate code here with queries.js
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
   const startTime =
     num && unit
