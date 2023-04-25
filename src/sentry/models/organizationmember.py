@@ -11,7 +11,6 @@ from uuid import uuid4
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q, QuerySet
-from django.db.models.signals import post_delete
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
