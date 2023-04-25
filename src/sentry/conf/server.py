@@ -442,7 +442,7 @@ CSP_REPORT_ONLY = (
             "style-src",
             (
                 "'self'",
-                "'unsafe-inline",
+                "'unsafe-inline'",
             ),
         ),
         (
