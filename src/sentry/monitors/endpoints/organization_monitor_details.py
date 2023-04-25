@@ -126,6 +126,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
             MONITOR_PARAMS.MONITOR_SLUG,
+            GLOBAL_PARAMS.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
