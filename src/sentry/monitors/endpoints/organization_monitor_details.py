@@ -122,7 +122,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
-        operation_id="Delete a monitor or monitor environment",
+        operation_id="Delete a monitor or monitor environments",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
             MONITOR_PARAMS.MONITOR_SLUG,
@@ -138,7 +138,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     )
     def delete(self, request: Request, organization, project, monitor) -> Response:
         """
-        Delete a monitor or monitor environment.
+        Delete a monitor or monitor environments.
         """
         environment_names = request.query_params.getlist("environment")
         with transaction.atomic():
