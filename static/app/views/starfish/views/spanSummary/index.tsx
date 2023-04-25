@@ -5,19 +5,23 @@ import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule/queries';
+import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {getSpanSamplesQuery} from './queries';
 
@@ -60,25 +64,34 @@ type Props = {
 } & RouteComponentProps<{slug: string}, {}>;
 
 export default function SpanSummary({location, params}: Props) {
+  const pageFilter = usePageFilters();
   const slug = parseSlug(params.slug);
 
-  const {spanDescription, transactionName} = slug || {
-    spanDescription: '',
+  const {groupId, transactionName} = slug || {
+    groupId: '',
     transactionName: '',
   };
 
-  const query = getSpanInTransactionQuery(spanDescription, transactionName);
+  const query = getSpanInTransactionQuery({
+    groupId,
+    transactionName,
+    datetime: pageFilter.selection.datetime,
+  });
 
   const {isLoading, data} = useQuery({
-    queryKey: ['spanSummary', spanDescription, transactionName],
+    queryKey: ['spanSummary', groupId, transactionName],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
-  const spanSamplesQuery = getSpanSamplesQuery(spanDescription, transactionName);
+  const spanSamplesQuery = getSpanSamplesQuery({
+    groupId,
+    transactionName,
+    datetime: pageFilter.selection.datetime,
+  });
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
-    queryKey: ['spanSamples', spanDescription, transactionName],
+    queryKey: ['spanSamples', groupId, transactionName, pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -107,6 +120,10 @@ export default function SpanSummary({location, params}: Props) {
   if (!slug) {
     return <div>ERROR</div>;
   }
+  const spanDescription = spanSampleData?.[0]?.description;
+  const spanDomain = spanSampleData?.[0]?.domain;
+
+  const spanGroupOperation = data?.[0]?.span_operation;
 
   return (
     <Layout.Page>
@@ -120,48 +137,61 @@ export default function SpanSummary({location, params}: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            {isLoading ? (
-              <span>LOADING</span>
-            ) : (
-              <KeyValueList
-                data={[
-                  {key: 'desc', value: spanDescription, subject: 'Description'},
-                  {key: 'count', value: data?.[0]?.count, subject: 'Count'},
-                  {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
-                ]}
-                shouldSort={false}
-              />
-            )}
-            {areSpanSamplesLoading ? (
-              <span>LOADING SAMPLE LIST</span>
-            ) : (
-              <div>
-                <GridEditable
-                  isLoading={isLoading || isTransactionDataLoading}
-                  data={spanSampleData.map(datum => {
-                    const transaction =
-                      transactionDataById[datum.transaction_id.replaceAll('-', '')];
+            <FilterOptionsContainer>
+              <DatePageFilter alignDropdown="left" />
+            </FilterOptionsContainer>
+            <FlexContainer>
+              <MainSpanSummaryContainer>
+                {isLoading ? (
+                  <span>LOADING</span>
+                ) : (
+                  <SpanGroupKeyValueList
+                    data={data}
+                    spanGroupOperation={spanGroupOperation}
+                    spanDescription={spanDescription}
+                    spanDomain={spanDomain}
+                  />
+                )}
+                {areSpanSamplesLoading ? (
+                  <span>LOADING SAMPLE LIST</span>
+                ) : (
+                  <div>
+                    <GridEditable
+                      isLoading={isLoading || isTransactionDataLoading}
+                      data={spanSampleData.map(datum => {
+                        const transaction =
+                          transactionDataById[datum.transaction_id.replaceAll('-', '')];
 
-                    return {
-                      transaction_id: datum.transaction_id,
-                      span_id: datum.span_id,
-                      timestamp: transaction?.timestamp,
-                      spanOp: datum.span_operation,
-                      spanDuration: datum.exclusive_time,
-                      transactionDuration: transaction?.['transaction.duration'],
-                    };
-                  })}
-                  columnOrder={COLUMN_ORDER}
-                  columnSortBy={[]}
-                  grid={{
-                    renderHeadCell,
-                    renderBodyCell: (column: GridColumnHeader, row: SpanTableRow) =>
-                      renderBodyCell(column, row),
-                  }}
-                  location={location}
+                        return {
+                          transaction_id: datum.transaction_id,
+                          span_id: datum.span_id,
+                          timestamp: transaction?.timestamp,
+                          spanOp: datum.span_operation,
+                          spanDuration: datum.exclusive_time,
+                          transactionDuration: transaction?.['transaction.duration'],
+                        };
+                      })}
+                      columnOrder={COLUMN_ORDER}
+                      columnSortBy={[]}
+                      grid={{
+                        renderHeadCell,
+                        renderBodyCell: (column: GridColumnHeader, row: SpanTableRow) =>
+                          renderBodyCell(column, row),
+                      }}
+                      location={location}
+                    />
+                  </div>
+                )}
+              </MainSpanSummaryContainer>
+              <SidebarContainer>
+                <Sidebar
+                  groupId={groupId}
+                  spanGroupOperation={spanGroupOperation}
+                  description={null}
+                  transactionName={transactionName}
                 />
-              </div>
-            )}
+              </SidebarContainer>
+            </FlexContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
@@ -177,6 +207,27 @@ export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+`;
+
+const FlexContainer = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(4)};
+`;
+
+const MainSpanSummaryContainer = styled('div')`
+  flex: 100 0 800px;
+`;
+
+const SidebarContainer = styled('div')`
+  flex: 1 1 300px;
+`;
+
+const FilterOptionsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
@@ -210,7 +261,7 @@ function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.Reac
 }
 
 type SpanInTransactionSlug = {
-  spanDescription: string;
+  groupId: string;
   transactionName: string;
 };
 
@@ -224,8 +275,45 @@ function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
     return undefined;
   }
 
-  const spanDescription = slug.slice(0, delimiterPosition);
+  const groupId = slug.slice(0, delimiterPosition);
   const transactionName = slug.slice(delimiterPosition + 1);
 
-  return {spanDescription, transactionName};
+  return {groupId, transactionName};
+}
+
+function SpanGroupKeyValueList({
+  spanDescription,
+  spanGroupOperation,
+  spanDomain,
+}: {
+  data: any; // TODO: type this
+  spanDescription: string;
+  spanDomain?: string;
+  spanGroupOperation?: string;
+}) {
+  switch (spanGroupOperation) {
+    case 'db':
+    case 'cache':
+      return (
+        <KeyValueList
+          data={[
+            {key: 'desc', value: spanDescription, subject: 'Full Query'},
+            {key: 'domain', value: spanDomain, subject: 'Table Columns'},
+          ]}
+          shouldSort={false}
+        />
+      );
+    case 'http.client':
+      return (
+        <KeyValueList
+          data={[
+            {key: 'desc', value: spanDescription, subject: 'URL'},
+            {key: 'domain', value: spanDomain, subject: 'Domain'},
+          ]}
+          shouldSort={false}
+        />
+      );
+    default:
+      return null;
+  }
 }
