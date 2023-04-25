@@ -7,11 +7,14 @@ import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
 import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+
+import {OnDimensionChange} from '../useVirtualizedInspector';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
@@ -21,11 +24,7 @@ type Props = {
   startTimestampMs: number;
   style: CSSProperties;
   expandPaths?: string[];
-  onDimensionChange?: (
-    index: number,
-    path: string,
-    expandedState: Record<string, boolean>
-  ) => void;
+  onDimensionChange?: OnDimensionChange;
 };
 
 function UnmemoizedConsoleLogRow({
@@ -56,8 +55,8 @@ function UnmemoizedConsoleLogRow({
     [handleMouseLeave, breadcrumb]
   );
   const handleDimensionChange = useCallback(
-    (path, expandedState) =>
-      onDimensionChange && onDimensionChange(index, path, expandedState),
+    (path, expandedState, e) =>
+      onDimensionChange && onDimensionChange(index, path, expandedState, e),
     [onDimensionChange, index]
   );
 
@@ -85,7 +84,7 @@ function UnmemoizedConsoleLogRow({
           <MessageFormatter
             expandPaths={expandPaths}
             breadcrumb={breadcrumb}
-            onDimensionChange={handleDimensionChange}
+            onExpand={handleDimensionChange}
           />
         </ErrorBoundary>
       </Message>
@@ -112,6 +111,7 @@ const ConsoleLog = styled('div')<{
   grid-template-columns: 12px 1fr max-content;
   gap: ${space(0.75)};
   padding: ${space(0.5)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
@@ -140,17 +140,21 @@ const ConsoleLog = styled('div')<{
 `;
 
 const ICONS = {
-  error: <IconFire size="xs" />,
-  warning: <IconWarning size="xs" />,
+  [BreadcrumbLevelType.ERROR]: <IconFire size="xs" />,
+  [BreadcrumbLevelType.WARNING]: <IconWarning size="xs" />,
 };
 
-function Icon({level}: {level: Extract<Crumb, BreadcrumbTypeDefault>['level']}) {
-  return <span>{ICONS[level]}</span>;
-}
+const Icon = styled(
+  ({level, className}: {level: BreadcrumbLevelType; className?: string}) => (
+    <span className={className}>{ICONS[level]}</span>
+  )
+)`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const Message = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+
   white-space: pre-wrap;
   word-break: break-word;
 `;

@@ -3,6 +3,7 @@ import max from 'lodash/max';
 import min from 'lodash/min';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateString} from 'sentry/types';
@@ -28,9 +29,12 @@ type Props = {
   disableXAxis?: boolean;
   grid?: AreaChartProps['grid'];
   height?: number;
+  hideYAxisSplitLine?: boolean;
+  isBarChart?: boolean;
   isLineChart?: boolean;
   log?: boolean;
   previousData?: Series[];
+  showLegend?: boolean;
   stacked?: boolean;
 };
 
@@ -88,9 +92,12 @@ function Chart({
   disableXAxis,
   definedAxisTicks,
   chartColors,
+  isBarChart,
   isLineChart,
   stacked,
   log,
+  hideYAxisSplitLine,
+  showLegend,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -147,6 +154,7 @@ function Chart({
               );
             },
           },
+          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
         },
       ]
     : [
@@ -166,6 +174,7 @@ function Chart({
               );
             },
           },
+          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
         },
         {
           gridIndex: 1,
@@ -183,6 +192,7 @@ function Chart({
               );
             },
           },
+          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
         },
       ];
 
@@ -217,6 +227,12 @@ function Chart({
     xAxes,
     yAxes,
     utc,
+    legend: showLegend
+      ? {
+          top: 0,
+          right: 10,
+        }
+      : undefined,
     isGroupedByDate: true,
     showTimeInTooltip: true,
     colors,
@@ -236,6 +252,9 @@ function Chart({
   if (loading) {
     if (isLineChart) {
       return <LineChart height={height} series={[]} {...areaChartProps} />;
+    }
+    if (isBarChart) {
+      return <BarChart height={height} series={[]} {...areaChartProps} />;
     }
     return <AreaChart height={height} series={[]} {...areaChartProps} />;
   }
@@ -273,6 +292,24 @@ function Chart({
               xAxis={xAxis}
               yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
               tooltip={areaChartProps.tooltip}
+              colors={colors}
+              grid={grid}
+              legend={showLegend ? {top: 0, right: 0} : undefined}
+            />
+          );
+        }
+
+        if (isBarChart) {
+          return (
+            <BarChart
+              height={height}
+              series={series}
+              xAxis={xAxis}
+              yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
+              tooltip={areaChartProps.tooltip}
+              colors={colors}
+              grid={grid}
+              legend={showLegend ? {top: 0, right: 0} : undefined}
             />
           );
         }

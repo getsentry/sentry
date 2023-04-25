@@ -63,6 +63,7 @@ export enum IssueType {
   PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'performance_consecutive_db_queries',
   PERFORMANCE_CONSECUTIVE_HTTP = 'performance_consecutive_http',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
+  PERFORMANCE_DB_MAIN_THREAD = 'performance_db_main_thread',
   PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
   PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
   PERFORMANCE_SLOW_DB_QUERY = 'performance_slow_db_query',
@@ -168,6 +169,16 @@ export type TagWithTopValues = {
   uniqueValues: number;
   canDelete?: boolean;
 };
+
+export const enum GroupSubstatus {
+  UNTIL_ESCALATING = 'until_escalating',
+  UNTIL_CONDITION_MET = 'until_condition_met',
+  FOREVER = 'forever',
+  ESCALATING = 'escalating',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  NEW = 'new',
+}
 
 /**
  * Inbox, issue owners and Activity
@@ -496,7 +507,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: 'until_escalating';
+  substatus?: GroupSubstatus;
 };
 
 export type GroupRelease = {
@@ -543,6 +554,7 @@ export interface BaseGroup extends GroupRelease {
   userReportCount: number;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
+  substatus?: GroupSubstatus;
 }
 
 export interface GroupReprocessing

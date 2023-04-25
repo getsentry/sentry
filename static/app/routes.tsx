@@ -38,7 +38,10 @@ type CustomProps = {
  * We add some additional props to our routes
  */
 
-const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
+const Route = BaseRoute as React.ComponentClass<
+  React.PropsWithChildren<RouteProps & CustomProps>
+>;
+
 const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
@@ -1705,6 +1708,18 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/views/webServiceView'))}
       />
       <Route
+        path="failure-detail/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/failureDetailView')
+        )}
+      />
+      <Route
+        path="failure-detail/:slug/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
+        )}
+      />
+      <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
       />
@@ -1715,6 +1730,10 @@ function buildRoutes() {
       <Route
         path="cache/"
         component={make(() => import('sentry/views/starfish/modules/cacheModule'))}
+      />
+      <Route
+        path="span/:slug/"
+        component={make(() => import('sentry/views/starfish/views/spanSummary'))}
       />
     </Fragment>
   );
@@ -1733,7 +1752,7 @@ function buildRoutes() {
 
       <Route
         path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
+        component={make(() => import('sentry/views/starfish/'))}
         key="org-starfish"
       >
         {starfishChildRoutes}

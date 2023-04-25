@@ -4,6 +4,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from typing import Any, Dict, Generator, List, Optional, Union
 
+from rest_framework.exceptions import ParseError
 from snuba_sdk import (
     Column,
     Condition,
@@ -25,6 +26,8 @@ from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
+    InvalidField,
+    IPAddress,
     ListField,
     Number,
     QueryConfig,
@@ -60,72 +63,54 @@ def query_replays_collection(
     actor: Optional[Any] = None,
 ) -> dict:
     """Query aggregated replay collection."""
-
     if organization:
         tenant_ids = {"organization_id": organization.id}
     else:
         tenant_ids = {}
 
-    def _should_use_subquery():
-        def _sort_eligible_for_subquery(sort):
-            if sort.startswith("-"):
-                sort = sort[1:]
-            return sort in ELIGIBLE_SUBQUERY_SORTS
-
-        # TODO: determine what orderings are subquery eligible
-        # TODO: determine what conditions/search filters are subquery eligible
-        # TODO: determine how/if we can handle offsetting correctly with subquerying.
-
-        return (
-            organization
-            and len(search_filters) == 0
-            and (sort is None or _sort_eligible_for_subquery(sort))
-            and len(conditions) == 0
-            and features.has(
-                "organizations:session-replay-index-subquery", organization, actor=actor
-            )
-        )
-
     conditions = []
     if environment:
         conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
-    sort_ordering = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("started_at"), Direction.DESC),
-        query_config=ReplayQueryConfig(),
-    )
     paginators = make_pagination_values(limit, offset)
 
-    if _should_use_subquery():
-        response = query_replays_dataset_with_subquery(
-            project_ids=project_ids,
-            start=start,
-            end=end,
-            fields=fields,
-            sorting=sort_ordering,
-            pagination=paginators,
-            tenant_ids=tenant_ids,
-        )
+    # Attempt to eager return with subquery.
+    if features.has("organizations:session-replay-index-subquery", organization, actor=actor):
+        try:
+            response = query_replays_dataset_with_subquery(
+                project_ids=project_ids,
+                start=start,
+                end=end,
+                fields=fields,
+                environments=environment,
+                search_filters=search_filters,
+                sort=sort,
+                pagination=paginators,
+                tenant_ids=tenant_ids,
+            )
+            return response["data"]
+        except ParseError:
+            # Subquery could not continue because it found search filters which required
+            # aggregation to satisfy.
+            pass
 
-    else:
-        response = query_replays_dataset(
-            project_ids=project_ids,
-            start=start,
-            end=end,
-            where=[],
-            having=conditions,
-            fields=fields,
-            sorting=sort_ordering,
-            pagination=paginators,
-            search_filters=search_filters,
-            tenant_ids=tenant_ids,
-        )
+    response = query_replays_dataset(
+        project_ids=project_ids,
+        start=start,
+        end=end,
+        where=[],
+        having=conditions,
+        fields=fields,
+        pagination=paginators,
+        search_filters=search_filters,
+        sort=sort,
+        tenant_ids=tenant_ids,
+    )
     return response["data"]
 
 
 def query_replay_instance(
-    project_id: int,
+    project_id: int | list[int],
     replay_id: str,
     start: datetime,
     end: datetime,
@@ -133,7 +118,7 @@ def query_replay_instance(
 ):
     """Query aggregated replay instance."""
     response = query_replays_dataset(
-        project_ids=[project_id],
+        project_ids=[project_id] if isinstance(project_id, int) else project_id,
         start=start,
         end=end,
         where=[
@@ -141,7 +126,7 @@ def query_replay_instance(
         ],
         having=[Condition(Column("isArchived"), Op.EQ, 0)],
         fields=[],
-        sorting=[],
+        sort=None,
         pagination=None,
         search_filters=[],
         tenant_ids=tenant_ids,
@@ -156,9 +141,9 @@ def query_replays_dataset(
     where: List[Condition],
     having: List[Condition],
     fields: List[str],
-    sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
+    sort: Optional[str],
     tenant_ids: dict[str, Any] | None = None,
 ):
     query_options = {}
@@ -167,6 +152,12 @@ def query_replays_dataset(
     if pagination:
         query_options["limit"] = Limit(pagination.limit)
         query_options["offset"] = Offset(pagination.offset)
+
+    sorting = get_valid_sort_commands(
+        sort,
+        default=OrderBy(Column("started_at"), Direction.DESC),
+        query_config=ReplayQueryConfig(),
+    )
 
     snuba_request = Request(
         dataset="replays",
@@ -213,13 +204,23 @@ def query_replays_dataset_with_subquery(
     project_ids: List[str],
     start: datetime,
     end: datetime,
-    sorting: List[OrderBy],
+    environments: List[str],
+    search_filters: List[SearchFilter],
+    sort: Optional[str],
     fields: List[str],
     pagination: Optional[Paginators],
     tenant_ids: dict[str, Any] | None = None,
 ):
-    # simply get the eligible replay_ids, only look at segment_0
-    # TODO: make sure timestamp end is current now.
+    conditions = generate_valid_conditions(search_filters, query_config=ReplaySubqueryConfig())
+    if environments:
+        conditions.append(Condition(Column("environment"), Op.IN, environments))
+
+    sorting = get_valid_sort_commands(
+        sort,
+        default=OrderBy(Column("started_at"), Direction.DESC),
+        query_config=ReplaySubqueryConfig(),
+    )
+
     subquery_snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -237,6 +238,7 @@ def query_replays_dataset_with_subquery(
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("segment_id"), Op.EQ, 0),
+                *conditions,
             ],
             orderby=sorting,
             granularity=Granularity(3600),
@@ -253,7 +255,6 @@ def query_replays_dataset_with_subquery(
     if len(replay_ids_to_filter_results["data"]) == 0:
         # if no results, no need to carry on
         return {"data": []}
-
     max_subquery_ts = 0
     min_subquery_ts = datetime.now().timestamp()
     replay_ids_to_filter = []
@@ -265,6 +266,12 @@ def query_replays_dataset_with_subquery(
         max_subquery_ts = max(max_subquery_ts, ts)
 
     # do the full query to get all aggregated fields
+    sorting = get_valid_sort_commands(
+        sort,
+        default=OrderBy(Column("started_at"), Direction.DESC),
+        query_config=ReplayQueryConfig(),
+    )
+
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -588,6 +595,64 @@ class ReplayQueryConfig(QueryConfig):
     # Dedicated url parameter should be used.
     project_id = String(query_alias="project_id", is_filterable=False)
     project = String(query_alias="project_id", is_filterable=False)
+
+
+class ReplaySubqueryConfig(QueryConfig):
+    browser = String(field_alias="browser", query_alias="browser_name")
+    browser_name = String(field_alias="browser.name")
+    browser_version = String(field_alias="browser.version")
+    device = String(field_alias="device", query_alias="device_name")
+    device_brand = String(field_alias="device.brand")
+    device_family = String(field_alias="device.family")
+    device_model = String(field_alias="device.model")
+    device_name = String(field_alias="device.name")
+    dist = String()
+    os = String(field_alias="os", query_alias="os_name")
+    os_name = String(field_alias="os.name")
+    os_version = String(field_alias="os.version")
+    platform = String()
+    project = String(query_alias="project_id")
+    project_id = String()
+    replay_id = UUIDField(field_alias="id")
+    replay_type = String()
+    sdk = String(field_alias="sdk", query_alias="sdk_name")
+    sdk_name = String(field_alias="sdk.name")
+    sdk_version = String(field_alias="sdk.version")
+    started_at = String(is_filterable=False)
+    user = String(field_alias="user", query_alias="user_name")
+    user_email = String(field_alias="user.email")
+    user_id = String(field_alias="user.id")
+    user_ip_address = IPAddress(field_alias="user.ip", query_alias="ip_address_v4")
+    user_name = String(field_alias="user.username")
+
+    tags = Tag(field_alias="*", tag_key_alias="tags.key", tag_value_alias="tags.value")
+
+    # we have to explicitly define the rest of the fields as invalid fields or else
+    # they will be parsed as tags for the subquery
+    releases = InvalidField()
+    release = InvalidField()
+    click_alt = InvalidField(field_alias="click.alt")
+    click_class = InvalidField(field_alias="click.class", query_alias="clickClass")
+    click_id = InvalidField(field_alias="click.id")
+    click_aria_label = InvalidField(field_alias="click.label")
+    click_role = InvalidField(field_alias="click.role")
+    click_tag = InvalidField(field_alias="click.tag")
+    click_testid = InvalidField(field_alias="click.testid")
+    click_text = InvalidField(field_alias="click.textContent")
+    click_title = InvalidField(field_alias="click.title")
+    click_selector = InvalidField(field_alias="click.selector")
+    duration = InvalidField()
+    count_errors = InvalidField(query_alias="count_errors")
+    count_segments = InvalidField(query_alias="count_segments")
+    count_urls = InvalidField(query_alias="count_urls")
+    activity = InvalidField()
+    error_ids = InvalidField(query_alias="errorIds")
+    error_id = InvalidField(query_alias="errorIds")
+    trace_ids = InvalidField(query_alias="traceIds")
+    trace_id = InvalidField(query_alias="traceIds")
+    trace = InvalidField(query_alias="traceIds")
+    urls = InvalidField(query_alias="urls_sorted")
+    url = InvalidField(query_alias="urls_sorted")
 
 
 # Pagination.

@@ -1,5 +1,6 @@
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.core.cache import cache
@@ -142,7 +143,7 @@ class GroupTest(TestCase, SnubaTestCase):
                 group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
             )
 
-        group.update(status=GroupStatus.PENDING_DELETION)
+        group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(group.organization.id, short_id)
 
@@ -162,7 +163,7 @@ class GroupTest(TestCase, SnubaTestCase):
             )
         )
 
-        group.update(status=GroupStatus.PENDING_DELETION)
+        group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id_bulk(
                 group.organization.id, [group_short_id, group_2_short_id]
@@ -303,16 +304,42 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group2.get_last_release() is None
 
     def test_group_substatus_defaults(self):
-        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus == GroupSubStatus.ONGOING
-        assert self.create_group(status=GroupStatus.IGNORED).substatus is None
-        assert self.create_group(status=GroupStatus.MUTED).substatus is None
+        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus is GroupSubStatus.ONGOING
         for nullable_status in (
+            GroupStatus.IGNORED,
+            GroupStatus.MUTED,
             GroupStatus.RESOLVED,
             GroupStatus.PENDING_DELETION,
             GroupStatus.DELETION_IN_PROGRESS,
             GroupStatus.REPROCESSING,
         ):
             assert self.create_group(status=nullable_status).substatus is None
+
+    def test_group_valid_substatus(self):
+        desired_status_substatus_pairs = [
+            (GroupStatus.UNRESOLVED, GroupSubStatus.ESCALATING),
+            (GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED),
+            (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
+            (GroupStatus.IGNORED, GroupSubStatus.FOREVER),
+            (GroupStatus.IGNORED, GroupSubStatus.UNTIL_CONDITION_MET),
+            (GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING),
+        ]
+        for status, substatus in desired_status_substatus_pairs:
+            group = self.create_group(status=status, substatus=substatus)
+            assert group.substatus is substatus
+
+    @patch("sentry.models.group.logger")
+    def test_group_invalid_substatus(self, logger):
+        status_substatus_pairs = [
+            (GroupStatus.UNRESOLVED, GroupSubStatus.UNTIL_ESCALATING),
+            (GroupStatus.IGNORED, GroupSubStatus.ONGOING),
+            (GroupStatus.IGNORED, GroupSubStatus.ESCALATING),
+        ]
+
+        for status, substatus in status_substatus_pairs:
+            self.create_group(status=status, substatus=substatus)
+
+        assert logger.exception.call_count == len(status_substatus_pairs)
 
 
 @region_silo_test

@@ -17,6 +17,7 @@ from sentry.silo import SiloMode
 
 
 class RpcOrganizationMemberMapping(RpcModel):
+    organizationmember_id: int = -1
     organization_id: int = -1
     date_added: datetime = Field(default_factory=timezone.now)
 
@@ -70,6 +71,7 @@ class OrganizationMemberMappingService(RpcService):
     def create_mapping(
         self,
         *,
+        organizationmember_id: int,
         organization_id: int,
         role: str,
         user_id: Optional[int] = None,

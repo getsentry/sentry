@@ -577,6 +577,11 @@ register("api.deprecation.brownout-duration", default="PT1M")
 # values or not
 register("sentry-metrics.performance.index-tag-values", default=True)
 
+
+# A slow rollout option for writing "new" cache keys
+# as the transition from UseCaseKey to UseCaseID occurs
+register("sentry-metrics.indexer.cache-key-rollout-rate", default=0.0)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -615,9 +620,7 @@ register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
 register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
-register("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", default=0.0)
 register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
-register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
 
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)

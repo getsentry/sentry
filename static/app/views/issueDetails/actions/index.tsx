@@ -21,9 +21,8 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeatureBadge from 'sentry/components/featureBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
+  IconArchive,
   IconCheckmark,
   IconEllipsis,
   IconMute,
@@ -42,23 +41,30 @@ import {
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import {OpenAIFixSuggestionButton} from 'sentry/views/issueDetails/openAIFixSuggestion/openAIFixSuggestionButton';
-import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
+
+type UpdateData =
+  | {isBookmarked: boolean}
+  | {isSubscribed: boolean}
+  | {inbox: boolean}
+  | GroupStatusResolution;
+
+const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => {
+  return (data as GroupStatusResolution).status !== undefined;
+};
 
 type Props = {
   api: Client;
@@ -112,15 +118,18 @@ class Actions extends Component<Props> {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
-      | 'open_ai_suggested_fix'
-      | ResolutionStatus
+      | ResolutionStatus,
+    substatus?: string,
+    statusDetailsKey?: string
   ) {
     const {group, project, organization, query = {}} = this.props;
     const {alert_date, alert_rule_id, alert_type} = query;
-    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+    trackAnalytics('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: action,
+      action_substatus: substatus,
+      action_status_details: statusDetailsKey,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -159,13 +168,7 @@ class Actions extends Component<Props> {
     this.trackIssueAction('deleted');
   };
 
-  onUpdate = (
-    data:
-      | {isBookmarked: boolean}
-      | {isSubscribed: boolean}
-      | {inbox: boolean}
-      | GroupStatusResolution
-  ) => {
+  onUpdate = (data: UpdateData) => {
     const {group, project, organization, api} = this.props;
 
     addLoadingMessage(t('Saving changes\u2026'));
@@ -183,8 +186,12 @@ class Actions extends Component<Props> {
       }
     );
 
-    if ((data as GroupStatusResolution).status) {
-      this.trackIssueAction((data as GroupStatusResolution).status);
+    if (isResolutionStatus(data)) {
+      this.trackIssueAction(
+        data.status,
+        data.substatus,
+        Object.keys(data.statusDetails || {})[0]
+      );
     }
     if ((data as {inbox: boolean}).inbox !== undefined) {
       this.trackIssueAction('mark_reviewed');
@@ -199,7 +206,7 @@ class Actions extends Component<Props> {
   onToggleShare = () => {
     const newIsPublic = !this.props.group.isPublic;
     if (newIsPublic) {
-      trackAdvancedAnalyticsEvent('issue.shared_publicly', {
+      trackAnalytics('issue.shared_publicly', {
         organization: this.props.organization,
       });
     }
@@ -362,9 +369,9 @@ class Actions extends Component<Props> {
       share: shareCap,
     } = getConfigForIssueType(group).actions;
 
-    const hasEscalatingIssues = organization.features.includes('escalating-issues');
+    const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     const hasDeleteAccess = organization.access.includes('event:admin');
-    const activeSuperUser = isActiveSuperuser();
+    const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
 
     const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
     const {dropdownItems: archiveDropdownItems} = getArchiveActions({
@@ -421,48 +428,24 @@ class Actions extends Component<Props> {
               onAction: () => this.trackIssueAction('open_in_discover'),
             },
             {
-              key: 'suggested-fix',
-              className: 'hidden-sm hidden-md hidden-lg',
-              disabled: activeSuperUser,
-              tooltip: activeSuperUser
-                ? t("Superusers can't consent to policies")
-                : undefined,
-              label: (
-                <Tooltip
-                  title={experimentalFeatureTooltipDesc}
-                  containerDisplayMode="inline-flex"
-                >
-                  {t('Suggested Fix')}
-                  <FeatureBadge type="experimental" noTooltip />
-                </Tooltip>
-              ),
-              onAction: () => {
-                this.trackIssueAction('open_ai_suggested_fix');
-                browserHistory.push({
-                  pathname: browserHistory.getCurrentLocation().pathname,
-                  query: {
-                    ...browserHistory.getCurrentLocation().query,
-                    showSuggestedFix: true,
-                  },
-                });
-              },
-              hidden: !organization.features.includes('open-ai-suggestion'),
-            },
-            {
               key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
               className: 'hidden-sm hidden-md hidden-lg',
               label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
               disabled: disabled || group.subscriptionDetails?.disabled,
               onAction: this.onToggleSubscribe,
             },
-            {
-              key: 'mark-review',
-              label: t('Mark reviewed'),
-              disabled: !group.inbox || disabled,
-              details:
-                !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-              onAction: () => this.onUpdate({inbox: false}),
-            },
+            ...(disabledMarkReviewed
+              ? []
+              : [
+                  {
+                    key: 'mark-review',
+                    label: t('Mark reviewed'),
+                    disabled: !group.inbox || disabled,
+                    details:
+                      !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
+                    onAction: () => this.onUpdate({inbox: false}),
+                  },
+                ]),
             {
               key: 'share',
               label: t('Share'),
@@ -528,18 +511,6 @@ class Actions extends Component<Props> {
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         </Feature>
-        <Feature features={['open-ai-suggestion']} organization={organization}>
-          <GuideAnchor target="suggested-fix" position="bottom" offset={20}>
-            <OpenAIFixSuggestionButton
-              className="hidden-xs"
-              size="sm"
-              disabled={disabled}
-              groupId={group.id}
-              onClick={() => this.trackIssueAction('open_ai_suggested_fix')}
-              activeSuperUser={activeSuperUser}
-            />
-          </GuideAnchor>
-        </Feature>
         {isResolved || isIgnored ? (
           <ActionButton
             priority="primary"
@@ -551,13 +522,25 @@ class Actions extends Component<Props> {
                 : t('Change status to unresolved')
             }
             size="sm"
-            icon={isResolved ? <IconCheckmark /> : <IconMute />}
+            icon={
+              isResolved ? (
+                <IconCheckmark />
+              ) : hasEscalatingIssues ? (
+                <IconArchive />
+              ) : (
+                <IconMute />
+              )
+            }
             disabled={disabled || isAutoResolved}
             onClick={() =>
               this.onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
             }
           >
-            {isIgnored ? t('Ignored') : t('Resolved')}
+            {isIgnored
+              ? hasEscalatingIssues
+                ? t('Archived')
+                : t('Ignored')
+              : t('Resolved')}
           </ActionButton>
         ) : (
           <Fragment>

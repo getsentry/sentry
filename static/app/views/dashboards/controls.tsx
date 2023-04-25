@@ -12,7 +12,7 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
@@ -157,12 +157,9 @@ function Controls({
                   disabled={widgetLimitReached}
                   icon={<IconAdd isCircled />}
                   onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'dashboards_views.widget_library.opened',
-                      {
-                        organization,
-                      }
-                    );
+                    trackAnalytics('dashboards_views.widget_library.opened', {
+                      organization,
+                    });
                     onAddWidget();
                   }}
                 >

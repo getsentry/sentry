@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
@@ -45,7 +46,21 @@ export default class ReplayReader {
       return null;
     }
 
-    return new ReplayReader({attachments, replayRecord, errors});
+    try {
+      return new ReplayReader({attachments, replayRecord, errors});
+    } catch (err) {
+      Sentry.captureException(err);
+
+      // If something happens then we don't really know if it's the attachments
+      // array or errors array to blame (it's probably attachments though).
+      // Either way we can use the replayRecord to show some metadata, and then
+      // put an error message below it.
+      return new ReplayReader({
+        attachments: [],
+        errors: [],
+        replayRecord,
+      });
+    }
   }
 
   private constructor({

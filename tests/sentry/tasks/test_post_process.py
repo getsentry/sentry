@@ -61,6 +61,7 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -705,6 +706,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
         assert GroupInbox.objects.filter(
             group=group, reason=GroupInboxReason.REGRESSION.value
         ).exists()
@@ -1611,7 +1613,6 @@ class PostProcessGroupPerformanceTest(
 
 
 class TransactionClustererTestCase(TestCase, SnubaTestCase):
-    @with_feature("organizations:transaction-name-clusterer")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
     def test_process_transaction_event_clusterer(
         self,

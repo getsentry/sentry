@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
 import brotli
+import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
@@ -99,7 +100,8 @@ def get_from_profiling_service(
                 "Content-Type": "application/json",
             }
         )
-        data = json.dumps(json_data).encode("utf-8")
+        with sentry_sdk.start_span(op="json.dumps"):
+            data = json.dumps(json_data).encode("utf-8")
         set_measurement("payload.size", len(data), unit="byte")
         kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
     return _profiling_pool.urlopen(  # type: ignore

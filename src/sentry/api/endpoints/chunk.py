@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, options
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
 from sentry.ratelimits.config import RateLimitConfig
@@ -46,7 +46,7 @@ class GzipChunk(BytesIO):
         super().__init__(data)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
     rate_limits = RateLimitConfig(group="CLI")

@@ -10,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import Redirect from 'sentry/utils/redirect';
 import withApi from 'sentry/utils/withApi';
@@ -131,7 +131,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
       };
 
       // track redirects of deprecated URLs for analytics
-      trackAdvancedAnalyticsEvent('deprecated_urls.redirect', payload);
+      trackAnalytics('deprecated_urls.redirect', payload);
       return nextRoute;
     }
 

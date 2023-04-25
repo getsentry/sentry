@@ -26,7 +26,6 @@ PERFORMANCE_CS_NAMESPACE = "performance.cs"
 
 
 class IndexerStorage(Enum):
-    CLOUDSPANNER = "cloudspanner"
     POSTGRES = "postgres"
     MOCK = "mock"
 
@@ -43,8 +42,6 @@ class MetricsIngestConfiguration:
     writes_limiter_namespace: str
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
-
-    input_schema_validation_option_name: Optional[str] = None
 
     index_tag_values_option_name: Optional[str] = None
     is_output_sliced: Optional[bool] = False
@@ -77,7 +74,6 @@ def get_ingest_config(
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.release-health.rollout-rate",
             )
         )
 
@@ -95,42 +91,6 @@ def get_ingest_config(
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
-                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.performance.rollout-rate",
-            )
-        )
-
-        _register_ingest_config(
-            MetricsIngestConfiguration(
-                db_backend=IndexerStorage.CLOUDSPANNER,
-                # todo: set cloudspanner options of db and instance ids
-                db_backend_options=settings.SENTRY_METRICS_INDEXER_SPANNER_OPTIONS,
-                input_topic=settings.KAFKA_INGEST_METRICS,
-                output_topic=settings.KAFKA_SNUBA_GENERICS_METRICS_CS,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-                internal_metrics_tag="release-health-spanner",
-                writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
-                writes_limiter_namespace=RELEASE_HEALTH_CS_NAMESPACE,
-                cardinality_limiter_cluster_options={},
-                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.release-health.rollout-rate",
-            )
-        )
-
-        _register_ingest_config(
-            MetricsIngestConfiguration(
-                db_backend=IndexerStorage.CLOUDSPANNER,
-                # todo: set cloudspanner options of db and instance ids
-                db_backend_options=settings.SENTRY_METRICS_INDEXER_SPANNER_OPTIONS,
-                input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic=settings.KAFKA_SNUBA_GENERICS_METRICS_CS,
-                use_case_id=UseCaseKey.PERFORMANCE,
-                internal_metrics_tag="perf-spanner",
-                writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
-                writes_limiter_namespace=PERFORMANCE_CS_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
-                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
-                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.performance.rollout-rate",
             )
         )
 
@@ -147,7 +107,6 @@ def get_ingest_config(
                 writes_limiter_namespace="test-namespace",
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.release-health.rollout-rate",
             )
         )
 
