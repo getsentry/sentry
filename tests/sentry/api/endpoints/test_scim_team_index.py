@@ -65,7 +65,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(team.id),
-                    "displayName": team.name,
+                    "displayName": team.slug,
                     "members": [],
                     "meta": {"resourceType": "Group"},
                 }
@@ -91,7 +91,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "itemsPerPage": 1,
             "Resources": [
                 {
-                    "displayName": team.name,
+                    "displayName": team.slug,
                     "id": str(team.id),
                     "members": [
                         {
@@ -125,7 +125,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(self.team.id),
-                    "displayName": self.team.name,
+                    "displayName": self.team.slug,
                     "members": [
                         {"value": str(self.team.member_set[0].id), "display": "admin@localhost"}
                     ],
@@ -149,7 +149,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(team.id),
-                    "displayName": team.name,
+                    "displayName": team.slug,
                     "members": [],
                     "meta": {"resourceType": "Group"},
                 }
@@ -171,7 +171,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(team.id),
-                    "displayName": team.name,
+                    "displayName": team.slug,
                     "members": [],
                     "meta": {"resourceType": "Group"},
                 }
@@ -192,7 +192,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                     "id": str(self.team.id),
-                    "displayName": self.team.name,
+                    "displayName": self.team.slug,
                     "meta": {"resourceType": "Group"},
                 }
             ],
