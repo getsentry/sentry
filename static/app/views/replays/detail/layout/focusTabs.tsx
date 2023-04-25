@@ -1,3 +1,4 @@
+import {ReactNode} from 'react';
 import queryString from 'query-string';
 
 import ListLink from 'sentry/components/links/listLink';
@@ -8,7 +9,7 @@ import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveRe
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const ReplayTabs: Record<TabKey, string> = {
+const ReplayTabs: Record<TabKey, ReactNode> = {
   [TabKey.console]: t('Console'),
   [TabKey.network]: t('Network'),
   [TabKey.dom]: t('DOM Events'),
