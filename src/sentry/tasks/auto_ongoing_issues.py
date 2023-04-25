@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 import pytz
 
@@ -13,8 +14,8 @@ from sentry.tasks.base import instrumented_task
     queue="auto_transition_issue_states",
     time_limit=75,
     soft_time_limit=60,
-)
-def schedule_auto_transition():
+)  # type: ignore
+def schedule_auto_transition() -> None:
     now = datetime.now(tz=pytz.UTC)
     for project_id in (
         GroupInbox.objects.filter(
@@ -44,11 +45,11 @@ def schedule_auto_transition():
     queue="auto_transition_issue_states",
     time_limit=75,
     soft_time_limit=60,
-)
+)  # type: ignore
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
     date_added_lte: int,
-    date_added_gte: int = None,
+    date_added_gte: Optional[int] = None,
     chunk_size: int = 1000,
     **kwargs,
 ) -> None:
