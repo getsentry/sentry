@@ -116,7 +116,7 @@ export default function SpanSummary({location, params}: Props) {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{transactionName}</Layout.Title>
+            <Layout.Title>{groupId}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
