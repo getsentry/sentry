@@ -37,6 +37,7 @@ def _init_geoip():
             "country_code": geo["country"]["iso_code"],
             "region": geo.get("subdivisions", [{}])[-1].get("iso_code"),
             "city": geo.get("city", {}).get("names", {}).get("en"),
+            "subdivision": geo.get("subdivisions", [{}])[-1].get("names", {}).get("en"),
             "latitude": geo["location"]["latitude"],
             "longitude": geo["location"]["longitude"],
         }
