@@ -190,13 +190,14 @@ export default function APIModuleView({location, onSelect}: Props) {
           onChange={({value}) => setDomain(value)}
         />
       </FilterOptionsContainer>
-      <HostTable location={location} />
 
       <EndpointTable
         location={location}
         onSelect={onSelect}
         filterOptions={{...state, datetime: pageFilter.selection.datetime}}
       />
+
+      <HostTable location={location} />
     </Fragment>
   );
 }
