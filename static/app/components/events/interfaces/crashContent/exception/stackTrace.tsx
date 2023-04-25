@@ -5,7 +5,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ExceptionValue, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {STACK_VIEW, StackTraceMechanism} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 
@@ -18,6 +18,7 @@ type Props = {
   data: ExceptionValue['stacktrace'];
   event: Event;
   hasHierarchicalGrouping: boolean;
+  mechanism: StackTraceMechanism | null;
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
   debugFrames?: StacktraceFilenameQuery[];
@@ -41,6 +42,7 @@ function StackTrace({
   expandFirstFrame,
   event,
   meta,
+  mechanism,
 }: Props) {
   if (!defined(stacktrace)) {
     return null;
@@ -109,6 +111,7 @@ function StackTrace({
         event={event}
         meta={meta}
         debugFrames={debugFrames}
+        mechanism={mechanism}
       />
     );
   }
@@ -123,6 +126,7 @@ function StackTrace({
       event={event}
       meta={meta}
       debugFrames={debugFrames}
+      mechanism={mechanism}
     />
   );
 }

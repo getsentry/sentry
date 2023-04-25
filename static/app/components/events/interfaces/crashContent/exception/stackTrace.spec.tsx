@@ -88,6 +88,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   hasHierarchicalGrouping: false,
   groupingCurrentLevel: undefined,
   meta: undefined,
+  mechanism: null,
 };
 
 describe('ExceptionStacktraceContent', function () {

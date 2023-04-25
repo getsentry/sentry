@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
@@ -144,5 +144,69 @@ describe('Exception Content', function () {
       'href',
       '/settings/org-slug/projects/project-slug/security-and-privacy/'
     );
+  });
+
+  describe('exception groups', function () {
+    const event = TestStubs.Event({entries: [TestStubs.EventEntryExceptionGroup()]});
+    const project = TestStubs.Project();
+
+    const defaultProps = {
+      type: STACK_TYPE.ORIGINAL,
+      hasHierarchicalGrouping: false,
+      newestFirst: true,
+      platform: 'python' as const,
+      stackView: STACK_VIEW.APP,
+      event,
+      values: event.entries[0].data.values,
+      projectSlug: project.slug,
+    };
+
+    it('displays exception group tree in first frame', function () {
+      render(<Content {...defaultProps} />);
+
+      const exceptions = screen.getAllByTestId('exception-value');
+
+      // There are 4 exceptions in the exception group fixture
+      expect(exceptions).toHaveLength(4);
+
+      // First exception should be the parent ExceptionGroup and the tree should be visible
+      // in the top frame context
+      expect(
+        within(exceptions[0]).getByRole('heading', {name: 'ExceptionGroup 1'})
+      ).toBeInTheDocument();
+      const exception1FrameContext = within(exceptions[0]).getByTestId('frame-context');
+      expect(
+        within(exception1FrameContext).getByRole('cell', {name: 'Related Exceptions'})
+      ).toBeInTheDocument();
+    });
+
+    it('displays exception group tree in first frame when sorting by oldest', function () {
+      render(<Content {...defaultProps} newestFirst={false} />);
+
+      const exceptions = screen.getAllByTestId('exception-value');
+
+      // Last exception should be the parent ExceptionGroup and the tree should be visible
+      // in the top frame context
+      expect(
+        within(exceptions[3]).getByRole('heading', {name: 'ExceptionGroup 1'})
+      ).toBeInTheDocument();
+      const exception1FrameContext = within(exceptions[3]).getByTestId('frame-context');
+      expect(
+        within(exception1FrameContext).getByRole('cell', {name: 'Related Exceptions'})
+      ).toBeInTheDocument();
+    });
+
+    it('displays exception group tree in first frame when there is no other context', function () {
+      render(<Content {...defaultProps} />);
+
+      const exceptions = screen.getAllByTestId('exception-value');
+
+      const exceptionGroupWithNoContext = exceptions[2];
+      expect(
+        within(exceptionGroupWithNoContext).getByRole('cell', {
+          name: 'Related Exceptions',
+        })
+      ).toBeInTheDocument();
+    });
   });
 });
