@@ -961,6 +961,30 @@ class FetchByUrlTest(FetchTest):
         assert exc.value.data["type"] == EventError.JS_MISSING_SOURCE
         assert exc.value.data["url"] == url
 
+    @responses.activate
+    @patch(
+        "sentry.lang.javascript.processor.Fetcher._fetch_release_artifact",
+    )
+    def test_failed_url_does_not_result_in_additional_calls(self, fetch_release_artifact):
+        responses.add(
+            responses.GET,
+            "http://example.com",
+            content_type="application/json; charset=utf-8",
+            status=404,
+        )
+
+        fetcher = Fetcher(self.organization)
+
+        with pytest.raises(http.CannotFetch):
+            fetcher.fetch_by_url("http://example.com")
+            fetch_release_artifact.assert_called_once()
+
+        fetch_release_artifact.reset_mock()
+
+        result = fetcher.fetch_by_url("http://example.com")
+        assert result is None
+        fetch_release_artifact.assert_not_called()
+
 
 class FetchByUrlNewTest(FetchTest):
     def test_one_archive_with_release_dist_pair(self):
