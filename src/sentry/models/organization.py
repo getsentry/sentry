@@ -37,9 +37,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import Team
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
-    organizationmember_mapping_service,
-)
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
@@ -681,10 +678,10 @@ class Organization(Model, SnowflakeIdMixin):
 
     # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
     @classmethod
-    def remove_organization_mapping(cls, organization: Organization):
+    def remove_organization_mapping(cls, instance, **kwargs):
         from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 
-        organization_mapping_service.delete(organization_id=organization.id)
+        organization_mapping_service.delete(organization_id=instance.id)
 
 
 def organization_absolute_url(
@@ -721,15 +718,9 @@ def organization_absolute_url(
     return "".join(parts)
 
 
-def delete_org_refs_at_control_silo(instance: Organization, **kwargs):
-    # Send RPC requests to the control silo
-    Organization.remove_organization_mapping(instance)
-    organizationmember_mapping_service.delete_by_org_id(organization_id=instance.id)
-
-
 post_delete.connect(
-    delete_org_refs_at_control_silo,
-    dispatch_uid="sentry.delete_org_refs_at_control_silo",
+    Organization.remove_organization_mapping,
+    dispatch_uid="sentry.remove_organization_mapping",
     sender=Organization,
     weak=False,
 )
