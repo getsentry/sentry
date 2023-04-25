@@ -1,12 +1,7 @@
-export const PERIOD_REGEX = /^(\d+)([h,d])$/;
-export const DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
 export const getEndpointListQuery = ({domain, action, datetime}) => {
-  const [_, num, unit] = datetime.period?.match(PERIOD_REGEX) ?? [];
-  const start_timestamp =
-    (datetime.start && moment(datetime.start).format(DATE_FORMAT)) ??
-    (num && unit && moment().subtract(num, unit).format(DATE_FORMAT));
-  const end_timestamp = datetime.end && moment(datetime.end).format(DATE_FORMAT);
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
     description,
     domain,
@@ -40,11 +35,7 @@ export const getEndpointDomainsQuery = () => {
 };
 
 export const getEndpointGraphQuery = ({datetime}) => {
-  const [_, num, unit] = datetime.period?.match(PERIOD_REGEX) ?? [];
-  const start_timestamp =
-    (datetime.start && moment(datetime.start).format(DATE_FORMAT)) ??
-    (num && unit && moment().subtract(num, unit).format(DATE_FORMAT));
-  const end_timestamp = datetime.end && moment(datetime.end).format(DATE_FORMAT);
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
     quantile(0.5)(exclusive_time) as p50,
@@ -63,7 +54,12 @@ export const getEndpointGraphQuery = ({datetime}) => {
  `;
 };
 
-export const getEndpointDetailSeriesQuery = ({description, transactionName}) => {
+export const getEndpointDetailSeriesQuery = ({
+  description,
+  transactionName,
+  datetime,
+}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
      toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
      quantile(0.5)(exclusive_time) as p50,
@@ -75,12 +71,15 @@ export const getEndpointDetailSeriesQuery = ({description, transactionName}) => 
      WHERE module = 'http'
      AND description = '${description}'
      ${transactionName ? `AND transaction = '${transactionName}'` : ''}
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
      GROUP BY interval
      ORDER BY interval asc
   `;
 };
 
-export const getEndpointDetailTableQuery = ({description, transactionName}) => {
+export const getEndpointDetailTableQuery = ({description, transactionName, datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
     SELECT transaction,
     count() AS count,
@@ -94,19 +93,28 @@ export const getEndpointDetailTableQuery = ({description, transactionName}) => {
     WHERE module = 'http'
     AND description = '${description}'
     ${transactionName ? `AND transaction = '${transactionName}'` : ''}
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY transaction
     ORDER BY count DESC
     LIMIT 5
  `;
 };
 
-export const getSpanInTransactionQuery = (spanDescription, transactionName) => {
+export const getSpanInTransactionQuery = ({
+  spanDescription,
+  transactionName,
+  datetime,
+}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   // TODO - add back `module = <moudle> to filter data
   return `
     SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
     FROM spans_experimental_starfish
     WHERE description = '${spanDescription}'
     AND transaction = '${transactionName}'
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY span_operation
  `;
 };

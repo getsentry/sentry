@@ -7,6 +7,7 @@ import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
@@ -18,13 +19,16 @@ import {getUniqueTransactionCountQuery} from 'sentry/views/starfish/views/spanSu
 
 export default function Sidebar({description, transactionName}) {
   const theme = useTheme();
+  const pageFilter = usePageFilters();
   const seriesQuery = getEndpointDetailSeriesQuery({
     description,
     transactionName,
+    datetime: pageFilter.selection.datetime,
   });
   const aggregatesQuery = getEndpointDetailTableQuery({
     description,
     transactionName,
+    datetime: pageFilter.selection.datetime,
   });
 
   // This is supposed to a metrics span query that fetches aggregate metric data
@@ -46,7 +50,10 @@ export default function Sidebar({description, transactionName}) {
   // This is a metrics request on transactions data!
   // We're fetching the count of events on a specific transaction so we can
   // calculate span frequency using metrics spans vs metrics transactions
-  const countUniqueQuery = getUniqueTransactionCountQuery(transactionName);
+  const countUniqueQuery = getUniqueTransactionCountQuery({
+    transactionName,
+    datetime: pageFilter.selection.datetime,
+  });
   const {data: transactionData, isLoading: _isTransactionDataLoading} = useQuery({
     queryKey: [countUniqueQuery],
     queryFn: () =>
