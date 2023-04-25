@@ -1,11 +1,14 @@
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
+const PERIOD_REGEX = /^(\d+)([h,d])$/;
 const HOST = 'http://localhost:8080';
 
 type Props = {
@@ -69,12 +72,25 @@ export default function APIModuleView({
   const tableFilter = table ? `domain = '${table}'` : null;
   const actionFilter = action ? `action = '${action}'` : null;
 
+  const pageFilter = usePageFilters();
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+  const DATE_FILTERS = `
+    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
+    start_timestamp < fromUnixTimestamp(${endTime.unix()})
+  `;
+
   const filters = [
     `startsWith(span_operation, 'db')`,
     `span_operation != 'db.redis'`,
     transactionFilter,
     tableFilter,
     actionFilter,
+    DATE_FILTERS,
   ].filter(fil => !!fil);
   const TABLE_LIST_QUERY = `select description, group_id, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
     uniq(transaction) as transactions,
