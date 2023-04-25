@@ -75,10 +75,6 @@ describe('Onboarding Setup Docs', function () {
   it('does not render Product Selection', async function () {
     const {router, route, routerContext, organization, project} = initializeOrg({
       ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features: ['onboarding-docs-with-product-selection'],
-      },
       projects: [
         {
           ...initializeOrg().project,
@@ -147,10 +143,6 @@ describe('Onboarding Setup Docs', function () {
     it('all products checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-docs-with-product-selection'],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -228,10 +220,6 @@ describe('Onboarding Setup Docs', function () {
     it('only performance checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-docs-with-product-selection'],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING]},
@@ -303,10 +291,6 @@ describe('Onboarding Setup Docs', function () {
     it('only session replay checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-docs-with-product-selection'],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.SESSION_REPLAY]},
@@ -378,10 +362,6 @@ describe('Onboarding Setup Docs', function () {
     it('only error monitoring checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-docs-with-product-selection'],
-        },
         router: {
           location: {
             query: {product: []},
@@ -455,10 +435,6 @@ describe('Onboarding Setup Docs', function () {
     it('renders Loader Script setup', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-docs-with-product-selection'],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},

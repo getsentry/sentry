@@ -218,10 +218,6 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
     'onboarding-heartbeat-footer'
   );
 
-  const docsWithProductSelection = !!organization.features?.includes(
-    'onboarding-docs-with-product-selection'
-  );
-
   // get project
   const projectIndex = selectedProjectSlug
     ? rawProjects.findIndex(p => p.slug === selectedProjectSlug) ?? undefined
@@ -243,8 +239,7 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
-  const showDocsWithProductSelection =
-    currentPlatform.match('^javascript-([A-Za-z]+)$') && docsWithProductSelection;
+  const showDocsWithProductSelection = currentPlatform.match('^javascript-([A-Za-z]+)$');
 
   const hideLoaderOnboarding = useCallback(() => {
     setShowLoaderOnboarding(false);
