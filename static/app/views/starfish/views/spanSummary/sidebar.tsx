@@ -71,19 +71,18 @@ export default function Sidebar({description, transactionName}) {
       zeroFillSeries(series, moment.duration(12, 'hours'))
     );
 
-  // One thing we're doing here is multiplying the count_unique_transaction_id by 100000.
-  // This is because we're using scraped spans data (which doesn't have nearly enough volume).
-  // So we multiply by 100000 to simulate a higher volume of spans, ie metrics spans data.
+  // NOTE: This almost always calculates to 0.00% when using the scraped data.
+  // This is because the scraped data doesn't have nearly as much volume as real prod data.
   const spanFrequency =
     count_unique_transaction_id && transactionData?.data?.[0]?.['count()']
-      ? (count_unique_transaction_id * 100000) / transactionData.data[0]['count()']
+      ? count_unique_transaction_id / transactionData.data[0]['count()']
       : 0;
 
   // Average spans per event is just the total number of metrics spans divided by the total number of events
   const spansPerEvent =
     Math.round(
       (count && transactionData?.data?.[0]?.['count()']
-        ? (count * 100000) / transactionData.data[0]['count()']
+        ? count / transactionData.data[0]['count()']
         : 0) * 100
     ) / 100;
 
