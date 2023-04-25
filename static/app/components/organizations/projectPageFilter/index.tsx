@@ -231,8 +231,8 @@ export function ProjectPageFilter({
               visible={isFocused}
               onToggle={(isBookmarked: boolean) => {
                 trackAnalytics('projectselector.bookmark_toggle', {
-                  org_id: parseInt(organization.id, 10),
                   bookmarked: isBookmarked,
+                  organization,
                 });
               }}
             />
