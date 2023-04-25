@@ -4,7 +4,7 @@ This module is for helper functions for escalating issues forecasts.
 
 import logging
 from datetime import datetime
-from typing import List
+from typing import Sequence
 
 from sentry.issues.escalating import (
     ParsedGroupsCount,
@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 
 
 def save_forecast_per_group(
-    until_escalating_groups: List[Group], group_counts: ParsedGroupsCount
+    until_escalating_groups: Sequence[Group], group_counts: ParsedGroupsCount
 ) -> None:
     """
     Saves the list of forecasted values for each group in nodestore.
 
-    `until_escalating_groups`: List of archived until escalating groups to be forecasted
+    `until_escalating_groups`: Sequence of archived until escalating groups to be forecasted
     `group_counts`: Parsed snuba response of group counts
     """
     time = datetime.now()
@@ -42,10 +42,10 @@ def save_forecast_per_group(
     )
 
 
-def generate_and_save_forecasts(groups: List[Group]) -> None:
+def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
     """
     Generates and saves a list of forecasted values for each group.
-    `groups`: List of groups to be forecasted
+    `groups`: Sequence of groups to be forecasted
     """
     past_counts = query_groups_past_counts(groups)
     logger.info(

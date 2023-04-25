@@ -59,7 +59,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
                 "inner": [
                     {
                         "op": "eq",
-                        "name": "event.transaction",
+                        "name": "trace.transaction",
                         "value": ["t1"],
                         "options": {"ignoreCase": True},
                     }
@@ -75,7 +75,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
                 "inner": [
                     {
                         "op": "eq",
-                        "name": "event.transaction",
+                        "name": "trace.transaction",
                         "value": ["t2"],
                         "options": {"ignoreCase": True},
                     }

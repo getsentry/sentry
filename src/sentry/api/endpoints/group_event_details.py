@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @region_silo_endpoint
-class GroupEventsLatestEndpoint(GroupEndpoint):  # type: ignore
+class GroupEventDetailsEndpoint(GroupEndpoint):  # type: ignore
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -27,7 +28,7 @@ class GroupEventsLatestEndpoint(GroupEndpoint):  # type: ignore
         }
     }
 
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group, event_id: str) -> Response:
         """
         Retrieve the Latest Event for an Issue
         ``````````````````````````````````````
@@ -37,11 +38,20 @@ class GroupEventsLatestEndpoint(GroupEndpoint):  # type: ignore
         :pparam string group_id: the ID of the issue
         """
         environments = [e.name for e in get_environments(request, group.project.organization)]
+        event = None
 
-        event = group.get_latest_event_for_environments(environments)
+        if event_id == "latest":
+            event = group.get_latest_event_for_environments(environments)
+        elif event_id == "oldest":
+            event = group.get_oldest_event_for_environments(environments)
+        else:
+            event = eventstore.get_event_by_id(group.project.id, event_id, group_id=group.id)
+            # TODO: Remove `for_group` check once performance issues are moved to the issue platform
+            if hasattr(event, "for_group") and event.group:
+                event = event.for_group(event.group)
 
-        if not event:
-            return Response({"detail": "No events found for group"}, status=404)
+        if event is None:
+            return Response({"detail": "Event not found"}, status=404)
 
         collapse = request.GET.getlist("collapse", [])
         if "stacktraceOnly" in collapse:

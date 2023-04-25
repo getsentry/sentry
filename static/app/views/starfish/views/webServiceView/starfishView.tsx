@@ -1,7 +1,6 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import moment from 'moment';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
@@ -11,27 +10,26 @@ import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-import {useQuery} from 'sentry/utils/queryClient';
-import Chart from 'sentry/views/starfish/components/chart';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 import {
   ModuleButtonType,
   ModuleLinkButton,
 } from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
-import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
+import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
+import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
-import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
+import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
 
 import EndpointList from './endpointList';
 
@@ -43,40 +41,10 @@ type BasePerformanceViewProps = {
   projects: Project[];
 };
 
-const HOST = 'http://localhost:8080';
-
-const handleClose = () => {};
-
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView, onSelect} = props;
+  const {organization, eventView, onSelect, location} = props;
   const theme = useTheme();
-  const [selectedSpike, setSelectedSpike] = useState<any | undefined>();
-
-  const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
-    queryKey: ['durationBreakdown'],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${MODULE_DURATION_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const modules = ['db', 'cache', 'http'];
-
-  const seriesByModule: {[module: string]: Series} = {};
-  modules.forEach(module => {
-    seriesByModule[module] = {
-      seriesName: `p75(${module})`,
-      data: [],
-    };
-  });
-
-  moduleDurationData.forEach(value => {
-    seriesByModule[value.module].data.push({value: value.p75, name: value.interval});
-  });
-
-  const data = Object.values(seriesByModule).map(series =>
-    zeroFillSeries(series, moment.duration(12, 'hours'))
-  );
+  const [, setSelectedSpike] = useState<any | undefined>();
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -104,6 +72,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               data: series.data,
               seriesName: t('Failure Rate'),
               color: CHART_PALETTE[5][3],
+              silent: true,
             })
           );
 
@@ -128,9 +97,21 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '16px',
                 bottom: '8px',
               }}
-              handleSpikeAreaClick={e =>
-                e.componentType === 'markArea' && setSelectedSpike(e)
-              }
+              handleSpikeAreaClick={e => {
+                if (e.componentType === 'markArea') {
+                  setSelectedSpike(e);
+                  const startTime = new Date(e.data.coord[0][0]);
+                  const endTime = new Date(e.data.coord[1][0]);
+                  browserHistory.push({
+                    pathname: `${location.pathname}failure-detail/`,
+                    query: {
+                      start: normalizeDateTimeString(startTime),
+                      end: normalizeDateTimeString(endTime),
+                      project: decodeList(location.query.project),
+                    },
+                  });
+                }
+              }}
             />
           );
         }}
@@ -140,35 +121,18 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <FailureDetailPanel onClose={handleClose} spikeObject={selectedSpike} />
-      <ModuleLinkButton type={ModuleButtonType.API} />
+      {/* <FailureDetailPanel onClose={handleClose} spikeObject={selectedSpike} /> */}
       <ModuleLinkButton type={ModuleButtonType.CACHE} />
-      <ModuleLinkButton type={ModuleButtonType.DB} />
       <StyledRow minSize={200}>
-        <Fragment>
-          <ChartPanel title={t('Response Time')}>
-            <Chart
-              statsPeriod="24h"
-              height={180}
-              data={data}
-              start=""
-              end=""
-              loading={isDurationDataLoading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '16px',
-                bottom: '8px',
-              }}
-              disableMultiAxis
-              definedAxisTicks={4}
-              stacked
-              chartColors={['#444674', '#7a5088', '#b85586']}
-            />
-          </ChartPanel>
-          {renderFailureRateChart()}
-        </Fragment>
+        <ChartsContainer>
+          <ChartsContainerItem>
+            <HttpBreakdownChart />
+          </ChartsContainerItem>
+          <ChartsContainerItem>
+            <DatabaseDurationChart />
+          </ChartsContainerItem>
+          <ChartsContainerItem>{renderFailureRateChart()}</ChartsContainerItem>
+        </ChartsContainer>
       </StyledRow>
 
       <EndpointList
@@ -191,4 +155,15 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`
   margin-bottom: ${space(2)};
+`;
+
+const ChartsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1;
 `;

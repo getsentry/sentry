@@ -70,7 +70,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0424_drop_group_forecast_table"),
+        ("sentry", "0427_add_org_member_id_to_organizationmembermapping_table"),
     ]
 
     operations = notification_action_migrations()

@@ -8,6 +8,7 @@ from typing import (
     Mapping,
     MutableMapping,
     MutableSet,
+    Optional,
     Sequence,
     Union,
 )
@@ -93,8 +94,17 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         scope_type: NotificationScopeType,
         scope_identifier: int,
         target_id: int,
+        user_id: Optional[int] = None,
+        team_id: Optional[int] = None,
     ) -> None:
         """Save a NotificationSettings row."""
+
+        defaults = {"value": value.value}
+        if user_id is not None:
+            defaults.update(user_id=user_id)
+        elif team_id is not None:
+            defaults.update(team_id=team_id)
+
         with configure_scope() as scope:
             with transaction.atomic():
                 setting, created = self.get_or_create(
@@ -103,7 +113,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     scope_type=scope_type.value,
                     scope_identifier=scope_identifier,
                     target_id=target_id,
-                    defaults={"value": value.value},
+                    defaults=defaults,
                 )
                 if not created and setting.value != value.value:
                     scope.set_tag("notif_setting_type", setting.type_str)
@@ -160,6 +170,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
         scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
+        id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
         self._update_settings(
             provider=provider,
             type=type,
@@ -167,6 +178,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             scope_type=scope_type,
             scope_identifier=scope_identifier,
             target_id=target_id,
+            **{id_key: actor.id},
         )
 
     def remove_settings(
@@ -393,8 +405,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
             else:
+                id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
                 self._update_settings(
-                    provider, type, value, scope_type, scope_identifier, target_id
+                    provider,
+                    type,
+                    value,
+                    scope_type,
+                    scope_identifier,
+                    target_id,
+                    **{id_key: actor.id},
                 )
         analytics.record(
             "notifications.settings_updated",
