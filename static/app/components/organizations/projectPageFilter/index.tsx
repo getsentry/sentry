@@ -6,42 +6,30 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
-import {
-  MultipleSelectProps,
-  SelectOption,
-  SelectOptionOrSection,
-} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import PlatformList from 'sentry/components/platformList';
+import {
+  HybridFilter,
+  HybridFilterProps,
+} from 'sentry/components/organizations/hybridFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconAdd, IconOpen, IconProject, IconSettings} from 'sentry/icons';
+import {IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
-import {HybridFilter, HybridFilterProps} from './hybridFilter';
-
-interface FeatureRenderProps {
-  hasFeature: boolean;
-  renderShowAllButton?: (props: {
-    canShowAllProjects: boolean;
-    onButtonClick: () => void;
-  }) => React.ReactNode;
-}
+import {ProjectPageFilterMenuFooter} from './menuFooter';
+import {ProjectPageFilterTrigger} from './trigger';
 
 export interface ProjectPageFilterProps {
   /**
@@ -286,114 +274,6 @@ export function ProjectPageFilter({
     pageFilterValue,
   ]);
 
-  const trigger = useCallback<NonNullable<MultipleSelectProps<number>['trigger']>>(
-    props => {
-      const isMemberProjectsSelected = memberProjects.every(p =>
-        value.includes(parseInt(p.id, 10))
-      );
-
-      const isNonMemberProjectsSelected = nonMemberProjects.every(p =>
-        value.includes(parseInt(p.id, 10))
-      );
-
-      const isMyProjectsSelected = isMemberProjectsSelected && memberProjects.length > 0;
-
-      const isAllProjectsSelected =
-        value.length === 0 || (isMyProjectsSelected && isNonMemberProjectsSelected);
-
-      const selectedProjects = value
-        .slice(0, 2) // we only need to know about the first two projects
-        .map(val =>
-          [...memberProjects, ...nonMemberProjects].find(
-            p => String(p.id) === String(val)
-          )
-        )
-        .filter((p): p is Project => !!p);
-
-      // Show 2 projects only if the combined string does not exceed maxTitleLength.
-      // Otherwise show only 1 project.
-      const projectsToShow =
-        selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <= 23
-          ? selectedProjects.slice(0, 2)
-          : selectedProjects.slice(0, 1);
-
-      const label = isAllProjectsSelected
-        ? t('All Projects')
-        : isMyProjectsSelected
-        ? t('My Projects')
-        : projectsToShow.map(proj => trimSlug(proj.slug, 25)).join(', ');
-
-      // Number of projects that aren't listed in the trigger label
-      const remainingCount = isAllProjectsSelected
-        ? 0
-        : isMyProjectsSelected
-        ? value.length - memberProjects.length
-        : value.length - projectsToShow.length;
-
-      return (
-        <DropdownButton
-          {...props}
-          icon={
-            !projectsLoaded ||
-            !pageFilterIsReady ||
-            isAllProjectsSelected ||
-            isMyProjectsSelected ? (
-              <IconProject />
-            ) : (
-              <PlatformList
-                platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
-              />
-            )
-          }
-        >
-          <TriggerLabel>
-            {!projectsLoaded || !pageFilterIsReady ? t('Loading\u2026') : label}
-          </TriggerLabel>
-          {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
-        </DropdownButton>
-      );
-    },
-    [value, memberProjects, nonMemberProjects, pageFilterIsReady, projectsLoaded]
-  );
-
-  const menuFooter = useMemo(() => {
-    const hasProjectWrite = organization.access.includes('project:write');
-    if (!hasProjectWrite) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        <Feature
-          organization={organization}
-          features={['organizations:global-views']}
-          hookName="feature-disabled:project-selector-all-projects"
-          renderDisabled={false}
-        >
-          {({renderShowAllButton}: FeatureRenderProps) => {
-            // if our hook is adding renderShowAllButton, render that
-            if (showNonMemberProjects && renderShowAllButton) {
-              return renderShowAllButton({
-                onButtonClick: () => handleChange([]),
-                canShowAllProjects: showNonMemberProjects,
-              });
-            }
-
-            return null;
-          }}
-        </Feature>
-        <Button
-          size="xs"
-          aria-label={t('Add Project')}
-          to={`/organizations/${organization.slug}/projects/new/`}
-          icon={<IconAdd size="xs" isCircled />}
-        >
-          {t('Project')}
-        </Button>
-      </Fragment>
-    );
-  }, [organization, handleChange, showNonMemberProjects]);
-
   const menuWidth = useMemo(() => {
     const flatOptions: SelectOption<number>[] = options.flatMap(item =>
       'options' in item ? item.options : [item]
@@ -414,7 +294,6 @@ export function ProjectPageFilter({
       {...selectProps}
       searchable
       multiple={allowMultiple}
-      trigger={trigger}
       options={options}
       value={value}
       onChange={handleChange}
@@ -427,8 +306,22 @@ export function ProjectPageFilter({
       emptyMessage={t('No projects found')}
       menuTitle={t('Filter Projects')}
       menuWidth={menuWidth}
-      menuFooter={menuFooter}
+      menuFooter={
+        <ProjectPageFilterMenuFooter
+          handleChange={handleChange}
+          showNonMemberProjects={showNonMemberProjects}
+        />
+      }
       menuFooterMessage={footerMessage}
+      trigger={triggerProps => (
+        <ProjectPageFilterTrigger
+          value={value}
+          memberProjects={memberProjects}
+          nonMemberProjects={nonMemberProjects}
+          ready={projectsLoaded && pageFilterIsReady}
+          {...triggerProps}
+        />
+      )}
       checkboxWrapper={checkboxWrapper}
       shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
     />
@@ -466,18 +359,6 @@ function checkboxWrapper(
     </Feature>
   );
 }
-
-const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  width: auto;
-`;
-
-const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
-  flex-shrink: 0;
-  top: auto;
-`;
 
 const TrailingButton = styled(Button)<{visible: boolean}>`
   color: ${p => p.theme.subText};
