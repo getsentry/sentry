@@ -8,7 +8,12 @@ from sentry.models import Group, GroupInbox, GroupInboxReason, Organization, Pro
 from sentry.tasks.base import instrumented_task
 
 
-@instrumented_task(name="sentry.tasks.schedule_auto_transition", time_limit=75, soft_time_limit=60)
+@instrumented_task(
+    name="sentry.tasks.schedule_auto_transition",
+    queue="auto_transition_issue_states",
+    time_limit=75,
+    soft_time_limit=60,
+)
 def schedule_auto_transition():
     now = datetime.now(tz=pytz.UTC)
     for project_id in (
@@ -35,7 +40,10 @@ def schedule_auto_transition():
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_transition_issues_new_to_ongoing", time_limit=75, soft_time_limit=60
+    name="sentry.tasks.auto_transition_issues_new_to_ongoing",
+    queue="auto_transition_issue_states",
+    time_limit=75,
+    soft_time_limit=60,
 )
 def auto_transition_issues_new_to_ongoing(
     project_id: int,

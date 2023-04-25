@@ -647,6 +647,7 @@ CELERY_IMPORTS = (
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
+    "sentry.tasks.auto_ongoing_issues",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -938,6 +939,12 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
+    },
+    "schedule_auto_transition": {
+        "task": "sentry.tasks.schedule_auto_transition",
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
+        "options": {"expires": 60 * 25},
     },
 }
 
