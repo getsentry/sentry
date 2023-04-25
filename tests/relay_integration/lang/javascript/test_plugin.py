@@ -444,6 +444,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
                                     "colno": 17,
                                     "in_app": False,
                                 },
+                                # NOTE: a mixed stack trace with a native frame:
+                                {
+                                    "instruction_addr": "0xd10349",
+                                },
                             ]
                         },
                     }
@@ -486,6 +490,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # Since we couldn't expand source for the 2nd frame, both
         # its raw and original form should be identical
         assert raw_frame_list[1] == frame_list[1]
+
+        # The second non-js frame should be untouched
+        assert raw_frame_list[2] == frame_list[2]
 
     @requires_symbolicator
     @pytest.mark.symbolicator
