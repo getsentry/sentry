@@ -71,14 +71,17 @@ export function Content({
     const hasSourcemapDebug = debugFrames.some(
       ({query}) => query.exceptionIdx === excIdx
     );
+    const id = defined(exc.mechanism?.exception_id)
+      ? `exception-${exc.mechanism?.exception_id}`
+      : undefined;
     return (
-      <div key={excIdx} className="exception">
+      <div key={excIdx} className="exception" data-test-id="exception-value">
         {defined(exc?.module) ? (
           <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
-            <Title>{exc.type}</Title>
+            <Title id={id}>{exc.type}</Title>
           </Tooltip>
         ) : (
-          <Title>{exc.type}</Title>
+          <Title id={id}>{exc.type}</Title>
         )}
         <StyledPre className="exc-message">
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
@@ -112,6 +115,7 @@ export function Content({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           debugFrames={hasSourcemapDebug ? debugFrames : undefined}
+          mechanism={exc.mechanism}
         />
       </div>
     );

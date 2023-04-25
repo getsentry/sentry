@@ -4,7 +4,7 @@ import classNames from 'classnames';
 
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
-import {PlatformType, SentryAppComponent} from 'sentry/types';
+import {PlatformType, SentryAppComponent, StackTraceMechanism} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -37,7 +37,9 @@ type Props = Omit<
     registers: Record<string, string>;
     emptySourceNotation?: boolean;
     frameMeta?: Record<string, any>;
+    isNewestFrame?: boolean;
     isOnlyFrame?: boolean;
+    mechanism?: StackTraceMechanism | null;
     registersMeta?: Record<string, any>;
   };
 
@@ -59,6 +61,8 @@ function Line({
   frameMeta,
   registersMeta,
   emptySourceNotation = false,
+  mechanism,
+  isNewestFrame,
   /**
    * Is the stack trace being previewed in a hovercard?
    */
@@ -164,6 +168,8 @@ function Line({
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}
+        mechanism={mechanism}
+        isNewestFrame={isNewestFrame}
       />
     </StyleListItem>
   );
