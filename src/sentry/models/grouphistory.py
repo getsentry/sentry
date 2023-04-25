@@ -233,10 +233,13 @@ def record_group_history(
     actor: Optional[Union["RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,
 ):
+    from sentry.models import Team, User
+    from sentry.services.hybrid_cloud.user import RpcUser
+
     prev_history = get_prev_history(group, status)
     actor_id = None
     if actor:
-        if isinstance(actor, RpcUser):
+        if isinstance(actor, RpcUser) or isinstance(actor, User):
             actor_id = get_actor_id_for_user(actor)
         elif isinstance(actor, Team):
             actor_id = actor.actor_id

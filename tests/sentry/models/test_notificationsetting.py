@@ -1,5 +1,4 @@
 from sentry.models import NotificationSetting
-from sentry.models.actor import get_actor_for_user
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -35,8 +34,8 @@ class NotificationSettingTest(TestCase):
         self.user = User.objects.get(id=self.user.id)
 
         # Deletion is deferred and tasks aren't run in tests.
-        self.user.delete()
-        get_actor_for_user(self.user).delete()
+        with outbox_runner():
+            self.user.delete()
 
         assert_no_notification_settings()
 
