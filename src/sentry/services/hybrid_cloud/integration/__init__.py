@@ -5,11 +5,12 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -328,6 +329,21 @@ class IntegrationService(RpcService):
 
         int_provider: "IntegrationProvider" = integrations.get(provider)
         return feature in int_provider.features
+
+    @rpc_method
+    @abstractmethod
+    def send_incident_alert_notification(
+        self,
+        *,
+        sentry_app_id: int,
+        action_id: int,
+        incident_id: int,
+        organization: RpcOrganizationSummary,
+        new_status: int,
+        incident_attachment: Mapping[str, str],
+        metric_value: Optional[str] = None,
+    ) -> None:
+        pass
 
     @rpc_method
     @abstractmethod
