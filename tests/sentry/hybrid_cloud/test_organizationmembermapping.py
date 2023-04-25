@@ -5,6 +5,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 )
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
 
 
@@ -186,7 +187,8 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             for om in OrganizationMember.objects.all().iterator():
                 self.assert_org_member_mapping(org_member=om)
 
-        org_member.delete()
+        with outbox_runner():
+            org_member.delete()
 
         with exempt_from_silo_limits():
             assert OrganizationMember.objects.all().count() == 1
