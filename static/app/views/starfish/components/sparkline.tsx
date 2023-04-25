@@ -7,13 +7,13 @@ import {Series} from 'sentry/types/echarts';
 
 export const HOST = 'http://localhost:8080';
 
-echarts.use([LineChart, SVGRenderer]);
-
 type SparklineProps = {
   series: Series;
 };
 
 export default function Sparkline({series}: SparklineProps) {
+  echarts.use([LineChart, SVGRenderer]);
+
   const valueSeries = {
     data: series.data.map(datum => datum.value),
     type: 'line',
@@ -44,8 +44,8 @@ export default function Sparkline({series}: SparklineProps) {
       }}
       notMerge
       style={{
-        height: 30,
-        width: 400,
+        height: 25,
+        width: 300,
       }}
       lazyUpdate
       theme="theme_name"
