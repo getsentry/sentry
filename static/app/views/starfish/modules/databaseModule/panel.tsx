@@ -1,6 +1,9 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import keyBy from 'lodash/keyBy';
+import merge from 'lodash/merge';
+import values from 'lodash/values';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
@@ -23,6 +26,7 @@ type TransactionListDataRow = {
   count: number;
   p75: number;
   transaction: string;
+  uniqueEvents: number;
 };
 
 const COLUMN_ORDER = [
@@ -38,6 +42,14 @@ const COLUMN_ORDER = [
   {
     key: 'p75',
     name: 'p75',
+  },
+  {
+    key: 'queriesPerEvent',
+    name: 'Queries per event',
+  },
+  {
+    key: 'uniqueEvents',
+    name: 'Total Events',
   },
 ];
 
@@ -77,6 +89,21 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
       ORDER BY interval asc
    `;
 
+  const EVENT_COUNT_QUERY = `
+  SELECT transaction, count(DISTINCT transaction_id) as uniqueEvents
+    FROM spans_experimental_starfish
+    WHERE transaction
+      IN (SELECT transaction FROM spans_experimental_starfish WHERE module='db' AND description='${row.description}')
+    GROUP BY transaction
+   `;
+
+  // const INCLUDED_EVENT_COUNT_QUERY = `
+  // SELECT transaction, count(DISTINCT transaction_id) as included_event_count
+  //   FROM spans_experimental_starfish
+  //   WHERE module='db' AND description='${row.description}'
+  //   GROUP BY transaction
+  //  `;
+
   const {isLoading, data: graphData} = useQuery({
     queryKey: ['dbQueryDetailsGraph', row.description],
     queryFn: () =>
@@ -92,7 +119,21 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     initialData: [],
   });
 
-  // console.log(row.desc);
+  const {isLoading: isEventCountLoading, data: eventCountData} = useQuery({
+    queryKey: ['dbQueryDetailsEventCount', row.description],
+    queryFn: () => fetch(`${HOST}/?query=${EVENT_COUNT_QUERY}`).then(res => res.json()),
+    retry: true,
+    initialData: [],
+  });
+
+  const isDataLoading = isLoading || isTableLoading || isEventCountLoading;
+
+  const mergedTableData = values(
+    merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
+  );
+
+  // console.log(includedEventCountData);
+  // console.log(mergedTableData);
 
   const [countSeries, p75Series] = throughputQueryToChartData(graphData);
 
@@ -104,6 +145,9 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     column: GridColumnHeader,
     dataRow: TransactionListDataRow
   ): React.ReactNode => {
+    if (column.key === 'queriesPerEvent') {
+      return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
+    }
     if (column.key === 'transaction') {
       return (
         <Link
@@ -141,7 +185,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
             data={[countSeries]}
             start=""
             end=""
-            loading={isLoading}
+            loading={isDataLoading}
             utc={false}
             disableMultiAxis
             stacked
@@ -159,7 +203,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
             data={[p75Series]}
             start=""
             end=""
-            loading={isLoading}
+            loading={isDataLoading}
             utc={false}
             chartColors={[theme.charts.getColorPalette(4)[3]]}
             disableMultiAxis
@@ -171,8 +215,8 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
         </FlexRowItem>
       </FlexRowContainer>
       <GridEditable
-        isLoading={isTableLoading}
-        data={tableData}
+        isLoading={isDataLoading}
+        data={mergedTableData}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
