@@ -10,6 +10,7 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -18,6 +19,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule/queries';
+import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {getSpanSamplesQuery} from './queries';
 
@@ -120,52 +122,62 @@ export default function SpanSummary({location, params}: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            {isLoading ? (
-              <span>LOADING</span>
-            ) : (
-              <KeyValueList
-                data={[
-                  {
-                    key: 'desc',
-                    value: spanSampleData?.[0]?.description,
-                    subject: 'Description',
-                  },
-                  {key: 'count', value: data?.[0]?.count, subject: 'Count'},
-                  {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
-                ]}
-                shouldSort={false}
-              />
-            )}
-            {areSpanSamplesLoading ? (
-              <span>LOADING SAMPLE LIST</span>
-            ) : (
-              <div>
-                <GridEditable
-                  isLoading={isLoading || isTransactionDataLoading}
-                  data={spanSampleData.map(datum => {
-                    const transaction =
-                      transactionDataById[datum.transaction_id.replaceAll('-', '')];
+            <FlexContainer>
+              <MainSpanSummaryContainer>
+                {isLoading ? (
+                  <span>LOADING</span>
+                ) : (
+                  <KeyValueList
+                    data={[
+                      {
+                        key: 'desc',
+                        value: spanSampleData?.[0]?.description,
+                        subject: 'Description',
+                      },
+                      {key: 'count', value: data?.[0]?.count, subject: 'Count'},
+                      {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
+                    ]}
+                    shouldSort={false}
+                  />
+                )}
+                {areSpanSamplesLoading ? (
+                  <span>LOADING SAMPLE LIST</span>
+                ) : (
+                  <div>
+                    <GridEditable
+                      isLoading={isLoading || isTransactionDataLoading}
+                      data={spanSampleData.map(datum => {
+                        const transaction =
+                          transactionDataById[datum.transaction_id.replaceAll('-', '')];
 
-                    return {
-                      transaction_id: datum.transaction_id,
-                      span_id: datum.span_id,
-                      timestamp: transaction?.timestamp,
-                      spanOp: datum.span_operation,
-                      spanDuration: datum.exclusive_time,
-                      transactionDuration: transaction?.['transaction.duration'],
-                    };
-                  })}
-                  columnOrder={COLUMN_ORDER}
-                  columnSortBy={[]}
-                  grid={{
-                    renderHeadCell,
-                    renderBodyCell: (column: GridColumnHeader, row: SpanTableRow) =>
-                      renderBodyCell(column, row),
-                  }}
-                  location={location}
+                        return {
+                          transaction_id: datum.transaction_id,
+                          span_id: datum.span_id,
+                          timestamp: transaction?.timestamp,
+                          spanOp: datum.span_operation,
+                          spanDuration: datum.exclusive_time,
+                          transactionDuration: transaction?.['transaction.duration'],
+                        };
+                      })}
+                      columnOrder={COLUMN_ORDER}
+                      columnSortBy={[]}
+                      grid={{
+                        renderHeadCell,
+                        renderBodyCell: (column: GridColumnHeader, row: SpanTableRow) =>
+                          renderBodyCell(column, row),
+                      }}
+                      location={location}
+                    />
+                  </div>
+                )}
+              </MainSpanSummaryContainer>
+              <SidebarContainer>
+                <Sidebar
+                  description={spanDescription}
+                  transactionName={transactionName}
                 />
-              </div>
-            )}
+              </SidebarContainer>
+            </FlexContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
@@ -181,6 +193,20 @@ export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+`;
+
+const FlexContainer = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+`;
+
+const MainSpanSummaryContainer = styled('div')`
+  flex: 10 0 800px;
+`;
+
+const SidebarContainer = styled('div')`
+  flex: 1 0 300px;
+  margin-left: ${space(2)};
 `;
 
 function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
