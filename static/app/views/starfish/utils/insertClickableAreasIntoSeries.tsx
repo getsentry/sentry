@@ -5,7 +5,7 @@ export function insertClickableAreasIntoSeries(series: LineChartSeries[], color:
   const {data} = series[0];
   const startTime = data[0].name;
   const endTime = data[data.length - 1].name;
-  const intervals = divideIntoIntervals(startTime as number, endTime as number, 8);
+  const intervals = divideIntoIntervals(startTime as number, endTime as number, 40);
 
   const areaMarkData = intervals.map(([start, end]) => [
     {name: 'start', xAxis: start, emphasis: {disabled: false}},
@@ -22,12 +22,13 @@ export function insertClickableAreasIntoSeries(series: LineChartSeries[], color:
       silent: false,
       itemStyle: {
         color,
-        opacity: 0.2,
+        opacity: 0,
       },
+
       label: {
         show: false,
       },
-      emphasis: {disabled: false},
+      emphasis: {disabled: false, itemStyle: {opacity: 0.2}},
       // I know this is gross but we don't have access to the types needed to satisfy the linter
       data: areaMarkData as any,
     }),
@@ -35,7 +36,7 @@ export function insertClickableAreasIntoSeries(series: LineChartSeries[], color:
 }
 
 function divideIntoIntervals(startTime: number, endTime: number, numSections: number) {
-  const spaceBetweenIntervals = 10000000;
+  const spaceBetweenIntervals = 0;
   const diff = endTime - startTime;
   const intervalLength = Math.round(diff / numSections);
 

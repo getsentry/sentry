@@ -94,7 +94,8 @@ export default function APIModuleView({
 
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
     queryKey: ['endpoints', action, transaction, table],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_LIST_QUERY}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${TABLE_LIST_QUERY}&format=sql`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -123,6 +124,9 @@ export default function APIModuleView({
           </Link>
         </Hovercard>
       );
+    }
+    if (column.key === 'p75') {
+      return <span>{row[column.key].toFixed(2)}ms</span>;
     }
     if (column.key === 'conditions') {
       const value = row.data_values[row.data_keys.indexOf('where')];
