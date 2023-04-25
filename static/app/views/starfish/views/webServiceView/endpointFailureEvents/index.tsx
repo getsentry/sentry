@@ -8,6 +8,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import EventList from 'sentry/views/starfish/views/webServiceView/endpointFailureEvents/eventList';
+import IssueList from 'sentry/views/starfish/views/webServiceView/endpointFailureEvents/issueList';
 
 type Props = {
   location: Location;
@@ -37,6 +38,11 @@ export default function EndpointFailureEvents({params, location}: Props) {
             <PageErrorAlert />
             <EventList
               httpOp={httpOp}
+              location={location}
+              organization={organization}
+              transactionName={transactionName}
+            />
+            <IssueList
               location={location}
               organization={organization}
               transactionName={transactionName}
