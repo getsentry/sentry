@@ -170,6 +170,16 @@ export type TagWithTopValues = {
   canDelete?: boolean;
 };
 
+export const enum GroupSubstatus {
+  UNTIL_ESCALATING = 'until_escalating',
+  UNTIL_CONDITION_MET = 'until_condition_met',
+  FOREVER = 'forever',
+  ESCALATING = 'escalating',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  NEW = 'new',
+}
+
 /**
  * Inbox, issue owners and Activity
  */
@@ -497,7 +507,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: 'until_escalating';
+  substatus?: GroupSubstatus;
 };
 
 export type GroupRelease = {
@@ -544,6 +554,7 @@ export interface BaseGroup extends GroupRelease {
   userReportCount: number;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
+  substatus?: GroupSubstatus;
 }
 
 export interface GroupReprocessing
