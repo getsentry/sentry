@@ -45,16 +45,6 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
             "'authorize_request' method must be implemented to safely proxy requests."
         )
 
-    # def build_url(self, path: str) -> str:
-    #     """
-    #     Overriding build_url here allows us to use a direct proxy, rather than a transparent one.
-    #     """
-    #     base = self.proxy_url if self.should_proxy_to_control else self.base_url
-    #     if base:
-    #         self.client_path = trim_leading_slashes(path)
-    #         return f"{base}/{self.client_path}"
-    #     return path
-
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         if not self.should_proxy_to_control:
             return prepared_request
