@@ -32,6 +32,7 @@ export type EndpointDataRow = {
   domain: string;
   failure_count: number;
   failure_rate: number;
+  group_id: string;
   'p50(exclusive_time)': number;
   'p95(exclusive_time)': number;
   transaction_count: number;
@@ -81,8 +82,14 @@ export default function EndpointDetail({
 
 function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   const location = useLocation();
-  const seriesQuery = getEndpointDetailSeriesQuery(row.description);
-  const tableQuery = getEndpointDetailTableQuery(row.description);
+  const seriesQuery = getEndpointDetailSeriesQuery({
+    description: row.description,
+    transactionName: null,
+  });
+  const tableQuery = getEndpointDetailTableQuery({
+    description: row.description,
+    transactionName: null,
+  });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
@@ -174,7 +181,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         grid={{
           renderHeadCell,
           renderBodyCell: (column: GridColumnHeader, dataRow: SpanTransactionDataRow) =>
-            renderBodyCell(column, dataRow, row.description),
+            renderBodyCell(column, dataRow, row.group_id),
         }}
         location={location}
       />
@@ -187,13 +194,13 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanTransactionDataRow,
-  spanDescription: string
+  groupId: string
 ): React.ReactNode {
   if (column.key === 'transaction') {
     return (
       <OverflowEllipsisTextContainer>
         <Link
-          to={`/starfish/span/${encodeURIComponent(spanDescription)}:${encodeURIComponent(
+          to={`/starfish/span/${encodeURIComponent(groupId)}:${encodeURIComponent(
             row.transaction
           )}`}
         >
