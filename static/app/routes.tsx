@@ -1708,12 +1708,6 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/views/webServiceView'))}
       />
       <Route
-        path="failure-detail/"
-        component={make(
-          () => import('sentry/views/starfish/views/webServiceView/failureDetailView')
-        )}
-      />
-      <Route
         path="failure-detail/:slug/"
         component={make(
           () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
