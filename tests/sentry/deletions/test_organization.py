@@ -33,9 +33,9 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 class DeleteOrganizationTest(TransactionTestCase):
     def test_simple(self):
-        org = self.create_organization(name="test")
+        org = self.create_organization(name="test", no_mapping=True)
         org_mapping = self.create_organization_mapping(org)
-        org2 = self.create_organization(name="test2")
+        org2 = self.create_organization(name="test2", no_mapping=True)
         org_mapping2 = self.create_organization_mapping(org2)
         self.create_team(organization=org, name="test1")
         self.create_team(organization=org, name="test2")
