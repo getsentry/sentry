@@ -212,7 +212,7 @@ describe('Group > AssignedTo', () => {
     render(
       <AssignedTo project={project} group={GROUP_1} event={event} onAssign={onAssign} />,
       {
-        organization: {...organization, features: ['streamline-targeting-context']},
+        organization,
       }
     );
     await openMenu();
