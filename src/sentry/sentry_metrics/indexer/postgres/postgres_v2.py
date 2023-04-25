@@ -263,6 +263,10 @@ class PGStringIndexerV2(StringIndexer):
 
     def _get_metric_path_key(self, use_case_ids: Collection[UseCaseID]) -> UseCaseKey:
         if UseCaseID.SESSIONS in use_case_ids:
+            if len(use_case_ids) > 1:
+                raise ValueError(
+                    f"The set of use_case_ids: {use_case_ids} maps to multiple metric path keys"
+                )
             return UseCaseKey.RELEASE_HEALTH
         return UseCaseKey.PERFORMANCE
 
