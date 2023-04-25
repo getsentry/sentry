@@ -81,7 +81,7 @@ export function zeroFillSeries(
 }
 
 function roundUpToNearest12HourInterval(time: moment.Moment) {
-  return roundDownToNearest12HourInterval(time.clone().add(12, 'hour'));
+  return roundDownToNearest12HourInterval(time.clone().add(12, 'hour').subtract(1, 'ms'));
 }
 
 function roundDownToNearest12HourInterval(time: moment.Moment) {
