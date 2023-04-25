@@ -274,7 +274,7 @@ class EventStorage(Service):
         limit=100,
         offset=0,
         referrer="eventstore.get_unfetched_transactions",
-        tenant_id=None,
+        tenant_ids=None,
     ):
         """
         Same as get_unfetched_events but returns transactions.

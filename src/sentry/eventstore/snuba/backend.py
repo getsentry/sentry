@@ -371,7 +371,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_unfetched_transactions",
-        tenant_id=None,
+        tenant_ids=None,
     ):
         """
         Get transactions from Snuba, without node data loaded.
@@ -391,7 +391,7 @@ class SnubaEventStorage(EventStorage):
             offset=offset,
             referrer=referrer,
             dataset=snuba.Dataset.Transactions,
-            tenant_id=tenant_id,
+            tenant_ids=tenant_ids,
         )
 
         if "error" not in result:
