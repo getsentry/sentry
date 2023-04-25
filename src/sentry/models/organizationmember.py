@@ -595,15 +595,3 @@ class OrganizationMember(Model):
             .exists()
         )
         return is_only_owner
-
-
-def organization_member_post_delete(instance: OrganizationMember, **kwargs):
-    region_outbox = None
-    with transaction.atomic():
-        region_outbox = instance.outbox_for_update()
-        region_outbox.save()
-    if region_outbox:
-        region_outbox.drain_shard(max_updates_to_drain=10)
-
-
-post_delete.connect(organization_member_post_delete, sender=OrganizationMember)
