@@ -610,6 +610,31 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
+    def test_performance_issue_issue_platform_issue_ids_filter(self):
+        # Just a duplicate of `test_generic_issue_ids_filter` to verify that perf issues read from
+        # the issue platform correctly here. Remove once we kill the related flags.
+        data = load_data(
+            platform="transaction",
+            timestamp=self.ten_mins_ago,
+            start_timestamp=self.eleven_mins_ago,
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+        )
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            event = self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": f"project:{self.project.slug} issue:{event.groups[0].qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+        with self.feature(
+            ["organizations:issue-platform-search-perf-issues", "organizations:profiling"]
+        ):
+            response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
     def test_generic_issue_ids_filter(self):
         user_data = {
             "id": self.user.id,

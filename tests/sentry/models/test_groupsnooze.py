@@ -110,6 +110,36 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
+    def test_user_rate_reached_perf_issues_platform(self):
+        """
+        Test that ignoring a performance issue until it's hit by 10 users in an hour works.
+
+        Copy/paste of `test_user_rate_reached_perf_issues` with changes to flags. Remove this once
+        we're finished with the flags.
+
+        """
+        with self.options(
+            {
+                "performance.issues.send_to_issues_platform": True,
+            }
+        ):
+            for i in range(0, 10):
+                event = self.store_transaction(
+                    environment=None,
+                    project_id=self.project.id,
+                    user_id=str(i),
+                    fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+                )
+
+        perf_group = event.groups[0]
+        perf_group.project.update_option(
+            "sentry:performance_issue_create_issue_through_platform", True
+        )
+        snooze = GroupSnooze.objects.create(group=perf_group, user_count=10, user_window=60)
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            assert not snooze.is_valid(test_rates=True)
+
+    @freeze_time()
     def test_user_rate_not_reached(self):
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
         assert snooze.is_valid(test_rates=True)
@@ -151,6 +181,30 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
         perf_group = event.groups[0]
         snooze = GroupSnooze.objects.create(group=perf_group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
+
+    @freeze_time()
+    def test_rate_reached_perf_issue_issue_platform(self):
+        """
+        Test when a performance issue is ignored until it happens 10 times in a day
+
+        Copy/paste of `test_rate_reached_perf_issue` with changes to flags. Remove this once we're
+        finished with the flags.
+        """
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            for i in range(0, 10):
+                event = self.store_transaction(
+                    environment=None,
+                    project_id=self.project.id,
+                    user_id=str(i),
+                    fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+                )
+        perf_group = event.groups[0]
+        perf_group.project.update_option(
+            "sentry:performance_issue_create_issue_through_platform", True
+        )
+        snooze = GroupSnooze.objects.create(group=perf_group, count=10, window=24 * 60)
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
     def test_rate_without_test(self):
