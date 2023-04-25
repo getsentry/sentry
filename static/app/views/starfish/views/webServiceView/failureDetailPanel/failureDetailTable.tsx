@@ -41,7 +41,7 @@ const COLUMN_ORDER = [
   },
 ];
 
-export default function EndpointTable({organization, location}: Props) {
+export default function FailureDetailTable({organization, location}: Props) {
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     const align = column.name === 'transaction' ? 'left' : 'right';
     return <StyledNonLink align={align}>{column.name}</StyledNonLink>;
