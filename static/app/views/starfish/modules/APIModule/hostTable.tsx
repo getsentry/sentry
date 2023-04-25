@@ -1,6 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import groupBy from 'lodash/groupBy';
+import orderBy from 'lodash/orderBy';
 import moment from 'moment';
 
 import GridEditable, {
@@ -50,6 +51,9 @@ export default function HostTable({location}: Props) {
   const dataByHost = groupBy(hostsData, 'domain');
   const hosts = Object.keys(dataByHost);
 
+  const startDate = moment(orderBy(hostsData, 'interval', 'asc')[0]?.interval);
+  const endDate = moment(orderBy(hostsData, 'interval', 'desc')[0]?.interval);
+
   const tableData: HostTableRow[] = hosts
     .map(host => {
       const durationSeries: Series = zeroFillSeries(
@@ -60,7 +64,9 @@ export default function HostTable({location}: Props) {
             value: datum.p50,
           })),
         },
-        moment.duration(12, 'hours')
+        moment.duration(12, 'hours'),
+        startDate,
+        endDate
       );
 
       return {
