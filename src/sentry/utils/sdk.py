@@ -13,13 +13,8 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import (  # NOQA
-    Scope,
-    capture_exception,
-    capture_message,
-    configure_scope,
-    push_scope,
-)
+from sentry_sdk import push_scope  # NOQA
+from sentry_sdk import Scope, capture_exception, capture_message, configure_scope
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -525,6 +520,31 @@ def check_current_scope_transaction(
                 "scope_transaction": scope._transaction,
                 "request_transaction": transaction_from_request,
             }
+
+
+def capture_exception_with_scope_check(
+    error, scope: Scope | None = None, request: Request | None = None, **scope_args
+):
+    """
+    A wrapper around `sentry_sdk.capture_exception` which checks scope `transaction` against the
+    given Request object, to help debug scope bleed problems.
+    """
+
+    # The SDK's version of `capture_exception` accepts either a `Scope` object or scope kwargs.
+    # Regardless of which one the caller passed, convert the data into a `Scope` object
+    extra_scope = scope or Scope()
+    extra_scope.update_from_kwargs(**scope_args)
+
+    # We've got a weird scope bleed problem, where, among other things, errors are getting tagged
+    # with the wrong transaction value, so record any possible mismatch.
+    transaction_mismatch = check_current_scope_transaction(request) if request else None
+    if transaction_mismatch:
+        # TODO: We probably should add this data to the scope in `check_current_scope_transaction`
+        # instead, but the whole point is that right now it's unclear how trustworthy ambient scope is
+        extra_scope.set_tag("scope_bleed.transaction", True)
+        merge_context_into_scope("scope_bleed", transaction_mismatch, extra_scope)
+
+    return sentry_sdk.capture_exception(error, scope=extra_scope)
 
 
 def bind_organization_context(organization):
