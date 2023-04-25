@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -273,19 +274,18 @@ const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
   ${p =>
-    p.priority === 'primary'
-      ? `
-     &::after {
-       content: '';
-       position: absolute;
-       top: -1px;
-       bottom: -1px;
-       right: -1px;
-       border-right: solid 1px currentColor;
-       opacity: 0.25;
-     }
-  `
-      : ''}
+    p.priority === 'primary' &&
+    css`
+      &::after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        bottom: -1px;
+        right: -1px;
+        border-right: solid 1px currentColor;
+        opacity: 0.25;
+      }
+    `}
 `;
 
 const DropdownTrigger = styled(Button)`
