@@ -22,6 +22,7 @@ export type DataRow = {
   description: string;
   epm: number;
   formatted_desc: string;
+  group_id: string;
   p75: number;
   total_time: number;
   transactions: number;
@@ -75,7 +76,7 @@ export default function APIModuleView({
     tableFilter,
     actionFilter,
   ].filter(fil => !!fil);
-  const TABLE_LIST_QUERY = `select description, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
+  const TABLE_LIST_QUERY = `select description, group_id, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
     uniq(transaction) as transactions,
     sum(exclusive_time) as total_time,
     domain,
@@ -85,7 +86,7 @@ export default function APIModuleView({
     from default.spans_experimental_starfish
     where
     ${filters.join(' and ')}
-    group by action, description, domain, data_keys, data_values
+    group by action, description, group_id, domain, data_keys, data_values
     order by -pow(10, floor(log10(count()))), -quantile(0.5)(exclusive_time)
     limit 100
   `;
