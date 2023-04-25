@@ -241,6 +241,9 @@ export function Threads({
   const platform = getPlatform();
   const threadStateDisplay = getMappedThreadState(activeThread?.state);
 
+  const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
+  const hideThreadTags = isNil(activeThreadId) || !activeThreadName;
+
   return (
     <Fragment>
       {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
@@ -282,9 +285,11 @@ export function Threads({
               </EventDataSection>
             )}
           </Grid>
-          <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
-            {renderPills()}
-          </EventDataSection>
+          {!hideThreadTags && (
+            <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
+              {renderPills()}
+            </EventDataSection>
+          )}
         </Fragment>
       )}
       <TraceEventDataSection

@@ -31,7 +31,7 @@ type ProviderProps = {
   children: React.ReactNode;
 };
 
-export const OnboardingContextProvider = ({children}: ProviderProps) => {
+export function OnboardingContextProvider({children}: ProviderProps) {
   const [sessionStorage, setSessionStorage] = useSessionStorage<Data>('onboarding', {});
 
   const setProjectData = useCallback(
@@ -63,4 +63,4 @@ export const OnboardingContextProvider = ({children}: ProviderProps) => {
       {children}
     </OnboardingContext.Provider>
   );
-};
+}

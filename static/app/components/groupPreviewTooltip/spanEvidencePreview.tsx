@@ -48,13 +48,13 @@ const makeGroupPreviewRequestUrl = ({
   return null;
 };
 
-const SpanEvidencePreviewBody = ({
+function SpanEvidencePreviewBody({
   endpointUrl,
   onRequestBegin,
   onRequestEnd,
   onUnmount,
   projectSlug,
-}: SpanEvidencePreviewBodyProps) => {
+}: SpanEvidencePreviewBodyProps) {
   const {data, isLoading, isError} = useApiQuery<EventTransaction>(
     [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
     {staleTime: 60000}
@@ -95,14 +95,14 @@ const SpanEvidencePreviewBody = ({
       {t('There is no span evidence available for this issue.')}
     </EmptyWrapper>
   );
-};
+}
 
-export const SpanEvidencePreview = ({
+export function SpanEvidencePreview({
   children,
   groupId,
   eventId,
   projectSlug,
-}: SpanEvidencePreviewProps) => {
+}: SpanEvidencePreviewProps) {
   const organization = useOrganization();
   const endpointUrl = makeGroupPreviewRequestUrl({
     groupId,
@@ -133,7 +133,7 @@ export const SpanEvidencePreview = ({
       {children}
     </GroupPreviewHovercard>
   );
-};
+}
 
 const EmptyWrapper = styled('div')`
   color: ${p => p.theme.subText};

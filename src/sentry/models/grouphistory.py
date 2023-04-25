@@ -15,6 +15,7 @@ from sentry.db.models import (
 )
 from sentry.models.actor import get_actor_id_for_user
 from sentry.types.activity import ActivityType
+from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
 if TYPE_CHECKING:
     from sentry.models import Group, Release, Team, User
@@ -39,12 +40,13 @@ class GroupHistoryStatus:
     DELETED_AND_DISCARDED = 9
     REVIEWED = 10
     ESCALATING = 14
+    ARCHIVED_UNTIL_ESCALATING = 15
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
 
 
-string_to_status_lookup = {
+STRING_TO_STATUS_LOOKUP = {
     "unresolved": GroupHistoryStatus.UNRESOLVED,
     "resolved": GroupHistoryStatus.RESOLVED,
     "set_resolved_in_release": GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
@@ -60,8 +62,10 @@ string_to_status_lookup = {
     "deleted_and_discarded": GroupHistoryStatus.DELETED_AND_DISCARDED,
     "reviewed": GroupHistoryStatus.REVIEWED,
     "new": GroupHistoryStatus.NEW,
+    "escalating": GroupHistoryStatus.ESCALATING,
+    "archived_until_escalating": GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
 }
-status_to_string_lookup = {status: string for string, status in string_to_status_lookup.items()}
+STATUS_TO_STRING_LOOKUP = {status: string for string, status in STRING_TO_STATUS_LOOKUP.items()}
 
 
 ACTIONED_STATUSES = [
@@ -73,9 +77,14 @@ ACTIONED_STATUSES = [
     GroupHistoryStatus.REVIEWED,
     GroupHistoryStatus.DELETED,
     GroupHistoryStatus.DELETED_AND_DISCARDED,
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
 ]
 
-UNRESOLVED_STATUSES = (GroupHistoryStatus.UNRESOLVED, GroupHistoryStatus.REGRESSED)
+UNRESOLVED_STATUSES = (
+    GroupHistoryStatus.UNRESOLVED,
+    GroupHistoryStatus.REGRESSED,
+    GroupHistoryStatus.ESCALATING,
+)
 RESOLVED_STATUSES = (
     GroupHistoryStatus.RESOLVED,
     GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
@@ -96,6 +105,7 @@ PREVIOUS_STATUSES = {
     GroupHistoryStatus.ASSIGNED: (GroupHistoryStatus.UNASSIGNED,),
     GroupHistoryStatus.UNASSIGNED: (GroupHistoryStatus.ASSIGNED,),
     GroupHistoryStatus.REGRESSED: RESOLVED_STATUSES,
+    GroupHistoryStatus.ESCALATING: (GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,),
 }
 
 ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
@@ -207,6 +217,12 @@ def record_group_history_from_activity_type(
     maps to it
     """
     status = ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS.get(activity_type, None)
+
+    # Substatus-based GroupHistory should overritde activity-based GroupHistory since it's more specific.
+    if group.substatus:
+        status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
+        status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
+
     if status is not None:
         return record_group_history(group, status, actor, release)
 

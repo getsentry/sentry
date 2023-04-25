@@ -18,6 +18,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sentry_sdk import Scope
 
 from sentry import analytics, tsdb
 from sentry.apidocs.hooks import HTTP_METHODS_SET
@@ -30,7 +31,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import is_valid_origin, origin_from_request
-from sentry.utils.sdk import capture_exception
+from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
@@ -183,17 +184,43 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(self, request: Request, exc):
+    def handle_exception(
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
+        """
+        Handle exceptions which arise while processing incoming API requests.
+
+        :param request:          The incoming request.
+        :param exc:              The exception raised during handling.
+        :param handler_context:  (Optional) Extra data which will be attached to the event sent
+                                 to Sentry, under the "Request Handler Data" heading.
+        :param scope:            (Optional) A `Scope` object containing extra data which will be
+                                 attached to the event sent to Sentry.
+
+        :returns: A 500 response including the event id of the captured Sentry event.
+        """
         try:
+            # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
+            # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
+            # and caught below.
             response = super().handle_exception(exc)
-        except Exception:
+        except Exception as err:
             import sys
             import traceback
 
             sys.stderr.write(traceback.format_exc())
-            event_id = capture_exception()
-            context = {"detail": "Internal Error", "errorId": event_id}
-            response = Response(context, status=500)
+
+            scope = scope or sentry_sdk.Scope()
+            if handler_context:
+                merge_context_into_scope("Request Handler Data", handler_context, scope)
+            event_id = capture_exception(err, scope=scope)
+
+            response_body = {"detail": "Internal Error", "errorId": event_id}
+            response = Response(response_body, status=500)
             response.exception = True
         return response
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence
 
+from django.db import transaction
 from django.db.models import Q
 
 from sentry.models import NotificationSetting, User
@@ -48,6 +49,24 @@ class DatabaseBackedNotificationsService(NotificationsService):
             project=project_id,
             organization=organization_id,
         )
+
+    def bulk_update_settings(
+        self,
+        *,
+        notification_type_to_value_map: Mapping[
+            NotificationSettingTypes, NotificationSettingOptionValues
+        ],
+        external_provider: ExternalProviders,
+        actor: RpcActor,
+    ) -> None:
+        with transaction.atomic():
+            for notification_type, setting_option in notification_type_to_value_map.items():
+                self.update_settings(
+                    external_provider=external_provider,
+                    actor=actor,
+                    notification_type=notification_type,
+                    setting_option=setting_option,
+                )
 
     def get_settings_for_users(
         self,

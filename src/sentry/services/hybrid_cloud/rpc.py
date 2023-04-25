@@ -2,19 +2,26 @@ from __future__ import annotations
 
 import inspect
 import logging
+import urllib.response
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
+from urllib.request import Request, urlopen
 
+import django.urls
 import pydantic
+from django.conf import settings
 
 from sentry.services.hybrid_cloud import (
     ArgumentDict,
     DelegatedBySiloMode,
     InterfaceWithLifecycle,
+    RpcModel,
     stubbed,
 )
 from sentry.silo import SiloMode
 from sentry.types.region import Region
+from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.region import RegionResolution
@@ -53,7 +60,8 @@ class RpcMethodSignature:
         super().__init__()
         self._base_service_cls = base_service_cls
         self._base_method = base_method
-        self._model = self._create_pydantic_model()
+        self._parameter_model = self._create_parameter_model()
+        self._return_model = self._create_return_model()
         self._region_resolution = self._extract_region_resolution()
 
     @property
@@ -64,7 +72,9 @@ class RpcMethodSignature:
     def method_name(self) -> str:
         return self._base_method.__name__
 
-    def _create_pydantic_model(self) -> Type[pydantic.BaseModel]:
+    def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
+        """Dynamically create a Pydantic model class representing the parameters."""
+
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
                 raise RpcServiceSetupException("Type hints are required on RPC methods")
@@ -76,6 +86,23 @@ class RpcMethodSignature:
         parameters = list(inspect.signature(self._base_method).parameters.values())
         parameters = parameters[1:]  # exclude `self` argument
         field_definitions = {p.name: create_field(p) for p in parameters}
+        return pydantic.create_model(name, **field_definitions)  # type: ignore
+
+    _RETURN_MODEL_ATTR = "value"
+
+    def _create_return_model(self) -> Type[pydantic.BaseModel] | None:
+        """Dynamically create a Pydantic model class representing the return value.
+
+        The created model has a single attribute containing the return value. This
+        extra abstraction is necessary in order to have Pydantic handle generic
+        return annotations such as `Optional[RpcOrganization]` or `List[RpcUser]`,
+        where we can't directly access an RpcModel class on which to call `parse_obj`.
+        """
+        name = f"{self.service_name}__{self.method_name}__ReturnModel"
+        return_type = inspect.signature(self._base_method).return_annotation
+        if return_type is None:
+            return None
+        field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(name, **field_definitions)  # type: ignore
 
     def _extract_region_resolution(self) -> RegionResolution | None:
@@ -97,11 +124,25 @@ class RpcMethodSignature:
         return region_resolution
 
     def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
-        model_instance = self._model(**raw_arguments)
+        model_instance = self._parameter_model(**raw_arguments)
         return model_instance.dict()
 
     def deserialize_arguments(self, serial_arguments: ArgumentDict) -> pydantic.BaseModel:
-        return self._model.parse_obj(serial_arguments)
+        try:
+            return self._parameter_model.parse_obj(serial_arguments)
+        except Exception as e:
+            # TODO: Parse Pydantic's exception object(s) and produce more useful
+            #  error messages that can be put into the body of the HTTP 400 response
+            raise RpcArgumentException from e
+
+    def deserialize_return_value(self, value: Any) -> Any:
+        if self._return_model is None:
+            if value is not None:
+                raise RpcResponseException(f"Expected None but got {type(value)}")
+            return None
+
+        parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
+        return getattr(parsed, self._RETURN_MODEL_ATTR)
 
     def resolve_to_region(self, arguments: ArgumentDict) -> Region:
         if self._region_resolution is None:
@@ -134,15 +175,17 @@ class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
         signature = self._signatures[method_name]
         return signature.deserialize_arguments(serial_arguments)
 
+    def deserialize_rpc_response(self, method_name: str, serial_response: Any) -> Any:
+        signature = self._signatures[method_name]
+        return signature.deserialize_return_value(serial_response)
+
 
 def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
     """Decorate methods to be exposed as part of the RPC interface.
 
-    May be applied only to an abstract method of an RpcService subclass.
+    Should be applied only to methods of an RpcService subclass.
     """
 
-    if not getattr(method, "__isabstractmethod__", False):
-        raise RpcServiceSetupException("`@rpc_method` may only decorate abstract methods")
     setattr(method, _IS_RPC_METHOD_ATTR, True)
     return method
 
@@ -150,6 +193,13 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
 def regional_rpc_method(
     resolve: RegionResolution,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
+    """Decorate methods to be exposed as part of the RPC interface.
+
+    In addition, resolves the region based on the resolve callback function.
+
+    Should be applied only to methods of an RpcService subclass.
+    """
+
     def decorator(method: Callable[..., _T]) -> Callable[..., _T]:
         setattr(method, _REGION_RESOLUTION_ATTR, resolve)
         return rpc_method(method)
@@ -178,7 +228,7 @@ class RpcService(InterfaceWithLifecycle):
     _signatures: Mapping[str, RpcMethodSignature]
 
     def __init_subclass__(cls) -> None:
-        if cls._declares_service_interface():
+        if cls._has_rpc_methods():
             # These class attributes are required on any RpcService subclass that has
             # at least one method decorated by `@rpc_method`. (They can be left off
             # if and when we make an intermediate abstract class.)
@@ -191,33 +241,15 @@ class RpcService(InterfaceWithLifecycle):
         cls._signatures = cls._create_signatures()
 
     @classmethod
-    def _get_all_abstract_methods(cls) -> Iterator[Callable[..., Any]]:
+    def _get_all_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name, None)
-            if callable(attr) and getattr(attr, "__isabstractmethod__", False):
+            if callable(attr) and getattr(attr, _IS_RPC_METHOD_ATTR, False):
                 yield attr
 
     @classmethod
-    def _get_all_abstract_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
-        return (
-            m for m in cls._get_all_abstract_methods() if getattr(m, _IS_RPC_METHOD_ATTR, False)
-        )
-
-    @classmethod
-    def _declares_service_interface(cls) -> bool:
-        """Check whether a subclass declares the service interface.
-
-        By "service interface", we mean the set of RPC methods that are offered.
-        Those methods are decorated by `@rpc_method`, so we return true for any
-        service class that declares (but does not implement) at least one such method.
-
-        This method would return false, for example, for the local, database-backed
-        implementation that inherits from the base service. It also would return
-        false on an intermediate, abstract subclass that is meant to be extended to
-        declare other base services.
-        """
-
-        for _ in cls._get_all_abstract_rpc_methods():
+    def _has_rpc_methods(cls) -> bool:
+        for _ in cls._get_all_rpc_methods():
             return True
         else:
             return False
@@ -240,7 +272,7 @@ class RpcService(InterfaceWithLifecycle):
     @classmethod
     def _create_signatures(cls) -> Mapping[str, RpcMethodSignature]:
         model_table = {}
-        for base_method in cls._get_all_abstract_rpc_methods():
+        for base_method in cls._get_all_rpc_methods():
             try:
                 signature = RpcMethodSignature(cls, base_method)
             except Exception as e:
@@ -258,7 +290,13 @@ class RpcService(InterfaceWithLifecycle):
 
     @classmethod
     def _create_remote_implementation(cls) -> RpcService:
-        """Create a service object that makes remote calls to another silo."""
+        """Create a service object that makes remote calls to another silo.
+
+        The service object will implement each abstract method with an RPC method
+        decorator by making a remote call to another silo. Non-abstract methods with
+        an RPC method decorator are not overridden and are executed locally as normal
+        (but are still available as part of the RPC interface for external clients).
+        """
 
         def create_remote_method(method_name: str) -> Callable[..., Any]:
             signature = cls._signatures.get(method_name)
@@ -300,7 +338,8 @@ class RpcService(InterfaceWithLifecycle):
 
         overrides = {
             service_method.__name__: create_remote_method(service_method.__name__)
-            for service_method in cls._get_all_abstract_rpc_methods()
+            for service_method in cls._get_all_rpc_methods()
+            if getattr(service_method, "__isabstractmethod__", False)
         }
         remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (cls,), overrides)
         return cast(RpcService, remote_service_class())
@@ -328,6 +367,14 @@ class RpcResolutionException(Exception):
     """Indicate that an RPC service or method name could not be resolved."""
 
 
+class RpcArgumentException(Exception):
+    """Indicate that the serial arguments to an RPC service were invalid."""
+
+
+class RpcResponseException(Exception):
+    """Indicate that the response from a remote RPC service violated expectations."""
+
+
 def _look_up_service_method(
     service_name: str, method_name: str
 ) -> Tuple[DelegatingRpcService, Callable[..., Any]]:
@@ -349,11 +396,83 @@ def dispatch_to_local_service(
 ) -> Any:
     service, method = _look_up_service_method(service_name, method_name)
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
-    return method(**raw_arguments.__dict__)
+    result = method(**raw_arguments.__dict__)
+    return result.dict() if isinstance(result, RpcModel) else result
+
+
+_RPC_CONTENT_CHARSET = "utf-8"
 
 
 def dispatch_remote_call(
     region: Region | None, service_name: str, method_name: str, serial_arguments: ArgumentDict
 ) -> Any:
-    service, method = _look_up_service_method(service_name, method_name)
-    raise RpcServiceUnimplementedException("Need to dispatch remotely")  # TODO
+    service, _ = _look_up_service_method(service_name, method_name)
+
+    creds = RpcSenderCredentials.read_from_settings()
+    if not creds.is_allowed:
+        raise RpcSendException("RPC calls are not globally enabled")
+
+    if region is None:
+        address = creds.control_silo_address
+        api_token = creds.control_silo_api_token
+        if not (address and api_token):
+            raise RpcSendException("Not configured to remotely access control silo")
+    else:
+        address = region.address
+        api_token = region.api_token
+        if not (address and api_token):
+            raise RpcSendException(f"Not configured to remotely access region: {region.name}")
+
+    path = django.urls.reverse(
+        "sentry-api-0-rpc-service",
+        kwargs={"service_name": service_name, "method_name": method_name},
+    )
+    url = address + path
+
+    request_body = {
+        "meta": {},  # reserved for future use
+        "args": serial_arguments,
+    }
+
+    with _fire_request(url, request_body, api_token) as response:
+        charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
+        response_body = response.read().decode(charset)
+    serial_response = json.loads(response_body)
+    return service.deserialize_rpc_response(method_name, serial_response)
+
+
+def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
+    # TODO: Performance considerations (persistent connections, pooling, etc.)?
+
+    data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
+
+    request = Request(url)
+    request.add_header("Content-Type", f"application/json; charset={_RPC_CONTENT_CHARSET}")
+    request.add_header("Content-Length", str(len(data)))
+    request.add_header("Authorization", f"Bearer {api_token}")
+    return urlopen(request, data)  # type: ignore
+
+
+@dataclass(frozen=True)
+class RpcSenderCredentials:
+    """Credentials for sending remote procedure calls.
+
+    This implementation is for dev environments only, and presumes that the
+    credentials can be picked up from Django settings. A production implementation
+    will likely look different.
+    """
+
+    is_allowed: bool = False
+    control_silo_api_token: str | None = None
+    control_silo_address: str | None = None
+
+    @classmethod
+    def read_from_settings(cls) -> RpcSenderCredentials:
+        setting_values = settings.DEV_HYBRID_CLOUD_RPC_SENDER
+        if isinstance(setting_values, str):
+            setting_values = json.loads(setting_values)
+        return cls(**setting_values) if setting_values else cls()
+
+
+class RpcSendException(RpcServiceUnimplementedException):
+    """Indicates the system is not configured to send RPCs."""

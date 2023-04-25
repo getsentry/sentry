@@ -20,12 +20,14 @@ function getThreadLabel(details: ThreadInfo) {
   return details?.label || `<${t('unknown')}>`;
 }
 
-const SelectedOption = ({id, details}: Props) => (
-  <Wrapper>
-    <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
-    <Label>{getThreadLabel(details)}</Label>
-  </Wrapper>
-);
+function SelectedOption({id, details}: Props) {
+  return (
+    <Wrapper>
+      <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
+      <Label>{getThreadLabel(details)}</Label>
+    </Wrapper>
+  );
+}
 
 export default SelectedOption;
 

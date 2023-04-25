@@ -28,13 +28,23 @@ export const supportedPlatformExpectedDocKeys: Record<
     '3-configure-profiling',
     '4-upload',
   ],
-  node: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
-  python: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
-  php: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
+  node: ['1-install', '2-configure-performance', '3-configure-profiling'],
+  python: ['1-install', '2-configure-performance', '3-configure-profiling'],
+  php: ['1-install', '2-configure-performance', '3-configure-profiling'],
+  ruby: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
   rust: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
+  'javascript-nextjs': [
+    '0-alert',
+    '1-install',
+    '2-configure-performance',
+    '3-configure-profiling',
+  ],
 };
 
 function makeDocKey(platformId: PlatformKey, key: string) {
+  if (platformId === 'javascript-nextjs') {
+    return `node-javascript-nextjs-profiling-onboarding-${key}`;
+  }
   return `${platformId}-profiling-onboarding-${key}`;
 }
 
@@ -48,6 +58,11 @@ export function makeDocKeyMap(platformId: PlatformKey | undefined) {
 
   const expectedDocKeys: ProfilingOnboardingDocKeys[] =
     supportedPlatformExpectedDocKeys[docsPlatform];
+
+  if (!expectedDocKeys) {
+    return null;
+  }
+
   return expectedDocKeys.reduce((acc: DocKeyMap, key) => {
     acc[key] = makeDocKey(docsPlatform, key);
     return acc;

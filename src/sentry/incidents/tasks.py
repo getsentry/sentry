@@ -23,7 +23,7 @@ from sentry.models import Project
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
-from sentry.snuba.query_subscription_consumer import register_subscriber
+from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder

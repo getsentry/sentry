@@ -2,14 +2,14 @@ from django.db.models import Count
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.models import SentryApp, SentryAppAvatar
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
     permission_classes = (SuperuserPermission,)
 

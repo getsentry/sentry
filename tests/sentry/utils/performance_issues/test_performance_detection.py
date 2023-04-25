@@ -88,6 +88,7 @@ class PerformanceDetectionTest(TestCase):
         super().setUp()
         patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
         self.project_option_mock = patch_project_option_get.start()
+        self.project_option_mock.return_value = {}
         self.addCleanup(patch_project_option_get.stop)
 
         patch_project = patch("sentry.models.Project.objects.get_from_cache")
@@ -229,7 +230,7 @@ class PerformanceDetectionTest(TestCase):
             perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
             assert perf_problems == [
                 PerformanceProblem(
-                    fingerprint="1-1009-c5e048717e2f5ca1a251cbbfbcfd82aee7e89cd9",
+                    fingerprint="1-1009-6654ad4d1d494222ce02c656386e6955575c17ed",
                     op="http",
                     desc="GET https://my-api.io/api/users?page=1",
                     type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -397,6 +398,7 @@ class PerformanceDetectionTest(TestCase):
                     "integration_mongo": False,
                     "integration_postgres": False,
                     "consecutive_db": False,
+                    "large_http_payload": False,
                     "consecutive_http": False,
                     "slow_db_query": False,
                     "render_blocking_assets": False,

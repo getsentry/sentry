@@ -53,7 +53,7 @@ const urlMap = {
   docIntegration: 'document-integrations',
 };
 
-const IntegrationRow = (props: Props) => {
+function IntegrationRow(props: Props) {
   const {
     organization,
     type,
@@ -149,7 +149,7 @@ const IntegrationRow = (props: Props) => {
       )}
     </PanelRow>
   );
-};
+}
 
 const PluginDeprecationAlertWrapper = styled('div')`
   padding: 0px ${space(3)} 0px 68px;

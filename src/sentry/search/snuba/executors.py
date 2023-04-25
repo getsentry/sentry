@@ -37,12 +37,11 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
-    SEARCH_STRATEGIES,
     IntermediateSearchQueryPartial,
     MergeableRow,
     SearchQueryPartial,
     UnsupportedSearchQuery,
-    _query_params_for_generic,
+    get_search_strategies,
     group_categories_from,
 )
 from sentry.models import Environment, Group, Organization, Project
@@ -215,7 +214,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         self,
         group_category: int,
         query_partial: IntermediateSearchQueryPartial,
-        organization_id: int,
+        organization: Organization,
         project_ids: Sequence[int],
         environments: Optional[Sequence[str]],
         group_ids: Optional[Sequence[int]],
@@ -238,7 +237,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         # convert search_filters to snuba format
         converted_filters = self._convert_search_filters(
-            organization_id, project_ids, environments, search_filters
+            organization.id, project_ids, environments, search_filters
         )
 
         # categorize the clauses into having or condition clauses
@@ -277,12 +276,12 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = SEARCH_STRATEGIES.get(group_category, _query_params_for_generic)
+        strategy = get_search_strategies(organization, actor)[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization_id,
+            organization.id,
             project_ids,
             environments,
             group_ids,
@@ -291,7 +290,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             actor,
         )
         if snuba_query_params is not None:
-            snuba_query_params.kwargs["tenant_ids"] = {"organization_id": organization_id}
+            snuba_query_params.kwargs["tenant_ids"] = {"organization_id": organization.id}
         return snuba_query_params
 
     def snuba_search(
@@ -359,7 +358,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not group_categories:
             group_categories = {
                 gc
-                for gc in SEARCH_STRATEGIES.keys()
+                for gc in get_search_strategies(organization, actor).keys()
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
@@ -375,7 +374,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     self._prepare_params_for_category(
                         gc,
                         query_partial,
-                        organization.id,
+                        organization,
                         project_ids,
                         environments,
                         group_ids,

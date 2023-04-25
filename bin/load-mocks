@@ -56,6 +56,7 @@ from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorEnvironment,
     MonitorStatus,
     MonitorType,
 )
@@ -415,30 +416,35 @@ def main(
                 if not project.flags.has_releases:
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
 
-                monitor, created = Monitor.objects.get_or_create(
+                environment = Environment.get_or_create(project=project, name=next(ENVIRONMENTS))
+
+                monitor, _ = Monitor.objects.get_or_create(
                     name=next(MONITOR_NAMES),
                     project_id=project.id,
                     organization_id=org.id,
                     type=MonitorType.CRON_JOB,
                     defaults={
+                        "status": MonitorStatus.DISABLED,
                         "config": {"schedule": next(MONITOR_SCHEDULES)},
                         "next_checkin": timezone.now() + timedelta(minutes=60),
                         "last_checkin": timezone.now(),
                     },
                 )
-                if not created:
-                    if not (monitor.config or {}).get("schedule"):
-                        monitor.config = {"schedule": next(MONITOR_SCHEDULES)}
-                    monitor.update(
-                        config=monitor.config,
-                        status=MonitorStatus.OK if randint(0, 10) < 7 else MonitorStatus.ERROR,
-                        last_checkin=timezone.now(),
-                        next_checkin=monitor.get_next_scheduled_checkin(timezone.now()),
-                    )
+
+                monitor_env, _ = MonitorEnvironment.objects.get_or_create(
+                    monitor=monitor,
+                    environment=environment,
+                    defaults={
+                        "status": MonitorStatus.DISABLED,
+                        "next_checkin": timezone.now() + timedelta(minutes=60),
+                        "last_checkin": timezone.now(),
+                    },
+                )
 
                 MonitorCheckIn.objects.create(
                     project_id=monitor.project_id,
                     monitor=monitor,
+                    monitor_environment=monitor_env,
                     status=CheckInStatus.OK
                     if monitor.status == MonitorStatus.OK
                     else CheckInStatus.ERROR,
@@ -546,8 +552,6 @@ def main(
                     user_id=user.id,
                     data={"version": release.version},
                 )
-
-                environment = Environment.get_or_create(project=project, name=next(ENVIRONMENTS))
 
                 deploy = Deploy.objects.create(
                     organization_id=project.organization_id,

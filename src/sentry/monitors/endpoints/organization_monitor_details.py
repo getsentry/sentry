@@ -20,7 +20,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorStatus
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
 
@@ -36,7 +36,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         operation_id="Retrieve a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
@@ -60,7 +60,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         operation_id="Update a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -122,10 +122,10 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
-        operation_id="Delete a monitor",
+        operation_id="Delete a monitor or monitor environment",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -137,26 +137,52 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     )
     def delete(self, request: Request, organization, project, monitor) -> Response:
         """
-        Delete a monitor.
+        Delete a monitor or monitor environment.
         """
+        environment_name = request.query_params.get("environment")
         with transaction.atomic():
-            affected = (
-                Monitor.objects.filter(id=monitor.id)
-                .exclude(
-                    status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
+            if environment_name:
+                monitor_object = (
+                    MonitorEnvironment.objects.filter(
+                        environment__name=environment_name, monitor__id=monitor.id
+                    )
+                    .exclude(
+                        monitor__status__in=[
+                            MonitorStatus.PENDING_DELETION,
+                            MonitorStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .exclude(
+                        status__in=[
+                            MonitorStatus.PENDING_DELETION,
+                            MonitorStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .first()
                 )
-                .update(status=MonitorStatus.PENDING_DELETION)
-            )
-            if not affected:
+            else:
+                monitor_object = (
+                    Monitor.objects.filter(id=monitor.id)
+                    .exclude(
+                        status__in=[
+                            MonitorStatus.PENDING_DELETION,
+                            MonitorStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .first()
+                )
+            if not monitor_object or not monitor_object.update(
+                status=MonitorStatus.PENDING_DELETION
+            ):
                 return self.respond(status=404)
 
-            schedule = ScheduledDeletion.schedule(monitor, days=0, actor=request.user)
+            schedule = ScheduledDeletion.schedule(monitor_object, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=monitor.id,
+                target_object=monitor_object.id,
                 event=audit_log.get_event_id("MONITOR_REMOVE"),
-                data=monitor.get_audit_log_data(),
+                data=monitor_object.get_audit_log_data(),
                 transaction_id=schedule.guid,
             )
 

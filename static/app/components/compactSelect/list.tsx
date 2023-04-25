@@ -11,7 +11,7 @@ import {FormSize} from 'sentry/utils/theme';
 import {SelectContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
-import {SelectOption, SelectOptionOrSectionWithKey} from './types';
+import {SelectOption, SelectOptionOrSectionWithKey, SelectSection} from './types';
 import {
   getDisabledOptions,
   getHiddenOptions,
@@ -60,6 +60,12 @@ interface BaseListProps<Value extends React.Key>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  /**
+   * To be called when the user toggle-selects a whole section (applicable when sections
+   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
+   * and before `onChange`.
+   */
+  onSectionToggle?: (section: SelectSection<React.Key>) => void;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -330,14 +336,18 @@ function List<Value extends React.Key>({
       )}
 
       {multiple &&
-        sections.map(section => (
-          <HiddenSectionToggle
-            key={section.key}
-            item={section}
-            listState={listState}
-            listId={listId}
-          />
-        ))}
+        sections.map(
+          section =>
+            section.value.showToggleAllButton && (
+              <HiddenSectionToggle
+                key={section.key}
+                item={section}
+                listState={listState}
+                listId={listId}
+                onToggle={props.onSectionToggle}
+              />
+            )
+        )}
     </SelectFilterContext.Provider>
   );
 }

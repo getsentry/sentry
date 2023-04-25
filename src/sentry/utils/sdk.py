@@ -2,6 +2,7 @@ import copy
 import inspect
 import logging
 import random
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -9,7 +10,13 @@ from django.urls import resolve
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
+from sentry_sdk import (  # NOQA
+    Scope,
+    capture_exception,
+    capture_message,
+    configure_scope,
+    push_scope,
+)
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -109,6 +116,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.relay.build_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
@@ -405,6 +414,10 @@ def configure_sdk():
             DjangoAtomicIntegration(),
             DjangoIntegration(),
             CeleryIntegration(),
+            # This makes it so all levels of logging are recorded as breadcrumbs,
+            # but none are captured as events (that's handled by the `internal`
+            # logger defined in `server.py`, which ignores the levels set
+            # in the integration and goes straight to the underlying handler class).
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
             RedisIntegration(),
@@ -490,3 +503,15 @@ def set_measurement(measurement_name, value, unit=None):
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
         pass
+
+
+def merge_context_into_scope(
+    context_name: str, context_data: Mapping[str, Any], scope: Scope
+) -> None:
+    """
+    Add the given context to the given scope, merging the data in if a context with the given name
+    already exists.
+    """
+
+    existing_context = scope._contexts.setdefault(context_name, {})
+    existing_context.update(context_data)

@@ -38,7 +38,10 @@ type CustomProps = {
  * We add some additional props to our routes
  */
 
-const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
+const Route = BaseRoute as React.ComponentClass<
+  React.PropsWithChildren<RouteProps & CustomProps>
+>;
+
 const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
@@ -56,11 +59,11 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   resolve: () => Promise<{default: C}>
 ) {
   // XXX: Assign the component to a variable so it has a displayname
-  const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
+  function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
     return <SafeLazyLoad {...props} component={resolve} />;
-  };
+  }
 
   return RouteLazyLoad;
 }
@@ -1689,22 +1692,70 @@ function buildRoutes() {
           {performanceChildRoutes}
         </Route>
       )}
-      {usingCustomerDomain && (
-        <Route
-          path="/starfish/"
-          component={make(() => import('sentry/views/starfish/content'))}
-        />
-      )}
-      <Route
-        path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/content'))}
-      />
       <Route
         path="/organizations/:orgId/performance/"
         component={withDomainRedirect(make(() => import('sentry/views/performance')))}
         key="org-performance"
       >
         {performanceChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
+  const starfishChildRoutes = (
+    <Fragment>
+      <IndexRoute
+        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
+      />
+      <Route
+        path="failure-detail/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/failureDetailView')
+        )}
+      />
+      <Route
+        path="failure-detail/:slug/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
+        )}
+      />
+      <Route
+        path="database/"
+        component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
+      />
+      <Route
+        path="api/"
+        component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+      />
+      <Route
+        path="cache/"
+        component={make(() => import('sentry/views/starfish/modules/cacheModule'))}
+      />
+      <Route
+        path="span/:slug/"
+        component={make(() => import('sentry/views/starfish/views/spanSummary'))}
+      />
+    </Fragment>
+  );
+
+  const starfishRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={withDomainRequired(make(() => import('sentry/views/starfish')))}
+          key="orgless-starfish-route"
+        >
+          {starfishChildRoutes}
+        </Route>
+      )}
+
+      <Route
+        path="organizations/:orgId/starfish/"
+        component={make(() => import('sentry/views/starfish/'))}
+        key="org-starfish"
+      >
+        {starfishChildRoutes}
       </Route>
     </Fragment>
   );
@@ -2135,6 +2186,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {starfishRoutes}
       {profilingRoutes}
       {adminManageRoutes}
       {gettingStartedRoutes}
