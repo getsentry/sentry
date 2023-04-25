@@ -319,6 +319,7 @@ class Factories:
         return om
 
     @staticmethod
+    @in_test_psql_role_override("postgres")
     @exempt_from_silo_limits()
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
