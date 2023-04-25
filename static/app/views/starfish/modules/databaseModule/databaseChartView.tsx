@@ -85,7 +85,7 @@ export default function APIModuleView({}: Props) {
 
     topGraphData.forEach(datum => {
       seriesByQuery[datum.description].data.push({
-        value: datum.p50,
+        value: datum.p75,
         name: datum.interval,
       });
     });
