@@ -455,7 +455,7 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
-def check_tag(tag_key: str, expected_value: str) -> bool:
+def check_tag(tag_key: str, expected_value: str) -> None:
     """Detect a tag already set and being different than what we expect.
 
     This function checks if a tag has been already been set and if it differs
@@ -463,12 +463,12 @@ def check_tag(tag_key: str, expected_value: str) -> bool:
     """
     with configure_scope() as scope:
         if scope._tags and tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+            scope.set_tag("possible_mistag", True)
             extra = {
                 f"previous_{tag_key}": scope._tags[tag_key],
                 f"new_{tag_key}": expected_value,
             }
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
-            return True
 
 
 def bind_organization_context(organization):
@@ -479,9 +479,8 @@ def bind_organization_context(organization):
     with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
         op="other", description="bind_organization_context"
     ):
-        if check_tag("organization.slug", organization.slug):
-            # This can be used to find errors that may have been mistagged
-            scope.set_tag("possible_mistag", True)
+        # This can be used to find errors that may have been mistagged
+        check_tag("organization.slug", organization.slug)
 
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
