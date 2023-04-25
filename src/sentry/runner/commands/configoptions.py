@@ -15,10 +15,7 @@ def list():
     from sentry import options
 
     for opt in options.all():
-        # click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
-        # click.echo(type(opt))
-        if drift(opt.name):
-            click.echo(f"{opt.name}: {options.get(opt.name)}")
+        click.echo(f"{opt.name}: {options.get(opt.name)}")
 
 
 @configoptions.command()
@@ -131,6 +128,9 @@ def _set(key: str, val: object, dryrun: bool = False) -> bool:
 
     try:
         opt = options.lookup_key(key)
+        if drift(key):
+            raise click.ClickException(f"Drift on option: {key}")
+
         if not dryrun:
             options.set(key, val)
             click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
