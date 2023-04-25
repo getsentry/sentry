@@ -13,11 +13,11 @@ export default styled('div')<{size: number; status: MonitorStatus}>`
     p.color
       ? `background: ${p.color};`
       : `background: ${
-          p.status === 'error'
+          p.status === MonitorStatus.ERROR || p.status === MonitorStatus.TIMEOUT
             ? p.theme.error
-            : p.status === 'ok'
+            : p.status === MonitorStatus.OK
             ? p.theme.success
-            : p.status === 'missed_checkin'
+            : p.status === MonitorStatus.MISSED_CHECKIN
             ? p.theme.warning
             : p.theme.disabled
         };`};
