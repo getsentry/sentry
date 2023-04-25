@@ -18,18 +18,16 @@ import {
 
 const EventsRequest = withApi(_EventsRequest);
 
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
+import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
 
 import EndpointList from './endpointList';
 
@@ -42,9 +40,12 @@ type BasePerformanceViewProps = {
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView, onSelect, location} = props;
+  const {organization, eventView, onSelect} = props;
   const theme = useTheme();
-  const [, setSelectedSpike] = useState<any | undefined>();
+  const [selectedSpike, setSelectedSpike] = useState<{
+    endTimestamp: Date;
+    startTimestamp: Date;
+  } | null>(null);
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -99,16 +100,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
               }}
               handleSpikeAreaClick={e => {
                 if (e.componentType === 'markArea') {
-                  setSelectedSpike(e);
-                  const startTime = new Date(e.data.coord[0][0]);
-                  const endTime = new Date(e.data.coord[1][0]);
-                  browserHistory.push({
-                    pathname: `${location.pathname}failure-detail/`,
-                    query: {
-                      start: normalizeDateTimeString(startTime),
-                      end: normalizeDateTimeString(endTime),
-                      project: decodeList(location.query.project),
-                    },
+                  setSelectedSpike({
+                    startTimestamp: new Date(e.data.coord[0][0]),
+                    endTimestamp: new Date(e.data.coord[1][0]),
                   });
                 }
               }}
@@ -121,7 +115,10 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      {/* <FailureDetailPanel onClose={handleClose} spikeObject={selectedSpike} /> */}
+      <FailureDetailPanel
+        onClose={() => setSelectedSpike(null)}
+        spikeObject={selectedSpike}
+      />
       <ModuleLinkButton type={ModuleButtonType.CACHE} />
       <StyledRow minSize={200}>
         <ChartsContainer>
