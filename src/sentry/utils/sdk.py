@@ -7,6 +7,7 @@ from typing import Any, Mapping
 import sentry_sdk
 from django.conf import settings
 from django.urls import resolve
+from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
@@ -18,6 +19,7 @@ from sentry_sdk import (  # NOQA
     push_scope,
 )
 from sentry_sdk.client import get_options
+from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
 
@@ -473,6 +475,27 @@ def check_tag(tag_key: str, expected_value: str) -> None:
             }
             merge_context_into_scope("scope_bleed", extra, scope)
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+
+
+def get_transaction_name_from_request(request: Request) -> str:
+    """
+    Given an incoming request, derive a parameterized transaction name, if possible. Based on the
+    implementation in `_set_transaction_name_and_source` in the SDK, which is what it uses to label
+    request transactions. See https://github.com/getsentry/sentry-python/blob/6c68cf4742e6f65da431210085ee095ba6535cee/sentry_sdk/integrations/django/__init__.py#L333.
+
+    If parameterization isn't possible, use the request's path.
+    """
+
+    transaction_name = request.path_info
+    try:
+        # Note: In spite of the name, the legacy resolver is still what's used in the python SDK
+        transaction_name = LEGACY_RESOLVER.resolve(
+            request.path_info, urlconf=getattr(request, "urlconf", None)
+        )
+    except Exception:
+        pass
+
+    return transaction_name
 
 
 def bind_organization_context(organization):
