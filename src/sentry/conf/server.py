@@ -302,6 +302,8 @@ USE_TZ = True
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE = (
     "sentry.middleware.health.HealthCheck",
+    "sentry.middleware.csp.CspHeaderMiddleware",
+    "sentry.middleware.csp.CspReportOnlyHeaderMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
@@ -405,6 +407,43 @@ SILENCED_SYSTEM_CHECKS = (
     # This is fixed in Django@7c08f26bf0439c1ed593b51b51ad847f7e262bc1.
     # It's not our problem; refer to Django issue 32260.
     "urls.E007",
+)
+
+CSP_HEADER = None
+
+CSP_REPORT_ONLY = (
+    "Content-Security-Policy-Report-Only",
+    (
+        ("default-src", ("'none'",)),
+        (
+            "script-src",
+            (
+                "'self'",
+                "'unsafe-eval'",  # For older browsers that don't support nonce-
+                "'unsafe-inline'",  # For older browsers that don't support nonce-
+                "'nonce-{nonce}'",
+            ),
+        ),
+        ("font-src", ("'self'", "data:")),
+        (
+            "connect-src",
+            (
+                "'self'",
+                "ws://127.0.0.1:8000",
+            )
+            if ENVIRONMENT == "development"
+            else ("'self'",),
+        ),
+        ("frame-ancestors", ("'none'",)),
+        ("object-src", ("'none'",)),
+        ("base-uri", ("'none'",)),
+        (
+            "style-src",
+            ("'self'", "'unsafe-inline'") if ENVIRONMENT == "development" else ("'self'",),
+        ),
+        ("img-src", ("'self'", "data:")),
+        # ("report-uri", ()),
+    ),
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
