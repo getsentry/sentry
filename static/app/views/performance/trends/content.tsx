@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -17,7 +18,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -92,7 +93,7 @@ class TrendsContent extends Component<Props, State> {
       offsets[queryKey] = undefined;
     });
 
-    trackAdvancedAnalyticsEvent('performance_views.trends.change_function', {
+    trackAnalytics('performance_views.trends.change_function', {
       organization,
       function_name: field,
     });
@@ -132,7 +133,7 @@ class TrendsContent extends Component<Props, State> {
     const {organization, location} = this.props;
     const cursors = resetCursors();
 
-    trackAdvancedAnalyticsEvent('performance_views.trends.change_parameter', {
+    trackAnalytics('performance_views.trends.change_parameter', {
       organization,
       parameter_name: label,
     });
@@ -281,6 +282,26 @@ class TrendsContent extends Component<Props, State> {
                   setError={this.setError}
                 />
               </ListContainer>
+              <Feature features={['organizations:performance-new-trends']}>
+                <ListContainer>
+                  <ChangedTransactions
+                    trendChangeType={TrendChangeType.IMPROVED}
+                    previousTrendFunction={previousTrendFunction}
+                    trendView={trendView}
+                    location={location}
+                    setError={this.setError}
+                    withBreakpoint
+                  />
+                  <ChangedTransactions
+                    trendChangeType={TrendChangeType.REGRESSION}
+                    previousTrendFunction={previousTrendFunction}
+                    trendView={trendView}
+                    location={location}
+                    setError={this.setError}
+                    withBreakpoint
+                  />
+                </ListContainer>
+              </Feature>
             </DefaultTrends>
           </Layout.Main>
         </Layout.Body>
@@ -362,6 +383,7 @@ const StyledSearchBar = styled(SearchBar)`
 const ListContainer = styled('div')`
   display: grid;
   gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(0, 1fr));

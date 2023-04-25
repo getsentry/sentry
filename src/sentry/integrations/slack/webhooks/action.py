@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, List, Mapping, MutableMapping, Sequence
 
 import requests as requests_
 from django.urls import reverse
@@ -21,10 +21,13 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Group, InviteStatus, NotificationSetting, OrganizationMember
+from sentry.models import Group, InviteStatus, OrganizationMember
 from sentry.models.activity import ActivityIntegration
+from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -32,6 +35,9 @@ from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger
+
+UNFURL_ACTION_OPTIONS = ["link", "ignore"]
+NOTIFICATION_SETTINGS_ACTION_OPTIONS = ["all_slack"]
 
 LINK_IDENTITY_MESSAGE = (
     "Looks like you haven't linked your Sentry account with your Slack identity yet! "
@@ -127,6 +133,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
+    slack_request_class = SlackActionRequest
 
     def respond_ephemeral(self, text: str) -> Response:
         return self.respond({"response_type": "ephemeral", "replace_original": False, "text": text})
@@ -393,41 +400,50 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return self.respond()
 
+    @classmethod
+    def get_action_option(cls, slack_request: SlackActionRequest) -> str | None:
+        action_option = None
+        for action_data in slack_request.data.get("actions", []):
+            # Get the _first_ value in the action list.
+            value = action_data.get("value")
+            if value and not action_option:
+                action_option = value
+        return action_option
+
+    @classmethod
+    def get_action_list(cls, slack_request: SlackActionRequest) -> List[MessageAction]:
+        return [
+            MessageAction(**action_data)
+            for action_data in slack_request.data.get("actions", [])
+            if "name" in action_data
+        ]
+
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
         try:
-            slack_request = SlackActionRequest(request)
+            slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
             return self.respond(status=e.status)
 
         # Actions list may be empty when receiving a dialog response.
-        action_list_raw = slack_request.data.get("actions", [])
 
-        action_list = []
-        action_option = None
-        for action_data in action_list_raw:
-            # Get the _first_ value in the action list.
-            value = action_data.get("value")
-            if value and not action_option:
-                action_option = value
-            if "name" in action_data:
-                action_list.append(MessageAction(**action_data))
+        action_option = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking our auto response in the messages tab we just return a 200
         if action_option == "sentry_docs_link_clicked":
             return self.respond()
 
-        # TODO(mgaeta): Stop short-circuiting here on VALUE alone.
-        if action_option in ["link", "ignore"]:
+        if action_option in UNFURL_ACTION_OPTIONS:
             return self.handle_unfurl(slack_request, action_option)
 
         if action_option in ["approve_member", "reject_member"]:
             return self.handle_member_approval(slack_request, action_option)
 
-        if action_list and action_list[0].name == "enable_notifications":
+        if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
+        action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:
@@ -436,8 +452,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if not identity_user:
             return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
-        NotificationSetting.objects.enable_settings_for_user(
-            recipient=identity_user, provider=ExternalProviders.SLACK
+        notifications_service.bulk_update_settings(
+            external_provider=ExternalProviders.SLACK,
+            actor=RpcActor.from_object(identity_user),
+            notification_type_to_value_map=NOTIFICATION_SETTINGS_ALL_SOMETIMES,
         )
         return self.respond_with_text(ENABLE_SLACK_SUCCESS_MESSAGE)
 

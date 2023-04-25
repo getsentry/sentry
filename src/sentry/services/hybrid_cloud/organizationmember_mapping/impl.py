@@ -3,8 +3,7 @@
 # in modules such as this one where hybrid cloud service classes and data models are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from dataclasses import fields
-from typing import Optional
+from typing import Optional, cast
 
 from django.db import transaction
 
@@ -20,6 +19,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
     def create_mapping(
         self,
         *,
+        organizationmember_id: int,
         organization_id: int,
         role: str,
         user_id: Optional[int] = None,
@@ -32,6 +32,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         ), "Must set either user or email"
         with transaction.atomic():
             org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
+                organizationmember_id=organizationmember_id,
                 organization_id=organization_id,
                 user_id=user_id,
                 email=email,
@@ -44,9 +45,10 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         return self._serialize_rpc(org_member_mapping)
 
     def create_with_organization_member(
-        self, org_member: OrganizationMember
+        self, *, org_member: OrganizationMember
     ) -> RpcOrganizationMemberMapping:
         return self.create_mapping(
+            organizationmember_id=org_member.id,
             organization_id=org_member.organization_id,
             role=org_member.role,
             user_id=org_member.user_id,
@@ -61,9 +63,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
     def _serialize_rpc(
         self, org_member_mapping: OrganizationMemberMapping
     ) -> RpcOrganizationMemberMapping:
-        args = {
-            field.name: getattr(org_member_mapping, field.name)
-            for field in fields(RpcOrganizationMemberMapping)
-            if hasattr(org_member_mapping, field.name)
-        }
-        return RpcOrganizationMemberMapping(**args)
+        return cast(
+            RpcOrganizationMemberMapping,
+            RpcOrganizationMemberMapping.serialize_by_field_name(org_member_mapping),
+        )

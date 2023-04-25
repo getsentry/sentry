@@ -206,7 +206,13 @@ def test_context_with_mechanism(make_exception_snapshot):
                     "stacktrace": {
                         "frames": [{"filename": "foo/baz.py", "lineno": 1, "in_app": True}]
                     },
-                    "mechanism": {"type": "generic"},
+                    "mechanism": {
+                        "type": "generic",
+                        "source": "__context__",
+                        "is_exception_group": True,
+                        "exception_id": 1,
+                        "parent_id": 0,
+                    },
                 }
             ]
         )

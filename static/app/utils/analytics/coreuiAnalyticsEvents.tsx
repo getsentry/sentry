@@ -12,6 +12,10 @@ export type CoreUIEventParameters = {
     path: string;
     utc: boolean;
   };
+  'deprecated_urls.redirect': {
+    feature: string;
+    url: string;
+  };
   'environmentselector.direct_selection': {
     path: string;
   };
@@ -27,6 +31,9 @@ export type CoreUIEventParameters = {
   'page_filters.pin_click': {
     filter: PinnedPageFilter;
     pin: boolean;
+  };
+  'projectselector.bookmark_toggle': {
+    bookmarked: boolean;
   };
   'user_feedback.dialog_opened': {
     projects: string;
@@ -52,4 +59,6 @@ export const coreUIEventMap: Record<CoreUIAnalyticsKey, string | null> = {
   'environmentselector.toggle': null, // volume high
   'environmentselector.update': null, // volume high
   'environmentselector.direct_selection': null, // volume high
+  'deprecated_urls.redirect': null, // volume high
+  'projectselector.bookmark_toggle': null, // volume high
 };

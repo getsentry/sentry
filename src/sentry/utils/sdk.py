@@ -2,6 +2,7 @@ import copy
 import inspect
 import logging
 import random
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -9,7 +10,13 @@ from django.urls import resolve
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
+from sentry_sdk import (  # NOQA
+    Scope,
+    capture_exception,
+    capture_message,
+    configure_scope,
+    push_scope,
+)
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -109,6 +116,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.relay.build_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
@@ -446,20 +455,24 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
-def check_tag(tag_key: str, expected_value: str) -> bool:
+def check_tag(tag_key: str, expected_value: str) -> None:
     """Detect a tag already set and being different than what we expect.
 
     This function checks if a tag has been already been set and if it differs
     from what we want to set it to.
     """
     with configure_scope() as scope:
-        if scope._tags and tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+        # First check that the tag exists, because though it's true that "no value yet" doesn't
+        # match "some new value," we don't want to flag that as a mismatch.
+        if tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+            scope.set_tag("possible_mistag", True)
+            scope.set_tag(f"scope_bleed.{tag_key}", True)
             extra = {
-                f"previous_{tag_key}": scope._tags[tag_key],
-                f"new_{tag_key}": expected_value,
+                f"previous_{tag_key}_tag": scope._tags[tag_key],
+                f"new_{tag_key}_tag": expected_value,
             }
+            merge_context_into_scope("scope_bleed", extra, scope)
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
-            return True
 
 
 def bind_organization_context(organization):
@@ -470,9 +483,8 @@ def bind_organization_context(organization):
     with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
         op="other", description="bind_organization_context"
     ):
-        if check_tag("organization.slug", organization.slug):
-            # This can be used to find errors that may have been mistagged
-            scope.set_tag("possible_mistag", True)
+        # This can be used to find errors that may have been mistagged
+        check_tag("organization.slug", organization.slug)
 
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
@@ -494,3 +506,15 @@ def set_measurement(measurement_name, value, unit=None):
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
         pass
+
+
+def merge_context_into_scope(
+    context_name: str, context_data: Mapping[str, Any], scope: Scope
+) -> None:
+    """
+    Add the given context to the given scope, merging the data in if a context with the given name
+    already exists.
+    """
+
+    existing_context = scope._contexts.setdefault(context_name, {})
+    existing_context.update(context_data)

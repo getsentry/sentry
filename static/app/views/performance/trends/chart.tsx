@@ -57,6 +57,18 @@ type Props = ViewProps & {
   trendFunctionField?: TrendFunctionField;
 };
 
+function transformTransaction(
+  transaction: NormalizedTrendsTransaction
+): NormalizedTrendsTransaction {
+  if (transaction && transaction.breakpoint) {
+    return {
+      ...transaction,
+      breakpoint: transaction.breakpoint * 1000,
+    };
+  }
+  return transaction;
+}
+
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
   return [
     {
@@ -99,6 +111,8 @@ function getIntervalLine(
   if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
     return [];
   }
+
+  const transformedTransaction = transformTransaction(transaction);
 
   const seriesStart = parseInt(series[0].data[0].name as string, 10);
   const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
@@ -151,11 +165,14 @@ function getIntervalLine(
 
   const seriesDiff = seriesEnd - seriesStart;
   const seriesLine = seriesDiff * intervalRatio + seriesStart;
+  const {breakpoint} = transformedTransaction;
+
+  const divider = breakpoint || seriesLine;
 
   previousPeriod.markLine.data = [
     [
-      {value: 'Past', coord: [seriesStart, transaction.aggregate_range_1]},
-      {coord: [seriesLine, transaction.aggregate_range_1]},
+      {value: 'Past', coord: [seriesStart, transformedTransaction.aggregate_range_1]},
+      {coord: [divider, transformedTransaction.aggregate_range_1]},
     ],
   ];
   previousPeriod.markLine.tooltip = {
@@ -165,7 +182,7 @@ function getIntervalLine(
         '<div>',
         `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
         // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_1, 'duration'),
+        tooltipFormatter(transformedTransaction.aggregate_range_1, 'duration'),
         '</div>',
         '</div>',
         '<div class="tooltip-arrow"></div>',
@@ -174,8 +191,8 @@ function getIntervalLine(
   };
   currentPeriod.markLine.data = [
     [
-      {value: 'Present', coord: [seriesLine, transaction.aggregate_range_2]},
-      {coord: [seriesEnd, transaction.aggregate_range_2]},
+      {value: 'Present', coord: [divider, transformedTransaction.aggregate_range_2]},
+      {coord: [seriesEnd, transformedTransaction.aggregate_range_2]},
     ],
   ];
   currentPeriod.markLine.tooltip = {
@@ -185,7 +202,7 @@ function getIntervalLine(
         '<div>',
         `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
         // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_2, 'duration'),
+        tooltipFormatter(transformedTransaction.aggregate_range_2, 'duration'),
         '</div>',
         '</div>',
         '<div class="tooltip-arrow"></div>',
@@ -195,7 +212,7 @@ function getIntervalLine(
   periodDividingLine.markLine = {
     data: [
       {
-        xAxis: seriesLine,
+        xAxis: divider,
       },
     ],
     label: {show: false},

@@ -12,13 +12,17 @@ class OrganizationMappingTest(TransactionTestCase):
     def test_create_mapping(self):
         with exempt_from_silo_limits():
             inviter = self.create_user("foo@example.com")
-        fields = {
-            "organization_id": self.organization.id,
-            "role": "member",
-            "user_id": self.user.id,
-            "inviter_id": inviter.id,
-            "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
-        }
+            fields = {
+                "organization_id": self.organization.id,
+                "role": "member",
+                "user_id": self.user.id,
+                "inviter_id": inviter.id,
+                "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
+                "organizationmember_id": OrganizationMember.objects.get(
+                    organization_id=self.organization.id, user_id=self.user.id
+                ).id,
+            }
+
         rpc_orgmember_mapping = organizationmember_mapping_service.create_mapping(**fields)
         orgmember_mapping = OrganizationMemberMapping.objects.get(
             organization_id=self.organization.id
@@ -53,7 +57,7 @@ class OrganizationMappingTest(TransactionTestCase):
         with exempt_from_silo_limits():
             org_member = OrganizationMember.objects.create(**fields)
         rpc_orgmember_mapping = organizationmember_mapping_service.create_with_organization_member(
-            org_member
+            org_member=org_member
         )
         orgmember_mapping = OrganizationMemberMapping.objects.get(
             organization_id=self.organization.id
@@ -78,13 +82,16 @@ class OrganizationMappingTest(TransactionTestCase):
     def test_create_is_idempotent(self):
         with exempt_from_silo_limits():
             inviter = self.create_user("foo@example.com")
-        fields = {
-            "organization_id": self.organization.id,
-            "role": "member",
-            "email": "mail@testserver.com",
-            "inviter_id": inviter.id,
-            "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
-        }
+            fields = {
+                "organization_id": self.organization.id,
+                "role": "member",
+                "email": "mail@testserver.com",
+                "inviter_id": inviter.id,
+                "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
+            }
+            om = OrganizationMember.objects.create(**fields)
+            fields["organizationmember_id"] = om.id
+
         organizationmember_mapping_service.create_mapping(**fields)
         assert (
             OrganizationMemberMapping.objects.filter(

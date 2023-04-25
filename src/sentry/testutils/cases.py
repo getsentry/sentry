@@ -67,7 +67,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
-from snuba_sdk.conditions import BooleanCondition, Condition
+from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -228,7 +228,9 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False, path="/"):
+    def make_request(
+        self, user=None, auth=None, method=None, is_superuser=False, path="/"
+    ) -> HttpRequest:
         request = HttpRequest()
         if method:
             request.method = method
@@ -1467,6 +1469,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         select: Sequence[MetricField],
         project_ids: Sequence[int] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
+        having: Optional[ConditionGroup] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
         orderby: Optional[Sequence[MetricOrderByField]] = None,
         limit: Optional[Limit] = None,
@@ -1489,6 +1492,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             end=end,
             granularity=Granularity(granularity=granularity_in_seconds),
             where=where,
+            having=having,
             groupby=groupby,
             orderby=orderby,
             limit=limit,
@@ -2313,13 +2317,14 @@ class MonitorTestCase(APITestCase):
             **kwargs,
         )
 
-    def _create_monitor_environment(self, monitor, name="production"):
+    def _create_monitor_environment(self, monitor, name="production", **kwargs):
         environment = Environment.get_or_create(project=self.project, name=name)
 
         monitorenvironment_defaults = {
             "status": monitor.status,
             "next_checkin": monitor.next_checkin,
             "last_checkin": monitor.last_checkin,
+            **kwargs,
         }
 
         return MonitorEnvironment.objects.create(

@@ -358,6 +358,8 @@ register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unuse
 register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[])
 # Enable use of Symbolicator Source Maps processing for fraction of projects.
 register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
+# Use a fraction of Symbolicator Source Maps processing events for A/B testing.
+register("symbolicator.sourcemaps-processing-ab-test", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -613,9 +615,7 @@ register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
 register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
-register("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", default=0.0)
 register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
-register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
 
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)

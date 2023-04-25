@@ -9,7 +9,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Scope} from 'sentry/types';
+import {Project, Scope} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
@@ -20,15 +20,28 @@ type Props = {
   onRemove: (data: ProjectKey) => void;
   onToggle: (isActive: boolean, data: ProjectKey) => void;
   orgId: string;
+  project: Project;
   projectId: string;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
 
-function KeyRow({data, onRemove, onToggle, access, routes, location, params}: Props) {
+function KeyRow({
+  data,
+  onRemove,
+  onToggle,
+  access,
+  routes,
+  location,
+  params,
+  project,
+}: Props) {
   const handleEnable = () => onToggle(true, data);
   const handleDisable = () => onToggle(false, data);
 
   const editUrl = recreateRoute(`${data.id}/`, {routes, params, location});
   const controlActive = access.has('project:write');
+
+  const platform = project.platform || 'other';
+  const isJsPlatform = platform === 'javascript' || platform.startsWith('javascript-');
 
   return (
     <Panel>
@@ -77,9 +90,19 @@ function KeyRow({data, onRemove, onToggle, access, routes, location, params}: Pr
         </Controls>
       </PanelHeader>
 
-      <StyledClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
+      <StyledClippedBox
+        clipHeight={300}
+        defaultClipped={!isJsPlatform}
+        btnText={t('Expand')}
+      >
         <StyledPanelBody disabled={!data.isActive}>
-          <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
+          <ProjectKeyCredentials
+            projectId={`${data.projectId}`}
+            data={data}
+            showMinidump={!isJsPlatform}
+            showUnreal={!isJsPlatform}
+            showSecurityEndpoint={!isJsPlatform}
+          />
         </StyledPanelBody>
       </StyledClippedBox>
     </Panel>

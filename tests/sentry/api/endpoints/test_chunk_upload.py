@@ -15,8 +15,10 @@ from sentry.api.endpoints.chunk import (
 )
 from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
+@region_silo_test(stable=True)
 class ChunkUploadTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _restore_upload_url_options(self):
@@ -24,7 +26,8 @@ class ChunkUploadTest(APITestCase):
 
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.url = reverse("sentry-api-0-chunk-upload", args=[self.organization.slug])
 
     def test_chunk_parameters(self):
@@ -55,12 +58,11 @@ class ChunkUploadTest(APITestCase):
             )
             assert "artifact_bundles" not in response.data["accept"]
 
-        # This currently should not flip the flag!
         with self.feature({"organizations:artifact-bundles": True}):
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
-            assert "artifact_bundles" not in response.data["accept"]
+            assert "artifact_bundles" in response.data["accept"]
 
     def test_relative_url_support(self):
         # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls
@@ -118,7 +120,8 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == MAX_FILE_SIZE
 
     def test_wrong_api_token(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
         response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 403, response.content
 

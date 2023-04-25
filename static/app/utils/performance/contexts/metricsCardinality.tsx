@@ -2,7 +2,7 @@ import {ComponentProps, Fragment, ReactNode, useEffect} from 'react';
 import {Location} from 'history';
 
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -126,7 +126,7 @@ function Provider(
   const isOnMetrics = !props.value.outcome?.forceTransactionsOnly;
   useEffect(() => {
     if (!props.value.isLoading && props.sendOutcomeAnalytics) {
-      trackAdvancedAnalyticsEvent('performance_views.mep.metrics_outcome', {
+      trackAnalytics('performance_views.mep.metrics_outcome', {
         organization: props.organization,
         is_on_metrics: isOnMetrics,
         fallback_from_null: fallbackFromNull,

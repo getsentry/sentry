@@ -10,7 +10,7 @@ import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {extraQueryParameter, urlAttachQueryParams} from 'sentry/utils/demoMode';
 
 type Props = ModalRenderProps;
@@ -32,7 +32,7 @@ function DemoSignUpModal({closeModal}: Props) {
         size="xs"
         aria-label={t('Close')}
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_close', {
+          trackAnalytics('growth.demo_modal_clicked_close', {
             organization: null,
           });
           closeModal();
@@ -53,7 +53,7 @@ function DemoSignUpModal({closeModal}: Props) {
             priority="primary"
             href={signupUrl}
             onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_signup', {
+              trackAnalytics('growth.demo_modal_clicked_signup', {
                 organization: null,
               })
             }
@@ -64,7 +64,7 @@ function DemoSignUpModal({closeModal}: Props) {
             priority="default"
             href={demoUrl}
             onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_demo', {
+              trackAnalytics('growth.demo_modal_clicked_demo', {
                 organization: null,
               })
             }

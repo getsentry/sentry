@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timedelta
 from random import Random
 from typing import Any, MutableMapping
+from urllib.parse import urlencode
 
 import pytz
 from django.shortcuts import redirect
@@ -241,16 +242,21 @@ def make_generic_event(project):
 
 
 def get_shared_context(rule, org, project, group, event):
+    rules = get_rules([rule], org, project)
+    snooze_alert = len(rules) > 0
+    snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
     return {
         "rule": rule,
-        "rules": get_rules([rule], org, project),
+        "rules": rules,
         "group": group,
         "event": event,
         "timezone": pytz.timezone("Europe/Vienna"),
         # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
         #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
-        "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+        "link": get_group_settings_link(group, None, rules, 1337),
         "tags": event.tags,
+        "snooze_alert": snooze_alert,
+        "snooze_alert_url": absolute_uri(snooze_alert_url),
     }
 
 

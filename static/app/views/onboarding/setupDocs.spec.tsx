@@ -4,7 +4,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PRODUCT} from 'sentry/components/onboarding/productSelection';
-import {ReactDocVariant} from 'sentry/data/platforms';
 import {PersistedStoreContext} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
@@ -45,23 +44,23 @@ function renderMockRequests({
       products.includes(PRODUCT.SESSION_REPLAY)
     ) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringPerformanceAndReplay}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringPerformanceAndReplay},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-performance-and-replay/`,
+        body: {html: 'javascript-react-with-error-monitoring-performance-and-replay'},
       });
     } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringAndPerformance}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringAndPerformance},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-and-performance/`,
+        body: {html: 'javascript-react-with-error-monitoring-and-performance'},
       });
     } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringAndSessionReplay}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringAndSessionReplay},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-and-replay/`,
+        body: {html: 'javascript-react-with-error-monitoring-and-replay'},
       });
     } else {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoring}/`,
-        body: {html: ReactDocVariant.ErrorMonitoring},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring/`,
+        body: {html: 'javascript-react-with-error-monitoring'},
       });
     }
   } else {
@@ -78,10 +77,7 @@ describe('Onboarding Setup Docs', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        features: [
-          'onboarding-remove-multiselect-platform',
-          'onboarding-docs-with-product-selection',
-        ],
+        features: ['onboarding-remove-multiselect-platform'],
       },
       projects: [
         {
@@ -102,7 +98,14 @@ describe('Onboarding Setup Docs', function () {
         value={[
           {
             onboarding: {
-              selectedPlatforms: ['python'],
+              selectedPlatforms: [
+                {
+                  category: 'server',
+                  key: 'python',
+                  language: 'python',
+                  type: 'language',
+                },
+              ],
               platformToProjectIdMap: {
                 python: 'python',
               },
@@ -147,10 +150,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -180,7 +180,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript-react',
+                    language: 'javascript',
+                    type: 'framework',
+                  },
+                ],
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -214,7 +221,9 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - default (all checked)
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringPerformanceAndReplay)
+        await screen.findByText(
+          'javascript-react-with-error-monitoring-performance-and-replay'
+        )
       ).toBeInTheDocument();
     });
 
@@ -223,10 +232,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -256,7 +262,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript-react',
+                    language: 'javascript',
+                    type: 'framework',
+                  },
+                ],
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -286,7 +299,7 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring and performance doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringAndPerformance)
+        await screen.findByText('javascript-react-with-error-monitoring-and-performance')
       ).toBeInTheDocument();
     });
 
@@ -295,10 +308,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -328,7 +338,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript-react',
+                    language: 'javascript',
+                    type: 'framework',
+                  },
+                ],
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -358,7 +375,7 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring and replay doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringAndSessionReplay)
+        await screen.findByText('javascript-react-with-error-monitoring-and-replay')
       ).toBeInTheDocument();
     });
 
@@ -367,10 +384,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -400,7 +414,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript-react',
+                    language: 'javascript',
+                    type: 'framework',
+                  },
+                ],
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -430,7 +451,7 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoring)
+        await screen.findByText('javascript-react-with-error-monitoring')
       ).toBeInTheDocument();
     });
   });
@@ -441,10 +462,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -480,7 +498,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript',
+                    language: 'javascript',
+                    type: 'language',
+                  },
+                ],
                 platformToProjectIdMap: {
                   javascript: 'javascript-browser',
                 },
@@ -538,7 +563,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript'],
+                selectedPlatforms: [
+                  {
+                    category: 'browser',
+                    key: 'javascript',
+                    language: 'javascript',
+                    type: 'language',
+                  },
+                ],
                 platformToProjectIdMap: {
                   javascript: 'javascript-browser',
                 },
