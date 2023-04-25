@@ -220,26 +220,24 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
           />
         </FlexRowItem>
       </FlexRowContainer>
-      {row.transactions > 1 && (
-        <FlexRowContainer>
-          <FlexRowItem>
-            <SubHeader>{t('Percentiles')}</SubHeader>
-            <Chart
-              statsPeriod="24h"
-              height={140}
-              data={[percentileSeries]}
-              start=""
-              end=""
-              loading={isLoading}
-              utc={false}
-              disableMultiAxis
-              stacked
-              isBarChart
-              hideYAxisSplitLine
-            />
-          </FlexRowItem>
-        </FlexRowContainer>
-      )}
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>{t('Percentiles')}</SubHeader>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={[percentileSeries]}
+            start=""
+            end=""
+            loading={isLoading}
+            utc={false}
+            disableMultiAxis
+            stacked
+            isBarChart
+            hideYAxisSplitLine
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
       <GridEditable
         isLoading={isDataLoading}
         data={mergedTableData}
