@@ -1,7 +1,7 @@
 from concurrent.futures import Future
 from typing import Mapping, Optional, Sequence, Union
 
-from arroyo import Message, Topic
+from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
@@ -14,6 +14,17 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
     mri_unit = "none" if unit is None else unit
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
+
+
+def set_future(f):
+    new_future = Future()
+
+    if f.exception() is not None:
+        new_future.set_exception(f.exception())
+    else:
+        new_future.set_result(None)
+
+    return new_future
 
 
 class KafkaMetricsBackend(GenericMetricsBackend):
@@ -36,7 +47,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Future[Message[KafkaPayload]]:
+    ) -> Optional[Future[None]]:
 
         """
         Used for emitting a counter metric for internal use cases only.
@@ -55,9 +66,11 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         }
 
         payload = KafkaPayload(None, json.dumps(counter_metric).encode("utf-8"), [])
-        future = self.producer.produce(Topic(self.kafka_topic), payload)
+        original_future = self.producer.produce(Topic(self.kafka_topic), payload)
 
-        return future
+        new_future = original_future.add_done_callback(set_future)
+
+        return new_future
 
     def set(
         self,
@@ -70,14 +83,30 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Future[Message[KafkaPayload]]:
+    ) -> Optional[Future[None]]:
 
         """
         Used for emitting a set metric for internal use cases only. Can support
         a sequence of values. Ensure that the use_case_id passed in has
         been registered in the UseCaseID enum.
         """
-        raise NotImplementedError()
+
+        set_metric = {
+            "org_id": org_id,
+            "project_id": project_id,
+            "name": build_mri(metric_name, "s", use_case_id, unit),
+            "value": value,
+            "timestamp": timestamp,
+            "tags": tags,
+            "retention_days": retention_days,
+        }
+
+        payload = KafkaPayload(None, json.dumps(set_metric).encode("utf-8"), [])
+        original_future = self.producer.produce(Topic(self.kafka_topic), payload)
+
+        new_future = original_future.add_done_callback(set_future)
+
+        return new_future
 
     def distribution(
         self,
@@ -90,11 +119,26 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Future[Message[KafkaPayload]]:
+    ) -> Optional[Future[None]]:
 
         """
         Used for emitting a distribution metric for internal use cases only. Can
         support a sequence of values. Ensure that the use_case_id passed in
         has been registered in the UseCaseID enum.
         """
-        raise NotImplementedError()
+        dist_metric = {
+            "org_id": org_id,
+            "project_id": project_id,
+            "name": build_mri(metric_name, "d", use_case_id, unit),
+            "value": value,
+            "timestamp": timestamp,
+            "tags": tags,
+            "retention_days": retention_days,
+        }
+
+        payload = KafkaPayload(None, json.dumps(dist_metric).encode("utf-8"), [])
+        original_future = self.producer.produce(Topic(self.kafka_topic), payload)
+
+        new_future = original_future.add_done_callback(set_future)
+
+        return new_future
