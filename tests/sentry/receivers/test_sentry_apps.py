@@ -315,6 +315,22 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 sub_data,
             )
 
+    def test_notify_after_issue_archived(self, delay):
+
+        with Feature(
+            {"organizations:sentry-functions": True, "organizations:escalating-issues": True}
+        ):
+            self.update_issue({"status": "ignored"})
+            sub_data = {}
+            with exempt_from_silo_limits():
+                sub_data["user"] = serialize(self.user)
+            assert faux(delay).called_with(
+                self.sentryFunction.external_id,
+                "issue.archived",
+                self.issue.id,
+                sub_data,
+            )
+
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 @region_silo_test(stable=True)
