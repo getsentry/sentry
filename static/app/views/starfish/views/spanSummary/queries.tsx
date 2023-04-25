@@ -8,7 +8,7 @@ export const getSpanSamplesQuery = ({
   transactionName,
   datetime,
 }: {
-  spanDescription;
+  groupId;
   transactionName;
   datetime?: DateTimeObject;
 }) => {
@@ -28,7 +28,7 @@ export const getSpanSamplesQuery = ({
     AND transaction = '${transactionName}'
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY transaction_id, span_id, exclusive_time
+    GROUP BY description, transaction_id, span_id, exclusive_time
     ORDER BY exclusive_time desc
     LIMIT 10
  `;

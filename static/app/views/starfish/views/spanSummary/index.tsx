@@ -69,7 +69,7 @@ export default function SpanSummary({location, params}: Props) {
     transactionName: '',
   };
 
-  const query = getSpanInTransactionQuery(groupId, groupId);
+  const query = getSpanInTransactionQuery(groupId, transactionName);
 
   const {isLoading, data} = useQuery({
     queryKey: ['spanSummary', groupId, transactionName],
@@ -78,7 +78,7 @@ export default function SpanSummary({location, params}: Props) {
     initialData: [],
   });
 
-  const spanSamplesQuery = getSpanSamplesQuery(groupId, transactionName);
+  const spanSamplesQuery = getSpanSamplesQuery({groupId, transactionName});
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
     queryKey: ['spanSamples', groupId, transactionName],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
@@ -109,6 +109,7 @@ export default function SpanSummary({location, params}: Props) {
   if (!slug) {
     return <div>ERROR</div>;
   }
+  const spanDescription = spanSampleData?.[0]?.description;
 
   return (
     <Layout.Page>
@@ -131,7 +132,7 @@ export default function SpanSummary({location, params}: Props) {
                     data={[
                       {
                         key: 'desc',
-                        value: spanSampleData?.[0]?.description,
+                        value: spanDescription,
                         subject: 'Description',
                       },
                       {key: 'count', value: data?.[0]?.count, subject: 'Count'},
