@@ -238,14 +238,6 @@ function ResolveActions({
     return renderResolved();
   }
 
-  const onResolve = () =>
-    openConfirmModal({
-      bypass: !shouldConfirm,
-      onConfirm: () => onUpdate({status: ResolutionStatus.RESOLVED, statusDetails: {}}),
-      message: confirmMessage,
-      confirmText: confirmLabel,
-    });
-
   return (
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
       <ButtonBar merged>
@@ -257,7 +249,15 @@ function ResolveActions({
           )}
           tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
           icon={hideIcon ? null : <IconCheckmark size={size} />}
-          onClick={onResolve}
+          onClick={() =>
+            openConfirmModal({
+              bypass: !shouldConfirm,
+              onConfirm: () =>
+                onUpdate({status: ResolutionStatus.RESOLVED, statusDetails: {}}),
+              message: confirmMessage,
+              confirmText: confirmLabel,
+            })
+          }
           disabled={disabled}
         >
           {t('Resolve')}
