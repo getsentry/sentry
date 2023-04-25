@@ -17,7 +17,7 @@ def list():
     for opt in options.all():
         # click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
         # click.echo(type(opt))
-        if can_change(opt.name):
+        if drift(opt.name):
             click.echo(f"{opt.name}: {options.get(opt.name)}")
 
 
@@ -76,13 +76,8 @@ def strict(filename: str, dryrun: bool):
         configmap_data = yaml.safe_load(stream)
         data = configmap_data.get("data", {}).get("options-strict.yaml", "")
 
-        for key in TRACKED:
-            if key not in data.keys():
-                _delete(key)
-
         for key, val in data.items():
-            if key in TRACKED:
-                _set(key, val, dryrun)
+            _set(key, val, dryrun)
 
 
 @configoptions.command()
@@ -171,7 +166,7 @@ def _delete(key: str, dryrun: bool = False) -> bool:
     try:
         options.lookup_key(key)
 
-        if not can_change(key):
+        if not drift(key):
             raise click.ClickException(f"Option {key} cannot be changed.")
 
         if not dryrun:
@@ -184,46 +179,15 @@ def _delete(key: str, dryrun: bool = False) -> bool:
         raise click.ClickException(str(e))
 
 
-TRACKED = {
-    "system.admin-email",
-    "system.support-email",
-    "system.security-email",
-    "system.rate-limit",
-    "github-login.base-domain",
-    "github-login.api-domain",
-    "github-login.extended-permissions",
-    "symbolserver.options",
-    "nodedata.cache-sample-rate",
-}
-
-
 def create_key_value_generator(data: str, newline_separator: str, kv_separator: str):
     return (line.split(kv_separator) for line in data.split(newline_separator) if line)
 
 
-def can_change(key: str) -> bool:
-    from sentry import options
+def drift(key: str) -> bool:
     from sentry.options import manager
 
-    opt = options.lookup_key(key)
-    return (key in TRACKED) and not (
-        (opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE)
-    )
+    source = manager.checkDrift(key)
+    # check how option was changed.
+    # if changed manually we ignore.
 
-    # changable = not ((opt.flags & manager.FLAG_NOSTORE) and (opt.flags & manager.FLAG_IMMUTABLE))
-    # changable = False
-    # TODO: Figure out how to look this up
-    # for i in tracked:
-    #     is_match = i.match(key)
-    #     if is_match:
-    #         click.echo(f"Key({key}) matches {is_match} a tracked Regex({i})")
-    #         changable = True
-    #         return changable
-
-    # if changable:
-    #     # click.echo(f"Key({key}) is mutable!")
-    #     pass
-    # else:
-    #     # click.echo(f"Key({key}) is not mutable!")
-    #     pass
-    # return changable
+    return source == "automator"

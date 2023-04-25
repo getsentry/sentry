@@ -214,6 +214,12 @@ class OptionsStore(AbstractOptionsStore):
                     )
         return value
 
+    def get_source(self, key):
+        """
+        Gets how the option was last updated to check for drift.
+        """
+        return self.model.objects.get(key=key).last_updated_by
+
     def set(self, key, value, source="legacy"):
         """
         Store a value in the option store. Value must get persisted to database first,

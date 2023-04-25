@@ -324,3 +324,6 @@ class OptionsManager:
         if flag is DEFAULT_FLAGS:
             return (k for k in self.all() if k.flags is DEFAULT_FLAGS)
         return (k for k in self.all() if k.flags & flag)
+
+    def checkDrift(self, key):
+        return self.store.get_source(key)
