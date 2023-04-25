@@ -1,6 +1,19 @@
 export const PERIOD_REGEX = /^(\d+)([h,d])$/;
 const DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
+export const getHostListQuery = () => {
+  return `SELECT
+    domain,
+    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+    quantile(0.99)(exclusive_time) as p50
+    FROM spans_experimental_starfish
+    WHERE module = 'http'
+    AND domain != ''
+    GROUP BY domain, interval
+    ORDER BY domain, interval asc
+ `;
+};
+
 export const getEndpointListQuery = ({domain, action, datetime}) => {
   const [_, num, unit] = datetime.period?.match(PERIOD_REGEX) ?? [];
   const start_timestamp =

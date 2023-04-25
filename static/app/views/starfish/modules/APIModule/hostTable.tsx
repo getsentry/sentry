@@ -1,0 +1,110 @@
+import {useQuery} from '@tanstack/react-query';
+import {Location} from 'history';
+import groupBy from 'lodash/groupBy';
+import moment from 'moment';
+
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
+import {Series} from 'sentry/types/echarts';
+import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+
+import {getHostListQuery} from './queries';
+
+export const HOST = 'http://localhost:8080';
+
+type Props = {
+  location: Location;
+};
+
+type HostTableRow = {
+  duration: Series;
+  host: string;
+};
+
+const COLUMN_ORDER = [
+  {
+    key: 'host',
+    name: 'Host',
+    width: 600,
+  },
+  {
+    key: 'duration',
+    name: 'Response Time',
+    width: COL_WIDTH_UNDEFINED,
+  },
+];
+
+export default function HostTable({location}: Props) {
+  const query = getHostListQuery();
+
+  const {isLoading: areHostsLoading, data: hostsData} = useQuery({
+    queryKey: ['hosts'],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const dataByHost = groupBy(hostsData, 'domain');
+  const hosts = Object.keys(dataByHost);
+
+  const tableData: HostTableRow[] = hosts
+    .map(host => {
+      const durationSeries: Series = zeroFillSeries(
+        {
+          seriesName: host,
+          data: dataByHost[host].map(datum => ({
+            name: datum.interval,
+            value: datum.p50,
+          })),
+        },
+        moment.duration(12, 'hours')
+      );
+
+      return {
+        host,
+        duration: durationSeries,
+      };
+    })
+    .filter(row => {
+      return row.duration.data.length > 0;
+    });
+
+  return (
+    <GridEditable
+      isLoading={areHostsLoading}
+      data={tableData}
+      columnOrder={COLUMN_ORDER}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell: (column: GridColumnHeader, row: HostTableRow) =>
+          renderBodyCell(column, row),
+      }}
+      location={location}
+    />
+  );
+}
+
+function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  return column.name;
+}
+
+function renderBodyCell(column: GridColumnHeader, row: HostTableRow): React.ReactNode {
+  if (column.key === 'host') {
+    return <span>{row[column.key]}</span>;
+  }
+
+  if (column.key === 'duration') {
+    const series: Series = row[column.key];
+    if (series) {
+      return <Sparkline series={series} />;
+    }
+
+    return 'Loading';
+  }
+
+  return row[column.key];
+}
