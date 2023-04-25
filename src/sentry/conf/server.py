@@ -419,27 +419,24 @@ CSP_REPORT_ONLY = (
             "script-src",
             (
                 "'self'",
-                "'unsafe-eval'",  # For older browsers that don't support nonce-
                 "'unsafe-inline'",  # For older browsers that don't support nonce-
                 "'nonce-{nonce}'",
-            ),
+            )
+            + ("'unsafe-eval'",)
+            if ENVIRONMENT == "development"
+            else (),
         ),
         ("font-src", ("'self'", "data:")),
         (
             "connect-src",
-            (
-                "'self'",
-                "ws://127.0.0.1:8000",
-            )
-            if ENVIRONMENT == "development"
-            else ("'self'",),
+            ("'self'",) + ("ws://127.0.0.1:8000",) if ENVIRONMENT == "development" else (),
         ),
         ("frame-ancestors", ("'none'",)),
         ("object-src", ("'none'",)),
         ("base-uri", ("'none'",)),
         (
             "style-src",
-            ("'self'", "'unsafe-inline'") if ENVIRONMENT == "development" else ("'self'",),
+            ("'self'",) + ("'unsafe-inline'",) if ENVIRONMENT == "development" else (),
         ),
         ("img-src", ("'self'", "data:")),
         # ("report-uri", ()),
