@@ -136,13 +136,15 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
     @mock.patch("sentry.nodestore.get_multi")
     def test_get_unfetched_transactions(self, get_multi):
         transactions_proj1 = self.eventstore.get_unfetched_transactions(
-            filter=Filter(project_ids=[self.project1.id])
+            filter=Filter(project_ids=[self.project1.id]),
+            tenant_ids={"organization_id": self.project1.organization_id},
         )
         assert len(transactions_proj1) == 1
         assert get_multi.call_count == 0
 
         transactions_proj2 = self.eventstore.get_unfetched_transactions(
-            filter=Filter(project_ids=[self.project2.id])
+            filter=Filter(project_ids=[self.project2.id]),
+            tenant_ids={"organization_id": self.project1.organization_id},
         )
         assert len(transactions_proj2) == 2
         assert get_multi.call_count == 0
