@@ -1150,7 +1150,6 @@ SENTRY_FEATURES = {
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Enable the sentry sample format response
-    "organizations:profiling-sampled-format": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
     # Enable profiling GA messaging (update paths from AM1 to AM2)
