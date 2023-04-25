@@ -6,22 +6,20 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {t} from 'sentry/locale';
-import {NewQuery, Organization} from 'sentry/types';
-import DiscoverQuery, {
-  TableData,
-  TableDataRow,
-} from 'sentry/utils/discover/discoverQuery';
+import {Organization} from 'sentry/types';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 type Props = {
+  eventView: EventView;
+  isLoading: boolean;
   location: Location;
   organization: Organization;
+  tableData: TableData | null;
+  pageLinks?: string | null | undefined;
 };
 
 const COLUMN_ORDER = [
@@ -41,14 +39,20 @@ const COLUMN_ORDER = [
   },
 ];
 
-export default function FailureDetailTable({organization, location}: Props) {
+export default function FailureDetailTable({
+  location,
+  organization,
+  eventView,
+  isLoading,
+  tableData,
+  pageLinks,
+}: Props) {
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     const align = column.name === 'transaction' ? 'left' : 'right';
     return <StyledNonLink align={align}>{column.name}</StyledNonLink>;
   }
 
   function renderBodyCell(
-    tableData: TableData | null,
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow,
     _onSelect?: (row: EndpointDataRow) => void
@@ -83,65 +87,23 @@ export default function FailureDetailTable({organization, location}: Props) {
     return rendered;
   }
 
-  const {query} = location;
-  const hasStartAndEnd = query.start && query.end;
-  const newQuery: NewQuery = {
-    name: t('Failure Sample'),
-    projects: [],
-    start: decodeScalar(query.start),
-    end: decodeScalar(query.end),
-    range: !hasStartAndEnd
-      ? decodeScalar(query.statsPeriod) || DEFAULT_STATS_PERIOD
-      : undefined,
-    fields: [
-      'transaction',
-      'count_if(http.status_code,greaterOrEquals,500)',
-      'equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))',
-      'http.method',
-      'count_if(http.status_code,equals,200)',
-    ],
-    query:
-      'event.type:transaction has:http.method transaction.op:http.server count_if(http.status_code,greaterOrEquals,500):>0',
-    version: 2,
-  };
-
-  newQuery.orderby = '-count_if_http_status_code_greaterOrEquals_500';
-
-  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   return (
-    <div>
-      <DiscoverQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={tableData ? tableData.data : []}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={eventView.getSorts()}
+        grid={{
+          renderHeadCell,
+          renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
+            renderBodyCell(column as TableColumn<keyof TableDataRow>, dataRow) as any,
+        }}
         location={location}
-        referrer="api.starfish.failure-event-list"
-        queryExtras={{dataset: 'discover'}}
-        limit={5}
-      >
-        {({pageLinks, isLoading, tableData}) => (
-          <Fragment>
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData ? tableData.data : []}
-              columnOrder={COLUMN_ORDER}
-              columnSortBy={eventView.getSorts()}
-              grid={{
-                renderHeadCell,
-                renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
-                  renderBodyCell(
-                    tableData,
-                    column as TableColumn<keyof TableDataRow>,
-                    dataRow
-                  ) as any,
-              }}
-              location={location}
-            />
+      />
 
-            <Pagination pageLinks={pageLinks} />
-          </Fragment>
-        )}
-      </DiscoverQuery>
-    </div>
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
   );
 }
 
