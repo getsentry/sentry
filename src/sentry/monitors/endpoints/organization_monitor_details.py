@@ -140,12 +140,12 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Delete a monitor or monitor environment.
         """
-        environment_name = request.query_params.get("environment")
+        environment_names = request.query_params.getlist("environment")
         with transaction.atomic():
-            if environment_name:
+            if environment_names:
                 monitor_object = (
                     MonitorEnvironment.objects.filter(
-                        environment__name=environment_name, monitor__id=monitor.id
+                        environment__name__in=environment_names, monitor__id=monitor.id
                     )
                     .exclude(
                         monitor__status__in=[
