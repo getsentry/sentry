@@ -225,7 +225,7 @@ def try_checkin_lookup(monitor: Monitor, checkin_id: str):
     # which is unfinished (thus still mutable)
     if checkin_id == "latest":
         checkin = (
-            MonitorCheckIn.objects.filter(monitorenvironment__monitor=monitor)
+            MonitorCheckIn.objects.filter(monitor_environment__monitor=monitor)
             .exclude(status__in=CheckInStatus.FINISHED_VALUES)
             .order_by("-date_added")
             .first()
@@ -240,6 +240,6 @@ def try_checkin_lookup(monitor: Monitor, checkin_id: str):
         raise ParameterValidationError("Invalid check-in UUID")
 
     try:
-        return MonitorCheckIn.objects.get(monitorenvironment__monitor=monitor, guid=checkin_id)
+        return MonitorCheckIn.objects.get(monitor_environment__monitor=monitor, guid=checkin_id)
     except MonitorCheckIn.DoesNotExist:
         raise ResourceDoesNotExist
