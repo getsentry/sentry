@@ -2,16 +2,21 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import Duration from 'sentry/components/duration';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {ENDPOINT_LIST_QUERY} from './queries';
+import {getEndpointListQuery} from './queries';
 
 export const HOST = 'http://localhost:8080';
 
 type Props = {
+  filterOptions: {action: string; datetime: DateTimeObject; domain: string};
   location: Location;
   onSelect: (row: EndpointDataRow) => void;
 };
@@ -26,38 +31,42 @@ const COLUMN_ORDER = [
   {
     key: 'description',
     name: 'URL',
-    width: 300,
+    width: 600,
   },
   {
-    key: 'action',
-    name: 'Operation',
-  },
-  {
-    key: 'count',
-    name: 'Count',
+    key: 'tpm',
+    name: 'tpm',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'p50(exclusive_time)',
     name: 'p50',
-  },
-  {
-    key: 'failure_rate',
-    name: 'Error %',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'user_count',
     name: 'Users',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'transaction_count',
     name: 'Transactions',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'total_exclusive_time',
+    name: 'Total Time',
+    width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-export default function EndpointTable({location, onSelect}: Props) {
+export default function EndpointTable({location, onSelect, filterOptions}: Props) {
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints'],
-    queryFn: () => fetch(`${HOST}/?query=${ENDPOINT_LIST_QUERY}`).then(res => res.json()),
+    queryKey: ['endpoints', filterOptions],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getEndpointListQuery(filterOptions)}`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
@@ -100,14 +109,16 @@ export function renderBodyCell(
 ): React.ReactNode {
   if (column.key === 'description' && onSelect) {
     return (
-      <Link onClick={() => onSelect(row)} to="">
-        {row[column.key]}
-      </Link>
+      <OverflowEllipsisTextContainer>
+        <Link onClick={() => onSelect(row)} to="">
+          {row[column.key]}
+        </Link>
+      </OverflowEllipsisTextContainer>
     );
   }
 
   // TODO: come up with a better way to identify number columns to align to the right
-  if (column.key.toString().match(/^p\d\d/)) {
+  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
     return (
       <TextAlignRight>
         <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />

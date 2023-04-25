@@ -22,6 +22,7 @@ import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {
+  IconArchive,
   IconCheckmark,
   IconEllipsis,
   IconMute,
@@ -509,13 +510,25 @@ class Actions extends Component<Props> {
                 : t('Change status to unresolved')
             }
             size="sm"
-            icon={isResolved ? <IconCheckmark /> : <IconMute />}
+            icon={
+              isResolved ? (
+                <IconCheckmark />
+              ) : hasEscalatingIssues ? (
+                <IconArchive />
+              ) : (
+                <IconMute />
+              )
+            }
             disabled={disabled || isAutoResolved}
             onClick={() =>
               this.onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
             }
           >
-            {isIgnored ? t('Ignored') : t('Resolved')}
+            {isIgnored
+              ? hasEscalatingIssues
+                ? t('Archived')
+                : t('Ignored')
+              : t('Resolved')}
           </ActionButton>
         ) : (
           <Fragment>

@@ -2,6 +2,7 @@ import copy
 import inspect
 import logging
 import random
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -9,7 +10,13 @@ from django.urls import resolve
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
+from sentry_sdk import (  # NOQA
+    Scope,
+    capture_exception,
+    capture_message,
+    configure_scope,
+    push_scope,
+)
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -496,3 +503,15 @@ def set_measurement(measurement_name, value, unit=None):
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
         pass
+
+
+def merge_context_into_scope(
+    context_name: str, context_data: Mapping[str, Any], scope: Scope
+) -> None:
+    """
+    Add the given context to the given scope, merging the data in if a context with the given name
+    already exists.
+    """
+
+    existing_context = scope._contexts.setdefault(context_name, {})
+    existing_context.update(context_data)
