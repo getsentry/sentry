@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import isNil from 'lodash/isNil';
 
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -27,6 +28,9 @@ export default function EndpointDetail({
   row,
   onClose,
 }: Partial<EndpointDetailBodyProps> & {onClose: () => void}) {
+  if (isNil(row)) {
+    return null;
+  }
   return (
     <Detail detailKey={row?.endpoint} onClose={onClose}>
       {row && <EndpointDetailBody row={row} />}
