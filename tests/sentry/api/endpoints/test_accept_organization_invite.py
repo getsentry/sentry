@@ -15,6 +15,7 @@ from sentry.models import (
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
@@ -258,9 +259,10 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 organization=self.organization,
             )
             self.assert_org_member_mapping(org_member=om2)
-            path = self._get_path(url, [om2.id, om2.token])
-            resp = self.client.post(path)
-            assert resp.status_code == 400
+            with outbox_runner():
+                path = self._get_path(url, [om2.id, om2.token])
+                resp = self.client.post(path)
+                assert resp.status_code == 400
             assert not OrganizationMember.objects.filter(id=om2.id).exists()
             self.assert_org_member_mapping_not_exists(org_member=om2)
 
