@@ -5,7 +5,7 @@ export const getHostListQuery = () => {
   return `SELECT
     domain,
     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-    quantile(0.99)(exclusive_time) as p50
+    quantile(0.99)(exclusive_time) as p99
     FROM spans_experimental_starfish
     WHERE module = 'http'
     AND domain != ''

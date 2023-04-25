@@ -61,7 +61,7 @@ export default function HostTable({location}: Props) {
           seriesName: host,
           data: dataByHost[host].map(datum => ({
             name: datum.interval,
-            value: datum.p50,
+            value: datum.p99,
           })),
         },
         moment.duration(12, 'hours'),
