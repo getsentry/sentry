@@ -231,10 +231,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     'onboarding-heartbeat-footer'
   );
 
-  const docsWithProductSelection = !!organization.features?.includes(
-    'onboarding-docs-with-product-selection'
-  );
-
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
@@ -288,8 +284,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   );
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
-  const showDocsWithProductSelection =
-    currentPlatform.match('^javascript-([A-Za-z]+)$') && docsWithProductSelection;
+  const showDocsWithProductSelection = currentPlatform.match('^javascript-([A-Za-z]+)$');
 
   const hideLoaderOnboarding = useCallback(() => {
     setShowLoaderOnboarding(false);

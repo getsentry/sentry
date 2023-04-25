@@ -77,10 +77,7 @@ describe('Onboarding Setup Docs', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        features: [
-          'onboarding-remove-multiselect-platform',
-          'onboarding-docs-with-product-selection',
-        ],
+        features: ['onboarding-remove-multiselect-platform'],
       },
       projects: [
         {
@@ -153,10 +150,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -238,10 +232,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -317,10 +308,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -396,10 +384,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
@@ -477,10 +462,7 @@ describe('Onboarding Setup Docs', function () {
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
+          features: ['onboarding-remove-multiselect-platform'],
         },
         router: {
           location: {
