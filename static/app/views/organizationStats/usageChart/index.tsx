@@ -47,38 +47,44 @@ export type CategoryOption = {
   /**
    * Scale of y-axis with no usage data.
    */
+  displayName: string;
   yAxisMinInterval: number;
 } & SelectValue<DataCategoryInfo['plural']>;
 
 export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
+    disabled: false,
+    displayName: DATA_CATEGORY_INFO.error.displayName,
     label: DATA_CATEGORY_INFO.error.titleName,
     value: DATA_CATEGORY_INFO.error.plural,
-    disabled: false,
     yAxisMinInterval: 100,
   },
   {
+    disabled: false,
+    displayName: DATA_CATEGORY_INFO.transaction.displayName,
     label: DATA_CATEGORY_INFO.transaction.titleName,
     value: DATA_CATEGORY_INFO.transaction.plural,
-    disabled: false,
     yAxisMinInterval: 100,
   },
   {
+    disabled: false,
+    displayName: DATA_CATEGORY_INFO.replay.displayName,
     label: DATA_CATEGORY_INFO.replay.titleName,
     value: DATA_CATEGORY_INFO.replay.plural,
-    disabled: false,
     yAxisMinInterval: 100,
   },
   {
+    disabled: false,
+    displayName: DATA_CATEGORY_INFO.attachment.displayName,
     label: DATA_CATEGORY_INFO.attachment.titleName,
     value: DATA_CATEGORY_INFO.attachment.plural,
-    disabled: false,
     yAxisMinInterval: 0.5 * GIGABYTE,
   },
   {
+    disabled: false,
+    displayName: DATA_CATEGORY_INFO.profile.displayName,
     label: DATA_CATEGORY_INFO.profile.titleName,
     value: DATA_CATEGORY_INFO.profile.plural,
-    disabled: false,
     yAxisMinInterval: 100,
   },
 ];
