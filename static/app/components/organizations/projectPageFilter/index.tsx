@@ -279,14 +279,20 @@ export function ProjectPageFilter({
       'options' in item ? item.options : [item]
     );
 
-    const longestSlug = flatOptions
+    // ProjectPageFilter will try to expand to accommodate the longest project slug
+    const longestSlugLength = flatOptions
       .slice(0, 25)
       .reduce(
         (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
         0
       );
 
-    return `${Math.max(20, Math.min(28, 12 + longestSlug * 0.6))}em`;
+    // Calculate an appropriate width for the menu. It should be between 20 and 28em.
+    // Within that range, the width is a function of the length of the longest slug. The
+    // project slugs take up to (longestSlugLength * 0.6)em of horizontal space (each
+    // character occupies roughly 0.6em). We also need to add 12em to account for padding,
+    // trailing buttons, and the checkbox.
+    return `${Math.max(20, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
   }, [options]);
 
   return (
