@@ -6,7 +6,6 @@ from django.db import transaction
 from django.db.models import Q
 
 from sentry.models import NotificationSetting, User
-from sentry.models.actor import get_actor_id_for_user
 from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -114,7 +113,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
     ) -> List[RpcNotificationSetting]:
         try:
-            user = User.objects.get(id=user_id)
+            User.objects.get(id=user_id)
         except User.DoesNotExist:
             return []
 
@@ -131,7 +130,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     scope_identifier=user_id,
                 ),
                 type=type.value,
-                target_id=get_actor_id_for_user(user),
+                user_id=user_id,
             )
         ]
 
