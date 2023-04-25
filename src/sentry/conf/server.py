@@ -434,7 +434,7 @@ CSP_REPORT_ONLY = (
         ("base-uri", ("'none'",)),
         (
             "style-src",
-            ("'self'",) + (("'unsafe-inline'",) if ENVIRONMENT == "development" else ()),
+            ("'self'", "'unsafe-inline",),
         ),
         ("img-src", ("'self'", "data:")),
         # ("report-uri", ()),
