@@ -145,6 +145,7 @@ class AlertRuleNotification(ProjectNotification):
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
+        # Do we still need this for perf alerts?
         if self.group.issue_category == GroupCategory.PERFORMANCE:
             context.update(
                 {
