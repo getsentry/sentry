@@ -26,8 +26,8 @@ import withApi from 'sentry/utils/withApi';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
+import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
 import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
-import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
