@@ -11,6 +11,7 @@ class Geo(Interface):
     >>>     'country_code': 'US',
     >>>     'city': 'San Francisco',
     >>>     'region': 'CA',
+    >>>     'subdivision': 'California',
     >>> }
     """
 
@@ -20,6 +21,7 @@ class Geo(Interface):
             "country_code": data.get("country_code"),
             "city": data.get("city"),
             "region": data.get("region"),
+            "subdivision": data.get("subdivision"),
         }
 
         return super().to_python(data, **kwargs)
