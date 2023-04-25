@@ -848,7 +848,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 status_code=400,
             )
             assert response.data == {
-                "providerConfig": ["Invalid providerConfig for authprovider google"]
+                "providerConfig": ["Invalid key 'domain' in providerConfig for authprovider google"]
             }
 
         # Error if passing in providerKey or providerConfig and feature flag has not been set
