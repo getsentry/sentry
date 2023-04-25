@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import inspect
 import logging
@@ -496,6 +498,33 @@ def get_transaction_name_from_request(request: Request) -> str:
         pass
 
     return transaction_name
+
+
+def check_current_scope_transaction(
+    request: Request,
+) -> dict[str, str] | None:
+    """
+    Check whether the name of the transaction on the current scope matches what we'd expect, given
+    the request being handled.
+
+    If the transaction values match, return None. If they don't, return a dictionary including both
+    values.
+
+    Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
+    been set maunually. (See the `transaction_start` decorator, for example.)
+    """
+
+    with configure_scope() as scope:
+        transaction_from_request = get_transaction_name_from_request(request)
+
+        if (
+            scope._transaction != transaction_from_request
+            and scope._transaction_info.get("source") != "custom"
+        ):
+            return {
+                "scope_transaction": scope._transaction,
+                "request_transaction": transaction_from_request,
+            }
 
 
 def bind_organization_context(organization):
