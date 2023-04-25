@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hmac
-import re
 from hashlib import sha256
 from typing import List, Mapping
 
@@ -17,11 +16,12 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS + [
     PROXY_SIGNATURE_HEADER,
 ]
 
+DEFAULT_REQUEST_BODY = b""
+
 
 def trim_leading_slashes(path: str) -> str:
-    result = re.search(r"^\/+(\S+)", path)
-    if result is not None:
-        return result.groups()[0]
+    if path.startswith("/"):
+        path = path.lstrip("/")
     return path
 
 
@@ -48,9 +48,11 @@ def encode_subnet_signature(
     secret: str,
     path: str,
     identifier: str,
-    request_body: str | bytes,
+    request_body: bytes | None,
 ) -> str:
     """v0: Silo subnet signature encoding"""
+    if request_body is None:
+        request_body = DEFAULT_REQUEST_BODY
     raw_signature = b"v0|%s|%s|%s" % (
         trim_leading_slashes(path).encode("utf-8"),
         identifier.encode("utf-8"),
@@ -63,7 +65,7 @@ def encode_subnet_signature(
 def verify_subnet_signature(
     path: str,
     identifier: str,
-    request_body: bytes,
+    request_body: bytes | None,
     provided_signature: str,
 ) -> bool:
     """v0: Silo subnet signature decoding and verification"""

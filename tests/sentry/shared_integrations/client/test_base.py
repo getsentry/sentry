@@ -14,7 +14,6 @@ class BaseApiClientTest(TestCase):
     """
 
     def setUp(self):
-        self.url = "https://example.com"
         self.client = BaseApiClient()
         self.client.integration_type = "integration"
         self.client.integration_name = "base"

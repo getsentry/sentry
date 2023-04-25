@@ -34,7 +34,7 @@ class SiloUtilityTest(TestCase):
         assert trim_leading_slashes("/happy-path") == "happy-path"
         assert trim_leading_slashes("/a/bit/nested") == "a/bit/nested"
         assert trim_leading_slashes("/////way-nested") == "way-nested"
-        assert trim_leading_slashes("/") == "/"
+        assert trim_leading_slashes("/") == ""
         assert trim_leading_slashes("not-nested-at-all") == "not-nested-at-all"
         assert trim_leading_slashes("/url-safe?query=h%20c%20") == "url-safe?query=h%20c%20"
 
@@ -71,7 +71,7 @@ class SiloUtilityTest(TestCase):
 
     @override_settings(SENTRY_SUBNET_SECRET=secret)
     def test_subnet_signature(self):
-        signature = "v0=62fdc170230e97426d868cb0c2ade132e05c9133af1cb28f323c6331436429e1"
+        signature = "v0=baac3ac029e96ef4df5d5334af73a1ff6f4c9106d39cb57ceeff60d59ce829d6"
         encode_kwargs = {
             "secret": self.secret,
             "path": "/chat.postMessage",
