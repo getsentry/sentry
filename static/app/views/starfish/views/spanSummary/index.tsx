@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -16,6 +17,7 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule/queries';
@@ -62,6 +64,7 @@ type Props = {
 } & RouteComponentProps<{slug: string}, {}>;
 
 export default function SpanSummary({location, params}: Props) {
+  const pageFilter = usePageFilters();
   const slug = parseSlug(params.slug);
 
   const {groupId, transactionName} = slug || {
@@ -69,7 +72,11 @@ export default function SpanSummary({location, params}: Props) {
     transactionName: '',
   };
 
-  const query = getSpanInTransactionQuery(groupId, transactionName);
+  const query = getSpanInTransactionQuery({
+    groupId,
+    transactionName,
+    datetime: pageFilter.selection.datetime,
+  });
 
   const {isLoading, data} = useQuery({
     queryKey: ['spanSummary', groupId, transactionName],
@@ -78,9 +85,13 @@ export default function SpanSummary({location, params}: Props) {
     initialData: [],
   });
 
-  const spanSamplesQuery = getSpanSamplesQuery({groupId, transactionName});
+  const spanSamplesQuery = getSpanSamplesQuery({
+    groupId,
+    transactionName,
+    datetime: pageFilter.selection.datetime,
+  });
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
-    queryKey: ['spanSamples', groupId, transactionName],
+    queryKey: ['spanSamples', groupId, transactionName, pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -110,6 +121,9 @@ export default function SpanSummary({location, params}: Props) {
     return <div>ERROR</div>;
   }
   const spanDescription = spanSampleData?.[0]?.description;
+  const spanDomain = spanSampleData?.[0]?.domain;
+
+  const spanGroupOperation = data?.[0]?.span_operation;
 
   return (
     <Layout.Page>
@@ -123,27 +137,20 @@ export default function SpanSummary({location, params}: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
+            <FilterOptionsContainer>
+              <DatePageFilter alignDropdown="left" />
+            </FilterOptionsContainer>
             <FlexContainer>
               <MainSpanSummaryContainer>
                 {isLoading ? (
                   <span>LOADING</span>
                 ) : (
-                  <KeyValueList
-                    data={[
-                      {
-                        key: 'transaction',
-                        value: transactionName,
-                        subject: 'Transaction',
-                      },
-                      {
-                        key: 'desc',
-                        value: spanDescription,
-                        subject: 'Description',
-                      },
-                      {key: 'count', value: data?.[0]?.count, subject: 'Count'},
-                      {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
-                    ].filter(Boolean)}
-                    shouldSort={false}
+                  <SpanGroupKeyValueList
+                    data={data}
+                    spanGroupOperation={spanGroupOperation}
+                    spanDescription={spanDescription}
+                    spanDomain={spanDomain}
+                    transactionName={transactionName}
                   />
                 )}
                 {areSpanSamplesLoading ? (
@@ -179,7 +186,9 @@ export default function SpanSummary({location, params}: Props) {
               </MainSpanSummaryContainer>
               <SidebarContainer>
                 <Sidebar
-                  description={spanDescription}
+                  groupId={groupId}
+                  spanGroupOperation={spanGroupOperation}
+                  description={null}
                   transactionName={transactionName}
                 />
               </SidebarContainer>
@@ -204,15 +213,22 @@ export const OverflowEllipsisTextContainer = styled('span')`
 const FlexContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
+  gap: ${space(4)};
 `;
 
 const MainSpanSummaryContainer = styled('div')`
-  flex: 10 0 800px;
+  flex: 100 0 800px;
 `;
 
 const SidebarContainer = styled('div')`
-  flex: 1 0 300px;
-  margin-left: ${space(2)};
+  flex: 1 1 300px;
+`;
+
+const FilterOptionsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
@@ -264,4 +280,53 @@ function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
   const transactionName = slug.slice(delimiterPosition + 1);
 
   return {groupId, transactionName};
+}
+
+function SpanGroupKeyValueList({
+  spanDescription,
+  spanGroupOperation,
+  spanDomain,
+  transactionName,
+}: {
+  data: any; // TODO: type this
+  spanDescription: string;
+  spanDomain?: string;
+  spanGroupOperation?: string;
+  transactionName?: string;
+}) {
+  switch (spanGroupOperation) {
+    case 'db':
+    case 'cache':
+      return (
+        <KeyValueList
+          data={[
+            {
+              key: 'transaction',
+              value: transactionName,
+              subject: 'Transaction',
+            },
+            {key: 'desc', value: spanDescription, subject: 'Full Query'},
+            {key: 'domain', value: spanDomain, subject: 'Table Columns'},
+          ]}
+          shouldSort={false}
+        />
+      );
+    case 'http.client':
+      return (
+        <KeyValueList
+          data={[
+            {
+              key: 'transaction',
+              value: transactionName,
+              subject: 'Transaction',
+            },
+            {key: 'desc', value: spanDescription, subject: 'URL'},
+            {key: 'domain', value: spanDomain, subject: 'Domain'},
+          ]}
+          shouldSort={false}
+        />
+      );
+    default:
+      return null;
+  }
 }

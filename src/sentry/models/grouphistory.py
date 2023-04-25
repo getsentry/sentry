@@ -24,13 +24,18 @@ if TYPE_CHECKING:
 class GroupHistoryStatus:
     # Note that we don't record the initial group creation unresolved here to save on creating a row
     # for every group.
+
+    # Prefer to use ONGOING instead of UNRESOLVED. We will be deprecating UNRESOLVED in the future.
+    # Use REGRESSED/ESCALATING to specify other substatuses for UNRESOLVED groups.
     UNRESOLVED = 0
+    ONGOING = UNRESOLVED
+
     RESOLVED = 1
     SET_RESOLVED_IN_RELEASE = 11
     SET_RESOLVED_IN_COMMIT = 12
     SET_RESOLVED_IN_PULL_REQUEST = 13
     AUTO_RESOLVED = 2
-    IGNORED = 3
+    IGNORED = 3  # use the ARCHIVED_XXX statuses instead
     UNIGNORED = 4
     ASSIGNED = 5
     UNASSIGNED = 6
