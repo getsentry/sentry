@@ -218,43 +218,6 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
-
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
-
-        affected = (
-            type(self)
-            .objects.filter(
-                Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
-            )
-            .update(
-                next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
-                status=new_status,
-                last_checkin=last_checkin,
-            )
-        )
-        if not affected:
-            return False
-
-        return True
-
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        params = {
-            "last_checkin": ts,
-            "next_checkin": self.get_next_scheduled_checkin(ts),
-        }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
-
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
@@ -417,7 +380,7 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)

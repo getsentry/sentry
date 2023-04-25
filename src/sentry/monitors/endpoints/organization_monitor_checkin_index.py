@@ -57,7 +57,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             raise ParseError(detail="Invalid date range")
 
         queryset = MonitorCheckIn.objects.filter(
-            monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
+            monitorenvironment__monitor__id=monitor.id, date_added__gte=start, date_added__lte=end
         )
 
         environments = get_environments(request, organization)
