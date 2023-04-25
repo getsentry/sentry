@@ -132,9 +132,6 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
   );
 
-  // console.log(includedEventCountData);
-  // console.log(mergedTableData);
-
   const [countSeries, p75Series] = throughputQueryToChartData(graphData);
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
