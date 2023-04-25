@@ -17,21 +17,19 @@ interface Props {
 function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   const renderTagValue = useMemo(() => {
     if (name === 'release') {
-      return values.map((value, index) => {
-        return (
-          <Fragment key={String(value)}>
-            {index > 0 && ', '}
-            <Version key={index} version={String(value)} anchor={false} withPackage />
-          </Fragment>
-        );
-      });
+      return values.map((value, index) => (
+        <Fragment key={`${name}-${index}-${value}`}>
+          {index > 0 && ', '}
+          <Version key={index} version={String(value)} anchor={false} withPackage />
+        </Fragment>
+      ));
     }
 
     return values.map((value, index) => {
       const target = generateUrl?.(name, value);
 
       return (
-        <Fragment key={String(value)}>
+        <Fragment key={`${name}-${index}-${value}`}>
           {index > 0 && ', '}
           {target ? <Link to={target}>{value}</Link> : <AnnotatedText value={value} />}
         </Fragment>
