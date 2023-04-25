@@ -198,6 +198,21 @@ class OrganizationService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @abstractmethod
+    def get_org_by_slug(
+        self,
+        *,
+        slug: str,
+        user_id: Optional[int] = None,
+    ) -> Optional[RpcOrganizationSummary]:
+        """
+        Fetches the organization, by an organization slug. If user_id is passed, it will enforce visibility
+        rules. This method is differentiated from get_organization_by_slug by not being cached and returning
+        RpcOrganizationSummary instead of org contexts
+        """
+        pass
+
     # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
     #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
     @regional_rpc_method(resolve=UnimplementedRegionResolution())

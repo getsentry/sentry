@@ -53,6 +53,13 @@ class DatabaseBackedAppService(AppService):
             for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
         ]
 
+    def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
+        try:
+            sentry_app = SentryApp.objects.get(slug=slug)
+            return self.serialize_sentry_app(sentry_app)
+        except SentryApp.DoesNotExist:
+            return None
+
     def get_installed_for_organization(
         self, *, organization_id: int
     ) -> List[RpcSentryAppInstallation]:

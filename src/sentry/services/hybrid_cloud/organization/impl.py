@@ -202,6 +202,23 @@ class DatabaseBackedOrganizationService(OrganizationService):
             user_id=user_id, organization=self.serialize_organization(org), member=membership
         )
 
+    def get_org_by_slug(
+        self,
+        *,
+        slug: str,
+        user_id: Optional[int] = None,
+    ) -> Optional[RpcOrganizationSummary]:
+        query = Organization.objects.filter(slug=slug)
+        if user_id is not None:
+            query = query.filter(
+                status=OrganizationStatus.VISIBLE,
+                member_set__user_id=user_id,
+            )
+        try:
+            return self._serialize_organization_summary(query.get())
+        except Organization.DoesNotExist:
+            return None
+
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
@@ -228,6 +245,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def get_organizations(
         self,
+        *,
         user_id: Optional[int],
         scope: Optional[str],
         only_visible: bool,

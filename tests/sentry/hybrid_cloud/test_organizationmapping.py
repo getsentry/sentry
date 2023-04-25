@@ -7,12 +7,14 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     organization_mapping_service,
 )
 from sentry.testutils import TransactionTestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
     def test_create(self):
+        self.organization = Factories.create_organization(no_mapping=True)
         fields = {
             "organization_id": self.organization.id,
             "slug": self.organization.slug,
@@ -32,6 +34,7 @@ class OrganizationMappingTest(TransactionTestCase):
         assert rpc_org_mapping.name == org_mapping.name == fields["name"]
 
     def test_idempotency_key(self):
+        self.organization = Factories.create_organization(no_mapping=True)
         data = {
             "slug": self.organization.slug,
             "name": "test name",
@@ -55,6 +58,7 @@ class OrganizationMappingTest(TransactionTestCase):
         assert rpc_org_mapping.name == data["name"]
 
     def test_duplicate_slug(self):
+        self.organization = Factories.create_organization(no_mapping=True)
         data = {
             "slug": self.organization.slug,
             "name": "test name",
@@ -74,6 +78,7 @@ class OrganizationMappingTest(TransactionTestCase):
             )
 
     def test_update(self):
+        self.organization = Factories.create_organization(no_mapping=True)
         fields = {
             "name": "test name",
             "organization_id": self.organization.id,

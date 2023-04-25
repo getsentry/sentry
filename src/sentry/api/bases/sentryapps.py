@@ -13,9 +13,12 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
-from sentry.models import Organization, SentryApp, SentryAppInstallation
+from sentry.models import Organization, SentryAppInstallation
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.silo.base import SiloMode
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 
@@ -186,9 +189,17 @@ class SentryAppPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
+        org_ids = [
+            org.id
+            for org in organization_service.get_organizations(
+                user_id=request.user.id,
+                only_visible=False,
+                scope=None,
+            )
+        ]
         # if app is unpublished, user must be in the Org who owns the app.
         if not sentry_app.is_published:
-            if sentry_app.owner_id not in {o.id for o in request.user.get_orgs()}:
+            if sentry_app.owner_id not in {id for id in org_ids}:
                 raise Http404
 
         # TODO(meredith): make a better way to allow for public
@@ -212,10 +223,15 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppPermission,)
 
     def convert_args(self, request: Request, sentry_app_slug, *args, **kwargs):
-        try:
-            sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
-        except SentryApp.DoesNotExist:
-            raise Http404
+        if SiloMode.get_current_mode() in [SiloMode.MONOLITH, SiloMode.CONTROL]:
+            try:
+                sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
+            except SentryApp.DoesNotExist:
+                raise Http404
+        else:
+            sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+            if sentry_app is None:
+                raise Http404
 
         self.check_object_permissions(request, sentry_app)
 
@@ -241,7 +257,16 @@ class SentryAppInstallationsPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
-        if organization not in request.user.get_orgs():
+        # TODO(hybrid-cloud): replace this with a local silo lookup once org member work is done
+        org_ids = [
+            org.id
+            for org in organization_service.get_organizations(
+                user_id=request.user.id,
+                only_visible=False,
+                scope=None,
+            )
+        ]
+        if organization.id not in org_ids:
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -252,13 +277,13 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(self, request: Request, organization_slug, *args, **kwargs):
         if is_active_superuser(request):
-            organizations = Organization.objects.all()
+            organization = organization_service.get_org_by_slug(slug=organization_slug)
         else:
-            organizations = request.user.get_orgs()
+            organization = organization_service.get_org_by_slug(
+                slug=organization_slug, user_id=request.user.id
+            )
 
-        try:
-            organization = organizations.get(slug=organization_slug)
-        except Organization.DoesNotExist:
+        if organization is None:
             raise Http404
         self.check_object_permissions(request, organization)
 

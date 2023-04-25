@@ -38,7 +38,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
     def get(self, request: Request, app_id) -> Response:
         try:
             instance = ApiApplication.objects.get(
-                owner=request.user, client_id=app_id, status=ApiApplicationStatus.active
+                owner_id=request.user.id, client_id=app_id, status=ApiApplicationStatus.active
             )
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
@@ -48,7 +48,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
     def put(self, request: Request, app_id) -> Response:
         try:
             instance = ApiApplication.objects.get(
-                owner=request.user, client_id=app_id, status=ApiApplicationStatus.active
+                owner_id=request.user.id, client_id=app_id, status=ApiApplicationStatus.active
             )
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
@@ -78,7 +78,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
     def delete(self, request: Request, app_id) -> Response:
         try:
             instance = ApiApplication.objects.get(
-                owner=request.user, client_id=app_id, status=ApiApplicationStatus.active
+                owner_id=request.user.id, client_id=app_id, status=ApiApplicationStatus.active
             )
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
