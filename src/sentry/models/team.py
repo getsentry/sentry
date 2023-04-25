@@ -17,8 +17,10 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.actor import Actor
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
@@ -297,7 +299,9 @@ class Team(Model, SnowflakeIdMixin):
             # we use a cursor here to avoid automatic cascading of relations
             # in Django
             try:
-                cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
+                with transaction.atomic(), in_test_psql_role_override("postgres"):
+                    cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
+                    self.outbox_for_update().save()
                 cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
             finally:
                 cursor.close()
@@ -322,9 +326,19 @@ class Team(Model, SnowflakeIdMixin):
 
         return Project.objects.get_for_team_ids({self.id})
 
+    def outbox_for_update(self) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.TEAM_SCOPE,
+            shard_identifier=self.organization_id,
+            category=OutboxCategory.TEAM_UPDATE,
+            object_identifier=self.id,
+        )
+
     def delete(self, **kwargs):
         from sentry.models import ExternalActor
 
         # There is no foreign key relationship so we have to manually delete the ExternalActors
-        ExternalActor.objects.filter(actor_id=self.actor_id).delete()
-        return super().delete(**kwargs)
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            ExternalActor.objects.filter(actor_id=self.actor_id).delete()
+            self.outbox_for_update().save()
+            return super().delete(**kwargs)

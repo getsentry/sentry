@@ -379,3 +379,9 @@ class GroupSerializerTest(TestCase):
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
+
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            serialized = serialize(perf_group)
+            assert serialized["count"] == "1"
+            assert serialized["issueCategory"] == "performance"
+            assert serialized["issueType"] == "performance_n_plus_one_db_queries"

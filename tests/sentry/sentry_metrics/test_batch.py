@@ -24,7 +24,7 @@ class MockUseCaseID(Enum):
 
 
 pytestmark = pytest.mark.sentry_metrics
-
+BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
     "name": SessionMRI.SESSION.value,
@@ -96,7 +96,7 @@ def _construct_messages(payloads):
                     KafkaPayload(None, json.dumps(payload).encode("utf-8"), headers or []),
                     Partition(Topic("topic"), 0),
                     i,
-                    datetime.now(),
+                    BROKER_TIMESTAMP,
                 )
             )
         )
@@ -589,6 +589,7 @@ def test_all_resolved(caplog, settings):
     )
 
     assert _get_string_indexer_log_records(caplog) == []
+
     assert _deconstruct_messages(snuba_payloads) == [
         (
             {
@@ -610,6 +611,7 @@ def test_all_resolved(caplog, settings):
                 "type": "c",
                 "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
@@ -633,6 +635,7 @@ def test_all_resolved(caplog, settings):
                 "type": "d",
                 "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
@@ -656,6 +659,7 @@ def test_all_resolved(caplog, settings):
                 "type": "s",
                 "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
@@ -754,6 +758,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "type": "c",
                 "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
@@ -778,8 +783,12 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "type": "d",
                 "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [
+                ("mapping_sources", b"ch"),
+                ("metric_type", "d"),
+            ],
         ),
         (
             {"org_id": 1},
@@ -802,6 +811,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "type": "s",
                 "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
@@ -907,6 +917,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "type": "c",
                 "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
@@ -930,6 +941,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "type": "d",
                 "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
@@ -953,6 +965,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "type": "s",
                 "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
@@ -1046,6 +1059,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "type": "c",
                 "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"c"), ("metric_type", "c")],
         ),
@@ -1068,8 +1082,12 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "type": "d",
                 "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"c"), ("metric_type", "d")],
+            [
+                ("mapping_sources", b"c"),
+                ("metric_type", "d"),
+            ],
         ),
         (
             {
@@ -1090,8 +1108,12 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "type": "s",
                 "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"c"), ("metric_type", "s")],
+            [
+                ("mapping_sources", b"c"),
+                ("metric_type", "s"),
+            ],
         ),
     ]
 
@@ -1182,8 +1204,12 @@ def test_metric_id_rate_limited(caplog, settings):
                 "type": "s",
                 "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"cd"), ("metric_type", "s")],
+            [
+                ("mapping_sources", b"cd"),
+                ("metric_type", "s"),
+            ],
         ),
     ]
 
@@ -1379,8 +1405,12 @@ def test_tag_value_rate_limited(caplog, settings):
                 "type": "c",
                 "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "c")],
+            [
+                ("mapping_sources", b"ch"),
+                ("metric_type", "c"),
+            ],
         ),
         (
             {
@@ -1402,8 +1432,12 @@ def test_tag_value_rate_limited(caplog, settings):
                 "type": "d",
                 "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [
+                ("mapping_sources", b"ch"),
+                ("metric_type", "d"),
+            ],
         ),
     ]
 
@@ -1517,8 +1551,12 @@ def test_one_org_limited(caplog, settings):
                 "type": "d",
                 "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [
+                ("mapping_sources", b"ch"),
+                ("metric_type", "d"),
+            ],
         ),
     ]
 
@@ -1617,6 +1655,7 @@ def test_cardinality_limiter(caplog, settings):
                 "type": "s",
                 "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
                 ("mapping_sources", b"c"),

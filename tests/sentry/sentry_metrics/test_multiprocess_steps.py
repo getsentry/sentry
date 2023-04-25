@@ -34,6 +34,8 @@ MESSAGE_PROCESSOR = MessageProcessor(
     get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
 )
 
+BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
+
 
 @pytest.fixture(autouse=True)
 def update_sentry_settings(settings):
@@ -75,7 +77,10 @@ def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_ba
 
     message1 = Message(
         BrokerValue(
-            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
+            KafkaPayload(None, b"some value", []),
+            Partition(Topic("topic"), 0),
+            1,
+            BROKER_TIMESTAMP,
         )
     )
     message2 = Message(
@@ -83,7 +88,7 @@ def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_ba
             KafkaPayload(None, b"another value", []),
             Partition(Topic("topic"), 0),
             2,
-            datetime.now(),
+            BROKER_TIMESTAMP,
         )
     )
     return (batch_messages_step, message1, message2)
@@ -284,6 +289,7 @@ def __translated_payload(
     payload["retention_days"] = 90
     payload["tags"] = new_tags
     payload["use_case_id"] = "sessions"
+    payload["sentry_received_timestamp"] = BROKER_TIMESTAMP.timestamp()
 
     payload.pop("unit", None)
     del payload["name"]
@@ -298,7 +304,7 @@ def test_process_messages() -> None:
                 KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 i + 1,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         )
         for i, payload in enumerate(message_payloads)
@@ -315,7 +321,9 @@ def test_process_messages() -> None:
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                    [("metric_type", message_payloads[i]["type"])],
+                    [
+                        ("metric_type", message_payloads[i]["type"]),
+                    ],
                 ),
                 m.value.partition,
                 m.value.offset,
@@ -397,7 +405,7 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 0,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         ),
         Message(
@@ -405,7 +413,7 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(None, formatted_payload, []),
                 Partition(Topic("topic"), 0),
                 1,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         ),
     ]
@@ -425,7 +433,9 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", "c")],
+                    [
+                        ("metric_type", "c"),
+                    ],
                 ),
                 expected_msg.committable,
             )
@@ -450,7 +460,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 0,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         ),
         Message(
@@ -458,7 +468,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 1,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         ),
     ]
@@ -484,7 +494,9 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", "c")],
+                    [
+                        ("metric_type", "c"),
+                    ],
                 ),
                 expected_msg.value.partition,
                 expected_msg.value.offset,

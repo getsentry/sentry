@@ -187,7 +187,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             organization={organization}
             renderDisabled={false}
           >
-            <NetworkDetails initialHeight={initialRequestDetailsHeight} items={items} />
+            <NetworkDetails
+              initialHeight={initialRequestDetailsHeight}
+              items={items}
+              startTimestampMs={startTimestampMs}
+            />
           </Feature>
         </FluidHeight>
       </NetworkTable>

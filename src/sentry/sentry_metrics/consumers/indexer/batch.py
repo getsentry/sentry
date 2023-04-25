@@ -386,6 +386,10 @@ class IndexerBatch:
 
             new_payload_value: Mapping[str, Any]
 
+            # timestamp when the message was produced to ingest-* topic,
+            # used for end-to-end latency metrics
+            sentry_received_timestamp = message.value.timestamp.timestamp()
+
             if self.__should_index_tag_values:
                 new_payload_v1: Metric = {
                     "tags": new_tags,
@@ -399,6 +403,7 @@ class IndexerBatch:
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
                     "value": old_payload_value["value"],
+                    "sentry_received_timestamp": sentry_received_timestamp,
                 }
 
                 new_payload_value = new_payload_v1
@@ -418,6 +423,7 @@ class IndexerBatch:
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
                     "value": old_payload_value["value"],
+                    "sentry_received_timestamp": sentry_received_timestamp,
                 }
                 new_payload_value = new_payload_v2
 

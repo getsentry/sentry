@@ -225,7 +225,7 @@ type SpanDurationBarProps = {
   transactionDuration: number;
 };
 
-function SpanDurationBar(props: SpanDurationBarProps) {
+export function SpanDurationBar(props: SpanDurationBarProps) {
   const {spanOp, spanDuration, transactionDuration} = props;
   const widthPercentage = spanDuration / transactionDuration;
   const position = widthPercentage < 0.7 ? 'right' : 'inset';
