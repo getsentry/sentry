@@ -22,6 +22,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         return Response(serialize(SentryAppInstallation.objects.get(id=installation.id)))
 
     def delete(self, request: Request, installation) -> Response:
+        installation = SentryAppInstallation.objects.get(id=installation.id)
         with transaction.atomic():
             try:
                 InstallationNotifier.run(
