@@ -104,7 +104,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       </Schedule>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <KeyValueTable>
-        <CronTableRow keyName={t('Monitor Slug')} value={slug} />
+        <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
         {schedule_type === ScheduleType.CRONTAB && (
           <KeyValueTableRow keyName={t('Timezone')} value={timezone} />
         )}
@@ -143,11 +143,4 @@ const SlugText = styled(Text)`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-const CronTableRow = styled(KeyValueTableRow)`
-  dd: {
-    overflow: hidden;
-    white-space: nowrap;
-  }
 `;
