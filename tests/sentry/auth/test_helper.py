@@ -234,13 +234,11 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
         )
 
-        org_member = OrganizationMember.objects.filter(
+        org_member = OrganizationMember.objects.get(
             organization=self.organization,
             user=self.user,
         )
-        assert org_member.exists()
-        org_member = org_member.get()
-        self.assert_org_member_mapping_not_exists(org_member=org_member)
+        self.assert_org_member_mapping(org_member=org_member)
 
         for team in self.auth_provider.default_teams.all():
             assert OrganizationMemberTeam.objects.create(
