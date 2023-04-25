@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -159,7 +160,7 @@ class GroupVariant extends Component<Props, State> {
         const spansToHashes = Object.fromEntries(
           event.entries
             .find((c): c is EntrySpans => c.type === 'spans')
-            ?.data?.map(span => [span.span_id, span.hash])
+            ?.data?.map((span: RawSpanType) => [span.span_id, span.hash]) ?? []
         );
         data.push([
           t('Type'),
@@ -183,7 +184,7 @@ class GroupVariant extends Component<Props, State> {
         ]);
         data.push([
           'Source Span Hashes',
-          variant.evidence?.cause_span_ids?.map(id => spansToHashes[id]),
+          variant.evidence?.cause_span_ids?.map(id => spansToHashes[id]) ?? [],
         ]);
         data.push([
           'Offender Span Hashes',
