@@ -1,25 +1,19 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
-import Badge from 'sentry/components/badge';
-import {MultipleSelectProps} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
-import {HybridFilter} from './hybridFilter';
+import {EnvironmentPageFilterTrigger} from './trigger';
 
 export interface EnvironmentPageFilterProps {
   /**
@@ -52,7 +46,7 @@ export function EnvironmentPageFilter({
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
-  const environments = useMemo(() => {
+  const environments = useMemo<string[]>(() => {
     const {user} = ConfigStore.getState();
 
     const unsortedEnvironments = projects.flatMap(project => {
@@ -139,37 +133,6 @@ export function EnvironmentPageFilter({
     [environments]
   );
 
-  const trigger = useCallback<NonNullable<MultipleSelectProps<number>['trigger']>>(
-    props => {
-      const isAllEnvironmentsSelected =
-        value.length === 0 || environments.every(env => value.includes(env));
-
-      // Show 2 environments only if the combined string's length does not exceed 25.
-      // Otherwise show only 1 environment.
-      const envsToShow =
-        value[0]?.length + value[1]?.length <= 23 ? value.slice(0, 2) : value.slice(0, 1);
-
-      const label = isAllEnvironmentsSelected
-        ? t('All Envs')
-        : envsToShow.map(env => trimSlug(env, 25)).join(', ');
-
-      // Number of environments that aren't listed in the trigger label
-      const remainingCount = isAllEnvironmentsSelected
-        ? 0
-        : value.length - envsToShow.length;
-
-      return (
-        <DropdownButton {...props} icon={<IconWindow />}>
-          <TriggerLabel>
-            {!projectsLoaded || !pageFilterIsReady ? t('Loading\u2026') : label}
-          </TriggerLabel>
-          {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
-        </DropdownButton>
-      );
-    },
-    [environments, value, pageFilterIsReady, projectsLoaded]
-  );
-
   const menuWidth = useMemo(() => {
     const longestSlug = options
       .slice(0, 25)
@@ -186,7 +149,6 @@ export function EnvironmentPageFilter({
       {...selectProps}
       searchable
       multiple
-      trigger={trigger}
       options={options}
       value={value}
       onChange={handleChange}
@@ -199,18 +161,14 @@ export function EnvironmentPageFilter({
       menuTitle={t('Filter Environments')}
       menuWidth={menuWidth}
       menuFooterMessage={footerMessage}
+      trigger={triggerProps => (
+        <EnvironmentPageFilterTrigger
+          value={value}
+          environments={environments}
+          ready={projectsLoaded && pageFilterIsReady}
+          {...triggerProps}
+        />
+      )}
     />
   );
 }
-
-const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  width: auto;
-`;
-
-const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
-  flex-shrink: 0;
-  top: auto;
-`;
