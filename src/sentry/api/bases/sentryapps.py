@@ -386,7 +386,7 @@ class SentryAppAuthorizationsPermission(SentryPermission):
 
         # Request must be made as the app's Proxy User, using their Client ID
         # and Secret.
-        return request.user == installation.sentry_app.proxy_user
+        return request.user.id == installation.sentry_app.proxy_user_id
 
 
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
