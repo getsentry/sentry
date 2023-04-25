@@ -2,7 +2,7 @@ from concurrent.futures import Future
 from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence, Union
 
-from arroyo import Topic
+from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
@@ -17,8 +17,8 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
 
 
-def set_future(f) -> Union[Future[None], Future[Any]]:
-    new_future = Future()
+def set_future(f: Future[Message[KafkaPayload]]) -> Union[Future[None], Future[Any]]:
+    new_future: Union[Future[None], Future[Any]] = Future()
 
     if f.exception() is not None:
         new_future.set_exception(f.exception())
