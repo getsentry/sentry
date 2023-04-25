@@ -45,8 +45,8 @@ const COLUMN_ORDER = [
     name: 'Count',
   },
   {
-    key: 'queriesPerEvent',
-    name: 'Queries per event',
+    key: 'frequency',
+    name: 'Frequency',
   },
   {
     key: 'uniqueEvents',
@@ -143,7 +143,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     column: GridColumnHeader,
     dataRow: TransactionListDataRow
   ): React.ReactNode => {
-    if (column.key === 'queriesPerEvent') {
+    if (column.key === 'frequency') {
       return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
     }
     const {key} = column;
