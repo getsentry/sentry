@@ -464,10 +464,12 @@ def check_tag(tag_key: str, expected_value: str) -> None:
     with configure_scope() as scope:
         if scope._tags and tag_key in scope._tags and scope._tags[tag_key] != expected_value:
             scope.set_tag("possible_mistag", True)
+            scope.set_tag(f"scope_bleed.{tag_key}", True)
             extra = {
                 f"previous_{tag_key}_tag": scope._tags[tag_key],
                 f"new_{tag_key}_tag": expected_value,
             }
+            merge_context_into_scope("scope_bleed", extra, scope)
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
 
 
