@@ -5,6 +5,7 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.db.postgres.roles import set_test_psql_role_override
 from sentry.models import (
     Authenticator,
     AuthProvider,
@@ -27,6 +28,12 @@ class OrganizationMemberTestBase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+
+    def setup_method(self, method):
+        self.restore = set_test_psql_role_override("postgres")
+
+    def teardown_method(self, method):
+        self.restore()
 
 
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
