@@ -10,13 +10,11 @@ from django.conf import settings
 PROXY_BASE_PATH = "/api/0/internal/integration-proxy/"
 PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
-PROXY_TIMESTAMP_HEADER = "X-Sentry-Subnet-Timestamp"
 
 INVALID_PROXY_HEADERS = ["Host", "Content-Length"]
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS + [
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
-    PROXY_TIMESTAMP_HEADER,
 ]
 
 
@@ -48,14 +46,12 @@ def clean_outbound_headers(headers: Mapping[str, str] | None) -> Mapping[str, st
 
 def encode_subnet_signature(
     secret: str,
-    timestamp: str,
     path: str,
     identifier: str,
     request_body: str | bytes,
 ) -> str:
     """v0: Silo subnet signature encoding"""
-    raw_signature = b"v0|%s|%s|%s|%s" % (
-        timestamp.encode("utf-8"),
+    raw_signature = b"v0|%s|%s|%s" % (
         trim_leading_slashes(path).encode("utf-8"),
         identifier.encode("utf-8"),
         request_body,
@@ -65,7 +61,6 @@ def encode_subnet_signature(
 
 
 def verify_subnet_signature(
-    timestamp: str,
     path: str,
     identifier: str,
     request_body: bytes,
@@ -76,7 +71,7 @@ def verify_subnet_signature(
     if not secret:
         return False
 
-    assembled_signature = encode_subnet_signature(secret, timestamp, path, identifier, request_body)
+    assembled_signature = encode_subnet_signature(secret, path, identifier, request_body)
 
     return hmac.compare_digest(
         assembled_signature.encode("utf-8"), provided_signature.encode("utf-8")

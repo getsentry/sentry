@@ -15,7 +15,6 @@ from sentry.silo.util import (
     PROXY_BASE_PATH,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
-    PROXY_TIMESTAMP_HEADER,
     encode_subnet_signature,
 )
 from sentry.testutils import APITestCase
@@ -50,16 +49,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             integration_id=self.integration.id
         ).first()
 
-        timestamp = "1682360247791"
         signature = encode_subnet_signature(
             secret=self.secret,
-            timestamp=timestamp,
             path=self.proxy_path,
             identifier=str(self.org_integration.id),
             request_body=b"",
         )
         self.valid_header_kwargs = {
-            create_cgi_header_name(PROXY_TIMESTAMP_HEADER): timestamp,
             create_cgi_header_name(PROXY_SIGNATURE_HEADER): signature,
             create_cgi_header_name(PROXY_OI_HEADER): str(self.org_integration.id),
         }
@@ -98,7 +94,6 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         # Bad header data
         header_kwargs = {
-            create_cgi_header_name(PROXY_TIMESTAMP_HEADER): "bad",
             create_cgi_header_name(PROXY_SIGNATURE_HEADER): "data",
             create_cgi_header_name(PROXY_OI_HEADER): "present",
         }

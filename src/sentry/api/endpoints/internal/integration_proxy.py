@@ -12,7 +12,6 @@ from sentry.silo.util import (
     PROXY_BASE_PATH,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
-    PROXY_TIMESTAMP_HEADER,
     clean_outbound_headers,
     verify_subnet_signature,
 )
@@ -46,16 +45,12 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         Returns True if the sender is deemed sufficiently trustworthy.
         """
         log_extra = {"path": request.path, "host": request.headers.get("Host")}
-        timestamp = request.headers.get(PROXY_TIMESTAMP_HEADER)
         signature = request.headers.get(PROXY_SIGNATURE_HEADER)
-        # print(request.headers)
-        # print(request.path)
         identifier = request.headers.get(PROXY_OI_HEADER)
-        if timestamp is None or signature is None or identifier is None:
+        if signature is None or identifier is None:
             logger.error("invalid_sender_headers", extra=log_extra)
             return False
         is_valid = verify_subnet_signature(
-            timestamp=timestamp,
             request_body=request.body,
             path=self.proxy_path,
             identifier=identifier,

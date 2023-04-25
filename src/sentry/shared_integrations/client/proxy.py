@@ -1,5 +1,4 @@
 import logging
-import time
 
 from django.conf import settings
 from requests import PreparedRequest, Request
@@ -11,7 +10,6 @@ from sentry.silo.util import (
     PROXY_BASE_PATH,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
-    PROXY_TIMESTAMP_HEADER,
     encode_subnet_signature,
     trim_leading_slashes,
 )
@@ -58,15 +56,12 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         if not self.should_proxy:
             return prepared_request
 
-        timestamp = str(int(time.time()))
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):
             request_body = request_body.encode("utf-8") if request_body else b"{}"
         prepared_request.headers[PROXY_OI_HEADER] = str(self.org_integration_id)
-        prepared_request.headers[PROXY_TIMESTAMP_HEADER] = timestamp
         prepared_request.headers[PROXY_SIGNATURE_HEADER] = encode_subnet_signature(
             secret=settings.SENTRY_SUBNET_SECRET,
-            timestamp=timestamp,
             path=self.client_path,
             identifier=str(self.org_integration_id),
             request_body=request_body,

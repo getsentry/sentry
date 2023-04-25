@@ -5,7 +5,6 @@ from sentry.silo.util import (
     INVALID_PROXY_HEADERS,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
-    PROXY_TIMESTAMP_HEADER,
     clean_headers,
     clean_outbound_headers,
     clean_proxy_headers,
@@ -25,7 +24,6 @@ class SiloUtilityTest(TestCase):
         "Content-Length": "27",
         PROXY_OI_HEADER: "12",
         PROXY_SIGNATURE_HEADER: "-leander(but-in-cursive)",
-        PROXY_TIMESTAMP_HEADER: "the-moment",
         "X-Test-Header-1": "One",
         "X-Test-Header-2": "Two",
         "X-Test-Header-3": "Three",
@@ -76,13 +74,11 @@ class SiloUtilityTest(TestCase):
         signature = "v0=62fdc170230e97426d868cb0c2ade132e05c9133af1cb28f323c6331436429e1"
         encode_kwargs = {
             "secret": self.secret,
-            "timestamp": "1682360247791",
             "path": "/chat.postMessage",
             "identifier": "21",
             "request_body": b'{"some": "payload"}',
         }
         verify_kwargs = {
-            "timestamp": encode_kwargs["timestamp"],
             "path": encode_kwargs["path"],
             "identifier": encode_kwargs["identifier"],
             "request_body": encode_kwargs["request_body"],
@@ -105,7 +101,7 @@ class SiloUtilityTest(TestCase):
         assert not verify_subnet_signature(**wrong_secret_verify)
 
         # Any mishandled field should not be verifiable
-        for kwarg in ["timestamp", "path", "identifier", "request_body"]:
+        for kwarg in ["path", "identifier", "request_body"]:
             modified_encode = {**encode_kwargs, kwarg: "incorrect-data"}
             modified_verify = {**verify_kwargs, kwarg: "incorrect-data"}
             if kwarg == "request_body":
