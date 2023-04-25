@@ -215,10 +215,6 @@ def is_escalating(group: Group) -> bool:
     """Return boolean depending on if the group is escalating or not"""
     date_now = datetime.now().date()
     escalating_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
-    # escalating_forecast = (
-    #     escalating_forecast.date_added,
-    #     escalating_forecast.forecast,
-    # )
 
     # Check if current event occurance is greater than forecast for today's date
     group_daily_count = get_group_daily_count(group.project.id, group.id)

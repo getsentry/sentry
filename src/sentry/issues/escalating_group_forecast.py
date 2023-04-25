@@ -13,7 +13,7 @@ from typing import List, TypedDict, cast
 from sentry import nodestore
 from sentry.utils.dates import parse_timestamp
 
-ONE_WEEKS_IN_DAYS_TTL = 7
+GROUP_FORECAST_TTL = 14
 DEFAULT_MINIMUM_CEILING_FORECAST = [200] * 14
 
 
@@ -40,7 +40,7 @@ class EscalatingGroupForecast:
         nodestore.set(
             self.build_storage_identifier(self.project_id, self.group_id),
             self.to_dict(),
-            ttl=timedelta(ONE_WEEKS_IN_DAYS_TTL),
+            ttl=timedelta(GROUP_FORECAST_TTL),
         )
 
     @classmethod
