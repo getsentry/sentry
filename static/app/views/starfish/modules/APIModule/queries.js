@@ -1,9 +1,26 @@
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
+export const getHostListQuery = () => {
+  return `SELECT
+    domain,
+    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+    quantile(0.99)(exclusive_time) as p99,
+    count() as count,
+    countIf(greaterOrEquals(status, 400) AND lessOrEquals(status, 599)) as failure_count,
+    failure_count / count as failure_rate
+    FROM spans_experimental_starfish
+    WHERE module = 'http'
+    AND domain != ''
+    GROUP BY domain, interval
+    ORDER BY domain, interval asc
+ `;
+};
+
 export const getEndpointListQuery = ({domain, action, datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
     description,
+    group_id,
     domain,
     action,
     quantile(0.5)(exclusive_time) AS "p50(exclusive_time)",
@@ -19,7 +36,7 @@ export const getEndpointListQuery = ({domain, action, datetime}) => {
     ${action ? `AND action = '${action}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY description, domain, action
+    GROUP BY description, domain, action, group_id
     ORDER BY count DESC
     LIMIT 10
   `;
@@ -101,17 +118,13 @@ export const getEndpointDetailTableQuery = ({description, transactionName, datet
  `;
 };
 
-export const getSpanInTransactionQuery = ({
-  spanDescription,
-  transactionName,
-  datetime,
-}) => {
+export const getSpanInTransactionQuery = ({groupId, transactionName, datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   // TODO - add back `module = <moudle> to filter data
   return `
     SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
     FROM spans_experimental_starfish
-    WHERE description = '${spanDescription}'
+    WHERE groupId = '${groupId}'
     AND transaction = '${transactionName}'
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}

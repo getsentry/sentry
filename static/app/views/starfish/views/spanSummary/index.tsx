@@ -67,36 +67,31 @@ export default function SpanSummary({location, params}: Props) {
   const pageFilter = usePageFilters();
   const slug = parseSlug(params.slug);
 
-  const {spanDescription, transactionName} = slug || {
-    spanDescription: '',
+  const {groupId, transactionName} = slug || {
+    groupId: '',
     transactionName: '',
   };
 
   const query = getSpanInTransactionQuery({
-    spanDescription,
+    groupId,
     transactionName,
     datetime: pageFilter.selection.datetime,
   });
 
   const {isLoading, data} = useQuery({
-    queryKey: ['spanSummary', spanDescription, transactionName],
+    queryKey: ['spanSummary', groupId, transactionName],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
   const spanSamplesQuery = getSpanSamplesQuery({
-    spanDescription,
+    groupId,
     transactionName,
     datetime: pageFilter.selection.datetime,
   });
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
-    queryKey: [
-      'spanSamples',
-      spanDescription,
-      transactionName,
-      pageFilter.selection.datetime,
-    ],
+    queryKey: ['spanSamples', groupId, transactionName, pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -125,6 +120,7 @@ export default function SpanSummary({location, params}: Props) {
   if (!slug) {
     return <div>ERROR</div>;
   }
+  const spanDescription = spanSampleData?.[0]?.description;
 
   const spanGroupOperation = data?.[0]?.span_operation;
 
@@ -261,7 +257,7 @@ function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.Reac
 }
 
 type SpanInTransactionSlug = {
-  spanDescription: string;
+  groupId: string;
   transactionName: string;
 };
 
@@ -275,10 +271,10 @@ function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
     return undefined;
   }
 
-  const spanDescription = slug.slice(0, delimiterPosition);
+  const groupId = slug.slice(0, delimiterPosition);
   const transactionName = slug.slice(delimiterPosition + 1);
 
-  return {spanDescription, transactionName};
+  return {groupId, transactionName};
 }
 
 function SpanGroupKeyValueList({

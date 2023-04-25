@@ -25,6 +25,7 @@ export type DataRow = {
   count: number;
   description: string;
   domain: string;
+  group_id: string;
 };
 
 const COLUMN_ORDER = [

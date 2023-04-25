@@ -18,6 +18,7 @@ import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import EndpointTable from './endpointTable';
+import HostTable from './hostTable';
 import {getEndpointDomainsQuery, getEndpointGraphQuery} from './queries';
 
 export const HOST = 'http://localhost:8080';
@@ -190,11 +191,14 @@ export default function APIModuleView({location, onSelect}: Props) {
           onChange={({value}) => setDomain(value)}
         />
       </FilterOptionsContainer>
+
       <EndpointTable
         location={location}
         onSelect={onSelect}
         filterOptions={{...state, datetime: pageFilter.selection.datetime}}
       />
+
+      <HostTable location={location} />
     </Fragment>
   );
 }

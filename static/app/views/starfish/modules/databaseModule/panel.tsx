@@ -21,6 +21,7 @@ type EndpointDetailBodyProps = {
 
 type TransactionListDataRow = {
   count: number;
+  group_id: string;
   p75: number;
   transaction: string;
 };
@@ -60,7 +61,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     SELECT transaction, count() AS count, quantile(0.75)(exclusive_time) as p75
     FROM spans_experimental_starfish
     WHERE module = 'db'
-    AND description = '${row.description}'
+    AND group_id = '${row.group_id}'
     GROUP BY transaction
     ORDER BY count DESC
     LIMIT 10
@@ -72,13 +73,13 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
       count() as count
       FROM spans_experimental_starfish
       WHERE module = 'db'
-      AND description = '${row.description}'
+      AND group_id = '${row.group_id}'
       GROUP BY interval
       ORDER BY interval asc
    `;
 
   const {isLoading, data: graphData} = useQuery({
-    queryKey: ['dbQueryDetailsGraph', row.description],
+    queryKey: ['dbQueryDetailsGraph', row.group_id],
     queryFn: () =>
       fetch(`${HOST}/?query=${GRAPH_QUERY}&format=sql`).then(res => res.json()),
     retry: false,
@@ -86,7 +87,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   });
 
   const {isLoading: isTableLoading, data: tableData} = useQuery({
-    queryKey: ['dbQueryDetailsTable', row.description],
+    queryKey: ['dbQueryDetailsTable', row.group_id],
     queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
     retry: true,
     initialData: [],
@@ -107,7 +108,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     if (column.key === 'transaction') {
       return (
         <Link
-          to={`/starfish/span/${encodeURIComponent(row.description)}:${encodeURIComponent(
+          to={`/starfish/span/${encodeURIComponent(row.group_id)}:${encodeURIComponent(
             dataRow.transaction
           )}`}
         >

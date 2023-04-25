@@ -21,7 +21,7 @@ type Props = {
 };
 
 export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
-  const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
+  const {type, description, help_link, handled, source, meta = {}, data = {}} = mechanism;
 
   const {errno, signal, mach_exception} = meta;
 
@@ -71,6 +71,10 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
   if (mach_exception) {
     const value = mach_exception.name || mach_exception.exception;
     pills.push(<Pill key="mach" name="mach exception" value={value} />);
+  }
+
+  if (source) {
+    pills.push(<Pill key="source" name="source" value={source} />);
   }
 
   if (signal) {
