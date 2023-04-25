@@ -110,7 +110,7 @@ def query_replays_collection(
 
 
 def query_replay_instance(
-    project_id: int,
+    project_id: int | list[int],
     replay_id: str,
     start: datetime,
     end: datetime,
@@ -118,7 +118,7 @@ def query_replay_instance(
 ):
     """Query aggregated replay instance."""
     response = query_replays_dataset(
-        project_ids=[project_id],
+        project_ids=[project_id] if isinstance(project_id, int) else project_id,
         start=start,
         end=end,
         where=[
