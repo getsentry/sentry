@@ -5,12 +5,10 @@ import {
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
-import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
@@ -18,6 +16,7 @@ import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutation
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 type Props = {
@@ -42,38 +41,6 @@ function DomMutations({replay, startTimestampMs}: Props) {
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
-  const itemLookup = useMemo(
-    () =>
-      items &&
-      items
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
-        .sort(([a], [b]) => a - b),
-    [items]
-  );
-
-  const breadcrumbs = useMemo(() => items.map(({crumb}) => crumb), [items]);
-  const current = useMemo(
-    () =>
-      getPrevReplayEvent({
-        itemLookup,
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentTime,
-      }),
-    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
-  );
-
-  const hovered = useMemo(
-    () =>
-      currentHoverTime
-        ? getPrevReplayEvent({
-            itemLookup,
-            items: breadcrumbs,
-            targetTimestampMs: startTimestampMs + currentHoverTime,
-          })
-        : null,
-    [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
-  );
-
   const deps = useMemo(() => [items], [items]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
@@ -93,8 +60,8 @@ function DomMutations({replay, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <DomMutationRow
-          isCurrent={mutation.crumb.id === current?.id}
-          isHovered={mutation.crumb.id === hovered?.id}
+          currentTime={currentTime}
+          currentHoverTime={currentHoverTime}
           mutation={mutation}
           startTimestampMs={startTimestampMs}
           style={style}
@@ -106,7 +73,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <DomFilters actions={actions} {...filterProps} />
-      <MutationItemContainer>
+      <TabItemContainer>
         {isLoading || !actions ? (
           <Placeholder height="100%" />
         ) : (
@@ -133,17 +100,9 @@ function DomMutations({replay, startTimestampMs}: Props) {
             )}
           </AutoSizer>
         )}
-      </MutationItemContainer>
+      </TabItemContainer>
     </FluidHeight>
   );
 }
-
-const MutationItemContainer = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
 
 export default memo(DomMutations);

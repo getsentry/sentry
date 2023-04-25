@@ -1,8 +1,8 @@
-import {CSSProperties, memo, useCallback} from 'react';
+import {CSSProperties, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -18,9 +18,9 @@ import {OnDimensionChange} from '../useVirtualizedInspector';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
+  currentHoverTime: number | undefined;
+  currentTime: number;
   index: number;
-  isCurrent: boolean;
-  isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
   expandPaths?: string[];
@@ -30,15 +30,13 @@ type Props = {
 function UnmemoizedConsoleLogRow({
   index,
   breadcrumb,
-  isHovered,
-  isCurrent,
+  currentTime,
+  currentHoverTime,
   startTimestampMs,
   style,
   expandPaths,
   onDimensionChange,
 }: Props) {
-  const {currentTime} = useReplayContext();
-
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
@@ -60,14 +58,22 @@ function UnmemoizedConsoleLogRow({
     [onDimensionChange, index]
   );
 
-  const hasOccurred =
-    currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
+  const crumbTime = useMemo(
+    () => relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs),
+    [breadcrumb.timestamp, startTimestampMs]
+  );
+  const hasOccurred = currentTime >= crumbTime;
+  const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
 
   return (
     <ConsoleLog
+      className={classNames({
+        beforeCurrentTime: hasOccurred,
+        afterCurrentTime: !hasOccurred,
+        beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
+        afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
+      })}
       hasOccurred={hasOccurred}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
       level={breadcrumb.level}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -103,8 +109,6 @@ const IssueLinkWrapper = styled('div')`
 
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;
-  isCurrent: boolean;
-  isHovered: boolean;
   level: string;
 }>`
   display: grid;
@@ -118,9 +122,9 @@ const ConsoleLog = styled('div')<{
       ? p.theme.alert[p.level].backgroundLight
       : 'inherit'};
 
-  border-bottom: 1px solid
-    ${p =>
-      p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
+  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
 
   color: ${p =>
     ['warning', 'error'].includes(p.level)

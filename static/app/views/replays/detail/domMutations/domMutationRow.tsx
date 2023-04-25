@@ -1,11 +1,11 @@
-import {CSSProperties, useCallback} from 'react';
+import {CSSProperties, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -14,23 +14,21 @@ import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
-  isCurrent: boolean;
-  isHovered: boolean;
+  currentHoverTime: number | undefined;
+  currentTime: number;
   mutation: Extraction;
   startTimestampMs: number;
   style: CSSProperties;
 };
 
 function DomMutationRow({
-  isCurrent,
-  isHovered,
+  currentHoverTime,
+  currentTime,
   mutation,
   startTimestampMs,
   style,
 }: Props) {
   const {html, crumb: breadcrumb} = mutation;
-
-  const {currentTime} = useReplayContext();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -48,18 +46,26 @@ function DomMutationRow({
     [handleMouseLeave, breadcrumb]
   );
 
-  const hasOccurred =
-    currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
+  const crumbTime = useMemo(
+    () => relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs),
+    [breadcrumb.timestamp, startTimestampMs]
+  );
+  const hasOccurred = currentTime >= crumbTime;
+  const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
 
   const {title} = getDetails(breadcrumb);
 
   return (
     <MutationListItem
+      className={classNames({
+        beforeCurrentTime: hasOccurred,
+        afterCurrentTime: !hasOccurred,
+        beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
+        afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
+      })}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={style}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
     >
       <IconWrapper color={breadcrumb.color} hasOccurred={hasOccurred}>
         <BreadcrumbIcon type={breadcrumb.type} />
@@ -84,17 +90,14 @@ function DomMutationRow({
   );
 }
 
-const MutationListItem = styled('div')<{
-  isCurrent: boolean;
-  isHovered: boolean;
-}>`
+const MutationListItem = styled('div')`
   display: flex;
   gap: ${space(1)};
   padding: ${space(1)} ${space(1.5)};
 
-  border-bottom: 1px solid
-    ${p =>
-      p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
+  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
 
   &:hover {
     background-color: ${p => p.theme.hover};
