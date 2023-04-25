@@ -678,10 +678,10 @@ class Organization(Model, SnowflakeIdMixin):
 
     # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
     @classmethod
-    def remove_organization_mapping(cls, instance, **kwargs):
+    def remove_organization_mapping(cls, organization: Organization):
         from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 
-        organization_mapping_service.delete(organization_id=instance.id)
+        organization_mapping_service.delete(organization_id=organization.id)
 
 
 def organization_absolute_url(
@@ -718,9 +718,13 @@ def organization_absolute_url(
     return "".join(parts)
 
 
+def delete_org_refs_at_control_silo(instance: Organization, **kwargs):
+    Organization.remove_organization_mapping(instance)
+
+
 post_delete.connect(
-    Organization.remove_organization_mapping,
-    dispatch_uid="sentry.remove_organization_mapping",
+    delete_org_refs_at_control_silo,
+    dispatch_uid="sentry.delete_org_refs_at_control_silo",
     sender=Organization,
     weak=False,
 )
