@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, TypedDict, cast
+from typing import List, TypedDict, cast
 
 from sentry import nodestore
 from sentry.utils.dates import parse_timestamp
@@ -44,7 +44,7 @@ class EscalatingGroupForecast:
         )
 
     @classmethod
-    def fetch(cls, project_id: int, group_id: int) -> Optional[EscalatingGroupForecast]:
+    def fetch(cls, project_id: int, group_id: int) -> EscalatingGroupForecast:
         results = nodestore.get(cls.build_storage_identifier(project_id, group_id))
         if results:
             return EscalatingGroupForecast.from_dict(results)
