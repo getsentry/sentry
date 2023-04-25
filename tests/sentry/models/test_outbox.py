@@ -42,7 +42,7 @@ def test_creating_org_outboxes():
 @control_silo_test(stable=True)
 def test_creating_user_outboxes():
     with exempt_from_silo_limits():
-        org = Factories.create_organization()
+        org = Factories.create_organization(no_mapping=True)
         Factories.create_org_mapping(org, region_name="a")
         user1 = Factories.create_user()
         organization_service.add_organization_member(
@@ -51,7 +51,7 @@ def test_creating_user_outboxes():
             user_id=user1.id,
         )
 
-        org2 = Factories.create_organization()
+        org2 = Factories.create_organization(no_mapping=True)
         Factories.create_org_mapping(org2, region_name="b")
         organization_service.add_organization_member(
             organization_id=org2.id,
@@ -116,8 +116,8 @@ def test_concurrent_coalesced_object_processing(mock_metrics):
 @pytest.mark.django_db(transaction=True)
 @region_silo_test(stable=True)
 def test_region_sharding_keys():
-    org1 = Factories.create_organization()
-    org2 = Factories.create_organization()
+    org1 = Factories.create_organization(no_mapping=True)
+    org2 = Factories.create_organization(no_mapping=True)
 
     Organization.outbox_for_update(org1.id).save()
     Organization.outbox_for_update(org2.id).save()
@@ -139,7 +139,7 @@ def test_region_sharding_keys():
 @control_silo_test(stable=True)
 def test_control_sharding_keys():
     with exempt_from_silo_limits():
-        org = Factories.create_organization()
+        org = Factories.create_organization(no_mapping=True)
         Factories.create_org_mapping(org, region_name=MONOLITH_REGION_NAME)
         user1 = Factories.create_user()
         user2 = Factories.create_user()

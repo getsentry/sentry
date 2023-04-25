@@ -4,11 +4,11 @@ import {DateTimeObject} from 'sentry/components/charts/utils';
 import {DATE_FORMAT, PERIOD_REGEX} from 'sentry/views/starfish/modules/APIModule/queries';
 
 export const getSpanSamplesQuery = ({
-  spanDescription,
+  groupId,
   transactionName,
   datetime,
 }: {
-  spanDescription;
+  groupId;
   transactionName;
   datetime?: DateTimeObject;
 }) => {
@@ -22,13 +22,13 @@ export const getSpanSamplesQuery = ({
         .format(DATE_FORMAT));
   const end_timestamp = datetime?.end && moment(datetime?.end).format(DATE_FORMAT);
   return `
-    SELECT transaction_id, span_id, exclusive_time, count() as count
+    SELECT description, transaction_id, span_id, exclusive_time, count() as count
     FROM spans_experimental_starfish
-    WHERE description = '${spanDescription}'
+    WHERE group_id = '${groupId}'
     AND transaction = '${transactionName}'
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY transaction_id, span_id, exclusive_time
+    GROUP BY description, transaction_id, span_id, exclusive_time
     ORDER BY exclusive_time desc
     LIMIT 10
  `;
