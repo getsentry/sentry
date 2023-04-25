@@ -230,8 +230,10 @@ function TransactionHeader({
                 textValue={t('Profiling')}
                 hidden={!hasProfiling}
               >
-                {t('Profiling')}
-                <FeatureBadge type="beta" tooltipProps={{disabled: true}} />
+                {t('Profiles')}
+                {organization.features.includes('profiling-ga') ? null : (
+                  <FeatureBadge type="beta" tooltipProps={{disabled: true}} />
+                )}
               </TabList.Item>
             </TabList>
           );
