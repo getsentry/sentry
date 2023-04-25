@@ -17,6 +17,9 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
 }
 
+# TODO: Remove this as soon as the entire indexer system is use case aware
+# as this is temporary and eventually UseCaseKey will have a 1:N relationship
+# with UseCaseID
 METRIC_ID_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
     UseCaseKey.RELEASE_HEALTH: UseCaseID.SESSIONS,
     UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
