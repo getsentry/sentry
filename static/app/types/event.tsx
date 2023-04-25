@@ -41,9 +41,12 @@ export type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
+  cause_span_ids?: string[];
   offender_span_hashes?: string[];
+  offender_span_ids?: string[];
   op?: string;
   parent_span_hashes?: string[];
+  parent_span_ids?: string[];
 };
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
