@@ -35,12 +35,12 @@ const COLUMN_ORDER = [
   {
     key: 'duration',
     name: 'Response Time',
-    width: COL_WIDTH_UNDEFINED,
+    width: 320,
   },
   {
     key: 'failure_rate',
     name: 'Failure Rate',
-    width: COL_WIDTH_UNDEFINED,
+    width: 320,
   },
 ];
 
@@ -126,7 +126,7 @@ function renderBodyCell(column: GridColumnHeader, row: HostTableRow): React.Reac
   if (column.key === 'duration') {
     const series: Series = row[column.key];
     if (series) {
-      return <Sparkline series={series} />;
+      return <Sparkline color="rgb(242, 183, 18)" series={series} />;
     }
 
     return 'Loading';
@@ -135,7 +135,7 @@ function renderBodyCell(column: GridColumnHeader, row: HostTableRow): React.Reac
   if (column.key === 'failure_rate') {
     const series: Series = row[column.key];
     if (series) {
-      return <Sparkline series={series} />;
+      return <Sparkline color="#ef7061" series={series} />;
     }
 
     return 'Loading';

@@ -9,9 +9,10 @@ export const HOST = 'http://localhost:8080';
 
 type SparklineProps = {
   series: Series;
+  color?: string | string[];
 };
 
-export default function Sparkline({series}: SparklineProps) {
+export default function Sparkline({series, color}: SparklineProps) {
   echarts.use([LineChart, SVGRenderer]);
 
   const valueSeries = {
@@ -25,6 +26,7 @@ export default function Sparkline({series}: SparklineProps) {
     <ReactEChartsCore
       echarts={echarts}
       option={{
+        color,
         series: [valueSeries],
         xAxis: {
           show: false,
