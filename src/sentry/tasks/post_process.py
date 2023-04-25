@@ -713,7 +713,9 @@ def process_snoozes(job: PostProcessJob) -> None:
             )
 
             snooze.delete()
-            group.update(status=GroupStatus.UNRESOLVED)
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ONGOING
+            group.save(update_fields=["status", "substatus"])
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,
