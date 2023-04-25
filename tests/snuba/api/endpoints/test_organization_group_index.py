@@ -1650,14 +1650,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
             "user_count": None,
             "user_window": 5,
         }
-        add_group_to_inbox(event.group, GroupInboxReason.UNIGNORED, snooze_details)
+        add_group_to_inbox(event.group, GroupInboxReason.ONGOING, snooze_details)
         response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
 
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
         assert response.data[0]["inbox"] is not None
-        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.ONGOING.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
     def test_expand_string(self):
