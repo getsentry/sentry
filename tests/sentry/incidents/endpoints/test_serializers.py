@@ -469,7 +469,7 @@ class TestAlertRuleSerializer(TestCase):
 
         # Make sure the action was not created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration=integration)
+            AlertRuleTriggerAction.objects.filter(integration_id=integration.id)
         )
         assert len(alert_rule_trigger_actions) == 0
 
@@ -954,7 +954,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
         # # Make sure the action was created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration=integration)
+            AlertRuleTriggerAction.objects.filter(integration_id=integration.id)
         )
         assert len(alert_rule_trigger_actions) == 1
 
@@ -997,7 +997,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
         # # Make sure the action was not created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration=integration)
+            AlertRuleTriggerAction.objects.filter(integration_id=integration.id)
         )
         assert len(alert_rule_trigger_actions) == 0
 
@@ -1040,7 +1040,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
         # # Make sure the action was not created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration=integration)
+            AlertRuleTriggerAction.objects.filter(integration_id=integration.id)
         )
         assert len(alert_rule_trigger_actions) == 0
 
@@ -1083,7 +1083,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
         # # Make sure the action was created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(sentry_app=self.sentry_app)
+            AlertRuleTriggerAction.objects.filter(sentry_app_id=self.sentry_app.id)
         )
         assert len(alert_rule_trigger_actions) == 1
 
@@ -1110,7 +1110,9 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         # Update action
         serializer.save()
 
-        alert_rule_trigger_action = AlertRuleTriggerAction.objects.get(sentry_app=self.sentry_app)
+        alert_rule_trigger_action = AlertRuleTriggerAction.objects.get(
+            sentry_app_id=self.sentry_app.id
+        )
 
         # Make sure the changes got applied
         assert alert_rule_trigger_action.sentry_app_config == {"channel": "#announcements"}

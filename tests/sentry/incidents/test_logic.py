@@ -1197,14 +1197,18 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         )
 
         action = create_alert_rule_trigger_action(
-            self.trigger, type, target_type, target_identifier=channel_name, integration=integration
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
     def test_slack_not_existing(self):
         integration = Integration.objects.create(
@@ -1222,7 +1226,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     @responses.activate
@@ -1254,7 +1258,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
@@ -1267,14 +1271,18 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         channel_id = "some_id"
 
         action = create_alert_rule_trigger_action(
-            self.trigger, type, target_type, target_identifier=channel_name, integration=integration
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
         mock_get_channel_id.assert_called_once_with(
             self.organization, integration.id, "some_channel"
@@ -1294,7 +1302,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     def test_pagerduty(self):
@@ -1326,14 +1334,14 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             type,
             target_type,
             target_identifier=target_identifier,
-            integration=integration,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
         assert action.target_display == "hellboi"
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
@@ -1352,7 +1360,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=target_identifier,
-                integration=integration,
+                integration_id=integration.id,
             )
 
 
@@ -1403,14 +1411,18 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         )
 
         action = update_alert_rule_trigger_action(
-            self.action, type, target_type, target_identifier=channel_name, integration=integration
+            self.action,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
     def test_slack_not_existing(self):
         integration = Integration.objects.create(
@@ -1428,7 +1440,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     @responses.activate
@@ -1460,7 +1472,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
@@ -1473,14 +1485,18 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         channel_id = "some_id"
 
         action = update_alert_rule_trigger_action(
-            self.action, type, target_type, target_identifier=channel_name, integration=integration
+            self.action,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
         mock_get_channel_id.assert_called_once_with(
             self.organization, integration.id, "some_channel"
@@ -1500,7 +1516,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     def test_pagerduty(self):
@@ -1532,7 +1548,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             type,
             target_type,
             target_identifier=target_identifier,
-            integration=integration,
+            integration_id=integration.id,
         )
 
         assert action.alert_rule_trigger == self.trigger
@@ -1540,7 +1556,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
         assert action.target_display == "hellboi"
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
@@ -1559,7 +1575,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=target_identifier,
-                integration=integration,
+                integration_id=integration.id,
             )
 
 
