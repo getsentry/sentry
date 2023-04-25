@@ -85,16 +85,20 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     initialData: [],
   });
 
-  const {isLoading: isTableLoading, data: tableData} = useQuery({
-    queryKey: ['dbQueryDetailsTable', row.description],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
-    retry: true,
-    initialData: [],
-  });
-
-  // console.log(row.desc);
+  const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
+    {
+      queryKey: ['dbQueryDetailsTable', row.description],
+      queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
+      retry: true,
+      initialData: [],
+    }
+  );
 
   const [countSeries, p75Series] = throughputQueryToChartData(graphData);
+  const percentileSeries: Series = {
+    seriesName: 'p75()',
+    data: tableData.map(tableRow => ({name: tableRow.transaction, value: tableRow.p75})),
+  };
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return <span>{column.name}</span>;
@@ -170,6 +174,24 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
           />
         </FlexRowItem>
       </FlexRowContainer>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>{t('Percentiles')}</SubHeader>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={[percentileSeries]}
+            start=""
+            end=""
+            loading={isLoading}
+            utc={false}
+            disableMultiAxis
+            stacked
+            isBarChart
+            hideYAxisSplitLine
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
       <GridEditable
         isLoading={isTableLoading}
         data={tableData}
@@ -220,6 +242,7 @@ const FlexRowItem = styled('div')`
 
 const FormattedCode = styled('div')`
   padding: ${space(1)};
+  margin-bottom: ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   overflow-x: auto;
