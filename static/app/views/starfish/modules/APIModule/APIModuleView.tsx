@@ -1,22 +1,34 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
+import {CompactSelect} from 'sentry/components/compactSelect';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import EndpointTable from './endpointTable';
-import {ENDPOINT_GRAPH_QUERY} from './queries';
+import HostTable from './hostTable';
+import {getEndpointDomainsQuery, getEndpointGraphQuery, PERIOD_REGEX} from './queries';
 
 export const HOST = 'http://localhost:8080';
+
+const HTTP_ACTION_OPTIONS = [
+  {value: '', label: 'All'},
+  ...['GET', 'POST', 'PUT', 'DELETE'].map(action => ({
+    value: action,
+    label: action,
+  })),
+];
 
 type Props = {
   location: Location;
@@ -30,10 +42,29 @@ export type DataRow = {
 };
 
 export default function APIModuleView({location, onSelect}: Props) {
-  const {isLoading: isGraphLoading, data: graphData} = useQuery({
-    queryKey: ['graph'],
+  const themes = useTheme();
+  const pageFilter = usePageFilters();
+  const [state, setState] = useState<{action: string; domain: string}>({
+    action: '',
+    domain: '',
+  });
+
+  const {isLoading: _isDomainsLoading, data: domains} = useQuery({
+    queryKey: ['domains'],
     queryFn: () =>
-      fetch(`${HOST}/?query=${ENDPOINT_GRAPH_QUERY}`).then(res => res.json()),
+      fetch(`${HOST}/?query=${getEndpointDomainsQuery()}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const {isLoading: isGraphLoading, data: graphData} = useQuery({
+    queryKey: ['graph', pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getEndpointGraphQuery({
+          datetime: pageFilter.selection.datetime,
+        })}`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -51,8 +82,8 @@ export default function APIModuleView({location, onSelect}: Props) {
     seriesName: 'count',
     data: [],
   };
-  const failureCountSeries: Series = {
-    seriesName: 'failure_count',
+  const failureRateSeries: Series = {
+    seriesName: 'failure_rate',
     data: [],
   };
 
@@ -67,47 +98,124 @@ export default function APIModuleView({location, onSelect}: Props) {
       value: datum.count,
       name: datum.interval,
     });
-    failureCountSeries.data.push({
-      value: datum.failure_count,
+    failureRateSeries.data.push({
+      value: datum.failure_rate,
       name: datum.interval,
     });
   });
 
-  const data = Object.values(seriesByQuantile).map(series =>
-    zeroFillSeries(series, moment.duration(12, 'hours'))
+  // TODO: Some duplicate code here with queries.js
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+  const [zeroFilledQuantiles, zeroFilledCounts, zeroFilledFailureRate] = [
+    seriesByQuantile,
+    [countSeries],
+    [failureRateSeries],
+  ].map(seriesGroup =>
+    Object.values(seriesGroup).map(series =>
+      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
+    )
   );
+
+  const setAction = (action: string) => {
+    setState({
+      ...state,
+      action,
+    });
+  };
+
+  const setDomain = (domain: string) => {
+    setState({
+      ...state,
+      domain,
+    });
+  };
+  const domainOptions = [
+    {value: '', label: 'All'},
+    ...domains
+      .filter(({domain}) => domain !== '')
+      .map(({domain}) => ({
+        value: domain,
+        label: domain,
+      })),
+  ];
 
   return (
     <Fragment>
+      <FilterOptionsContainer>
+        <CompactSelect
+          triggerProps={{prefix: t('Service')}}
+          value="project"
+          options={[{value: 'project', label: 'Project'}]}
+          onChange={() => void 0}
+        />
+        <DatePageFilter alignDropdown="left" />
+      </FilterOptionsContainer>
       <ChartsContainer>
         <ChartsContainerItem>
           <ChartPanel title={t('Throughput')}>
-            <APIModuleChart data={[countSeries]} loading={isGraphLoading} />
+            <APIModuleChart data={zeroFilledCounts} loading={isGraphLoading} />
           </ChartPanel>
         </ChartsContainerItem>
         <ChartsContainerItem>
           <ChartPanel title={t('Response Time')}>
-            <APIModuleChart data={data} loading={isGraphLoading} />
+            <APIModuleChart data={zeroFilledQuantiles} loading={isGraphLoading} />
           </ChartPanel>
         </ChartsContainerItem>
         <ChartsContainerItem>
           <ChartPanel title={t('Error Rate')}>
-            <APIModuleChart data={[failureCountSeries]} loading={isGraphLoading} />
+            <APIModuleChart
+              data={zeroFilledFailureRate}
+              loading={isGraphLoading}
+              chartColors={[themes.charts.getColorPalette(2)[2]]}
+            />
           </ChartPanel>
         </ChartsContainerItem>
       </ChartsContainer>
+      <FilterOptionsContainer>
+        <CompactSelect
+          triggerProps={{prefix: t('Operation')}}
+          value={state.action}
+          options={HTTP_ACTION_OPTIONS}
+          onChange={({value}) => setAction(value)}
+        />
+        <CompactSelect
+          triggerProps={{prefix: t('Domain')}}
+          value={state.domain}
+          options={domainOptions}
+          onChange={({value}) => setDomain(value)}
+        />
+      </FilterOptionsContainer>
 
-      <EndpointTable location={location} onSelect={onSelect} />
+      <EndpointTable
+        location={location}
+        onSelect={onSelect}
+        filterOptions={{...state, datetime: pageFilter.selection.datetime}}
+      />
+
+      <HostTable location={location} />
     </Fragment>
   );
 }
 
-function APIModuleChart({data, loading}: {data: Series[]; loading: boolean}) {
+function APIModuleChart({
+  data,
+  loading,
+  chartColors,
+}: {
+  data: Series[];
+  loading: boolean;
+  chartColors?: string[];
+}) {
   const themes = useTheme();
   return (
     <Chart
       statsPeriod="24h"
-      height={180}
+      height={140}
       data={data}
       start=""
       end=""
@@ -116,15 +224,15 @@ function APIModuleChart({data, loading}: {data: Series[]; loading: boolean}) {
       grid={{
         left: '0',
         right: '0',
-        top: '16px',
-        bottom: '8px',
+        top: '8px',
+        bottom: '0',
       }}
       disableMultiAxis
       definedAxisTicks={4}
       stacked
       isLineChart
-      showLegend
-      chartColors={themes.charts.getColorPalette(2)}
+      chartColors={chartColors ?? themes.charts.getColorPalette(2)}
+      disableXAxis
     />
   );
 }
@@ -138,4 +246,11 @@ const ChartsContainer = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
+`;
+
+const FilterOptionsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

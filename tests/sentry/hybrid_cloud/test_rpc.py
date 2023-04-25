@@ -37,7 +37,7 @@ class RpcServiceTest(TestCase):
         target_region = _REGIONS[0]
 
         user = self.create_user()
-        organization = self.create_organization()
+        organization = self.create_organization(no_mapping=True)
         OrganizationMapping.objects.create(
             organization_id=organization.id,
             slug=organization.slug,
