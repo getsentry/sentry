@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {isAppleDevice, isMac} from '@react-aria/utils';
+import {isMac} from '@react-aria/utils';
 
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
@@ -13,6 +13,7 @@ import {
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 export interface HybridFilterProps<Value extends React.Key>
@@ -306,19 +307,6 @@ export function HybridFilter<Value extends React.Key>({
       onKeyUp={onKeyUp}
       {...selectProps}
     />
-  );
-}
-
-/**
- * Whether a key that modifies the selection behavior (ctrl/alt/shift) is being pressed.
- * Based on:
- * https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/selection/src/utils.ts
- */
-function isModifierKeyPressed(e: React.KeyboardEvent<HTMLDivElement>) {
-  return (
-    (isAppleDevice() ? e.altKey : e.ctrlKey) || // contiguous selection modifier
-    (isMac() ? e.metaKey : e.ctrlKey) || // ctrl key
-    e.shiftKey
   );
 }
 
