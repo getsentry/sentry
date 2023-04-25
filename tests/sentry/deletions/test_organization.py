@@ -30,6 +30,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 
 
@@ -104,7 +105,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             run_deletion(deletion.id)
 
         assert Organization.objects.filter(id=org2.id).exists()
