@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import enum
 import logging
 
-from sentry.incidents.models import IncidentStatus
+from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -92,7 +94,12 @@ def get_channel_id(organization, integration_id, name):
     return None
 
 
-def send_incident_alert_notification(action, incident, metric_value, new_status: IncidentStatus):
+def send_incident_alert_notification(
+    action: AlertRuleTriggerAction,
+    incident: Incident,
+    metric_value: int | None,
+    new_status: IncidentStatus,
+) -> None:
     from .card_builder import build_incident_attachment
 
     channel = action.target_identifier
