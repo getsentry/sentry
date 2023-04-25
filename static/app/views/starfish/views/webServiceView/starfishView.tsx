@@ -72,6 +72,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               data: series.data,
               seriesName: t('Failure Rate'),
               color: CHART_PALETTE[5][3],
+              silent: true,
             })
           );
 
