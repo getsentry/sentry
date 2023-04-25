@@ -67,6 +67,13 @@ export function HybridFilter<Value extends React.Key>({
   // Update `stagedValue` whenever the external `value` changes
   useEffect(() => setStagedValue(value), [value]);
 
+  /**
+   * Whether there are staged, uncommitted changes. Used to determine whether we should
+   * show the "Cancel"/"Apply" buttons.
+   */
+  const hasStagedChanges =
+    stagedValue.length !== value.length || !stagedValue.every(val => value.includes(val));
+
   const commit = useCallback(
     (val: Value[]) => {
       setStagedValue(val); // reset staged value
@@ -80,17 +87,6 @@ export function HybridFilter<Value extends React.Key>({
   const commitStagedChanges = useCallback(
     () => commit(stagedValue),
     [commit, stagedValue]
-  );
-
-  /**
-   * Whether there are staged, uncommitted changes. Used to determine whether we should
-   * show the "Cancel"/"Apply" buttons.
-   */
-  const hasStagedChanges = useMemo(
-    () =>
-      stagedValue.length !== value.length ||
-      !stagedValue.every(val => value.includes(val)),
-    [value, stagedValue]
   );
 
   const toggleOption = useCallback(
