@@ -48,15 +48,15 @@ function DetailsTab({item, startTimestampMs}: TabProps) {
 
   return (
     <SectionList>
-      <ExpandoSection title={t('General')}>
+      <SectionItem title={t('General')}>
         {keyValueTablOrNotFound(data, t('Missing request details'))}
-      </ExpandoSection>
-      <ExpandoSection title={t('Request Headers')}>
+      </SectionItem>
+      <SectionItem title={t('Request Headers')}>
         {keyValueTablOrNotFound(item.data.request?.headers, t('Headers not captured'))}
-      </ExpandoSection>
-      <ExpandoSection title={t('Response Headers')}>
+      </SectionItem>
+      <SectionItem title={t('Response Headers')}>
         {keyValueTablOrNotFound(item.data.request?.headers, t('Headers not captured'))}
-      </ExpandoSection>
+      </SectionItem>
     </SectionList>
   );
 }
@@ -66,12 +66,12 @@ function RequestTab({item}: TabProps) {
 
   return (
     <SectionList>
-      <ExpandoSection title={t('Query String Parameters')}>
+      <SectionItem title={t('Query String Parameters')}>
         {objectInspectorOrNotFound(queryParams, t('Query Params not found'))}
-      </ExpandoSection>
-      <ExpandoSection title={t('Request Payload')}>
+      </SectionItem>
+      <SectionItem title={t('Request Payload')}>
         {objectInspectorOrNotFound(item.data?.request?.body, t('Request Body not found'))}
-      </ExpandoSection>
+      </SectionItem>
     </SectionList>
   );
 }
@@ -79,12 +79,12 @@ function RequestTab({item}: TabProps) {
 function ResponseTab({item}: TabProps) {
   return (
     <SectionList>
-      <ExpandoSection title={t('Response Body')}>
+      <SectionItem title={t('Response Body')}>
         {objectInspectorOrNotFound(
           item.data?.response?.body,
           t('Response body not found')
         )}
-      </ExpandoSection>
+      </SectionItem>
     </SectionList>
   );
 }
@@ -132,14 +132,6 @@ const SectionList = styled('dl')`
 `;
 
 const SectionTitle = styled('dt')`
-  ${p => p.theme.overflowEllipsis};
-  text-transform: capitalize;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
-  color: ${p => p.theme.headingColor};
-  background: ${p => p.theme.background};
-  line-height: ${p => p.theme.text.lineHeightBody};
-
   margin-top: ${space(1)};
   &:first-child {
     margin-top: 0;
@@ -155,42 +147,37 @@ const SectionData = styled('dd')`
   }
 `;
 
-const IconWrapper = styled('span')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(1)};
-  flex-shrink: 0;
-`;
-
-const ExpandoTitle = styled('button')`
-  border: 0;
+const ToggleButton = styled('button')`
   background: ${p => p.theme.background};
+  border: 0;
   color: ${p => p.theme.headingColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 600;
+  line-height: ${p => p.theme.text.lineHeightBody};
 
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: ${space(1)};
 
-  padding: ${space(0.5)} 0;
+  padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} 0;
 
   :hover {
     background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
-function ExpandoSection({title, children}: {children: ReactNode; title: string}) {
+function SectionItem({title, children}: {children: ReactNode; title: string}) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
     <Fragment>
       <SectionTitle>
-        <ExpandoTitle aria-label={t('toggle section')} onClick={() => setIsOpen(!isOpen)}>
+        <ToggleButton aria-label={t('toggle section')} onClick={() => setIsOpen(!isOpen)}>
           {title}
-          <IconWrapper>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
-          </IconWrapper>
-        </ExpandoTitle>
+          <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+        </ToggleButton>
       </SectionTitle>
       <SectionData>{isOpen ? children : null}</SectionData>
     </Fragment>
