@@ -1163,6 +1163,34 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
+    @with_feature("organizations:mute-alerts")
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
+    def test_dont_notify_digest_snoozed(self, notify):
+        """Test that a digest for an alert snoozed by user is not sent."""
+        project = self.project
+        timestamp = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
+            project_id=project.id,
+        )
+
+        rule = project.rule_set.all()[0]
+        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        digest = build_digest(
+            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+        )[0]
+
+        with self.tasks():
+            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+
+        assert notify.call_count == 0
+        assert len(mail.outbox) == 0
+
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async, notify):
@@ -1259,7 +1287,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         digests.enabled.return_value = True
 
         event = self.store_event(data={}, project_id=self.project.id)
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(project=self.project)
 
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
@@ -1276,7 +1304,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
             project_id=self.project.id,
         )
         event = event.for_group(event.groups[0])
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(project=self.project)
 
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)

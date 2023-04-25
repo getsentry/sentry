@@ -119,6 +119,7 @@ def get_participants_by_event(
     target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
     target_identifier: int | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
+    rules: Sequence[Rule] | None = None,
 ) -> Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]]:
     """
     This is probably the slowest part in sending digests because we do a lot of
@@ -132,6 +133,7 @@ def get_participants_by_event(
             target_identifier=target_identifier,
             event=event,
             fallthrough_choice=fallthrough_choice,
+            rules=rules,
         )
         for event in get_event_from_groups_in_digest(digest)
     }
