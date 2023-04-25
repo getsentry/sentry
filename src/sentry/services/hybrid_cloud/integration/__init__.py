@@ -329,6 +329,13 @@ class IntegrationService(RpcService):
         int_provider: "IntegrationProvider" = integrations.get(provider)
         return feature in int_provider.features
 
+    @rpc_method
+    @abstractmethod
+    def send_msteams_incident_alert_notification(
+        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
+    ) -> None:
+        raise NotImplementedError
+
 
 integration_service: IntegrationService = cast(
     IntegrationService, IntegrationService.create_delegation()

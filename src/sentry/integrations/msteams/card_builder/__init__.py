@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Dict, Mapping, Sequence, Union
 
 from sentry.incidents.models import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
@@ -36,7 +36,7 @@ def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
     metric_value: int | None = None,
-) -> Mapping[str, Any]:
+) -> Dict[str, Any]:
     data = incident_attachment_info(incident, new_status, metric_value)
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.msteams import MsTeamsClient
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
@@ -12,6 +13,7 @@ from sentry.services.hybrid_cloud.integration import (
     RpcOrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
+from sentry.shared_integrations.exceptions import ApiError
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -303,3 +305,13 @@ class DatabaseBackedIntegrationService(IntegrationService):
             set_grace_period_end_null=set_grace_period_end_null,
         )
         return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
+
+    def send_msteams_incident_alert_notification(
+        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
+    ) -> None:
+        integration = Integration.objects.get(id=integration_id)
+        client = MsTeamsClient(integration)
+        try:
+            client.send_card(channel, attachment)
+        except ApiError:
+            logger.info("rule.fail.msteams_post", exc_info=True)
