@@ -6,7 +6,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import EndpointTable from 'sentry/views/starfish/views/webServiceView/failureDetailView/failureDetailTable';
+import EndpointTable from 'sentry/views/starfish/views/webServiceView/failureDetailPanel/failureDetailTable';
 
 export default function FailureDetailView() {
   const location = useLocation();
