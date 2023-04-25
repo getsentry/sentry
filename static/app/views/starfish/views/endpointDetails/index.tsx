@@ -85,7 +85,10 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     description: row.description,
     transactionName: null,
   });
-  const tableQuery = getEndpointDetailTableQuery(row.description);
+  const tableQuery = getEndpointDetailTableQuery({
+    description: row.description,
+    transactionName: null,
+  });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
