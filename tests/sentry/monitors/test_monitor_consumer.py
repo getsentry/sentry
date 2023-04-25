@@ -78,7 +78,7 @@ class MonitorConsumerTest(TestCase):
         StoreMonitorCheckInStrategyFactory().create_with_partitions(commit, {partition: 0}).submit(
             Message(
                 BrokerValue(
-                    KafkaPayload(b"fake-key", msgpack.packb(wrapper), [(b"sdk", b"1.0")]),
+                    KafkaPayload(b"fake-key", msgpack.packb(wrapper)),
                     partition,
                     1,
                     datetime.now(),
