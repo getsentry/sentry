@@ -13,7 +13,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {createProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
 import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
@@ -72,14 +71,16 @@ export function CreateProjectsFooter({
 
       if (!createProjectForPlatform) {
         const platform = selectedFramework ? selectedFramework : selectedPlatform;
+
         setClientState({
           platformToProjectIdMap: clientState.platformToProjectIdMap,
           selectedPlatform: platform,
           state: 'projects_selected',
           url: 'setup-docs/',
         });
+
         trackAnalytics('growth.onboarding_set_up_your_project', {
-          platform: selectedPlatform as unknown as PlatformKey,
+          platform: selectedPlatform.key,
           organization,
         });
 
@@ -90,16 +91,16 @@ export function CreateProjectsFooter({
       try {
         addLoadingMessage(t('Creating project'));
 
-        const responses = await createProject(
+        const response = await createProject({
           api,
-          organization.slug,
-          teams[0].slug,
-          createProjectForPlatform.key,
-          createProjectForPlatform.key,
-          {
+          orgSlug: organization.slug,
+          team: teams[0].slug,
+          platform: createProjectForPlatform.key,
+          name: createProjectForPlatform.key,
+          options: {
             defaultRules: true,
-          }
-        );
+          },
+        });
 
         const nextState: OnboardingState = {
           platformToProjectIdMap: clientState.platformToProjectIdMap,
@@ -107,15 +108,19 @@ export function CreateProjectsFooter({
           state: 'projects_selected',
           url: 'setup-docs/',
         };
-        responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
+
+        nextState.platformToProjectIdMap[createProjectForPlatform.key] =
+          createProjectForPlatform.key;
+
         setClientState(nextState);
 
-        responses.forEach(data => ProjectsStore.onCreateSuccess(data, organization.slug));
+        ProjectsStore.onCreateSuccess(response, organization.slug);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
-          platform: selectedPlatform as unknown as PlatformKey,
+          platform: selectedPlatform.key,
           organization,
         });
+
         clearIndicators();
         setTimeout(() => onComplete(createProjectForPlatform));
       } catch (err) {
