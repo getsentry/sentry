@@ -16,20 +16,35 @@ import {
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {getUniqueTransactionCountQuery} from 'sentry/views/starfish/views/spanSummary/queries';
+import {
+  getSidebarAggregatesQuery,
+  getSidebarSeriesQuery,
+  getUniqueTransactionCountQuery,
+} from 'sentry/views/starfish/views/spanSummary/queries';
 
-export default function Sidebar({description, transactionName}) {
+export default function Sidebar({
+  spanGroupOperation,
+  groupId,
+  description,
+  transactionName,
+}) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const seriesQuery = getEndpointDetailSeriesQuery({
+  const {getSeriesQuery, getAggregatesQuery} = getQueries(spanGroupOperation);
+  const module = spanGroupOperation;
+  const seriesQuery = getSeriesQuery({
     description,
     transactionName,
     datetime: pageFilter.selection.datetime,
+    groupId,
+    module,
   });
-  const aggregatesQuery = getEndpointDetailTableQuery({
+  const aggregatesQuery = getAggregatesQuery({
     description,
     transactionName,
     datetime: pageFilter.selection.datetime,
+    groupId,
+    module,
   });
 
   // This is supposed to a metrics span query that fetches aggregate metric data
@@ -155,17 +170,22 @@ export default function Sidebar({description, transactionName}) {
           chartColor={chartColors[2]}
         />
       </FlexFullWidthItem>
-      <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Error Rate')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          {formatPercentage(failure_rate)}
-        </SidebarItemValueContainer>
-        <SidebarChart
-          series={errorRateSeries}
-          isLoading={isLoadingSeriesData}
-          chartColor={chartColors[3]}
-        />
-      </FlexFullWidthItem>
+      {
+        // This could be better. Improve later.
+        spanGroupOperation === 'http.client' && (
+          <FlexFullWidthItem>
+            <SidebarItemHeader>{t('Error Rate')}</SidebarItemHeader>
+            <SidebarItemValueContainer>
+              {formatPercentage(failure_rate)}
+            </SidebarItemValueContainer>
+            <SidebarChart
+              series={errorRateSeries}
+              isLoading={isLoadingSeriesData}
+              chartColor={chartColors[3]}
+            />
+          </FlexFullWidthItem>
+        )
+      }
     </FlexContainer>
   );
 }
@@ -246,4 +266,22 @@ function queryDataToChartData(data: any) {
     });
   });
   return series;
+}
+
+function getQueries(spanGroupOperation: string) {
+  switch (spanGroupOperation) {
+    case 'db':
+    case 'cache':
+      return {
+        getSeriesQuery: getSidebarSeriesQuery,
+        getAggregatesQuery: getSidebarAggregatesQuery,
+      };
+    case 'http.client':
+      return {
+        getSeriesQuery: getEndpointDetailSeriesQuery,
+        getAggregatesQuery: getEndpointDetailTableQuery,
+      };
+    default: // TODO: Need a cleaner default case, but we should never end up here anyways
+      return {getSeriesQuery: () => '', getAggregatesQuery: () => ''};
+  }
 }

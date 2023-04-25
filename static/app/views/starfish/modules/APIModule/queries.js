@@ -75,6 +75,7 @@ export const getEndpointDetailSeriesQuery = ({
   description,
   transactionName,
   datetime,
+  groupId,
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
@@ -86,16 +87,24 @@ export const getEndpointDetailSeriesQuery = ({
      failure_count / count as failure_rate
      FROM spans_experimental_starfish
      WHERE module = 'http'
-     AND description = '${description}'
+     ${description ? `AND description = '${description}'` : ''}
+     ${groupId ? `AND group_id = '${groupId}'` : ''}
      ${transactionName ? `AND transaction = '${transactionName}'` : ''}
-    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+     ${
+       start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''
+     }
+     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
      GROUP BY interval
      ORDER BY interval asc
   `;
 };
 
-export const getEndpointDetailTableQuery = ({description, transactionName, datetime}) => {
+export const getEndpointDetailTableQuery = ({
+  description,
+  transactionName,
+  datetime,
+  groupId,
+}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
     SELECT transaction,
@@ -108,7 +117,8 @@ export const getEndpointDetailTableQuery = ({description, transactionName, datet
     count(DISTINCT transaction_id) as count_unique_transaction_id
     FROM spans_experimental_starfish
     WHERE module = 'http'
-    AND description = '${description}'
+    ${description ? `AND description = '${description}'` : ''}
+    ${groupId ? `AND group_id = '${groupId}'` : ''}
     ${transactionName ? `AND transaction = '${transactionName}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}

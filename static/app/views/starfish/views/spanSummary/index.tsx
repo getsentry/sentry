@@ -121,6 +121,7 @@ export default function SpanSummary({location, params}: Props) {
     return <div>ERROR</div>;
   }
   const spanDescription = spanSampleData?.[0]?.description;
+  const spanDomain = spanSampleData?.[0]?.domain;
 
   const spanGroupOperation = data?.[0]?.span_operation;
 
@@ -148,6 +149,7 @@ export default function SpanSummary({location, params}: Props) {
                     data={data}
                     spanGroupOperation={spanGroupOperation}
                     spanDescription={spanDescription}
+                    spanDomain={spanDomain}
                   />
                 )}
                 {areSpanSamplesLoading ? (
@@ -183,7 +185,9 @@ export default function SpanSummary({location, params}: Props) {
               </MainSpanSummaryContainer>
               <SidebarContainer>
                 <Sidebar
-                  description={spanDescription}
+                  groupId={groupId}
+                  spanGroupOperation={spanGroupOperation}
+                  description={null}
                   transactionName={transactionName}
                 />
               </SidebarContainer>
@@ -280,10 +284,11 @@ function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
 function SpanGroupKeyValueList({
   spanDescription,
   spanGroupOperation,
-  data,
+  spanDomain,
 }: {
   data: any; // TODO: type this
   spanDescription: string;
+  spanDomain?: string;
   spanGroupOperation?: string;
 }) {
   switch (spanGroupOperation) {
@@ -292,9 +297,8 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
-            {key: 'desc', value: spanDescription, subject: 'Description'},
-            {key: 'count', value: data?.[0]?.count, subject: 'Count'},
-            {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
+            {key: 'desc', value: spanDescription, subject: 'Full Query'},
+            {key: 'domain', value: spanDomain, subject: 'Table Columns'},
           ]}
           shouldSort={false}
         />
@@ -303,9 +307,8 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
-            {key: 'desc', value: spanDescription, subject: 'Description'},
-            {key: 'count', value: data?.[0]?.count, subject: 'Count'},
-            {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
+            {key: 'desc', value: spanDescription, subject: 'URL'},
+            {key: 'domain', value: spanDomain, subject: 'Domain'},
           ]}
           shouldSort={false}
         />
