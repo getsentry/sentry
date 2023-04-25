@@ -424,7 +424,13 @@ CSP_REPORT_ONLY = (
             )
             + (("'unsafe-eval'",) if ENVIRONMENT == "development" else ()),
         ),
-        ("font-src", ("'self'", "data:")),
+        (
+            "font-src",
+            (
+                "'self'",
+                "data:",
+            ),
+        ),
         (
             "connect-src",
             ("'self'",) + (("ws://127.0.0.1:8000",) if ENVIRONMENT == "development" else ()),
@@ -434,10 +440,24 @@ CSP_REPORT_ONLY = (
         ("base-uri", ("'none'",)),
         (
             "style-src",
-            ("'self'", "'unsafe-inline",),
+            (
+                "'self'",
+                "'unsafe-inline",
+            ),
         ),
-        ("img-src", ("'self'", "data:")),
-        # ("report-uri", ()),
+        (
+            "img-src",
+            (
+                "'self'",
+                "data:",
+            ),
+        ),
+        (
+            "report-uri",
+            (
+                "https://self-hosted.getsentry.net/api/6/security/?sentry_key=558f83a7208e4ab0a6e5646b3a5759af",
+            ),
+        ),
     ),
 )
 
