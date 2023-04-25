@@ -91,7 +91,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
     if reason is GroupInboxReason.NEW:
         group.substatus = GroupSubStatus.NEW
-        group.save()
+        group.save(update_fields=["substatus"])
     else:
         # Ignore new issues, too many events
         inbox_in.send_robust(
