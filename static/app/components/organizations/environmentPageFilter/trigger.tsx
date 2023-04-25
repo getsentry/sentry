@@ -26,9 +26,10 @@ function BaseEnvironmentPageFilterTrigger(
   const envsToShow =
     value[0]?.length + value[1]?.length <= 23 ? value.slice(0, 2) : value.slice(0, 1);
 
-  const label = isAllEnvironmentsSelected
-    ? t('All Envs')
-    : envsToShow.map(env => trimSlug(env, 25)).join(', ');
+  // e.g. "production, staging"
+  const enumeratedLabel = envsToShow.map(env => trimSlug(env, 25)).join(', ');
+
+  const label = isAllEnvironmentsSelected ? t('All Envs') : enumeratedLabel;
 
   // Number of environments that aren't listed in the trigger label
   const remainingCount = isAllEnvironmentsSelected ? 0 : value.length - envsToShow.length;
