@@ -8,6 +8,7 @@ from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import Group, Project
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 
 
 @region_silo_endpoint
@@ -46,7 +47,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
                 action=action,
                 fields=data,
                 uri=uri,
-                user=request.user,
+                user=serialize_rpc_user(request.user),
             )
         except Exception:
             return Response({"error": "Error communicating with Sentry App service"}, status=400)
