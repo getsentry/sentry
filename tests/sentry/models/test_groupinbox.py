@@ -12,6 +12,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 @region_silo_test(stable=True)
@@ -23,10 +24,12 @@ class GroupInboxTestCase(TestCase):
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
         assert not inbox_in.called
+
         add_group_to_inbox(self.group, GroupInboxReason.REGRESSION)
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
+        assert self.group.substatus == GroupSubStatus.REGRESSED
         assert inbox_in.called
 
     @patch("sentry.signals.inbox_out.send_robust")

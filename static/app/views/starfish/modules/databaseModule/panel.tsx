@@ -1,6 +1,9 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import keyBy from 'lodash/keyBy';
+import merge from 'lodash/merge';
+import values from 'lodash/values';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
@@ -24,6 +27,7 @@ type TransactionListDataRow = {
   group_id: string;
   p75: number;
   transaction: string;
+  uniqueEvents: number;
 };
 
 const COLUMN_ORDER = [
@@ -33,12 +37,20 @@ const COLUMN_ORDER = [
     width: 400,
   },
   {
+    key: 'p75',
+    name: 'p75',
+  },
+  {
     key: 'count',
     name: 'Count',
   },
   {
-    key: 'p75',
-    name: 'p75',
+    key: 'frequency',
+    name: 'Frequency',
+  },
+  {
+    key: 'uniqueEvents',
+    name: 'Total Events',
   },
 ];
 
@@ -78,6 +90,21 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
       ORDER BY interval asc
    `;
 
+  const EVENT_COUNT_QUERY = `
+  SELECT transaction, count(DISTINCT transaction_id) as uniqueEvents
+    FROM spans_experimental_starfish
+    WHERE transaction
+      IN (SELECT transaction FROM spans_experimental_starfish WHERE module='db' AND description='${row.description}')
+    GROUP BY transaction
+   `;
+
+  // const INCLUDED_EVENT_COUNT_QUERY = `
+  // SELECT transaction, count(DISTINCT transaction_id) as included_event_count
+  //   FROM spans_experimental_starfish
+  //   WHERE module='db' AND description='${row.description}'
+  //   GROUP BY transaction
+  //  `;
+
   const {isLoading, data: graphData} = useQuery({
     queryKey: ['dbQueryDetailsGraph', row.group_id],
     queryFn: () =>
@@ -86,16 +113,33 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     initialData: [],
   });
 
-  const {isLoading: isTableLoading, data: tableData} = useQuery({
-    queryKey: ['dbQueryDetailsTable', row.group_id],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
+  const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
+    {
+      queryKey: ['dbQueryDetailsTable', row.description],
+      queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
+      retry: true,
+      initialData: [],
+    }
+  );
+
+  const {isLoading: isEventCountLoading, data: eventCountData} = useQuery({
+    queryKey: ['dbQueryDetailsEventCount', row.description],
+    queryFn: () => fetch(`${HOST}/?query=${EVENT_COUNT_QUERY}`).then(res => res.json()),
     retry: true,
     initialData: [],
   });
 
-  // console.log(row.desc);
+  const isDataLoading = isLoading || isTableLoading || isEventCountLoading;
+
+  const mergedTableData = values(
+    merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
+  ).filter((data: Partial<TransactionListDataRow>) => !!data.count && !!data.p75);
 
   const [countSeries, p75Series] = throughputQueryToChartData(graphData);
+  const percentileSeries: Series = {
+    seriesName: 'p75()',
+    data: tableData.map(tableRow => ({name: tableRow.transaction, value: tableRow.p75})),
+  };
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return <span>{column.name}</span>;
@@ -105,7 +149,12 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     column: GridColumnHeader,
     dataRow: TransactionListDataRow
   ): React.ReactNode => {
-    if (column.key === 'transaction') {
+    if (column.key === 'frequency') {
+      return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
+    }
+    const {key} = column;
+    const value = dataRow[key];
+    if (key === 'transaction') {
       return (
         <Link
           to={`/starfish/span/${encodeURIComponent(row.group_id)}:${encodeURIComponent(
@@ -116,10 +165,10 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
         </Link>
       );
     }
-    if (column.key === 'p75') {
-      return <span>{dataRow[column.key].toFixed(2)}ms</span>;
+    if (key === 'p75') {
+      return <span>{value?.toFixed(2)}ms</span>;
     }
-    return <span>{dataRow[column.key]}</span>;
+    return <span>{value}</span>;
   };
 
   return (
@@ -142,7 +191,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
             data={[countSeries]}
             start=""
             end=""
-            loading={isLoading}
+            loading={isDataLoading}
             utc={false}
             disableMultiAxis
             stacked
@@ -160,7 +209,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
             data={[p75Series]}
             start=""
             end=""
-            loading={isLoading}
+            loading={isDataLoading}
             utc={false}
             chartColors={[theme.charts.getColorPalette(4)[3]]}
             disableMultiAxis
@@ -171,9 +220,27 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
           />
         </FlexRowItem>
       </FlexRowContainer>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>{t('Percentiles')}</SubHeader>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={[percentileSeries]}
+            start=""
+            end=""
+            loading={isLoading}
+            utc={false}
+            disableMultiAxis
+            stacked
+            isBarChart
+            hideYAxisSplitLine
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
       <GridEditable
-        isLoading={isTableLoading}
-        data={tableData}
+        isLoading={isDataLoading}
+        data={mergedTableData}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
@@ -221,6 +288,7 @@ const FlexRowItem = styled('div')`
 
 const FormattedCode = styled('div')`
   padding: ${space(1)};
+  margin-bottom: ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   overflow-x: auto;
