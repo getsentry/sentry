@@ -11,7 +11,7 @@ import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {analytics} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -95,10 +95,10 @@ export function EnvironmentPageFilter({
     async (newValue: string[]) => {
       onChange?.(newValue);
 
-      analytics('environmentselector.update', {
+      trackAnalytics('environmentselector.update', {
         count: newValue.length,
         path: getRouteStringFromRoutes(router.routes),
-        org_id: parseInt(organization.id, 10),
+        organization,
       });
 
       // Wait for the menu to close before calling onChange
@@ -114,19 +114,19 @@ export function EnvironmentPageFilter({
 
   const onToggle = useCallback(
     newValue => {
-      analytics('environmentselector.toggle', {
+      trackAnalytics('environmentselector.toggle', {
         action: newValue.length > value.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(router.routes),
-        org_id: parseInt(organization.id, 10),
+        organization,
       });
     },
     [value, router.routes, organization]
   );
 
   const onReplace = useCallback(() => {
-    analytics('environmentselector.direct_selection', {
+    trackAnalytics('environmentselector.direct_selection', {
       path: getRouteStringFromRoutes(router.routes),
-      org_id: parseInt(organization.id, 10),
+      organization,
     });
   }, [router.routes, organization]);
 
