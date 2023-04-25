@@ -130,7 +130,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
 
   const mergedTableData = values(
     merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
-  );
+  ).filter((data: Partial<TransactionListDataRow>) => !!data.count && !!data.p75);
 
   const [countSeries, p75Series] = throughputQueryToChartData(graphData);
 
@@ -145,7 +145,9 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     if (column.key === 'queriesPerEvent') {
       return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
     }
-    if (column.key === 'transaction') {
+    const {key} = column;
+    const value = dataRow[key];
+    if (key === 'transaction') {
       return (
         <Link
           to={`/starfish/span/${encodeURIComponent(row.description)}:${encodeURIComponent(
@@ -156,10 +158,10 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
         </Link>
       );
     }
-    if (column.key === 'p75') {
-      return <span>{dataRow[column.key].toFixed(2)}ms</span>;
+    if (key === 'p75') {
+      return <span>{value?.toFixed(2)}ms</span>;
     }
-    return <span>{dataRow[column.key]}</span>;
+    return <span>{value}</span>;
   };
 
   return (
