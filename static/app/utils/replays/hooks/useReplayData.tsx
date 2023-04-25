@@ -95,7 +95,7 @@ function useReplayData({
   errorsPerPage = 50,
   segmentsPerPage = 100,
 }: Options): Result {
-  const {projectSlug, replayId} = parseReplaySlug(replaySlug);
+  const replayId = parseReplayId(replaySlug);
   const projects = useProjects();
 
   const api = useApi();
@@ -105,25 +105,23 @@ function useReplayData({
   const [errors, setErrors] = useState<ReplayError[]>([]);
   const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
+  const projectSlug = useMemo(() => {
+    if (!replayRecord) {
+      return null;
+    }
+    return projects.projects.find(p => p.id === replayRecord.project_id)?.slug;
+  }, [replayRecord, projects.projects]);
+
   // Fetch every field of the replay. We're overfetching, not every field is used
   const fetchReplay = useCallback(async () => {
-    const response = await api.requestPromise(
-      makeFetchReplayApiUrl(orgSlug, projectSlug, replayId)
-    );
+    const response = await api.requestPromise(makeFetchReplayApiUrl(orgSlug, replayId));
     const mappedRecord = mapResponseToReplayRecord(response.data);
     setReplayRecord(mappedRecord);
     setState(prev => ({...prev, fetchingReplay: false}));
-  }, [api, orgSlug, projectSlug, replayId]);
+  }, [api, orgSlug, replayId]);
 
   const fetchAttachments = useCallback(async () => {
-    if (!replayRecord) {
-      return;
-    }
-    const replayRecordProjectSlug = projects.projects.find(
-      p => p.id === replayRecord.project_id
-    )?.slug;
-
-    if (!replayRecordProjectSlug) {
+    if (!replayRecord || !projectSlug) {
       return;
     }
 
@@ -140,7 +138,7 @@ function useReplayData({
     await Promise.allSettled(
       cursors.map(cursor => {
         const promise = api.requestPromise(
-          `/projects/${orgSlug}/${replayRecordProjectSlug}/replays/${replayRecord.id}/recording-segments/`,
+          `/projects/${orgSlug}/${projectSlug}/replays/${replayRecord.id}/recording-segments/`,
           {
             query: {
               download: true,
@@ -156,7 +154,7 @@ function useReplayData({
       })
     );
     setState(prev => ({...prev, fetchingAttachments: false}));
-  }, [segmentsPerPage, api, orgSlug, replayRecord, projects.projects]);
+  }, [segmentsPerPage, api, orgSlug, replayRecord, projectSlug]);
 
   const fetchErrors = useCallback(async () => {
     if (!replayRecord) {
@@ -247,32 +245,18 @@ function useReplayData({
 // this makes having project in the `replaySlug` obsolete
 // we must keep this url schema for now for backward compat but we should remove it at some point
 // TODO: remove support for projectSlug in replay url?
-function parseReplaySlug(replaySlug: string) {
+function parseReplayId(replaySlug: string) {
   const maybeProjectSlugAndReplayId = replaySlug.split(':');
   if (maybeProjectSlugAndReplayId.length === 2) {
-    const [projectSlug, replayId] = maybeProjectSlugAndReplayId;
-    return {
-      projectSlug,
-      replayId,
-    };
+    return maybeProjectSlugAndReplayId[1];
   }
 
   // if there is no projectSlug then we assume we just have the replayId
   // all other cases would be a malformed url
-  return {
-    projectSlug: null,
-    replayId: maybeProjectSlugAndReplayId[0],
-  };
+  return maybeProjectSlugAndReplayId[0];
 }
 
-function makeFetchReplayApiUrl(
-  orgSlug: string,
-  projectSlug: string | null,
-  replayId: string
-) {
-  if (projectSlug) {
-    return `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/`;
-  }
+function makeFetchReplayApiUrl(orgSlug: string, replayId: string) {
   return `/organizations/${orgSlug}/replays/${replayId}/`;
 }
 

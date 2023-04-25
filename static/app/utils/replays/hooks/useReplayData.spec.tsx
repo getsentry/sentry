@@ -61,7 +61,7 @@ describe('useReplayData', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/`,
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
 
@@ -103,7 +103,7 @@ describe('useReplayData', () => {
     ];
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/`,
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
     const mockedSegmentsCall1 = MockApiClient.addMockResponse({
@@ -171,7 +171,7 @@ describe('useReplayData', () => {
     ];
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/`,
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
     const mockedErrorsCall1 = MockApiClient.addMockResponse({
@@ -230,7 +230,7 @@ describe('useReplayData', () => {
 
     const mockedReplayCall = MockApiClient.addMockResponse({
       asyncDelay: 1,
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/`,
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
 
