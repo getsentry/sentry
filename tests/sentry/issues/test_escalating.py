@@ -235,11 +235,16 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             )
             group = event.group
 
-        # The group had 2 events yesterday
-        one_day_ago_mins = 24 * 60
+        # The group had 2 events yesterday, 10 mins before midnight
+        # Tests that events are aggregated in the daily count query by date, not by 24 hr periods
+        now = datetime.now()
+        mins_since_ten_mins_before_today = (
+            int((now - now.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds() / 60)
+            + 10
+        )
         for i in range(3, 1, -1):
             event = self._load_event_for_group(
-                fingerprint="group-query", minutes_ago=one_day_ago_mins + i
+                fingerprint="group-query", minutes_ago=mins_since_ten_mins_before_today + i
             )
             group = event.group
 
