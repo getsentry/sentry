@@ -1853,6 +1853,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # a valid file to cache
             return None, FetcherSource.NONE
         else:
+            # In case the fetch_by_url call returns None, it means we weren't able to fetch the data or that the
+            # request failed in the past, and we shouldn't retry it.
+            if result is None:
+                return None, FetcherSource.NONE
+
             sourceview = SourceView.from_bytes(result.body)
             self.fetch_by_url_sourceviews[url] = sourceview
 
