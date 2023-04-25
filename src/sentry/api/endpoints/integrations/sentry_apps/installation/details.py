@@ -13,7 +13,7 @@ from sentry.mediators import InstallationNotifier
 from sentry.mediators.sentry_app_installations import Updater
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.functional import extract_lazy_object
 
@@ -26,8 +26,8 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
     def delete(self, request: Request, installation) -> Response:
         installation = SentryAppInstallation.objects.get(id=installation.id)
         user = extract_lazy_object(request.user)
-        if isinstance(user, User):
-            user = serialize_rpc_user(user)
+        if isinstance(user, RpcUser):
+            user = User.objects.get(id=user.id)
         with transaction.atomic():
             try:
                 InstallationNotifier.run(install=installation, user=user, action="deleted")

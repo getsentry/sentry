@@ -8,7 +8,6 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import AuditLogEntry
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -94,7 +93,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             event=audit_log.get_event_id("SENTRY_APP_UNINSTALL")
         ).exists()
         run.assert_called_once_with(
-            install=self.orm_installation2, user=serialize_rpc_user(self.user), action="deleted"
+            install=self.orm_installation2, user=self.user, action="deleted"
         )
         record.assert_called_with(
             "sentry_app.uninstalled",
