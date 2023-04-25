@@ -36,12 +36,12 @@ const COLUMN_ORDER = [
     width: 400,
   },
   {
-    key: 'count',
-    name: 'Count',
-  },
-  {
     key: 'p75',
     name: 'p75',
+  },
+  {
+    key: 'count',
+    name: 'Count',
   },
   {
     key: 'queriesPerEvent',
