@@ -462,7 +462,9 @@ def check_tag(tag_key: str, expected_value: str) -> None:
     from what we want to set it to.
     """
     with configure_scope() as scope:
-        if scope._tags and tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+        # First check that the tag exists, because though it's true that "no value yet" doesn't
+        # match "some new value," we don't want to flag that as a mismatch.
+        if tag_key in scope._tags and scope._tags[tag_key] != expected_value:
             scope.set_tag("possible_mistag", True)
             scope.set_tag(f"scope_bleed.{tag_key}", True)
             extra = {
