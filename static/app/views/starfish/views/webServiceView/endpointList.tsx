@@ -147,13 +147,7 @@ class EndpointList extends Component<Props, State> {
           <TrendingDuration trendDirection={trendDirection}>
             {tct('([sign][delta])', {
               sign: deltaValue >= 0 ? '+' : '-',
-              delta: (
-                <Duration
-                  seconds={Math.abs(deltaValue) / 1000}
-                  fixedDigits={2}
-                  abbreviation
-                />
-              ),
+              delta: formatPercentage(deltaValue, 2),
             })}
           </TrendingDuration>
         </NumberContainer>
@@ -187,7 +181,7 @@ class EndpointList extends Component<Props, State> {
       Object.keys(tableData.data[0]).forEach(col => {
         if (
           col.startsWith(
-            'equation|percentile_range(transaction.duration,0.50,lessOrEquals'
+            'equation|(percentile_range(transaction.duration,0.50,lessOrEquals'
           )
         ) {
           deltaColumnMap['p50()'] = col;
@@ -284,6 +278,7 @@ class EndpointList extends Component<Props, State> {
         (col: TableColumn<React.ReactText>) =>
           !col.name.startsWith('count_miserable') &&
           !col.name.startsWith('percentile_range') &&
+          !col.name.startsWith('(percentile_range') &&
           col.name !== 'project_threshold_config' &&
           col.name !== 'project' &&
           col.name !== 'http.method' &&
