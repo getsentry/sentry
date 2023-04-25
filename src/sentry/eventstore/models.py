@@ -795,8 +795,6 @@ class EventSubjectTemplateData:
         elif name == "title":
             if getattr(self.event, "occurrence", None):
                 return self.event.occurrence.issue_title
-            # Once occurrences are associated with perf issues then we'll start using issue title.
-            # Confirm that's ok.
             elif self.event.group and self.event.group.issue_category == GroupCategory.PERFORMANCE:
                 return self.event.group.issue_type.description
             else:
