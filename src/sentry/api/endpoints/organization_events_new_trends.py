@@ -104,6 +104,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 query_column=trend_function,
                 params=params,
                 query=query,
+                zerofill_results=False,
             )
 
             # handle empty response
