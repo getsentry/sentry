@@ -1134,6 +1134,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-ui": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
+    # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
+    "organizations:issue-states-auto-transition-new-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project

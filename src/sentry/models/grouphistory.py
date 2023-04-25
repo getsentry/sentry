@@ -118,6 +118,7 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
     ActivityType.SET_RESOLVED_IN_COMMIT.value: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
     ActivityType.SET_RESOLVED_IN_RELEASE.value: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
     ActivityType.SET_UNRESOLVED.value: GroupHistoryStatus.UNRESOLVED,
+    ActivityType.ONGOING: GroupHistoryStatus.UNRESOLVED,
 }
 
 
@@ -222,7 +223,7 @@ def record_group_history_from_activity_type(
     """
     status = ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS.get(activity_type, None)
 
-    # Substatus-based GroupHistory should overritde activity-based GroupHistory since it's more specific.
+    # Substatus-based GroupHistory should override activity-based GroupHistory since it's more specific.
     if group.substatus:
         status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
         status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
