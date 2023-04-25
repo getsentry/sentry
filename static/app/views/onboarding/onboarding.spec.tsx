@@ -132,7 +132,7 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/${nextJsProject.platform}/`,
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/javascript-nextjs-with-error-monitoring/`,
       body: null,
     });
 
