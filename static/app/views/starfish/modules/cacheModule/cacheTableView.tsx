@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 const HOST = 'http://localhost:8080';
 
 export type DataRow = {
-  desc: string;
+  description: string;
   epm: number;
   p75: number;
   total_time: number;
@@ -24,7 +24,7 @@ type Props = {
 
 const COLUMN_ORDER = [
   {
-    key: 'desc',
+    key: 'description',
     name: 'Query',
     width: 600,
   },
@@ -52,7 +52,7 @@ export default function CacheModuleView({
   transaction,
   setSelectedRow,
 }: Props) {
-  const CACHE_TABLE_QUERY = `select description as desc, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
+  const CACHE_TABLE_QUERY = `select description, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
   uniq(transaction) as transactions,
   sum(exclusive_time) as total_time
     from default.spans_experimental_starfish
@@ -62,10 +62,10 @@ export default function CacheModuleView({
   `;
 
   const renderBodyCell = (column: GridColumnHeader, row: DataRow) => {
-    if (column.key === 'desc') {
+    if (column.key === 'description') {
       return (
         <Link
-          to={`/starfish/cache/?query=${row.desc}`}
+          to={`/starfish/cache/?query=${row.description}`}
           aria-label={t('See query summary')}
           onClick={() => setSelectedRow(row)}
         >
