@@ -18,7 +18,6 @@ from sentry.models.groupinbox import GroupInbox
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.types.group import GroupSubStatus
-from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
 
 
@@ -193,16 +192,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert group_escalating.substatus == GroupSubStatus.ESCALATING
             assert group_escalating.status == GroupStatus.UNRESOLVED
             assert GroupInbox.objects.filter(group=group_escalating).exists()
-
-            # Test cache
-            fetch_escalating_forecast = EscalatingGroupForecast.fetch(
-                group_escalating.project.id, group_escalating.id
-            )
-            if fetch_escalating_forecast:
-                assert cache.get(f"escalating-forecast:{group_escalating.id}") == (
-                    fetch_escalating_forecast.date_added,
-                    fetch_escalating_forecast.forecast,
-                )
 
     def test_not_escalating_issue(self) -> None:
         """Test when an archived until escalating issue is not escalating"""

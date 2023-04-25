@@ -28,7 +28,6 @@ from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.types.group import GroupSubStatus
-from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -214,21 +213,12 @@ def get_group_daily_count(project_id: int, group_id: int) -> int:
 
 def is_escalating(group: Group) -> bool:
     """Return boolean depending on if the group is escalating or not"""
-    forecast_cache_key = f"escalating-forecast:{group.id}"
-    escalating_forecast = cache.get(forecast_cache_key)
     date_now = datetime.now().date()
-    if escalating_forecast is None:
-        escalating_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
-        escalating_forecast = (
-            escalating_forecast.date_added,
-            escalating_forecast.forecast,
-        )
-
-        # Set the cache to be valid until the next weekly escalating forecast task is run
-        forecast_cache_duration = (
-            (escalating_forecast[0] + timedelta(days=ONE_WEEK_DURATION)).date() - date_now
-        ).total_seconds()
-        cache.set(forecast_cache_key, escalating_forecast, forecast_cache_duration)
+    escalating_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
+    escalating_forecast = (
+        escalating_forecast.date_added,
+        escalating_forecast.forecast,
+    )
 
     # Check if current event occurance is greater than forecast for today's date
     group_daily_count = get_group_daily_count(group.project.id, group.id)
