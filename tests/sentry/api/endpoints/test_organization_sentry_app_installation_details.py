@@ -8,6 +8,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import AuditLogEntry
 from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -80,8 +81,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 404
 
 
-# TODO: this can be stable=True after InstallationNotifier refactor.
-@control_silo_test()
+@control_silo_test(stable=True)
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @responses.activate
     @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
@@ -93,7 +93,9 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_UNINSTALL")
         ).exists()
-        run.assert_called_once_with(install=self.installation2, user=self.user, action="deleted")
+        run.assert_called_once_with(
+            install=self.orm_installation2, user=serialize_rpc_user(self.user), action="deleted"
+        )
         record.assert_called_with(
             "sentry_app.uninstalled",
             user_id=self.user.id,
