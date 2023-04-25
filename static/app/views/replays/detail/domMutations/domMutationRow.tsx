@@ -141,10 +141,12 @@ const List = styled('div')`
 const Row = styled('div')`
   display: flex;
   flex-direction: row;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Title = styled('span')<{hasOccurred?: boolean}>`
   color: ${p => (p.hasOccurred ? p.theme.gray400 : p.theme.gray300)};
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
   text-transform: capitalize;

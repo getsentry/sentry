@@ -40,7 +40,6 @@ const StyledButton = styled('button')`
   background: transparent;
   border: none;
   color: inherit;
-  font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
 
   display: flex;

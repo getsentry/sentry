@@ -12,6 +12,7 @@ type Props = {
 };
 
 const TABS = {
+  details: t('Details'),
   request: t('Request'),
   response: t('Response'),
 };
@@ -20,7 +21,7 @@ export type TabKey = keyof typeof TABS;
 
 function NetworkRequestTabs({className, underlined = true}: Props) {
   const {pathname, query} = useLocation();
-  const {getParamValue, setParamValue} = useUrlParams('n_detail_tab', 'request');
+  const {getParamValue, setParamValue} = useUrlParams('n_detail_tab', 'details');
   const activeTab = getParamValue();
 
   return (
