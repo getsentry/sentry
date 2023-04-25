@@ -3,7 +3,6 @@ from typing import Optional, Sequence, Union
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import OrgId
 
 #: Special integer used to represent a string missing from the indexer
 STRING_NOT_FOUND = -1
@@ -17,20 +16,20 @@ class MetricIndexNotFound(InvalidParams):
 
 
 def reverse_resolve_tag_value(
-    use_case_key: UseCaseKey, org_id: OrgId, index: Union[int, str, None], weak: bool = False
+    use_case_id: UseCaseKey, org_id: int, index: Union[int, str, None], weak: bool = False
 ) -> Optional[str]:
     if isinstance(index, str) or index is None:
         return index
     else:
         if weak:
-            return reverse_resolve_weak(use_case_key, org_id, index)
+            return reverse_resolve_weak(use_case_id, org_id, index)
         else:
-            return reverse_resolve(use_case_key, org_id, index)
+            return reverse_resolve(use_case_id, org_id, index)
 
 
-def reverse_resolve(use_case_key: UseCaseKey, org_id: OrgId, index: int) -> str:
+def reverse_resolve(use_case_id: UseCaseKey, org_id: int, index: int) -> str:
     assert index > 0
-    resolved = indexer.reverse_resolve(use_case_key, org_id, index)
+    resolved = indexer.reverse_resolve(use_case_id, org_id, index)
     # The indexer should never return None for integers > 0:
     if resolved is None:
         raise MetricIndexNotFound()
@@ -38,7 +37,7 @@ def reverse_resolve(use_case_key: UseCaseKey, org_id: OrgId, index: int) -> str:
     return resolved
 
 
-def reverse_resolve_weak(use_case_key: UseCaseKey, org_id: int, index: int) -> Optional[str]:
+def reverse_resolve_weak(use_case_id: UseCaseKey, org_id: int, index: int) -> Optional[str]:
     """
     Resolve an index value back to a string, special-casing 0 to return None.
 
@@ -49,51 +48,51 @@ def reverse_resolve_weak(use_case_key: UseCaseKey, org_id: int, index: int) -> O
     if index == TAG_NOT_SET:
         return None
 
-    return reverse_resolve(use_case_key, org_id, index)
+    return reverse_resolve(use_case_id, org_id, index)
 
 
 def resolve(
-    use_case_key: UseCaseKey,
-    org_id: OrgId,
+    use_case_id: UseCaseKey,
+    org_id: int,
     string: str,
 ) -> int:
-    resolved = indexer.resolve(use_case_key, org_id, string)
+    resolved = indexer.resolve(use_case_id, org_id, string)
     if resolved is None:
         raise MetricIndexNotFound(f"Unknown string: {string!r}")
 
     return resolved
 
 
-def resolve_tag_key(use_case_key: UseCaseKey, org_id: OrgId, string: str) -> str:
-    resolved = resolve(use_case_key, org_id, string)
-    assert use_case_key in (UseCaseKey.RELEASE_HEALTH, UseCaseKey.RELEASE_HEALTH)
-    if use_case_key == UseCaseKey.RELEASE_HEALTH:
+def resolve_tag_key(use_case_id: UseCaseKey, org_id: int, string: str) -> str:
+    resolved = resolve(use_case_id, org_id, string)
+    assert use_case_id in (UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH)
+    if use_case_id == UseCaseKey.PERFORMANCE:
         return f"tags_raw[{resolved}]"
     else:
         return f"tags[{resolved}]"
 
 
-def resolve_tag_value(use_case_key: UseCaseKey, org_id: OrgId, string: str) -> Union[str, int]:
+def resolve_tag_value(use_case_id: UseCaseKey, org_id: int, string: str) -> Union[str, int]:
     assert isinstance(string, str)
-    assert use_case_key in (UseCaseKey.RELEASE_HEALTH, UseCaseKey.RELEASE_HEALTH)
-    if use_case_key == UseCaseKey.RELEASE_HEALTH:
+    assert use_case_id in (UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH)
+    if use_case_id == UseCaseKey.PERFORMANCE:
         return string
-    return resolve_weak(use_case_key, org_id, string)
+    return resolve_weak(use_case_id, org_id, string)
 
 
 def resolve_tag_values(
-    use_case_key: UseCaseKey, org_id: OrgId, strings: Sequence[str]
+    use_case_id: UseCaseKey, org_id: int, strings: Sequence[str]
 ) -> Sequence[Union[str, int]]:
     rv = []
     for string in strings:
-        resolved = resolve_tag_value(use_case_key, org_id, string)
+        resolved = resolve_tag_value(use_case_id, org_id, string)
         if resolved != STRING_NOT_FOUND:
             rv.append(resolved)
 
     return rv
 
 
-def resolve_weak(use_case_key: UseCaseKey, org_id: OrgId, string: str) -> int:
+def resolve_weak(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
     """
     A version of `resolve` that returns -1 for missing values.
 
@@ -101,7 +100,7 @@ def resolve_weak(use_case_key: UseCaseKey, org_id: OrgId, string: str) -> int:
     useful to make the WHERE-clause "impossible" with `WHERE x = -1` instead of
     explicitly handling that exception.
     """
-    resolved = indexer.resolve(use_case_key, org_id, string)
+    resolved = indexer.resolve(use_case_id, org_id, string)
     if resolved is None:
         return STRING_NOT_FOUND
 
@@ -109,7 +108,7 @@ def resolve_weak(use_case_key: UseCaseKey, org_id: OrgId, string: str) -> int:
 
 
 def resolve_many_weak(
-    use_case_key: UseCaseKey, org_id: OrgId, strings: Sequence[str]
+    use_case_id: UseCaseKey, org_id: int, strings: Sequence[str]
 ) -> Sequence[int]:
     """
     Resolve multiple values at once, omitting missing ones. This is useful in
@@ -117,7 +116,7 @@ def resolve_many_weak(
     """
     rv = []
     for string in strings:
-        resolved = resolve_weak(use_case_key, org_id, string)
+        resolved = resolve_weak(use_case_id, org_id, string)
         if resolved != STRING_NOT_FOUND:
             rv.append(resolved)
 
