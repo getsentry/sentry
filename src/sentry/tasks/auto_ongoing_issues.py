@@ -8,7 +8,6 @@ from sentry import features
 from sentry.issues.ongoing import transition_new_to_ongoing
 from sentry.models import Group, GroupInbox, GroupInboxReason, Organization, Project
 from sentry.tasks.base import instrumented_task
-from sentry.utils.query import RangeQuerySetWrapper
 
 
 @instrumented_task(
