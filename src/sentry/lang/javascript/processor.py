@@ -2109,6 +2109,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             def filtered_frame(frame: dict) -> dict:
                 new_frame = {key: value for key, value in frame.items() if key in interesting_keys}
+
                 ds = get_path(frame, "data", "sourcemap")
                 # The python code does some trimming of the `data.sourcemap` prop to
                 # 150 characters with a trailing `...`, so replicate this here to avoid some
@@ -2116,6 +2117,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 if ds is not None and len(ds) > 150:
                     ds = ds[:147] + "..."
                 new_frame["data.sourcemap"] = ds
+
+                # The code in `get_event_preprocessors` backfills the `module`.
+                # Contrary to its name, this runs *after* the stacktrace processor,
+                # so we want to backfill this here for all the frames as well:
+                abs_path = new_frame.get("abs_path")
+                if (
+                    new_frame.get("module") is None
+                    and abs_path
+                    and abs_path.startswith(("http:", "https:", "webpack:", "app:"))
+                ):
+                    new_frame["module"] = generate_module(abs_path)
+
                 return new_frame
 
             different_frames = []
@@ -2133,13 +2146,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     symbolicator_stacktrace, python_stacktrace["frames"]
                 ):
                     symbolicator_frame = filtered_frame(symbolicator_frame)
-
-                    # apply the same `module` logic as `generate_modules` (in Plugin/preprocess_event)
-                    # to all the symbolicator frames so we can properly A/B test them
-                    abs_path = symbolicator_frame.get("abs_path")
-                    if abs_path and abs_path.startswith(("http:", "https:", "webpack:", "app:")):
-                        symbolicator_frame["module"] = generate_module(abs_path)
-
                     python_frame = filtered_frame(python_frame)
 
                     if symbolicator_frame != python_frame:
