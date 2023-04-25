@@ -21,7 +21,8 @@ type EndpointDetailBodyProps = {
 
 type TransactionListDataRow = {
   count: number;
-  p50: number;
+  group_id: string;
+  p75: number;
   transaction: string;
 };
 
@@ -36,8 +37,8 @@ const COLUMN_ORDER = [
     name: 'Count',
   },
   {
-    key: 'p50',
-    name: 'p50',
+    key: 'p75',
+    name: 'p75',
   },
 ];
 
@@ -46,7 +47,7 @@ export default function QueryDetail({
   onClose,
 }: Partial<EndpointDetailBodyProps> & {onClose: () => void}) {
   return (
-    <Detail detailKey={row?.desc} onClose={onClose}>
+    <Detail detailKey={row?.description} onClose={onClose}>
       {row && <QueryDetailBody row={row} />}
     </Detail>
   );
@@ -57,10 +58,10 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   const location = useLocation();
 
   const TABLE_QUERY = `
-    SELECT transaction, count() AS count, quantile(0.5)(exclusive_time) as p50
+    SELECT transaction, count() AS count, quantile(0.75)(exclusive_time) as p75
     FROM spans_experimental_starfish
     WHERE module = 'db'
-    AND description = '${row.desc}'
+    AND group_id = '${row.group_id}'
     GROUP BY transaction
     ORDER BY count DESC
     LIMIT 10
@@ -68,25 +69,25 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
 
   const GRAPH_QUERY = `SELECT
       toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-      quantile(0.5)(exclusive_time) as p50,
+      quantile(0.75)(exclusive_time) as p75,
       count() as count
       FROM spans_experimental_starfish
       WHERE module = 'db'
-      AND description = '${row.desc}'
+      AND group_id = '${row.group_id}'
       GROUP BY interval
       ORDER BY interval asc
    `;
 
   const {isLoading, data: graphData} = useQuery({
-    queryKey: ['dbQueryDetailsGraph', row.desc],
+    queryKey: ['dbQueryDetailsGraph', row.group_id],
     queryFn: () =>
-      fetch(`${HOST}/?query=${GRAPH_QUERY}?format=sql`).then(res => res.json()),
+      fetch(`${HOST}/?query=${GRAPH_QUERY}&format=sql`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
   const {isLoading: isTableLoading, data: tableData} = useQuery({
-    queryKey: ['dbQueryDetailsTable', row.desc],
+    queryKey: ['dbQueryDetailsTable', row.group_id],
     queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
     retry: true,
     initialData: [],
@@ -94,7 +95,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
 
   // console.log(row.desc);
 
-  const [countSeries, p50Series] = throughputQueryToChartData(graphData);
+  const [countSeries, p75Series] = throughputQueryToChartData(graphData);
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return <span>{column.name}</span>;
@@ -107,13 +108,16 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     if (column.key === 'transaction') {
       return (
         <Link
-          to={`/starfish/span/${encodeURIComponent(row.desc)}:${encodeURIComponent(
+          to={`/starfish/span/${encodeURIComponent(row.group_id)}:${encodeURIComponent(
             dataRow.transaction
           )}`}
         >
           {dataRow[column.key]}
         </Link>
       );
+    }
+    if (column.key === 'p75') {
+      return <span>{dataRow[column.key].toFixed(2)}ms</span>;
     }
     return <span>{dataRow[column.key]}</span>;
   };
@@ -131,7 +135,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Throughput')}</SubHeader>
-          <SubSubHeader>123</SubSubHeader>
+          <SubSubHeader>{row.epm.toFixed(3)}</SubSubHeader>
           <Chart
             statsPeriod="24h"
             height={140}
@@ -148,12 +152,12 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
           />
         </FlexRowItem>
         <FlexRowItem>
-          <SubHeader>{t('Duration (P50)')}</SubHeader>
-          <SubSubHeader>{'123ms'}</SubSubHeader>
+          <SubHeader>{t('Duration (P75)')}</SubHeader>
+          <SubSubHeader>{row.p75.toFixed(3)}ms</SubSubHeader>
           <Chart
             statsPeriod="24h"
             height={140}
-            data={[p50Series]}
+            data={[p75Series]}
             start=""
             end=""
             loading={isLoading}
@@ -185,12 +189,12 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
 
 const throughputQueryToChartData = (data: any): Series[] => {
   const countSeries: Series = {seriesName: 'count()', data: [] as any[]};
-  const p50Series: Series = {seriesName: 'p50()', data: [] as any[]};
-  data.forEach(({count, p50, interval}: any) => {
+  const p75Series: Series = {seriesName: 'p75()', data: [] as any[]};
+  data.forEach(({count, p75, interval}: any) => {
     countSeries.data.push({value: count, name: interval});
-    p50Series.data.push({value: p50, name: interval});
+    p75Series.data.push({value: p75, name: interval});
   });
-  return [countSeries, p50Series];
+  return [countSeries, p75Series];
 };
 
 const SubHeader = styled('h3')`

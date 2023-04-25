@@ -38,7 +38,7 @@ export default function CacheDetail({
   onClose,
 }: Partial<CacheDetailBodyProps> & {onClose: () => void}) {
   return (
-    <Detail detailKey={row?.desc} onClose={onClose}>
+    <Detail detailKey={row?.description} onClose={onClose}>
       {row && <EndpointDetailBody row={row} />}
     </Detail>
   );
@@ -52,7 +52,7 @@ function EndpointDetailBody({row}: CacheDetailBodyProps) {
     SELECT transaction, count() AS count, quantile(0.5)(exclusive_time) as p50
     FROM spans_experimental_starfish
     WHERE module = 'cache'
-    AND description = '${row.desc.replaceAll("'", "\\'")}'
+    AND description = '${row.description.replaceAll("'", "\\'")}'
     GROUP BY transaction
     ORDER BY count DESC
     LIMIT 10
@@ -64,20 +64,20 @@ function EndpointDetailBody({row}: CacheDetailBodyProps) {
       count() as count
       FROM spans_experimental_starfish
       WHERE module = 'cache'
-      AND description = '${row.desc.replaceAll("'", "\\'")}'
+      AND description = '${row.description.replaceAll("'", "\\'")}'
       GROUP BY interval
       ORDER BY interval asc
    `;
 
   const {isLoading, data: graphData} = useQuery({
-    queryKey: ['dbQueryDetailsGraph', row.desc],
+    queryKey: ['dbQueryDetailsGraph', row.description],
     queryFn: () => fetch(`${HOST}/?query=${GRAPH_QUERY}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
   const {isLoading: isTableLoading, data: tableData} = useQuery({
-    queryKey: ['dbQueryDetailsTable', row.desc],
+    queryKey: ['dbQueryDetailsTable', row.description],
     queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
     retry: true,
     initialData: [],
@@ -90,7 +90,7 @@ function EndpointDetailBody({row}: CacheDetailBodyProps) {
       <h2>{t('Command detail')}</h2>
       <p>{t('Detailed summary of redis span.')}</p>
       <SubHeader>{t('Command')}</SubHeader>
-      <pre>{row.desc}</pre>
+      <pre>{row.description}</pre>
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Throughput')}</SubHeader>

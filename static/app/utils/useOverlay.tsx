@@ -36,19 +36,21 @@ const maxSize: Modifier<'maxSize', PreventOverflowOptions> = {
     const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
     const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
 
-    // If there is enough space on the other side, then allow the popper to flip
-    // without constraining its size
-    const maxHeight = Math.max(
-      height - overflow[heightSide] - y,
-      -overflow[flippedHeightSide]
-    );
+    const maxHeight = ['left', 'right'].includes(basePlacement)
+      ? // If the main axis is horizontal, then maxHeight = the boundary's height
+        height - overflow.top - overflow.bottom
+      : // Otherwise, set max height unless there is enough space on the other side to
+        // flip the popper to
+        Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
 
     // If there is enough space on the other side, then allow the popper to flip
     // without constraining its size
-    const maxWidth = Math.max(
-      width - overflow[widthSide] - x,
-      -overflow[flippedWidthSide]
-    );
+    const maxWidth = ['top', 'bottom'].includes(basePlacement)
+      ? // If the main axis is vertical, then maxWidth = the boundary's width
+        width - overflow.left - overflow.right
+      : // Otherwise, set max width unless there is enough space on the other side to
+        // flip the popper to
+        Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
 
     state.modifiersData[name] = {
       width: maxWidth,
@@ -150,6 +152,13 @@ function useOverlay({
         },
       },
       {
+        name: 'flip',
+        options: {
+          // Only flip on main axis
+          flipVariations: false,
+        },
+      },
+      {
         name: 'offset',
         options: {
           offset: [0, offset],
@@ -229,6 +238,7 @@ function useOverlay({
   return {
     isOpen: openState.isOpen,
     state: openState,
+    update: popperUpdate,
     triggerRef,
     triggerProps: {
       ref: setTriggerElement,
