@@ -9,7 +9,7 @@ class IssueLinkCreator(Mediator):
     action = Param((str,))
     fields = Param(object)
     uri = Param((str,))
-    user = Param("sentry.models.User")
+    user = Param("sentry.services.hybrid_cloud.user.RpcUser")
 
     def call(self):
         self._verify_action()

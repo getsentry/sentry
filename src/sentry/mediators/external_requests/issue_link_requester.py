@@ -46,7 +46,7 @@ class IssueLinkRequester(Mediator):
     uri = Param((str,))
     group = Param("sentry.models.Group")
     fields = Param(object)
-    user = Param("sentry.models.User")
+    user = Param("sentry.services.hybrid_cloud.user.RpcUser")
     action = Param((str,))
 
     def call(self):

@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppInstallationSerializer
 from sentry.mediators import InstallationNotifier
 from sentry.mediators.sentry_app_installations import Updater
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.functional import extract_lazy_object
 
@@ -18,7 +19,7 @@ from sentry.utils.functional import extract_lazy_object
 @control_silo_endpoint
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
     def get(self, request: Request, installation) -> Response:
-        return Response(serialize(installation))
+        return Response(serialize(SentryAppInstallation.objects.get(id=installation.id)))
 
     def delete(self, request: Request, installation) -> Response:
         with transaction.atomic():
@@ -29,7 +30,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 sentry_sdk.capture_exception(exc)
-            deletions.exec_sync(installation)
+            deletions.exec_sync(SentryAppInstallation.objects.get(id=installation.id))
             create_audit_entry(
                 request=request,
                 organization_id=installation.organization_id,
@@ -51,9 +52,11 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            updated_installation = Updater.run(
+            Updater.run(
                 user=request.user, sentry_app_installation=installation, status=result.get("status")
             )
 
-            return Response(serialize(updated_installation, request.user))
+            return Response(
+                serialize(SentryAppInstallation.objects.get(id=installation.id), request.user)
+            )
         return Response(serializer.errors, status=400)
