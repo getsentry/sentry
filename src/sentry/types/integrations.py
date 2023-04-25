@@ -1,8 +1,8 @@
-from enum import IntEnum
+from enum import Enum
 from typing import Optional, Sequence, Set
 
 
-class ExternalProviders(IntEnum):
+class ExternalProviders(Enum):
     UNUSED_GH = 0
     UNUSED_GL = 1
 
@@ -17,7 +17,7 @@ class ExternalProviders(IntEnum):
 
     @property
     def name(self) -> Optional[str]:
-        return get_provider_name(self)
+        return get_provider_name(self.value)
 
 
 EXTERNAL_PROVIDERS = {

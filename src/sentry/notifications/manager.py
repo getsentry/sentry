@@ -108,9 +108,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         with configure_scope() as scope:
             with transaction.atomic():
                 setting, created = self.get_or_create(
-                    provider=provider,
-                    type=type,
-                    scope_type=scope_type,
+                    provider=provider.value,
+                    type=type.value,
+                    scope_type=scope_type.value,
                     scope_identifier=scope_identifier,
                     target_id=target_id,
                     defaults=defaults,
