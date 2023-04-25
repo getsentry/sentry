@@ -98,6 +98,15 @@ class OrganizationMemberMappingService(RpcService):
     ) -> None:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def delete_by_org_id(
+        self,
+        *,
+        organization_id: int,
+    ) -> None:
+        pass
+
 
 def impl_with_db() -> OrganizationMemberMappingService:
     from sentry.services.hybrid_cloud.organizationmember_mapping.impl import (

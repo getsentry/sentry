@@ -68,6 +68,15 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             organizationmember_id=organizationmember_id,
         ).delete()
 
+    def delete_by_org_id(
+        self,
+        *,
+        organization_id: int,
+    ) -> None:
+        OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id,
+        ).delete()
+
     def close(self) -> None:
         pass
 
