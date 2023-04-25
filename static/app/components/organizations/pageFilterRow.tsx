@@ -60,8 +60,8 @@ function PageFilterRow({
 const checkboxInputStyles = css`
   /* Make the hitbox of the checkbox a bit larger */
   top: -${space(2)};
-  left: -${space(0.25)};
-  width: 32px;
+  left: -${space(0.5)};
+  width: 34px;
   height: 44px;
 `;
 
