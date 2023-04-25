@@ -22,7 +22,7 @@ from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCac
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.utils import metrics
 
 __all__ = ["PostgresIndexer"]
@@ -262,13 +262,12 @@ class PGStringIndexerV2(StringIndexer):
         return string
 
     def _get_metric_path_key(self, use_case_ids: Collection[UseCaseID]) -> UseCaseKey:
-        if UseCaseID.SESSIONS in use_case_ids:
-            if len(use_case_ids) > 1:
-                raise ValueError(
-                    f"The set of use_case_ids: {use_case_ids} maps to multiple metric path keys"
-                )
-            return UseCaseKey.RELEASE_HEALTH
-        return UseCaseKey.PERFORMANCE
+        metrics_paths = {METRIC_PATH_MAPPING[use_case_id] for use_case_id in use_case_ids}
+        if len(metrics_paths) > 1:
+            raise ValueError(
+                f"The set of use_case_ids: {use_case_ids} maps to multiple metric path keys"
+            )
+        return next(iter(metrics_paths))
 
     def _get_table(self, use_case_ids: Collection[UseCaseID]) -> IndexerTable:
         return TABLE_MAPPING[self._get_metric_path_key(use_case_ids)]
