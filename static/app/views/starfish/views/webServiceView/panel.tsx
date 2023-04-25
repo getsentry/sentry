@@ -2,17 +2,18 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 // For demo purposes. Delete later if necessary
 export default function FailureDetailPanel({
   onClose,
-  spikeObject,
+  spike,
 }: {
   onClose: () => void;
-  spikeObject: any;
+  spike: FailureSpike;
 }) {
   return (
-    <Detail detailKey={spikeObject} onClose={onClose}>
+    <Detail detailKey={spike as any} onClose={onClose}>
       {<QueryDetailBody />}
     </Detail>
   );

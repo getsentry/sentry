@@ -28,6 +28,7 @@ import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
+import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
 
@@ -42,10 +43,7 @@ type BasePerformanceViewProps = {
 export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect} = props;
   const theme = useTheme();
-  const [selectedSpike, setSelectedSpike] = useState<{
-    endTimestamp: Date;
-    startTimestamp: Date;
-  } | null>(null);
+  const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -115,10 +113,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <FailureDetailPanel
-        onClose={() => setSelectedSpike(null)}
-        spikeObject={selectedSpike}
-      />
+      <FailureDetailPanel onClose={() => setSelectedSpike(null)} spike={selectedSpike} />
       <ModuleLinkButton type={ModuleButtonType.CACHE} />
       <StyledRow minSize={200}>
         <ChartsContainer>
