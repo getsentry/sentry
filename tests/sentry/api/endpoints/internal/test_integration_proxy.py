@@ -31,7 +31,7 @@ def create_cgi_header_name(header: str):
     return f"{HttpHeaders.HTTP_PREFIX}{header.replace('-','_')}"
 
 
-@control_silo_test()
+@control_silo_test(stable=True)
 class InternalIntegrationProxyEndpointTest(APITestCase):
     endpoint = "sentry-api-0-internal-integration-proxy"
     secret = "hush-hush-im-invisible"
