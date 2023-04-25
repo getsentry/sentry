@@ -1793,7 +1793,6 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
     group.substatus = GroupSubStatus.REGRESSED
-    group.save()
 
     if is_regression and release:
         resolution = None

@@ -339,7 +339,7 @@ class GroupTest(TestCase, SnubaTestCase):
         for status, substatus in status_substatus_pairs:
             self.create_group(status=status, substatus=substatus)
 
-        assert logger.exception.call_count == 3
+        assert logger.exception.call_count == len(status_substatus_pairs)
 
 
 @region_silo_test
