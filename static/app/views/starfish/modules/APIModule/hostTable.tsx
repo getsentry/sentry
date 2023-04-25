@@ -22,6 +22,7 @@ type Props = {
 
 type HostTableRow = {
   duration: Series;
+  failure_rate: Series;
   host: string;
 };
 
@@ -29,11 +30,16 @@ const COLUMN_ORDER = [
   {
     key: 'host',
     name: 'Host',
-    width: 600,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'duration',
     name: 'Response Time',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'failure_rate',
+    name: 'Failure Rate',
     width: COL_WIDTH_UNDEFINED,
   },
 ];
@@ -69,9 +75,23 @@ export default function HostTable({location}: Props) {
         endDate
       );
 
+      const failureRateSeries: Series = zeroFillSeries(
+        {
+          seriesName: host,
+          data: dataByHost[host].map(datum => ({
+            name: datum.interval,
+            value: datum.failure_rate,
+          })),
+        },
+        moment.duration(12, 'hours'),
+        startDate,
+        endDate
+      );
+
       return {
         host,
         duration: durationSeries,
+        failure_rate: failureRateSeries,
       };
     })
     .filter(row => {
@@ -104,6 +124,15 @@ function renderBodyCell(column: GridColumnHeader, row: HostTableRow): React.Reac
   }
 
   if (column.key === 'duration') {
+    const series: Series = row[column.key];
+    if (series) {
+      return <Sparkline series={series} />;
+    }
+
+    return 'Loading';
+  }
+
+  if (column.key === 'failure_rate') {
     const series: Series = row[column.key];
     if (series) {
       return <Sparkline series={series} />;
