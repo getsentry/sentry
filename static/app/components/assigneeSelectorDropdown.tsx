@@ -329,17 +329,9 @@ export class AssigneeSelectorDropdown extends Component<
     const filteredSessionUser: ItemsBeforeFilter = members.filter(
       member => member.value.assignee.id === sessionUser.id
     );
-    // filter out session user from Suggested
-    const filteredSuggestedAssignees: ItemsBeforeFilter = suggestedAssignees.filter(
-      assignee => {
-        return assignee.value.type === 'member'
-          ? assignee.value.assignee.id !== sessionUser.id
-          : assignee;
-      }
-    );
 
     const assigneeIds = new Set(
-      filteredSuggestedAssignees.map(
+      suggestedAssignees.map(
         assignee => `${assignee.value.type}:${assignee.value.assignee.id}`
       )
     );
@@ -358,18 +350,18 @@ export class AssigneeSelectorDropdown extends Component<
     const dropdownItems: ItemsBeforeFilter = [
       {
         label: this.renderDropdownGroupLabel(t('Everyone Else')),
-        hideGroupLabel: !filteredSuggestedAssignees.length,
+        hideGroupLabel: !suggestedAssignees.length,
         id: 'everyone-else',
         items: [...filteredSessionUser, ...filteredTeams, ...filteredMembers],
       },
     ];
 
-    if (suggestedAssignees.length || filteredSessionUser.length) {
+    if (suggestedAssignees.length) {
       // Add suggested assingees
       dropdownItems.unshift({
         label: this.renderDropdownGroupLabel(t('Suggested Assignees')),
         id: 'suggested-list',
-        items: filteredSuggestedAssignees,
+        items: suggestedAssignees,
       });
     }
 
