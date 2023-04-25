@@ -14,6 +14,7 @@ import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {getUniqueTransactionCountQuery} from 'sentry/views/starfish/views/spanSummary/queries';
 
@@ -73,9 +74,16 @@ export default function Sidebar({description, transactionName}) {
     count_unique_transaction_id,
   } = aggregateData[0] || {};
 
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+
   const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
     queryDataToChartData(seriesData).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'))
+      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
     );
 
   // NOTE: This almost always calculates to 0.00% when using the scraped data.

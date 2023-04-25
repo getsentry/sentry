@@ -105,7 +105,6 @@ export default function APIModuleView({location, onSelect}: Props) {
     });
   });
 
-  // TODO: Some duplicate code here with queries.js
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
   const startTime =
     num && unit
