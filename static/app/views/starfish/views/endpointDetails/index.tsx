@@ -83,14 +83,16 @@ export default function EndpointDetail({
 function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   const location = useLocation();
   const seriesQuery = getEndpointDetailSeriesQuery({
-    description: row.description,
+    description: null,
     transactionName: null,
     datetime: null,
+    groupId: row.group_id,
   });
   const tableQuery = getEndpointDetailTableQuery({
-    description: row.description,
+    description: null,
     transactionName: null,
     datetime: null,
+    groupId: row.group_id,
   });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
