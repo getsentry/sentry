@@ -17,7 +17,7 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
 
 
-def set_future(f):
+def set_future(f) -> Future:
     new_future = Future()
 
     if f.exception() is not None:
