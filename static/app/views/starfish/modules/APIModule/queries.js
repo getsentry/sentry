@@ -123,7 +123,7 @@ export const getSpanInTransactionQuery = (groupId, transactionName) => {
     SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
     FROM spans_experimental_starfish
     WHERE groupId = '${groupId}'
-    AND transaction = '${transactionName}'
+    ${transactionName ? `AND transaction = '${transactionName}'` : ''}
     GROUP BY span_operation
  `;
 };

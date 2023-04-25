@@ -131,13 +131,18 @@ export default function SpanSummary({location, params}: Props) {
                   <KeyValueList
                     data={[
                       {
+                        key: 'transaction',
+                        value: transactionName,
+                        subject: 'Transaction',
+                      },
+                      {
                         key: 'desc',
                         value: spanDescription,
                         subject: 'Description',
                       },
                       {key: 'count', value: data?.[0]?.count, subject: 'Count'},
                       {key: 'p50', value: data?.[0]?.p50, subject: 'p50'},
-                    ]}
+                    ].filter(Boolean)}
                     shouldSort={false}
                   />
                 )}
@@ -242,7 +247,7 @@ function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.Reac
 
 type SpanInTransactionSlug = {
   groupId: string;
-  transactionName: string;
+  transactionName?: string;
 };
 
 function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
@@ -252,7 +257,7 @@ function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
 
   const delimiterPosition = slug.lastIndexOf(':');
   if (delimiterPosition < 0) {
-    return undefined;
+    return {groupId: slug};
   }
 
   const groupId = slug.slice(0, delimiterPosition);
