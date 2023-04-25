@@ -45,7 +45,7 @@ describe('GroupActions', function () {
   });
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('render()', function () {
