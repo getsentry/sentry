@@ -124,7 +124,7 @@ export const getSpanInTransactionQuery = ({groupId, transactionName, datetime}) 
   return `
     SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
     FROM spans_experimental_starfish
-    WHERE groupId = '${groupId}'
+    WHERE group_id = '${groupId}'
     AND transaction = '${transactionName}'
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}

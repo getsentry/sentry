@@ -85,10 +85,12 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   const seriesQuery = getEndpointDetailSeriesQuery({
     description: row.description,
     transactionName: null,
+    datetime: null,
   });
   const tableQuery = getEndpointDetailTableQuery({
     description: row.description,
     transactionName: null,
+    datetime: null,
   });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
