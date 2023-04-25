@@ -84,9 +84,9 @@ class RegionMappingTest(TestCase):
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
 
-        organization = self.create_organization(name="test name")
+        organization = self.create_organization(name="test name", no_mapping=True)
         self.create_organization_mapping(
-            self.organization,
+            organization,
             **{
                 "slug": organization.slug,
                 "name": "test name",
@@ -107,8 +107,8 @@ class RegionMappingTest(TestCase):
         ):
             user = self.create_user()
             organization_service.add_organization_member(
-                organization_id=self.organization.id,
-                default_org_role=self.organization.default_role,
+                organization_id=organization.id,
+                default_org_role=organization.default_role,
                 user_id=user.id,
             )
             actual_regions = find_regions_for_user(user_id=user.id)
