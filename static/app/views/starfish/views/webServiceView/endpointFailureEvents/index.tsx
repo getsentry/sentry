@@ -8,7 +8,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import EventList from 'sentry/views/starfish/views/webServiceView/endpointFailureEvents/eventList';
-import IssueList from 'sentry/views/starfish/views/webServiceView/endpointFailureEvents/issueList';
+import IssueList from 'sentry/views/starfish/views/webServiceView/failureDetailPanel/issueList';
 
 type Props = {
   location: Location;
