@@ -450,7 +450,6 @@ def get_performance_issue_alert_subtitle(event: Event) -> str:
 def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
-    # Verify that we should prioritise `issue_title` over the description for perf issues
     if isinstance(event, GroupEvent) and event.occurrence is not None:
         issue_title: str = event.occurrence.issue_title
         return issue_title

@@ -45,8 +45,6 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
 
     else:
         group = getattr(obj, "group", obj)
-        # Confirm that we should prioritise occurrence.issue_title for perf events, over the
-        # description
         if isinstance(obj, GroupEvent) and obj.occurrence is not None:
             title = obj.occurrence.issue_title
         elif group.issue_category == GroupCategory.PERFORMANCE:
