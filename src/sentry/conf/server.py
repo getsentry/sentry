@@ -1141,12 +1141,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling aggregate flamegraph
-    "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
-    # Enable the profiling span previews
-    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Enable the sentry sample format response
