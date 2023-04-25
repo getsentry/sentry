@@ -419,6 +419,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         results = super().get_attrs(item_list, user, is_public)
         # XXX: Collapse hashes to one hash per group for now. Performance issues currently only have
         # a single hash, so this will work fine for the moment
+        # Assume that we don't need these once perf issues are generic? Check with dameli
         problems = get_problems(item_list)
         for event_problem in problems:
             if event_problem:
