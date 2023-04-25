@@ -361,6 +361,9 @@ class MonitorEnvironment(Model):
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
+    def get_audit_log_data(self):
+        return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
+
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
         from sentry.coreapi import insert_data_to_database_legacy
         from sentry.event_manager import EventManager
