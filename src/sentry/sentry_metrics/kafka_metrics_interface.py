@@ -1,4 +1,5 @@
 from concurrent.futures import Future
+from datetime import datetime
 from typing import Mapping, Optional, Sequence, Union
 
 from arroyo import Topic
@@ -43,7 +44,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Union[int, float],
-        timestamp: int,
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
@@ -60,7 +60,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "project_id": project_id,
             "name": build_mri(metric_name, "c", use_case_id, unit),
             "value": value,
-            "timestamp": timestamp,
+            "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": retention_days,
         }
@@ -79,7 +79,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Sequence[int],
-        timestamp: int,
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
@@ -96,7 +95,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "project_id": project_id,
             "name": build_mri(metric_name, "s", use_case_id, unit),
             "value": value,
-            "timestamp": timestamp,
+            "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": retention_days,
         }
@@ -115,7 +114,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Sequence[Union[int, float]],
-        timestamp: int,
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
@@ -131,7 +129,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "project_id": project_id,
             "name": build_mri(metric_name, "d", use_case_id, unit),
             "value": value,
-            "timestamp": timestamp,
+            "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": retention_days,
         }
