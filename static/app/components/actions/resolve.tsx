@@ -146,7 +146,7 @@ function ResolveActions({
       ? t('Set up release tracking in order to use this feature.')
       : '';
 
-    const onActionOrConfirm = onAction => {
+    const onActionOrConfirm = (onAction: () => void) => {
       openConfirmModal({
         bypass: !shouldConfirm,
         onConfirm: onAction,
