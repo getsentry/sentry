@@ -393,6 +393,7 @@ def get_send_to(
     recipients = determine_eligible_recipients(
         project, target_type, target_identifier, event, fallthrough_choice
     )
+
     if rules:
         rule_snoozes = RuleSnooze.objects.filter(Q(rule__in=rules))
         muted_user_ids = []
