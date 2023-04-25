@@ -50,11 +50,14 @@ function ProjectPageFilterTrigger({
       ? selectedProjects.slice(0, 2)
       : selectedProjects.slice(0, 1);
 
+  // e.g. "javascript, sentry"
+  const enumeratedLabel = projectsToShow.map(proj => trimSlug(proj.slug, 25)).join(', ');
+
   const label = isAllProjectsSelected
     ? t('All Projects')
     : isMyProjectsSelected
     ? t('My Projects')
-    : projectsToShow.map(proj => trimSlug(proj.slug, 25)).join(', ');
+    : enumeratedLabel;
 
   // Number of projects that aren't listed in the trigger label
   const remainingCount = isAllProjectsSelected
