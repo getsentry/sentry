@@ -118,7 +118,7 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
     ActivityType.SET_RESOLVED_IN_COMMIT.value: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
     ActivityType.SET_RESOLVED_IN_RELEASE.value: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
     ActivityType.SET_UNRESOLVED.value: GroupHistoryStatus.UNRESOLVED,
-    ActivityType.ONGOING: GroupHistoryStatus.UNRESOLVED,
+    ActivityType.AUTO_SET_ONGOING: GroupHistoryStatus.UNRESOLVED,
 }
 
 

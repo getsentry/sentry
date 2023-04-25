@@ -4,8 +4,9 @@ import pytz
 
 from sentry import features
 from sentry.issues.ongoing import transition_new_to_ongoing
-from sentry.models import GroupInbox, GroupInboxReason, Project
+from sentry.models import Group, GroupInboxReason, Project
 from sentry.tasks.base import instrumented_task
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 @instrumented_task(name="sentry.tasks.schedule_auto_transition", time_limit=75, soft_time_limit=60)
@@ -13,8 +14,8 @@ def schedule_auto_transition():
     now = datetime.now(tz=pytz.UTC)
     for project in Project.objects.filter(
         groupinbox__date_added__lte=now - timedelta(days=3),
-        groupinbox__reason=GroupInboxReason.NEW.value,
-    ):
+        groupinbox__reason__in=(GroupInboxReason.NEW.value, GroupInboxReason.REPROCESSED.value),
+    ).distinct():
         if features.has(
             "organizations:issue-states-auto-transition-new-ongoing", project.organization
         ):
@@ -31,7 +32,11 @@ def auto_transition_issues_new_to_ongoing(
 ) -> None:
     now = datetime.now(tz=pytz.UTC)
 
-    for group_inbox in GroupInbox.objects.filter(
-        project_id=project_id, date_added__lte=now - timedelta(days=3)
+    for group in RangeQuerySetWrapper(
+        Group.objects.filter(
+            groupinbox__project_id=project_id,
+            groupinbox__date_added__lte=now - timedelta(days=3),
+            groupinbox__reason__in=(GroupInboxReason.NEW.value, GroupInboxReason.REPROCESSED.value),
+        ).distinct()
     ):
-        transition_new_to_ongoing(group_inbox.group, group_inbox)
+        transition_new_to_ongoing(group)
