@@ -8,7 +8,7 @@ from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import METRIC_ID_MAPPING
 from sentry.sentry_metrics.utils import resolve_tag_value, resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
@@ -47,11 +47,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
     return indexer.record(
-        use_case_id=(
-            UseCaseID.SESSIONS
-            if use_case_id is UseCaseKey.RELEASE_HEALTH
-            else UseCaseID.TRANSACTIONS
-        ),
+        use_case_id=METRIC_ID_MAPPING[use_case_id],
         org_id=org_id,
         string=string,
     )

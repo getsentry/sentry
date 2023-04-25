@@ -17,6 +17,11 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
 }
 
+METRIC_ID_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
+    UseCaseKey.RELEASE_HEALTH: UseCaseID.SESSIONS,
+    UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
+}
+
 
 def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
     return METRIC_PATH_MAPPING[use_case]

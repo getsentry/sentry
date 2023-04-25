@@ -19,7 +19,7 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResult,
     UseCaseKeyCollection,
 )
-from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING
 from sentry.utils import metrics
 
 OrgId = int
@@ -171,11 +171,7 @@ class WritesLimiter:
 
         state = RateLimitState(
             _writes_limiter=self,
-            _use_case_id=(
-                UseCaseKey.RELEASE_HEALTH
-                if use_case_id is UseCaseID.SESSIONS
-                else UseCaseKey.PERFORMANCE
-            ),
+            _use_case_id=METRIC_PATH_MAPPING[use_case_id],
             _namespace=self.namespace,
             _requests=requests,
             _grants=grants,
