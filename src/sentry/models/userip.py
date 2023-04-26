@@ -55,6 +55,5 @@ def _perform_log(user: User | RpcUser, ip_address: str):
     if geo:
         event.country_code = geo["country_code"]
         event.region_code = geo["region"]
-        event.subdivision = geo["subdivision"]
 
     log_service.record_user_ip(event=event)

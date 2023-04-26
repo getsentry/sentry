@@ -452,14 +452,6 @@ class Columns(Enum):
         issue_platform_name="contexts[geo.city]",
         alias="geo.city",
     )
-    GEO_SUBDIVISION = Column(
-        group_name="events.geo_subdivision",
-        event_name="geo_subdivision",
-        transaction_name="contexts[geo.subdivision]",
-        discover_name="geo_subdivision",
-        issue_platform_name="contexts[geo.subdivision]",
-        alias="geo.subdivision",
-    )
     ERROR_TYPE = Column(
         group_name="events.exception_stacks.type",
         event_name="exception_stacks.type",
