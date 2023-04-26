@@ -17,15 +17,15 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 type Props = {
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  isLoading: boolean;
   spike: FailureSpike;
   transactions: string[] | undefined;
 };
@@ -35,8 +35,24 @@ export default function IssueTable({organization, location, spike, transactions}
     {
       key: 'issue',
       name: 'Issue',
-      width: 200,
+      width: 120,
     },
+    {
+      key: 'title',
+      name: 'Title',
+      width: 280,
+    },
+    {
+      key: 'count()',
+      name: 'Count',
+      width: 50,
+    },
+    {
+      key: 'count_unique(user)',
+      name: 'Users',
+      width: 50,
+    },
+
     // {
     //   key: `count_if(transaction, equals, ${transactionName})`,
     //   name: 'Event Count',
@@ -93,7 +109,7 @@ export default function IssueTable({organization, location, spike, transactions}
       : undefined,
     fields: ['issue', 'title', 'count()', 'count_unique(user)'],
     query: searchQuery,
-    orderby: `-count()`,
+    orderby: `-${getAggregateAlias('count()')}`,
     version: 2,
   };
 

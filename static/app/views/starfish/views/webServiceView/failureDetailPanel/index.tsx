@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
