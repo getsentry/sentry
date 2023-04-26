@@ -405,8 +405,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
             else:
+                id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
                 self._update_settings(
-                    provider, type, value, scope_type, scope_identifier, target_id
+                    provider,
+                    type,
+                    value,
+                    scope_type,
+                    scope_identifier,
+                    target_id,
+                    **{id_key: actor.id},
                 )
         analytics.record(
             "notifications.settings_updated",
