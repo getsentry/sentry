@@ -6,13 +6,11 @@ import {AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {t} from 'sentry/locale';
 import {DateString} from 'sentry/types';
 import {EChartClickHandler, Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import useRouter from 'sentry/utils/useRouter';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 type Props = {
   data: Series[];
@@ -97,22 +95,20 @@ function FailureRateChart({
     : undefined;
 
   return (
-    <ChartPanel title={t('Error Rate')}>
-      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
-        {zoomRenderProps => (
-          <LineChart
-            onClick={handleSpikeAreaClick}
-            height={height}
-            {...zoomRenderProps}
-            series={data}
-            previousPeriod={previousData}
-            xAxis={xAxis}
-            yAxis={yAxis}
-            tooltip={chartProps.tooltip}
-          />
-        )}
-      </ChartZoom>
-    </ChartPanel>
+    <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+      {zoomRenderProps => (
+        <LineChart
+          onClick={handleSpikeAreaClick}
+          height={height}
+          {...zoomRenderProps}
+          series={data}
+          previousPeriod={previousData}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          tooltip={chartProps.tooltip}
+        />
+      )}
+    </ChartZoom>
   );
 }
 
