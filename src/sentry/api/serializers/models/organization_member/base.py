@@ -20,29 +20,27 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 
-    def __sorted_org_roles_for_user(self, item):
+    def __sorted_org_roles_for_user(self, item: OrganizationMember) -> Sequence[Mapping[str, Any]]:
         org_roles = [
             (team.slug, organization_roles.get(team.org_role)) for team in item.team_role_prefetch
         ]
 
         sorted_org_roles = sorted(
             org_roles,
-            key=lambda r: r[1].priority,
+            key=lambda r: r[1].priority,  # type: ignore[no-any-return]
             reverse=True,
         )
 
-        return (
-            [
-                {
-                    "teamSlug": slug,
-                    "role": serialize(
-                        role,
-                        serializer=OrganizationRoleSerializer(organization=item.organization),
-                    ),
-                }
-                for slug, role in sorted_org_roles
-            ],
-        )
+        return [
+            {
+                "teamSlug": slug,
+                "role": serialize(
+                    role,
+                    serializer=OrganizationRoleSerializer(organization=item.organization),
+                ),
+            }
+            for slug, role in sorted_org_roles
+        ]
 
     def get_attrs(
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
