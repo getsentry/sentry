@@ -240,7 +240,9 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         # Tests that events are aggregated in the daily count query by date, not by 24 hr periods
         yesterday = datetime.now().date() - timedelta(days=1)
         yesterday_midnight = datetime.combine(yesterday, datetime.min.time())
-        mins_since_yesterday_midnight = ((datetime.now() - yesterday_midnight).total_seconds()) / 60
+        mins_since_yesterday_midnight = int(
+            ((datetime.now() - yesterday_midnight).total_seconds()) / 60
+        )
         for i in range(3, 1, -1):
             # Event occured i hours after yesterday midnight
             event = self._load_event_for_group(minutes_ago=mins_since_yesterday_midnight + i * 60)
