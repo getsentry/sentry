@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
@@ -7,6 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
@@ -44,15 +46,19 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
           {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
         </TextCopyInput>
 
-        <FieldHelp style={{marginTop: 10, marginBottom: 0}}>
+        <HelpFooter>
           {tct(
             'You can [configureLink] the Loader Script to enable/disable Performance, Replay, and more.',
             {
               configureLink: <Link to={editUrl}>{t('configure')}</Link>,
             }
           )}
-        </FieldHelp>
+        </HelpFooter>
       </FieldGroup>
     </Fragment>
   );
 }
+
+const HelpFooter = styled(FieldHelp)`
+  margin-top: ${space(1)};
+`;

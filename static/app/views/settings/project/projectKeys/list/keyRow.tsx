@@ -43,7 +43,7 @@ function KeyRow({
 
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
-  const isJsPlatform = isBrowserJavaScript || platform.startsWith('javascript-');
+  const isJsPlatform = platform.startsWith('javascript');
 
   return (
     <Panel>

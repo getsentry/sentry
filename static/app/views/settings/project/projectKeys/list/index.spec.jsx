@@ -126,7 +126,7 @@ describe('ProjectKeys', function () {
 
     // Loader Script is rendered
     expect(screen.getByText('Loader Script')).toBeInTheDocument();
-    const loaderScript = screen.queryByRole('textbox', {
+    const loaderScript = screen.getByRole('textbox', {
       name: 'Loader Script',
     });
     const loaderScriptValue = loaderScript.value;
