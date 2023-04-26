@@ -31,6 +31,8 @@ export const supportedPlatformExpectedDocKeys: Record<
   node: ['1-install', '2-configure-performance', '3-configure-profiling'],
   python: ['1-install', '2-configure-performance', '3-configure-profiling'],
   php: ['1-install', '2-configure-performance', '3-configure-profiling'],
+  laravel: ['1-install', '2-configure-performance', '3-configure-profiling'],
+  symfony: ['1-install', '2-configure-performance', '3-configure-profiling'],
   ruby: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
   rust: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
   'javascript-nextjs': [

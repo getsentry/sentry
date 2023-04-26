@@ -10,6 +10,8 @@ export const supportedProfilingPlatformSDKs = [
   'php',
   'rust',
   'php',
+  'laravel',
+  'symfony',
   'ruby',
   'javascript-nextjs',
 ] as const;
