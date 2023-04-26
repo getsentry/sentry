@@ -249,6 +249,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
         step: 0.01,
         defaultValue: 0,
       },
+      {
+        name: 'consecutive_http_spans_detection_enabled',
+        type: 'boolean',
+        label: t('Consecutive HTTP Spans Detection Enabled'),
+        defaultValue: true,
+      },
     ];
   }
 
