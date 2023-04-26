@@ -1191,6 +1191,48 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert notify.call_count == 0
         assert len(mail.outbox) == 0
 
+    @with_feature("organizations:mute-alerts")
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
+    def test_dont_notify_digest_snoozed_multiple_rules(self, notify):
+        """Test that a digest is sent containing only notifications about an unsnoozed alert."""
+        user2 = self.create_user(email="baz@example.com", is_active=True)
+        self.create_member(user=user2, organization=self.organization, teams=[self.team])
+        project = self.project
+        timestamp = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
+            project_id=project.id,
+        )
+
+        rule = project.rule_set.all()[0]
+        rule2 = Rule.objects.create(project=project, label="my rule")
+        # mute the first rule only for self.user, not user2
+        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+
+        ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
+        digest = build_digest(
+            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule2,)))
+        )[0]
+
+        with self.tasks():
+            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+
+        assert notify.call_count == 0
+        assert len(mail.outbox) == 2  # we send it to 2 users
+        message1 = mail.outbox[0]
+        message2 = mail.outbox[1]
+        # self.user only receives a digest about one alert, since a rule was muted
+        assert message2.to[0] == self.user.email
+        assert "1 new alert since" in message2.subject
+
+        # user2 receives a digest about both alerts, since no rules were muted
+        assert message1.to[0] == user2.email
+        assert "2 new alerts since" in message1.subject
+
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async, notify):

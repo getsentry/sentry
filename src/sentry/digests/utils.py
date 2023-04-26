@@ -6,9 +6,11 @@ from typing import Any
 from typing import Counter as CounterType
 from typing import Iterable, Mapping, Sequence
 
+from django.db.models import Q
+
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, Project, ProjectOwnership, Rule
+from sentry.models import Group, Project, ProjectOwnership, Rule, RuleSnooze
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -82,7 +84,7 @@ def get_personalized_digests(
 ) -> Mapping[int, Digest]:
     events_by_participant = get_events_by_participant(participants_by_provider_by_event)
     return {
-        participant.actor_id: build_custom_digest(digest, events)
+        participant.actor_id: build_custom_digest(digest, events, participant)
         for participant, events in events_by_participant.items()
         if participant.actor_id is not None
     }
@@ -97,10 +99,21 @@ def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
     }
 
 
-def build_custom_digest(original_digest: Digest, events: Iterable[Event]) -> Digest:
+def build_custom_digest(
+    original_digest: Digest, events: Iterable[Event], participant: RpcActor
+) -> Digest:
     """Given a digest and a set of events, filter the digest to only records that include the events."""
     user_digest: Digest = {}
+    skip = False
     for rule, rule_groups in original_digest.items():
+        rule_snoozes = RuleSnooze.objects.filter(Q(rule=rule))
+        for snooze in rule_snoozes:
+            if snooze.user_id is None or snooze.user_id == participant.id:
+                skip = True
+                break
+        if skip:
+            skip = False
+            continue
         user_rule_groups = {}
         for group, group_records in rule_groups.items():
             user_group_records = [
@@ -109,8 +122,10 @@ def build_custom_digest(original_digest: Digest, events: Iterable[Event]) -> Dig
             if user_group_records:
                 user_rule_groups[group] = user_group_records
         if user_rule_groups:
-            user_digest[rule] = user_rule_groups
+            if not skip:
+                user_digest[rule] = user_rule_groups
     return user_digest
+    # TODO add test for the digest being empty, I think it gets pretty mad about that
 
 
 def get_participants_by_event(
@@ -119,7 +134,6 @@ def get_participants_by_event(
     target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
     target_identifier: int | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-    rules: Sequence[Rule] | None = None,
 ) -> Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]]:
     """
     This is probably the slowest part in sending digests because we do a lot of
@@ -133,7 +147,6 @@ def get_participants_by_event(
             target_identifier=target_identifier,
             event=event,
             fallthrough_choice=fallthrough_choice,
-            rules=rules,
         )
         for event in get_event_from_groups_in_digest(digest)
     }
