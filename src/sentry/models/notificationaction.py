@@ -92,8 +92,12 @@ class AbstractNotificationAction(Model):
     (e.g. metric alerts, spike protection, etc.)
     """
 
-    integration_id = HybridCloudForeignKey("sentry.Integration", null=True, on_delete="cascade")
-    sentry_app_id = HybridCloudForeignKey("sentry.SentryApp", null=True, on_delete="cascade")
+    integration_id = HybridCloudForeignKey(
+        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
+    )
+    sentry_app_id = HybridCloudForeignKey(
+        "sentry.SentryApp", blank=True, null=True, on_delete="CASCADE"
+    )
 
     # The type of service which will receive the action notification (e.g. slack, pagerduty, etc.)
     type = models.SmallIntegerField(choices=ActionService.as_choices())
