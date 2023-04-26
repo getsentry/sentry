@@ -309,7 +309,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}
-                    data={transactions.status === 'success' ? transactions.data[0] : null}
+                    data={transactions.status === 'success' ? transactions.data : null}
                     error={
                       transactions.status === 'error'
                         ? t('Unable to load profiles')
@@ -322,7 +322,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <Pagination
                     pageLinks={
                       transactions.status === 'success'
-                        ? transactions.data?.[2]?.getResponseHeader('Link') ?? null
+                        ? transactions.getResponseHeader?.('Link') ?? null
                         : null
                     }
                   />
