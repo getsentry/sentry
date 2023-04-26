@@ -185,7 +185,7 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
     # we need a project from the current org... unfortunately get_blended_sample_rate
     # takes a project (not an org)
     # TODO RaduW is there a better way to get an org Project than filtering ?
-    org_projects = Project.objects.filter(org_id=org_volume.org_id)
+    org_projects = Project.objects.filter(organization__id=org_volume.org_id)
     for project in org_projects:
         desired_sample_rate = quotas.get_blended_sample_rate(project)
         break
