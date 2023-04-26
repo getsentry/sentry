@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
 import merge from 'lodash/merge';
 import values from 'lodash/values';
+import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
@@ -157,9 +158,9 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     if (key === 'transaction') {
       return (
         <Link
-          to={`/starfish/span/${encodeURIComponent(row.group_id)}:${encodeURIComponent(
-            dataRow.transaction
-          )}`}
+          to={`/starfish/span/${encodeURIComponent(row.group_id)}?${qs.stringify({
+            transaction: dataRow.transaction,
+          })}`}
         >
           {dataRow[column.key]}
         </Link>

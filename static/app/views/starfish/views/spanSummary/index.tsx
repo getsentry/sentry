@@ -61,16 +61,13 @@ type Transaction = {
 
 type Props = {
   location: Location;
-} & RouteComponentProps<{slug: string}, {}>;
+} & RouteComponentProps<{groupId: string}, {}>;
 
 export default function SpanSummary({location, params}: Props) {
   const pageFilter = usePageFilters();
-  const slug = parseSlug(params.slug);
 
-  const {groupId, transactionName} = slug || {
-    groupId: '',
-    transactionName: '',
-  };
+  const groupId = params.groupId;
+  const transactionName = location.query.transaction;
 
   const query = getSpanInTransactionQuery({
     groupId,
@@ -117,9 +114,6 @@ export default function SpanSummary({location, params}: Props) {
     [key: Transaction['id']]: Transaction;
   };
 
-  if (!slug) {
-    return <div>ERROR</div>;
-  }
   const spanDescription = spanSampleData?.[0]?.description;
   const spanDomain = spanSampleData?.[0]?.domain;
 
@@ -259,27 +253,6 @@ function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.Reac
   }
 
   return <span>{row[column.key]}</span>;
-}
-
-type SpanInTransactionSlug = {
-  groupId: string;
-  transactionName?: string;
-};
-
-function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
-  if (!slug) {
-    return undefined;
-  }
-
-  const delimiterPosition = slug.lastIndexOf(':');
-  if (delimiterPosition < 0) {
-    return {groupId: slug};
-  }
-
-  const groupId = slug.slice(0, delimiterPosition);
-  const transactionName = slug.slice(delimiterPosition + 1);
-
-  return {groupId, transactionName};
 }
 
 function SpanGroupKeyValueList({
