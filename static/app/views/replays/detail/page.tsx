@@ -19,11 +19,12 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 type Props = {
   children: ReactNode;
   orgSlug: string;
+  projectSlug: string | null;
   replayRecord: undefined | ReplayRecord;
   crumbs?: Crumb[];
 };
 
-function Page({children, crumbs, orgSlug, replayRecord}: Props) {
+function Page({children, crumbs, orgSlug, replayRecord, projectSlug}: Props) {
   const title = replayRecord
     ? `${replayRecord.id} - Session Replay - ${orgSlug}`
     : `Session Replay - ${orgSlug}`;
@@ -35,7 +36,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
       <ButtonActionsWrapper>
         <ShareButton />
         <FeedbackButton />
-        <DeleteButton />
+        <DeleteButton replayId={replayRecord?.id} projectSlug={projectSlug} />
       </ButtonActionsWrapper>
 
       {replayRecord ? (
