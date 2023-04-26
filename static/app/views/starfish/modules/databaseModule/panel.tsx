@@ -123,6 +123,11 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   });
 
   const isDataLoading = isLoading || isTableLoading || isEventCountLoading;
+  let avgP75 = 0;
+  if (!isDataLoading) {
+    avgP75 =
+      tableData.reduce((acc, transaction) => acc + transaction.p75, 0) / tableData.length;
+  }
 
   const mergedTableData = values(
     merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
@@ -159,7 +164,12 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
       );
     }
     if (key === 'p75') {
-      return <span>{value?.toFixed(2)}ms</span>;
+      const p75threshold = 1.5 * avgP75;
+      return (
+        <span style={value > p75threshold ? {color: theme.red400} : {}}>
+          {value?.toFixed(2)}ms
+        </span>
+      );
     }
     return <span>{value}</span>;
   };
