@@ -55,7 +55,7 @@ export default class InstalledIntegration extends Component<Props> {
   get integrationStatus() {
     const {integration} = this.props;
     // there are multiple status fields for an integration we consider
-    const statusList = [integration.status, integration.organizationIntegrationStatus];
+    const statusList = [integration.organizationIntegrationStatus, integration.status];
     const firstNotActive = statusList.find(s => s !== 'active');
     // Active if everything is active, otherwise the first inactive status
     return firstNotActive ?? 'active';
@@ -216,9 +216,11 @@ function IntegrationStatus(
       <IntegrationStatusText data-test-id="integration-status">{`${
         status === 'active'
           ? t('enabled')
+          : status === 'pending_deletion'
+          ? t('pending deletion')
           : status === 'disabled'
           ? t('disabled')
-          : t('pending deletion')
+          : t('unknown')
       }`}</IntegrationStatusText>
     </div>
   );
