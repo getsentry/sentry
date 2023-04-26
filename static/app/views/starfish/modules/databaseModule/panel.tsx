@@ -253,7 +253,11 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   );
 }
 
-const throughputQueryToChartData = (data: any, startTime: moment.Moment, endTime: moment.Moment): Series[] => {
+const throughputQueryToChartData = (
+  data: any,
+  startTime: moment.Moment,
+  endTime: moment.Moment
+): Series[] => {
   const countSeries: Series = {seriesName: 'count()', data: [] as any[]};
   const p75Series: Series = {seriesName: 'p75()', data: [] as any[]};
   data.forEach(({count, p75, interval}: any) => {
