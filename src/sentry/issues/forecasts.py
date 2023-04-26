@@ -33,10 +33,12 @@ def save_forecast_per_group(
     for group_id in group_counts.keys():
         forecasts = generate_issue_forecast(group_counts[group_id], time)
         forecasts_list = [forecast["forecasted_value"] for forecast in forecasts]
-        escalating_group_forecast = EscalatingGroupForecast(
-            group_dict[group_id].project.id, group_id, forecasts_list, datetime.now()
-        )
-        escalating_group_forecast.save()
+
+        if group_dict.get(group_id):
+            escalating_group_forecast = EscalatingGroupForecast(
+                group_dict.get(group_id).project.id, group_id, forecasts_list, datetime.now()
+            )
+            escalating_group_forecast.save()
     logger.info(
         "Saved forecasts in nodestore",
         extra={"num_groups": len(group_counts.keys())},

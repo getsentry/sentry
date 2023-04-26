@@ -57,4 +57,4 @@ def generate_forecasts_for_projects(project_ids: List[int]) -> None:
                 last_seen__gte=datetime.now() - timedelta(days=7),
             )
         ):
-            generate_and_save_forecasts(until_escalating_groups)
+            generate_and_save_forecasts(groups=[until_escalating_groups])
