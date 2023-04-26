@@ -118,7 +118,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
             # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
             # See comments in the function for why this happens.
             raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
-            modules, stacktraces, success = _symbolicate(
+            modules, stacktraces, success = run_symbolicate(
                 project=project,
                 profile=profile,
                 modules=raw_modules,
@@ -271,7 +271,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
         return (modules, stacktraces)
 
 
-def __symbolicate(
+def symbolicate(
     symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
 ) -> Any:
     if profile["platform"] == "javascript":
@@ -282,7 +282,7 @@ def __symbolicate(
 
 
 @metrics.wraps("process_profile.symbolicate.request")
-def _symbolicate(
+def run_symbolicate(
     project: Project,
     profile: Profile,
     modules: List[Any],
@@ -294,7 +294,7 @@ def _symbolicate(
     while True:
         try:
             with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
-                response = __symbolicate(
+                response = symbolicate(
                     symbolicator=symbolicator,
                     profile=profile,
                     stacktraces=stacktraces,
