@@ -32,7 +32,7 @@ const getDomainSubquery = (date_filters, action) => {
     domain != ''
     ${getActionQuery(action)}
    group by domain
-   order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
+   order by ${ORDERBY}
    limit 5
   `;
 };
