@@ -31,11 +31,17 @@ export const supportedPlatformExpectedDocKeys: Record<
   node: ['1-install', '2-configure-performance', '3-configure-profiling'],
   python: ['1-install', '2-configure-performance', '3-configure-profiling'],
   php: ['1-install', '2-configure-performance', '3-configure-profiling'],
-  laravel: ['1-install', '2-configure-performance', '3-configure-profiling'],
-  symfony: ['1-install', '2-configure-performance', '3-configure-profiling'],
+  'php-laravel': ['1-install', '2-configure-performance', '3-configure-profiling'],
+  'php-symfony2': ['1-install', '2-configure-performance', '3-configure-profiling'],
   ruby: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
   rust: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
   'javascript-nextjs': [
+    '0-alert',
+    '1-install',
+    '2-configure-performance',
+    '3-configure-profiling',
+  ],
+  'javascript-remix': [
     '0-alert',
     '1-install',
     '2-configure-performance',
@@ -46,6 +52,9 @@ export const supportedPlatformExpectedDocKeys: Record<
 function makeDocKey(platformId: PlatformKey, key: string) {
   if (platformId === 'javascript-nextjs') {
     return `node-javascript-nextjs-profiling-onboarding-${key}`;
+  }
+  if (platformId === 'javascript-remix') {
+    return `node-javascript-remix-profiling-onboarding-${key}`;
   }
   return `${platformId}-profiling-onboarding-${key}`;
 }
