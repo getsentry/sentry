@@ -27,3 +27,21 @@ def transition_new_to_ongoing(group: Group) -> None:
         record_group_history_from_activity_type(
             group, activity_type=ActivityType.AUTO_SET_ONGOING.value, actor=None
         )
+
+
+def transition_regressed_to_ongoing(group: Group) -> None:
+    if group.status == GroupStatus.UNRESOLVED and group.substatus == GroupSubStatus.REGRESSED:
+        group.substatus = GroupSubStatus.ONGOING
+        group.save(update_fields=["substatus"])
+
+        remove_group_from_inbox(group)
+
+        add_group_to_inbox(group, GroupInboxReason.ONGOING)
+
+        Activity.objects.create_group_activity(
+            group, ActivityType.AUTO_SET_ONGOING, send_notification=False
+        )
+
+        record_group_history_from_activity_type(
+            group, activity_type=ActivityType.AUTO_SET_ONGOING.value, actor=None
+        )
