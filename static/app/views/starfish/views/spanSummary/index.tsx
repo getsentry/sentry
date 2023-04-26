@@ -24,11 +24,11 @@ import {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
-import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
   getSpanFacetBreakdownQuery,
   getSpanInTransactionQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
 import MegaChart from 'sentry/views/starfish/views/spanSummary/megaChart';
 import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
 
