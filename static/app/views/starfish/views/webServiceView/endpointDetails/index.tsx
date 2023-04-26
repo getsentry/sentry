@@ -1,71 +1,157 @@
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
+import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+
+const EventsRequest = withApi(_EventsRequest);
 
 type EndpointAggregateDetails = {
   failureCount: number;
   p50: number;
   tpm: number;
-  failureRate?: number;
-  failureRateDelta?: number;
-  p50Delta?: number;
 };
 
 export type EndpointDataRow = {
   aggregateDetails: EndpointAggregateDetails;
   endpoint: string;
+  httpOp: string;
+  transaction: string;
 };
 
 type EndpointDetailBodyProps = {
+  eventView: EventView;
+  organization: Organization;
   row: EndpointDataRow;
+};
+
+type EndpointDetailProps = Partial<EndpointDetailBodyProps> & {
+  onClose: () => void;
 };
 
 export default function EndpointDetail({
   row,
   onClose,
-}: Partial<EndpointDetailBodyProps> & {onClose: () => void}) {
+  eventView,
+  organization,
+}: EndpointDetailProps) {
   if (isNil(row)) {
     return null;
   }
   return (
     <Detail detailKey={row?.endpoint} onClose={onClose}>
-      {row && <EndpointDetailBody row={row} />}
+      {row && eventView && organization && (
+        <EndpointDetailBody row={row} eventView={eventView} organization={organization} />
+      )}
     </Detail>
   );
 }
 
-function EndpointDetailBody({row}: EndpointDetailBodyProps) {
+function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyProps) {
+  const theme = useTheme();
   const {aggregateDetails} = row;
+  const query = new MutableSearch([
+    'has:http.method',
+    'transaction.op:http.server',
+    `transaction:${row.transaction}`,
+    `http.method:${row.httpOp}`,
+  ]);
   return (
     <div>
       <h2>{t('Endpoint Detail')}</h2>
       <p>{t('Details of endpoint. More breakdowns, etc. Maybe some trends?')}</p>
       <SubHeader>{t('Endpoint URL')}</SubHeader>
       <pre>{row?.endpoint}</pre>
-      <FlexRowContainer>
-        <FlexRowItem>
-          <SubHeader>{t('Throughput')}</SubHeader>
-          <SubSubHeader>{formatAbbreviatedNumber(aggregateDetails.tpm)}</SubSubHeader>
-        </FlexRowItem>
-        <FlexRowItem>
-          <SubHeader>{t('p50(duration)')}</SubHeader>
-          <SubSubHeader>{getDuration(aggregateDetails.p50 / 1000, 0, true)}</SubSubHeader>
-        </FlexRowItem>
-        <FlexRowItem>
-          <SubHeader>{t('Failure Count')}</SubHeader>
-          <SubSubHeader>
-            {formatAbbreviatedNumber(aggregateDetails.failureCount)}
-          </SubSubHeader>
-        </FlexRowItem>
-        <FlexRowItem>
-          <SubHeader>{t('Failure Rate')}</SubHeader>
-          <SubSubHeader>{'0.5%'}</SubSubHeader>
-        </FlexRowItem>
-      </FlexRowContainer>
+      <EventsRequest
+        query={query.formatString()}
+        includePrevious={false}
+        partial
+        limit={5}
+        interval="1h"
+        includeTransformedData
+        environment={eventView.environment}
+        project={eventView.project}
+        period={eventView.statsPeriod}
+        referrer="starfish-homepage-count"
+        start={eventView.start}
+        end={eventView.end}
+        organization={organization}
+        yAxis={['tpm()', 'p50(transaction.duration)']}
+        queryExtras={{dataset: 'metrics'}}
+      >
+        {({results, loading}) => {
+          return (
+            <Fragment>
+              <FlexRowContainer>
+                <FlexRowItem>
+                  <SubHeader>{t('Throughput')}</SubHeader>
+                  <SubSubHeader>
+                    {formatAbbreviatedNumber(aggregateDetails.tpm)}
+                  </SubSubHeader>
+                  <Chart
+                    statsPeriod="24h"
+                    height={110}
+                    data={results?.[0] ? [results?.[0]] : []}
+                    start=""
+                    end=""
+                    loading={loading}
+                    utc={false}
+                    disableMultiAxis
+                    stacked
+                    isLineChart
+                    disableXAxis
+                    hideYAxisSplitLine
+                    chartColors={[theme.charts.getColorPalette(0)[0]]}
+                    grid={{
+                      left: '0',
+                      right: '0',
+                      top: '8px',
+                      bottom: '16px',
+                    }}
+                  />
+                </FlexRowItem>
+                <FlexRowItem>
+                  <SubHeader>{t('p50(duration)')}</SubHeader>
+                  <SubSubHeader>
+                    {getDuration(aggregateDetails.p50 / 1000, 0, true)}
+                  </SubSubHeader>
+                  <Chart
+                    statsPeriod="24h"
+                    height={110}
+                    data={results?.[1] ? [results?.[1]] : []}
+                    start=""
+                    end=""
+                    loading={loading}
+                    utc={false}
+                    disableMultiAxis
+                    stacked
+                    isLineChart
+                    disableXAxis
+                    hideYAxisSplitLine
+                    chartColors={[theme.charts.getColorPalette(0)[1]]}
+                    grid={{
+                      left: '0',
+                      right: '0',
+                      top: '8px',
+                      bottom: '16px',
+                    }}
+                  />
+                </FlexRowItem>
+              </FlexRowContainer>
+            </Fragment>
+          );
+        }}
+      </EventsRequest>
     </div>
   );
 }

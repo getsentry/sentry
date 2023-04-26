@@ -66,7 +66,12 @@ export function StarfishLanding(props: Props) {
               </SearchContainerWithFilterAndMetrics>
 
               <StarfishView {...props} onSelect={setSelectedEndpoint} />
-              <EndpointDetail row={selectedRow} onClose={unsetSelectedEndpoint} />
+              <EndpointDetail
+                row={selectedRow}
+                onClose={unsetSelectedEndpoint}
+                eventView={props.eventView}
+                organization={props.organization}
+              />
             </Fragment>
           </Layout.Main>
         </Layout.Body>
