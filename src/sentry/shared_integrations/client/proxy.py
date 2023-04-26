@@ -46,7 +46,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         )
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
-        if not self.should_proxy_to_control:
+        if not self.should_proxy_to_control or not prepared_request.url:
             return prepared_request
 
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'

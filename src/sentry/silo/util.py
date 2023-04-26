@@ -57,7 +57,7 @@ def encode_subnet_signature(
         trim_leading_slashes(path).encode("utf-8"),
         identifier.encode("utf-8"),
         request_body,
-    )  # type: ignore
+    )
     signature = hmac.new(secret.encode("utf-8"), raw_signature, sha256).hexdigest()
     return f"v0={signature}"
 
