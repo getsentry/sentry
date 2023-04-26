@@ -345,7 +345,7 @@ function ProfilingBetaEndAlertBanner({organization}: {organization: Organization
   return (
     <StyledAlert system type="info">
       {t(
-        ' The beta program for Profiling is closed. Profiling will generally available soon. Check out the What’s New tab for updates.'
+        ' The beta program for Profiling is closed. Profiling will be generally available soon. Check out the What’s New tab for updates.'
       )}
     </StyledAlert>
   );
