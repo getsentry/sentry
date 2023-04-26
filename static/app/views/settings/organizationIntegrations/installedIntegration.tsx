@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 
 import {AddIntegrationButton} from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
@@ -54,11 +55,7 @@ export default class InstalledIntegration extends Component<Props> {
 
   get integrationStatus() {
     const {integration} = this.props;
-    // there are multiple status fields for an integration we consider
-    const statusList = [integration.organizationIntegrationStatus, integration.status];
-    const firstNotActive = statusList.find(s => s !== 'active');
-    // Active if everything is active, otherwise the first inactive status
-    return firstNotActive ?? 'active';
+    return getIntegrationStatus(integration);
   }
 
   get removeConfirmProps() {
