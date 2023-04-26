@@ -6,7 +6,6 @@ declare const __LOADER__IS_LAZY__: any;
 (function sentryLoader(
   _window,
   _document,
-  _script,
   _errorEvent,
   _unhandledrejectionEvent,
   _namespace,
@@ -85,7 +84,7 @@ declare const __LOADER__IS_LAZY__: any;
     // it was probably(?) a legacy behavior that they left to not modify few years old snippet
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
     const _currentScriptTag = _document.scripts[0];
-    const _newScriptTag = _document.createElement(_script) as HTMLScriptElement;
+    const _newScriptTag = _document.createElement('script') as HTMLScriptElement;
     _newScriptTag.src = _sdkBundleUrl;
     _newScriptTag.crossOrigin = 'anonymous';
 
@@ -261,10 +260,9 @@ declare const __LOADER__IS_LAZY__: any;
   window as Window &
     typeof globalThis & {SENTRY_SDK_SOURCE?: string; Sentry?: any; __SENTRY__?: any},
   document,
-  'script',
-  'error',
-  'unhandledrejection',
-  'Sentry',
+  'error' as const,
+  'unhandledrejection' as const,
+  'Sentry' as const,
   __LOADER__PUBLIC_KEY__,
   __LOADER_SDK_URL__,
   __LOADER__CONFIG__,

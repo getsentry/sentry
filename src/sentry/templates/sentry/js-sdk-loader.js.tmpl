@@ -1,4 +1,4 @@
-{% load sentry_helpers %}(function sentryLoader(_window, _document, _script, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _config, _lazy) {
+{% load sentry_helpers %}(function sentryLoader(_window, _document, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _config, _lazy) {
     var lazy = _lazy;
     var forceLoad = false;
     for (var i = 0; i < document.scripts.length; i++) {
@@ -59,7 +59,7 @@
         // it was probably(?) a legacy behavior that they left to not modify few years old snippet
         // https://www.html5rocks.com/en/tutorials/speed/script-loading/
         var _currentScriptTag = _document.scripts[0];
-        var _newScriptTag = _document.createElement(_script);
+        var _newScriptTag = _document.createElement('script');
         _newScriptTag.src = _sdkBundleUrl;
         _newScriptTag.crossOrigin = 'anonymous';
         // Once our SDK is loaded
@@ -202,4 +202,4 @@
             injectSdk(onLoadCallbacks);
         });
     }
-})(window, document, 'script', 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
+})(window, document, 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
