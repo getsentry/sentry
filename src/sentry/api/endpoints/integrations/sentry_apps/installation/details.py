@@ -34,7 +34,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 sentry_sdk.capture_exception(exc)
-            deletions.exec_sync(SentryAppInstallation.objects.get(id=installation.id))
+            deletions.exec_sync(installation)
             create_audit_entry(
                 request=request,
                 organization_id=installation.organization_id,

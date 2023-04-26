@@ -144,6 +144,8 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
             sentry_app_id=self.orm_installation.sentry_app.id,
             organization_id=self.installation.organization_id,
         )
+        self.installation.refresh_from_db()
+        assert self.installation.status == "installed"
 
     def test_sentry_app_installation_mark_pending_status(self):
         self.url = reverse(

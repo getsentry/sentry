@@ -6,10 +6,6 @@ from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import Group, Project
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 
 
 @region_silo_endpoint
@@ -38,13 +34,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         del data["uri"]
 
         try:
-            if isinstance(installation, SentryAppInstallation):
-                installation = app_service.serialize_sentry_app_installation(
-                    installation, installation.sentry_app
-                )
             user = request.user
-            if isinstance(request.user, User):
-                user = serialize_rpc_user(request.user)
             external_issue = IssueLinkCreator.run(
                 install=installation,
                 group=group,
