@@ -50,7 +50,7 @@ const HTTP_SPAN_COLUMN_ORDER = [
   {
     key: 'description',
     name: 'URL',
-    width: 200,
+    width: 400,
   },
   {
     key: 'p50(exclusive_time)',
@@ -73,7 +73,7 @@ const DATABASE_SPAN_COLUMN_ORDER = [
   {
     key: 'description',
     name: 'Query',
-    width: 200,
+    width: 400,
   },
   {
     key: 'domain',
