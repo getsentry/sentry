@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class OrganizationDataVolume:
     """
     Represents the total and indexed number of transactions received by an organisation
-    (in a particular interval of time
+    (in a particular interval of time).
     """
 
     # organisation id
