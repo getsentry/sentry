@@ -179,7 +179,11 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
                   )}
                 />
-                <FeatureBadge type="beta" />
+                {isProfilingGA ? (
+                  <FeatureBadge type="new" />
+                ) : (
+                  <FeatureBadge type="beta" />
+                )}
               </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
@@ -341,7 +345,7 @@ function ProfilingBetaEndAlertBanner({organization}: {organization: Organization
   return (
     <StyledAlert system type="info">
       {t(
-        ' The beta program for Profiling is closed. Profiling will generally available soon. Check out the What’s New tab for updates.'
+        ' The beta program for Profiling is closed. Profiling will be generally available soon. Check out the What’s New tab for updates.'
       )}
     </StyledAlert>
   );

@@ -84,7 +84,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 user_query=query,
                 params=params,
                 rollup=rollup,
-                limit=20,
+                # high limit is set to validate the regression analysis
+                limit=50,
                 organization=organization,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
@@ -105,7 +106,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 query=query,
             )
 
-            # Handle empty response
+            # handle empty response
             if stats_data.get("data", None):
                 return Response(
                     {

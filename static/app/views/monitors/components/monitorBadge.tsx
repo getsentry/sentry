@@ -37,6 +37,10 @@ const statusMap: Record<MonitorStatus, StatusData> = {
     Icon: IconFire,
     color: 'errorText',
   },
+  timeout: {
+    Icon: IconFire,
+    color: 'errorText',
+  },
   missed_checkin: {
     Icon: IconExclamation,
     color: 'warningText',
