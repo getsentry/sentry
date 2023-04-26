@@ -126,7 +126,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             commit=commit,
             slicing_router=self.__slicing_router,
         )
-
         parallel_strategy = ParallelTransformStep(
             MessageProcessor(self.__config).process_messages,
             Unbatcher(next_step=producer),
