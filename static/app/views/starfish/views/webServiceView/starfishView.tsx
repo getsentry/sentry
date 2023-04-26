@@ -26,10 +26,6 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
-import {
-  ModuleButtonType,
-  ModuleLinkButton,
-} from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
 import {MODULE_BREAKDOWN} from 'sentry/views/starfish/views/webServiceView/queries';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
@@ -187,7 +183,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
   return (
     <div data-test-id="starfish-view">
       <FailureDetailPanel onClose={() => setSelectedSpike(null)} spike={selectedSpike} />
-      <ModuleLinkButton type={ModuleButtonType.CACHE} />
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
