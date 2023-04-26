@@ -56,7 +56,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             TransactionMRI.MEASUREMENTS_LCP.value,
             TransactionMRI.DURATION.value,
         ]:
-            self.metric_ids += [indexer.record(UseCaseID.SESSIONS, self.org_id, metric_name)]
+            self.metric_ids += [indexer.record(UseCaseID.TRANSACTIONS, self.org_id, metric_name)]
 
         indexer.bulk_record(
             {
