@@ -27,6 +27,7 @@ export default function Sidebar({
   groupId,
   description,
   transactionName,
+  sampledSpanData,
 }) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
@@ -117,6 +118,13 @@ export default function Sidebar({
     ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
+  const sampledSpanDataSeries = sampledSpanData.map(
+    ({start_timestamp, spanDuration}) => ({
+      name: start_timestamp,
+      value: spanDuration,
+    })
+  );
+
   return (
     <FlexContainer>
       <FlexItem>
@@ -157,6 +165,7 @@ export default function Sidebar({
           series={p50Series}
           isLoading={isLoadingSeriesData}
           chartColor={chartColors[1]}
+          sampledSpanDataSeries={sampledSpanDataSeries}
         />
       </FlexFullWidthItem>
       <FlexFullWidthItem>
@@ -168,6 +177,7 @@ export default function Sidebar({
           series={p95Series}
           isLoading={isLoadingSeriesData}
           chartColor={chartColors[2]}
+          sampledSpanDataSeries={sampledSpanDataSeries}
         />
       </FlexFullWidthItem>
       {
@@ -240,6 +250,9 @@ function SidebarChart(props) {
         top: '8px',
         bottom: '16px',
       }}
+      scatterPlot={[
+        {data: props.sampledSpanDataSeries, seriesName: 'Sampled Span Duration'},
+      ]}
     />
   );
 }

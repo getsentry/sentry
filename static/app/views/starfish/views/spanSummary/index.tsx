@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -11,6 +11,8 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import SwitchButton from 'sentry/components/switchButton';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   PageErrorAlert,
@@ -21,6 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule/queries';
+import MegaChart from 'sentry/views/starfish/views/spanSummary/megaChart';
 import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {getSpanSamplesQuery} from './queries';
@@ -64,6 +67,7 @@ type Props = {
 } & RouteComponentProps<{slug: string}, {}>;
 
 export default function SpanSummary({location, params}: Props) {
+  const [state, setState] = useState({plotSamples: false, megaChart: false});
   const pageFilter = usePageFilters();
   const slug = parseSlug(params.slug);
 
@@ -125,6 +129,20 @@ export default function SpanSummary({location, params}: Props) {
 
   const spanGroupOperation = data?.[0]?.span_operation;
 
+  const sampledSpanData = spanSampleData.map(datum => {
+    const transaction = transactionDataById[datum.transaction_id.replaceAll('-', '')];
+
+    return {
+      transaction_id: datum.transaction_id,
+      span_id: datum.span_id,
+      timestamp: transaction?.timestamp,
+      spanOp: datum.span_operation,
+      spanDuration: datum.exclusive_time,
+      transactionDuration: transaction?.['transaction.duration'],
+      start_timestamp: datum.start_timestamp,
+    };
+  });
+
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -133,12 +151,29 @@ export default function SpanSummary({location, params}: Props) {
             <Layout.Title>{transactionName}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
-
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
             <FilterOptionsContainer>
               <DatePageFilter alignDropdown="left" />
+              <FilterOptionsSubContainer>
+                <ToggleLabel active={state.megaChart}>{t('Show mega chart')}</ToggleLabel>
+                <SwitchButton
+                  isActive={state.megaChart}
+                  toggle={() => {
+                    setState({...state, megaChart: !state.megaChart});
+                  }}
+                />
+                <ToggleLabel active={state.plotSamples}>
+                  {t('Plot samples on charts')}
+                </ToggleLabel>
+                <SwitchButton
+                  isActive={state.plotSamples}
+                  toggle={() => {
+                    setState({...state, plotSamples: !state.plotSamples});
+                  }}
+                />
+              </FilterOptionsSubContainer>
             </FilterOptionsContainer>
             <FlexContainer>
               <MainSpanSummaryContainer>
@@ -152,25 +187,22 @@ export default function SpanSummary({location, params}: Props) {
                     spanDomain={spanDomain}
                   />
                 )}
+                {state.megaChart && (
+                  <MegaChart
+                    groupId={groupId}
+                    spanGroupOperation={spanGroupOperation}
+                    description={null}
+                    transactionName={transactionName}
+                    sampledSpanData={state.plotSamples ? sampledSpanData : []}
+                  />
+                )}
                 {areSpanSamplesLoading ? (
                   <span>LOADING SAMPLE LIST</span>
                 ) : (
                   <div>
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
-                      data={spanSampleData.map(datum => {
-                        const transaction =
-                          transactionDataById[datum.transaction_id.replaceAll('-', '')];
-
-                        return {
-                          transaction_id: datum.transaction_id,
-                          span_id: datum.span_id,
-                          timestamp: transaction?.timestamp,
-                          spanOp: datum.span_operation,
-                          spanDuration: datum.exclusive_time,
-                          transactionDuration: transaction?.['transaction.duration'],
-                        };
-                      })}
+                      data={sampledSpanData}
                       columnOrder={COLUMN_ORDER}
                       columnSortBy={[]}
                       grid={{
@@ -189,6 +221,7 @@ export default function SpanSummary({location, params}: Props) {
                   spanGroupOperation={spanGroupOperation}
                   description={null}
                   transactionName={transactionName}
+                  sampledSpanData={state.plotSamples ? sampledSpanData : []}
                 />
               </SidebarContainer>
             </FlexContainer>
@@ -227,7 +260,22 @@ const FilterOptionsContainer = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  align-items: center;
+`;
+
+const FilterOptionsSubContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
   margin-bottom: ${space(2)};
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+`;
+
+const ToggleLabel = styled('span')<{active?: boolean}>`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => (p.active ? p.theme.purple300 : p.theme.gray300)};
 `;
 
 function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
