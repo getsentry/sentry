@@ -179,10 +179,18 @@ class IntegrationPipeline(Pipeline):
 
     def _dialog_response(self, data, success):
         document_origin = "document.origin"
-        if features.has("organizations:customer-domains", self.organization):
+        if features.has("organizations:customer-domains", self.organization) or True:
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'
         context = {
             "payload": {"success": success, "data": data},
             "document_origin": document_origin,
         }
+        self.get_logger().info(
+            "dialog_response",
+            extra={
+                "document_origin": document_origin,
+                "success": success,
+                "organization_id": self.organization.id,
+            },
+        )
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
