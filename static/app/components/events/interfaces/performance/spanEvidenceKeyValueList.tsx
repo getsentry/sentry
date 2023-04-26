@@ -312,7 +312,7 @@ function UncompressedAssetSpanEvidence({
         makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
         makeRow(
           t('Asset Size'),
-          getSpanFieldBytes(offendingSpans[0], 'http.response.content_length') ??
+          getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
             getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
         ),
         makeRow(
