@@ -115,7 +115,7 @@ export const getPanelTableQuery = (date_filters, row) => {
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
-    ORDER BY count DESC
+    ORDER BY ${ORDERBY}
     LIMIT 10
   `;
 };
@@ -147,6 +147,7 @@ export const getPanelEventCount = (date_filters, row) => {
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
+    ORDER BY ${ORDERBY}
    `;
 };
 
