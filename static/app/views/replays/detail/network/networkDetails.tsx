@@ -19,10 +19,11 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 type Props = {
   initialHeight: number;
   items: NetworkSpan[];
+  projectId: undefined | string;
   startTimestampMs: number;
 };
 
-function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) {
+function NetworkDetails({initialHeight, items, projectId, startTimestampMs}: Props) {
   const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
     'n_detail_row',
     ''
@@ -58,13 +59,15 @@ function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) 
 
   const visibleTab = getDetailTab() as TabKey;
 
-  const tab = item ? (
-    <NetworkDetailsContent
-      visibleTab={visibleTab}
-      item={item}
-      startTimestampMs={startTimestampMs}
-    />
-  ) : null;
+  const tab =
+    item && projectId ? (
+      <NetworkDetailsContent
+        item={item}
+        projectId={projectId}
+        startTimestampMs={startTimestampMs}
+        visibleTab={visibleTab}
+      />
+    ) : null;
 
   return (
     <Fragment>
@@ -140,4 +143,4 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   }
 `;
 
-export default NetworkRequestDetails;
+export default NetworkDetails;

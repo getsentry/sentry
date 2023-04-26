@@ -26,6 +26,7 @@ const BODY_HEIGHT = 28;
 
 type Props = {
   networkSpans: undefined | NetworkSpan[];
+  projectId: undefined | string;
   startTimestampMs: number;
 };
 
@@ -35,7 +36,7 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList({networkSpans, startTimestampMs}: Props) {
+function NetworkList({networkSpans, projectId, startTimestampMs}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
 
@@ -158,6 +159,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             <NetworkDetails
               initialHeight={initialRequestDetailsHeight}
               items={items}
+              projectId={projectId}
               startTimestampMs={startTimestampMs}
             />
           </Feature>

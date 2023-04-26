@@ -10,21 +10,68 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useOrganization from 'sentry/utils/useOrganization';
+import NetworkDetailsSetup from 'sentry/views/replays/detail/network/networkDetailsSetup';
 import {TabKey} from 'sentry/views/replays/detail/network/networkDetailsTabs';
+import useSDKNeedsUpdate from 'sentry/views/replays/detail/network/useSDKNeedsUpdate';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type TabProps = {
   item: NetworkSpan;
+  projectId: string;
   startTimestampMs: number;
 };
 
-function DetailsTab({item, startTimestampMs}: TabProps) {
-  const {handleClick} = useCrumbHandlers(startTimestampMs);
+const MIN_REPLAY_NETWORK_BODIES_SDK = '7.44.0';
 
+function isSupportedOp(item: NetworkSpan) {
+  return ['resource.fetch', 'resource.xhr'].includes(item.op);
+}
+
+function DetailsTab({item, projectId, startTimestampMs}: TabProps) {
+  const organization = useOrganization();
+  const sdkNeedsUpdate = useSDKNeedsUpdate({
+    minVersion: MIN_REPLAY_NETWORK_BODIES_SDK,
+    organization,
+    projectId,
+  });
+
+  const warnings = item.data.response?._meta?.warnings as undefined | string[];
+  const isUrlSkipped = warnings?.includes('URL_SKIPPED');
+  const requestHeaders = item.data.request?.headers;
+  const responseHeaders = item.data.response?.headers;
+  const showSetup = sdkNeedsUpdate || isUrlSkipped || !requestHeaders || !responseHeaders;
+
+  const content = !isSupportedOp(item) ? (
+    <SectionItem title={t('Headers')}>
+      <NotFoundText>
+        {t('Headers are only supported on fetch and xhr requests')}
+      </NotFoundText>
+    </SectionItem>
+  ) : showSetup ? (
+    <SectionItem title={t('Headers')}>
+      <NetworkDetailsSetup
+        minSDKVersion={MIN_REPLAY_NETWORK_BODIES_SDK}
+        showSnippet="header"
+        showSDKUpgrade={sdkNeedsUpdate}
+        url={item.description || ''}
+      />
+    </SectionItem>
+  ) : (
+    <Fragment>
+      <SectionItem title={t('Request Headers')}>
+        {keyValueTablOrNotFound(requestHeaders, t('Headers not captured'))}
+      </SectionItem>
+      <SectionItem title={t('Response Headers')}>
+        {keyValueTablOrNotFound(responseHeaders, t('Headers not captured'))}
+      </SectionItem>
+    </Fragment>
+  );
+
+  const {handleClick} = useCrumbHandlers(startTimestampMs);
   const startMs = item.startTimestamp * 1000;
   const endMs = item.endTimestamp * 1000;
-
   const data = {
     [t('URL')]: item.description,
     [t('Type')]: item.op,
@@ -51,17 +98,48 @@ function DetailsTab({item, startTimestampMs}: TabProps) {
       <SectionItem title={t('General')}>
         {keyValueTablOrNotFound(data, t('Missing request details'))}
       </SectionItem>
-      <SectionItem title={t('Request Headers')}>
-        {keyValueTablOrNotFound(item.data.request?.headers, t('Headers not captured'))}
-      </SectionItem>
-      <SectionItem title={t('Response Headers')}>
-        {keyValueTablOrNotFound(item.data.request?.headers, t('Headers not captured'))}
-      </SectionItem>
+      {content}
     </SectionList>
   );
 }
 
-function RequestTab({item}: TabProps) {
+function RequestTab({item, projectId}: TabProps) {
+  const organization = useOrganization();
+  const sdkNeedsUpdate = useSDKNeedsUpdate({
+    minVersion: MIN_REPLAY_NETWORK_BODIES_SDK,
+    organization,
+    projectId,
+  });
+
+  const warnings = item.data.request?._meta?.warnings as undefined | string[];
+  const requestbody = item.data.request?.body;
+
+  const isUrlSkipped = warnings?.includes('URL_SKIPPED');
+  const isBodySkipped = warnings?.includes('BODY_SKIPPED');
+  const showSetup = sdkNeedsUpdate || isUrlSkipped || isBodySkipped;
+
+  const content = !isSupportedOp(item) ? (
+    <SectionItem title={t('Request Payload')}>
+      <NotFoundText>
+        {t('Request Bodies are only supported on fetch and xhr requests')}
+      </NotFoundText>
+    </SectionItem>
+  ) : showSetup ? (
+    <SectionItem title={t('Request Payload')}>
+      <NetworkDetailsSetup
+        minSDKVersion={MIN_REPLAY_NETWORK_BODIES_SDK}
+        showSnippet="bodies"
+        showSDKUpgrade={sdkNeedsUpdate}
+        url={item.description || ''}
+      />
+    </SectionItem>
+  ) : (
+    <SectionItem title={t('Request Payload')}>
+      <WarningMessage warnings={warnings} />
+      {objectInspectorOrNotFound(requestbody, t('Request Body not found'))}
+    </SectionItem>
+  );
+
   const queryParams = queryString.parse(item.description?.split('?')?.[1] ?? '');
 
   return (
@@ -69,24 +147,62 @@ function RequestTab({item}: TabProps) {
       <SectionItem title={t('Query String Parameters')}>
         {objectInspectorOrNotFound(queryParams, t('Query Params not found'))}
       </SectionItem>
-      <SectionItem title={t('Request Payload')}>
-        {objectInspectorOrNotFound(item.data?.request?.body, t('Request Body not found'))}
-      </SectionItem>
+      {content}
     </SectionList>
   );
 }
 
-function ResponseTab({item}: TabProps) {
-  return (
-    <SectionList>
-      <SectionItem title={t('Response Body')}>
-        {objectInspectorOrNotFound(
-          item.data?.response?.body,
-          t('Response body not found')
-        )}
-      </SectionItem>
-    </SectionList>
+function ResponseTab({item, projectId}: TabProps) {
+  const organization = useOrganization();
+  const sdkNeedsUpdate = useSDKNeedsUpdate({
+    minVersion: MIN_REPLAY_NETWORK_BODIES_SDK,
+    organization,
+    projectId,
+  });
+
+  const warnings = item.data.response?._meta?.warnings as undefined | string[];
+  const responseBody = item.data.response?.body;
+
+  const isUrlSkipped = warnings?.includes('URL_SKIPPED');
+  const isBodySkipped = warnings?.includes('BODY_SKIPPED');
+  const showSetup = sdkNeedsUpdate || isUrlSkipped || isBodySkipped;
+
+  const content = !isSupportedOp(item) ? (
+    <SectionItem title={t('Response Body')}>
+      <NotFoundText>
+        {t('Response Bodies are only supported on fetch and xhr requests')}
+      </NotFoundText>
+    </SectionItem>
+  ) : showSetup ? (
+    <SectionItem title={t('Response Body')}>
+      <NetworkDetailsSetup
+        minSDKVersion={MIN_REPLAY_NETWORK_BODIES_SDK}
+        showSnippet="bodies"
+        showSDKUpgrade={sdkNeedsUpdate}
+        url={item.description || ''}
+      />
+    </SectionItem>
+  ) : (
+    <SectionItem title={t('Response Body')}>
+      <WarningMessage warnings={warnings} />
+      {objectInspectorOrNotFound(responseBody, t('Response body not found'))}
+    </SectionItem>
   );
+
+  return <SectionList>{content}</SectionList>;
+}
+
+function WarningMessage({warnings}: {warnings: undefined | string[]}) {
+  const isJsonTruncated = warnings?.includes('JSON_TRUNCATED');
+  const isTextTruncated = warnings?.includes('TEXT_TRUNCATED');
+  if (isJsonTruncated || isTextTruncated) {
+    return (
+      <span>
+        {t('Request Payload was truncated (~~) due to it exceeding 150k characters')}
+      </span>
+    );
+  }
+  return null;
 }
 
 function objectInspectorOrNotFound(data: any, notFoundText: string) {

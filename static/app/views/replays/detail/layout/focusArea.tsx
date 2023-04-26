@@ -22,6 +22,7 @@ function FocusArea({}: Props) {
       return (
         <NetworkList
           networkSpans={replay?.getNetworkSpans()}
+          projectId={replay?.getReplay()?.project_id}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
