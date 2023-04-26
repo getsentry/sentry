@@ -77,14 +77,14 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
-        # sort monitors by top monitor environment, then by last check-in
+        # sort monitors by top monitor environment, then by latest check-in
         monitor_environments_query = MonitorEnvironment.objects.filter(
             monitor__id=OuterRef("id"), environment__in=environments
         )
 
         queryset = queryset.annotate(
             environment_status_ordering=Case(
-                When(status=MonitorStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
+                When(status=MonitorStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) - 1)),
                 default=Subquery(
                     monitor_environments_query.annotate(
                         status_ordering=MONITOR_ENVIRONMENT_ORDERING
