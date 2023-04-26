@@ -194,7 +194,7 @@ function Onboarding(props: Props) {
       // so we silently delete the last created project
       // if the user didn't send an first error yet.
 
-      const projectShallBeRemoved = !Object.keys(onboardingContext.data).some(
+      const projectShallBeRemoved = !Object.keys(onboardingContext.data.projects).some(
         key =>
           onboardingContext.data.projects[key].slug === selectedProjectSlug &&
           (onboardingContext.data.projects[key].status ===
