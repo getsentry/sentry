@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 from sentry.issues.ongoing import transition_new_to_ongoing
@@ -17,7 +18,7 @@ from sentry.types.group import GroupSubStatus
 
 class TransitionNewToOngoingTest(TestCase):  # type: ignore
     @patch("sentry.signals.inbox_in.send_robust")
-    def test_new_to_ongoing(self, inbox_in):
+    def test_new_to_ongoing(self, inbox_in: Any) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
