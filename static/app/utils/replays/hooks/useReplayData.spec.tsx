@@ -5,19 +5,35 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 jest.useFakeTimers();
 jest.spyOn(ReplayReader, 'factory');
+jest.mock('sentry/utils/useProjects');
 
 const {organization, project} = initializeOrg();
+
+const mockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
+mockUseProjects.mockReturnValue({
+  fetching: false,
+  projects: [project],
+  fetchError: null,
+  hasMore: false,
+  initiallyLoaded: true,
+  onSearch: () => Promise.resolve(),
+  placeholders: [],
+});
 
 const MockedReplayReaderFactory = ReplayReader.factory as jest.MockedFunction<
   typeof ReplayReader.factory
 >;
 
 function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
-  const HYDRATED_REPLAY = TestStubs.ReplayRecord(replayRecord);
+  const HYDRATED_REPLAY = TestStubs.ReplayRecord({
+    ...replayRecord,
+    project_id: project.id,
+  });
   const RAW_REPLAY = {
     ...HYDRATED_REPLAY,
     duration: HYDRATED_REPLAY.duration.asSeconds(),
@@ -45,7 +61,7 @@ describe('useReplayData', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/`,
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
 
@@ -87,7 +103,7 @@ describe('useReplayData', () => {
     ];
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/`,
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
     const mockedSegmentsCall1 = MockApiClient.addMockResponse({
@@ -155,7 +171,7 @@ describe('useReplayData', () => {
     ];
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/`,
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
     const mockedErrorsCall1 = MockApiClient.addMockResponse({
@@ -214,7 +230,7 @@ describe('useReplayData', () => {
 
     const mockedReplayCall = MockApiClient.addMockResponse({
       asyncDelay: 1,
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/`,
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
 
@@ -290,6 +306,36 @@ describe('useReplayData', () => {
       attachments: mockSegmentResponse,
       replayRecord: expectedReplay,
       errors: mockErrorResponse,
+    });
+  });
+
+  it('should handle a replaySlug without projectSlug', async () => {
+    const {mockReplayResponse, expectedReplay} = getMockReplayRecord({
+      count_errors: 0,
+      count_segments: 0,
+      error_ids: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
+      body: {data: mockReplayResponse},
+    });
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      initialProps: {
+        replaySlug: mockReplayResponse.id,
+        orgSlug: organization.slug,
+      },
+    });
+
+    await waitForNextUpdate();
+
+    expect(result.current).toEqual({
+      fetchError: undefined,
+      fetching: false,
+      onRetry: expect.any(Function),
+      replay: expect.any(ReplayReader),
+      replayRecord: expectedReplay,
     });
   });
 });
