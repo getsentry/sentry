@@ -50,6 +50,24 @@ class StringIndexerCache:
         hashed = md5_text(key).hexdigest()
         return f"indexer:{self.partition_key}:org:str:{new_namespace}:{hashed}"
 
+    def _format_new_results(
+        self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
+    ) -> MutableMapping[str, Optional[int]]:
+        """
+        Takes in keys formatted like "org_id:string", and results that have the
+        internally used hashed key such as:
+            {"indexer:org:str:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
+        and returns results that replace the hashed internal key with the externally
+        used key:
+            {"1.2.0": 2}
+        """
+        formatted: MutableMapping[str, Optional[int]] = {}
+        for key in keys:
+            cache_key = self.make_new_cache_key(key, cache_namespace)
+            formatted[key] = results.get(cache_key)
+
+        return formatted
+
     def _format_results(
         self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
     ) -> MutableMapping[str, Optional[int]]:
@@ -81,6 +99,16 @@ class StringIndexerCache:
             timeout=self.randomized_ttl,
             version=self.version,
         )
+
+    def get_many_new(
+        self, keys: Sequence[str], cache_namespace: str
+    ) -> MutableMapping[str, Optional[int]]:
+        # make the new cache keys
+        cache_keys = {self.make_new_cache_key(key, cache_namespace): key for key in keys}
+        results: Mapping[str, Optional[int]] = self.cache.get_many(
+            cache_keys.keys(), version=self.version
+        )
+        return self._format_new_results(keys, results, cache_namespace)
 
     def get_many(
         self, keys: Sequence[str], cache_namespace: str
@@ -123,18 +151,34 @@ class CachingIndexer(StringIndexer):
         cache_keys = KeyCollection(org_strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = self.cache.get_many(cache_key_strs, use_case_id.value)
+        new_cache_results = self.cache.get_many_new(cache_key_strs, use_case_id.value)
 
-        hits = [k for k, v in cache_results.items() if v is not None]
+        new_cache_key_results = KeyResults()
+        new_cache_key_results.add_key_results(
+            [KeyResult.from_string(k, v) for k, v in new_cache_results.items() if v is not None],
+            FetchType.CACHE_HIT,
+        )
+
+        new_hits = [k for k, v in new_cache_results.items() if v is not None]
+
+        # these are all the keys that don't have new cache keys
+        new_cache_miss_keys = new_cache_key_results.get_unmapped_keys(cache_keys)
+        first_miss_cache_key_strs = new_cache_miss_keys.as_strings()
+
+        cache_results = self.cache.get_many(first_miss_cache_key_strs, use_case_id.value)
+
+        old_hits = [k for k, v in cache_results.items() if v is not None]
+
+        # record all the cache hits we had
         metrics.incr(
             _INDEXER_CACHE_METRIC,
             tags={"cache_hit": "true", "caller": "get_many_ids"},
-            amount=len(hits),
+            amount=len(old_hits) + len(new_hits),
         )
         metrics.incr(
             _INDEXER_CACHE_METRIC,
             tags={"cache_hit": "false", "caller": "get_many_ids"},
-            amount=len(cache_results) - len(hits),
+            amount=len(cache_key_strs) - (len(old_hits) + len(new_hits)),
         )
 
         # used to compare to pre org_id indexer cache fetch metric
@@ -143,6 +187,7 @@ class CachingIndexer(StringIndexer):
             amount=cache_keys.size,
         )
 
+        # these are the results from hitting the old cache keys
         cache_key_results = KeyResults()
         cache_key_results.add_key_results(
             [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
@@ -151,8 +196,10 @@ class CachingIndexer(StringIndexer):
 
         db_record_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
+        overall_cache_results = cache_key_results.merge(new_cache_key_results)
+
         if db_record_keys.size == 0:
-            return cache_key_results
+            return overall_cache_results
 
         db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
 
@@ -173,7 +220,7 @@ class CachingIndexer(StringIndexer):
             cache_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
         )
 
-        return cache_key_results.merge(db_record_key_results)
+        return overall_cache_results.merge(db_record_key_results)
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
