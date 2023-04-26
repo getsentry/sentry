@@ -19,25 +19,29 @@ import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 type Props = {
   location: Location;
   organization: Organization;
-  transactionName: string;
+  isLoading: boolean;
+  spike: FailureSpike;
+  transactions: string[] | undefined;
 };
 
-export default function IssueList({organization, location, transactionName}: Props) {
+export default function IssueTable({organization, location, spike, transactions}: Props) {
   const COLUMN_ORDER = [
     {
       key: 'issue',
       name: 'Issue',
       width: 200,
     },
-    {
-      key: `count_if(transaction, equals, ${transactionName})`,
-      name: 'Event Count',
-      width: 200,
-    },
+    // {
+    //   key: `count_if(transaction, equals, ${transactionName})`,
+    //   name: 'Event Count',
+    //   width: 200,
+    // },
   ];
 
   function renderHeadCell(
@@ -64,22 +68,32 @@ export default function IssueList({organization, location, transactionName}: Pro
     return rendered;
   }
 
+  if (!transactions) {
+    return null;
+  }
+
+  let searchQuery = 'event.type:error transaction:[';
+  transactions.forEach(transaction => (searchQuery += `${transaction},`));
+  searchQuery = searchQuery.slice(0, searchQuery.length - 1) + ']';
+
+  console.log(searchQuery);
+
   const {query} = location;
-  const hasStartAndEnd = query.start && query.end;
-  const aggregateAlias = getAggregateAlias(
-    `count_if(transaction, equals, ${transactionName})`
-  );
+  const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
+  // const aggregateAlias = getAggregateAlias(
+  //   `count_if(transaction, equals, ${transactionName})`
+  // );
   const newQuery: NewQuery = {
     name: t('Failure Detail Issues'),
     projects: [],
-    start: decodeScalar(query.start),
-    end: decodeScalar(query.end),
+    start: spike?.startTimestamp,
+    end: spike?.endTimestamp,
     range: !hasStartAndEnd
       ? decodeScalar(query.statsPeriod) || DEFAULT_STATS_PERIOD
       : undefined,
-    fields: ['issue', `count_if(transaction, equals, ${transactionName})`],
-    query: `event.type:error transaction:${transactionName}`,
-    orderby: `-${aggregateAlias}`,
+    fields: ['issue', 'title', 'count()', 'count_unique(user)'],
+    query: searchQuery,
+    orderby: `-count()`,
     version: 2,
   };
 
@@ -96,32 +110,35 @@ export default function IssueList({organization, location, transactionName}: Pro
         queryExtras={{dataset: 'discover'}}
         limit={5}
       >
-        {({pageLinks, isLoading, tableData}) => (
-          <Fragment>
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData ? tableData.data : []}
-              columnOrder={COLUMN_ORDER}
-              columnSortBy={eventView.getSorts()}
-              grid={{
-                renderHeadCell: (column: GridColumnHeader) =>
-                  renderHeadCell(
-                    tableData?.meta,
-                    column as TableColumn<keyof TableDataRow>
-                  ),
-                renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
-                  renderBodyCell(
-                    tableData,
-                    column as TableColumn<keyof TableDataRow>,
-                    dataRow
-                  ) as any,
-              }}
-              location={location}
-            />
+        {({pageLinks, isLoading, tableData}) => {
+          console.dir(tableData);
+          return (
+            <Fragment>
+              <GridEditable
+                isLoading={isLoading}
+                data={tableData ? tableData.data : []}
+                columnOrder={COLUMN_ORDER}
+                columnSortBy={eventView.getSorts()}
+                grid={{
+                  renderHeadCell: (column: GridColumnHeader) =>
+                    renderHeadCell(
+                      tableData?.meta,
+                      column as TableColumn<keyof TableDataRow>
+                    ),
+                  renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
+                    renderBodyCell(
+                      tableData,
+                      column as TableColumn<keyof TableDataRow>,
+                      dataRow
+                    ) as any,
+                }}
+                location={location}
+              />
 
-            <Pagination pageLinks={pageLinks} />
-          </Fragment>
-        )}
+              <Pagination pageLinks={pageLinks} />
+            </Fragment>
+          );
+        }}
       </DiscoverQuery>
     </div>
   );

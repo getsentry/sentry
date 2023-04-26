@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
@@ -8,6 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import FailureDetailTable from 'sentry/views/starfish/views/webServiceView/failureDetailPanel/failureDetailTable';
+import IssueTable from 'sentry/views/starfish/views/webServiceView/failureDetailPanel/issueTable';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 export default function FailureDetailPanel({
@@ -19,16 +21,16 @@ export default function FailureDetailPanel({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  console.dir(spike);
 
-  const {query} = location;
-  const hasStartAndEnd = query.start && query.end;
+  const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
   const newQuery: NewQuery = {
     name: t('Failure Sample'),
     projects: [],
-    start: decodeScalar(query.start),
-    end: decodeScalar(query.end),
+    start: spike?.startTimestamp,
+    end: spike?.endTimestamp,
     range: !hasStartAndEnd
-      ? decodeScalar(query.statsPeriod) || DEFAULT_STATS_PERIOD
+      ? decodeScalar(location.query.statsPeriod) || DEFAULT_STATS_PERIOD
       : undefined,
     fields: [
       'transaction',
@@ -65,13 +67,24 @@ export default function FailureDetailPanel({
             limit={5}
           >
             {results => {
+              const transactions = results?.tableData?.data.map(row => row.transaction);
+              console.dir(transactions);
               return (
-                <FailureDetailTable
-                  {...results}
-                  location={location}
-                  organization={organization}
-                  eventView={eventView}
-                />
+                <Fragment>
+                  <FailureDetailTable
+                    {...results}
+                    location={location}
+                    organization={organization}
+                    eventView={eventView}
+                  />
+                  <IssueTable
+                    location={location}
+                    organization={organization}
+                    isLoading={results.isLoading}
+                    spike={spike}
+                    transactions={transactions as string[]}
+                  />
+                </Fragment>
               );
             }}
           </DiscoverQuery>

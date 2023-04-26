@@ -99,8 +99,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
               handleSpikeAreaClick={e => {
                 if (e.componentType === 'markArea') {
                   setSelectedSpike({
-                    startTimestamp: new Date(e.data.coord[0][0]),
-                    endTimestamp: new Date(e.data.coord[1][0]),
+                    startTimestamp: e.data.coord[0][0],
+                    endTimestamp: e.data.coord[1][0],
                   });
                 }
               }}
