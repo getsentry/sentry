@@ -28,6 +28,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.types.group import GroupSubStatus
+from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
 BUCKETS_PER_GROUP = 7 * 24
 ONE_WEEK_DURATION = 7
 IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
+GROUP_DAILY_COUNT_DURATION = 60
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -192,23 +194,31 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
 
 def get_group_daily_count(project_id: int, group_id: int) -> int:
     """Return the number of events a group has had today"""
-    date_now = datetime.now().date()
-    start_date = date_now
-    end_date = date_now + timedelta(days=1)
-    query = Query(
-        match=Entity(EntityKey.Events.value),
-        select=[
-            Function("count", []),
-        ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("group_id"), Op.EQ, group_id),
-            Condition(Column("timestamp"), Op.GTE, start_date),
-            Condition(Column("timestamp"), Op.LT, end_date),
-        ],
-    )
-    request = Request(dataset=Dataset.Events.value, app_id=IS_ESCALATING_REFERRER, query=query)
-    return int(raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"])
+    key = f"daily-group-count:{project_id}:{group_id}"
+    daily_count = cache.get(key)
+
+    if daily_count is None:
+        date_now = datetime.now().date()
+        start_date = date_now
+        end_date = date_now + timedelta(days=1)
+        query = Query(
+            match=Entity(EntityKey.Events.value),
+            select=[
+                Function("count", []),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("group_id"), Op.EQ, group_id),
+                Condition(Column("timestamp"), Op.GTE, start_date),
+                Condition(Column("timestamp"), Op.LT, end_date),
+            ],
+        )
+        request = Request(dataset=Dataset.Events.value, app_id=IS_ESCALATING_REFERRER, query=query)
+        daily_count = int(
+            raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
+        )
+        cache.set(key, daily_count, GROUP_DAILY_COUNT_DURATION)
+    return daily_count
 
 
 def is_escalating(group: Group) -> bool:
