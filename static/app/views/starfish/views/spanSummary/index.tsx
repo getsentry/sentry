@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
+import orderBy from 'lodash/orderBy';
+import * as qs from 'query-string';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
@@ -11,6 +13,8 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   PageErrorAlert,
@@ -20,7 +24,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
-import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule/queries';
+import {
+  getSpanFacetBreakdownQuery,
+  getSpanInTransactionQuery,
+} from 'sentry/views/starfish/modules/APIModule/queries';
 import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {getSpanSamplesQuery} from './queries';
@@ -69,7 +76,7 @@ export default function SpanSummary({location, params}: Props) {
   const groupId = params.groupId;
   const transactionName = location.query.transaction;
 
-  const query = getSpanInTransactionQuery({
+  const spanInfoQuery = getSpanInTransactionQuery({
     groupId,
     transactionName,
     datetime: pageFilter.selection.datetime,
@@ -77,7 +84,19 @@ export default function SpanSummary({location, params}: Props) {
 
   const {isLoading, data} = useQuery({
     queryKey: ['spanSummary', groupId, transactionName],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    queryFn: () => fetch(`${HOST}/?query=${spanInfoQuery}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const facetBreakdownQuery = getSpanFacetBreakdownQuery({
+    groupId,
+    datetime: pageFilter.selection.datetime,
+  });
+
+  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} = useQuery({
+    queryKey: ['facetBreakdown', groupId, transactionName],
+    queryFn: () => fetch(`${HOST}/?query=${facetBreakdownQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -87,6 +106,7 @@ export default function SpanSummary({location, params}: Props) {
     transactionName,
     datetime: pageFilter.selection.datetime,
   });
+
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
     queryKey: ['spanSamples', groupId, transactionName, pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
@@ -139,18 +159,65 @@ export default function SpanSummary({location, params}: Props) {
                 {isLoading ? (
                   <span>LOADING</span>
                 ) : (
-                  <SpanGroupKeyValueList
-                    data={data}
-                    spanGroupOperation={spanGroupOperation}
-                    spanDescription={spanDescription}
-                    spanDomain={spanDomain}
-                    transactionName={transactionName}
-                  />
+                  <div>
+                    <h3>{t('Info')}</h3>
+                    <SpanGroupKeyValueList
+                      data={data}
+                      spanGroupOperation={spanGroupOperation}
+                      spanDescription={spanDescription}
+                      spanDomain={spanDomain}
+                      transactionName={transactionName}
+                    />
+                  </div>
                 )}
+                {isFacetBreakdownLoading ? (
+                  <span>LOADING</span>
+                ) : (
+                  <div>
+                    <h3>{t('Facets')}</h3>
+                    {['transaction', 'user', 'domain'].map(facet => {
+                      const values = facetBreakdownData.map(datum => datum[facet]);
+
+                      const uniqueValues: string[] = Array.from(new Set(values));
+
+                      let totalValues = 0;
+
+                      const segments = orderBy(
+                        uniqueValues.map(uniqueValue => {
+                          const count = values.filter(v => v === uniqueValue).length;
+                          totalValues += count;
+
+                          return {
+                            key: facet,
+                            name: uniqueValue,
+                            value: uniqueValue,
+                            url: `/starfish/span/${groupId}?${qs.stringify({
+                              [facet]: uniqueValue,
+                            })}`,
+                            count,
+                          };
+                        }),
+                        'count',
+                        'desc'
+                      );
+
+                      return (
+                        <TagDistributionMeter
+                          key={facet}
+                          title={facet}
+                          segments={segments}
+                          totalValues={totalValues}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+
                 {areSpanSamplesLoading ? (
                   <span>LOADING SAMPLE LIST</span>
                 ) : (
                   <div>
+                    <h3>{t('Samples')}</h3>
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
                       data={spanSampleData.map(datum => {
@@ -259,7 +326,6 @@ function SpanGroupKeyValueList({
   spanDescription,
   spanGroupOperation,
   spanDomain,
-  transactionName,
 }: {
   data: any; // TODO: type this
   spanDescription: string;
@@ -273,11 +339,6 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
-            {
-              key: 'transaction',
-              value: transactionName,
-              subject: 'Transaction',
-            },
             {key: 'desc', value: spanDescription, subject: 'Full Query'},
             {key: 'domain', value: spanDomain, subject: 'Table Columns'},
           ]}
@@ -288,11 +349,6 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
-            {
-              key: 'transaction',
-              value: transactionName,
-              subject: 'Transaction',
-            },
             {key: 'desc', value: spanDescription, subject: 'URL'},
             {key: 'domain', value: spanDomain, subject: 'Domain'},
           ]}

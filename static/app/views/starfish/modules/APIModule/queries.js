@@ -141,3 +141,15 @@ export const getSpanInTransactionQuery = ({groupId, transactionName, datetime}) 
     GROUP BY span_operation
  `;
 };
+
+export const getSpanFacetBreakdownQuery = ({groupId, datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  // TODO - add back `module = <moudle> to filter data
+  return `
+    SELECT transaction, user, domain
+    FROM spans_experimental_starfish
+    WHERE group_id = '${groupId}'
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+ `;
+};
