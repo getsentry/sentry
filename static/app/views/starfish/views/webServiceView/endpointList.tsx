@@ -10,7 +10,7 @@ import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, SavedSearchType} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -29,7 +29,9 @@ const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
@@ -296,6 +298,11 @@ class EndpointList extends Component<Props, State> {
 
     return (
       <GuideAnchor target="performance_table" position="top-start">
+        <StyledSearchBar
+          placeholder={t('Search for endpoints')}
+          savedSearchType={SavedSearchType.EVENT}
+          onSearch={query => console.dir(query)}
+        />
         <DiscoverQuery
           eventView={eventView}
           orgSlug={organization.slug}
@@ -338,4 +345,8 @@ const TrendingDuration = styled('div')<{trendDirection: 'good' | 'bad' | 'neutra
       ? p.theme.errorText
       : p.theme.subText};
   float: right;
+`;
+
+const StyledSearchBar = styled(SmartSearchBar)`
+  margin-bottom: ${space(2)};
 `;
