@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 from typing import Sequence
 
+from sentry import analytics
 from sentry.issues.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
@@ -40,6 +41,7 @@ def save_forecast_per_group(
         "Saved forecasts in nodestore",
         extra={"num_groups": len(group_counts.keys())},
     )
+    analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
 
 
 def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
