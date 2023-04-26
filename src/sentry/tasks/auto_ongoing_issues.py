@@ -65,7 +65,7 @@ def auto_transition_issues_new_to_ongoing(
 
     new_inbox = queryset[:chunk_size]
 
-    for group in Group.object.filter(id__in=list({inbox.group_id for inbox in new_inbox})):
+    for group in Group.objects.filter(id__in=list({inbox.group_id for inbox in new_inbox})):
         transition_new_to_ongoing(group)
 
     if len(new_inbox) == chunk_size:
