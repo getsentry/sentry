@@ -41,6 +41,15 @@ class StringIndexerCache:
         hashed = md5_text(key).hexdigest()
         return f"indexer:{self.partition_key}:org:str:{cache_namespace}:{hashed}"
 
+    def make_new_cache_key(self, key: str, cache_namespace: str) -> str:
+        if cache_namespace == "performance":
+            new_namespace = "transactions"
+        else:
+            new_namespace = "sessions"
+
+        hashed = md5_text(key).hexdigest()
+        return f"indexer:{self.partition_key}:org:str:{new_namespace}:{hashed}"
+
     def _format_results(
         self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
     ) -> MutableMapping[str, Optional[int]]:
@@ -81,6 +90,12 @@ class StringIndexerCache:
             cache_keys.keys(), version=self.version
         )
         return self._format_results(keys, results, cache_namespace)
+
+    def set_many_new(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
+        cache_key_values = {
+            self.make_new_cache_key(k, cache_namespace): v for k, v in key_values.items()
+        }
+        self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
 
     def set_many(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
         cache_key_values = {
@@ -140,9 +155,24 @@ class CachingIndexer(StringIndexer):
             return cache_key_results
 
         db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
+
+        # We will temporarily change it to write new cache keys for all results
+
+        # DB key results
         self.cache.set_many(
             db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
         )
+
+        self.cache.set_many_new(
+            db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+        )
+
+        # cache key results (these are on the old cache keys,
+        # and we need to record the new cache keys)
+        self.cache.set_many_new(
+            cache_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+        )
+
         return cache_key_results.merge(db_record_key_results)
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
