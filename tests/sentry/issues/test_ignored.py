@@ -65,7 +65,7 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
 
-        handle_archived_until_escalating([self.group], self.user)
+        handle_archived_until_escalating([self.group], self.user, [self.project], sender=self)
         assert not GroupInbox.objects.filter(group=self.group).exists()
         # Make sure we don't create a snooze for until_escalating
         assert not GroupSnooze.objects.filter(group=self.group).exists()
@@ -91,7 +91,7 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
 
-        handle_archived_until_escalating([self.group], self.user)
+        handle_archived_until_escalating([self.group], self.user, [self.project], sender=self)
         assert not GroupInbox.objects.filter(group=self.group).exists()
         # Make sure we don't create a snooze for until_escalating
         assert not GroupSnooze.objects.filter(group=self.group).exists()
@@ -101,3 +101,17 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         assert fetched_forecast.project_id == self.group.project.id
         assert fetched_forecast.group_id == self.group.id
         assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+
+    @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
+    @patch("sentry.signals.issue_archived.send_robust")
+    def test_archive_until_escalating_analytics(
+        self, mock_query_groups_past_counts: MagicMock, mock_send_robust: MagicMock
+    ) -> None:
+        self.group = self.create_group()
+        add_group_to_inbox(self.group, GroupInboxReason.NEW)
+        assert GroupInbox.objects.filter(
+            group=self.group, reason=GroupInboxReason.NEW.value
+        ).exists()
+
+        handle_archived_until_escalating([self.group], self.user, [self.project], sender=self)
+        assert mock_send_robust.called

@@ -3,6 +3,7 @@ import max from 'lodash/max';
 import min from 'lodash/min';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
@@ -32,6 +33,7 @@ type Props = {
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxisSplitLine?: boolean;
+  isBarChart?: boolean;
   isLineChart?: boolean;
   log?: boolean;
   previousData?: Series[];
@@ -94,6 +96,7 @@ function Chart({
   disableXAxis,
   definedAxisTicks,
   chartColors,
+  isBarChart,
   isLineChart,
   stacked,
   log,
@@ -255,6 +258,9 @@ function Chart({
     if (isLineChart) {
       return <LineChart height={height} series={[]} {...areaChartProps} />;
     }
+    if (isBarChart) {
+      return <BarChart height={height} series={[]} {...areaChartProps} />;
+    }
     return <AreaChart height={height} series={[]} {...areaChartProps} />;
   }
   const series = data.map((values, _) => ({
@@ -313,6 +319,21 @@ function Chart({
                   })
                 ),
               ]}
+            />
+          );
+        }
+
+        if (isBarChart) {
+          return (
+            <BarChart
+              height={height}
+              series={series}
+              xAxis={xAxis}
+              yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
+              tooltip={areaChartProps.tooltip}
+              colors={colors}
+              grid={grid}
+              legend={showLegend ? {top: 0, right: 0} : undefined}
             />
           );
         }

@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
+import * as qs from 'query-string';
 
 import Duration from 'sentry/components/duration';
 import GridEditable, {
@@ -215,9 +216,7 @@ function renderBodyCell(
     return (
       <OverflowEllipsisTextContainer>
         <Link
-          to={`/starfish/span/${encodeURIComponent(groupId)}:${encodeURIComponent(
-            row.transaction
-          )}`}
+          to={`/starfish/span/${groupId}?${qs.stringify({transaction: row.transaction})}`}
         >
           {row[column.key]}
         </Link>

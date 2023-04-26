@@ -56,6 +56,16 @@ import withOrganization from 'sentry/utils/withOrganization';
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
 
+type UpdateData =
+  | {isBookmarked: boolean}
+  | {isSubscribed: boolean}
+  | {inbox: boolean}
+  | GroupStatusResolution;
+
+const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => {
+  return (data as GroupStatusResolution).status !== undefined;
+};
+
 type Props = {
   api: Client;
   disabled: boolean;
@@ -108,7 +118,9 @@ class Actions extends Component<Props> {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
-      | ResolutionStatus
+      | ResolutionStatus,
+    substatus?: string,
+    statusDetailsKey?: string
   ) {
     const {group, project, organization, query = {}} = this.props;
     const {alert_date, alert_rule_id, alert_type} = query;
@@ -116,6 +128,8 @@ class Actions extends Component<Props> {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: action,
+      action_substatus: substatus,
+      action_status_details: statusDetailsKey,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -154,13 +168,7 @@ class Actions extends Component<Props> {
     this.trackIssueAction('deleted');
   };
 
-  onUpdate = (
-    data:
-      | {isBookmarked: boolean}
-      | {isSubscribed: boolean}
-      | {inbox: boolean}
-      | GroupStatusResolution
-  ) => {
+  onUpdate = (data: UpdateData) => {
     const {group, project, organization, api} = this.props;
 
     addLoadingMessage(t('Saving changes\u2026'));
@@ -178,8 +186,12 @@ class Actions extends Component<Props> {
       }
     );
 
-    if ((data as GroupStatusResolution).status) {
-      this.trackIssueAction((data as GroupStatusResolution).status);
+    if (isResolutionStatus(data)) {
+      this.trackIssueAction(
+        data.status,
+        data.substatus,
+        Object.keys(data.statusDetails || {})[0]
+      );
     }
     if ((data as {inbox: boolean}).inbox !== undefined) {
       this.trackIssueAction('mark_reviewed');
@@ -561,7 +573,6 @@ class Actions extends Component<Props> {
                 hasRelease={hasRelease}
                 latestRelease={project.latestRelease}
                 onUpdate={this.onUpdate}
-                orgSlug={organization.slug}
                 projectSlug={project.slug}
                 isResolved={isResolved}
                 isAutoResolved={isAutoResolved}

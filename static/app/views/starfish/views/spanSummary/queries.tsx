@@ -4,21 +4,24 @@ import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/
 export const getSpanSamplesQuery = ({
   groupId,
   transactionName,
+  user,
   datetime,
 }: {
   groupId;
   transactionName;
+  user;
   datetime?: DateTimeObject;
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
-    SELECT description, transaction_id, span_id, exclusive_time, count() as count, domain, start_timestamp
+    SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time
     FROM spans_experimental_starfish
     WHERE group_id = '${groupId}'
-    AND transaction = '${transactionName}'
+    ${transactionName ? `AND transaction = '${transactionName}'` : ''}
+    ${user ? `AND user = '${user}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY description, transaction_id, span_id, exclusive_time, domain, start_timestamp
+    GROUP BY transaction_id, transaction, description, user, domain, span_id
     ORDER BY exclusive_time desc
     LIMIT 10
  `;
