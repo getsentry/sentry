@@ -121,7 +121,7 @@ export default function APIModuleView({
         </Hovercard>
       );
     }
-    if (['p75', 'total_time'].includes(column.key)) {
+    if (['p75', 'total_time'].includes(column.key.toString())) {
       return <span>{row[column.key].toFixed(2)}ms</span>;
     }
     if (column.key === 'conditions') {
