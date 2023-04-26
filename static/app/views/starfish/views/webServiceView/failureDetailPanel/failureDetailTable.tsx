@@ -25,17 +25,18 @@ type Props = {
 const COLUMN_ORDER = [
   {
     key: 'transaction',
-    name: 'transaction',
-    width: 600,
+    name: 'endpoint',
+    width: 350,
   },
   {
     key: 'count_if(http.status_code,greaterOrEquals,500)',
-    name: 'failure_count()',
-    width: 300,
+    name: 'Errors',
+    width: 50,
   },
   {
     key: 'equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))',
-    name: 'failure_rate()',
+    name: 'Error Rate',
+    width: 50,
   },
 ];
 
@@ -48,8 +49,7 @@ export default function FailureDetailTable({
   pageLinks,
 }: Props) {
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    const align = column.name === 'transaction' ? 'left' : 'right';
-    return <StyledNonLink align={align}>{column.name}</StyledNonLink>;
+    return <StyledNonLink align={'left'}>{column.name}</StyledNonLink>;
   }
 
   function renderBodyCell(
@@ -65,10 +65,7 @@ export default function FailureDetailTable({
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     if (column.key === 'transaction') {
-      let prefix = '';
-      if (dataRow['http.method']) {
-        prefix = `${dataRow['http.method']} `;
-      }
+      const prefix = dataRow['http.method'] ? `${dataRow['http.method']} ` : '';
       return (
         <Link
           to={{
