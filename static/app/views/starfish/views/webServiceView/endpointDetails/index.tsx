@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -63,6 +64,34 @@ const HTTP_SPAN_COLUMN_ORDER = [
   },
   {
     key: 'total_exclusive_time',
+    name: 'Total Time',
+    width: COL_WIDTH_UNDEFINED,
+  },
+];
+
+const DATABASE_SPAN_COLUMN_ORDER = [
+  {
+    key: 'description',
+    name: 'Query',
+    width: 200,
+  },
+  {
+    key: 'domain',
+    name: 'Table',
+    width: 100,
+  },
+  {
+    key: 'epm',
+    name: 'Tpm',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'p75',
+    name: 'p75',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'total_time',
     name: 'Total Time',
     width: COL_WIDTH_UNDEFINED,
   },
@@ -196,7 +225,13 @@ function EndpointDetailBody({
       <SubHeader>{t('HTTP Spans')}</SubHeader>
       <EndpointTable
         location={location}
-        onSelect={() => {}}
+        onSelect={r => {
+          browserHistory.push(
+            `/starfish/span/${encodeURIComponent(r.group_id)}:${encodeURIComponent(
+              row.transaction
+            )}`
+          );
+        }}
         columns={HTTP_SPAN_COLUMN_ORDER}
         filterOptions={{
           action: '',
@@ -208,8 +243,15 @@ function EndpointDetailBody({
       <SubHeader>{t('Database Spans')}</SubHeader>
       <DatabaseTableView
         location={location}
-        onSelect={() => {}}
+        onSelect={r => {
+          browserHistory.push(
+            `/starfish/span/${encodeURIComponent(r.group_id)}:${encodeURIComponent(
+              row.transaction
+            )}`
+          );
+        }}
         transaction={row.transaction}
+        columns={DATABASE_SPAN_COLUMN_ORDER}
       />
     </div>
   );
