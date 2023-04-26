@@ -94,7 +94,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   SELECT transaction, count(DISTINCT transaction_id) as uniqueEvents
     FROM spans_experimental_starfish
     WHERE transaction
-      IN (SELECT transaction FROM spans_experimental_starfish WHERE module='db' AND description='${row.description}')
+      IN (SELECT transaction FROM spans_experimental_starfish WHERE module='db' AND group_id='${row.group_id}')
     GROUP BY transaction
    `;
 
@@ -220,24 +220,26 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
           />
         </FlexRowItem>
       </FlexRowContainer>
-      <FlexRowContainer>
-        <FlexRowItem>
-          <SubHeader>{t('Percentiles')}</SubHeader>
-          <Chart
-            statsPeriod="24h"
-            height={140}
-            data={[percentileSeries]}
-            start=""
-            end=""
-            loading={isLoading}
-            utc={false}
-            disableMultiAxis
-            stacked
-            isBarChart
-            hideYAxisSplitLine
-          />
-        </FlexRowItem>
-      </FlexRowContainer>
+      {row.transactions > 1 && (
+        <FlexRowContainer>
+          <FlexRowItem>
+            <SubHeader>{t('Percentiles')}</SubHeader>
+            <Chart
+              statsPeriod="24h"
+              height={140}
+              data={[percentileSeries]}
+              start=""
+              end=""
+              loading={isLoading}
+              utc={false}
+              disableMultiAxis
+              stacked
+              isBarChart
+              hideYAxisSplitLine
+            />
+          </FlexRowItem>
+        </FlexRowContainer>
+      )}
       <GridEditable
         isLoading={isDataLoading}
         data={mergedTableData}
