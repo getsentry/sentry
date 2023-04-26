@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 from typing import Any
-=======
->>>>>>> d17c2f9bb7 (add tests)
 from unittest.mock import patch
 
 from sentry.issues.ongoing import transition_new_to_ongoing
