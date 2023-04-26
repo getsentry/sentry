@@ -1,7 +1,7 @@
 import logging
 from collections import namedtuple
 from datetime import timedelta
-from typing import Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -89,7 +89,7 @@ def recalibrate_orgs() -> None:
     metrics.incr("sentry.tasks.dynamic_sampling.recalibrate_orgs.start", sample_rate=1.0)
 
     # use a dict instead of a list to easily pass it to the logger in the extra field
-    errors = {}
+    errors: Dict[str, str] = {}
 
     with metrics.timer("sentry.tasks.dynamic_sampling.recalibrate_orgs", sample_rate=1.0):
         for orgs in get_active_orgs(1000, query_interval):
@@ -223,6 +223,7 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
     else:
         # we are either at 1.0 no point creating an adjustment rule
         redis_client.delete(factor_key)
+    return None
 
 
 @instrumented_task(
