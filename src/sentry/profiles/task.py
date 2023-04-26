@@ -305,7 +305,7 @@ def _symbolicate(
                     profile["symbolicator_error"] = {
                         "type": EventError.NATIVE_INTERNAL_FAILURE,
                     }
-                    return [], [], False
+                    return modules, stacktraces, False
                 elif response["status"] == "completed":
                     return (
                         response.get("modules", modules),
@@ -318,13 +318,13 @@ def _symbolicate(
                         "status": response.get("status"),
                         "message": response.get("message"),
                     }
-                    return [], [], False
+                    return modules, stacktraces, False
                 else:
                     profile["symbolicator_error"] = {
                         "status": response.get("status"),
                         "type": EventError.NATIVE_INTERNAL_FAILURE,
                     }
-                    return [], [], False
+                    return modules, stacktraces, False
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
@@ -341,7 +341,7 @@ def _symbolicate(
                 continue
 
     # returns the unsymbolicated data to avoid errors later
-    return (modules, stacktraces, False)
+    return modules, stacktraces, False
 
 
 @metrics.wraps("process_profile.symbolicate.process")
