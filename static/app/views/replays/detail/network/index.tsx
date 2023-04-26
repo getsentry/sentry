@@ -6,7 +6,6 @@ import Feature from 'sentry/components/acl/feature';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -53,37 +52,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const itemLookup = useMemo(
-    () =>
-      items &&
-      items
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
-        .sort(([a], [b]) => a - b),
-    [items]
-  );
-
-  const current = useMemo(
-    () =>
-      getPrevReplayEvent({
-        itemLookup,
-        items,
-        targetTimestampMs: startTimestampMs + currentTime,
-      }),
-    [itemLookup, items, currentTime, startTimestampMs]
-  );
-
-  const hovered = useMemo(
-    () =>
-      currentHoverTime
-        ? getPrevReplayEvent({
-            itemLookup,
-            items,
-            targetTimestampMs: startTimestampMs + currentHoverTime,
-          })
-        : null,
-    [itemLookup, items, currentHoverTime, startTimestampMs]
-  );
-
   const gridRef = useRef<MultiGrid>(null);
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
@@ -123,13 +91,13 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             />
           ) : (
             <NetworkTableCell
-              ref={e => e && registerChild?.(e)}
               columnIndex={columnIndex}
+              currentHoverTime={currentHoverTime}
+              currentTime={currentTime}
               handleClick={handleClick}
               handleMouseEnter={handleMouseEnter}
               handleMouseLeave={handleMouseLeave}
-              isCurrent={network.id === current?.id}
-              isHovered={network.id === hovered?.id}
+              ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               span={network}
@@ -187,7 +155,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             organization={organization}
             renderDisabled={false}
           >
-            <NetworkDetails initialHeight={initialRequestDetailsHeight} items={items} />
+            <NetworkDetails
+              initialHeight={initialRequestDetailsHeight}
+              items={items}
+              startTimestampMs={startTimestampMs}
+            />
           </Feature>
         </FluidHeight>
       </NetworkTable>
@@ -204,6 +176,42 @@ const OverflowHidden = styled('div')`
 const NetworkTable = styled(OverflowHidden)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+
+  .beforeHoverTime + .afterHoverTime:before {
+    border-top: 1px solid ${p => p.theme.purple200};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 999999999%;
+  }
+
+  .beforeHoverTime:last-child:before {
+    border-bottom: 1px solid ${p => p.theme.purple200};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 999999999%;
+  }
+
+  .beforeCurrentTime + .afterCurrentTime:before {
+    border-top: 1px solid ${p => p.theme.purple300};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 999999999%;
+  }
+
+  .beforeCurrentTime:last-child:before {
+    border-bottom: 1px solid ${p => p.theme.purple300};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 999999999%;
+  }
 `;
 
 export default NetworkList;

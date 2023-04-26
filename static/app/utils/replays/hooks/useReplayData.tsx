@@ -6,6 +6,7 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type State = {
@@ -94,7 +95,8 @@ function useReplayData({
   errorsPerPage = 50,
   segmentsPerPage = 100,
 }: Options): Result {
-  const [projectSlug, replayId] = replaySlug.split(':');
+  const replayId = parseReplayId(replaySlug);
+  const projects = useProjects();
 
   const api = useApi();
 
@@ -103,18 +105,23 @@ function useReplayData({
   const [errors, setErrors] = useState<ReplayError[]>([]);
   const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
+  const projectSlug = useMemo(() => {
+    if (!replayRecord) {
+      return null;
+    }
+    return projects.projects.find(p => p.id === replayRecord.project_id)?.slug;
+  }, [replayRecord, projects.projects]);
+
   // Fetch every field of the replay. We're overfetching, not every field is used
   const fetchReplay = useCallback(async () => {
-    const response = await api.requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/`
-    );
+    const response = await api.requestPromise(makeFetchReplayApiUrl(orgSlug, replayId));
     const mappedRecord = mapResponseToReplayRecord(response.data);
     setReplayRecord(mappedRecord);
     setState(prev => ({...prev, fetchingReplay: false}));
-  }, [api, orgSlug, projectSlug, replayId]);
+  }, [api, orgSlug, replayId]);
 
   const fetchAttachments = useCallback(async () => {
-    if (!replayRecord) {
+    if (!replayRecord || !projectSlug) {
       return;
     }
 
@@ -124,9 +131,7 @@ function useReplayData({
     }
 
     const pages = Math.ceil(replayRecord.count_segments / segmentsPerPage);
-    const cursors = new Array(pages)
-      .fill(0)
-      .map((_, i) => `${segmentsPerPage}:${i}:${i === 0 ? 1 : 0}`);
+    const cursors = new Array(pages).fill(0).map((_, i) => `0:${segmentsPerPage * i}:0`);
 
     await Promise.allSettled(
       cursors.map(cursor => {
@@ -147,7 +152,7 @@ function useReplayData({
       })
     );
     setState(prev => ({...prev, fetchingAttachments: false}));
-  }, [segmentsPerPage, api, orgSlug, projectSlug, replayRecord]);
+  }, [segmentsPerPage, api, orgSlug, replayRecord, projectSlug]);
 
   const fetchErrors = useCallback(async () => {
     if (!replayRecord) {
@@ -231,6 +236,26 @@ function useReplayData({
     replay,
     replayRecord,
   };
+}
+
+// see https://github.com/getsentry/sentry/pull/47859
+// replays can apply to many projects when incorporating backend errors
+// this makes having project in the `replaySlug` obsolete
+// we must keep this url schema for now for backward compat but we should remove it at some point
+// TODO: remove support for projectSlug in replay url?
+function parseReplayId(replaySlug: string) {
+  const maybeProjectSlugAndReplayId = replaySlug.split(':');
+  if (maybeProjectSlugAndReplayId.length === 2) {
+    return maybeProjectSlugAndReplayId[1];
+  }
+
+  // if there is no projectSlug then we assume we just have the replayId
+  // all other cases would be a malformed url
+  return maybeProjectSlugAndReplayId[0];
+}
+
+function makeFetchReplayApiUrl(orgSlug: string, replayId: string) {
+  return `/organizations/${orgSlug}/replays/${replayId}/`;
 }
 
 export default useReplayData;

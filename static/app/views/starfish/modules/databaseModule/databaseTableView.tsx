@@ -5,6 +5,9 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
 const HOST = 'http://localhost:8080';
 
@@ -19,8 +22,10 @@ type Props = {
 export type DataRow = {
   data_keys: Array<string>;
   data_values: Array<string>;
-  desc: string;
+  description: string;
   epm: number;
+  formatted_desc: string;
+  group_id: string;
   p75: number;
   total_time: number;
   transactions: number;
@@ -28,7 +33,7 @@ export type DataRow = {
 
 const COLUMN_ORDER = [
   {
-    key: 'desc',
+    key: 'description',
     name: 'Query',
     width: 600,
   },
@@ -39,7 +44,7 @@ const COLUMN_ORDER = [
   },
   {
     key: 'epm',
-    name: 'tpm',
+    name: 'Tpm',
   },
   {
     key: 'p75',
@@ -67,33 +72,26 @@ export default function APIModuleView({
   const tableFilter = table ? `domain = '${table}'` : null;
   const actionFilter = action ? `action = '${action}'` : null;
 
-  const filters = [
-    `startsWith(span_operation, 'db')`,
-    `span_operation != 'db.redis'`,
-    transactionFilter,
-    tableFilter,
-    actionFilter,
-  ].filter(fil => !!fil);
-  const TABLE_LIST_QUERY = `select description as desc, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
-    uniq(transaction) as transactions,
-    sum(exclusive_time) as total_time,
-    domain,
-    action,
-    data_keys,
-    data_values
-    from default.spans_experimental_starfish
-    where
-    ${filters.join(' and ')}
-    group by action, description, domain, data_keys, data_values
-    order by -pow(10, floor(log10(count()))), -quantile(0.5)(exclusive_time)
-    limit 100
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const DATE_FILTERS = `
+    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
+    start_timestamp < fromUnixTimestamp(${endTime.unix()})
   `;
 
-  console;
-
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints', action, transaction, table],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_LIST_QUERY}`).then(res => res.json()),
+    queryKey: ['endpoints', action, transaction, table, pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getMainTable(
+          DATE_FILTERS,
+          transactionFilter,
+          tableFilter,
+          actionFilter,
+          startTime,
+          endTime
+        )}&format=sql`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -111,7 +109,7 @@ export default function APIModuleView({
       const value = row.data_values[row.data_keys.indexOf('order')];
       return value ? <ArrayValue value={value?.split(',')} /> : <span />;
     }
-    if (column.key === 'desc') {
+    if (column.key === 'description') {
       const value = row[column.key];
       return (
         <Hovercard header="Query" body={value}>
@@ -122,6 +120,9 @@ export default function APIModuleView({
           </Link>
         </Hovercard>
       );
+    }
+    if (['p75', 'total_time'].includes(column.key.toString())) {
+      return <span>{row[column.key].toFixed(2)}ms</span>;
     }
     if (column.key === 'conditions') {
       const value = row.data_values[row.data_keys.indexOf('where')];
