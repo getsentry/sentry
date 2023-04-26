@@ -11,11 +11,19 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {
+  getPanelEventCount,
+  getPanelGraphQuery,
+  getPanelTableQuery,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
 import {DataRow} from './databaseTableView';
 
+const INTERVAL = 12;
 const HOST = 'http://localhost:8080';
 
 type EndpointDetailBodyProps = {
@@ -68,63 +76,45 @@ export default function QueryDetail({
 function QueryDetailBody({row}: EndpointDetailBodyProps) {
   const theme = useTheme();
   const location = useLocation();
-
-  const TABLE_QUERY = `
-    SELECT transaction, count() AS count, quantile(0.75)(exclusive_time) as p75
-    FROM spans_experimental_starfish
-    WHERE module = 'db'
-    AND group_id = '${row.group_id}'
-    GROUP BY transaction
-    ORDER BY count DESC
-    LIMIT 10
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const DATE_FILTERS = `
+    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
+    start_timestamp < fromUnixTimestamp(${endTime.unix()})
   `;
 
-  const GRAPH_QUERY = `SELECT
-      toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-      quantile(0.75)(exclusive_time) as p75,
-      count() as count
-      FROM spans_experimental_starfish
-      WHERE module = 'db'
-      AND group_id = '${row.group_id}'
-      GROUP BY interval
-      ORDER BY interval asc
-   `;
-
-  const EVENT_COUNT_QUERY = `
-  SELECT transaction, count(DISTINCT transaction_id) as uniqueEvents
-    FROM spans_experimental_starfish
-    WHERE transaction
-      IN (SELECT transaction FROM spans_experimental_starfish WHERE module='db' AND group_id='${row.group_id}')
-    GROUP BY transaction
-   `;
-
-  // const INCLUDED_EVENT_COUNT_QUERY = `
-  // SELECT transaction, count(DISTINCT transaction_id) as included_event_count
-  //   FROM spans_experimental_starfish
-  //   WHERE module='db' AND description='${row.description}'
-  //   GROUP BY transaction
-  //  `;
-
   const {isLoading, data: graphData} = useQuery({
-    queryKey: ['dbQueryDetailsGraph', row.group_id],
+    queryKey: ['dbQueryDetailsGraph', row.group_id, pageFilter.selection.datetime],
     queryFn: () =>
-      fetch(`${HOST}/?query=${GRAPH_QUERY}&format=sql`).then(res => res.json()),
+      fetch(
+        `${HOST}/?query=${getPanelGraphQuery(DATE_FILTERS, row, INTERVAL)}&format=sql`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
   const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
     {
-      queryKey: ['dbQueryDetailsTable', row.description],
-      queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
+      queryKey: ['dbQueryDetailsTable', row.description, pageFilter.selection.datetime],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${getPanelTableQuery(DATE_FILTERS, row)}`).then(res =>
+          res.json()
+        ),
       retry: true,
       initialData: [],
     }
   );
 
   const {isLoading: isEventCountLoading, data: eventCountData} = useQuery({
-    queryKey: ['dbQueryDetailsEventCount', row.description],
-    queryFn: () => fetch(`${HOST}/?query=${EVENT_COUNT_QUERY}`).then(res => res.json()),
+    queryKey: [
+      'dbQueryDetailsEventCount',
+      row.description,
+      pageFilter.selection.datetime,
+    ],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getPanelEventCount(DATE_FILTERS, row)}`).then(res =>
+        res.json()
+      ),
     retry: true,
     initialData: [],
   });
