@@ -17,9 +17,11 @@ from sentry.tasks.base import instrumented_task
 )  # type: ignore
 def schedule_auto_transition() -> None:
     now = datetime.now(tz=pytz.UTC)
+    three_days_past = now - timedelta(days=3)
+
     for project_id in (
         GroupInbox.objects.filter(
-            date_added__lte=now - timedelta(days=3),
+            date_added__lte=three_days_past,
             reason__in=(GroupInboxReason.NEW.value, GroupInboxReason.REPROCESSED.value),
         )
         .distinct()
@@ -35,7 +37,7 @@ def schedule_auto_transition() -> None:
         if features.has("organizations:issue-states-auto-transition-new-ongoing", org):
             auto_transition_issues_new_to_ongoing.delay(
                 project_id=project_id,
-                date_added_lte=int(now.timestamp()),
+                date_added_lte=int(three_days_past.timestamp()),
                 expires=now + timedelta(hours=1),
             )
 
@@ -56,14 +58,14 @@ def auto_transition_issues_new_to_ongoing(
 
     queryset = GroupInbox.objects.filter(
         project_id=project_id,
-        date_added__lte=datetime.utcfromtimestamp(date_added_lte),
+        date_added__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC),
         reason__in=(GroupInboxReason.NEW.value, GroupInboxReason.REPROCESSED.value),
-    ).order_by("date_added")
+    )
 
     if date_added_gte:
-        queryset = queryset.filter(date_added__gte=datetime.utcfromtimestamp(date_added_gte))
+        queryset = queryset.filter(date_added__gte=datetime.fromtimestamp(date_added_gte, pytz.UTC))
 
-    new_inbox = queryset[:chunk_size]
+    new_inbox = queryset.order_by("date_added")[:chunk_size]
 
     for group in Group.objects.filter(id__in=list({inbox.group_id for inbox in new_inbox})):
         transition_new_to_ongoing(group)
@@ -71,8 +73,8 @@ def auto_transition_issues_new_to_ongoing(
     if len(new_inbox) == chunk_size:
         auto_transition_issues_new_to_ongoing.delay(
             project_id=project_id,
-            date_added_lte=datetime.utcfromtimestamp(date_added_lte),
-            date_added_gte=new_inbox[chunk_size - 1].date_added,
+            date_added_lte=date_added_lte,
+            date_added_gte=new_inbox[chunk_size - 1].date_added.timestamp(),
             chunk_size=chunk_size,
             expires=datetime.now(tz=pytz.UTC) + timedelta(hours=1),
         )
