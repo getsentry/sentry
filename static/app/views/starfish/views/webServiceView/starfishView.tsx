@@ -105,7 +105,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '16px',
                 bottom: '8px',
               }}
-              definedAxisTicks={4}
+              definedAxisTicks={2}
               handleSpikeAreaClick={e => {
                 if (e.componentType === 'markArea') {
                   setSelectedSpike({
