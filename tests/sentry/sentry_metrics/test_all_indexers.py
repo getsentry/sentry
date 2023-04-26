@@ -24,6 +24,8 @@ BACKENDS = [
     pytest.param(PGStringIndexerV2, marks=pytest.mark.django_db),
 ]
 
+USE_CASE_IDS = [UseCaseID.SESSIONS, UseCaseID.TRANSACTIONS]
+
 
 @pytest.fixture(params=BACKENDS)
 def indexer_cls(request):
@@ -47,8 +49,23 @@ def indexer_cache():
     indexer_cache.cache.clear()
 
 
-use_case_key = UseCaseKey.RELEASE_HEALTH
-use_case_id = UseCaseID.SESSIONS
+@pytest.fixture(params=USE_CASE_IDS)
+def use_case_id(request):
+    return request.param
+
+
+@pytest.fixture
+def use_case_key(use_case_id):
+    if use_case_id is UseCaseID.SESSIONS:
+        return UseCaseKey.RELEASE_HEALTH
+    return UseCaseKey.PERFORMANCE
+
+
+@pytest.fixture
+def writes_limiter_option_name(use_case_key):
+    if use_case_key is UseCaseKey.RELEASE_HEALTH:
+        return "sentry-metrics.writes-limiter.limits.releasehealth"
+    return "sentry-metrics.writes-limiter.limits.performance"
 
 
 def assert_fetch_type_for_tag_string_set(
@@ -57,9 +74,8 @@ def assert_fetch_type_for_tag_string_set(
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
-def test_static_and_non_static_strings_release_health(indexer):
+def test_static_and_non_static_strings_release_health(indexer, use_case_id, use_case_key):
     static_indexer = StaticStringIndexer(indexer)
-    use_case_id = UseCaseID.SESSIONS
     strings = {
         use_case_id: {
             2: {"release", "1.0.0"},
@@ -68,8 +84,8 @@ def test_static_and_non_static_strings_release_health(indexer):
     }
     results = static_indexer.bulk_record(strings=strings)
 
-    v1 = indexer.resolve(UseCaseKey.RELEASE_HEALTH, 2, "1.0.0")
-    v2 = indexer.resolve(UseCaseKey.RELEASE_HEALTH, 3, "2.0.0")
+    v1 = indexer.resolve(use_case_key, 2, "1.0.0")
+    v2 = indexer.resolve(use_case_key, 3, "2.0.0")
 
     assert results[use_case_id][2]["release"] == SHARED_STRINGS["release"]
     assert results[use_case_id][3]["production"] == SHARED_STRINGS["production"]
@@ -88,9 +104,8 @@ def test_static_and_non_static_strings_release_health(indexer):
     assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
-def test_static_and_non_static_strings_generic_metrics(indexer):
+def test_static_and_non_static_strings_generic_metrics(indexer, use_case_id, use_case_key):
     static_indexer = StaticStringIndexer(indexer)
-    use_case_id = UseCaseID.TRANSACTIONS
     strings = {
         use_case_id: {
             2: {"release", "1.0.0"},
@@ -99,8 +114,8 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
     }
     results = static_indexer.bulk_record(strings=strings)
 
-    v1 = indexer.resolve(UseCaseKey.PERFORMANCE, 2, "1.0.0")
-    v2 = indexer.resolve(UseCaseKey.PERFORMANCE, 3, "2.0.0")
+    v1 = indexer.resolve(use_case_key, 2, "1.0.0")
+    v2 = indexer.resolve(use_case_key, 3, "2.0.0")
 
     assert results[use_case_id][2]["release"] == SHARED_STRINGS["release"]
     assert results[use_case_id][3]["production"] == SHARED_STRINGS["production"]
@@ -119,7 +134,7 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
     assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
-def test_indexer(indexer, indexer_cache):
+def test_indexer(indexer, indexer_cache, use_case_id, use_case_key):
     org1_id = 1
     org2_id = 2
     strings = {"hello", "hey", "hi"}
@@ -169,7 +184,7 @@ def test_indexer(indexer, indexer_cache):
     assert not results[use_case_id].results.get(999)
 
 
-def test_resolve_and_reverse_resolve(indexer, indexer_cache):
+def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id, use_case_key):
     """
     Test `resolve` and `reverse_resolve` methods
     """
@@ -196,7 +211,9 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     assert indexer.reverse_resolve(use_case_id=use_case_key, org_id=org1_id, id=1234) is None
 
 
-def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
+def test_already_created_plus_written_results(
+    indexer, indexer_cache, use_case_id, use_case_key
+) -> None:
     """
     Test that we correctly combine db read results with db write results
     for the same organization.
@@ -238,7 +255,9 @@ def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
     )
 
 
-def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
+def test_already_cached_plus_read_results(
+    indexer, indexer_cache, use_case_id, use_case_key
+) -> None:
     """
     Test that we correctly combine cached results with read results
     for the same organization.
@@ -277,7 +296,7 @@ def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
     )
 
 
-def test_rate_limited(indexer):
+def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
     """
     Assert that rate limits per-org and globally are applied at all.
 
@@ -292,7 +311,7 @@ def test_rate_limited(indexer):
 
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
+            f"{writes_limiter_option_name}.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
         }
@@ -326,7 +345,7 @@ def test_rate_limited(indexer):
     # attempt to index even more strings, and assert that we can't get any indexed
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
+            f"{writes_limiter_option_name}.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
         }
@@ -346,7 +365,7 @@ def test_rate_limited(indexer):
     # assert that if we reconfigure limits, the quota resets
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.releasehealth.global": [
+            f"{writes_limiter_option_name}.global": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
             ],
         }
