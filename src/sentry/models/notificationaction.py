@@ -198,15 +198,6 @@ class NotificationAction(AbstractNotificationAction):
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
-    # TODO(Leander): After adding HybridCloudForeignKeys to AlertRuleTriggerAction, we can remove these lines
-    integration = None
-    integration_id = HybridCloudForeignKey(
-        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
-    )
-    sentry_app = None
-    sentry_app_id = HybridCloudForeignKey(
-        "sentry.SentryApp", blank=True, null=True, on_delete="CASCADE"
-    )
 
     # The type of trigger which controls when the actions will go off (e.g. spike-protection)
     trigger_type = models.SmallIntegerField(choices=TriggerGenerator())
