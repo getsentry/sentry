@@ -658,7 +658,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.GEO_SUBDIVISION]: {
-    desc: t('Full name of the division'),
+    desc: t('Full name of the subdivision'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
