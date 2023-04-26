@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
 import merge from 'lodash/merge';
 import values from 'lodash/values';
+import moment from 'moment';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -21,6 +22,7 @@ import {
   getPanelTableQuery,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import {DataRow} from './databaseTableView';
 
@@ -131,7 +133,11 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
   ).filter((data: Partial<TransactionListDataRow>) => !!data.count && !!data.p75);
 
-  const [countSeries, p75Series] = throughputQueryToChartData(graphData);
+  const [countSeries, p75Series] = throughputQueryToChartData(
+    graphData,
+    startTime,
+    endTime
+  );
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return <span>{column.name}</span>;
@@ -233,14 +239,21 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   );
 }
 
-const throughputQueryToChartData = (data: any): Series[] => {
+const throughputQueryToChartData = (
+  data: any,
+  startTime: moment.Moment,
+  endTime: moment.Moment
+): Series[] => {
   const countSeries: Series = {seriesName: 'count()', data: [] as any[]};
   const p75Series: Series = {seriesName: 'p75()', data: [] as any[]};
   data.forEach(({count, p75, interval}: any) => {
     countSeries.data.push({value: count, name: interval});
     p75Series.data.push({value: p75, name: interval});
   });
-  return [countSeries, p75Series];
+  return [
+    zeroFillSeries(countSeries, moment.duration(INTERVAL, 'hours'), startTime, endTime),
+    zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
+  ];
 };
 
 const SubHeader = styled('h3')`
