@@ -35,14 +35,18 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   const organization = useOrganization();
   const {slug: orgSlug} = organization;
 
-  const {fetching, onRetry, replay, replayRecord, fetchError} = useReplayData({
-    replaySlug,
-    orgSlug,
-  });
+  // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
+  // once we fix the route params and links we should fix this to accept replayId and stop returning it
+  const {fetching, onRetry, replay, replayRecord, fetchError, projectSlug, replayId} =
+    useReplayData({
+      replaySlug,
+      orgSlug,
+    });
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,
-    replaySlug,
+    projectSlug,
+    replayId,
     replayStartTimestampMs: replayRecord?.started_at.getTime(),
   });
 
