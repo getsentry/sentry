@@ -34,6 +34,7 @@ class ActivatableBias(TypedDict):
 class RuleType(Enum):
     UNIFORM_RULE = "uniformRule"
     ADJUSTMENT_FACTOR_RULE = "adjustmentFactorRule"
+    BOOST_REPLAY_ID_RULE = "boostReplayId"
     BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
     IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
@@ -50,6 +51,7 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
     {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": True},
+    {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,
@@ -57,6 +59,7 @@ RESERVED_IDS = {
     RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
     RuleType.ADJUSTMENT_FACTOR_RULE: 1004,
+    RuleType.BOOST_REPLAY_ID_RULE: 1005,
     RuleType.BOOST_LOW_VOLUME_TRANSACTIONS: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }
