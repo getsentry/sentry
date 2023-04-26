@@ -140,11 +140,13 @@ const TitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 600;
   color: ${p => p.theme.gray400};
   line-height: ${p => p.theme.text.lineHeightBody};

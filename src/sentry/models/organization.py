@@ -8,7 +8,6 @@ from typing import Collection, FrozenSet, Optional, Sequence
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
-from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -676,13 +675,6 @@ class Organization(Model, SnowflakeIdMixin):
 
         return Team.objects.filter(organization=self).exclude(org_role=None)
 
-    # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
-    @classmethod
-    def remove_organization_mapping(cls, instance, **kwargs):
-        from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-
-        organization_mapping_service.delete(organization_id=instance.id)
-
 
 def organization_absolute_url(
     has_customer_domain: bool,
@@ -716,11 +708,3 @@ def organization_absolute_url(
     if fragment:
         parts.append(fragment)
     return "".join(parts)
-
-
-post_delete.connect(
-    Organization.remove_organization_mapping,
-    dispatch_uid="sentry.remove_organization_mapping",
-    sender=Organization,
-    weak=False,
-)

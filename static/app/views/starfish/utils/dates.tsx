@@ -1,5 +1,6 @@
 import moment from 'moment';
 
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import {DateString} from 'sentry/types';
 import {getPeriodAgo, getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 
@@ -29,4 +30,34 @@ export function getMiddleTimestamp({
   }
 
   return midTimestamp(start, end);
+}
+
+export const PERIOD_REGEX = /^(\d+)([h,d])$/;
+export const DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+
+export const datetimeToClickhouseFilterTimestamps = (datetime?: DateTimeObject) => {
+  if (!datetime) {
+    return {};
+  }
+  const [_, num, unit] = datetime.period?.match(PERIOD_REGEX) ?? [];
+  const start_timestamp =
+    (datetime.start && moment(datetime.start).format(DATE_FORMAT)) ??
+    (num &&
+      unit &&
+      moment()
+        .subtract(num, unit as 'h' | 'd')
+        .format(DATE_FORMAT));
+
+  const end_timestamp = datetime.end && moment(datetime.end).format(DATE_FORMAT);
+  return {start_timestamp, end_timestamp};
+};
+
+export function getDateFilters(pageFilter) {
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+  return {startTime, endTime};
 }
