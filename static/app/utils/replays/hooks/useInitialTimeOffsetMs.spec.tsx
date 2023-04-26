@@ -44,7 +44,8 @@ describe('useInitialTimeOffsetMs', () => {
       const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
-          replaySlug: `${project.slug}:${replay.id}`,
+          projectSlug: project.slug,
+          replayId: replay.id,
           replayStartTimestampMs: undefined,
         },
       });
@@ -64,7 +65,8 @@ describe('useInitialTimeOffsetMs', () => {
       const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
-          replaySlug: `${project.slug}:${replay.id}`,
+          projectSlug: project.slug,
+          replayId: replay.id,
           replayStartTimestampMs: undefined,
         },
       });
@@ -85,7 +87,8 @@ describe('useInitialTimeOffsetMs', () => {
       const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
-          replaySlug: `${project.slug}:${replay.id}`,
+          projectSlug: project.slug,
+          replayId: replay.id,
           replayStartTimestampMs: new Date(noon).getTime(),
         },
       });
@@ -103,7 +106,8 @@ describe('useInitialTimeOffsetMs', () => {
         {
           initialProps: {
             orgSlug: organization.slug,
-            replaySlug: `${project.slug}:${replay.id}`,
+            projectSlug: project.slug,
+            replayId: replay.id,
             replayStartTimestampMs: undefined,
           },
         }
@@ -114,7 +118,8 @@ describe('useInitialTimeOffsetMs', () => {
 
       rerender({
         orgSlug: organization.slug,
-        replaySlug: `${project.slug}:${replay.id}`,
+        projectSlug: project.slug,
+        replayId: replay.id,
         replayStartTimestampMs: new Date(NOON).getTime(),
       });
       await waitForNextUpdate();
@@ -137,7 +142,8 @@ describe('useInitialTimeOffsetMs', () => {
       const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
-          replaySlug: `${project.slug}:${replay.id}`,
+          projectSlug: project.slug,
+          replayId: replay.id,
           replayStartTimestampMs: new Date(NOON).getTime(),
         },
       });
@@ -155,7 +161,8 @@ describe('useInitialTimeOffsetMs', () => {
       const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
-          replaySlug: `${project.slug}:${replay.id}`,
+          projectSlug: project.slug,
+          replayId: replay.id,
           replayStartTimestampMs: new Date(NOON).getTime(),
         },
       });
@@ -176,7 +183,8 @@ describe('useInitialTimeOffsetMs', () => {
       const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
-          replaySlug: `${project.slug}:${replay.id}`,
+          projectSlug: project.slug,
+          replayId: replay.id,
           replayStartTimestampMs: new Date(NOON).getTime(),
         },
       });
@@ -200,7 +208,8 @@ describe('useInitialTimeOffsetMs', () => {
         {
           initialProps: {
             orgSlug: organization.slug,
-            replaySlug: `${project.slug}:${replay.id}`,
+            projectSlug: project.slug,
+            replayId: replay.id,
             replayStartTimestampMs: undefined,
           },
         }
@@ -212,7 +221,8 @@ describe('useInitialTimeOffsetMs', () => {
 
       rerender({
         orgSlug: organization.slug,
-        replaySlug: `${project.slug}:${replay.id}`,
+        projectSlug: project.slug,
+        replayId: replay.id,
         replayStartTimestampMs: new Date(NOON).getTime(),
       });
       await waitForNextUpdate();

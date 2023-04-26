@@ -54,7 +54,9 @@ interface Result {
   fetchError: undefined | RequestError;
   fetching: boolean;
   onRetry: () => void;
+  projectSlug: string | null;
   replay: ReplayReader | null;
+  replayId: string;
   replayRecord: ReplayRecord | undefined;
 }
 
@@ -109,7 +111,7 @@ function useReplayData({
     if (!replayRecord) {
       return null;
     }
-    return projects.projects.find(p => p.id === replayRecord.project_id)?.slug;
+    return projects.projects.find(p => p.id === replayRecord.project_id)?.slug ?? null;
   }, [replayRecord, projects.projects]);
 
   // Fetch every field of the replay. We're overfetching, not every field is used
@@ -235,6 +237,8 @@ function useReplayData({
     onRetry: loadData,
     replay,
     replayRecord,
+    projectSlug,
+    replayId,
   };
 }
 
