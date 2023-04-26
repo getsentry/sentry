@@ -19,6 +19,8 @@ import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {
   ApiQueryKey,
+  getApiQueryData,
+  setApiQueryData,
   useApiQuery,
   UseApiQueryOptions,
   useMutation,
@@ -293,11 +295,13 @@ export const useDeleteEventAttachmentOptimistic = (
     onMutate: async variables => {
       await queryClient.cancelQueries(makeFetchEventAttachmentsQueryKey(variables));
 
-      const previous = queryClient.getQueryData<FetchEventAttachmentResponse>(
+      const previous = getApiQueryData<FetchEventAttachmentResponse>(
+        queryClient,
         makeFetchEventAttachmentsQueryKey(variables)
       );
 
-      queryClient.setQueryData<FetchEventAttachmentResponse>(
+      setApiQueryData<FetchEventAttachmentResponse>(
+        queryClient,
         makeFetchEventAttachmentsQueryKey(variables),
         oldData => {
           if (!Array.isArray(oldData)) {
@@ -316,7 +320,8 @@ export const useDeleteEventAttachmentOptimistic = (
       addErrorMessage(t('An error occurred while deleting the attachment'));
 
       if (context) {
-        queryClient.setQueryData(
+        setApiQueryData(
+          queryClient,
           makeFetchEventAttachmentsQueryKey(variables),
           context.previous
         );

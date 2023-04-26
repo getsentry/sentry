@@ -1,24 +1,43 @@
 import * as reactQuery from '@tanstack/react-query';
 import {QueryClientConfig} from '@tanstack/react-query';
 
+import {ApiResult, ResponseMeta} from 'sentry/api';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+
+// Overrides to the default react-query options.
+// See https://tanstack.com/query/v4/docs/guides/important-defaults
+const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+};
 
 type QueryKeyEndpointOptions = {
   query?: Record<string, any>;
 };
 
-export type ApiQueryKey =
+type ApiQueryKey =
   | readonly [url: string]
   | readonly [url: string, options: QueryKeyEndpointOptions];
 
-export interface UseApiQueryOptions<
-  TQueryFnData,
-  TError = RequestError,
-  TData = TQueryFnData
-> extends Omit<
-    reactQuery.UseQueryOptions<TQueryFnData, TError, TData, ApiQueryKey>,
-    'queryKey' | 'queryFn'
+interface UseApiQueryOptions<TApiResponse, TError = RequestError>
+  extends Omit<
+    reactQuery.UseQueryOptions<
+      ApiResult<TApiResponse>,
+      TError,
+      TApiResponse,
+      ApiQueryKey
+    >,
+    // This is an explicit option in our function
+    | 'queryKey'
+    // This will always be a useApi api Query
+    | 'queryFn'
+    // We do not include the select option as this is difficult to make interop
+    // with the way we extract data out of the ApiResult tuple
+    | 'select'
   > {
   /**
    * staleTime is the amount of time (in ms) before cached data gets marked as stale.
@@ -38,23 +57,12 @@ export interface UseApiQueryOptions<
   staleTime: number;
 }
 
-// Overrides to the default react-query options.
-// See https://tanstack.com/query/v4/docs/guides/important-defaults
-const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-    },
-  },
+type UseApiQueryResult<TData, TError> = reactQuery.UseQueryResult<TData, TError> & {
+  /**
+   * Get a header value from the response
+   */
+  getResponseHeader?: ResponseMeta['getResponseHeader'];
 };
-
-function isQueryFn<TQueryFnData, TError, TData>(
-  queryFnOrQueryOptions?:
-    | reactQuery.QueryFunction<TQueryFnData, ApiQueryKey>
-    | UseApiQueryOptions<TQueryFnData, TError, TData>
-): queryFnOrQueryOptions is reactQuery.QueryFunction<TQueryFnData, ApiQueryKey> {
-  return typeof queryFnOrQueryOptions === 'function';
-}
 
 /**
  * Wraps React Query's useQuery for consistent usage in the Sentry app.
@@ -71,67 +79,86 @@ function isQueryFn<TQueryFnData, TError, TData>(
  *   {staleTime: 0}
  * );
  */
-function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
+function useApiQuery<TResponseData, TError = RequestError>(
   queryKey: ApiQueryKey,
-  queryOptions: UseApiQueryOptions<TQueryFnData, TError, TData>
-): reactQuery.UseQueryResult<TData, TError>;
-/**
- * Example usage with custom query function:
- *
- * const { data, isLoading, isError } = useQuery<EventsResponse>(
- *   ['events', {limit: 50}],
- *   () => api.requestPromise({limit: 50}),
- *   {staleTime: 0}
- * )
- */
-function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
-  queryKey: ApiQueryKey,
-  queryFn: reactQuery.QueryFunction<TQueryFnData, ApiQueryKey>,
-  queryOptions?: UseApiQueryOptions<TQueryFnData, TError, TData>
-): reactQuery.UseQueryResult<TData, TError>;
-function useApiQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
-  queryKey: ApiQueryKey,
-  queryFnOrQueryOptions:
-    | reactQuery.QueryFunction<TQueryFnData, ApiQueryKey>
-    | UseApiQueryOptions<TQueryFnData, TError, TData>,
-  queryOptions?: UseApiQueryOptions<TQueryFnData, TError, TData>
-): reactQuery.UseQueryResult<TData, TError> {
-  // XXX: We need to set persistInFlight to disable query cancellation on unmount.
-  // The current implementation of our API client does not reject on query
-  // cancellation, which causes React Query to never update from the isLoading state.
-  // This matches the library default as well: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
-  const api = useApi({persistInFlight: true});
+  options: UseApiQueryOptions<TResponseData, TError>
+): UseApiQueryResult<TResponseData, TError> {
+  const api = useApi({
+    // XXX: We need to set persistInFlight to disable query cancellation on
+    //      unmount. The current implementation of our API client does not
+    //      reject on query cancellation, which causes React Query to never
+    //      update from the isLoading state. This matches the library default
+    //      as well [0].
+    //
+    //      This is slightly different from our typical usage of our api client
+    //      in components, where we do not want it to resolve, since we would
+    //      then have to guard our setState's against being unmounted.
+    //
+    //      This has the advantage of storing the result in the cache as well.
+    //
+    //      [0]: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
+    persistInFlight: true,
+  });
 
   const [path, endpointOptions] = queryKey;
 
-  const defaultQueryFn: reactQuery.QueryFunction<TQueryFnData, ApiQueryKey> = () =>
+  const queryFn: reactQuery.QueryFunction<ApiResult<TResponseData>, ApiQueryKey> = () =>
     api.requestPromise(path, {
       method: 'GET',
       query: endpointOptions?.query,
+      includeAllArgs: true,
     });
 
-  const queryFn = isQueryFn(queryFnOrQueryOptions)
-    ? queryFnOrQueryOptions
-    : defaultQueryFn;
+  const {data, ...rest} = reactQuery.useQuery(queryKey, queryFn, options);
 
-  const options =
-    queryOptions ??
-    (isQueryFn(queryFnOrQueryOptions) ? undefined : queryFnOrQueryOptions);
+  return {
+    data: data?.[0],
+    getResponseHeader: data?.[2]?.getResponseHeader,
+    ...rest,
+  };
+}
 
-  return reactQuery.useQuery(queryKey, queryFn, options);
+export function getApiQueryData<TResponseData>(
+  queryClient: reactQuery.QueryClient,
+  queryKey: ApiQueryKey
+): TResponseData | undefined {
+  return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
 }
 
 function setApiQueryData<TResponseData>(
   queryClient: reactQuery.QueryClient,
   queryKey: ApiQueryKey,
-  updater: reactQuery.Updater<TResponseData | undefined, TResponseData | undefined>,
+  updater: reactQuery.Updater<TResponseData, TResponseData>,
   options?: reactQuery.SetDataOptions
 ): TResponseData | undefined {
-  return queryClient.setQueryData(queryKey, updater, options);
+  const previous = queryClient.getQueryData<ApiResult<TResponseData>>(queryKey);
+
+  const newData =
+    typeof updater === 'function'
+      ? (updater as (input?: TResponseData) => TResponseData)(previous?.[0])
+      : updater;
+
+  const [_prevdata, prevStatusText, prevResponse] = previous ?? [
+    undefined,
+    undefined,
+    undefined,
+  ];
+
+  const newResponse: ApiResult<TResponseData> = [newData, prevStatusText, prevResponse];
+
+  queryClient.setQueryData(queryKey, newResponse, options);
+
+  return newResponse[0];
 }
 
 // eslint-disable-next-line import/export
 export * from '@tanstack/react-query';
 
 // eslint-disable-next-line import/export
-export {DEFAULT_QUERY_CLIENT_CONFIG, useApiQuery, setApiQueryData};
+export {
+  DEFAULT_QUERY_CLIENT_CONFIG,
+  useApiQuery,
+  setApiQueryData,
+  UseApiQueryOptions,
+  ApiQueryKey,
+};

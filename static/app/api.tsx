@@ -43,6 +43,12 @@ export class Request {
   }
 }
 
+export type ApiResult<Data = any> = [
+  data: Data,
+  statusText: string | undefined,
+  resp: ResponseMeta | undefined
+];
+
 export type ResponseMeta<R = any> = {
   /**
    * Get a header value from the response
@@ -530,11 +536,7 @@ export class Client {
       includeAllArgs,
       ...options
     }: {includeAllArgs?: IncludeAllArgsType} & Readonly<RequestOptions> = {}
-  ): Promise<
-    IncludeAllArgsType extends true
-      ? [data: any, textStatus: string | undefined, response: ResponseMeta | undefined]
-      : any
-  > {
+  ): Promise<IncludeAllArgsType extends true ? ApiResult : any> {
     // Create an error object here before we make any async calls so that we
     // have a helpful stack trace if it errors
     //
