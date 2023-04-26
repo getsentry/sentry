@@ -449,7 +449,9 @@ CSP_REPORT_ONLY = (
             "img-src",
             (
                 "'self'",
+                "blob:",
                 "data:",
+                "https://secure.gravatar.com",
             ),
         ),
         (
