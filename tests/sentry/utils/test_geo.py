@@ -19,6 +19,7 @@ class TestGeo(TestCase):
             "country_code": "US",
             "region": "CA",
             "city": "Beverly Hills",
+            "subdivision": "California",
             "latitude": 34.09109878540039,
             "longitude": -118.41169738769531,
         }
