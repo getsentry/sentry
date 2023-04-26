@@ -91,7 +91,7 @@ class Columns(Enum):
         event_name="location",
         transaction_name=None,
         discover_name="location",
-        issue_platform_name="location",
+        issue_platform_name=None,
         alias="location",
     )
     MESSAGE = Column(
@@ -289,7 +289,7 @@ class Columns(Enum):
         event_name="contexts[response.status_code]",
         transaction_name="contexts[response.status_code]",
         discover_name="contexts[response.status_code]",
-        issue_platform_name="contexts[response.status_code",
+        issue_platform_name="contexts[response.status_code]",
         alias="http.status_code",
     )
     OS_BUILD = Column(
@@ -479,6 +479,14 @@ class Columns(Enum):
         transaction_name=None,
         discover_name="exception_stacks.mechanism_handled",
         alias="error.handled",
+    )
+    ERROR_MAIN_THREAD = Column(
+        group_name="events.exception_main_thread",
+        event_name="exception_main_thread",
+        transaction_name=None,
+        discover_name="exception_main_thread",
+        issue_platform_name=None,
+        alias="error.main_thread",
     )
     ERROR_RECEIVED = Column(
         group_name=None,

@@ -21,6 +21,7 @@ from .detectors import (
     ConsecutiveHTTPSpanDetector,
     DBMainThreadDetector,
     FileIOMainThreadDetector,
+    LargeHTTPPayloadDetector,
     MNPlusOneDBSpanDetector,
     NPlusOneAPICallsDetector,
     NPlusOneDBSpanDetector,
@@ -230,7 +231,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "span_duration_threshold": 1000,  # ms
             "consecutive_count_threshold": 3,
             "max_duration_between_spans": 10000,  # ms
+            "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
+        DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
     }
 
 
@@ -253,6 +256,7 @@ def _detect_performance_problems(
         NPlusOneAPICallsDetector(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
+        LargeHTTPPayloadDetector(detection_settings, data),
     ]
 
     for detector in detectors:

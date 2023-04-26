@@ -39,11 +39,26 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
         def add_status_monitor(status_key: str, date: datetime | None = None):
-            return self._create_monitor(
-                status=getattr(MonitorStatus, status_key),
+            status = getattr(MonitorStatus, status_key)
+            # TODO(rjo100): this is precursor to removing the MonitorStatus from Monitors
+            monitor = self._create_monitor(
+                status=getattr(MonitorStatus, "ACTIVE"),
                 last_checkin=date or last_checkin,
                 name=status_key,
             )
+            self._create_monitor_environment(
+                monitor,
+                name="jungle",
+                last_checkin=last_checkin - timedelta(seconds=30),
+                status=status,
+            )
+            self._create_monitor_environment(
+                monitor,
+                name="volcano",
+                last_checkin=last_checkin - timedelta(seconds=15),
+                status=getattr(MonitorStatus, "DISABLED"),
+            )
+            return monitor
 
         # Subsort next checkin time
         monitor_active = add_status_monitor("ACTIVE")
@@ -53,7 +68,9 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_error = add_status_monitor("ERROR")
         monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
 
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(
+            self.organization.slug, params={"environment": "jungle"}
+        )
         self.check_valid_response(
             response,
             [
@@ -148,6 +165,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             user_id=self.user.id,
             organization_id=self.organization.id,
             project_id=self.project.id,
+            from_upsert=False,
         )
 
     def test_slug(self):

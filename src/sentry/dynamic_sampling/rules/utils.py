@@ -6,9 +6,6 @@ from django.conf import settings
 from sentry.utils import json, redis
 
 BOOSTED_RELEASES_LIMIT = 10
-BOOSTED_KEY_TRANSACTION_LIMIT = 10
-
-KEY_TRANSACTIONS_BOOST_FACTOR = 1.5
 
 LATEST_RELEASES_BOOST_FACTOR = 1.5
 LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
@@ -134,6 +131,12 @@ def get_rule_type(rule: Rule) -> Optional[RuleType]:
         < RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + BOOSTED_RELEASES_LIMIT
     ):
         return RuleType.BOOST_LATEST_RELEASES_RULE
+    elif (
+        RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS]
+        <= rule["id"]
+        < RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE]
+    ):
+        return RuleType.BOOST_LOW_VOLUME_TRANSACTIONS
 
     return REVERSE_RESERVED_IDS.get(rule["id"], None)
 
@@ -228,7 +231,8 @@ def actual_sample_rate(count_keep: int, count_drop: int) -> float:
 
 def adjusted_factor(prev_factor: float, actual_rate: float, desired_sample_rate: float) -> float:
     """
-    Calculates an adjustment factor in order to bring the actual sample rate to the blended_sample rate (i.e. desired_sample_rate)
+    Calculates an adjustment factor in order to bring the actual sample rate to the blended_sample rate (i.e.
+    desired_sample_rate)
     """
     assert prev_factor != 0.0
     return prev_factor * (desired_sample_rate / actual_rate)

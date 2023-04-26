@@ -1,19 +1,28 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
-import pytest
-
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import _start_and_end_dates, query_groups_past_counts
+from sentry.issues.escalating import (
+    GroupsCountResponse,
+    _start_and_end_dates,
+    get_group_daily_count,
+    is_escalating,
+    query_groups_past_counts,
+)
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models import Group
+from sentry.models.group import GroupStatus
+from sentry.models.groupinbox import GroupInbox
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
-from sentry.utils.snuba import SnubaError, to_start_of_hour
+from sentry.types.group import GroupSubStatus
+from sentry.utils.cache import cache
+from sentry.utils.snuba import to_start_of_hour
 
 
-class HistoricGroupCounts(TestCase):  # type: ignore
+class BaseGroupCounts(TestCase):  # type: ignore[misc]
     def setUp(self) -> None:
         super().setUp()
 
@@ -40,51 +49,67 @@ class HistoricGroupCounts(TestCase):  # type: ignore
             },
         )
 
+
+class HistoricGroupCounts(BaseGroupCounts):
+    def setUp(self) -> None:
+        super().setUp()
+
+    def _count_bucket(self, count: int, event: Event) -> GroupsCountResponse:
+        """It simplifies writing the expected data structures"""
+        return {
+            "count()": count,
+            "group_id": event.group_id,
+            "hourBucket": to_start_of_hour(event.datetime),
+            "project_id": event.project_id,
+        }
+
     def test_query_single_group(self) -> None:
         event = self._load_event_for_group()
-        assert query_groups_past_counts(Group.objects.all()) == [
-            {
-                "count()": 1,
-                "group_id": event.group_id,
-                "hourBucket": to_start_of_hour(event.datetime),
-                "project_id": event.project_id,
-            }
-        ]
+        assert query_groups_past_counts(Group.objects.all()) == [self._count_bucket(1, event)]
 
-    def test_query_multiple_groups_same_project(self) -> None:
+    def test_pagination(self) -> None:
         event1 = self._load_event_for_group(fingerprint="group-1", minutes_ago=1)
         # Increases the count of event1
         self._load_event_for_group(fingerprint="group-1", minutes_ago=59)
-        group_1_id = event1.group_id
         # one event in its own hour and two in another
         event2 = self._load_event_for_group(fingerprint="group-2", minutes_ago=61)
-        group_2_id = event2.group_id
         event3 = self._load_event_for_group(fingerprint="group-2", minutes_ago=60)
         # Increases the count of event3
         self._load_event_for_group(fingerprint="group-2", minutes_ago=59)
 
         # This forces to test the iteration over the Snuba data
-        with patch("sentry.issues.escalating.QUERY_LIMIT", new=2):
+        with patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=2):
             assert query_groups_past_counts(Group.objects.all()) == [
-                {
-                    "count()": 2,
-                    "group_id": group_1_id,
-                    "hourBucket": to_start_of_hour(event1.datetime),
-                    "project_id": self.project.id,
-                },
-                {
-                    "count()": 1,
-                    "group_id": group_2_id,
-                    "hourBucket": to_start_of_hour(event2.datetime),
-                    "project_id": self.project.id,
-                },
-                {
-                    "count()": 2,
-                    "group_id": group_2_id,
-                    "hourBucket": to_start_of_hour(event3.datetime),
-                    "project_id": self.project.id,
-                },
+                self._count_bucket(2, event1),
+                self._count_bucket(1, event2),
+                self._count_bucket(2, event3),
             ]
+
+    def test_query_optimization(self) -> None:
+        px = Factories.create_project(self.project.organization)
+        py = Factories.create_project(self.project.organization)
+        pz = Factories.create_project(self.project.organization)
+
+        # Two different groups for proj x, one group for proj y and two groups for proj z
+        self._load_event_for_group(project_id=px.id)
+        self._load_event_for_group(project_id=px.id, fingerprint="group-b")
+        self._load_event_for_group(project_id=py.id)
+        self._load_event_for_group(project_id=pz.id)
+        self._load_event_for_group(project_id=pz.id, fingerprint="group-b")
+
+        groups = Group.objects.all()
+        assert len(groups) == 5
+
+        # Force pagination to only three elements per page
+        # Once we get to Python 3.10+ the formating of this multiple with statement will not be an eye sore
+        with patch("sentry.issues.escalating._query_with_pagination") as query_mock, patch(
+            "sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3
+        ), patch("sentry.issues.escalating.BUCKETS_PER_GROUP", new=2):
+            query_groups_past_counts(groups)
+            # Proj X will expect potentially 4 elements because it has two groups, thus, no other
+            # project will be called with it.
+            # Proj Y and Z will be grouped together
+            assert query_mock.call_count == 2
 
     def test_query_multiple_projects(self) -> None:
         proj_x = Factories.create_project(self.project.organization)
@@ -101,24 +126,9 @@ class HistoricGroupCounts(TestCase):  # type: ignore
         self._load_event_for_group(project_id=proj_y.id, fingerprint="group-1")
 
         assert query_groups_past_counts(Group.objects.all()) == [
-            {
-                "count()": 1,
-                "group_id": event1.group_id,
-                "hourBucket": to_start_of_hour(event1.datetime),
-                "project_id": proj_x.id,
-            },
-            {
-                "count()": 1,
-                "group_id": event_y_1.group_id,
-                "hourBucket": to_start_of_hour(event_y_1.datetime),
-                "project_id": proj_y.id,
-            },
-            {
-                "count()": 2,
-                "group_id": event_y_2.group_id,
-                "hourBucket": to_start_of_hour(event_y_2.datetime),
-                "project_id": proj_y.id,
-            },
+            self._count_bucket(1, event1),
+            self._count_bucket(1, event_y_1),
+            self._count_bucket(2, event_y_2),
         ]
 
     def test_query_different_orgs(self) -> None:
@@ -131,23 +141,12 @@ class HistoricGroupCounts(TestCase):  # type: ignore
 
         # Since proj_org_b is created
         assert query_groups_past_counts(Group.objects.all()) == [
-            {
-                "count()": 1,
-                "group_id": event1.group_id,
-                "hourBucket": to_start_of_hour(event1.datetime),
-                "project_id": proj_a.id,
-            },
-            {
-                "count()": 1,
-                "group_id": event_proj_org_b_1.group_id,
-                "hourBucket": to_start_of_hour(event_proj_org_b_1.datetime),
-                "project_id": proj_b.id,
-            },
+            self._count_bucket(1, event1),
+            self._count_bucket(1, event_proj_org_b_1),
         ]
 
     def test_query_no_groups(self) -> None:
-        with pytest.raises(SnubaError):
-            assert query_groups_past_counts([]) == []
+        assert query_groups_past_counts([]) == []
 
 
 def test_datetime_number_of_hours() -> None:
@@ -158,3 +157,102 @@ def test_datetime_number_of_hours() -> None:
 def test_datetime_number_of_days() -> None:
     start, end = _start_and_end_dates()
     assert (end - start).days == 7
+
+
+class DailyGroupCountsEscalating(BaseGroupCounts):
+    def save_mock_escalating_group_forecast(  # type: ignore[no-untyped-def]
+        self, group: Group, forecast_values=List[int], date_added=datetime
+    ) -> None:
+        """Save mock data for escalating group forecast in nodestore"""
+        escalating_forecast = EscalatingGroupForecast(
+            project_id=group.project.id,
+            group_id=group.id,
+            forecast=forecast_values,
+            date_added=date_added,
+        )
+        escalating_forecast.save()
+
+    def test_is_escalating_issue(self) -> None:
+        """Test when an archived until escalating issue starts escalating"""
+        with self.feature("organizations:escalating-issues"):
+            # The group has 6 events today
+            for i in range(7, 1, -1):
+                event = self._load_event_for_group(minutes_ago=i)
+                group_escalating = event.group
+            group_escalating.status = GroupStatus.IGNORED
+            group_escalating.substatus = GroupSubStatus.UNTIL_ESCALATING
+            group_escalating.save()
+
+            # The escalating forecast for today is 5
+            forecast_values = [5] + [6] * 13
+            self.save_mock_escalating_group_forecast(
+                group=group_escalating, forecast_values=forecast_values, date_added=datetime.now()
+            )
+            group_is_escalating = is_escalating(group_escalating)
+            assert group_is_escalating
+            assert group_escalating.substatus == GroupSubStatus.ESCALATING
+            assert group_escalating.status == GroupStatus.UNRESOLVED
+            assert GroupInbox.objects.filter(group=group_escalating).exists()
+
+            # Test cache
+            assert (
+                cache.get(f"daily-group-count:{group_escalating.project.id}:{group_escalating.id}")
+                == 6
+            )
+
+    def test_not_escalating_issue(self) -> None:
+        """Test when an archived until escalating issue is not escalating"""
+        with self.feature("organizations:escalating-issues"):
+            # The group had 4 events yesterday
+            one_day_ago_mins = 24 * 60
+            for i in range(5, 1, -1):
+                event = self._load_event_for_group(minutes_ago=one_day_ago_mins + i)
+
+            # The group has 5 events today
+            for i in range(6, 1, -1):
+                event = self._load_event_for_group(fingerprint="group-escalating", minutes_ago=i)
+                group = event.group
+            group.status = GroupStatus.IGNORED
+            group.substatus = GroupSubStatus.UNTIL_ESCALATING
+            group.save()
+
+            # The escalating forecast for today is 6 (since date_added was one day ago)
+            forecast_values = [5] + [6] * 13
+            self.save_mock_escalating_group_forecast(
+                group=group,
+                forecast_values=forecast_values,
+                date_added=datetime.now() - timedelta(days=1),
+            )
+            group_is_escalating = is_escalating(group)
+            assert not group_is_escalating
+            assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
+            assert group.status == GroupStatus.IGNORED
+            assert not GroupInbox.objects.filter(group=group).exists()
+
+    def test_daily_count_query(self) -> None:
+        """Test the daily count query only aggregates events from today"""
+        # The group had 3 events two days ago
+        two_days_ago_mins = 48 * 60
+        for i in range(4, 1, -1):
+            event = self._load_event_for_group(minutes_ago=two_days_ago_mins + i)
+
+        # The group had 2 events yesterday
+        # Tests that events are aggregated in the daily count query by date, not by 24 hr periods
+        yesterday = datetime.now().date() - timedelta(days=1)
+        yesterday_midnight = datetime.combine(yesterday, datetime.min.time())
+        mins_since_yesterday_midnight = int(
+            ((datetime.now() - yesterday_midnight).total_seconds()) / 60
+        )
+        for i in range(3, 1, -1):
+            # Event occured i hours after yesterday midnight
+            event = self._load_event_for_group(minutes_ago=mins_since_yesterday_midnight + i * 60)
+
+        # The group has 1 event today
+        for i in range(2, 1, -1):
+            event = self._load_event_for_group(minutes_ago=i)
+            group = event.group
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+
+        assert get_group_daily_count(group.project.organization.id, group.project.id, group.id) == 1

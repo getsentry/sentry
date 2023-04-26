@@ -315,6 +315,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "openMembership": False,
             "isEarlyAdopter": True,
             "codecovAccess": True,
+            "aiSuggestedSolution": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -383,6 +384,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
+        assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
 
     @responses.activate
     @patch(
@@ -767,7 +769,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             ).exists()
 
     def test_update_name_with_mapping(self):
-        self.create_organization_mapping(self.organization)
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
         organization_id = response.data["id"]

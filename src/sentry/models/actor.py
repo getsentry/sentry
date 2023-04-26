@@ -9,6 +9,7 @@ from rest_framework import serializers
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.locks import locks
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
@@ -114,16 +115,18 @@ def get_actor_id_for_user(user: Union["User", RpcUser]):
         return user.actor_id
     # Temporary Dual write
     # Until we have indexes back online, we have to account for potential race condition on user creation
-    with transaction.atomic():
-        actors_for_user = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).all()
-        if len(actors_for_user) > 0:
-            actor = actors_for_user[0]
-        else:
-            actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
-        # Just clear other actors without allowing orm interaction, these won't be important after the following update.
-        Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).exclude(id=actor.id).update(
-            user_id=None
-        )
+    lock = f"user-actor-lock:{user.id}"
+    with locks.get(lock, duration=60, name="actor-user-lock").blocking_acquire(0.020, 2):
+        with transaction.atomic():
+            actors_for_user = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).all()
+            if len(actors_for_user) > 0:
+                actor = actors_for_user[0]
+            else:
+                actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
+            # Just clear other actors without allowing orm interaction, these won't be important after the following update.
+            Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).exclude(
+                id=actor.id
+            ).update(user_id=None)
 
     user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
     return actor.id

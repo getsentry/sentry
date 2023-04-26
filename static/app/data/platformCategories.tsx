@@ -215,7 +215,7 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'minidump',
 ]);
 
-export const profiling = [
+export const profiling: PlatformKey[] = [
   // mobile
   'android',
   'apple-ios',
@@ -225,7 +225,8 @@ export const profiling = [
   'node-koa',
   'node-connect',
   'javascript-nextjs',
-  // python, WSGI only
+  'javascript-remix',
+  // python
   'python',
   'python-django',
   'python-flask',
@@ -244,7 +245,11 @@ export const profiling = [
   'php',
   'php-laravel',
   'php-symfony2',
-] as const;
+  // ruby
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
+];
 
 export const releaseHealth: PlatformKey[] = [
   // frontend

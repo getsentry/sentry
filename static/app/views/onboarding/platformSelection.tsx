@@ -1,35 +1,27 @@
-import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import omit from 'lodash/omit';
 
 import PlatformPicker from 'sentry/components/platformPicker';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
-import CreateProjectsFooter from './components/createProjectsFooter';
+import {CreateProjectsFooter} from './components/createProjectsFooter';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
 export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();
-  const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey | undefined>(
-    undefined
-  );
+  const [clientState, setClientState] = usePersistedOnboardingState();
 
-  const [clientState, _setClientState] = usePersistedOnboardingState();
-
-  useEffect(() => {
-    if (!clientState) {
-      return;
-    }
-
-    if (selectedPlatform === undefined) {
-      setSelectedPlatform(clientState.selectedPlatforms[0]);
-    }
-  }, [clientState, selectedPlatform]);
+  const selectedPlatform = clientState?.selectedPlatform
+    ? platforms.find(platform => platform.id === clientState?.selectedPlatform?.key)
+      ? clientState?.selectedPlatform
+      : undefined
+    : undefined;
 
   return (
     <Wrapper>
@@ -46,16 +38,23 @@ export function PlatformSelection(props: StepProps) {
       >
         <p>
           {t(
-            // TODO(Priscila): Shall we create a doc for this onboarding and link it here too?
             'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from.'
           )}
         </p>
         <PlatformPicker
           noAutoFilter
           source="targeted-onboarding"
-          platform={selectedPlatform}
-          setPlatform={platformKey => {
-            setSelectedPlatform(platformKey ?? undefined);
+          platform={clientState?.selectedPlatform?.key}
+          defaultCategory={clientState?.selectedPlatform?.category}
+          setPlatform={platform => {
+            if (clientState) {
+              setClientState({
+                ...clientState,
+                selectedPlatform: platform
+                  ? {...omit(platform, 'id'), key: platform.id}
+                  : undefined,
+              });
+            }
           }}
           organization={organization}
         />
@@ -63,8 +62,15 @@ export function PlatformSelection(props: StepProps) {
       <CreateProjectsFooter
         {...props}
         organization={organization}
-        clearPlatforms={() => setSelectedPlatform(undefined)}
-        platforms={selectedPlatform ? [selectedPlatform] : []}
+        clearPlatform={() => {
+          if (clientState) {
+            setClientState({
+              ...clientState,
+              selectedPlatform: undefined,
+            });
+          }
+        }}
+        selectedPlatform={selectedPlatform}
       />
     </Wrapper>
   );

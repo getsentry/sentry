@@ -15,7 +15,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
@@ -176,13 +176,16 @@ class TraceDetailsContent extends Component<Props, State> {
 
   renderTraceHeader(traceInfo: TraceInfo) {
     const {meta} = this.props;
+    const errors = meta?.errors ?? traceInfo.errors.size;
+    const performanceIssues =
+      meta?.performance_issues ?? traceInfo.performanceIssues.size;
     return (
       <TraceDetailHeader>
         <GuideAnchor target="trace_view_guide_breakdown">
           <MetaData
             headingText={t('Event Breakdown')}
             tooltipText={t(
-              'The number of transactions and errors there are in this trace.'
+              'The number of transactions and issues there are in this trace.'
             )}
             bodyText={tct('[transactions]  |  [errors]', {
               transactions: tn(
@@ -190,7 +193,7 @@ class TraceDetailsContent extends Component<Props, State> {
                 '%s Transactions',
                 meta?.transactions ?? traceInfo.transactions.size
               ),
-              errors: tn('%s Error', '%s Errors', meta?.errors ?? traceInfo.errors.size),
+              errors: tn('%s Issue', '%s Issues', errors + performanceIssues),
             })}
             subtext={tn(
               'Across %s project',
@@ -346,12 +349,9 @@ class TraceDetailsContent extends Component<Props, State> {
                 size="sm"
                 to={traceEventView.getResultsViewUrlTarget(organization.slug)}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent(
-                    'performance_views.trace_view.open_in_discover',
-                    {
-                      organization,
-                    }
-                  );
+                  trackAnalytics('performance_views.trace_view.open_in_discover', {
+                    organization,
+                  });
                 }}
               >
                 {t('Open in Discover')}

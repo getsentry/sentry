@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+from typing import Any, Mapping
+
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import Scope
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
@@ -163,7 +168,13 @@ class ProjectEndpoint(Endpoint):
 
         return params
 
-    def handle_exception(self, request: Request, exc):
+    def handle_exception(
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
         if isinstance(exc, ProjectMoved):
             response = Response(
                 {"slug": exc.detail["detail"]["extra"]["slug"], "detail": exc.detail["detail"]},
@@ -171,4 +182,4 @@ class ProjectEndpoint(Endpoint):
             )
             response["Location"] = exc.detail["detail"]["extra"]["url"]
             return response
-        return super().handle_exception(request, exc)
+        return super().handle_exception(request, exc, handler_context, scope)

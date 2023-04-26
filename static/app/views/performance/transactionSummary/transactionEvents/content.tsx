@@ -14,7 +14,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -159,7 +159,7 @@ function Search(props: Props) {
   );
 
   const handleDiscoverButtonClick = () => {
-    trackAdvancedAnalyticsEvent('performance_views.all_events.open_in_discover', {
+    trackAnalytics('performance_views.all_events.open_in_discover', {
       organization,
     });
   };

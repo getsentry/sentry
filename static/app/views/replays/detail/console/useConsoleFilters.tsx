@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {RefObject, useCallback, useMemo, useRef} from 'react';
 
 import type {
   BreadcrumbLevelType,
@@ -26,7 +26,7 @@ type Options = {
 };
 
 type Return = {
-  expandPaths: Map<number, Set<string>>;
+  expandPathsRef: RefObject<Map<number, Set<string>>>;
   getLogLevels: () => {label: string; value: string}[];
   items: Item[];
   logLevel: BreadcrumbType[];
@@ -87,7 +87,7 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
   //
   // Note that this is intentionally not in state because we do not want to
   // re-render when items are expanded/collapsed, though it may work in state as well.
-  const expandPaths = useRef(new Map<number, Set<string>>());
+  const expandPathsRef = useRef(new Map<number, Set<string>>());
 
   const typeDefaultCrumbs = useMemo(
     () => breadcrumbs.filter(isBreadcrumbTypeDefault),
@@ -134,22 +134,22 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
     (f_c_logLevel: string[]) => {
       setFilter({f_c_logLevel});
       // Need to reset `expandPaths` when filtering
-      expandPaths.current = new Map();
+      expandPathsRef.current = new Map();
     },
-    [setFilter, expandPaths]
+    [setFilter, expandPathsRef]
   );
 
   const setSearchTerm = useCallback(
     (f_c_search: string) => {
       setFilter({f_c_search: f_c_search || undefined});
       // Need to reset `expandPaths` when filtering
-      expandPaths.current = new Map();
+      expandPathsRef.current = new Map();
     },
-    [setFilter, expandPaths]
+    [setFilter, expandPathsRef]
   );
 
   return {
-    expandPaths: expandPaths.current,
+    expandPathsRef,
     getLogLevels,
     items,
     logLevel,

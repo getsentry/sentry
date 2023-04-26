@@ -19,11 +19,11 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink, IconProfiling} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
@@ -46,7 +46,7 @@ class TransactionDetail extends Component<Props> {
   componentDidMount() {
     const {organization, transaction} = this.props;
 
-    trackAdvancedAnalyticsEvent('performance_views.trace_view.open_transaction_details', {
+    trackAnalytics('performance_views.trace_view.open_transaction_details', {
       organization,
       operation: transaction['transaction.op'],
       transaction: transaction.transaction,
@@ -141,20 +141,15 @@ class TransactionDetail extends Component<Props> {
     });
 
     function handleOnClick() {
-      trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+      trackAnalytics('profiling_views.go_to_flamegraph', {
         organization,
         source: 'performance.trace_view',
       });
     }
 
     return (
-      <StyledButton
-        size="xs"
-        to={target}
-        onClick={handleOnClick}
-        icon={<IconProfiling size="xs" />}
-      >
-        {t('Go to Profile')}
+      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+        {t('View Profile')}
       </StyledButton>
     );
   }

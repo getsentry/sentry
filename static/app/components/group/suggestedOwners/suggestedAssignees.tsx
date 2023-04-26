@@ -10,7 +10,7 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Actor, Commit, Group, Organization, Release} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
 type Owner = {
@@ -30,18 +30,18 @@ type Props = {
   projectId?: string;
 };
 
-const SuggestedAssignees = ({
+function SuggestedAssignees({
   group,
   owners,
   projectId,
   organization,
   loading,
   onAssign,
-}: Props) => {
+}: Props) {
   const handleAssign = useCallback(
     (owner: Owner) => {
       onAssign(owner.actor);
-      trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+      trackAnalytics('issue_details.action_clicked', {
         organization,
         project_id: parseInt(projectId!, 10),
         action_type: 'assign',
@@ -113,7 +113,7 @@ const SuggestedAssignees = ({
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-};
+}
 
 export {SuggestedAssignees};
 

@@ -655,16 +655,27 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
+    from sentry.issues.escalating import is_escalating
     from sentry.models import (
         Activity,
         GroupInboxReason,
         GroupSnooze,
         GroupStatus,
+        GroupSubStatus,
         add_group_to_inbox,
     )
     from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 
     group = job["event"].group
+
+    # Check is group is escalating
+    if (
+        features.has("organizations:escalating-issues", group.organization)
+        and group.status == GroupStatus.IGNORED
+        and group.substatus == GroupSubStatus.UNTIL_ESCALATING
+    ):
+        job["has_reappeared"] = is_escalating(group)
+        return
 
     with metrics.timer("post_process.process_snoozes.duration"):
         key = GroupSnooze.get_cache_key(group.id)
@@ -699,7 +710,9 @@ def process_snoozes(job: PostProcessJob) -> None:
             )
 
             snooze.delete()
-            group.update(status=GroupStatus.UNRESOLVED)
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ONGOING
+            group.save(update_fields=["status", "substatus"])
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,
@@ -753,18 +766,22 @@ def process_code_mappings(job: PostProcessJob) -> None:
     try:
         event = job["event"]
         project = event.project
+        group_id = event.group_id
 
         with metrics.timer("post_process.process_code_mappings.duration"):
             # Supported platforms
             if event.data["platform"] not in SUPPORTED_LANGUAGES:
                 return
 
-            cache_key = f"code-mappings:{project.id}"
-            project_queued = cache.get(cache_key)
-            if project_queued is None:
-                cache.set(cache_key, True, 3600)
-
-            if project_queued:
+            # To limit the overall number of tasks, only process one issue per project per hour. In
+            # order to give the most issues a chance to to be processed, don't reprocess any given
+            # issue for at least 24 hours.
+            project_cache_key = f"code-mappings:project:{project.id}"
+            issue_cache_key = f"code-mappings:group:{group_id}"
+            if cache.get(project_cache_key) is None and cache.get(issue_cache_key) is None:
+                cache.set(project_cache_key, True, 3600)  # 1 hour
+                cache.set(issue_cache_key, True, 86400)  # 24 hours
+            else:
                 return
 
             org = event.project.organization
@@ -773,7 +790,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
             if features.has("organizations:derive-code-mappings", org):
                 logger.info(
-                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
+                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {group_id=}."
                     + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
                 )
                 derive_code_mappings.delay(project.id, event.data)
