@@ -462,6 +462,7 @@ jobs:
         backend-test,
         backend-migration-tests,
         cli,
+        files-changed,
         lint,
         requirements,
         migration,
