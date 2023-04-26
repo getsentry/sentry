@@ -29,8 +29,10 @@ export default function FailureDetailPanel({
   const newQuery: NewQuery = {
     name: t('Failure Sample'),
     projects: [],
-    start: spike?.startTimestamp,
-    end: spike?.endTimestamp,
+    start: spike?.startTimestamp
+      ? new Date(spike?.startTimestamp).toUTCString()
+      : undefined,
+    end: spike?.endTimestamp ? new Date(spike?.endTimestamp).toUTCString() : undefined,
     range: !hasStartAndEnd
       ? decodeScalar(location.query.statsPeriod) || DEFAULT_STATS_PERIOD
       : undefined,
@@ -52,47 +54,45 @@ export default function FailureDetailPanel({
 
   return (
     <Detail detailKey={spike?.startTimestamp.toString()} onClose={onClose}>
-      <div>
-        <h2>{t('Error Spike Detail')}</h2>
-        <p>
-          {t(
-            'Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike.'
-          )}
-        </p>
-        {spike && (
-          <DiscoverQuery
-            eventView={eventView}
-            orgSlug={organization.slug}
-            location={location}
-            referrer="api.starfish.failure-event-list"
-            queryExtras={{dataset: 'discover'}}
-            limit={5}
-          >
-            {results => {
-              const transactions = results?.tableData?.data.map(row => row.transaction);
-              return (
-                <Fragment>
-                  <Title>{t('Failing Endpoints')}</Title>
-                  <FailureDetailTable
-                    {...results}
-                    location={location}
-                    organization={organization}
-                    eventView={eventView}
-                  />
-                  <Title>{t('Related Issues')}</Title>
-                  <IssueTable
-                    location={location}
-                    organization={organization}
-                    isLoading={results.isLoading}
-                    spike={spike}
-                    transactions={transactions as string[]}
-                  />
-                </Fragment>
-              );
-            }}
-          </DiscoverQuery>
+      <h2>{t('Error Spike Detail')}</h2>
+      <p>
+        {t(
+          'Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike.'
         )}
-      </div>
+      </p>
+      {spike && (
+        <DiscoverQuery
+          eventView={eventView}
+          orgSlug={organization.slug}
+          location={location}
+          referrer="api.starfish.failure-event-list"
+          queryExtras={{dataset: 'discover'}}
+          limit={5}
+        >
+          {results => {
+            const transactions = results?.tableData?.data.map(row => row.transaction);
+            return (
+              <Fragment>
+                <Title>{t('Failing Endpoints')}</Title>
+                <FailureDetailTable
+                  {...results}
+                  location={location}
+                  organization={organization}
+                  eventView={eventView}
+                />
+                <Title>{t('Related Issues')}</Title>
+                <IssueTable
+                  location={location}
+                  organization={organization}
+                  isLoading={results.isLoading}
+                  spike={spike}
+                  transactions={transactions as string[]}
+                />
+              </Fragment>
+            );
+          }}
+        </DiscoverQuery>
+      )}
     </Detail>
   );
 }

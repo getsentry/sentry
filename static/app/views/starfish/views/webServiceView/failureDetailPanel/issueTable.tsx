@@ -88,8 +88,10 @@ export default function IssueTable({organization, location, spike, transactions}
   const newQuery: NewQuery = {
     name: t('Failure Detail Issues'),
     projects: [],
-    start: spike?.startTimestamp,
-    end: spike?.endTimestamp,
+    start: spike?.startTimestamp
+      ? new Date(spike?.startTimestamp).toUTCString()
+      : undefined,
+    end: spike?.endTimestamp ? new Date(spike?.endTimestamp).toUTCString() : undefined,
     range: !hasStartAndEnd
       ? decodeScalar(query.statsPeriod) || DEFAULT_STATS_PERIOD
       : undefined,
