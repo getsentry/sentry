@@ -148,6 +148,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         end={eventView.end}
         organization={organization}
         yAxis="tpm()"
+        queryExtras={{dataset: 'metrics'}}
       >
         {({loading, timeseriesData}) => {
           const transformedData: Series[] | undefined = timeseriesData?.map(series => ({
