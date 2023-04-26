@@ -49,7 +49,7 @@ export default function FailureDetailTable({
   pageLinks,
 }: Props) {
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    return <StyledNonLink align={'left'}>{column.name}</StyledNonLink>;
+    return <StyledNonLink align="left">{column.name}</StyledNonLink>;
   }
 
   function renderBodyCell(
