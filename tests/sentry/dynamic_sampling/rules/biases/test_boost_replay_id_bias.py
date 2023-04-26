@@ -9,7 +9,14 @@ def test_generate_bias_rules_v2(default_project):
     assert rules == [
         {
             "condition": {
-                "inner": [{"name": "trace.replay_id", "op": "eq", "value": None}],
+                "inner": [
+                    {
+                        "name": "trace.replay_id",
+                        "op": "eq",
+                        "value": None,
+                        "options": {"ignoreCase": True},
+                    }
+                ],
                 "op": "not",
             },
             "id": 1005,

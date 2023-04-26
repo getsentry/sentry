@@ -86,7 +86,7 @@ class EqConditionOptions(TypedDict):
 class EqCondition(TypedDict):
     op: Literal["eq"]
     name: str
-    value: List[str]
+    value: Union[List[str], None]
     options: EqConditionOptions
 
 
@@ -97,7 +97,7 @@ class GlobCondition(TypedDict):
 
 
 class Condition(TypedDict):
-    op: Literal["and", "or"]
+    op: Literal["and", "or", "not"]
     inner: List[Union[EqCondition, GlobCondition]]
 
 
