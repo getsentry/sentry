@@ -41,7 +41,7 @@ ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
 BUCKETS_PER_GROUP = 7 * 24
 ONE_WEEK_DURATION = 7
 IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
-GROUP_DAILY_COUNT_DURATION = 60
+GROUP_DAILY_COUNT_TTL = 60
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -199,8 +199,8 @@ def get_group_daily_count(project_id: int, group_id: int) -> int:
 
     if daily_count is None:
         today = datetime.now().date()
-        start_date = datetime.combine(today, datetime.min.time())
-        end_date = datetime.now()
+        midnight = datetime.combine(today, datetime.min.time())
+        now = datetime.now()
         query = Query(
             match=Entity(EntityKey.Events.value),
             select=[
@@ -209,15 +209,15 @@ def get_group_daily_count(project_id: int, group_id: int) -> int:
             where=[
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column("group_id"), Op.EQ, group_id),
-                Condition(Column("timestamp"), Op.GTE, start_date),
-                Condition(Column("timestamp"), Op.LT, end_date),
+                Condition(Column("timestamp"), Op.GTE, midnight),
+                Condition(Column("timestamp"), Op.LT, now),
             ],
         )
         request = Request(dataset=Dataset.Events.value, app_id=IS_ESCALATING_REFERRER, query=query)
         daily_count = int(
             raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
         )
-        cache.set(key, daily_count, GROUP_DAILY_COUNT_DURATION)
+        cache.set(key, daily_count, GROUP_DAILY_COUNT_TTL)
     return int(daily_count)
 
 
