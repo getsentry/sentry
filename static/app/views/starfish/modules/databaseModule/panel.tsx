@@ -138,10 +138,6 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     startTime,
     endTime
   );
-  const percentileSeries: Series = {
-    seriesName: 'p75()',
-    data: tableData.map(tableRow => ({name: tableRow.transaction, value: tableRow.p75})),
-  };
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return <span>{column.name}</span>;
