@@ -1,4 +1,4 @@
 export type FailureSpike = {
-  endTimestamp: Date;
-  startTimestamp: Date;
+  endTimestamp: number;
+  startTimestamp: number;
 } | null;

@@ -17,7 +17,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
@@ -52,12 +51,6 @@ export default function IssueTable({organization, location, spike, transactions}
       name: 'Users',
       width: 50,
     },
-
-    // {
-    //   key: `count_if(transaction, equals, ${transactionName})`,
-    //   name: 'Event Count',
-    //   width: 200,
-    // },
   ];
 
   function renderHeadCell(
@@ -84,12 +77,8 @@ export default function IssueTable({organization, location, spike, transactions}
     return rendered;
   }
 
-  if (!transactions) {
-    return null;
-  }
-
   let searchQuery = 'event.type:error transaction:[';
-  transactions.forEach(transaction => (searchQuery += `${transaction},`));
+  transactions?.forEach(transaction => (searchQuery += `${transaction},`));
   searchQuery = searchQuery.slice(0, searchQuery.length - 1) + ']';
 
   console.log(searchQuery);
@@ -115,6 +104,19 @@ export default function IssueTable({organization, location, spike, transactions}
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
+  if (!transactions) {
+    return (
+      <GridEditable
+        isLoading={true}
+        data={[]}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={eventView.getSorts()}
+        grid={{}}
+        location={location}
+      />
+    );
+  }
+
   return (
     <div>
       <Title>{t('Related Issues')}</Title>
@@ -126,35 +128,32 @@ export default function IssueTable({organization, location, spike, transactions}
         queryExtras={{dataset: 'discover'}}
         limit={5}
       >
-        {({pageLinks, isLoading, tableData}) => {
-          console.dir(tableData);
-          return (
-            <Fragment>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData ? tableData.data : []}
-                columnOrder={COLUMN_ORDER}
-                columnSortBy={eventView.getSorts()}
-                grid={{
-                  renderHeadCell: (column: GridColumnHeader) =>
-                    renderHeadCell(
-                      tableData?.meta,
-                      column as TableColumn<keyof TableDataRow>
-                    ),
-                  renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
-                    renderBodyCell(
-                      tableData,
-                      column as TableColumn<keyof TableDataRow>,
-                      dataRow
-                    ) as any,
-                }}
-                location={location}
-              />
+        {({pageLinks, isLoading, tableData}) => (
+          <Fragment>
+            <GridEditable
+              isLoading={isLoading}
+              data={tableData ? tableData.data : []}
+              columnOrder={COLUMN_ORDER}
+              columnSortBy={eventView.getSorts()}
+              grid={{
+                renderHeadCell: (column: GridColumnHeader) =>
+                  renderHeadCell(
+                    tableData?.meta,
+                    column as TableColumn<keyof TableDataRow>
+                  ),
+                renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
+                  renderBodyCell(
+                    tableData,
+                    column as TableColumn<keyof TableDataRow>,
+                    dataRow
+                  ) as any,
+              }}
+              location={location}
+            />
 
-              <Pagination pageLinks={pageLinks} />
-            </Fragment>
-          );
-        }}
+            <Pagination pageLinks={pageLinks} />
+          </Fragment>
+        )}
       </DiscoverQuery>
     </div>
   );

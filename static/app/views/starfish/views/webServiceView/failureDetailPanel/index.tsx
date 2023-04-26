@@ -69,7 +69,6 @@ export default function FailureDetailPanel({
           >
             {results => {
               const transactions = results?.tableData?.data.map(row => row.transaction);
-              console.dir(transactions);
               return (
                 <Fragment>
                   <FailureDetailTable
