@@ -184,9 +184,11 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       return {};
     }
 
+    const replaySlug = `${tableRow['project.name']}:${replayId}`;
+
     if (!tableRow.timestamp) {
       return {
-        pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+        pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
         query: {
           referrer,
         },
@@ -199,7 +201,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       : undefined;
 
     return {
-      pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+      pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
       query: {
         event_t: transactionStartTimestamp,
         referrer,
