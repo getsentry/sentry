@@ -192,7 +192,7 @@ export class SpanChartRenderer2D {
       // If we dont do it, it sometimes causes the canvas to be drawn with a translation
       this.context.setTransform(1, 0, 0, 1, 0, 0);
 
-      if (span.node.span.op === 'missing instrumentation') {
+      if (span.node.span.op === 'missing span instrumentation') {
         this.context.beginPath();
         this.context.rect(
           rect.x + BORDER_WIDTH / 2,

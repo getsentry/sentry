@@ -60,7 +60,12 @@ class SlowDBQueryDetector(PerformanceDetector):
                 cause_span_ids=[],
                 parent_span_ids=[],
                 offender_span_ids=spans_involved,
-                evidence_data={},
+                evidence_data={
+                    "op": op,
+                    "cause_span_ids": [],
+                    "parent_span_ids": [],
+                    "offender_span_ids": spans_involved,
+                },
                 evidence_display=[],
             )
 

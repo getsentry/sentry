@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {Button} from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -21,7 +22,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey, isAggregateField} from 'sentry/utils/discover/fields';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
@@ -32,6 +33,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import Tags from 'sentry/views/discover/tags';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {ProfileSummaryContent} from './content';
@@ -53,7 +55,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   );
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
+    trackAnalytics('profiling_views.profile_summary', {
       organization,
       project_platform: project?.platform,
       project_id: project?.id,
@@ -121,6 +123,16 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     selection: props.selection,
     disabled: profilingUsingTransactions,
   });
+
+  const transactionSummaryTarget =
+    project &&
+    transaction &&
+    transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction,
+      projectID: project.id,
+      query: {query},
+    });
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -214,6 +226,13 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                     {transaction}
                   </Layout.Title>
                 </Layout.HeaderContent>
+                {transactionSummaryTarget && (
+                  <Layout.HeaderActions>
+                    <Button to={transactionSummaryTarget} size="sm">
+                      {t('View Transaction Summary')}
+                    </Button>
+                  </Layout.HeaderActions>
+                )}
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth={!profilingUsingTransactions}>

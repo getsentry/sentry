@@ -11,12 +11,11 @@ import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingStatus} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {OnboardingSelectedPlatform, OnboardingStatus} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -26,7 +25,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import Stepper from './components/stepper';
-import OnboardingPlatform from './deprecatedPlatform';
 import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
@@ -39,7 +37,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}>;
 
-function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDescriptor[] {
+function getOrganizationOnboardingSteps(): StepDescriptor[] {
   return [
     {
       id: 'welcome',
@@ -48,21 +46,11 @@ function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDesc
       cornerVariant: 'top-right',
     },
     {
-      ...(singleSelectPlatform
-        ? {
-            id: 'select-platform',
-            title: t('Select platform'),
-            Component: PlatformSelection,
-            hasFooter: true,
-            cornerVariant: 'top-left',
-          }
-        : {
-            id: 'select-platform',
-            title: t('Select platforms'),
-            Component: OnboardingPlatform,
-            hasFooter: true,
-            cornerVariant: 'top-left',
-          }),
+      id: 'select-platform',
+      title: t('Select platform'),
+      Component: PlatformSelection,
+      hasFooter: true,
+      cornerVariant: 'top-left',
     },
     {
       id: 'setup-docs',
@@ -79,8 +67,8 @@ function Onboarding(props: Props) {
   const organization = useOrganization();
   const [clientState, setClientState] = usePersistedOnboardingState();
   const onboardingContext = useContext(OnboardingContext);
-  const selectedPlatforms = clientState?.selectedPlatforms || [];
-  const selectedProjectSlug = selectedPlatforms[0];
+  const selectedPlatform = clientState?.selectedPlatform;
+  const selectedProjectSlug = selectedPlatform?.key;
 
   const {
     params: {step: stepId},
@@ -98,15 +86,11 @@ function Onboarding(props: Props) {
     'onboarding-heartbeat-footer'
   );
 
-  const singleSelectPlatform = !!organization?.features.includes(
-    'onboarding-remove-multiselect-platform'
-  );
-
   const projectDeletionOnBackClick = !!organization?.features.includes(
     'onboarding-project-deletion-on-back-click'
   );
 
-  const onboardingSteps = getOrganizationOnboardingSteps(singleSelectPlatform);
+  const onboardingSteps = getOrganizationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
@@ -144,11 +128,11 @@ function Onboarding(props: Props) {
   };
 
   const goNextStep = useCallback(
-    (step: StepDescriptor, platforms?: PlatformKey[]) => {
+    (step: StepDescriptor, platform?: OnboardingSelectedPlatform) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1];
 
-      if (nextStep.id === 'setup-docs' && !platforms) {
+      if (nextStep.id === 'setup-docs' && !platform) {
         return;
       }
 
@@ -188,7 +172,7 @@ function Onboarding(props: Props) {
       cornerVariantControl.start('none');
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.back_button_clicked', {
+    trackAnalytics('onboarding.back_button_clicked', {
       organization,
       from: onboardingSteps[stepIndex].id,
       to: previousStep.id,
@@ -198,7 +182,7 @@ function Onboarding(props: Props) {
     if (onboardingSteps[stepIndex].id === 'select-platform') {
       setClientState({
         platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
-        selectedPlatforms: [],
+        selectedPlatform: undefined,
         url: 'welcome/',
         state: undefined,
       });
@@ -219,7 +203,7 @@ function Onboarding(props: Props) {
 
       let platformToProjectIdMap = clientState?.platformToProjectIdMap ?? {};
 
-      if (projectShallBeRemoved) {
+      if (projectShallBeRemoved && selectedProjectSlug) {
         deleteProject(selectedProjectSlug);
 
         platformToProjectIdMap = Object.keys(
@@ -235,7 +219,7 @@ function Onboarding(props: Props) {
       setClientState({
         url: 'select-platform/',
         state: 'projects_selected',
-        selectedPlatforms: [selectedProjectSlug as PlatformKey],
+        selectedPlatform,
         platformToProjectIdMap,
       });
     }
@@ -252,6 +236,7 @@ function Onboarding(props: Props) {
     clientState,
     setClientState,
     selectedProjectSlug,
+    selectedPlatform,
     props.router,
     deleteProject,
     projectDeletionOnBackClick,
@@ -263,7 +248,7 @@ function Onboarding(props: Props) {
     return (
       <SkipOnboardingLink
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+          trackAnalytics('growth.onboarding_clicked_skip', {
             organization,
             source,
           });
@@ -330,9 +315,9 @@ function Onboarding(props: Props) {
                 active
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
-                onComplete={platforms => {
+                onComplete={platform => {
                   if (stepObj) {
-                    goNextStep(stepObj, platforms);
+                    goNextStep(stepObj, platform);
                   }
                 }}
                 orgId={organization.slug}

@@ -4,11 +4,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PRODUCT} from 'sentry/components/onboarding/productSelection';
-import {ReactDocVariant} from 'sentry/data/platforms';
 import {PersistedStoreContext} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
+
+const PROJECT_KEY = TestStubs.ProjectKeys()[0];
 
 function renderMockRequests({
   project,
@@ -24,6 +25,13 @@ function renderMockRequests({
     body: project,
   });
 
+  if (project.slug === 'javascript') {
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgSlug}/${project.slug}/keys/`,
+      body: [PROJECT_KEY],
+    });
+  }
+
   MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${project.slug}/issues/`,
     body: [],
@@ -36,23 +44,23 @@ function renderMockRequests({
       products.includes(PRODUCT.SESSION_REPLAY)
     ) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringPerformanceAndReplay}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringPerformanceAndReplay},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-performance-and-replay/`,
+        body: {html: 'javascript-react-with-error-monitoring-performance-and-replay'},
       });
     } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringAndPerformance}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringAndPerformance},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-and-performance/`,
+        body: {html: 'javascript-react-with-error-monitoring-and-performance'},
       });
     } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringAndSessionReplay}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringAndSessionReplay},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-and-replay/`,
+        body: {html: 'javascript-react-with-error-monitoring-and-replay'},
       });
     } else {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoring}/`,
-        body: {html: ReactDocVariant.ErrorMonitoring},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring/`,
+        body: {html: 'javascript-react-with-error-monitoring'},
       });
     }
   } else {
@@ -67,13 +75,6 @@ describe('Onboarding Setup Docs', function () {
   it('does not render Product Selection', async function () {
     const {router, route, routerContext, organization, project} = initializeOrg({
       ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features: [
-          'onboarding-remove-multiselect-platform',
-          'onboarding-docs-with-product-selection',
-        ],
-      },
       projects: [
         {
           ...initializeOrg().project,
@@ -93,7 +94,12 @@ describe('Onboarding Setup Docs', function () {
         value={[
           {
             onboarding: {
-              selectedPlatforms: ['python'],
+              selectedPlatform: {
+                category: 'server',
+                key: 'python',
+                language: 'python',
+                type: 'language',
+              },
               platformToProjectIdMap: {
                 python: 'python',
               },
@@ -113,6 +119,7 @@ describe('Onboarding Setup Docs', function () {
           orgId={organization.slug}
           jumpToSetupProject={() => {}}
           search=""
+          selectedProjectSlug="python"
         />
       </PersistedStoreContext.Provider>,
       {
@@ -136,13 +143,6 @@ describe('Onboarding Setup Docs', function () {
     it('all products checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -171,7 +171,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -191,6 +196,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -205,20 +211,15 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - default (all checked)
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringPerformanceAndReplay)
+        await screen.findByText(
+          'javascript-react-with-error-monitoring-performance-and-replay'
+        )
       ).toBeInTheDocument();
     });
 
     it('only performance checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING]},
@@ -247,7 +248,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -267,6 +273,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -277,20 +284,13 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring and performance doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringAndPerformance)
+        await screen.findByText('javascript-react-with-error-monitoring-and-performance')
       ).toBeInTheDocument();
     });
 
     it('only session replay checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.SESSION_REPLAY]},
@@ -319,7 +319,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -339,6 +344,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -349,20 +355,13 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring and replay doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringAndSessionReplay)
+        await screen.findByText('javascript-react-with-error-monitoring-and-replay')
       ).toBeInTheDocument();
     });
 
     it('only error monitoring checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
-        },
         router: {
           location: {
             query: {product: []},
@@ -391,7 +390,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: ['javascript-react'],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -411,6 +415,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -421,8 +426,159 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoring)
+        await screen.findByText('javascript-react-with-error-monitoring')
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('JS Loader Script', function () {
+    it('renders Loader Script setup', async function () {
+      const {router, route, routerContext, organization, project} = initializeOrg({
+        ...initializeOrg(),
+        router: {
+          location: {
+            query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
+          },
+        },
+        projects: [
+          {
+            ...initializeOrg().project,
+            slug: 'javascript',
+            platform: 'javascript',
+          },
+        ],
+      });
+
+      const updateLoaderMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY.id}/`,
+        method: 'PUT',
+        body: PROJECT_KEY,
+      });
+
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData([project]);
+
+      renderMockRequests({
+        project,
+        orgSlug: organization.slug,
+        location: router.location,
+      });
+
+      const {rerender} = render(
+        <PersistedStoreContext.Provider
+          value={[
+            {
+              onboarding: {
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript',
+                  language: 'javascript',
+                  type: 'language',
+                },
+                platformToProjectIdMap: {
+                  javascript: 'javascript',
+                },
+              },
+            },
+            jest.fn(),
+          ]}
+        >
+          <SetupDocs
+            active
+            onComplete={() => {}}
+            stepIndex={2}
+            router={router}
+            route={route}
+            location={router.location}
+            genSkipOnboardingLink={() => ''}
+            orgId={organization.slug}
+            jumpToSetupProject={() => {}}
+            search=""
+            selectedProjectSlug="javascript"
+          />
+        </PersistedStoreContext.Provider>,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Configure JavaScript SDK'})
+      ).toBeInTheDocument();
+
+      expect(updateLoaderMock).toHaveBeenCalledTimes(1);
+      expect(updateLoaderMock).toHaveBeenCalledWith(
+        expect.any(String), // The URL
+        {
+          data: {
+            dynamicSdkLoaderOptions: {
+              hasDebug: false,
+              hasPerformance: true,
+              hasReplay: true,
+            },
+          },
+          error: expect.any(Function),
+          method: 'PUT',
+          success: expect.any(Function),
+        }
+      );
+
+      // update query in URL
+      router.location.query = {
+        product: [PRODUCT.SESSION_REPLAY],
+      };
+      rerender(
+        <PersistedStoreContext.Provider
+          value={[
+            {
+              onboarding: {
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript',
+                  language: 'javascript',
+                  type: 'language',
+                },
+                platformToProjectIdMap: {
+                  javascript: 'javascript',
+                },
+              },
+            },
+            jest.fn(),
+          ]}
+        >
+          <SetupDocs
+            active
+            onComplete={() => {}}
+            stepIndex={2}
+            router={router}
+            route={route}
+            location={router.location}
+            genSkipOnboardingLink={() => ''}
+            orgId={organization.slug}
+            jumpToSetupProject={() => {}}
+            search=""
+            selectedProjectSlug="javascript"
+          />
+        </PersistedStoreContext.Provider>
+      );
+
+      expect(updateLoaderMock).toHaveBeenCalledTimes(2);
+      expect(updateLoaderMock).toHaveBeenLastCalledWith(
+        expect.any(String), // The URL
+        {
+          data: {
+            dynamicSdkLoaderOptions: {
+              hasDebug: false,
+              hasPerformance: false,
+              hasReplay: true,
+            },
+          },
+          error: expect.any(Function),
+          method: 'PUT',
+          success: expect.any(Function),
+        }
+      );
     });
   });
 });

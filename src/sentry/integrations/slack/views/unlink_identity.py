@@ -32,6 +32,10 @@ def build_unlinking_url(
 
 
 class SlackUnlinkIdentityView(BaseView):
+    """
+    Django view for unlinking user from slack account. Deletes from Identity table.
+    """
+
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> Response:
@@ -57,7 +61,7 @@ class SlackUnlinkIdentityView(BaseView):
             )
 
         try:
-            Identity.objects.filter(idp=idp, external_id=params["slack_id"]).delete()
+            Identity.objects.filter(idp_id=idp.id, external_id=params["slack_id"]).delete()
         except IntegrityError:
             logger.exception("slack.unlink.integrity-error")
             raise Http404

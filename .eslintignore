@@ -1,7 +1,7 @@
 **/dist/**/*
 **/vendor/**/*
 **/tests/**/fixtures/**/*
-/scripts/
+/scripts/*.js
 !.github
 !.github/workflows/scripts/*
 *.d.ts

@@ -2,20 +2,10 @@ from sentry.api.serializers.base import registry
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import (
     Actor,
-    ApiKey,
-    AuthProvider,
     AuthProviderDefaultTeams,
     NotificationSetting,
-    Organization,
-    OrganizationAccessRequest,
     OrganizationMember,
-    OrganizationOnboardingTask,
-    ProjectBookmark,
-    PromptsActivity,
-    RuleActivity,
     SentryApp,
-    SentryAppInstallation,
-    SentryAppInstallationForProvider,
     Team,
     User,
 )
@@ -34,26 +24,15 @@ from sentry.testutils.silo import (
 )
 
 decorator_exemptions = set()
-fk_emeptions = {
-    (ApiKey, Organization),
+fk_exemptions = {
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
-    (AuthProvider, Organization),
     (Integration, AlertRuleTriggerAction),
     (Integration, ExternalActor),
     (Integration, ExternalIssue),
-    (OrganizationIntegration, Organization),
     (OrganizationIntegration, PagerDutyService),
     (OrganizationIntegration, RepositoryProjectPathConfig),
-    (SentryApp, Organization),
-    (SentryAppInstallation, Organization),
-    (SentryAppInstallationForProvider, Organization),
     (NotificationSetting, Actor),
-    (OrganizationAccessRequest, User),
-    (OrganizationOnboardingTask, User),
-    (ProjectBookmark, User),
-    (PromptsActivity, User),
-    (RuleActivity, User),
     (User, Actor),
     (AlertRuleTriggerAction, SentryApp),
 }
@@ -64,12 +43,12 @@ def test_models_have_silos():
 
 
 def test_silo_foreign_keys():
-    for unused in fk_emeptions - validate_no_cross_silo_foreign_keys(fk_emeptions):
+    for unused in fk_exemptions - validate_no_cross_silo_foreign_keys(fk_exemptions):
         raise ValueError(f"fk_exemptions includes non conflicting relation {unused!r}")
 
 
 def test_cross_silo_deletions():
-    validate_no_cross_silo_deletions(fk_emeptions)
+    validate_no_cross_silo_deletions(fk_exemptions)
 
 
 # We really should not be using api serializers with the hybrid cloud data classes.

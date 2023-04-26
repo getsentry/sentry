@@ -138,6 +138,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               api={api}
               router={router}
               query={apiPayload.query}
+              dataset={apiPayload.dataset}
               organization={organization}
               showLegend
               yAxis={yAxisValue}

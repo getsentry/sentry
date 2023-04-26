@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types';
+import {ObjectStatus, Project} from 'sentry/types';
 
 export enum MonitorType {
   UNKNOWN = 'unknown',
@@ -24,6 +24,7 @@ export enum MonitorStatus {
   DISABLED = 'disabled',
   ACTIVE = 'active',
   MISSED_CHECKIN = 'missed_checkin',
+  TIMEOUT = 'timeout',
 }
 
 export enum CheckInStatus {
@@ -31,6 +32,7 @@ export enum CheckInStatus {
   ERROR = 'error',
   IN_PROGRESS = 'in_progress',
   MISSED = 'missed',
+  TIMEOUT = 'timeout',
 }
 
 interface BaseConfig {
@@ -66,16 +68,23 @@ export interface IntervalConfig extends BaseConfig {
 
 export type MonitorConfig = CrontabConfig | IntervalConfig;
 
-export interface Monitor {
-  config: MonitorConfig;
+export interface MonitorEnvironment {
   dateCreated: string;
-  id: string;
   lastCheckIn: string;
   name: string;
   nextCheckIn: string;
+  status: MonitorStatus;
+}
+
+export interface Monitor {
+  config: MonitorConfig;
+  dateCreated: string;
+  environments: MonitorEnvironment[];
+  id: string;
+  name: string;
   project: Project;
   slug: string;
-  status: MonitorStatus;
+  status: ObjectStatus;
   type: MonitorType;
 }
 

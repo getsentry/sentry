@@ -10,12 +10,12 @@ import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {extraQueryParameter, urlAttachQueryParams} from 'sentry/utils/demoMode';
 
 type Props = ModalRenderProps;
 
-const DemoSignUpModal = ({closeModal}: Props) => {
+function DemoSignUpModal({closeModal}: Props) {
   const signupUrl = urlAttachQueryParams(
     'https://sentry.io/signup/',
     extraQueryParameter()
@@ -32,7 +32,7 @@ const DemoSignUpModal = ({closeModal}: Props) => {
         size="xs"
         aria-label={t('Close')}
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_close', {
+          trackAnalytics('growth.demo_modal_clicked_close', {
             organization: null,
           });
           closeModal();
@@ -53,7 +53,7 @@ const DemoSignUpModal = ({closeModal}: Props) => {
             priority="primary"
             href={signupUrl}
             onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_signup', {
+              trackAnalytics('growth.demo_modal_clicked_signup', {
                 organization: null,
               })
             }
@@ -64,7 +64,7 @@ const DemoSignUpModal = ({closeModal}: Props) => {
             priority="default"
             href={demoUrl}
             onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_demo', {
+              trackAnalytics('growth.demo_modal_clicked_demo', {
                 organization: null,
               })
             }
@@ -78,7 +78,7 @@ const DemoSignUpModal = ({closeModal}: Props) => {
       </ImagePosition>
     </HighlightCornerContainer>
   );
-};
+}
 
 const TrialCheckInfo = styled('div')`
   padding: ${space(3)} 0;

@@ -33,6 +33,7 @@ function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
 
 describe('useReplayData', () => {
   beforeEach(() => {
+    MockedReplayReaderFactory.mockClear();
     MockApiClient.clearMockResponses();
   });
 
@@ -92,12 +93,12 @@ describe('useReplayData', () => {
     const mockedSegmentsCall1 = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/recording-segments/`,
       body: mockSegmentResponse1,
-      match: [(_url, options) => options.query?.cursor === '1:0:1'],
+      match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });
     const mockedSegmentsCall2 = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/recording-segments/`,
       body: mockSegmentResponse2,
-      match: [(_url, options) => options.query?.cursor === '1:1:0'],
+      match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
     const {waitForNextUpdate} = reactHooks.renderHook(useReplayData, {

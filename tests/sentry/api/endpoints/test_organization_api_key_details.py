@@ -12,7 +12,7 @@ class OrganizationApiKeyDetailsBase(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.api_key = ApiKey.objects.create(
-            organization=self.organization, scope_list=DEFAULT_SCOPES
+            organization_id=self.organization.id, scope_list=DEFAULT_SCOPES
         )
 
 

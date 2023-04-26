@@ -157,6 +157,7 @@ class ProjectKeys extends AsyncView<Props, State> {
             key={key.id}
             orgId={organization.slug}
             projectId={`${projectId}`}
+            project={this.props.project}
             data={key}
             onToggle={this.handleToggleKey}
             onRemove={this.handleRemoveKey}
@@ -171,7 +172,6 @@ class ProjectKeys extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const access = new Set(this.props.organization.access);
     const isEmpty = !this.state.keyList.length;
 
     return (
@@ -179,7 +179,7 @@ class ProjectKeys extends AsyncView<Props, State> {
         <SettingsPageHeader
           title={t('Client Keys')}
           action={
-            access.has('project:write') ? (
+            this.props.organization.access.includes('project:write') ? (
               <Button
                 onClick={this.handleCreateKey}
                 size="sm"

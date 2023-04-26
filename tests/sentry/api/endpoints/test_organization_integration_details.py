@@ -56,7 +56,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         self.get_success_response(self.organization.slug, self.integration.id, **config)
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=self.integration, organization=self.organization
+            integration=self.integration, organization_id=self.organization.id
         )
 
         assert org_integration.config == config
@@ -71,7 +71,7 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         assert Integration.objects.filter(id=self.integration.id).exists()
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=self.integration, organization=self.organization
+            integration=self.integration, organization_id=self.organization.id
         )
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id

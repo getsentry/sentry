@@ -31,13 +31,13 @@ type Props = {
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const DefaultTitle = ({
+function DefaultTitle({
   frame,
   platform,
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
-}: Props) => {
+}: Props) {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
@@ -96,10 +96,7 @@ const DefaultTitle = ({
     // prioritize module name for Java as filename is often only basename
     const shouldPrioritizeModuleName = framePlatform === 'java';
 
-    // we do not want to show path in title on csharp platform
-    const pathNameOrModule = isDotnet(framePlatform)
-      ? getModule()
-      : getPathNameOrModule(shouldPrioritizeModuleName);
+    const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
       defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
 
@@ -213,7 +210,7 @@ const DefaultTitle = ({
   }
 
   return <Fragment>{title}</Fragment>;
-};
+}
 
 export default DefaultTitle;
 

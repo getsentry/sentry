@@ -89,59 +89,63 @@ export const getFieldOptionConfig = ({
   };
 };
 
-const MetricField = ({
+function MetricField({
   organization,
   columnWidth,
   inFieldLabels,
   alertType,
   ...props
-}: Props) => (
-  <FormField {...props}>
-    {({onChange, value, model, disabled}) => {
-      const dataset = model.getValue('dataset');
+}: Props) {
+  return (
+    <FormField {...props}>
+      {({onChange, value, model, disabled}) => {
+        const dataset = model.getValue('dataset');
 
-      const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
-        getFieldOptionConfig({
-          dataset: dataset as Dataset,
-          alertType,
-        });
-      const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
-      const fieldValue = explodeFieldString(value ?? '');
+        const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
+          getFieldOptionConfig({
+            dataset: dataset as Dataset,
+            alertType,
+          });
+        const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
+        const fieldValue = explodeFieldString(value ?? '');
 
-      const fieldKey =
-        fieldValue?.kind === FieldValueKind.FUNCTION
-          ? `function:${fieldValue.function[0]}`
-          : '';
+        const fieldKey =
+          fieldValue?.kind === FieldValueKind.FUNCTION
+            ? `function:${fieldValue.function[0]}`
+            : '';
 
-      const selectedField = fieldOptions[fieldKey]?.value;
-      const numParameters: number =
-        selectedField?.kind === FieldValueKind.FUNCTION
-          ? selectedField.meta.parameters.length
-          : 0;
+        const selectedField = fieldOptions[fieldKey]?.value;
+        const numParameters: number =
+          selectedField?.kind === FieldValueKind.FUNCTION
+            ? selectedField.meta.parameters.length
+            : 0;
 
-      const parameterColumns =
-        numParameters - (hideParameterSelector ? 1 : 0) - (hidePrimarySelector ? 1 : 0);
+        const parameterColumns =
+          numParameters - (hideParameterSelector ? 1 : 0) - (hidePrimarySelector ? 1 : 0);
 
-      return (
-        <Fragment>
-          <StyledQueryField
-            filterPrimaryOptions={option => option.value.kind === FieldValueKind.FUNCTION}
-            fieldOptions={fieldOptions}
-            fieldValue={fieldValue}
-            onChange={v => onChange(generateFieldAsString(v), {})}
-            columnWidth={columnWidth}
-            gridColumns={parameterColumns + 1}
-            inFieldLabels={inFieldLabels}
-            shouldRenderTag={false}
-            disabled={disabled}
-            hideParameterSelector={hideParameterSelector}
-            hidePrimarySelector={hidePrimarySelector}
-          />
-        </Fragment>
-      );
-    }}
-  </FormField>
-);
+        return (
+          <Fragment>
+            <StyledQueryField
+              filterPrimaryOptions={option =>
+                option.value.kind === FieldValueKind.FUNCTION
+              }
+              fieldOptions={fieldOptions}
+              fieldValue={fieldValue}
+              onChange={v => onChange(generateFieldAsString(v), {})}
+              columnWidth={columnWidth}
+              gridColumns={parameterColumns + 1}
+              inFieldLabels={inFieldLabels}
+              shouldRenderTag={false}
+              disabled={disabled}
+              hideParameterSelector={hideParameterSelector}
+              hidePrimarySelector={hidePrimarySelector}
+            />
+          </Fragment>
+        );
+      }}
+    </FormField>
+  );
+}
 
 const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: number}>`
   ${p =>

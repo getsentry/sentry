@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import TextCopyInput from 'sentry/components/textCopyInput';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -13,7 +11,7 @@ type Props = {
   version?: string;
 };
 
-function Assembly({name, version, culture, publicKeyToken, filePath}: Props) {
+function Assembly({name, version, culture, publicKeyToken}: Props) {
   return (
     <AssemblyWrapper>
       <AssemblyInfo>
@@ -24,23 +22,18 @@ function Assembly({name, version, culture, publicKeyToken, filePath}: Props) {
         <Caption>{t('Version')}:</Caption>
         {version || '-'}
       </AssemblyInfo>
-      <AssemblyInfo>
-        <Caption>{t('Culture')}:</Caption>
-        {culture || '-'}
-      </AssemblyInfo>
-      <AssemblyInfo>
-        <Caption>PublicKeyToken:</Caption>
-        {publicKeyToken || '-'}
-      </AssemblyInfo>
 
-      {filePath && (
+      {culture && (
         <AssemblyInfo>
-          <Caption>{t('Path')}:</Caption>
-          <Tooltip title={filePath}>
-            <TextCopyInput rtl size="xs">
-              {filePath}
-            </TextCopyInput>
-          </Tooltip>
+          <Caption>{t('Culture')}:</Caption>
+          {culture}
+        </AssemblyInfo>
+      )}
+
+      {publicKeyToken && (
+        <AssemblyInfo>
+          <Caption>PublicKeyToken:</Caption>
+          {publicKeyToken}
         </AssemblyInfo>
       )}
     </AssemblyWrapper>

@@ -71,7 +71,7 @@ class EventRRWebIntegrationContent extends AsyncComponent<Props, State> {
   }
 }
 
-export const EventRRWebIntegration = (props: Props) => {
+export function EventRRWebIntegration(props: Props) {
   const organization = useOrganization();
   const hasReplay = Boolean(
     props.event?.tags?.find(({key}) => key === 'replayId')?.value
@@ -83,7 +83,7 @@ export const EventRRWebIntegration = (props: Props) => {
   }
 
   return <EventRRWebIntegrationContent {...props} />;
-};
+}
 
 const StyledReplayEventDataSection = styled(EventDataSection)`
   overflow: hidden;

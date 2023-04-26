@@ -1,8 +1,9 @@
 from unittest.mock import call, patch
 
+from sentry.models import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
@@ -18,7 +19,10 @@ class TestPreparerIssueLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        self.project = self.install.organization.project_set.first()
+        with exempt_from_silo_limits():
+            self.project = Organization.objects.get(
+                id=self.install.organization_id
+            ).project_set.first()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
@@ -101,7 +105,7 @@ class TestPreparerStacktraceLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        self.project = self.install.organization.project_set.first()
+        self.project = Organization.objects.get(id=self.install.organization_id).project_set.first()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
@@ -169,7 +173,7 @@ class TestPreparerAlertRuleAction(TestCase):
         )
 
         self.component = self.sentry_app.components.first()
-        self.project = self.install.organization.project_set.first()
+        self.project = Organization.objects.get(id=self.install.organization_id).project_set.first()
 
     @patch("sentry.mediators.external_requests.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):

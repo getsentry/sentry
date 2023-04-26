@@ -24,6 +24,7 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.signals import org_setup_complete, terms_accepted
 
@@ -72,8 +73,8 @@ class OrganizationIndexEndpoint(Endpoint):
         if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
-            elif request.auth.organization is not None:
-                queryset = queryset.filter(id=request.auth.organization.id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         elif owner_only:
             # This is used when closing an account
@@ -204,21 +205,24 @@ class OrganizationIndexEndpoint(Endpoint):
             result = serializer.validated_data
 
             try:
+
                 with transaction.atomic():
                     org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
 
                     organization_mapping_service.create(
-                        user=request.user,
                         organization_id=org.id,
                         slug=org.slug,
                         name=org.name,
                         idempotency_key=result.get("idempotencyKey", ""),
                         region_name=settings.SENTRY_REGION or "us",
                     )
-
-                    om = OrganizationMember.objects.create(
-                        organization=org, user=request.user, role=roles.get_top_dog().id
+                    rpc_org_member = organization_service.add_organization_member(
+                        organization_id=org.id,
+                        default_org_role=org.default_role,
+                        user_id=request.user.id,
+                        role=roles.get_top_dog().id,
                     )
+                    om = OrganizationMember.objects.get(id=rpc_org_member.id)
 
                     if result.get("defaultTeam"):
                         team = org.team_set.create(name=org.name)

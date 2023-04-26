@@ -113,8 +113,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
       notificationIntegrations.map(integration => [integration.id, integration])
     );
 
-    const access = new Set(organization.access);
-    const hasAccess = access.has('team:write');
+    const hasAccess = organization.access.includes('team:write');
 
     return externalTeams.map(externalTeam => (
       <FormFieldWrapper key={externalTeam.id}>

@@ -44,22 +44,59 @@ class StatusActionTest(BaseEventTest):
         assert resp.data["text"] == LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
 
     def test_ignore_issue(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
         status_action = {"name": "status", "value": "ignored", "type": "button"}
-
-        resp = self.post_webhook(action_data=[status_action])
-        self.group = Group.objects.get(id=self.group.id)
+        original_message = {
+            "type": "message",
+            "attachments": [
+                {
+                    "id": 1,
+                    "ts": 1681409875,
+                    "color": "E03E2F",
+                    "fallback": "[node] IntegrationError: Identity not found.",
+                    "text": "Identity not found.",
+                    "title": "IntegrationError",
+                    "footer": "NODE-F via <http://localhost:8000/organizations/sentry/alerts/rules/node/3/details/|New Issue in #critical channel>",
+                    "mrkdwn_in": ["text"],
+                }
+            ],
+        }
+        resp = self.post_webhook(
+            action_data=[status_action],
+            original_message=original_message,
+            type="interactive_message",
+            callback_id=json.dumps({"issue": event.group.id}),
+        )
+        self.group = Group.objects.get(id=event.group.id)
 
         assert resp.status_code == 200, resp.content
         assert self.group.get_status() == GroupStatus.IGNORED
 
-        expect_status = f"*Issue ignored by <@{self.external_id}>*"
-        assert resp.data["text"].endswith(expect_status), resp.data["text"]
+        expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
+        assert resp.data["attachments"][0]["text"] == expect_status
 
     def test_ignore_issue_with_additional_user_auth(self):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
-        auth_idp = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        auth_idp = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
         AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         status_action = {"name": "status", "value": "ignored", "type": "button"}
@@ -180,7 +217,7 @@ class StatusActionTest(BaseEventTest):
             external_id="TXXXXXXX2",
             metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        OrganizationIntegration.objects.create(organization=org2, integration=integration2)
+        OrganizationIntegration.objects.create(organization_id=org2.id, integration=integration2)
 
         idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
         Identity.objects.create(

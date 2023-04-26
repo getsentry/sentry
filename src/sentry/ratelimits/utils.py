@@ -7,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
@@ -17,6 +16,7 @@ from . import backend as ratelimiter
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
+    from sentry.models.apitoken import ApiToken
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
@@ -48,6 +48,8 @@ def get_rate_limit_key(
     rate_limit_config: RateLimitConfig | None = None,
 ) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
+    from sentry.models.apitoken import ApiToken, is_api_token_auth
+
     if not hasattr(view_func, "view_class") or request.path_info.startswith(
         settings.ANONYMOUS_STATIC_PREFIXES
     ):

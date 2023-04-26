@@ -18,7 +18,7 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
@@ -196,8 +196,10 @@ class AuthLoginView(BaseView):
             # the association for them.
             if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
                 organization = Organization.get_default()
-                OrganizationMember.objects.create(
-                    organization=organization, role=organization.default_role, user=user
+                organization_service.add_organization_member(
+                    organization_id=organization.id,
+                    default_org_role=organization.default_role,
+                    user_id=user.id,
                 )
 
             if invite_helper and invite_helper.valid_request:
@@ -254,13 +256,15 @@ class AuthLoginView(BaseView):
 
                         if settings.SENTRY_SINGLE_ORGANIZATION:
                             om = organization_service.check_membership_by_email(
-                                org_context.organization.id, user.email
+                                organization_id=org_context.organization.id, email=user.email
                             )
+
                             if om is None:
+                                om = organization_service.check_membership_by_id(
+                                    organization_id=org_context.organization.id, user_id=user.id
+                                )
+                            if om is None or om.user_id is None:
                                 request.session.pop("_next", None)
-                            else:
-                                if om.user_id is None:
-                                    request.session.pop("_next", None)
 
                 # On login, redirect to onboarding
                 if self.active_organization:

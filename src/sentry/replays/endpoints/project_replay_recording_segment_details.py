@@ -1,5 +1,6 @@
 from io import BytesIO
 
+import sentry_sdk
 from django.http import StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,7 +39,13 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             )
 
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
-        segment_bytes = download_segment(segment)
+        transaction = sentry_sdk.start_transaction(
+            op="http.server",
+            name="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
+        )
+        segment_bytes = download_segment(
+            segment, transaction=transaction, current_hub=sentry_sdk.Hub.current
+        )
         segment_reader = BytesIO(segment_bytes)
 
         response = StreamingHttpResponse(

@@ -281,7 +281,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
         assert OrganizationAccessRequest.objects.filter(
-            team=self.team, member=self.member, requester=None
+            team=self.team, member=self.member, requester_id=None
         ).exists()
 
     def test_admin_must_request_access_to_join_team(self):
@@ -295,7 +295,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
         assert OrganizationAccessRequest.objects.filter(
-            team=self.team, member=self.admin, requester=None
+            team=self.team, member=self.admin, requester_id=None
         ).exists()
 
     def test_member_on_team_must_request_access_to_add_member_to_team(self):
@@ -309,7 +309,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
         assert OrganizationAccessRequest.objects.filter(
-            team=self.team, member=self.member, requester=self.member_on_team.user
+            team=self.team, member=self.member, requester_id=self.member_on_team.user_id
         ).exists()
 
     def test_admin_must_request_access_to_add_member_to_team(self):
@@ -324,7 +324,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
         assert OrganizationAccessRequest.objects.filter(
-            team=self.team, member=self.member, requester=self.admin.user
+            team=self.team, member=self.member, requester_id=self.admin.user.id
         ).exists()
 
     def test_multiple_of_the_same_access_request(self):
@@ -343,7 +343,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
         oar = OrganizationAccessRequest.objects.get(team=self.team, member=self.admin)
-        assert oar.requester == self.member.user
+        assert oar.requester_id == self.member.user_id
 
 
 @region_silo_test(stable=True)

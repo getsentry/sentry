@@ -16,6 +16,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
 
@@ -30,6 +31,7 @@ def get_response_text(data: SlackBody) -> str:
     )
 
 
+@exempt_from_silo_limits()
 def install_slack(organization: Organization, workspace_id: str = "TXXXXXXX1") -> Integration:
     integration = Integration.objects.create(
         external_id=workspace_id,
@@ -41,7 +43,7 @@ def install_slack(organization: Organization, workspace_id: str = "TXXXXXXX1") -
         name="Awesome Team",
         provider="slack",
     )
-    OrganizationIntegration.objects.create(organization=organization, integration=integration)
+    OrganizationIntegration.objects.create(organization_id=organization.id, integration=integration)
     return integration
 
 

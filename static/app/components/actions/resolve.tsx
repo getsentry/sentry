@@ -18,7 +18,7 @@ import {
   ResolutionStatus,
   ResolutionStatusDetails,
 } from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatVersion} from 'sentry/utils/formatters';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -63,7 +63,7 @@ class ResolveActions extends Component<Props> {
       status: ResolutionStatus.RESOLVED,
       statusDetails,
     });
-    trackAdvancedAnalyticsEvent('resolve_issue', {
+    trackAnalytics('resolve_issue', {
       organization,
       release: 'anotherExisting',
     });
@@ -78,7 +78,7 @@ class ResolveActions extends Component<Props> {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
       });
-    trackAdvancedAnalyticsEvent('resolve_issue', {
+    trackAnalytics('resolve_issue', {
       organization,
       release: 'current',
     });
@@ -93,7 +93,7 @@ class ResolveActions extends Component<Props> {
           inNextRelease: true,
         },
       });
-    trackAdvancedAnalyticsEvent('resolve_issue', {
+    trackAnalytics('resolve_issue', {
       organization,
       release: 'next',
     });

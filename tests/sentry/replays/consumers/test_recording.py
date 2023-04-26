@@ -66,6 +66,7 @@ class RecordingTestCaseMixin:
                 "received": time.time(),
                 "retention_days": 30,
                 "key_id": 123,
+                "retention_days": 30,
             },
             {
                 "type": "replay_recording",

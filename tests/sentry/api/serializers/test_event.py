@@ -1,14 +1,18 @@
 from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
-from sentry.api.serializers.models.event import DetailedEventSerializer, SharedEventSerializer
+from sentry.api.serializers.models.event import (
+    IssueEventSerializer,
+    SharedEventSerializer,
+    SqlFormatEventSerializer,
+)
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.event_manager import EventManager
 from sentry.models import EventError
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -316,7 +320,7 @@ class SimpleEventSerializerTest(TestCase):
 
 
 @region_silo_test
-class DetailedEventSerializerTest(TestCase):
+class IssueEventSerializerTest(TestCase):
     @mock.patch(
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
@@ -335,7 +339,7 @@ class DetailedEventSerializerTest(TestCase):
             assert_no_errors=False,
         )
 
-        result = serialize(event, None, DetailedEventSerializer())
+        result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == [
             {
                 "enables": [],
@@ -364,7 +368,7 @@ class DetailedEventSerializerTest(TestCase):
             assert_no_errors=False,
         )
 
-        result = serialize(event, None, DetailedEventSerializer())
+        result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == [
             {
                 "enables": [],
@@ -393,7 +397,7 @@ class DetailedEventSerializerTest(TestCase):
             assert_no_errors=False,
         )
 
-        result = serialize(event, None, DetailedEventSerializer())
+        result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == []
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
@@ -406,7 +410,7 @@ class DetailedEventSerializerTest(TestCase):
             event = manager.save(self.project.id)
         group_event = event.for_group(event.groups[0])
 
-        result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
+        result = json.loads(json.dumps(serialize(group_event, None, IssueEventSerializer())))
         assert result["perfProblem"] == {
             "causeSpanIds": ["9179e43ae844b174"],
             "desc": "SELECT `books_author`.`id`, `books_author`.`name` FROM "
@@ -429,6 +433,7 @@ class DetailedEventSerializerTest(TestCase):
             "issueType": "performance_n_plus_one_db_queries",
             "type": 1006,
             "evidenceData": {
+                "op": "db",
                 "causeSpanIds": ["9179e43ae844b174"],
                 "offenderSpanIds": [
                     "b8be6138369491dd",
@@ -444,15 +449,7 @@ class DetailedEventSerializerTest(TestCase):
                 ],
                 "parentSpanIds": ["8dd7a5869a4f4583"],
             },
-            "evidenceDisplay": [
-                {"important": True, "name": "Transaction Name", "value": "/books/"},
-                {"important": True, "name": "Parent Span", "value": "index"},
-                {
-                    "important": True,
-                    "name": "Repeating Spans (10)",
-                    "value": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                },
-            ],
+            "evidenceDisplay": [],
         }
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
@@ -467,5 +464,128 @@ class DetailedEventSerializerTest(TestCase):
             event = manager.save(self.project.id)
         group_event = event.for_group(event.groups[0])
 
-        result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
+        result = json.loads(json.dumps(serialize(group_event, None, IssueEventSerializer())))
         assert result["perfProblem"] is None
+
+
+@region_silo_test
+class SqlFormatEventSerializerTest(TestCase):
+    def test_event_breadcrumb_formatting(self):
+        with self.feature("organizations:sql-format"):
+            event = self.store_event(
+                data={
+                    "breadcrumbs": [
+                        {"category": "generic", "message": "should not format this"},
+                        {
+                            "category": "query",
+                            "message": "select * from table where something = $1",
+                        },
+                    ]
+                },
+                project_id=self.project.id,
+            )
+            result = serialize(event, None, SqlFormatEventSerializer())
+
+            breadcrumb_entry = result["entries"][0]
+            breadcrumbs = breadcrumb_entry["data"]["values"]
+
+            assert breadcrumb_entry["type"] == "breadcrumbs"
+            # First breadcrumb should not have a message_formatted property
+            assert breadcrumbs[0]["message"] == "should not format this"
+            assert "messageRaw" not in breadcrumbs[0]
+            assert "messageFormat" not in breadcrumbs[0]
+            # Second breadcrumb should have whitespace added
+            assert breadcrumbs[1]["message"] == "select *\nfrom table\nwhere something = $1"
+            assert breadcrumbs[1]["messageRaw"] == "select * from table where something = $1"
+            assert breadcrumbs[1]["messageFormat"] == "sql"
+
+    def test_event_breadcrumb_formatting_remove_quotes(self):
+        with self.feature("organizations:sql-format"):
+            event = self.store_event(
+                data={
+                    "breadcrumbs": [
+                        {
+                            "category": "query",
+                            "message": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
+                        },
+                        {
+                            "category": "query",
+                            "message": """This is not "SQL" content.""",
+                        },
+                    ]
+                },
+                project_id=self.project.id,
+            )
+            result = serialize(event, None, SqlFormatEventSerializer())
+
+            # For breadcrumb 1: should remove quotes from all terms except the one that contains a space ("column name")
+            assert (
+                result["entries"][0]["data"]["values"][0]["message"]
+                == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
+            )
+
+            # For breadcrumb 2: Not SQL so shouldn't be changed
+            assert (
+                result["entries"][0]["data"]["values"][1]["message"]
+                == """This is not "SQL" content."""
+            )
+
+    def test_event_db_span_formatting(self):
+        with self.feature("organizations:sql-format"):
+            event_data = get_event("n-plus-one-in-django-new-view")
+            event_data["contexts"] = {
+                "trace": {
+                    "trace_id": "530c14e044aa464db6ddb43660e6474f",
+                    "span_id": "139fcdb7c5534eb4",
+                }
+            }
+            event = self.store_event(
+                data={
+                    "type": "transaction",
+                    "transaction": "/organizations/:orgId/performance/:eventSlug/",
+                    "start_timestamp": iso_format(before_now(minutes=1, milliseconds=500)),
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "contexts": {
+                        "trace": {
+                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                            "span_id": "8f5a2b8768cafb4e",
+                            "type": "trace",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "description": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
+                            "op": "db",
+                            "parent_span_id": "abe79ad9292b90a9",
+                            "span_id": "9c045ea336297177",
+                            "start_timestamp": timestamp_format(
+                                before_now(minutes=1, milliseconds=200)
+                            ),
+                            "timestamp": timestamp_format(before_now(minutes=1)),
+                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                        },
+                        {
+                            "description": "http span",
+                            "op": "http",
+                            "parent_span_id": "a99fd04e79e17631",
+                            "span_id": "abe79ad9292b90a9",
+                            "start_timestamp": timestamp_format(
+                                before_now(minutes=1, milliseconds=200)
+                            ),
+                            "timestamp": timestamp_format(before_now(minutes=1)),
+                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                        },
+                    ],
+                },
+                project_id=self.project.id,
+            )
+            result = serialize(event, None, SqlFormatEventSerializer())
+
+            # For span 1: Should remove quotes from all terms except the one that contains a space ("column name")
+            assert (
+                result["entries"][0]["data"][0]["description"]
+                == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
+            )
+
+            # For span 2: Not a db span so no change
+            assert result["entries"][0]["data"][1]["description"] == """http span"""

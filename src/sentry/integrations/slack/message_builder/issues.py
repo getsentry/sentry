@@ -96,7 +96,7 @@ def build_tag_fields(
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    all_members = user_service.get_from_group(group)
+    all_members = user_service.get_from_group(group=group)
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
 
@@ -150,7 +150,7 @@ def build_actions(
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
-        text += get_action_text(text, actions, identity)
+        text = get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
     ignore_button = MessageAction(

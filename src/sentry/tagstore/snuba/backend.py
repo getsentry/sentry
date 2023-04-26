@@ -11,6 +11,7 @@ from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
+from sentry import features
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.query import apply_performance_conditions
@@ -686,7 +687,9 @@ class SnubaTagStorage(TagStorage):
     def apply_group_filters_conditions(self, group: Group, conditions, filters):
         dataset = Dataset.Events
         if group:
-            if group.issue_category == GroupCategory.PERFORMANCE:
+            if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
+                "organizations:issue-platform-search-perf-issues", group.organization
+            ):
                 dataset = Dataset.Transactions
                 apply_performance_conditions(conditions, group)
             else:

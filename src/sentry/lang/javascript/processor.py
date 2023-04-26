@@ -660,6 +660,9 @@ class Fetcher:
         self.allow_scraping = allow_scraping
         # Mappings between bundle_id -> ArtifactBundleArchive to keep all the open archives in memory.
         self.open_archives = {}
+        # Set that contains all the urls for which the fetch_by_url failed at all levels (e.g., release bundle and
+        # http).
+        self.failed_urls = set()
         # Set that contains all the tuples (debug_id, source_file_type) for which the query returned an empty result.
         # Here we don't put the project in the set, under the assumption that the project will remain the same for the
         # whole lifecycle of the Fetcher.
@@ -867,7 +870,9 @@ class Fetcher:
                 return None
 
         try:
-            # Now we actually read the wanted file.
+            # In this case we bail if we didn't find a find the file in the latest uploaded bundle, but technically we
+            # could implement a best effort mechanism that works similarly to fetch_by_url_new, in which we open all
+            # n bundles containing a debug_id and look for a specific file type.
             fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
         except Exception as exc:
             logger.debug(
@@ -1154,6 +1159,12 @@ class Fetcher:
         separately, whether those attempts are successful. Used for both
         source files and source maps.
         """
+        # In case we know that this url has resulted in a failure while processing previous frame, we want to fail
+        # early in order to avoid wasting resources. This is done under the assumption that a failed url can't become
+        # successful after an arbitrary amount of time, in which case it would be sensible to properly retry.
+        if url in self.failed_urls:
+            return None
+
         # If our url has been truncated, it'd be impossible to fetch
         # so we check for this early and bail
         if url[-3:] == "...":
@@ -1173,8 +1184,14 @@ class Fetcher:
         cache_key = f"source:cache:v4:{md5_text(url).hexdigest()}"
 
         if result is None:
-            if not self.allow_scraping or not url.startswith(("http:", "https:")):
+            if not url.startswith(("http:", "https:")):
                 error = {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)}
+                self.failed_urls.add(url)
+                raise http.CannotFetch(error)
+
+            if not self.allow_scraping:
+                error = {"type": EventError.JS_SCRAPING_DISABLED, "url": http.expose_url(url)}
+                self.failed_urls.add(url)
                 raise http.CannotFetch(error)
 
             logger.debug("Checking cache for url %r", url)
@@ -1225,10 +1242,12 @@ class Fetcher:
                         "url": http.expose_url(url),
                     }
                     http.lock_domain(url, error=error)
+                    self.failed_urls.add(url)
                     raise http.CannotFetch(error)
 
         # If we did not get a 200 OK we just raise a cannot fetch here.
         if result.status != 200:
+            self.failed_urls.add(url)
             raise http.CannotFetch(
                 {
                     "type": EventError.FETCH_INVALID_HTTP_CODE,
@@ -1256,6 +1275,7 @@ class Fetcher:
                     "value": "utf8",
                     "url": http.expose_url(url),
                 }
+                self.failed_urls.add(url)
                 raise http.CannotFetch(error)
 
         # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
@@ -1263,7 +1283,13 @@ class Fetcher:
         # this should catch 99% of cases
         if urlsplit(url).path.endswith(".js") and is_html_response(result):
             error = {"type": EventError.JS_INVALID_CONTENT, "url": url}
+            self.failed_urls.add(url)
             raise http.CannotFetch(error)
+
+        # If result is None it means that all of our lookups failed, we want to mark this failure in order to avoid
+        # making the requests over and over for each frame.
+        if result is None:
+            self.failed_urls.add(url)
 
         return result
 
@@ -1827,6 +1853,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # a valid file to cache
             return None, FetcherSource.NONE
         else:
+            # In case the fetch_by_url call returns None, it means we weren't able to fetch the data or that the
+            # request failed in the past, and we shouldn't retry it.
+            if result is None:
+                return None, FetcherSource.NONE
+
             sourceview = SourceView.from_bytes(result.body)
             self.fetch_by_url_sourceviews[url] = sourceview
 
@@ -1949,7 +1980,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 span.set_data("sourcemap_url", sourcemap_url)
                 sourcemap_cache = self._fetch_sourcemap_cache_by_url(
                     sourcemap_url,
-                    source=minified_sourceview.get_source().encode(),
+                    source=minified_sourceview.get_source().encode("utf-8"),
                     use_url_new=use_url_new,
                 )
         except http.BadSource as exc:
@@ -2049,6 +2080,87 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr(
                 "sourcemaps.processed", amount=len(self.sourcemaps_touched), skip_internal=True
             )
+
+        # If we do some A/B testing for symbolicator, we want to compare the stack traces
+        # processed by both the existing processor (this one), and the symbolicator result,
+        # and log any differences.
+        # Q: what do we want to diff? raw/_stacktraces? With the full source context?
+        # Processing Errors?
+        # We also need to account for known differences? Like symbolicator not
+        # outputting a trailing empty line, whereas the python processor does.
+        if symbolicator_stacktraces := self.data.pop("symbolicator_stacktraces", None):
+
+            metrics.incr("sourcemaps.ab-test.performed")
+
+            # TODO: we currently have known differences:
+            # - small `abs_path`/`filename` differences because of different url joining
+            # - python resolves a `module` in the processor, whereas symbolicator does that
+            #   indirectly in the Plugin preprocessor
+            # - symbolicator does not add trailing empty lines to `post_context`
+            interesting_keys = {
+                "abs_path",
+                "filename",
+                "lineno",
+                "colno",
+                "function",
+                "context_line",
+                "module",
+            }
+
+            def filtered_frame(frame: dict) -> dict:
+                new_frame = {key: value for key, value in frame.items() if key in interesting_keys}
+
+                ds = get_path(frame, "data", "sourcemap")
+                # The python code does some trimming of the `data.sourcemap` prop to
+                # 150 characters with a trailing `...`, so replicate this here to avoid some
+                # bogus differences
+                if ds is not None and len(ds) > 150:
+                    ds = ds[:147] + "..."
+                new_frame["data.sourcemap"] = ds
+
+                # The code in `get_event_preprocessors` backfills the `module`.
+                # Contrary to its name, this runs *after* the stacktrace processor,
+                # so we want to backfill this here for all the frames as well:
+                abs_path = new_frame.get("abs_path")
+                if (
+                    new_frame.get("module") is None
+                    and abs_path
+                    and abs_path.startswith(("http:", "https:", "webpack:", "app:"))
+                ):
+                    new_frame["module"] = generate_module(abs_path)
+
+                return new_frame
+
+            different_frames = []
+            for symbolicator_stacktrace, stacktrace_info in zip(
+                symbolicator_stacktraces,
+                filter(
+                    # only include `stacktrace_infos` that have a stacktrace with frames
+                    lambda sinfo: get_path(sinfo.container, "stacktrace", "frames", filter=True),
+                    self.stacktrace_infos,
+                ),
+            ):
+                python_stacktrace = stacktrace_info.container.get("stacktrace")
+
+                for symbolicator_frame, python_frame in zip(
+                    symbolicator_stacktrace, python_stacktrace["frames"]
+                ):
+                    symbolicator_frame = filtered_frame(symbolicator_frame)
+                    python_frame = filtered_frame(python_frame)
+
+                    if symbolicator_frame != python_frame:
+                        different_frames.append(
+                            {"symbolicator": symbolicator_frame, "python": python_frame}
+                        )
+
+            if different_frames:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_extra("different_frames", different_frames)
+                    scope.set_extra("event_id", self.data.get("event_id"))
+                    scope.set_tag("project_id", self.project.id)
+                    sentry_sdk.capture_message(
+                        "JS symbolication differences between symbolicator and python."
+                    )
 
     def suspected_console_errors(self, frames):
         def is_suspicious_frame(frame) -> bool:

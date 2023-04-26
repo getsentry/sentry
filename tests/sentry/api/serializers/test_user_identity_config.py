@@ -81,7 +81,7 @@ class UserIdentityConfigSerializerTest(TestCase):
 
     def test_auth_identity(self):
         org = self.create_organization()
-        provider = AuthProvider.objects.create(organization=org, provider="dummy")
+        provider = AuthProvider.objects.create(organization_id=org.id, provider="dummy")
 
         identity = AuthIdentity.objects.create(
             user=self.user, auth_provider=provider, ident="hhyjzna1"

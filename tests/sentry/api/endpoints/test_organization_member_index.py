@@ -244,7 +244,6 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         sso_member = self.create_member(
             organization=self.organization,
             user=user,
-            email=user.email,
             invite_status=InviteStatus.APPROVED.value,
             flags=OrganizationMember.flags["sso:linked"],
         )
@@ -253,7 +252,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
             self.organization.slug, qs_params={"query": "ssoLinked:true"}
         )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == sso_member.email
+        assert sso_member.email is None
+        assert response.data[0]["name"] == response.data[0]["user"]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "ssoLinked:false"}
@@ -270,7 +270,6 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         member_2fa = self.create_member(
             organization=self.organization,
             user=user,
-            email=user.email,
             invite_status=InviteStatus.APPROVED.value,
         )
 
@@ -283,7 +282,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
             self.organization.slug, qs_params={"query": "has2fa:true"}
         )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == member_2fa.email
+        assert member_2fa.email is None
+        assert response.data[0]["name"] == response.data[0]["user"]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:false"}

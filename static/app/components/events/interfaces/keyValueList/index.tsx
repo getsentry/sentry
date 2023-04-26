@@ -90,7 +90,7 @@ function KeyValueList({
   );
 }
 
-const MultiValueContainer = ({values}: {values: string[]}): JSX.Element => {
+function MultiValueContainer({values}: {values: string[]}): JSX.Element {
   return (
     <Fragment>
       {values.map((val, idx) => (
@@ -98,7 +98,7 @@ const MultiValueContainer = ({values}: {values: string[]}): JSX.Element => {
       ))}
     </Fragment>
   );
-};
+}
 
 export default KeyValueList;
 

@@ -11,10 +11,11 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/\/settings\/(?!account)(?!projects)(?!teams)[^\/]+\/?$/, '/settings/organization/'],
   // Move /settings/:orgId/:section -> /settings/:section
   // but not /settings/organization or /settings/projects which is a new URL
-  [/\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)/, '/settings/$1'],
-  [/\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
-  [/\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
-  [/\/?[^\/]+\/([^\/]+)\/getting-started\/(.*)/, '/getting-started/$1/$2'],
+  [/^\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)/, '/settings/$1'],
+  [/^\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
+  [/^\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
+  // Handles /org-slug/project-slug/getting-started/platform/ -> /getting-started/project-slug/platform/
+  [/^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)/, '/getting-started/$1/$2'],
 ];
 
 type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDescriptor;

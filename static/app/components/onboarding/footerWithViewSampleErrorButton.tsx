@@ -15,8 +15,8 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, OnboardingStatus, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useQuery} from 'sentry/utils/queryClient';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
@@ -78,7 +78,7 @@ export function FooterWithViewSampleErrorButton({
   const projectData = projectId ? onboardingContext.data[projectId] : undefined;
   const selectedProject = projects.find(project => project.slug === projectSlug);
 
-  useQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
+  useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
     staleTime: 0,
     refetchInterval: DEFAULT_POLL_INTERVAL,
     enabled:
@@ -92,7 +92,7 @@ export function FooterWithViewSampleErrorButton({
   // *not* include sample events, while just looking at the issues list will.
   // We will wait until the project.firstEvent is set and then locate the
   // event given that event datetime
-  useQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
+  useApiQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
     staleTime: 0,
     enabled:
       !!firstError && !firstIssue && projectData?.status === OnboardingStatus.PROCESSING, // Only fetch if an error event is received and we have not yet located the first issue,
@@ -126,7 +126,7 @@ export function FooterWithViewSampleErrorButton({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.first_error_received', {
+    trackAnalytics('onboarding.first_error_received', {
       organization,
       new_organization: !!newOrg,
       project_id: projectId,
@@ -164,7 +164,7 @@ export function FooterWithViewSampleErrorButton({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.first_error_processed', {
+    trackAnalytics('onboarding.first_error_processed', {
       organization,
       new_organization: !!newOrg,
       project_id: projectId,
@@ -199,7 +199,7 @@ export function FooterWithViewSampleErrorButton({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+    trackAnalytics('growth.onboarding_clicked_skip', {
       organization,
       source: 'targeted_onboarding_first_event_footer',
     });
@@ -235,7 +235,7 @@ export function FooterWithViewSampleErrorButton({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
+    trackAnalytics('onboarding.view_error_button_clicked', {
       organization,
       new_organization: !!newOrg,
       project_id: projectId,
@@ -305,7 +305,7 @@ export function FooterWithViewSampleErrorButton({
               if (!projectId) {
                 return;
               }
-              trackAdvancedAnalyticsEvent('onboarding.view_sample_error_button_clicked', {
+              trackAnalytics('onboarding.view_sample_error_button_clicked', {
                 new_organization: !!newOrg,
                 project_id: projectId,
                 platform: selectedProject?.platform ?? 'other',

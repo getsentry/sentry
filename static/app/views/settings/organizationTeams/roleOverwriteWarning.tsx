@@ -11,7 +11,7 @@ type Props = {
   isSelf?: boolean;
 };
 
-export const RoleOverwriteIcon: React.FC<Props> = props => {
+export function RoleOverwriteIcon(props: Props) {
   const hasOverride = hasOrgRoleOverwrite(props);
   if (!hasOverride) {
     return null;
@@ -22,9 +22,9 @@ export const RoleOverwriteIcon: React.FC<Props> = props => {
       <IconInfo size="sm" color="gray300" />
     </Tooltip>
   );
-};
+}
 
-export const RoleOverwritePanelAlert: React.FC<Props> = props => {
+export function RoleOverwritePanelAlert(props: Props) {
   const hasOverride = hasOrgRoleOverwrite(props);
   if (!hasOverride) {
     return null;
@@ -35,7 +35,7 @@ export const RoleOverwritePanelAlert: React.FC<Props> = props => {
       {getOverwriteString(props)}
     </PanelAlert>
   );
-};
+}
 
 /**
  * Check that the user's org role has a minimum team role that maps to the lowest

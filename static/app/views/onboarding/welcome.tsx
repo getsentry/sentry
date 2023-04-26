@@ -10,7 +10,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
@@ -55,7 +55,7 @@ function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
   const source = 'targeted_onboarding';
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
+    trackAnalytics('growth.onboarding_start_onboarding', {
       organization,
       source,
     });
@@ -69,14 +69,14 @@ function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
   }, [clientState, jumpToSetupProject]);
 
   const handleComplete = useCallback(() => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
+    trackAnalytics('growth.onboarding_clicked_instrument_app', {
       organization,
       source,
     });
 
     setClientState({
       platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
-      selectedPlatforms: [],
+      selectedPlatform: undefined,
       url: 'select-platform/',
       state: 'started',
     });
@@ -85,14 +85,14 @@ function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
   }, [organization, source, clientState, setClientState, props]);
 
   const handleSkipOnboarding = useCallback(() => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+    trackAnalytics('growth.onboarding_clicked_skip', {
       organization,
       source,
     });
 
     setClientState({
       platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
-      selectedPlatforms: [],
+      selectedPlatform: undefined,
       url: 'welcome/',
       state: 'skipped',
     });

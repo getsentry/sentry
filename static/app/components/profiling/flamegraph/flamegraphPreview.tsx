@@ -94,7 +94,7 @@ export function FlamegraphPreview({
 
     return new FlamegraphRenderer2D(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
       draw_border: true,
-      colorCoding: 'by symbol name',
+      colorCoding: 'by system vs application frame',
     });
   }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 

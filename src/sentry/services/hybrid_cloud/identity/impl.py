@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List
 
+from sentry.models import AuthIdentity
 from sentry.services.hybrid_cloud.identity import IdentityService, RpcIdentity, RpcIdentityProvider
 
 
@@ -65,3 +66,14 @@ class DatabaseBackedIdentityService(IdentityService):
             identities = identities.exclude(external_id=F("idp__external_id"))
 
         return [self._serialize_identity(identity) for identity in identities]
+
+    def delete_identities(self, user_id: int, organization_id: int) -> None:
+        """
+        Deletes the set of identities associated with a user and organization context.
+        :param user_id:
+        :param organization_id:
+        :return:
+        """
+        AuthIdentity.objects.filter(
+            user_id=user_id, auth_provider__organization_id=organization_id
+        ).delete()

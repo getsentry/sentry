@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -207,9 +207,8 @@ describe('GroupSidebar', function () {
       />,
       {organization}
     );
-    await act(tick);
 
-    expect(screen.getByText('Participants (2)')).toBeInTheDocument();
+    expect(await screen.findByText('Participants (2)')).toBeInTheDocument();
     expect(screen.getByText('Viewers (2)')).toBeInTheDocument();
   });
 

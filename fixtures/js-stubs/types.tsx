@@ -1,3 +1,4 @@
+import {EntryException} from 'sentry/types';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 type SimpleStub<T = any> = () => T;
@@ -22,6 +23,7 @@ type TestStubFixtures = {
   AuthProvider: OverridableStub;
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
+  AvailableNotificationActions: OverridableStub;
   BitbucketIntegrationConfig: SimpleStub;
   Breadcrumb: OverridableStub;
   Broadcast: OverridableStub;
@@ -42,6 +44,7 @@ type TestStubFixtures = {
   EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
+  EventEntryExceptionGroup: SimpleStub<EntryException>;
   EventEntryStacktrace: OverridableStub;
   EventIdQueryResult: OverridableStub;
   EventStacktraceException: OverridableStub;

@@ -1,4 +1,3 @@
-import {UseMutationOptions, useQueryClient} from '@tanstack/react-query';
 import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
@@ -14,10 +13,18 @@ import {
   OrganizationSummary,
 } from 'sentry/types';
 import {LocationQuery} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import {QueryKey, useMutation, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {
+  ApiQueryKey,
+  useApiQuery,
+  UseApiQueryOptions,
+  useMutation,
+  UseMutationOptions,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,6 +33,7 @@ type Options = {
   organization: OrganizationSummary;
   partial: boolean;
   comparisonDelta?: number;
+  dataset?: DiscoverDatasets;
   end?: DateString;
   environment?: Readonly<string[]>;
   excludeOther?: boolean;
@@ -94,6 +102,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     queryExtras,
     excludeOther,
     includeAllArgs,
+    dataset,
   }: {includeAllArgs?: IncludeAllArgsType} & Options
 ): IncludeAllArgsType extends true
   ? Promise<
@@ -121,6 +130,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
+      dataset,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -148,6 +158,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
 export type EventQuery = {
   field: string[];
   query: string;
+  dataset?: DiscoverDatasets;
   environment?: string[];
   equation?: string[];
   noPagination?: boolean;
@@ -224,16 +235,16 @@ export const makeFetchEventAttachmentsQueryKey = ({
   orgSlug,
   projectSlug,
   eventId,
-}: FetchEventAttachmentParameters): QueryKey => [
+}: FetchEventAttachmentParameters): ApiQueryKey => [
   `/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`,
 ];
 
 export const useFetchEventAttachments = (
   {orgSlug, projectSlug, eventId}: FetchEventAttachmentParameters,
-  options: Partial<UseQueryOptions<FetchEventAttachmentResponse>> = {}
+  options: Partial<UseApiQueryOptions<FetchEventAttachmentResponse>> = {}
 ) => {
   const organization = useOrganization();
-  return useQuery<FetchEventAttachmentResponse>(
+  return useApiQuery<FetchEventAttachmentResponse>(
     [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`],
     {
       staleTime: Infinity,

@@ -12,7 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.endpoints.project_release_file_details import ClosesDependentFiles
-from sentry.models import ArtifactBundleArchive, ProjectArtifactBundle
+from sentry.models import ArtifactBundle, ArtifactBundleArchive
 
 
 class ProjectArtifactBundleFileDetailsMixin:
@@ -81,11 +81,11 @@ class ProjectArtifactBundleFileDetailsEndpoint(
             )
 
         try:
-            project_artifact_bundle = ProjectArtifactBundle.objects.filter(
+            artifact_bundle = ArtifactBundle.objects.filter(
                 organization_id=project.organization.id,
-                project_id=project.id,
-                artifact_bundle__bundle_id=bundle_id,
-            ).select_related("artifact_bundle__file")[0]
+                bundle_id=bundle_id,
+                projectartifactbundle__project_id=project.id,
+            )[0]
         except IndexError:
             return Response(
                 {
@@ -93,8 +93,6 @@ class ProjectArtifactBundleFileDetailsEndpoint(
                 },
                 status=400,
             )
-
-        artifact_bundle = project_artifact_bundle.artifact_bundle
 
         try:
             archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)

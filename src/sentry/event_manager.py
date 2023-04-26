@@ -131,6 +131,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -1582,7 +1583,7 @@ def _save_aggregate(
     # all group hashes
     if migrate_off_hierarchical:
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-        if root_hierarchical_grouphash:
+        if root_hierarchical_grouphash and root_hierarchical_grouphash.group_id is None:
             new_hashes.append(root_hierarchical_grouphash)
     elif root_hierarchical_grouphash is None:
         # No hierarchical grouping was run, only consider flat hashes
@@ -1778,6 +1779,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # at the value
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
         )
     )
     issue_unresolved.send_robust(
@@ -1790,6 +1792,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
+    group.substatus = GroupSubStatus.REGRESSED
 
     if is_regression and release:
         resolution = None
@@ -2487,7 +2490,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                     evidence_data=problem.evidence_data,
                     evidence_display=problem.evidence_display,
                     detection_time=event.datetime,
-                    level="info",
+                    level=job["level"],
                 )
 
                 produce_occurrence_to_kafka(occurrence)

@@ -124,9 +124,7 @@ function useReplayData({
     }
 
     const pages = Math.ceil(replayRecord.count_segments / segmentsPerPage);
-    const cursors = new Array(pages)
-      .fill(0)
-      .map((_, i) => `${segmentsPerPage}:${i}:${i === 0 ? 1 : 0}`);
+    const cursors = new Array(pages).fill(0).map((_, i) => `0:${segmentsPerPage * i}:0`);
 
     await Promise.allSettled(
       cursors.map(cursor => {

@@ -162,7 +162,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
             assert resp.status_code == 404
 
-    def test_monitor_creation_via_checkin(self):
+    def test_monitor_creation_and_update_via_checkin(self):
         for i, path_func in enumerate(self._get_path_functions()):
             slug = f"my-new-monitor-{i}"
             path = path_func(slug)
@@ -182,23 +182,21 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)
             assert len(checkins) == 1
 
-    def test_monitor_update_via_checkin(self):
-        for i, path_func in enumerate(self._get_path_functions()):
-            monitor = self._create_monitor(slug=f"my-new-monitor-{i}")
-            path = path_func(monitor.guid)
-
             resp = self.client.post(
                 path,
                 {
                     "status": "ok",
-                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "10 * * * *"},
                 },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
 
             monitor = Monitor.objects.get(guid=monitor.guid)
-            assert monitor.config["schedule"] == "5 * * * *"
+            assert monitor.config["schedule"] == "10 * * * *"
+
+            checkins = MonitorCheckIn.objects.filter(monitor=monitor)
+            assert len(checkins) == 2
 
     def test_monitor_creation_invalid_slug(self):
         for i, path_func in enumerate(self._get_path_functions()):
@@ -219,10 +217,27 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 == "Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+"
             )
 
-    def test_with_dsn_auth(self):
+    def test_with_dsn_auth_and_guid(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
             path = path_func(monitor.guid)
+
+            resp = self.client.post(
+                path,
+                {"status": "ok"},
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 201, resp.content
+
+            # DSN auth should only return id
+            assert list(resp.data.keys()) == ["id"]
+            assert UUID(resp.data["id"])
+
+    def test_with_dsn_auth_and_slug(self):
+        monitor = self._create_monitor(slug="my-test-monitor")
+
+        for path_func in self._get_path_functions():
+            path = path_func(monitor.slug)
 
             resp = self.client.post(
                 path,
@@ -271,7 +286,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         path = reverse(self.endpoint, args=[monitor.slug])
         resp = self.client.post(path, **self.token_auth_headers)
 
-        assert resp.status_code == 403
+        assert resp.status_code == 404
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
@@ -299,4 +314,14 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
                 assert resp.status_code == 201, resp.content
                 resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
+                assert resp.status_code == 429, resp.content
+
+                # Keyed on environment
+                resp = self.client.post(
+                    path, {"status": "ok", "environment": "dev"}, **self.token_auth_headers
+                )
+                assert resp.status_code == 201, resp.content
+                resp = self.client.post(
+                    path, {"status": "ok", "environment": "dev"}, **self.token_auth_headers
+                )
                 assert resp.status_code == 429, resp.content

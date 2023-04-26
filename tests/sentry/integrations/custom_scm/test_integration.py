@@ -29,7 +29,7 @@ class CustomSCMIntegrationTest(IntegrationTestCase):
         assert integration.metadata == {"domain_name": "https://github.com/my-org"}
 
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 

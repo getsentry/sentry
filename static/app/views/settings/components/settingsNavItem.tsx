@@ -18,7 +18,7 @@ type Props = {
   onClick?: (e: React.MouseEvent) => void;
 };
 
-const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
+function SettingsNavItem({badge, label, index, id, ...props}: Props) {
   const LabelHook = HookOrDefault({
     hookName: 'sidebar:item-label',
     defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
@@ -48,7 +48,7 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
       {badge ? renderedBadge : null}
     </StyledNavItem>
   );
-};
+}
 
 const StyledNavItem = styled(RouterLink)`
   display: block;

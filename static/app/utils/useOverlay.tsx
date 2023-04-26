@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {PopperProps, usePopper} from 'react-popper';
 import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
 import {useButton} from '@react-aria/button';
@@ -36,19 +36,21 @@ const maxSize: Modifier<'maxSize', PreventOverflowOptions> = {
     const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
     const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
 
-    // If there is enough space on the other side, then allow the popper to flip
-    // without constraining its size
-    const maxHeight = Math.max(
-      height - overflow[heightSide] - y,
-      -overflow[flippedHeightSide]
-    );
+    const maxHeight = ['left', 'right'].includes(basePlacement)
+      ? // If the main axis is horizontal, then maxHeight = the boundary's height
+        height - overflow.top - overflow.bottom
+      : // Otherwise, set max height unless there is enough space on the other side to
+        // flip the popper to
+        Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
 
     // If there is enough space on the other side, then allow the popper to flip
     // without constraining its size
-    const maxWidth = Math.max(
-      width - overflow[widthSide] - x,
-      -overflow[flippedWidthSide]
-    );
+    const maxWidth = ['top', 'bottom'].includes(basePlacement)
+      ? // If the main axis is vertical, then maxWidth = the boundary's width
+        width - overflow.left - overflow.right
+      : // Otherwise, set max width unless there is enough space on the other side to
+        // flip the popper to
+        Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
 
     state.modifiersData[name] = {
       width: maxWidth,
@@ -78,6 +80,11 @@ export interface UseOverlayProps
    */
   offset?: number;
   /**
+   * To be called when the overlay closes because of a user interaction (click) outside
+   * the overlay. Note: this won't be called when the user presses Escape to dismiss.
+   */
+  onInteractOutside?: () => void;
+  /**
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
@@ -97,6 +104,7 @@ function useOverlay({
   shouldCloseOnBlur = false,
   isKeyboardDismissDisabled,
   shouldCloseOnInteractOutside,
+  onInteractOutside,
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
@@ -144,6 +152,13 @@ function useOverlay({
         },
       },
       {
+        name: 'flip',
+        options: {
+          // Only flip on main axis
+          flipVariations: false,
+        },
+      },
+      {
         name: 'offset',
         options: {
           offset: [0, offset],
@@ -187,21 +202,35 @@ function useOverlay({
   );
 
   // Get props for overlay element
+  const interactedOutside = useRef(false);
   const {overlayProps} = useAriaOverlay(
     {
       onClose: () => {
         onClose?.();
+
+        if (interactedOutside.current) {
+          onInteractOutside?.();
+          interactedOutside.current = false;
+        }
+
         openState.close();
       },
       isOpen: openState.isOpen,
       isDismissable,
       shouldCloseOnBlur,
       isKeyboardDismissDisabled,
-      shouldCloseOnInteractOutside: target =>
-        target &&
-        triggerRef.current !== target &&
-        !triggerRef.current?.contains(target) &&
-        (shouldCloseOnInteractOutside?.(target) ?? true),
+      shouldCloseOnInteractOutside: target => {
+        if (
+          target &&
+          triggerRef.current !== target &&
+          !triggerRef.current?.contains(target) &&
+          (shouldCloseOnInteractOutside?.(target) ?? true)
+        ) {
+          interactedOutside.current = true;
+          return true;
+        }
+        return false;
+      },
     },
     overlayRef
   );
@@ -209,6 +238,7 @@ function useOverlay({
   return {
     isOpen: openState.isOpen,
     state: openState,
+    update: popperUpdate,
     triggerRef,
     triggerProps: {
       ref: setTriggerElement,

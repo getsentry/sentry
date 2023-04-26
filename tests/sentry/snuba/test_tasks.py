@@ -556,7 +556,7 @@ class BuildSnqlQueryTest(TestCase):
             select=select,
             where=expected_conditions,
             groupby=None if use_none_clauses else [],
-            having=None if use_none_clauses else [],
+            having=[],
             orderby=None if use_none_clauses else [],
         )
         if granularity is not None:

@@ -53,7 +53,9 @@ def get_user_conversation_id(integration: Integration, user_id: str) -> str:
 def get_channel_id(organization, integration_id, name):
     try:
         integration = Integration.objects.get(
-            provider="msteams", organizations=organization, id=integration_id
+            provider="msteams",
+            organizationintegration__organization_id=organization.id,
+            id=integration_id,
         )
     except Integration.DoesNotExist:
         return None
