@@ -77,13 +77,13 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
-        # sort monitors by top monitor environment, then by last checkin
+        # sort monitors by top monitor environment, then by last check-in
         monitor_environments_query = MonitorEnvironment.objects.filter(
             monitor__id=OuterRef("id"), environment__in=environments
         )
 
         queryset = queryset.annotate(
-            sorting_order=Case(
+            environment_status_ordering=Case(
                 When(status=MonitorStatus.DISABLED, then=Value(4)),
                 default=Subquery(
                     monitor_environments_query.annotate(
@@ -135,7 +135,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("sorting_order", "-last_checkin_monitorenvironment"),
+            order_by=("environment_status_ordering", "-last_checkin_monitorenvironment"),
             on_results=lambda x: serialize(
                 x, request.user, MonitorSerializer(environments=environments)
             ),
