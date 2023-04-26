@@ -49,6 +49,10 @@ MAX_ORGS_PER_QUERY = 100
 MAX_PROJECTS_PER_QUERY = 5000
 MAX_TRANSACTIONS_PER_PROJECT = 20
 
+# MIN and MAX rebalance factor ( make sure we don't go crazy when rebalancing)
+MIN_REBALANCE_FACTOR = 0.1
+MAX_REBALANCE_FACTOR = 10
+
 logger = logging.getLogger(__name__)
 
 
@@ -208,7 +212,7 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
         previous_factor, previous_interval_sample_rate, desired_sample_rate
     )
 
-    if new_factor < 0.1 or new_factor > 10:
+    if new_factor < MIN_REBALANCE_FACTOR or new_factor > MAX_REBALANCE_FACTOR:
         # whatever we did before didn't help, give up
         redis_client.delete(factor_key)
         return f"factor:{new_factor} outside of the acceptable range [0.1..10.0]"
