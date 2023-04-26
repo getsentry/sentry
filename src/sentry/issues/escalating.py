@@ -198,9 +198,9 @@ def get_group_daily_count(project_id: int, group_id: int) -> int:
     daily_count = cache.get(key)
 
     if daily_count is None:
-        date_now = datetime.now().date()
-        start_date = date_now
-        end_date = date_now + timedelta(days=1)
+        today = datetime.now().date()
+        start_date = datetime.combine(today, datetime.min.time())
+        end_date = datetime.now()
         query = Query(
             match=Entity(EntityKey.Events.value),
             select=[
@@ -218,7 +218,7 @@ def get_group_daily_count(project_id: int, group_id: int) -> int:
             raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
         )
         cache.set(key, daily_count, GROUP_DAILY_COUNT_DURATION)
-    return daily_count
+    return int(daily_count)
 
 
 def is_escalating(group: Group) -> bool:
