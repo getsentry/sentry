@@ -104,15 +104,14 @@ def build_custom_digest(
 ) -> Digest:
     """Given a digest and a set of events, filter the digest to only records that include the events."""
     user_digest: Digest = {}
-    skip = False
     for rule, rule_groups in original_digest.items():
+        skip = False
         rule_snoozes = RuleSnooze.objects.filter(Q(rule=rule))
         for snooze in rule_snoozes:
             if snooze.user_id is None or snooze.user_id == participant.id:
                 skip = True
                 break
         if skip:
-            skip = False
             continue
         user_rule_groups = {}
         for group, group_records in rule_groups.items():
