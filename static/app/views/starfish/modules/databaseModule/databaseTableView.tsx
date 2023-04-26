@@ -44,7 +44,7 @@ const COLUMN_ORDER = [
   },
   {
     key: 'epm',
-    name: 'tpm',
+    name: 'Tpm',
   },
   {
     key: 'p75',
@@ -92,7 +92,9 @@ export default function APIModuleView({
     actionFilter,
     DATE_FILTERS,
   ].filter(fil => !!fil);
-  const TABLE_LIST_QUERY = `select description, group_id, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
+  const TABLE_LIST_QUERY = `select description, group_id, count() as count, (divide(count, ${
+    (endTime.unix() - startTime.unix()) / 60
+  }) AS epm), quantile(0.75)(exclusive_time) as p75,
     uniq(transaction) as transactions,
     sum(exclusive_time) as total_time,
     domain,

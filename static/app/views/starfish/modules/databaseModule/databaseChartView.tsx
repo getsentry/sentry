@@ -82,7 +82,7 @@ export default function APIModuleView({action, table, onChange}: Props) {
     action != ''
     ${actionQuery}
   group by domain
-  order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
+  order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
   `;
   const ACTION_SUBQUERY = `
         select action
@@ -92,7 +92,7 @@ export default function APIModuleView({action, table, onChange}: Props) {
               ${DATE_FILTERS} and
               action != ''
          group by action
-         order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
+         order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
          limit 5
   `;
   const TOP_QUERY = `
@@ -100,6 +100,8 @@ export default function APIModuleView({action, table, onChange}: Props) {
        toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
   from default.spans_experimental_starfish
  where
+    startsWith(span_operation, 'db') and
+    span_operation != 'db.redis' and
     ${DATE_FILTERS} and
     action in (${ACTION_SUBQUERY})
  group by action,
@@ -111,13 +113,14 @@ export default function APIModuleView({action, table, onChange}: Props) {
   const DOMAIN_SUBQUERY = `
   select domain
     from default.spans_experimental_starfish
-   where startsWith(span_operation, 'db') and
+   where
+        startsWith(span_operation, 'db') and
         span_operation != 'db.redis' and
         ${DATE_FILTERS} and
         domain != ''
         ${actionQuery}
    group by domain
-   order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
+   order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
    limit 5
   `;
   const TOP_TABLE_QUERY = `
@@ -125,8 +128,11 @@ export default function APIModuleView({action, table, onChange}: Props) {
        toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
   from default.spans_experimental_starfish
  where
+      startsWith(span_operation, 'db') and
+      span_operation != 'db.redis' and
       ${DATE_FILTERS} and
       domain in (${DOMAIN_SUBQUERY})
+      ${actionQuery}
  group by interval,
           domain
  order by interval,
