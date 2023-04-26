@@ -134,26 +134,25 @@ class ScheduleAutoOngoingIssuesTest(TestCase):
     def test_paginated_transition(self):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
-        groups = []
-        for hours in range(1, 2011):
-            group = self.create_group(
-                project=project,
-                status=GroupStatus.UNRESOLVED,
-                substatus=GroupSubStatus.NEW,
-            )
 
+        groups = Group.objects.bulk_create(
+            [
+                Group(project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+                for _ in range(1010)
+            ]
+        )
+
+        for idx, group in enumerate(groups, 1):
             group_inbox = add_group_to_inbox(group, GroupInboxReason.NEW)
-            date_added = now - timedelta(days=3, hours=hours)
-            group_inbox.date_added = date_added
-            group_inbox.save()
-            groups.append(group)
+            group_inbox.date_added = now - timedelta(days=3, hours=idx)
+            group_inbox.save(update_fields=["date_added"])
 
         # before
-        assert Group.objects.filter(project_id=project.id).count() == len(groups) == 2010
+        assert Group.objects.filter(project_id=project.id).count() == len(groups) == 1010
         assert (
             GroupInbox.objects.filter(project=project, reason=GroupInboxReason.NEW.value).count()
             == len(groups)
-            == 2010
+            == 1010
         )
 
         with self.tasks():
