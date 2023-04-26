@@ -255,4 +255,4 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
 
-        assert get_group_daily_count(group.project.id, group.id) == 1
+        assert get_group_daily_count(group.project.organization.id, group.project.id, group.id) == 1
