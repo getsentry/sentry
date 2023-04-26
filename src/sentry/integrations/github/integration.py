@@ -408,6 +408,13 @@ class GitHubInstallationRedirect(PipelineView):
                 return pipeline.next_step()
 
             if installations_exist:
+                document_origin = "document.origin"
+                if features.has(
+                    "organizations:customer-domains", self.active_organization.organization
+                ):
+                    document_origin = (
+                        f'"{generate_organization_url(self.active_organization.organization.slug)}"'
+                    )
                 return render_to_response(
                     "sentry/integrations/github-integration-exists-on-another-org.html",
                     context={
@@ -416,7 +423,8 @@ class GitHubInstallationRedirect(PipelineView):
                             "data": {
                                 "error": _("Github installed on another Sentry organization.")
                             },
-                        }
+                        },
+                        "document_origin": document_origin,
                     },
                     request=request,
                 )
