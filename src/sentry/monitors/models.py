@@ -218,6 +218,17 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
+    def get_status_display(self) -> str:
+        for status_id, display in MonitorStatus.as_choices():
+            if status_id in [
+                ObjectStatus.ACTIVE,
+                ObjectStatus.DISABLED,
+                ObjectStatus.PENDING_DELETION,
+                ObjectStatus.DELETION_IN_PROGRESS,
+            ]:
+                return display
+        return "active"
+
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
