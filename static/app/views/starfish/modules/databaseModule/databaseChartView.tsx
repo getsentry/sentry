@@ -11,9 +11,15 @@ import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {
+  getOperations,
+  getTables,
+  getTopOperationsChart,
+  getTopTablesChart,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-const PERIOD_REGEX = /^(\d+)([h,d])$/;
 const INTERVAL = 12;
 const HOST = 'http://localhost:8080';
 
@@ -45,121 +51,41 @@ function parseOptions(options, label) {
 
 export default function APIModuleView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
-  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
-  const startTime =
-    num && unit
-      ? moment().subtract(num, unit as 'h' | 'd')
-      : moment(pageFilter.selection.datetime.start);
-  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+  const {startTime, endTime} = getDateFilters(pageFilter);
   const DATE_FILTERS = `
     start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
     start_timestamp < fromUnixTimestamp(${endTime.unix()})
   `;
 
-  const OPERATION_QUERY = `
-  select
-    action as key,
-    uniq(description) as value
-  from default.spans_experimental_starfish
-  where
-    startsWith(span_operation, 'db') and
-    span_operation != 'db.redis' and
-    ${DATE_FILTERS} and
-    action != ''
-  group by action
-  order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
-  `;
-  const actionQuery = action !== 'ALL' ? `and action = '${action}'` : '';
-  const TABLE_QUERY = `
-  select
-    domain as key,
-    quantile(0.75)(exclusive_time) as value
-  from default.spans_experimental_starfish
-  where
-    startsWith(span_operation, 'db') and
-    span_operation != 'db.redis' and
-    ${DATE_FILTERS} and
-    action != ''
-    ${actionQuery}
-  group by domain
-  order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
-  `;
-  const ACTION_SUBQUERY = `
-        select action
-          from default.spans_experimental_starfish
-         where startsWith(span_operation, 'db') and
-              span_operation != 'db.redis' and
-              ${DATE_FILTERS} and
-              action != ''
-         group by action
-         order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
-         limit 5
-  `;
-  const TOP_QUERY = `
-  select floor(quantile(0.75)(exclusive_time), 5) as p75, action, count() as count,
-       toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
-  from default.spans_experimental_starfish
- where
-    startsWith(span_operation, 'db') and
-    span_operation != 'db.redis' and
-    ${DATE_FILTERS} and
-    action in (${ACTION_SUBQUERY})
- group by action,
-          interval
- order by action,
-          interval
-  `;
-
-  const DOMAIN_SUBQUERY = `
-  select domain
-    from default.spans_experimental_starfish
-   where
-        startsWith(span_operation, 'db') and
-        span_operation != 'db.redis' and
-        ${DATE_FILTERS} and
-        domain != ''
-        ${actionQuery}
-   group by domain
-   order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
-   limit 5
-  `;
-  const TOP_TABLE_QUERY = `
-  select floor(quantile(0.75)(exclusive_time), 5) as p75, domain, count() as count,
-       toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
-  from default.spans_experimental_starfish
- where
-      startsWith(span_operation, 'db') and
-      span_operation != 'db.redis' and
-      ${DATE_FILTERS} and
-      domain in (${DOMAIN_SUBQUERY})
-      ${actionQuery}
- group by interval,
-          domain
- order by interval,
-          domain
-  `;
-
   const {data: operationData} = useQuery({
     queryKey: ['operation', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${OPERATION_QUERY}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getOperations(DATE_FILTERS)}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
   const {data: tableData} = useQuery({
     queryKey: ['table', action, pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getTables(DATE_FILTERS, action)}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
   const {isLoading: isTopGraphLoading, data: topGraphData} = useQuery({
     queryKey: ['topGraph', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${TOP_QUERY}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getTopOperationsChart(DATE_FILTERS, INTERVAL)}`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
   const {isLoading: tableGraphLoading, data: tableGraphData} = useQuery({
     queryKey: ['topTable', action, pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${TOP_TABLE_QUERY}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getTopTablesChart(DATE_FILTERS, action, INTERVAL)}`).then(
+        res => res.json()
+      ),
     retry: false,
     initialData: [],
   });
