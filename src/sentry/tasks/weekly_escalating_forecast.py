@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta
 from typing import Dict, List, TypedDict
 
 from sentry_sdk.crons.decorator import monitor
@@ -32,12 +33,12 @@ def run_escalating_forecast() -> None:
     """
     logger.info("Starting task for sentry.tasks.weekly_escalating_forecast.run_escalating_forecast")
 
-    for projects in RangeQuerySetWrapper(
+    for project_ids in RangeQuerySetWrapper(
         Project.objects.filter(status=ObjectStatus.VISIBLE).values_list("id", flat=True),
         result_value_getter=lambda item: item,
         step=10000,
     ):
-        generate_forecasts_for_projects.delay(projects=projects)
+        generate_forecasts_for_projects.delay(project_ids=[project_ids])
 
 
 @instrumented_task(
@@ -46,13 +47,14 @@ def run_escalating_forecast() -> None:
     max_retries=3,
     default_retry_delay=60,
 )  # type: ignore
-def generate_forecasts_for_projects(projects: List[int]) -> None:
-    for project_id in projects:
+def generate_forecasts_for_projects(project_ids: List[int]) -> None:
+    for project_id in project_ids:
         for until_escalating_groups in RangeQuerySetWrapper(
             Group.objects.filter(
                 status=GroupStatus.IGNORED,
                 substatus=GroupSubStatus.UNTIL_ESCALATING,
                 project__id=project_id,
+                last_seen__gte=datetime.now() - timedelta(days=7),
             )
         ):
             generate_and_save_forecasts(until_escalating_groups)
