@@ -78,7 +78,7 @@ class SiloClientTest(TestCase):
             json={"ok": True},
         )
 
-        request = self.factory.get(path, HOST="https://control.sentry.io")
+        request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
         response = client.proxy_request(request)
 
         assert response.status_code == 200

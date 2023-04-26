@@ -165,7 +165,7 @@ class ApiClientTest(TestCase):
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=ConnectionError("foo"),
             ):
                 with pytest.raises(ApiHostError):
@@ -180,7 +180,7 @@ class ApiClientTest(TestCase):
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=Timeout("foo"),
             ):
                 with pytest.raises(ApiTimeoutError):
@@ -200,7 +200,7 @@ class ApiClientTest(TestCase):
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=HTTPError("foo", response=mock_error_response),
             ):
                 with pytest.raises(ApiError):
@@ -218,7 +218,7 @@ class ApiClientTest(TestCase):
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=HTTPError("foo", response=None),
             ):
                 with pytest.raises(ApiError):
@@ -239,7 +239,7 @@ class ApiClientTest(TestCase):
             caught_error.__cause__ = chained_error
 
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=caught_error,
             ):
                 with pytest.raises(ApiConnectionResetError):
@@ -261,7 +261,7 @@ class ApiClientTest(TestCase):
             caught_error.__cause__ = chained_error
 
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=caught_error,
             ):
                 with pytest.raises(ApiError):
