@@ -2,7 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-const PANEL_WIDTH = '640px';
+const PANEL_WIDTH = '50vw';
 
 type SlideOverPanelProps = {
   children: React.ReactNode;
