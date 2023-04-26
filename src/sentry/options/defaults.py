@@ -582,6 +582,10 @@ register("sentry-metrics.performance.index-tag-values", default=True)
 # as the transition from UseCaseKey to UseCaseID occurs
 register("sentry-metrics.indexer.cache-key-rollout-rate", default=0.0)
 
+# A option for double writing old and new cache keys
+# for the same transition
+register("sentry-metrics.indexer.cache-key-double-write", default=False)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
