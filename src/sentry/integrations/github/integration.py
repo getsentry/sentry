@@ -10,7 +10,8 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features, options
+from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations import (
     FeatureDescription,
@@ -377,13 +378,21 @@ class GitHubInstallationRedirect(PipelineView):
                 ).exists()
 
             if integration_pending_deletion_exists:
+                document_origin = "document.origin"
+                if self.active_organization and features.has(
+                    "organizations:customer-domains", self.active_organization.organization
+                ):
+                    document_origin = (
+                        f'"{generate_organization_url(self.active_organization.organization.slug)}"'
+                    )
                 return render_to_response(
                     "sentry/integrations/integration-pending-deletion.html",
                     context={
                         "payload": {
                             "success": False,
                             "data": {"error": _("GitHub installation pending deletion.")},
-                        }
+                        },
+                        "document_origin": document_origin,
                     },
                     request=request,
                 )
@@ -399,6 +408,13 @@ class GitHubInstallationRedirect(PipelineView):
                 return pipeline.next_step()
 
             if installations_exist:
+                document_origin = "document.origin"
+                if self.active_organization and features.has(
+                    "organizations:customer-domains", self.active_organization.organization
+                ):
+                    document_origin = (
+                        f'"{generate_organization_url(self.active_organization.organization.slug)}"'
+                    )
                 return render_to_response(
                     "sentry/integrations/github-integration-exists-on-another-org.html",
                     context={
@@ -407,7 +423,8 @@ class GitHubInstallationRedirect(PipelineView):
                             "data": {
                                 "error": _("Github installed on another Sentry organization.")
                             },
-                        }
+                        },
+                        "document_origin": document_origin,
                     },
                     request=request,
                 )
