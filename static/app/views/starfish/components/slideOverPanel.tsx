@@ -17,7 +17,7 @@ function SlideOverPanel(
   ref: ForwardedRef<HTMLDivElement>
 ) {
   return (
-    <_Panel
+    <_SlideOverPanel
       ref={ref}
       collapsed={collapsed}
       initial={{opacity: 0, x: PANEL_WIDTH}}
@@ -29,11 +29,11 @@ function SlideOverPanel(
       }}
     >
       {children}
-    </_Panel>
+    </_SlideOverPanel>
   );
 }
 
-const _Panel = styled(motion.div, {
+const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
     ['animate', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
