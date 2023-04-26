@@ -25,7 +25,7 @@ function renderMockRequests({
     body: project,
   });
 
-  if (project.slug === 'javascript-browser') {
+  if (project.slug === 'javascript') {
     MockApiClient.addMockResponse({
       url: `/projects/${orgSlug}/${project.slug}/keys/`,
       body: [PROJECT_KEY],
@@ -75,10 +75,6 @@ describe('Onboarding Setup Docs', function () {
   it('does not render Product Selection', async function () {
     const {router, route, routerContext, organization, project} = initializeOrg({
       ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features: ['onboarding-remove-multiselect-platform'],
-      },
       projects: [
         {
           ...initializeOrg().project,
@@ -98,14 +94,12 @@ describe('Onboarding Setup Docs', function () {
         value={[
           {
             onboarding: {
-              selectedPlatforms: [
-                {
-                  category: 'server',
-                  key: 'python',
-                  language: 'python',
-                  type: 'language',
-                },
-              ],
+              selectedPlatform: {
+                category: 'server',
+                key: 'python',
+                language: 'python',
+                type: 'language',
+              },
               platformToProjectIdMap: {
                 python: 'python',
               },
@@ -125,6 +119,7 @@ describe('Onboarding Setup Docs', function () {
           orgId={organization.slug}
           jumpToSetupProject={() => {}}
           search=""
+          selectedProjectSlug="python"
         />
       </PersistedStoreContext.Provider>,
       {
@@ -148,10 +143,6 @@ describe('Onboarding Setup Docs', function () {
     it('all products checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-remove-multiselect-platform'],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -180,14 +171,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript-react',
-                    language: 'javascript',
-                    type: 'framework',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -207,6 +196,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -230,10 +220,6 @@ describe('Onboarding Setup Docs', function () {
     it('only performance checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-remove-multiselect-platform'],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING]},
@@ -262,14 +248,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript-react',
-                    language: 'javascript',
-                    type: 'framework',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -289,6 +273,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -306,10 +291,6 @@ describe('Onboarding Setup Docs', function () {
     it('only session replay checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-remove-multiselect-platform'],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.SESSION_REPLAY]},
@@ -338,14 +319,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript-react',
-                    language: 'javascript',
-                    type: 'framework',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -365,6 +344,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -382,10 +362,6 @@ describe('Onboarding Setup Docs', function () {
     it('only error monitoring checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-remove-multiselect-platform'],
-        },
         router: {
           location: {
             query: {product: []},
@@ -414,14 +390,12 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript-react',
-                    language: 'javascript',
-                    type: 'framework',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript-react',
+                  language: 'javascript',
+                  type: 'framework',
+                },
                 platformToProjectIdMap: {
                   'javascript-react': 'javascript-react',
                 },
@@ -441,6 +415,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -460,10 +435,6 @@ describe('Onboarding Setup Docs', function () {
     it('renders Loader Script setup', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: ['onboarding-remove-multiselect-platform'],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -472,7 +443,7 @@ describe('Onboarding Setup Docs', function () {
         projects: [
           {
             ...initializeOrg().project,
-            slug: 'javascript-browser',
+            slug: 'javascript',
             platform: 'javascript',
           },
         ],
@@ -498,16 +469,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript',
-                    language: 'javascript',
-                    type: 'language',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript',
+                  language: 'javascript',
+                  type: 'language',
+                },
                 platformToProjectIdMap: {
-                  javascript: 'javascript-browser',
+                  javascript: 'javascript',
                 },
               },
             },
@@ -525,6 +494,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript"
           />
         </PersistedStoreContext.Provider>,
         {
@@ -563,16 +533,14 @@ describe('Onboarding Setup Docs', function () {
           value={[
             {
               onboarding: {
-                selectedPlatforms: [
-                  {
-                    category: 'browser',
-                    key: 'javascript',
-                    language: 'javascript',
-                    type: 'language',
-                  },
-                ],
+                selectedPlatform: {
+                  category: 'browser',
+                  key: 'javascript',
+                  language: 'javascript',
+                  type: 'language',
+                },
                 platformToProjectIdMap: {
-                  javascript: 'javascript-browser',
+                  javascript: 'javascript',
                 },
               },
             },
@@ -590,6 +558,7 @@ describe('Onboarding Setup Docs', function () {
             orgId={organization.slug}
             jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript"
           />
         </PersistedStoreContext.Provider>
       );

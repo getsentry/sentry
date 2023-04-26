@@ -17,9 +17,9 @@ export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();
   const [clientState, setClientState] = usePersistedOnboardingState();
 
-  const selectedPlatform = clientState?.selectedPlatforms?.[0]
-    ? platforms.find(platform => platform.id === clientState.selectedPlatforms[0].key)
-      ? clientState.selectedPlatforms[0]
+  const selectedPlatform = clientState?.selectedPlatform
+    ? platforms.find(platform => platform.id === clientState?.selectedPlatform?.key)
+      ? clientState?.selectedPlatform
       : undefined
     : undefined;
 
@@ -44,15 +44,15 @@ export function PlatformSelection(props: StepProps) {
         <PlatformPicker
           noAutoFilter
           source="targeted-onboarding"
-          platform={clientState?.selectedPlatforms?.[0]?.key}
-          defaultCategory={clientState?.selectedPlatforms?.[0]?.category}
+          platform={clientState?.selectedPlatform?.key}
+          defaultCategory={clientState?.selectedPlatform?.category}
           setPlatform={platform => {
             if (clientState) {
               setClientState({
                 ...clientState,
-                selectedPlatforms: platform
-                  ? [{...omit(platform, 'id'), key: platform.id}]
-                  : [],
+                selectedPlatform: platform
+                  ? {...omit(platform, 'id'), key: platform.id}
+                  : undefined,
               });
             }
           }}
@@ -62,15 +62,15 @@ export function PlatformSelection(props: StepProps) {
       <CreateProjectsFooter
         {...props}
         organization={organization}
-        clearPlatforms={() => {
+        clearPlatform={() => {
           if (clientState) {
             setClientState({
               ...clientState,
-              selectedPlatforms: [],
+              selectedPlatform: undefined,
             });
           }
         }}
-        selectedPlatforms={selectedPlatform ? [selectedPlatform] : []}
+        selectedPlatform={selectedPlatform}
       />
     </Wrapper>
   );
