@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -95,11 +96,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 del request.data["orgRole"]
 
             if team.idp_provisioned:
-                return Response(
-                    {
-                        "detail": "This team is managed through your organization's identity provider."
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
+                raise PermissionDenied(
+                    detail="This team is managed through your organization's identity provider."
                 )
 
             # users should not be able to set the role of a team to something higher than themselves
@@ -111,6 +109,12 @@ class TeamDetailsEndpoint(TeamEndpoint):
                     },
                     status=status.HTTP_403_FORBIDDEN,
                 )
+
+        # Don't allow team slug updates if the team is idp provisioned.
+        if team.slug != request.data.get("slug") and team.idp_provisioned:
+            raise PermissionDenied(
+                detail="This team is managed through your organization's identity provider."
+            )
 
         serializer = TeamSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():

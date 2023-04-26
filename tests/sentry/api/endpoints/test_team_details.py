@@ -333,6 +333,13 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert team.org_role == "owner"
 
+    def test_put_team_name_idp_provisioned(self):
+        team = self.create_team()
+        team.idp_provisioned = True
+        team.save()
+
+        self.get_error_response(team.organization.slug, team.slug, slug="error", status_code=403)
+
 
 @region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):

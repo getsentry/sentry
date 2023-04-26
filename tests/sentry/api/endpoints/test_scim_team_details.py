@@ -51,6 +51,35 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             "meta": {"resourceType": "Group"},
         }
 
+    def test_scim_team_details_name_or_slug(self):
+        team = self.create_team(organization=self.organization, name="Foo Bar")
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, team.id],
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "id": str(team.id),
+            "displayName": "foo-bar",
+            "members": [],
+            "meta": {"resourceType": "Group"},
+        }
+
+        team.idp_provisioned = True
+        team.save()
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "id": str(team.id),
+            "displayName": "Foo Bar",
+            "members": [],
+            "meta": {"resourceType": "Group"},
+        }
+
     def test_scim_team_details_invalid_patch_op(self):
         team = self.create_team(organization=self.organization)
         url = reverse(
