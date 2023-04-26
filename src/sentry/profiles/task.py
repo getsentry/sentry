@@ -13,7 +13,7 @@ from symbolic import ProguardMapper  # type: ignore
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
-from sentry.models import Organization, Project, ProjectDebugFile
+from sentry.models import EventError, Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
@@ -57,6 +57,8 @@ def process_profile_task(
     sentry_sdk.set_tag("project.slug", project.slug)
 
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
+    if "event_id" not in profile:
+        profile["event_id"] = event_id
 
     sentry_sdk.set_context(
         "profile_metadata",
@@ -70,7 +72,7 @@ def process_profile_task(
     sentry_sdk.set_tag("platform", profile["platform"])
     sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
 
-    if not _symbolicate_profile(profile, project, event_id):
+    if not _symbolicate_profile(profile, project):
         return
 
     if not _deobfuscate_profile(profile, project):
@@ -85,13 +87,13 @@ def process_profile_task(
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
-SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
+SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust", "javascript"])
 SHOULD_DEOBFUSCATE = frozenset(["android"])
 
 
 def _should_symbolicate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform in SHOULD_SYMBOLICATE and not profile.get("symbolicated", False)
+    return platform in SHOULD_SYMBOLICATE and not profile.get("processed_by_symbolicator", False)
 
 
 def _should_deobfuscate(profile: Profile) -> bool:
@@ -99,7 +101,7 @@ def _should_deobfuscate(profile: Profile) -> bool:
     return platform in SHOULD_DEOBFUSCATE and not profile.get("deobfuscated", False)
 
 
-def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> bool:
+def _symbolicate_profile(profile: Profile, project: Project) -> bool:
     if not _should_symbolicate(profile):
         return True
 
@@ -118,7 +120,7 @@ def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> b
             raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces, success = _symbolicate(
                 project=project,
-                profile_id=event_id,
+                profile=profile,
                 modules=raw_modules,
                 stacktraces=raw_stacktraces,
             )
@@ -128,7 +130,7 @@ def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> b
                     profile=profile, modules=modules, stacktraces=stacktraces
                 )
 
-            profile["symbolicated"] = True
+            profile["processed_by_symbolicator"] = True
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -269,22 +271,60 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
         return (modules, stacktraces)
 
 
+def __symbolicate(
+    symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
+) -> Any:
+    if profile["platform"] == "javascript":
+        return process_js_stacktraces(
+            symbolicator=symbolicator, profile=profile, modules=modules, stacktraces=stacktraces
+        )
+    return symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+
+
 @metrics.wraps("process_profile.symbolicate.request")
 def _symbolicate(
-    project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
+    project: Project,
+    profile: Profile,
+    modules: List[Any],
+    stacktraces: List[Any],
 ) -> Tuple[List[Any], List[Any], bool]:
-    symbolicator = Symbolicator(SymbolicatorTaskKind(), project, profile_id)
+    symbolicator = Symbolicator(SymbolicatorTaskKind(), project, profile["event_id"])
     symbolication_start_time = time()
 
     while True:
         try:
             with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
-                response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-                return (
-                    response.get("modules", modules),
-                    response.get("stacktraces", stacktraces),
-                    True,
+                response = __symbolicate(
+                    symbolicator=symbolicator,
+                    profile=profile,
+                    stacktraces=stacktraces,
+                    modules=modules,
                 )
+
+                if not response:
+                    profile["symbolicator_error"] = {
+                        "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    }
+                    return [], [], False
+                elif response["status"] == "completed":
+                    return (
+                        response.get("modules", modules),
+                        response.get("stacktraces", stacktraces),
+                        True,
+                    )
+                elif response["status"] == "failed":
+                    profile["symbolicator_error"] = {
+                        "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                        "status": response.get("status"),
+                        "message": response.get("message"),
+                    }
+                    return [], [], False
+                else:
+                    profile["symbolicator_error"] = {
+                        "status": response.get("status"),
+                        "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    }
+                    return [], [], False
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
@@ -327,6 +367,7 @@ def _process_symbolicator_results(
 
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
     profile["profile"]["frames"] = stacktraces[0]["frames"]
+
     if profile["platform"] in SHOULD_SYMBOLICATE:
         for frame in profile["profile"]["frames"]:
             frame.pop("pre_context", None)
@@ -585,3 +626,20 @@ def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
         reason="profiling_failed_vroom_insertion",
     )
     return False
+
+
+def process_js_stacktraces(
+    symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
+) -> Any:
+    project = symbolicator.project
+    allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
+    allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
+    allow_scraping = allow_scraping_org_level and allow_scraping_project_level
+
+    return symbolicator.process_js(
+        stacktraces=stacktraces,
+        modules=modules,
+        release=profile.get("release"),
+        dist=profile.get("dist"),
+        allow_scraping=allow_scraping,
+    )
