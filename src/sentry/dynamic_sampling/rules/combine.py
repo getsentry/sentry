@@ -3,8 +3,8 @@ from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import Boos
 from sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule import (
     RareTransactionsRulesBias,
 )
-from sentry.dynamic_sampling.rules.biases.factor_bias import AdjustmentFactorBias
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
+from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.rules.biases.uniform_bias import UniformBias
 from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
 from sentry.dynamic_sampling.rules.combinators.ordered_combinator import OrderedBiasesCombinator
@@ -13,7 +13,7 @@ from sentry.dynamic_sampling.rules.utils import RuleType
 
 def get_relay_biases_combinator() -> BiasesCombinator:
     default_combinator = OrderedBiasesCombinator()
-    default_combinator.add(RuleType.ADJUSTMENT_FACTOR_RULE, AdjustmentFactorBias())
+    default_combinator.add(RuleType.RECALIBRATION_RULE, RecalibrationBias())
 
     default_combinator.add(RuleType.IGNORE_HEALTH_CHECKS_RULE, IgnoreHealthChecksBias())
 
