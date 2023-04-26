@@ -1,14 +1,17 @@
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
-import moment from 'moment';
 
+import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
-const PERIOD_REGEX = /^(\d+)([h,d])$/;
 const HOST = 'http://localhost:8080';
 
 type Props = {
@@ -29,8 +32,10 @@ export type DataRow = {
   data_values: Array<string>;
   description: string;
   epm: number;
+  firstSeen: string;
   formatted_desc: string;
   group_id: string;
+  newish: number;
   p75: number;
   total_time: number;
   transactions: number;
@@ -79,48 +84,25 @@ export default function APIModuleView({
   const actionFilter = action ? `action = '${action}'` : null;
 
   const pageFilter = usePageFilters();
-  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
-  const startTime =
-    num && unit
-      ? moment().subtract(num, unit as 'h' | 'd')
-      : moment(pageFilter.selection.datetime.start);
-  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+  const {startTime, endTime} = getDateFilters(pageFilter);
   const DATE_FILTERS = `
-    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
-    start_timestamp < fromUnixTimestamp(${endTime.unix()})
+    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
-
-  const filters = [
-    `startsWith(span_operation, 'db')`,
-    `span_operation != 'db.redis'`,
-    transactionFilter,
-    tableFilter,
-    actionFilter,
-    DATE_FILTERS,
-  ].filter(fil => !!fil);
-  const TABLE_LIST_QUERY = `select description, group_id, count() as count, (divide(count, ${
-    (endTime.unix() - startTime.unix()) / 60
-  }) AS epm), quantile(0.75)(exclusive_time) as p75,
-    uniq(transaction) as transactions,
-    sum(exclusive_time) as total_time,
-    domain,
-    action,
-    data_keys,
-    data_values
-    from default.spans_experimental_starfish
-    where
-    ${filters.join(' and ')}
-    group by action, description, group_id, domain, data_keys, data_values
-    order by -pow(10, floor(log10(count()))), -quantile(0.5)(exclusive_time)
-    limit 100
-  `;
-
-  console;
 
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints', action, transaction, table],
+    queryKey: ['endpoints', action, transaction, table, pageFilter.selection.datetime],
     queryFn: () =>
-      fetch(`${HOST}/?query=${TABLE_LIST_QUERY}&format=sql`).then(res => res.json()),
+      fetch(
+        `${HOST}/?query=${getMainTable(
+          DATE_FILTERS,
+          transactionFilter,
+          tableFilter,
+          actionFilter,
+          startTime,
+          endTime
+        )}&format=sql`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -141,16 +123,20 @@ export default function APIModuleView({
     if (column.key === 'description') {
       const value = row[column.key];
       return (
-        <Hovercard header="Query" body={value}>
+        <Hovercard
+          header={`Query ${row.newish === 1 ? `(First seen ${row.firstSeen})` : ''}`}
+          body={value}
+        >
           <Link onClick={() => onSelect(row)} to="">
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
           </Link>
+          {row?.newish === 1 && <StyledBadge type="new" text="new" />}
         </Hovercard>
       );
     }
-    if (column.key === 'p75') {
+    if (['p75', 'total_time'].includes(column.key.toString())) {
       return <span>{row[column.key].toFixed(2)}ms</span>;
     }
     if (column.key === 'conditions') {
@@ -181,3 +167,7 @@ export default function APIModuleView({
     />
   );
 }
+
+const StyledBadge = styled(Badge)`
+  margin-left: ${space(0.75)};
+`;
