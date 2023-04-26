@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import pytz
+from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
 from sentry.issues.ongoing import transition_new_to_ongoing
@@ -15,6 +16,7 @@ from sentry.tasks.base import instrumented_task
     time_limit=75,
     soft_time_limit=60,
 )  # type: ignore
+@monitor(monitor_slug="schedule_auto_transition")
 def schedule_auto_transition() -> None:
     now = datetime.now(tz=pytz.UTC)
     three_days_past = now - timedelta(days=3)
