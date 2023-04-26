@@ -120,16 +120,17 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   });
 
   const isDataLoading = isLoading || isTableLoading || isEventCountLoading;
+  let avgP75 = 0;
+  if (!isDataLoading) {
+    avgP75 =
+      tableData.reduce((acc, transaction) => acc + transaction.p75, 0) / tableData.length;
+  }
 
   const mergedTableData = values(
     merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
   ).filter((data: Partial<TransactionListDataRow>) => !!data.count && !!data.p75);
 
   const [countSeries, p75Series] = throughputQueryToChartData(graphData);
-  const percentileSeries: Series = {
-    seriesName: 'p75()',
-    data: tableData.map(tableRow => ({name: tableRow.transaction, value: tableRow.p75})),
-  };
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return <span>{column.name}</span>;
@@ -156,7 +157,12 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
       );
     }
     if (key === 'p75') {
-      return <span>{value?.toFixed(2)}ms</span>;
+      const p75threshold = 1.5 * avgP75;
+      return (
+        <span style={value > p75threshold ? {color: theme.red400} : {}}>
+          {value?.toFixed(2)}ms
+        </span>
+      );
     }
     return <span>{value}</span>;
   };
@@ -210,26 +216,6 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
           />
         </FlexRowItem>
       </FlexRowContainer>
-      {row.transactions > 1 && (
-        <FlexRowContainer>
-          <FlexRowItem>
-            <SubHeader>{t('Percentiles')}</SubHeader>
-            <Chart
-              statsPeriod="24h"
-              height={140}
-              data={[percentileSeries]}
-              start=""
-              end=""
-              loading={isLoading}
-              utc={false}
-              disableMultiAxis
-              stacked
-              isBarChart
-              hideYAxisSplitLine
-            />
-          </FlexRowItem>
-        </FlexRowContainer>
-      )}
       <GridEditable
         isLoading={isDataLoading}
         data={mergedTableData}
