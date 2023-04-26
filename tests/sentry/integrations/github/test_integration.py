@@ -5,6 +5,7 @@ import responses
 from django.urls import reverse
 
 import sentry
+from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, MINIMUM_REQUESTS, GitHubIntegrationProvider
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
@@ -562,12 +563,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
-        resp = self.client.get(
-            "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
-        )
+        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+            resp = self.client.get(
+                "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
+            )
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/integration-pending-deletion.html")
+
+        assert b'window.opener.postMessage({"success":false' in resp.content
+        assert f', "{generate_organization_url(self.organization.slug)}");'.encode() in resp.content
 
         # Assert payload returned to main window
         assert (
