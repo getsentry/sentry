@@ -129,13 +129,13 @@ interface OnboardingTaskWithExternal
 
 export type OnboardingTask = OnboardingTaskWithAction | OnboardingTaskWithExternal;
 
-export enum OnboardingStatus {
+export enum OnboardingProjectStatus {
   WAITING = 'waiting',
   PROCESSING = 'processing',
   PROCESSED = 'processed',
 }
 
-export type OnboardingSelectedPlatform = {
+export type OnboardingSelectedSDK = {
   category: Category;
   key: PlatformKey;
   language: PlatformIntegration['language'];

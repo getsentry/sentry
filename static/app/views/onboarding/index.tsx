@@ -4,12 +4,7 @@ import {OnboardingContextProvider} from 'sentry/components/onboarding/onboarding
 
 import Onboarding from './onboarding';
 
-type Props = RouteComponentProps<
-  {
-    step: string;
-  },
-  {}
->;
+type Props = RouteComponentProps<{step: string}, {}>;
 
 export default function OnboardingContainer(props: Props) {
   return (

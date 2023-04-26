@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group, OnboardingStatus, Project} from 'sentry/types';
+import {Group, OnboardingProjectStatus, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +23,7 @@ import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 export type OnboardingState = {
-  status: OnboardingStatus;
+  status: OnboardingProjectStatus;
   firstIssueId?: string;
 };
 
@@ -69,14 +69,16 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   const [clientState, setClientState] = usePersistedOnboardingState();
   const {projects} = useProjects();
   const onboardingContext = useContext(OnboardingContext);
-  const projectData = projectId ? onboardingContext.data[projectId] : undefined;
+  const projectData = projectId ? onboardingContext.data.projects[projectId] : undefined;
   const selectedProject = projects.find(project => project.slug === projectSlug);
 
   useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
     staleTime: 0,
     refetchInterval: DEFAULT_POLL_INTERVAL,
     enabled:
-      !!projectSlug && !firstError && projectData?.status === OnboardingStatus.WAITING, // Fetch only if the project is available and we have not yet received an error,
+      !!projectSlug &&
+      !firstError &&
+      projectData?.status === OnboardingProjectStatus.WAITING, // Fetch only if the project is available and we have not yet received an error,
     onSuccess: data => {
       setFirstError(data.firstEvent);
     },
@@ -89,7 +91,9 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   useApiQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
     staleTime: 0,
     enabled:
-      !!firstError && !firstIssue && projectData?.status === OnboardingStatus.PROCESSING, // Only fetch if an error event is received and we have not yet located the first issue,
+      !!firstError &&
+      !firstIssue &&
+      projectData?.status === OnboardingProjectStatus.PROCESSING, // Only fetch if an error event is received and we have not yet located the first issue,
     onSuccess: data => {
       setFirstIssue(data.find((issue: Group) => issue.firstSeen === firstError));
     },
@@ -100,10 +104,10 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       return;
     }
 
-    onboardingContext.setProjectData({
-      projectId,
-      projectSlug,
-      status: OnboardingStatus.WAITING,
+    onboardingContext.setProject({
+      id: projectId,
+      slug: projectSlug,
+      status: OnboardingProjectStatus.WAITING,
     });
   }, [projectData, onboardingContext, projectSlug, projectId]);
 
@@ -116,7 +120,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       return;
     }
 
-    if (projectData?.status !== OnboardingStatus.WAITING) {
+    if (projectData?.status !== OnboardingProjectStatus.WAITING) {
       return;
     }
 
@@ -127,10 +131,10 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       platform: selectedProject?.platform ?? 'other',
     });
 
-    onboardingContext.setProjectData({
-      projectId,
-      projectSlug,
-      status: OnboardingStatus.PROCESSING,
+    onboardingContext.setProject({
+      id: projectId,
+      slug: projectSlug,
+      status: OnboardingProjectStatus.PROCESSING,
     });
 
     addSuccessMessage(t('First error received'));
@@ -154,7 +158,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       return;
     }
 
-    if (projectData?.status !== OnboardingStatus.PROCESSING) {
+    if (projectData?.status !== OnboardingProjectStatus.PROCESSING) {
       return;
     }
 
@@ -165,10 +169,10 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       platform: selectedProject?.platform ?? 'other',
     });
 
-    onboardingContext.setProjectData({
-      projectId,
-      projectSlug,
-      status: OnboardingStatus.PROCESSED,
+    onboardingContext.setProject({
+      id: projectId,
+      slug: projectSlug,
+      status: OnboardingProjectStatus.PROCESSED,
       firstIssueId: firstIssue.id,
     });
 
@@ -190,7 +194,10 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       return;
     }
 
-    if (onboardingContext.data[projectId].status === OnboardingStatus.WAITING) {
+    if (
+      onboardingContext.data.projects[projectId].status ===
+      OnboardingProjectStatus.WAITING
+    ) {
       return;
     }
 
@@ -226,7 +233,10 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       return;
     }
 
-    if (onboardingContext.data[projectId].status !== OnboardingStatus.WAITING) {
+    if (
+      onboardingContext.data.projects[projectId].status !==
+      OnboardingProjectStatus.WAITING
+    ) {
       return;
     }
 
@@ -282,7 +292,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
 
     router.push({
       ...router.location,
-      pathname: `/organizations/${organization.slug}/issues/${onboardingContext.data[projectId].firstIssueId}/?referrer=onboarding-first-event-footer`,
+      pathname: `/organizations/${organization.slug}/issues/${onboardingContext.data.projects[projectId].firstIssueId}/?referrer=onboarding-first-event-footer`,
     });
   }, [
     organization,
@@ -298,19 +308,19 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
       <Column>
-        {projectData?.status === OnboardingStatus.WAITING && newOrg && (
+        {projectData?.status === OnboardingProjectStatus.WAITING && newOrg && (
           <Button onClick={handleSkipOnboarding} priority="link">
             {t('Skip Onboarding')}
           </Button>
         )}
       </Column>
       <StatusesColumn>
-        {projectData?.status === OnboardingStatus.WAITING ? (
+        {projectData?.status === OnboardingProjectStatus.WAITING ? (
           <WaitingForErrorStatus>
             <IconCircle size="sm" />
             {t('Waiting for error')}
           </WaitingForErrorStatus>
-        ) : projectData?.status === OnboardingStatus.PROCESSED ? (
+        ) : projectData?.status === OnboardingProjectStatus.PROCESSED ? (
           <ErrorProcessedStatus>
             <IconCheckmark isCircled size="sm" color="green300" />
             {t('Error Processed!')}
@@ -323,17 +333,17 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
         )}
       </StatusesColumn>
       <ActionsColumn>
-        {projectData?.status === OnboardingStatus.PROCESSED ? (
+        {projectData?.status === OnboardingProjectStatus.PROCESSED ? (
           <Button priority="primary" onClick={handleViewError}>
             {t('View Error')}
           </Button>
         ) : (
           <Button
             priority="primary"
-            disabled={projectData?.status === OnboardingStatus.WAITING}
+            disabled={projectData?.status === OnboardingProjectStatus.WAITING}
             onClick={handleExploreSentry}
             title={
-              projectData?.status === OnboardingStatus.WAITING
+              projectData?.status === OnboardingProjectStatus.WAITING
                 ? t('Waiting for error')
                 : undefined
             }

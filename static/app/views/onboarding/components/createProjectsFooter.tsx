@@ -16,7 +16,7 @@ import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggest
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedPlatform, Organization} from 'sentry/types';
+import {OnboardingSelectedSDK, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -31,9 +31,9 @@ import GenericFooter from './genericFooter';
 type Props = {
   clearPlatform: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
-  onComplete: (selectedPlatform: OnboardingSelectedPlatform) => void;
+  onComplete: (selectedPlatform: OnboardingSelectedSDK) => void;
   organization: Organization;
-  selectedPlatform?: OnboardingSelectedPlatform;
+  selectedPlatform?: OnboardingSelectedSDK;
 };
 
 export function CreateProjectsFooter({
@@ -53,7 +53,7 @@ export function CreateProjectsFooter({
   const {projects} = useProjects();
 
   const createPlatformProject = useCallback(
-    async (selectedFramework?: OnboardingSelectedPlatform) => {
+    async (selectedFramework?: OnboardingSelectedSDK) => {
       if (!clientState || !selectedPlatform) {
         // Do nothing if client state is not loaded yet.
         return;
