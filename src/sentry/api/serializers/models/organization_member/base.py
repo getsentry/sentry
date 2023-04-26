@@ -7,7 +7,6 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.role import OrganizationRoleSerializer
 from sentry.models import ExternalActor, OrganizationMember, User
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user import user_service
@@ -21,43 +20,29 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 
-    def __org_roles_from_team_attr(self, item_list):
-        team_org_roles = (
-            OrganizationMemberTeam.objects.filter(organizationmember__in=item_list)
-            .exclude(team__org_role=None)
-            .distinct()
-            .values_list("team__slug", "team__org_role")
+    def __sorted_org_roles_for_user(self, item):
+        org_roles = [
+            (team.slug, organization_roles.get(team.org_role)) for team in item.team_role_prefetch
+        ]
+
+        sorted_org_roles = sorted(
+            org_roles,
+            key=lambda r: r[1].priority,
+            reverse=True,
         )
 
-        team_org_roles = {
-            team_slug: (team_slug, organization_roles.get(role))
-            for team_slug, role in team_org_roles
-        }
-        return team_org_roles
-
-    def __sorted_org_roles_for_user(self, item, team_org_roles_map):
-        org_roles = []
-        for team in item.team_prefetch:
-            team_slug = team.slug
-            if team_slug in team_org_roles_map:
-                org_roles.append(team_org_roles_map[team_slug][1])
-            sorted_org_roles = sorted(
-                org_roles,
-                key=lambda r: r[1].priority,
-                reverse=True,
-            )
-            return (
-                [
-                    {
-                        "teamSlug": slug,
-                        "role": serialize(
-                            role,
-                            serializer=OrganizationRoleSerializer(organization=item.organization),
-                        ),
-                    }
-                    for slug, role in sorted_org_roles
-                ],
-            )
+        return (
+            [
+                {
+                    "teamSlug": slug,
+                    "role": serialize(
+                        role,
+                        serializer=OrganizationRoleSerializer(organization=item.organization),
+                    ),
+                }
+                for slug, role in sorted_org_roles
+            ],
+        )
 
     def get_attrs(
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
@@ -73,7 +58,11 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             item_list,
             "user",
             "inviter",
-            Prefetch("teams", queryset=Team.objects.all(), to_attr="team_prefetch"),
+            Prefetch(
+                "teams",
+                queryset=Team.objects.all().exclude(org_role=None),
+                to_attr="team_role_prefetch",
+            ),
         )
         users_set = sorted(
             {
@@ -101,8 +90,6 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             for serialized in serialized_list:
                 external_users_map[serialized["userId"]].append(serialized)
 
-        team_org_roles_map = self.__org_roles_from_team_attr(item_list)
-
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
             user = users_by_id.get(str(item.user_id), None)
@@ -111,7 +98,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             attrs[item] = {
                 "user": user,
                 "externalUsers": external_users,
-                "orgRolesFromTeams": self.__sorted_org_roles_for_user(item, team_org_roles_map),
+                "orgRolesFromTeams": self.__sorted_org_roles_for_user(item),
             }
         return attrs
 
