@@ -13,10 +13,10 @@ from sentry.dynamic_sampling.rules.utils import RuleType
 
 def get_relay_biases_combinator() -> BiasesCombinator:
     default_combinator = OrderedBiasesCombinator()
-    default_combinator.add(RuleType.RECALIBRATION_RULE, RecalibrationBias())
 
     default_combinator.add(RuleType.IGNORE_HEALTH_CHECKS_RULE, IgnoreHealthChecksBias())
 
+    default_combinator.add(RuleType.RECALIBRATION_RULE, RecalibrationBias())
     default_combinator.add(RuleType.BOOST_ENVIRONMENTS_RULE, BoostEnvironmentsBias())
     default_combinator.add(RuleType.BOOST_LATEST_RELEASES_RULE, BoostLatestReleasesBias())
     default_combinator.add(RuleType.BOOST_LOW_VOLUME_TRANSACTIONS, RareTransactionsRulesBias())
