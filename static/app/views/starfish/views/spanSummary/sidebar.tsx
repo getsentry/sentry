@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -87,6 +88,8 @@ export default function Sidebar({
     count,
     total_exclusive_time,
     count_unique_transaction_id,
+    first_seen,
+    last_seen,
   } = aggregateData[0] || {};
 
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
@@ -119,6 +122,18 @@ export default function Sidebar({
   const chartColors = theme.charts.getColorPalette(2);
   return (
     <FlexContainer>
+      <FlexItem>
+        <SidebarItemHeader>{t('First Seen')}</SidebarItemHeader>
+        <SidebarItemValueContainer>
+          <DateTime date={first_seen} timeZone seconds utc />
+        </SidebarItemValueContainer>
+      </FlexItem>
+      <FlexItem>
+        <SidebarItemHeader>{t('Last Seen')}</SidebarItemHeader>
+        <SidebarItemValueContainer>
+          <DateTime date={last_seen} timeZone seconds utc />
+        </SidebarItemValueContainer>
+      </FlexItem>
       <FlexItem>
         <SidebarItemHeader>{t('Total Self Time')}</SidebarItemHeader>
         <SidebarItemValueContainer>
