@@ -121,8 +121,7 @@ def build_custom_digest(
             if user_group_records:
                 user_rule_groups[group] = user_group_records
         if user_rule_groups:
-            if not skip:
-                user_digest[rule] = user_rule_groups
+            user_digest[rule] = user_rule_groups
     return user_digest
     # TODO add test for the digest being empty, I think it gets pretty mad about that
 
