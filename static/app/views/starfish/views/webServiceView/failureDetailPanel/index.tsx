@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -22,7 +24,6 @@ export default function FailureDetailPanel({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  console.dir(spike);
 
   const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
   const newQuery: NewQuery = {
@@ -71,12 +72,14 @@ export default function FailureDetailPanel({
               const transactions = results?.tableData?.data.map(row => row.transaction);
               return (
                 <Fragment>
+                  <Title>{t('Failing Endpoints')}</Title>
                   <FailureDetailTable
                     {...results}
                     location={location}
                     organization={organization}
                     eventView={eventView}
                   />
+                  <Title>{t('Related Issues')}</Title>
                   <IssueTable
                     location={location}
                     organization={organization}
@@ -93,3 +96,7 @@ export default function FailureDetailPanel({
     </Detail>
   );
 }
+
+const Title = styled('h5')`
+  margin-bottom: ${space(1)};
+`;

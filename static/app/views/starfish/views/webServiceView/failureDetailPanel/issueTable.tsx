@@ -7,7 +7,6 @@ import {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {NewQuery, Organization} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
@@ -81,8 +80,6 @@ export default function IssueTable({organization, location, spike, transactions}
   transactions?.forEach(transaction => (searchQuery += `${transaction},`));
   searchQuery = searchQuery.slice(0, searchQuery.length - 1) + ']';
 
-  console.log(searchQuery);
-
   const {query} = location;
   const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
   // const aggregateAlias = getAggregateAlias(
@@ -107,7 +104,7 @@ export default function IssueTable({organization, location, spike, transactions}
   if (!transactions) {
     return (
       <GridEditable
-        isLoading={true}
+        isLoading
         data={[]}
         columnOrder={COLUMN_ORDER}
         columnSortBy={eventView.getSorts()}
@@ -118,44 +115,41 @@ export default function IssueTable({organization, location, spike, transactions}
   }
 
   return (
-    <div>
-      <Title>{t('Related Issues')}</Title>
-      <DiscoverQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
-        location={location}
-        referrer="api.starfish.failure-issue-list"
-        queryExtras={{dataset: 'discover'}}
-        limit={5}
-      >
-        {({pageLinks, isLoading, tableData}) => (
-          <Fragment>
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData ? tableData.data : []}
-              columnOrder={COLUMN_ORDER}
-              columnSortBy={eventView.getSorts()}
-              grid={{
-                renderHeadCell: (column: GridColumnHeader) =>
-                  renderHeadCell(
-                    tableData?.meta,
-                    column as TableColumn<keyof TableDataRow>
-                  ),
-                renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
-                  renderBodyCell(
-                    tableData,
-                    column as TableColumn<keyof TableDataRow>,
-                    dataRow
-                  ) as any,
-              }}
-              location={location}
-            />
+    <DiscoverQuery
+      eventView={eventView}
+      orgSlug={organization.slug}
+      location={location}
+      referrer="api.starfish.failure-issue-list"
+      queryExtras={{dataset: 'discover'}}
+      limit={5}
+    >
+      {({pageLinks, isLoading, tableData}) => (
+        <Fragment>
+          <GridEditable
+            isLoading={isLoading}
+            data={tableData ? tableData.data : []}
+            columnOrder={COLUMN_ORDER}
+            columnSortBy={eventView.getSorts()}
+            grid={{
+              renderHeadCell: (column: GridColumnHeader) =>
+                renderHeadCell(
+                  tableData?.meta,
+                  column as TableColumn<keyof TableDataRow>
+                ),
+              renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
+                renderBodyCell(
+                  tableData,
+                  column as TableColumn<keyof TableDataRow>,
+                  dataRow
+                ) as any,
+            }}
+            location={location}
+          />
 
-            <Pagination pageLinks={pageLinks} />
-          </Fragment>
-        )}
-      </DiscoverQuery>
-    </div>
+          <Pagination pageLinks={pageLinks} />
+        </Fragment>
+      )}
+    </DiscoverQuery>
   );
 }
 
@@ -164,8 +158,4 @@ const StyledNonLink = styled('div')<{align: Alignments}>`
   width: 100%;
   white-space: nowrap;
   ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
-`;
-
-const Title = styled('h5')`
-  margin-bottom: ${space(1)};
 `;
