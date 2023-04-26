@@ -41,11 +41,20 @@ export const supportedPlatformExpectedDocKeys: Record<
     '2-configure-performance',
     '3-configure-profiling',
   ],
+  'javascript-remix': [
+    '0-alert',
+    '1-install',
+    '2-configure-performance',
+    '3-configure-profiling',
+  ],
 };
 
 function makeDocKey(platformId: PlatformKey, key: string) {
   if (platformId === 'javascript-nextjs') {
     return `node-javascript-nextjs-profiling-onboarding-${key}`;
+  }
+  if (platformId === 'javascript-remix') {
+    return `node-javascript-remix-profiling-onboarding-${key}`;
   }
   return `${platformId}-profiling-onboarding-${key}`;
 }
