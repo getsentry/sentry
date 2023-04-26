@@ -10,22 +10,21 @@ def backfill_org_member_id_organizationmembermapping(apps, schema_editor):
     OrganizationMemberMapping = apps.get_model("sentry", "OrganizationMemberMapping")
     OrganizationMember = apps.get_model("sentry", "OrganizationMember")
     for org_member_mapping in RangeQuerySetWrapperWithProgressBar(
-        OrganizationMemberMapping.objects.all()
+        OrganizationMemberMapping.objects.filter(organizationmember_id__isnull=True)
     ):
-        if org_member_mapping.organizationmember_id is None:
+        org_member = None
+        try:
+            org_member = OrganizationMember.objects.filter(
+                organization_id=org_member_mapping.organization_id,
+                user_id=org_member_mapping.user_id,
+                email=org_member_mapping.email,
+            ).get()
+        except OrganizationMember.DoesNotExist:
             org_member = None
-            try:
-                org_member = OrganizationMember.objects.filter(
-                    organization_id=org_member_mapping.organization_id,
-                    user_id=org_member_mapping.user_id,
-                    email=org_member_mapping.email,
-                ).get()
-            except OrganizationMember.DoesNotExist:
-                org_member = None
 
-            if org_member is not None:
-                org_member_mapping.organizationmember_id = org_member.id
-                org_member_mapping.save(update_fields=["organizationmember_id"])
+        if org_member is not None:
+            org_member_mapping.organizationmember_id = org_member.id
+            org_member_mapping.save(update_fields=["organizationmember_id"])
 
 
 class Migration(CheckedMigration):
