@@ -53,7 +53,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   if (fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
-        <Page orgSlug={orgSlug} replayRecord={replayRecord}>
+        <Page orgSlug={orgSlug} replayRecord={replayRecord} projectSlug={projectSlug}>
           <Layout.Page withPadding>
             <NotFound />
           </Layout.Page>
@@ -67,7 +67,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       t('There is an internal systems error'),
     ];
     return (
-      <Page orgSlug={orgSlug} replayRecord={replayRecord}>
+      <Page orgSlug={orgSlug} replayRecord={replayRecord} projectSlug={projectSlug}>
         <Layout.Page>
           <DetailedError
             onRetry={onRetry}
@@ -91,7 +91,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <Page orgSlug={orgSlug} replayRecord={replayRecord}>
+      <Page orgSlug={orgSlug} replayRecord={replayRecord} projectSlug={projectSlug}>
         <DetailedError
           hideSupportLinks
           heading={t('Error loading replay')}
@@ -121,7 +121,11 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       initialTimeOffsetMs={initialTimeOffsetMs}
     >
       <ReplayTransactionContext replayRecord={replayRecord}>
-        <DetailsInsideContext orgSlug={orgSlug} replayRecord={replayRecord} />
+        <DetailsInsideContext
+          orgSlug={orgSlug}
+          replayRecord={replayRecord}
+          projectSlug={projectSlug}
+        />
       </ReplayTransactionContext>
     </ReplayContextProvider>
   );
@@ -130,15 +134,22 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 function DetailsInsideContext({
   orgSlug,
   replayRecord,
+  projectSlug,
 }: {
   orgSlug: string;
+  projectSlug: string | null;
   replayRecord: ReplayRecord | undefined;
 }) {
   const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
 
   return (
-    <Page orgSlug={orgSlug} crumbs={replay?.getRawCrumbs()} replayRecord={replayRecord}>
+    <Page
+      orgSlug={orgSlug}
+      crumbs={replay?.getRawCrumbs()}
+      replayRecord={replayRecord}
+      projectSlug={projectSlug}
+    >
       <ReplaysLayout layout={getLayout()} />
     </Page>
   );
