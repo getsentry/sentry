@@ -340,13 +340,13 @@ const FilterOptionsContainer = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   align-items: center;
+  margin-bottom: ${space(2)};
 `;
 
 const FilterOptionsSubContainer = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  margin-bottom: ${space(2)};
   align-items: center;
   flex: 1;
   justify-content: flex-end;

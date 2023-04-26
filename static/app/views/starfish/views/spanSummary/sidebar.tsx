@@ -118,12 +118,10 @@ export default function Sidebar({
     ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
-  const sampledSpanDataSeries = sampledSpanData.map(
-    ({start_timestamp, spanDuration}) => ({
-      name: start_timestamp,
-      value: spanDuration,
-    })
-  );
+  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
+    name: timestamp,
+    value: spanDuration,
+  }));
 
   return (
     <FlexContainer>

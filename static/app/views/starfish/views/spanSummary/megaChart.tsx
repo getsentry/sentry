@@ -57,12 +57,10 @@ export default function MegaChart({
     );
 
   const chartColors = theme.charts.getColorPalette(1);
-  const sampledSpanDataSeries = sampledSpanData.map(
-    ({start_timestamp, spanDuration}) => ({
-      name: start_timestamp,
-      value: spanDuration,
-    })
-  );
+  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
+    name: timestamp,
+    value: spanDuration,
+  }));
 
   return (
     <div>
