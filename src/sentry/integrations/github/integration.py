@@ -379,7 +379,7 @@ class GitHubInstallationRedirect(PipelineView):
 
             if integration_pending_deletion_exists:
                 document_origin = "document.origin"
-                if features.has(
+                if self.active_organization and features.has(
                     "organizations:customer-domains", self.active_organization.organization
                 ):
                     document_origin = (
@@ -409,7 +409,7 @@ class GitHubInstallationRedirect(PipelineView):
 
             if installations_exist:
                 document_origin = "document.origin"
-                if features.has(
+                if self.active_organization and features.has(
                     "organizations:customer-domains", self.active_organization.organization
                 ):
                     document_origin = (
