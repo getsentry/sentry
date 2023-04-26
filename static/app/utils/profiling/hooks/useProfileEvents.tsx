@@ -1,14 +1,10 @@
-import {useQuery} from '@tanstack/react-query';
-
-import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueType} from 'sentry/utils/fields';
-import RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
@@ -58,7 +54,6 @@ export function useProfileEvents<F extends string>({
   datetime,
   projects,
 }: UseProfileEventsOptions<F>) {
-  const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -84,21 +79,8 @@ export function useProfileEvents<F extends string>({
     },
   };
 
-  const queryKey = [path, endpointOptions];
-
-  const queryFn = () =>
-    api.requestPromise(path, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: endpointOptions.query,
-    });
-
-  return useQuery<
-    [EventsResults<F>, string | undefined, ResponseMeta | undefined],
-    RequestError
-  >({
-    queryKey,
-    queryFn,
+  return useApiQuery<EventsResults<F>>([path, endpointOptions], {
+    staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnMount,
     retry: false,

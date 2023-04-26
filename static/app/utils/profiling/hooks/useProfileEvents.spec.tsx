@@ -53,13 +53,7 @@ describe('useProfileEvents', function () {
     });
 
     await waitFor(() => result.current.isSuccess);
-    expect(result.current.data).toEqual([
-      body,
-      expect.anything(),
-      expect.objectContaining({
-        getResponseHeader: expect.anything(),
-      }),
-    ]);
+    expect(result.current.data).toEqual(body);
   });
 
   it('handles api errors', async function () {

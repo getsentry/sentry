@@ -82,7 +82,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           <StyledPagination
             pageLinks={
               profiles.status === 'success'
-                ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
+                ? profiles.getResponseHeader?.('Link') ?? null
                 : null
             }
             size="xs"
@@ -90,7 +90,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         </TableHeader>
         <ProfileEventsTable
           columns={fields}
-          data={profiles.status === 'success' ? profiles.data[0] : null}
+          data={profiles.status === 'success' ? profiles.data : null}
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
           isLoading={profiles.status === 'loading'}
           sort={sort}

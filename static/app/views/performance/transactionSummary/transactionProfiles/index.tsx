@@ -118,7 +118,7 @@ function Profiles(): React.ReactElement {
             </FilterActions>
             <ProfileEventsTable
               columns={fields}
-              data={profiles.status === 'success' ? profiles.data[0] : null}
+              data={profiles.status === 'success' ? profiles.data : null}
               error={profiles.status === 'error' ? t('Unable to load profiles') : null}
               isLoading={profiles.status === 'loading'}
               sort={sort}
