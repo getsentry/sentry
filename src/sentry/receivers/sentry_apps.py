@@ -52,12 +52,9 @@ def send_issue_resolved_webhook(organization_id, project, group, user, resolutio
 @issue_ignored.connect(weak=False)
 def send_issue_ignored_webhook(project, user, group_list, **kwargs):
     for issue in group_list:
-        event = (
-            "issue.archived"
-            if features.has("organizations:escalating-issues", project.organization)
-            else "issue.ignored"
-        )
-        send_workflow_webhooks(project.organization, issue, user, event=event)
+        send_workflow_webhooks(project.organization, issue, user, "issue.ignored")
+        if features.has("organizations:escalating-issues", project.organization):
+            send_workflow_webhooks(project.organization, issue, user, "issue.archived")
 
 
 @comment_created.connect(weak=False)
