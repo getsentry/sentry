@@ -127,11 +127,9 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             slicing_router=self.__slicing_router,
         )
 
-        unbatch_step = Unbatcher(next_step=producer)
-
         parallel_strategy = ParallelTransformStep(
             MessageProcessor(self.__config).process_messages,
-            unbatch_step,
+            Unbatcher(next_step=producer),
             self.__processes,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds
