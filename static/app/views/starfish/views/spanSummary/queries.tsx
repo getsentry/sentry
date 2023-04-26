@@ -15,7 +15,7 @@ export const getSpanSamplesQuery = ({
     SELECT description, transaction_id, span_id, exclusive_time, count() as count, domain
     FROM spans_experimental_starfish
     WHERE group_id = '${groupId}'
-    AND transaction = '${transactionName}'
+    ${transactionName ? `AND transaction = '${transactionName}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY description, transaction_id, span_id, exclusive_time, domain
