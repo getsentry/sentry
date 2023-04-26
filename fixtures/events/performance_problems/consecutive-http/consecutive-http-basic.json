@@ -1381,9 +1381,9 @@
       "parent_span_id": "90747d4310a2a358",
       "trace_id": "dfbb4f07016a450791bf09d308d66af4",
       "data": {
-        "decoded_body_size": 2573190,
-        "encoded_body_size": 527961,
-        "transfer_size": 528261,
+        "http.decoded_response_content_length": 2573190,
+        "http.response_content_length": 527961,
+        "http.transfer_size": 528261,
         "resource.render_blocking_status": "non-blocking"
       },
       "hash": "032ded07ff89c3b4"
@@ -1431,9 +1431,9 @@
       "parent_span_id": "90747d4310a2a358",
       "trace_id": "dfbb4f07016a450791bf09d308d66af4",
       "data": {
-        "decoded_body_size": 3870,
-        "encoded_body_size": 3461,
-        "transfer_size": 3761,
+        "http.decoded_response_content_length": 3870,
+        "http.response_content_length": 3461,
+        "http.transfer_size": 3761,
         "resource.render_blocking_status": "non-blocking"
       },
       "hash": "35a63c8a85b1279a"
@@ -1448,9 +1448,9 @@
       "parent_span_id": "90747d4310a2a358",
       "trace_id": "dfbb4f07016a450791bf09d308d66af4",
       "data": {
-        "decoded_body_size": 492,
-        "encoded_body_size": 492,
-        "transfer_size": 792,
+        "http.decoded_response_content_length": 492,
+        "http.response_content_length": 492,
+        "http.transfer_size": 792,
         "resource.render_blocking_status": "non-blocking"
       },
       "hash": "a2a63063e1bd6ed2"
@@ -1465,9 +1465,9 @@
       "parent_span_id": "90747d4310a2a358",
       "trace_id": "dfbb4f07016a450791bf09d308d66af4",
       "data": {
-        "decoded_body_size": 5347,
-        "encoded_body_size": 5347,
-        "transfer_size": 5647,
+        "http.decoded_response_content_length": 5347,
+        "http.response_content_length": 5347,
+        "http.transfer_size": 5647,
         "resource.render_blocking_status": "non-blocking"
       },
       "hash": "03cf160ff9190e10"

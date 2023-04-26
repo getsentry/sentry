@@ -691,9 +691,9 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "data": {
-        "decoded_body_size": 48521,
-        "encoded_body_size": 9251,
-        "transfer_size": 9551
+        "http.decoded_response_content_length": 48521,
+        "http.response_content_length": 9251,
+        "http.transfer_size": 9551
       },
       "hash": "1f1dd0897c16565b"
     },
@@ -707,9 +707,9 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "data": {
-        "decoded_body_size": 4529244,
-        "encoded_body_size": 1103151,
-        "transfer_size": 1103451
+        "http.decoded_response_content_length": 4529244,
+        "http.response_content_length": 1103151,
+        "http.transfer_size": 1103451
       },
       "hash": "1f058070477778b8"
     },
@@ -723,9 +723,9 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "data": {
-        "decoded_body_size": 166604,
-        "encoded_body_size": 49443,
-        "transfer_size": 49743
+        "http.decoded_response_content_length": 166604,
+        "http.response_content_length": 49443,
+        "http.transfer_size": 49743
       },
       "hash": "254c644cff8b3e09"
     },
@@ -739,9 +739,9 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "data": {
-        "decoded_body_size": 1980965,
-        "encoded_body_size": 507607,
-        "transfer_size": 507907
+        "http.decoded_response_content_length": 1980965,
+        "http.response_content_length": 507607,
+        "http.transfer_size": 507907
       },
       "hash": "779ec19f50f1ea39"
     },
@@ -754,7 +754,7 @@
       "span_id": "9d5b3c332aec7802",
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
-      "data": {"decoded_body_size": 296, "encoded_body_size": 296, "transfer_size": 596},
+      "data": {"http.decoded_response_content_length": 296, "http.response_content_length": 296, "http.transfer_size": 596},
       "hash": "4f2043f50fc2f515"
     },
     {
@@ -766,7 +766,7 @@
       "span_id": "a92f3520fc053460",
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
-      "data": {"decoded_body_size": 76, "encoded_body_size": 76, "transfer_size": 376},
+      "data": {"http.decoded_response_content_length": 76, "http.response_content_length": 76, "http.transfer_size": 376},
       "hash": "26d97630b7867f3e"
     },
     {
@@ -779,9 +779,9 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "data": {
-        "decoded_body_size": 78104,
-        "encoded_body_size": 24604,
-        "transfer_size": 24904
+        "http.decoded_response_content_length": 78104,
+        "http.response_content_length": 24604,
+        "http.transfer_size": 24904
       },
       "hash": "b7d184affa2b21b2"
     },
@@ -806,9 +806,9 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "data": {
-        "decoded_body_size": 25931,
-        "encoded_body_size": 9296,
-        "transfer_size": 300
+        "http.decoded_response_content_length": 25931,
+        "http.response_content_length": 9296,
+        "http.transfer_size": 300
       },
       "hash": "35a63c8a85b1279a"
     },

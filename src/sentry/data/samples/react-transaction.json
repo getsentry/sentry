@@ -1912,9 +1912,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 1434,
-          "encoded_body_size": 377,
-          "transfer_size": 873,
+          "http.decoded_response_content_length": 1434,
+          "http.response_content_length": 377,
+          "http.transfer_size": 873,
           "duration": 0.19784391574400753,
           "offset": 1.987476914226067
         }
@@ -1928,9 +1928,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 2834,
-          "encoded_body_size": 1031,
-          "transfer_size": 1181,
+          "http.decoded_response_content_length": 2834,
+          "http.response_content_length": 1031,
+          "http.transfer_size": 1181,
           "duration": 0.03448497280930315,
           "offset": 2.185320829970075
         }
@@ -1944,9 +1944,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 393615,
-          "encoded_body_size": 104822,
-          "transfer_size": 105241,
+          "http.decoded_response_content_length": 393615,
+          "http.response_content_length": 104822,
+          "http.transfer_size": 105241,
           "duration": 0.06483037331022606,
           "offset": 2.219805802779378
         }
@@ -1973,9 +1973,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 14900,
-          "encoded_body_size": 14900,
-          "transfer_size": 15249,
+          "http.decoded_response_content_length": 14900,
+          "http.response_content_length": 14900,
+          "http.transfer_size": 15249,
           "duration": 0.07117168916452873,
           "offset": 2.3922796225243945
         }
@@ -1989,9 +1989,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 14904,
-          "encoded_body_size": 14904,
-          "transfer_size": 15018,
+          "http.decoded_response_content_length": 14904,
+          "http.response_content_length": 14904,
+          "http.transfer_size": 15018,
           "duration": 0.01938506940816541,
           "offset": 2.463451311688923
         }
@@ -2031,9 +2031,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 24838,
-          "encoded_body_size": 3719,
-          "transfer_size": 4007,
+          "http.decoded_response_content_length": 24838,
+          "http.response_content_length": 3719,
+          "http.transfer_size": 4007,
           "duration": 0.13824814691353782,
           "offset": 2.7785280575866445
         }
@@ -2047,9 +2047,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 0,
-          "encoded_body_size": 0,
-          "transfer_size": 0,
+          "http.decoded_response_content_length": 0,
+          "http.response_content_length": 0,
+          "http.transfer_size": 0,
           "duration": 0.029537339013289896,
           "offset": 2.916776204500182
         }
@@ -2063,9 +2063,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 0,
-          "encoded_body_size": 0,
-          "transfer_size": 0,
+          "http.decoded_response_content_length": 0,
+          "http.response_content_length": 0,
+          "http.transfer_size": 0,
           "duration": 0.19305941897035148,
           "offset": 2.946313543513472
         }
@@ -2079,9 +2079,9 @@
         "parent_span_id": "a7afa33e288a45c4",
         "trace_id": "7eaab1c04557466d8588ddcb6bdd511d",
         "data": {
-          "decoded_body_size": 0,
-          "encoded_body_size": 0,
-          "transfer_size": 0,
+          "http.decoded_response_content_length": 0,
+          "http.response_content_length": 0,
+          "http.transfer_size": 0,
           "duration": 0.8028300824075338,
           "offset": 3.1393729624838236
         }
