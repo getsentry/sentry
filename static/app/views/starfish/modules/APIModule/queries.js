@@ -16,7 +16,7 @@ export const getHostListQuery = () => {
  `;
 };
 
-export const getEndpointListQuery = ({domain, action, datetime}) => {
+export const getEndpointListQuery = ({domain, action, datetime, transaction}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
     description,
@@ -34,6 +34,7 @@ export const getEndpointListQuery = ({domain, action, datetime}) => {
     WHERE module = 'http'
     ${domain ? `AND domain = '${domain}'` : ''}
     ${action ? `AND action = '${action}'` : ''}
+    ${transaction ? `AND transaction = '${transaction}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY description, domain, action, group_id

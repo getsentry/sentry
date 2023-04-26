@@ -16,6 +16,11 @@ type Props = {
   onSelect: (row: DataRow) => void;
   transaction: string;
   action?: string;
+  columns?: {
+    key: string;
+    name: string;
+    width: number;
+  }[];
   table?: string;
 };
 
@@ -66,6 +71,7 @@ export default function APIModuleView({
   transaction,
   onSelect,
   table,
+  columns,
 }: Props) {
   const transactionFilter =
     transaction.length > 0 ? `transaction='${transaction}'` : null;
@@ -165,7 +171,7 @@ export default function APIModuleView({
     <GridEditable
       isLoading={areEndpointsLoading}
       data={endpointsData}
-      columnOrder={COLUMN_ORDER}
+      columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
         renderHeadCell,

@@ -71,6 +71,7 @@ export function StarfishLanding(props: Props) {
                 onClose={unsetSelectedEndpoint}
                 eventView={props.eventView}
                 organization={props.organization}
+                location={props.location}
               />
             </Fragment>
           </Layout.Main>

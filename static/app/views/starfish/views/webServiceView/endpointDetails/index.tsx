@@ -1,18 +1,23 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isNil from 'lodash/isNil';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
+import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -31,6 +36,7 @@ export type EndpointDataRow = {
 
 type EndpointDetailBodyProps = {
   eventView: EventView;
+  location: Location;
   organization: Organization;
   row: EndpointDataRow;
 };
@@ -39,26 +45,61 @@ type EndpointDetailProps = Partial<EndpointDetailBodyProps> & {
   onClose: () => void;
 };
 
+const HTTP_SPAN_COLUMN_ORDER = [
+  {
+    key: 'description',
+    name: 'URL',
+    width: 200,
+  },
+  {
+    key: 'p50(exclusive_time)',
+    name: 'p50',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'transaction_count',
+    name: 'Transactions',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'total_exclusive_time',
+    name: 'Total Time',
+    width: COL_WIDTH_UNDEFINED,
+  },
+];
+
 export default function EndpointDetail({
   row,
   onClose,
   eventView,
   organization,
+  location,
 }: EndpointDetailProps) {
   if (isNil(row)) {
     return null;
   }
   return (
     <Detail detailKey={row?.endpoint} onClose={onClose}>
-      {row && eventView && organization && (
-        <EndpointDetailBody row={row} eventView={eventView} organization={organization} />
+      {row && eventView && organization && location && (
+        <EndpointDetailBody
+          row={row}
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
       )}
     </Detail>
   );
 }
 
-function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyProps) {
+function EndpointDetailBody({
+  row,
+  eventView,
+  organization,
+  location,
+}: EndpointDetailBodyProps) {
   const theme = useTheme();
+  const pageFilter = usePageFilters();
   const {aggregateDetails} = row;
   const query = new MutableSearch([
     'has:http.method',
@@ -152,6 +193,24 @@ function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyPr
           );
         }}
       </EventsRequest>
+      <SubHeader>{t('HTTP Spans')}</SubHeader>
+      <EndpointTable
+        location={location}
+        onSelect={() => {}}
+        columns={HTTP_SPAN_COLUMN_ORDER}
+        filterOptions={{
+          action: '',
+          domain: '',
+          transaction: row.transaction,
+          datetime: pageFilter.selection.datetime,
+        }}
+      />
+      <SubHeader>{t('Database Spans')}</SubHeader>
+      <DatabaseTableView
+        location={location}
+        onSelect={() => {}}
+        transaction={row.transaction}
+      />
     </div>
   );
 }

@@ -45,9 +45,14 @@ export type DataRow = {
 export default function APIModuleView({location, onSelect}: Props) {
   const themes = useTheme();
   const pageFilter = usePageFilters();
-  const [state, setState] = useState<{action: string; domain: string}>({
+  const [state, setState] = useState<{
+    action: string;
+    domain: string;
+    transaction: string;
+  }>({
     action: '',
     domain: '',
+    transaction: '',
   });
 
   const {isLoading: _isDomainsLoading, data: domains} = useQuery({

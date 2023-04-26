@@ -16,9 +16,19 @@ import {getEndpointListQuery} from './queries';
 export const HOST = 'http://localhost:8080';
 
 type Props = {
-  filterOptions: {action: string; datetime: DateTimeObject; domain: string};
+  filterOptions: {
+    action: string;
+    datetime: DateTimeObject;
+    domain: string;
+    transaction: string;
+  };
   location: Location;
   onSelect: (row: EndpointDataRow) => void;
+  columns?: {
+    key: string;
+    name: string;
+    width: number;
+  }[];
 };
 
 export type DataRow = {
@@ -61,7 +71,12 @@ const COLUMN_ORDER = [
   },
 ];
 
-export default function EndpointTable({location, onSelect, filterOptions}: Props) {
+export default function EndpointTable({
+  location,
+  onSelect,
+  filterOptions,
+  columns,
+}: Props) {
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
     queryKey: ['endpoints', filterOptions],
     queryFn: () =>
@@ -76,7 +91,7 @@ export default function EndpointTable({location, onSelect, filterOptions}: Props
     <GridEditable
       isLoading={areEndpointsLoading}
       data={endpointsData}
-      columnOrder={COLUMN_ORDER}
+      columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
         renderHeadCell,
