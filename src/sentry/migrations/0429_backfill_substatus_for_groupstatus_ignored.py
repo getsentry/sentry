@@ -12,8 +12,9 @@ BATCH_SIZE = 100
 UPDATE_QUERY = """
     UPDATE sentry_groupedmessage
     SET substatus = %s
-    FROM (VALUES %s) as data (id)
+    FROM (VALUES %s) as data (id, status)
     WHERE sentry_groupedmessage.id = data.id
+    AND sentry_groupedmessage.status = data.status
 """
 
 
@@ -35,11 +36,9 @@ def backfill_substatus(apps, schema_editor):
         group_snooze = GroupSnooze.objects.filter(group_id=group_id)
 
         if not group_snooze:
-            archived_forever_batch.append((group_id, GroupSubStatus.FOREVER))
-        if substatus is not None:
-            archived_until_condition_met_batch.append(
-                (group_id, GroupSubStatus.UNTIL_CONDITION_MET)
-            )
+            archived_forever_batch.append((group_id, GroupStatus.IGNORED))
+        else:
+            archived_until_condition_met_batch.append((group_id, GroupStatus.IGNORED))
 
         if len(archived_forever_batch) >= BATCH_SIZE:
             execute_values(
@@ -91,7 +90,7 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = False
+    is_dangerous = True
 
     dependencies = [
         ("sentry", "0428_backfill_denormalize_notification_actor"),
