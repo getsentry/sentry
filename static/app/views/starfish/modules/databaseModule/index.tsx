@@ -1,9 +1,12 @@
 import {Component} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -68,6 +71,9 @@ class DatabaseModule extends Component<Props, State> {
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageErrorAlert />
+              <FilterOptionsContainer>
+                <DatePageFilter alignDropdown="left" />
+              </FilterOptionsContainer>
               <DatabaseChartView
                 location={location}
                 action={action}
@@ -107,3 +113,10 @@ class DatabaseModule extends Component<Props, State> {
 }
 
 export default withOrganization(DatabaseModule);
+
+const FilterOptionsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
+`;
