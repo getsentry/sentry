@@ -49,6 +49,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_org_member_id_organizationmembermapping,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_organizationmembermapping"]},
+            hints={"tables": ["sentry_organizationmembermapping", "sentry_organizationmember"]},
         ),
     ]
