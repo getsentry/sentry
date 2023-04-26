@@ -5,4 +5,4 @@ class Config(AppConfig):  # type: ignore
     name = "sentry.issues"
 
     def ready(self) -> None:
-        from . import receivers  # NOQA
+        from . import analytics, receivers  # NOQA

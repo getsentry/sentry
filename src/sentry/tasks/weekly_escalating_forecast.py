@@ -41,7 +41,7 @@ def run_escalating_forecast() -> None:
     )
     logger.info(
         "Checking for archived until escalating groups",
-        extra={"has_groups": len(until_escalating_groups) > 0},
+        extra={"num_groups": len(until_escalating_groups)},
     )
     if not until_escalating_groups:
         return
