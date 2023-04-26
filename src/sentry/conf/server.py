@@ -1343,7 +1343,7 @@ SENTRY_FEATURES = {
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
     # Enable the new experimental metrics extraction on spans
-    "organizations:spans-metrics-extraction": False,
+    "organizations:span-metrics-extraction": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
