@@ -105,7 +105,6 @@ def get_active_orgs(max_orgs: int, time_interval: timedelta) -> Generator[List[i
     """
     Fetch organisations in batches.
     A batch will return at max max_orgs elements
-
     """
     start_time = time.time()
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
