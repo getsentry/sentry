@@ -87,7 +87,7 @@ def process_profile_task(
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
-SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust", "javascript"])
+SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust", "javascript", "node"])
 SHOULD_DEOBFUSCATE = frozenset(["android"])
 
 
