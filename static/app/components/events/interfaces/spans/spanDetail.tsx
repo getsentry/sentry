@@ -65,9 +65,9 @@ const SIZE_DATA_KEYS = [
   'Encoded Body Size',
   'Decoded Body Size',
   'Transfer Size',
-  'encoded_body_size',
-  'decoded_body_size',
-  'transfer_size',
+  'http.response_content_length',
+  'http.decoded_response_content_length',
+  'http.transfer_size',
 ];
 
 type TransactionResult = {

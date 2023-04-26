@@ -673,7 +673,7 @@ describe('SpanEvidenceKeyValueList', () => {
       description: 'https://example.com/resource.js',
       problemSpan: ProblemSpan.OFFENDER,
       data: {
-        encoded_body_size: 31041901,
+        'http.response_content_length': 31041901,
       },
     });
 
@@ -771,7 +771,7 @@ describe('SpanEvidenceKeyValueList', () => {
       description: 'https://example.com/api/users',
       problemSpan: ProblemSpan.OFFENDER,
       data: {
-        encoded_body_size: 31041901,
+        'http.response_content_length': 31041901,
       },
     });
 
