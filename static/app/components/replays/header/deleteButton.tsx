@@ -10,8 +10,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface DeleteButtonProps {
-  projectSlug: string | null;
-  replayId: string | undefined;
+  projectSlug: string;
+  replayId: string;
 }
 
 function DeleteButton({projectSlug, replayId}: DeleteButtonProps) {
@@ -20,9 +20,6 @@ function DeleteButton({projectSlug, replayId}: DeleteButtonProps) {
   const orgSlug = useOrganization().slug;
 
   const handleDelete = async () => {
-    if (!replayId || !projectSlug) {
-      return;
-    }
     try {
       await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/`,

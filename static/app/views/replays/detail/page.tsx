@@ -36,7 +36,9 @@ function Page({children, crumbs, orgSlug, replayRecord, projectSlug}: Props) {
       <ButtonActionsWrapper>
         <ShareButton />
         <FeedbackButton />
-        <DeleteButton replayId={replayRecord?.id} projectSlug={projectSlug} />
+        {replayRecord?.id && projectSlug && (
+          <DeleteButton replayId={replayRecord.id} projectSlug={projectSlug} />
+        )}
       </ButtonActionsWrapper>
 
       {replayRecord ? (
