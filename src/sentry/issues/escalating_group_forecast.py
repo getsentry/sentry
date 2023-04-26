@@ -56,6 +56,13 @@ class EscalatingGroupForecast:
         )
 
     @classmethod
+    def fetch_todays_forecast(cls, project_id: int, group_id: int) -> int:
+        date_now = datetime.now().date()
+        escalating_forecast = EscalatingGroupForecast.fetch(project_id, group_id)
+        forecast_today_index = (date_now - escalating_forecast.date_added.date()).days
+        return escalating_forecast.forecast[forecast_today_index]
+
+    @classmethod
     def build_storage_identifier(cls, project_id: int, group_id: int) -> str:
         identifier = hashlib.md5(f"{project_id}::{group_id}".encode()).hexdigest()
         return f"e-g-f:{identifier}"
