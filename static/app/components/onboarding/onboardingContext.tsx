@@ -1,30 +1,33 @@
 import {createContext, useCallback} from 'react';
 
-import {OnboardingStatus} from 'sentry/types';
+import {OnboardingProjectStatus, OnboardingSelectedSDK} from 'sentry/types';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
-type Data = Record<
-  string,
-  {
-    slug: string;
-    status: OnboardingStatus;
-    firstIssueId?: string;
-  }
->;
+type Project = {
+  id: string;
+  slug: string;
+  status: OnboardingProjectStatus;
+  firstIssueId?: string;
+};
+
+type Data = {
+  projects: Record<string, Project>;
+  selectedSDK?: OnboardingSelectedSDK;
+};
 
 export type OnboardingContextProps = {
   data: Data;
-  setProjectData: (props: {
-    projectId: string;
-    projectSlug: string;
-    status: OnboardingStatus;
-    firstIssueId?: string;
-  }) => void;
+  selectedSDK: (props: Pick<Data, 'selectedSDK'>) => void;
+  setProject: (props: Project) => void;
 };
 
 export const OnboardingContext = createContext<OnboardingContextProps>({
-  setProjectData: () => {},
-  data: {},
+  setProject: () => {},
+  selectedSDK: () => {},
+  data: {
+    projects: {},
+    selectedSDK: undefined,
+  },
 });
 
 type ProviderProps = {
@@ -32,26 +35,29 @@ type ProviderProps = {
 };
 
 export function OnboardingContextProvider({children}: ProviderProps) {
-  const [sessionStorage, setSessionStorage] = useSessionStorage<Data>('onboarding', {});
+  const [sessionStorage, setSessionStorage] = useSessionStorage<Data>('onboarding', {
+    projects: {},
+    selectedSDK: undefined,
+  });
 
-  const setProjectData = useCallback(
-    ({
-      projectId,
-      projectSlug,
-      status,
-      firstIssueId,
-    }: {
-      projectId: string;
-      projectSlug: string;
-      status: OnboardingStatus;
-      firstIssueId?: string;
-    }) => {
+  const selectedSDK = useCallback(
+    (props: Pick<Data, 'selectedSDK'>) => {
       setSessionStorage({
         ...sessionStorage,
-        [projectId]: {
+        selectedSDK: props.selectedSDK,
+      });
+    },
+    [setSessionStorage, sessionStorage]
+  );
+
+  const setProject = useCallback(
+    ({id, slug, status, firstIssueId}: Project) => {
+      setSessionStorage({
+        ...sessionStorage,
+        [id]: {
           status,
           firstIssueId,
-          slug: projectSlug,
+          slug,
         },
       });
     },
@@ -59,7 +65,13 @@ export function OnboardingContextProvider({children}: ProviderProps) {
   );
 
   return (
-    <OnboardingContext.Provider value={{data: sessionStorage, setProjectData}}>
+    <OnboardingContext.Provider
+      value={{
+        data: sessionStorage,
+        setProject,
+        selectedSDK,
+      }}
+    >
       {children}
     </OnboardingContext.Provider>
   );

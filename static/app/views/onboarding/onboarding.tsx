@@ -14,7 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedPlatform, OnboardingStatus} from 'sentry/types';
+import {OnboardingProjectStatus, OnboardingSelectedSDK} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
@@ -128,7 +128,7 @@ function Onboarding(props: Props) {
   };
 
   const goNextStep = useCallback(
-    (step: StepDescriptor, platform?: OnboardingSelectedPlatform) => {
+    (step: StepDescriptor, platform?: OnboardingSelectedSDK) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1];
 
@@ -196,9 +196,11 @@ function Onboarding(props: Props) {
 
       const projectShallBeRemoved = !Object.keys(onboardingContext.data).some(
         key =>
-          onboardingContext.data[key].slug === selectedProjectSlug &&
-          (onboardingContext.data[key].status === OnboardingStatus.PROCESSING ||
-            onboardingContext.data[key].status === OnboardingStatus.PROCESSED)
+          onboardingContext.data.projects[key].slug === selectedProjectSlug &&
+          (onboardingContext.data.projects[key].status ===
+            OnboardingProjectStatus.PROCESSING ||
+            onboardingContext.data.projects[key].status ===
+              OnboardingProjectStatus.PROCESSED)
       );
 
       let platformToProjectIdMap = clientState?.platformToProjectIdMap ?? {};
