@@ -1,9 +1,12 @@
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
+import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
@@ -24,8 +27,10 @@ export type DataRow = {
   data_values: Array<string>;
   description: string;
   epm: number;
+  firstSeen: string;
   formatted_desc: string;
   group_id: string;
+  newish: number;
   p75: number;
   total_time: number;
   transactions: number;
@@ -112,12 +117,16 @@ export default function APIModuleView({
     if (column.key === 'description') {
       const value = row[column.key];
       return (
-        <Hovercard header="Query" body={value}>
+        <Hovercard
+          header={`Query ${row.newish === 1 ? `(First seen ${row.firstSeen})` : ''}`}
+          body={value}
+        >
           <Link onClick={() => onSelect(row)} to="">
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
           </Link>
+          {row?.newish === 1 && <StyledBadge type="new" text="new" />}
         </Hovercard>
       );
     }
@@ -152,3 +161,7 @@ export default function APIModuleView({
     />
   );
 }
+
+const StyledBadge = styled(Badge)`
+  margin-left: ${space(0.75)};
+`;

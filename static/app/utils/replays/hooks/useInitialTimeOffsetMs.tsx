@@ -33,9 +33,13 @@ type Opts = {
    */
   orgSlug: string;
   /**
-   * The concatenation of: `${projectSlug}:${replayId}`
+   * The project slug of the replayRecord
    */
-  replaySlug: string;
+  projectSlug: string | null;
+  /**
+   * The replayId
+   */
+  replayId: string;
 
   /**
    * The start timestamp of the replay.
@@ -73,7 +77,8 @@ async function fromListPageQuery({
   api,
   listPageQuery,
   orgSlug,
-  replaySlug,
+  replayId,
+  projectSlug,
   replayStartTimestampMs,
 }) {
   if (listPageQuery === undefined) {
@@ -94,7 +99,9 @@ async function fromListPageQuery({
     return 0;
   }
 
-  const [projectSlug, replayId] = replaySlug.split(':');
+  if (!projectSlug) {
+    return undefined;
+  }
 
   const results = await fetchReplayClicks({
     api,
@@ -115,7 +122,12 @@ async function fromListPageQuery({
   }
 }
 
-function useInitialTimeOffsetMs({orgSlug, replaySlug, replayStartTimestampMs}: Opts) {
+function useInitialTimeOffsetMs({
+  orgSlug,
+  replayId,
+  projectSlug,
+  replayStartTimestampMs,
+}: Opts) {
   const api = useApi();
   const {
     query: {event_t: eventTimestamp, query: listPageQuery, t: offsetSec},
@@ -137,11 +149,20 @@ function useInitialTimeOffsetMs({orgSlug, replaySlug, replayStartTimestampMs}: O
             api,
             listPageQuery,
             orgSlug,
-            replaySlug,
+            replayId,
+            projectSlug,
             replayStartTimestampMs,
           })
         : undefined,
-    [api, eventTimestamp, listPageQuery, orgSlug, replaySlug, replayStartTimestampMs]
+    [
+      api,
+      eventTimestamp,
+      listPageQuery,
+      orgSlug,
+      replayId,
+      projectSlug,
+      replayStartTimestampMs,
+    ]
   );
 
   useEffect(() => {
@@ -151,7 +172,7 @@ function useInitialTimeOffsetMs({orgSlug, replaySlug, replayStartTimestampMs}: O
       .then(definedOrDefault(queryTimeMs))
       .then(definedOrDefault(0))
       .then(setTimestamp);
-  }, [offsetTimeMs, eventTimeMs, queryTimeMs]);
+  }, [offsetTimeMs, eventTimeMs, queryTimeMs, projectSlug]);
 
   return timestamp;
 }

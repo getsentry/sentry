@@ -80,6 +80,8 @@ describe('useReplayData', () => {
       onRetry: expect.any(Function),
       replay: expect.any(ReplayReader),
       replayRecord: expectedReplay,
+      projectSlug: project.slug,
+      replayId: expectedReplay.id,
     });
   });
 
@@ -259,6 +261,8 @@ describe('useReplayData', () => {
       onRetry: expect.any(Function),
       replay: null,
       replayRecord: undefined,
+      projectSlug: null,
+      replayId: expectedReplay.id,
     } as Record<string, unknown>;
 
     // Immediately we will see the replay call is made
@@ -285,6 +289,7 @@ describe('useReplayData', () => {
       errors: [],
     });
     expectedReplayData.replayRecord = expectedReplay;
+    expectedReplayData.projectSlug = project.slug;
     expectedReplayData.replay = expect.any(ReplayReader);
     expect(result.current).toEqual(expectedReplayData);
 
@@ -336,6 +341,8 @@ describe('useReplayData', () => {
       onRetry: expect.any(Function),
       replay: expect.any(ReplayReader),
       replayRecord: expectedReplay,
+      projectSlug: project.slug,
+      replayId: expectedReplay.id,
     });
   });
 });
