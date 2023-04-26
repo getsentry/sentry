@@ -1,6 +1,11 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import keyBy from 'lodash/keyBy';
+import merge from 'lodash/merge';
+import values from 'lodash/values';
+import moment from 'moment';
+import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
@@ -8,11 +13,20 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {
+  getPanelEventCount,
+  getPanelGraphQuery,
+  getPanelTableQuery,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import {DataRow} from './databaseTableView';
 
+const INTERVAL = 12;
 const HOST = 'http://localhost:8080';
 
 type EndpointDetailBodyProps = {
@@ -24,6 +38,7 @@ type TransactionListDataRow = {
   group_id: string;
   p75: number;
   transaction: string;
+  uniqueEvents: number;
 };
 
 const COLUMN_ORDER = [
@@ -33,12 +48,20 @@ const COLUMN_ORDER = [
     width: 400,
   },
   {
+    key: 'p75',
+    name: 'p75',
+  },
+  {
     key: 'count',
     name: 'Count',
   },
   {
-    key: 'p75',
-    name: 'p75',
+    key: 'frequency',
+    name: 'Frequency',
+  },
+  {
+    key: 'uniqueEvents',
+    name: 'Total Events',
   },
 ];
 
@@ -56,46 +79,65 @@ export default function QueryDetail({
 function QueryDetailBody({row}: EndpointDetailBodyProps) {
   const theme = useTheme();
   const location = useLocation();
-
-  const TABLE_QUERY = `
-    SELECT transaction, count() AS count, quantile(0.75)(exclusive_time) as p75
-    FROM spans_experimental_starfish
-    WHERE module = 'db'
-    AND group_id = '${row.group_id}'
-    GROUP BY transaction
-    ORDER BY count DESC
-    LIMIT 10
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const DATE_FILTERS = `
+    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
+    start_timestamp < fromUnixTimestamp(${endTime.unix()})
   `;
 
-  const GRAPH_QUERY = `SELECT
-      toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-      quantile(0.75)(exclusive_time) as p75,
-      count() as count
-      FROM spans_experimental_starfish
-      WHERE module = 'db'
-      AND group_id = '${row.group_id}'
-      GROUP BY interval
-      ORDER BY interval asc
-   `;
-
   const {isLoading, data: graphData} = useQuery({
-    queryKey: ['dbQueryDetailsGraph', row.group_id],
+    queryKey: ['dbQueryDetailsGraph', row.group_id, pageFilter.selection.datetime],
     queryFn: () =>
-      fetch(`${HOST}/?query=${GRAPH_QUERY}&format=sql`).then(res => res.json()),
+      fetch(
+        `${HOST}/?query=${getPanelGraphQuery(DATE_FILTERS, row, INTERVAL)}&format=sql`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
-  const {isLoading: isTableLoading, data: tableData} = useQuery({
-    queryKey: ['dbQueryDetailsTable', row.group_id],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
+  const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
+    {
+      queryKey: ['dbQueryDetailsTable', row.description, pageFilter.selection.datetime],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${getPanelTableQuery(DATE_FILTERS, row)}`).then(res =>
+          res.json()
+        ),
+      retry: true,
+      initialData: [],
+    }
+  );
+
+  const {isLoading: isEventCountLoading, data: eventCountData} = useQuery({
+    queryKey: [
+      'dbQueryDetailsEventCount',
+      row.description,
+      pageFilter.selection.datetime,
+    ],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getPanelEventCount(DATE_FILTERS, row)}`).then(res =>
+        res.json()
+      ),
     retry: true,
     initialData: [],
   });
 
-  // console.log(row.desc);
+  const isDataLoading = isLoading || isTableLoading || isEventCountLoading;
+  let avgP75 = 0;
+  if (!isDataLoading) {
+    avgP75 =
+      tableData.reduce((acc, transaction) => acc + transaction.p75, 0) / tableData.length;
+  }
 
-  const [countSeries, p75Series] = throughputQueryToChartData(graphData);
+  const mergedTableData = values(
+    merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
+  ).filter((data: Partial<TransactionListDataRow>) => !!data.count && !!data.p75);
+
+  const [countSeries, p75Series] = throughputQueryToChartData(
+    graphData,
+    startTime,
+    endTime
+  );
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return <span>{column.name}</span>;
@@ -105,21 +147,31 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     column: GridColumnHeader,
     dataRow: TransactionListDataRow
   ): React.ReactNode => {
-    if (column.key === 'transaction') {
+    if (column.key === 'frequency') {
+      return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
+    }
+    const {key} = column;
+    const value = dataRow[key];
+    if (key === 'transaction') {
       return (
         <Link
-          to={`/starfish/span/${encodeURIComponent(row.group_id)}:${encodeURIComponent(
-            dataRow.transaction
-          )}`}
+          to={`/starfish/span/${encodeURIComponent(row.group_id)}?${qs.stringify({
+            transaction: dataRow.transaction,
+          })}`}
         >
           {dataRow[column.key]}
         </Link>
       );
     }
-    if (column.key === 'p75') {
-      return <span>{dataRow[column.key].toFixed(2)}ms</span>;
+    if (key === 'p75') {
+      const p75threshold = 1.5 * avgP75;
+      return (
+        <span style={value > p75threshold ? {color: theme.red400} : {}}>
+          {value?.toFixed(2)}ms
+        </span>
+      );
     }
-    return <span>{dataRow[column.key]}</span>;
+    return <span>{value}</span>;
   };
 
   return (
@@ -142,7 +194,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
             data={[countSeries]}
             start=""
             end=""
-            loading={isLoading}
+            loading={isDataLoading}
             utc={false}
             disableMultiAxis
             stacked
@@ -160,7 +212,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
             data={[p75Series]}
             start=""
             end=""
-            loading={isLoading}
+            loading={isDataLoading}
             utc={false}
             chartColors={[theme.charts.getColorPalette(4)[3]]}
             disableMultiAxis
@@ -172,8 +224,8 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
         </FlexRowItem>
       </FlexRowContainer>
       <GridEditable
-        isLoading={isTableLoading}
-        data={tableData}
+        isLoading={isDataLoading}
+        data={mergedTableData}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
@@ -187,14 +239,21 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   );
 }
 
-const throughputQueryToChartData = (data: any): Series[] => {
+const throughputQueryToChartData = (
+  data: any,
+  startTime: moment.Moment,
+  endTime: moment.Moment
+): Series[] => {
   const countSeries: Series = {seriesName: 'count()', data: [] as any[]};
   const p75Series: Series = {seriesName: 'p75()', data: [] as any[]};
   data.forEach(({count, p75, interval}: any) => {
     countSeries.data.push({value: count, name: interval});
     p75Series.data.push({value: p75, name: interval});
   });
-  return [countSeries, p75Series];
+  return [
+    zeroFillSeries(countSeries, moment.duration(INTERVAL, 'hours'), startTime, endTime),
+    zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
+  ];
 };
 
 const SubHeader = styled('h3')`
@@ -221,6 +280,7 @@ const FlexRowItem = styled('div')`
 
 const FormattedCode = styled('div')`
   padding: ${space(1)};
+  margin-bottom: ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   overflow-x: auto;

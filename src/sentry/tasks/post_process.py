@@ -674,10 +674,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
-        if not is_escalating(group):
-            job["has_reappeared"] = True
-            return
-        job["has_reappeared"] = False
+        job["has_reappeared"] = is_escalating(group)
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
@@ -713,7 +710,9 @@ def process_snoozes(job: PostProcessJob) -> None:
             )
 
             snooze.delete()
-            group.update(status=GroupStatus.UNRESOLVED)
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ONGOING
+            group.save(update_fields=["status", "substatus"])
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,
