@@ -1,8 +1,11 @@
 import {Component} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -62,6 +65,9 @@ class DatabaseModule extends Component<Props, State> {
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageErrorAlert />
+              <FilterOptionsContainer>
+                <DatePageFilter alignDropdown="left" />
+              </FilterOptionsContainer>
               <DatabaseChartView
                 location={location}
                 action={action}
@@ -95,3 +101,10 @@ class DatabaseModule extends Component<Props, State> {
 }
 
 export default DatabaseModule;
+
+const FilterOptionsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
+`;
