@@ -1,0 +1,5 @@
+github-login.base-domain : "test1"
+github-login.extended-permissions  : ["test1", "test2"]
+system.rate-limit : 718
+symbolserver.options:
+  'asap': 'rocky'
