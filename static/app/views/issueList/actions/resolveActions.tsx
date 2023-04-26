@@ -1,5 +1,5 @@
 import ResolveActions from 'sentry/components/actions/resolve';
-import {Organization, Release} from 'sentry/types';
+import {Release} from 'sentry/types';
 
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
@@ -7,7 +7,6 @@ type Props = {
   anySelected: boolean;
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onUpdate: (data?: any) => void;
-  orgSlug: Organization['slug'];
   params: {
     confirm: ReturnType<typeof getConfirm>;
     hasReleases: boolean;
@@ -22,7 +21,6 @@ type Props = {
 
 function ResolveActionsContainer({
   params,
-  orgSlug,
   anySelected,
   onShouldConfirm,
   onUpdate,
@@ -48,7 +46,6 @@ function ResolveActionsContainer({
     <ResolveActions
       hasRelease={hasReleases}
       latestRelease={latestRelease}
-      orgSlug={orgSlug}
       projectSlug={projectId}
       onUpdate={onUpdate}
       shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}

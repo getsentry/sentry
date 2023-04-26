@@ -24,13 +24,7 @@ describe('ResolveActions', function () {
   describe('disabled', function () {
     it('does not call onUpdate when clicked', async function () {
       render(
-        <ResolveActions
-          onUpdate={spy}
-          disabled
-          hasRelease={false}
-          orgSlug="org-1"
-          projectSlug="proj-1"
-        />
+        <ResolveActions onUpdate={spy} disabled hasRelease={false} projectSlug="proj-1" />
       );
       const button = screen.getByRole('button', {name: 'Resolve'});
       expect(button).toBeDisabled();
@@ -46,7 +40,6 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disableDropdown
           hasRelease={false}
-          orgSlug="org-1"
           projectSlug="proj-1"
         />
       );
@@ -68,7 +61,6 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          orgSlug="org-1"
           projectSlug="proj-1"
           isResolved
         />
@@ -90,7 +82,6 @@ describe('ResolveActions', function () {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          orgSlug="org-1"
           projectSlug="proj-1"
           isResolved
           isAutoResolved
@@ -104,14 +95,7 @@ describe('ResolveActions', function () {
 
   describe('without confirmation', function () {
     it('calls spy with resolved status when clicked', async function () {
-      render(
-        <ResolveActions
-          onUpdate={spy}
-          hasRelease={false}
-          orgSlug="org-1"
-          projectSlug="proj-1"
-        />
-      );
+      render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
       await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved', statusDetails: {}});
@@ -124,7 +108,6 @@ describe('ResolveActions', function () {
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgSlug="org-1"
           projectSlug="proj-1"
           shouldConfirm
           confirmMessage="Are you sure???"
@@ -151,14 +134,7 @@ describe('ResolveActions', function () {
       url: '/projects/org-slug/project-slug/releases/',
       body: [TestStubs.Release()],
     });
-    render(
-      <ResolveActions
-        hasRelease
-        orgSlug="org-slug"
-        projectSlug="project-slug"
-        onUpdate={onUpdate}
-      />
-    );
+    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
     renderGlobalModal();
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
