@@ -82,9 +82,7 @@ export default function IssueTable({organization, location, spike, transactions}
 
   const {query} = location;
   const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
-  // const aggregateAlias = getAggregateAlias(
-  //   `count_if(transaction, equals, ${transactionName})`
-  // );
+
   const newQuery: NewQuery = {
     name: t('Failure Detail Issues'),
     projects: [],

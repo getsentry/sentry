@@ -47,7 +47,6 @@ export default function FailureDetailPanel({
       'event.type:transaction has:http.method transaction.op:http.server count_if(http.status_code,greaterOrEquals,500):>0',
     version: 2,
   };
-
   newQuery.orderby = '-count_if_http_status_code_greaterOrEquals_500';
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
