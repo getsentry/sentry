@@ -47,8 +47,17 @@
                     : e,
         });
     }
+    function sdkIsLoaded() {
+        var __sentry = _window.__SENTRY__;
+        // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
+        return !!(__sentry &&
+            __sentry.hub &&
+            __sentry.hub.getClient &&
+            __sentry.hub.getClient());
+    }
     function injectSdk(callbacks) {
-        if (injected) {
+        // If the SDK has been loaded in the meanwhile, we want to skip injecting it again
+        if (injected || sdkIsLoaded()) {
             return;
         }
         injected = true;
@@ -107,13 +116,6 @@
             integrations.push(new SDK.Replay());
         }
         config.integrations = integrations;
-    }
-    function sdkIsLoaded() {
-        var __sentry = _window.__SENTRY__;
-        // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
-        return !!(!(typeof __sentry === 'undefined') &&
-            __sentry.hub &&
-            __sentry.hub.getClient());
     }
     function sdkLoaded(callbacks, SDK) {
         try {
