@@ -99,7 +99,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         if "slug" in result:
             params["slug"] = result["slug"]
         if "status" in result:
-            # TODO(rjo100): resets status if monitor is failed, needs fixing with environments
             if result["status"] == MonitorStatus.ACTIVE:
                 if monitor.status not in (MonitorStatus.OK, MonitorStatus.ERROR):
                     params["status"] = MonitorStatus.ACTIVE
@@ -112,8 +111,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
 
         if params:
             monitor.update(**params)
-            if params.get("status"):
-                MonitorEnvironment.objects.filter(monitor=monitor).update(status=params["status"])
             self.create_audit_entry(
                 request=request,
                 organization=organization,
