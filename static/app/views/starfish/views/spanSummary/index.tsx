@@ -39,6 +39,16 @@ const COLUMN_ORDER = [
     width: 200,
   },
   {
+    key: 'transaction',
+    name: 'Transaction',
+    width: 200,
+  },
+  {
+    key: 'user',
+    name: 'User',
+    width: 200,
+  },
+  {
     key: 'timestamp',
     name: 'Timestamp',
     width: 300,
@@ -56,8 +66,10 @@ type SpanTableRow = {
   spanOp: string;
   span_id: string;
   timestamp: string;
+  transaction: string;
   transactionDuration: number;
   transaction_id: string;
+  user: string;
 };
 
 type Transaction = {
@@ -75,15 +87,15 @@ export default function SpanSummary({location, params}: Props) {
 
   const groupId = params.groupId;
   const transactionName = location.query.transaction;
+  const user = location.query.user;
 
   const spanInfoQuery = getSpanInTransactionQuery({
     groupId,
-    transactionName,
     datetime: pageFilter.selection.datetime,
   });
 
   const {isLoading, data} = useQuery({
-    queryKey: ['spanSummary', groupId, transactionName],
+    queryKey: ['spanSummary', groupId],
     queryFn: () => fetch(`${HOST}/?query=${spanInfoQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -95,7 +107,7 @@ export default function SpanSummary({location, params}: Props) {
   });
 
   const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} = useQuery({
-    queryKey: ['facetBreakdown', groupId, transactionName],
+    queryKey: ['facetBreakdown', groupId],
     queryFn: () => fetch(`${HOST}/?query=${facetBreakdownQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -104,11 +116,18 @@ export default function SpanSummary({location, params}: Props) {
   const spanSamplesQuery = getSpanSamplesQuery({
     groupId,
     transactionName,
+    user,
     datetime: pageFilter.selection.datetime,
   });
 
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
-    queryKey: ['spanSamples', groupId, transactionName, pageFilter.selection.datetime],
+    queryKey: [
+      'spanSamples',
+      groupId,
+      transactionName,
+      user,
+      pageFilter.selection.datetime,
+    ],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -175,7 +194,7 @@ export default function SpanSummary({location, params}: Props) {
                 ) : (
                   <div>
                     <h3>{t('Facets')}</h3>
-                    {['transaction', 'user', 'domain'].map(facet => {
+                    {['transaction', 'user'].map(facet => {
                       const values = facetBreakdownData.map(datum => datum[facet]);
 
                       const uniqueValues: string[] = Array.from(new Set(values));
@@ -226,6 +245,8 @@ export default function SpanSummary({location, params}: Props) {
 
                         return {
                           transaction_id: datum.transaction_id,
+                          user: datum.user,
+                          transaction: datum.transaction,
                           span_id: datum.span_id,
                           timestamp: transaction?.timestamp,
                           spanOp: datum.span_operation,
