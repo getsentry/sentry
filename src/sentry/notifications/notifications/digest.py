@@ -197,4 +197,12 @@ class DigestNotification(ProjectNotification):
             extra_context = self.get_extra_context(participants_by_provider_by_event)
 
         for provider, participants in combined_participants_by_provider.items():
+            # remove participants if the digest is empty
+            participants_to_remove = set()
+            for participant in participants:
+                if participant.actor_id not in set(extra_context.keys()):
+                    participants_to_remove.add(participant)
+
+            participants -= participants_to_remove
+
             notify(provider, self, participants, shared_context, extra_context)

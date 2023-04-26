@@ -6,8 +6,6 @@ from typing import Any
 from typing import Counter as CounterType
 from typing import Iterable, Mapping, Sequence
 
-from django.db.models import Q
-
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
 from sentry.models import Group, Project, ProjectOwnership, Rule, RuleSnooze
@@ -83,11 +81,16 @@ def get_personalized_digests(
     participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]],
 ) -> Mapping[int, Digest]:
     events_by_participant = get_events_by_participant(participants_by_provider_by_event)
-    return {
-        participant.actor_id: build_custom_digest(digest, events, participant)
-        for participant, events in events_by_participant.items()
-        if participant.actor_id is not None
-    }
+
+    actor_id_to_digest = {}
+
+    for participant, events in events_by_participant.items():
+        if participant.actor_id is not None:
+            custom_digest = build_custom_digest(digest, events, participant)
+            if custom_digest:
+                actor_id_to_digest[participant.actor_id] = custom_digest
+
+    return actor_id_to_digest
 
 
 def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
@@ -106,7 +109,7 @@ def build_custom_digest(
     user_digest: Digest = {}
     for rule, rule_groups in original_digest.items():
         skip = False
-        rule_snoozes = RuleSnooze.objects.filter(Q(rule=rule))
+        rule_snoozes = RuleSnooze.objects.filter(rule=rule)
         for snooze in rule_snoozes:
             if snooze.user_id is None or snooze.user_id == participant.id:
                 skip = True
@@ -123,7 +126,6 @@ def build_custom_digest(
         if user_rule_groups:
             user_digest[rule] = user_rule_groups
     return user_digest
-    # TODO add test for the digest being empty, I think it gets pretty mad about that
 
 
 def get_participants_by_event(

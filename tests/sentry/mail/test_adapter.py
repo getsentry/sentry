@@ -1193,7 +1193,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
     @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_dont_notify_digest_snoozed_multiple_rules(self, notify):
+    def test_notify_digest_snooze_one_rule(self, notify):
         """Test that a digest is sent containing only notifications about an unsnoozed alert."""
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
@@ -1232,6 +1232,45 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         # user2 receives a digest about both alerts, since no rules were muted
         assert message1.to[0] == user2.email
         assert "2 new alerts since" in message1.subject
+
+    @with_feature("organizations:mute-alerts")
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
+    def test_dont_notify_digest_snoozed_multiple_rules(self, notify):
+        """Test that a digest is only sent to the user who hasn't snoozed the rules."""
+        user2 = self.create_user(email="baz@example.com", is_active=True)
+        self.create_member(user=user2, organization=self.organization, teams=[self.team])
+        project = self.project
+        timestamp = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
+            project_id=project.id,
+        )
+
+        rule = project.rule_set.all()[0]
+        rule2 = Rule.objects.create(project=project, label="my rule")
+        # mute the rules for self.user, not user2
+        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule2)
+
+        ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
+        digest = build_digest(
+            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule2,)))
+        )[0]
+
+        with self.tasks():
+            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+
+        assert notify.call_count == 0
+        assert len(mail.outbox) == 1  # we send it to only 1 user
+        message = mail.outbox[0]
+
+        # user2 receives a digest about both alerts, since no rules were muted
+        assert message.to[0] == user2.email
+        assert "2 new alerts since" in message.subject
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
