@@ -4,7 +4,6 @@ import {OnboardingProjectStatus, OnboardingSelectedSDK} from 'sentry/types';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type Project = {
-  id: string;
   slug: string;
   status: OnboardingProjectStatus;
   firstIssueId?: string;
@@ -17,13 +16,15 @@ type Data = {
 
 export type OnboardingContextProps = {
   data: Data;
-  selectedSDK: (props: Pick<Data, 'selectedSDK'>) => void;
-  setProject: (props: Project) => void;
+  removeProject: (id: string) => void;
+  setProject: (props: Project & {id: string}) => void;
+  setSelectedSDK: (props: Data['selectedSDK']) => void;
 };
 
 export const OnboardingContext = createContext<OnboardingContextProps>({
   setProject: () => {},
-  selectedSDK: () => {},
+  setSelectedSDK: () => {},
+  removeProject: () => {},
   data: {
     projects: {},
     selectedSDK: undefined,
@@ -40,25 +41,45 @@ export function OnboardingContextProvider({children}: ProviderProps) {
     selectedSDK: undefined,
   });
 
-  const selectedSDK = useCallback(
-    (props: Pick<Data, 'selectedSDK'>) => {
+  const setSelectedSDK = useCallback(
+    (selectedSDK: Data['selectedSDK']) => {
       setSessionStorage({
         ...sessionStorage,
-        selectedSDK: props.selectedSDK,
+        selectedSDK,
       });
     },
     [setSessionStorage, sessionStorage]
   );
 
   const setProject = useCallback(
-    ({id, slug, status, firstIssueId}: Project) => {
+    (props: Project & {id: string}) => {
       setSessionStorage({
         ...sessionStorage,
-        [id]: {
-          status,
-          firstIssueId,
-          slug,
+        projects: {
+          ...sessionStorage.projects,
+          [props.id]: {
+            status: props.status,
+            firstIssueId: props.firstIssueId,
+            slug: props.slug,
+          },
         },
+      });
+    },
+    [setSessionStorage, sessionStorage]
+  );
+
+  const removeProject = useCallback(
+    (id: string) => {
+      const newProjects = Object.keys(sessionStorage.projects).reduce((acc, key) => {
+        if (key !== id) {
+          acc[key] = sessionStorage.projects[key];
+        }
+        return acc;
+      }, {});
+
+      setSessionStorage({
+        ...sessionStorage,
+        projects: newProjects,
       });
     },
     [setSessionStorage, sessionStorage]
@@ -69,7 +90,8 @@ export function OnboardingContextProvider({children}: ProviderProps) {
       value={{
         data: sessionStorage,
         setProject,
-        selectedSDK,
+        removeProject,
+        setSelectedSDK,
       }}
     >
       {children}

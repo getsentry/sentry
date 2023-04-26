@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import {removeProject} from 'sentry/actionCreators/projects';
 import {Button, ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
@@ -14,12 +13,10 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingProjectStatus, OnboardingSelectedSDK} from 'sentry/types';
+import {OnboardingSelectedSDK} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
@@ -28,7 +25,6 @@ import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
-import {usePersistedOnboardingState} from './utils';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
@@ -63,12 +59,10 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
 }
 
 function Onboarding(props: Props) {
-  const api = useApi();
   const organization = useOrganization();
-  const [clientState, setClientState] = usePersistedOnboardingState();
   const onboardingContext = useContext(OnboardingContext);
-  const selectedPlatform = clientState?.selectedPlatform;
-  const selectedProjectSlug = selectedPlatform?.key;
+  const selectedSDK = onboardingContext.data.selectedSDK;
+  const selectedProjectSlug = selectedSDK?.key;
 
   const {
     params: {step: stepId},
@@ -145,17 +139,18 @@ function Onboarding(props: Props) {
     [organization.slug, onboardingSteps, cornerVariantControl, props.router]
   );
 
-  const deleteProject = useCallback(
-    async (projectSlug: string) => {
-      try {
-        await removeProject(api, organization.slug, projectSlug);
-      } catch (error) {
-        handleXhrErrorResponse(t('Unable to delete project'))(error);
-        // we don't give the user any feedback regarding this error as this shall be silent
-      }
-    },
-    [api, organization.slug]
-  );
+  // TODO(Priscila): will tackle this in a follow-up PR
+  // const deleteProject = useCallback(
+  //   async (projectSlug: string) => {
+  //     try {
+  //       await removeProject(api, organization.slug, projectSlug);
+  //     } catch (error) {
+  //       handleXhrErrorResponse(t('Unable to delete project'))(error);
+  //       // we don't give the user any feedback regarding this error as this shall be silent
+  //     }
+  //   },
+  //   [api, organization.slug]
+  // );
 
   const handleGoBack = useCallback(() => {
     if (!stepObj) {
@@ -180,50 +175,27 @@ function Onboarding(props: Props) {
 
     // from selected platform to welcome
     if (onboardingSteps[stepIndex].id === 'select-platform') {
-      setClientState({
-        platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
-        selectedPlatform: undefined,
-        url: 'welcome/',
-        state: undefined,
-      });
+      onboardingContext.setSelectedSDK(undefined);
     }
 
     // from setup docs to selected platform
     if (onboardingSteps[stepIndex].id === 'setup-docs' && projectDeletionOnBackClick) {
-      // The user is going back to select a new platform,
-      // so we silently delete the last created project
-      // if the user didn't send an first error yet.
-
-      const projectShallBeRemoved = !Object.keys(onboardingContext.data).some(
-        key =>
-          onboardingContext.data.projects[key].slug === selectedProjectSlug &&
-          (onboardingContext.data.projects[key].status ===
-            OnboardingProjectStatus.PROCESSING ||
-            onboardingContext.data.projects[key].status ===
-              OnboardingProjectStatus.PROCESSED)
-      );
-
-      let platformToProjectIdMap = clientState?.platformToProjectIdMap ?? {};
-
-      if (projectShallBeRemoved && selectedProjectSlug) {
-        deleteProject(selectedProjectSlug);
-
-        platformToProjectIdMap = Object.keys(
-          clientState?.platformToProjectIdMap ?? {}
-        ).reduce((acc, platform) => {
-          if (!acc[platform] && platform !== selectedProjectSlug) {
-            acc[platform] = platform;
-          }
-          return acc;
-        }, {});
+      if (!onboardingContext.data.selectedSDK) {
+        return;
       }
 
-      setClientState({
-        url: 'select-platform/',
-        state: 'projects_selected',
-        selectedPlatform,
-        platformToProjectIdMap,
-      });
+      // this most likely is going to be a single key array
+      const deleteProjectKeys = Object.keys(onboardingContext.data.projects).filter(
+        key =>
+          onboardingContext.data.projects[key].slug ===
+          onboardingContext.data.selectedSDK?.key
+      );
+
+      for (const key of deleteProjectKeys) {
+        onboardingContext.removeProject(key);
+      }
+
+      onboardingContext.setSelectedSDK(undefined);
     }
 
     props.router.replace(
@@ -235,12 +207,7 @@ function Onboarding(props: Props) {
     onboardingSteps,
     organization,
     cornerVariantControl,
-    clientState,
-    setClientState,
-    selectedProjectSlug,
-    selectedPlatform,
     props.router,
-    deleteProject,
     projectDeletionOnBackClick,
     onboardingContext,
   ]);
@@ -254,12 +221,6 @@ function Onboarding(props: Props) {
             organization,
             source,
           });
-          if (clientState) {
-            setClientState({
-              ...clientState,
-              state: 'skipped',
-            });
-          }
         }}
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
