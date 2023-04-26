@@ -21,4 +21,5 @@ class TestGeo(TestCase):
             "city": "Beverly Hills",
             "latitude": 34.09109878540039,
             "longitude": -118.41169738769531,
+            "subdivision": "California",
         }
