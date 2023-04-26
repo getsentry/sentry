@@ -130,7 +130,11 @@ export function StarfishView(props: BasePerformanceViewProps) {
   }
 
   function renderThroughputChart() {
-    const query = new MutableSearch(['event.type:transaction']);
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'has:http.method',
+      'transaction.op:http.server',
+    ]);
 
     return (
       <EventsRequest
