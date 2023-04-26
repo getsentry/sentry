@@ -3,7 +3,6 @@ import moment from 'moment';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
-import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -13,19 +12,9 @@ import {
   ModuleButtonType,
   ModuleLinkButton,
 } from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
-import {DB_TIME_SPENT} from 'sentry/views/starfish/views/webServiceView/queries';
 
-const HOST = 'http://localhost:8080';
-
-export function DatabaseDurationChart() {
+export function DatabaseDurationChart({isDbDurationLoading, dbDurationData}) {
   const pageFilter = usePageFilters();
-
-  const {isLoading: isDbDurationLoading, data: dbDurationData} = useQuery({
-    queryKey: ['databaseDuration'],
-    queryFn: () => fetch(`${HOST}/?query=${DB_TIME_SPENT}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
 
   const series: {[module: string]: Series} = {};
   if (!isDbDurationLoading) {
@@ -54,7 +43,7 @@ export function DatabaseDurationChart() {
   const button = <ModuleLinkButton type={ModuleButtonType.DB} />;
 
   return (
-    <ChartPanel title={t('p75 of Time Spent in Database')} button={button}>
+    <ChartPanel title={t('p75 of database spans')} button={button}>
       <Chart
         statsPeriod="24h"
         height={180}

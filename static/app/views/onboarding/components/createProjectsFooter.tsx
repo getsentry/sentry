@@ -13,14 +13,11 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {createProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
 import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import TextOverflow from 'sentry/components/textOverflow';
-import {PlatformKey} from 'sentry/data/platformCategories';
-import {t, tct, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedPlatform, Organization} from 'sentry/types';
+import {OnboardingSelectedSDK, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getPlatformName from 'sentry/utils/getPlatformName';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
@@ -32,23 +29,20 @@ import {usePersistedOnboardingState} from '../utils';
 import GenericFooter from './genericFooter';
 
 type Props = {
-  clearPlatforms: () => void;
+  clearPlatform: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
-  onComplete: (selectedPlatforms: OnboardingSelectedPlatform[]) => void;
+  onComplete: (selectedPlatform: OnboardingSelectedSDK) => void;
   organization: Organization;
-  selectedPlatforms: OnboardingSelectedPlatform[];
+  selectedPlatform?: OnboardingSelectedSDK;
 };
 
 export function CreateProjectsFooter({
   organization,
-  selectedPlatforms,
+  selectedPlatform,
   onComplete,
   genSkipOnboardingLink,
-  clearPlatforms,
+  clearPlatform,
 }: Props) {
-  const singleSelectPlatform = !!organization?.features.includes(
-    'onboarding-remove-multiselect-platform'
-  );
   const frameworkSelectionEnabled = !!organization?.features.includes(
     'onboarding-sdk-selection'
   );
@@ -58,98 +52,98 @@ export function CreateProjectsFooter({
   const [clientState, setClientState] = usePersistedOnboardingState();
   const {projects} = useProjects();
 
-  const createProjects = useCallback(
-    async (selectedFramework?: OnboardingSelectedPlatform) => {
-      if (!clientState) {
+  const createPlatformProject = useCallback(
+    async (selectedFramework?: OnboardingSelectedSDK) => {
+      if (!clientState || !selectedPlatform) {
         // Do nothing if client state is not loaded yet.
         return;
       }
 
-      const createProjectForPlatforms = selectedFramework
+      const createProjectForPlatform = selectedFramework
         ? projects.find(p => p.platform === selectedFramework.key)
-          ? []
-          : [selectedFramework]
-        : selectedPlatforms
-            .filter(platform => !clientState.platformToProjectIdMap[platform.key])
-            // filter out platforms that already have a project
-            .filter(platform => !projects.find(p => p.platform === platform.key));
+          ? undefined
+          : selectedFramework
+        : projects.find(p => p.platform === selectedPlatform.key)
+        ? undefined
+        : clientState.platformToProjectIdMap[selectedPlatform.key]
+        ? undefined
+        : selectedPlatform;
 
-      if (createProjectForPlatforms.length === 0) {
+      if (!createProjectForPlatform) {
+        const platform = selectedFramework ? selectedFramework : selectedPlatform;
+
         setClientState({
           platformToProjectIdMap: clientState.platformToProjectIdMap,
-          selectedPlatforms: selectedFramework
-            ? [selectedFramework]
-            : clientState.selectedPlatforms,
+          selectedPlatform: platform,
           state: 'projects_selected',
           url: 'setup-docs/',
         });
-        trackAnalytics('growth.onboarding_set_up_your_projects', {
-          platforms: selectedPlatforms.join(','),
-          platform_count: selectedPlatforms.length,
+
+        trackAnalytics('growth.onboarding_set_up_your_project', {
+          platform: selectedPlatform.key,
           organization,
         });
-        onComplete(
-          selectedFramework ? [selectedFramework] : clientState.selectedPlatforms
-        );
+
+        onComplete(platform);
         return;
       }
 
       try {
-        addLoadingMessage(
-          singleSelectPlatform ? t('Creating project') : t('Creating projects')
-        );
+        addLoadingMessage(t('Creating project'));
 
-        const responses = await Promise.all(
-          createProjectForPlatforms.map(p =>
-            createProject(api, organization.slug, teams[0].slug, p.key, p.key, {
-              defaultRules: true,
-            })
-          )
-        );
+        const response = await createProject({
+          api,
+          orgSlug: organization.slug,
+          team: teams[0].slug,
+          platform: createProjectForPlatform.key,
+          name: createProjectForPlatform.key,
+          options: {
+            defaultRules: true,
+          },
+        });
 
         const nextState: OnboardingState = {
           platformToProjectIdMap: clientState.platformToProjectIdMap,
-          selectedPlatforms: createProjectForPlatforms,
+          selectedPlatform: createProjectForPlatform,
           state: 'projects_selected',
           url: 'setup-docs/',
         };
-        responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
+
+        nextState.platformToProjectIdMap[createProjectForPlatform.key] =
+          createProjectForPlatform.key;
+
         setClientState(nextState);
 
-        responses.forEach(data => ProjectsStore.onCreateSuccess(data, organization.slug));
+        ProjectsStore.onCreateSuccess(response, organization.slug);
 
-        trackAnalytics('growth.onboarding_set_up_your_projects', {
-          platforms: selectedPlatforms.join(','),
-          platform_count: selectedPlatforms.length,
+        trackAnalytics('growth.onboarding_set_up_your_project', {
+          platform: selectedPlatform.key,
           organization,
         });
+
         clearIndicators();
-        setTimeout(() => onComplete(createProjectForPlatforms));
+        setTimeout(() => onComplete(createProjectForPlatform));
       } catch (err) {
-        addErrorMessage(
-          singleSelectPlatform
-            ? t('Failed to create project')
-            : t('Failed to create projects')
-        );
+        addErrorMessage(t('Failed to create project'));
         Sentry.captureException(err);
       }
     },
     [
       clientState,
       setClientState,
-      selectedPlatforms,
+      selectedPlatform,
       api,
       organization,
       teams,
       projects,
       onComplete,
-      singleSelectPlatform,
     ]
   );
 
   const handleProjectCreation = useCallback(async () => {
-    // we assume that the single select platform is always enabled here
-    const selectedPlatform = selectedPlatforms[0];
+    if (!selectedPlatform) {
+      return;
+    }
 
     if (
       selectedPlatform.type !== 'language' ||
@@ -157,7 +151,7 @@ export function CreateProjectsFooter({
         selectedPlatform.language as SUPPORTED_LANGUAGES
       )
     ) {
-      createProjects();
+      createPlatformProject();
       return;
     }
 
@@ -172,9 +166,9 @@ export function CreateProjectsFooter({
           organization={organization}
           selectedPlatform={selectedPlatform}
           onConfigure={selectedFramework => {
-            createProjects(selectedFramework);
+            createPlatformProject(selectedFramework);
           }}
-          onSkip={createProjects}
+          onSkip={createPlatformProject}
         />
       ),
       {
@@ -187,88 +181,40 @@ export function CreateProjectsFooter({
         },
       }
     );
-  }, [selectedPlatforms, createProjects, organization]);
-
-  const renderPlatform = (platform: PlatformKey) => {
-    platform = platform || 'other';
-    return <SelectedPlatformIcon key={platform} platform={platform} size={23} />;
-  };
+  }, [selectedPlatform, createPlatformProject, organization]);
 
   return (
     <GenericFooter>
       {genSkipOnboardingLink()}
       <SelectionWrapper>
-        {selectedPlatforms.length ? (
-          singleSelectPlatform ? (
-            <Fragment>
-              <div>
-                {selectedPlatforms.map(selectedPlatform =>
-                  renderPlatform(selectedPlatform.key)
-                )}
-              </div>
-              <PlatformSelected>
-                {tct('[platform] selected', {
-                  platform: (
-                    <PlatformName>
-                      {getPlatformName(selectedPlatforms[0].key) ?? 'other'}
-                    </PlatformName>
-                  ),
-                })}
-                <ClearButton priority="link" onClick={clearPlatforms} size="zero">
-                  {t('Clear')}
-                </ClearButton>
-              </PlatformSelected>
-            </Fragment>
-          ) : (
-            <Fragment>
-              <div>
-                {selectedPlatforms.map(selectedPlatform =>
-                  renderPlatform(selectedPlatform.key)
-                )}
-              </div>
-              <PlatformsSelected>
-                {tn(
-                  '%s platform selected',
-                  '%s platforms selected',
-                  selectedPlatforms.length
-                )}
-                <ClearButton priority="link" onClick={clearPlatforms} size="zero">
-                  {t('Clear')}
-                </ClearButton>
-              </PlatformsSelected>
-            </Fragment>
-          )
+        {selectedPlatform ? (
+          <Fragment>
+            <div>
+              <SelectedPlatformIcon
+                platform={selectedPlatform.key ?? 'other'}
+                size={23}
+              />
+            </div>
+            <PlatformsSelected>
+              {t('1 platform selected')}
+              <ClearButton priority="link" onClick={clearPlatform} size="zero">
+                {t('Clear')}
+              </ClearButton>
+            </PlatformsSelected>
+          </Fragment>
         ) : null}
       </SelectionWrapper>
       <ButtonWrapper>
-        {singleSelectPlatform ? (
-          <Button
-            priority="primary"
-            onClick={() =>
-              frameworkSelectionEnabled ? handleProjectCreation() : createProjects()
-            }
-            disabled={selectedPlatforms.length === 0}
-            data-test-id="platform-select-next"
-            title={
-              selectedPlatforms.length === 0
-                ? t('Select the platform you want to monitor')
-                : undefined
-            }
-          >
-            {t('Create Project')}
-          </Button>
-        ) : (
-          <Button
-            priority="primary"
-            onClick={() =>
-              frameworkSelectionEnabled ? handleProjectCreation() : createProjects()
-            }
-            disabled={selectedPlatforms.length === 0}
-            data-test-id="platform-select-next"
-          >
-            {tn('Create Project', 'Create Projects', selectedPlatforms.length)}
-          </Button>
-        )}
+        <Button
+          priority="primary"
+          onClick={() =>
+            frameworkSelectionEnabled ? handleProjectCreation() : createPlatformProject()
+          }
+          disabled={!selectedPlatform}
+          data-test-id="platform-select-next"
+        >
+          {t('Create Project')}
+        </Button>
       </ButtonWrapper>
     </GenericFooter>
   );
@@ -313,18 +259,7 @@ const PlatformsSelected = styled('div')`
   margin-top: ${space(1)};
 `;
 
-const PlatformSelected = styled('div')`
-  margin-top: ${space(1)};
-  display: grid;
-  grid-template-columns: 1fr max-content max-content;
-  align-items: center;
-`;
-
 const ClearButton = styled(Button)`
   margin-left: ${space(2)};
   padding: 0;
-`;
-
-const PlatformName = styled(TextOverflow)`
-  margin-right: ${space(0.5)};
 `;
