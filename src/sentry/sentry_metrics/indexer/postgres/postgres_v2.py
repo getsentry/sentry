@@ -60,7 +60,7 @@ class PGStringIndexerV2(StringIndexer):
             for _, organization_id, string in db_use_case_keys.as_tuples()
         ]
 
-        return self._get_table(db_use_case_keys.mapping.keys()).objects.filter(
+        return self._get_table_from_use_case_ids(db_use_case_keys.mapping.keys()).objects.filter(
             reduce(or_, conditions)
         )
 
@@ -190,7 +190,7 @@ class PGStringIndexerV2(StringIndexer):
 
             if use_case_path_key is not UseCaseKey.RELEASE_HEALTH:
                 new_records = [
-                    self._get_table(strings.keys())(
+                    self._get_table_from_use_case_ids(strings.keys())(
                         organization_id=int(organization_id),
                         string=string,
                         use_case_id=use_case_id.value,
@@ -199,7 +199,7 @@ class PGStringIndexerV2(StringIndexer):
                 ]
             else:
                 new_records = [
-                    self._get_table(strings.keys())(
+                    self._get_table_from_use_case_ids(strings.keys())(
                         organization_id=int(organization_id),
                         string=string,
                     )
@@ -207,7 +207,9 @@ class PGStringIndexerV2(StringIndexer):
                 ]
 
             with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-                self._bulk_create_with_retry(self._get_table(strings.keys()), new_records)
+                self._bulk_create_with_retry(
+                    self._get_table_from_use_case_ids(strings.keys()), new_records
+                )
 
         db_write_key_results = UseCaseKeyResults()
         db_write_key_results.add_use_case_key_results(
@@ -238,7 +240,7 @@ class PGStringIndexerV2(StringIndexer):
         Returns None if the entry cannot be found.
 
         """
-        table = TABLE_MAPPING[use_case_id]
+        table = self._get_table_from_metric_path_key(use_case_id)
         try:
             id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
         except table.DoesNotExist:
@@ -251,7 +253,7 @@ class PGStringIndexerV2(StringIndexer):
 
         Returns None if the entry cannot be found.
         """
-        table = TABLE_MAPPING[use_case_id]
+        table = self._get_table_from_metric_path_key(use_case_id)
         try:
             obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
@@ -269,8 +271,11 @@ class PGStringIndexerV2(StringIndexer):
             )
         return next(iter(metrics_paths))
 
-    def _get_table(self, use_case_ids: Collection[UseCaseID]) -> IndexerTable:
+    def _get_table_from_use_case_ids(self, use_case_ids: Collection[UseCaseID]) -> IndexerTable:
         return TABLE_MAPPING[self._get_metric_path_key(use_case_ids)]
+
+    def _get_table_from_metric_path_key(self, metric_path_key: UseCaseKey) -> IndexerTable:
+        return TABLE_MAPPING[metric_path_key]
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         raise NotImplementedError(
