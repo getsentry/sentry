@@ -49,6 +49,7 @@ class GroupHistoryStatus:
     ARCHIVED_UNTIL_ESCALATING = 15
     ARCHIVED_FOREVER = 16
     ARCHIVED_UNTIL_CONDITION_MET = 17
+
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
