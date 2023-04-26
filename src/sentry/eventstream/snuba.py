@@ -439,10 +439,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
             # Needed since "events" test data is wrong and "generic-events" does not have a schema yet
             schema = None
 
-        # print(schema)
-        print(entity)
-        print(data)
-
         # The JsonCodec cannot be used since there are datetimes being passed here in unit tests which cannot
         # be properly encoded
 
