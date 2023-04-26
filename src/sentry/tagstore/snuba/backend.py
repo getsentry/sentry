@@ -69,8 +69,10 @@ SEEN_COLUMN = "timestamp"
 # all values for a given tag/column
 BLACKLISTED_COLUMNS = frozenset(["project_id"])
 
+BOOLEAN_KEYS = frozenset(["error.handled", "error.unhandled", "error.main_thread", "stack.in_app"])
+
 FUZZY_NUMERIC_KEYS = frozenset(
-    ["stack.colno", "stack.in_app", "stack.lineno", "stack.stack_level", "transaction.duration"]
+    ["stack.colno", "stack.lineno", "stack.stack_level", "transaction.duration"]
 )
 FUZZY_NUMERIC_DISTANCE = 50
 
@@ -80,6 +82,10 @@ FUZZY_NUMERIC_DISTANCE = 50
 DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
 
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
+
+
+def is_boolean_key(key):
+    return key in BOOLEAN_KEYS
 
 
 def is_fuzzy_numeric_key(key):
@@ -1302,7 +1308,7 @@ class SnubaTagStorage(TagStorage):
 
         # These columns have fixed values and we don't need to emit queries to find out the
         # potential options.
-        if key in {"error.handled", "error.unhandled"}:
+        if is_boolean_key(key):
             return SequencePaginator(
                 [
                     (
