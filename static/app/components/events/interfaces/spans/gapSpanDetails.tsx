@@ -8,7 +8,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -137,13 +136,7 @@ export function GapSpanDetails({
             'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
           )}
         </p>
-        <Button
-          icon={<IconProfiling />}
-          size="sm"
-          priority="primary"
-          href={docsLink}
-          external
-        >
+        <Button size="sm" priority="primary" href={docsLink} external>
           {t('Set Up Profiling')}
         </Button>
         <ManualInstrumentationInstruction />
