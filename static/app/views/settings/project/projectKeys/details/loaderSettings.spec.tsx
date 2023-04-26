@@ -224,8 +224,9 @@ describe('Loader Script Settings', function () {
       }
     }
 
-    const infos = screen.getAllByText('Only available in SDK version 7.x and above');
-    expect(infos.length).toBe(2);
+    expect(
+      screen.getAllByText('Only available in SDK version 7.x and above')
+    ).toHaveLength(2);
   });
 
   it('shows replay message when it is enabled', function () {
@@ -259,7 +260,7 @@ describe('Loader Script Settings', function () {
     );
 
     expect(
-      screen.queryByText(
+      screen.getByText(
         'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
       )
     ).toBeInTheDocument();
