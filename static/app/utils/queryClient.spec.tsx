@@ -23,7 +23,7 @@ describe('queryClient', function () {
         headers: {'Custom-Header': 'header value'},
       });
 
-      const TestComponent = () => {
+      function TestComponent() {
         const {data, getResponseHeader} = useApiQuery<ResponseData>(
           ['/some/test/path/'],
           {staleTime: 0}
@@ -39,7 +39,7 @@ describe('queryClient', function () {
             <div>{getResponseHeader?.('Custom-Header')}</div>
           </Fragment>
         );
-      };
+      }
 
       render(<TestComponent />);
 
