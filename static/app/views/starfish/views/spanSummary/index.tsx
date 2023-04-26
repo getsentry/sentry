@@ -130,7 +130,7 @@ export default function SpanSummary({location, params}: Props) {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{transactionName}</Layout.Title>
+            <Layout.Title>{groupId}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
@@ -150,6 +150,7 @@ export default function SpanSummary({location, params}: Props) {
                     spanGroupOperation={spanGroupOperation}
                     spanDescription={spanDescription}
                     spanDomain={spanDomain}
+                    transactionName={transactionName}
                   />
                 )}
                 {areSpanSamplesLoading ? (
@@ -262,7 +263,7 @@ function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.Reac
 
 type SpanInTransactionSlug = {
   groupId: string;
-  transactionName: string;
+  transactionName?: string;
 };
 
 function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
@@ -272,7 +273,7 @@ function parseSlug(slug?: string): SpanInTransactionSlug | undefined {
 
   const delimiterPosition = slug.lastIndexOf(':');
   if (delimiterPosition < 0) {
-    return undefined;
+    return {groupId: slug};
   }
 
   const groupId = slug.slice(0, delimiterPosition);
@@ -285,11 +286,13 @@ function SpanGroupKeyValueList({
   spanDescription,
   spanGroupOperation,
   spanDomain,
+  transactionName,
 }: {
   data: any; // TODO: type this
   spanDescription: string;
   spanDomain?: string;
   spanGroupOperation?: string;
+  transactionName?: string;
 }) {
   switch (spanGroupOperation) {
     case 'db':
@@ -297,6 +300,11 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
+            {
+              key: 'transaction',
+              value: transactionName,
+              subject: 'Transaction',
+            },
             {key: 'desc', value: spanDescription, subject: 'Full Query'},
             {key: 'domain', value: spanDomain, subject: 'Table Columns'},
           ]}
@@ -307,6 +315,11 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
+            {
+              key: 'transaction',
+              value: transactionName,
+              subject: 'Transaction',
+            },
             {key: 'desc', value: spanDescription, subject: 'URL'},
             {key: 'domain', value: spanDomain, subject: 'Domain'},
           ]}
