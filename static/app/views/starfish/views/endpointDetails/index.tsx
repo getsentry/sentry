@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
+import * as qs from 'query-string';
 
 import Duration from 'sentry/components/duration';
 import GridEditable, {
@@ -83,12 +84,16 @@ export default function EndpointDetail({
 function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   const location = useLocation();
   const seriesQuery = getEndpointDetailSeriesQuery({
-    description: row.description,
+    description: null,
     transactionName: null,
+    datetime: null,
+    groupId: row.group_id,
   });
   const tableQuery = getEndpointDetailTableQuery({
-    description: row.description,
+    description: null,
     transactionName: null,
+    datetime: null,
+    groupId: row.group_id,
   });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
@@ -200,9 +205,7 @@ function renderBodyCell(
     return (
       <OverflowEllipsisTextContainer>
         <Link
-          to={`/starfish/span/${encodeURIComponent(groupId)}:${encodeURIComponent(
-            row.transaction
-          )}`}
+          to={`/starfish/span/${groupId}?${qs.stringify({transaction: row.transaction})}`}
         >
           {row[column.key]}
         </Link>

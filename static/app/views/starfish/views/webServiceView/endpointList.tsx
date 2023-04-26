@@ -147,7 +147,7 @@ class EndpointList extends Component<Props, State> {
           <TrendingDuration trendDirection={trendDirection}>
             {tct('([sign][delta])', {
               sign: deltaValue >= 0 ? '+' : '-',
-              delta: formatPercentage(deltaValue, 2),
+              delta: formatPercentage(Math.abs(deltaValue), 2),
             })}
           </TrendingDuration>
         </NumberContainer>
