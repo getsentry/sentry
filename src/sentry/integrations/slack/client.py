@@ -1,6 +1,6 @@
 from typing import Any, Mapping, Optional, Union
 
-from requests import Request, Response
+from requests import PreparedRequest, Response
 from sentry_sdk.tracing import Transaction
 
 from sentry.constants import ObjectStatus
@@ -22,7 +22,7 @@ class SlackClient(IntegrationProxyClient):
     metrics_prefix = "integrations.slack"
 
     @control_silo_function
-    def authorize_request(self, request: Request) -> Request:
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         integration = None
         base_qs = {
             "provider": EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
@@ -36,13 +36,13 @@ class SlackClient(IntegrationProxyClient):
             ).first()
 
         if not integration:
-            return request
+            return prepared_request
 
         token = (
             integration.metadata.get("user_access_token") or integration.metadata["access_token"]
         )
-        request.headers["Authorization"] = f"Bearer {token}"
-        return request
+        prepared_request.headers["Authorization"] = f"Bearer {token}"
+        return prepared_request
 
     def track_response_data(
         self,

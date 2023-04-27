@@ -1,4 +1,3 @@
-import pytest
 from django.test import override_settings
 from requests import Request
 
@@ -24,11 +23,6 @@ class IntegrationProxyClientTest(TestCase):
 
         self.client_cls = TestClient
         self.oi_id = 24
-
-    def test_authorize_request_required(self):
-        client = self.client_cls(org_integration_id=self.oi_id)
-        with pytest.raises(NotImplementedError):
-            client.authorize_request(Request())
 
     def test_finalize_request_noop(self):
         """Only applies proxy details if the request originates from a region silo."""

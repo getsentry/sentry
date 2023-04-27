@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.conf import settings
-from requests import PreparedRequest, Request
+from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
 from sentry.services.hybrid_cloud.util import control_silo_function
@@ -46,17 +46,20 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
             self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
     @control_silo_function
-    def authorize_request(self, request: Request) -> Request:
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         """
         Used in the Control Silo to authorize all outgoing requests to the service provider.
         """
-        raise NotImplementedError(
-            "'authorize_request' method must be implemented to safely proxy requests."
-        )
+        return prepared_request
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        """
+        Every request through this subclassed clients run this method.
+        If running as a monolith/control, we must authorize each request before sending.
+        If running as a region, we don't authorize and instead, send it to our proxy endpoint.
+        """
         if not self.should_proxy_to_control or not prepared_request.url:
-            return prepared_request
+            return self.authorize_request(prepared_request=prepared_request)
 
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
         proxy_path = trim_leading_slashes(prepared_request.url[len(self.base_url) :])
