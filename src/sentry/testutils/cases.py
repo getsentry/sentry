@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import responses
 
-from sentry.sentry_metrics.use_case_id_registry import METRIC_ID_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 
 __all__ = (
     "TestCase",
@@ -1241,7 +1241,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def metric_id(key: str):
             assert isinstance(key, str)
             res = indexer.record(
-                use_case_id=METRIC_ID_MAPPING[use_case_id],
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
                 org_id=org_id,
                 string=key,
             )
@@ -1252,7 +1252,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_key(name):
             assert isinstance(name, str)
             res = indexer.record(
-                use_case_id=METRIC_ID_MAPPING[use_case_id],
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
                 org_id=org_id,
                 string=name,
             )
@@ -1263,7 +1263,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_value(name):
             assert isinstance(name, str)
             res = indexer.record(
-                use_case_id=METRIC_ID_MAPPING[use_case_id],
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
                 org_id=org_id,
                 string=name,
             )

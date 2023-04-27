@@ -12,7 +12,7 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyResults,
 )
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
-from sentry.sentry_metrics.use_case_id_registry import METRIC_ID_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 
 
 class RawSimpleIndexer(StringIndexer):
@@ -64,7 +64,7 @@ class RawSimpleIndexer(StringIndexer):
         return self._record(use_case_id, org_id, string)
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        strs = self._strings[METRIC_ID_MAPPING[use_case_id]][org_id]
+        strs = self._strings[REVERSE_METRIC_PATH_MAPPING[use_case_id]][org_id]
         return strs.get(string)
 
     def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
