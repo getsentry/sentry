@@ -4,14 +4,17 @@ from unittest.mock import patch
 import pytz
 
 from sentry.models import Group, GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
-from sentry.tasks.auto_ongoing_issues import schedule_auto_transition
+from sentry.tasks.auto_ongoing_issues import (
+    schedule_auto_transition,
+    schedule_auto_transition_regressed,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.types.group import GroupSubStatus
 
 
 @apply_feature_flag_on_cls("organizations:issue-states-auto-transition-new-ongoing")
-class ScheduleAutoOngoingIssuesTest(TestCase):
+class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @patch("sentry.signals.inbox_in.send_robust")
     def test_simple(self, inbox_in):
         now = datetime.now(tz=pytz.UTC)
@@ -177,3 +180,25 @@ class ScheduleAutoOngoingIssuesTest(TestCase):
                 project=project, reason=GroupInboxReason.ONGOING.value
             ).values_list("group_id", flat=True)
         ) == {g.id for g in groups}
+
+
+@apply_feature_flag_on_cls("organizations:issue-states-auto-transition-regressed-ongoing")
+class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
+    @patch("sentry.signals.inbox_in.send_robust")
+    def test_simple(self, inbox_in):
+        now = datetime.now(tz=pytz.UTC)
+        project = self.create_project()
+        group = self.create_group(
+            project=project,
+        )
+        group_inbox = add_group_to_inbox(group, GroupInboxReason.REGRESSION)
+        group_inbox.date_added = now - timedelta(days=14, hours=1)
+        group_inbox.save()
+
+        with self.tasks():
+            schedule_auto_transition_regressed()
+
+        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
+        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
+        assert ongoing_inbox.date_added >= now
+        assert inbox_in.called
