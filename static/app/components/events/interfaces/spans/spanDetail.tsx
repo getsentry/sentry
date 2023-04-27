@@ -67,7 +67,7 @@ const SIZE_DATA_KEYS = [
   'Transfer Size',
   'http.response_content_length',
   'http.decoded_response_content_length',
-  'http.transfer_size',
+  'http.response_transfer_size',
 ];
 
 type TransactionResult = {

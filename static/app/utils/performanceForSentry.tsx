@@ -226,7 +226,8 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
     );
     const transfered = filtered.reduce(
       (acc, curr) =>
-        acc + (curr.data['http.transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
+        acc +
+        (curr.data['http.response_transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
       0
     );
     const encoded = filtered.reduce(

@@ -71,7 +71,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -85,7 +85,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -99,7 +99,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -113,7 +113,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -127,7 +127,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -141,7 +141,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -155,7 +155,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -169,7 +169,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
         ],
@@ -282,7 +282,7 @@ describe('WaterfallModel', () => {
         data: {
           'http.decoded_response_content_length': 159248,
           'http.response_content_length': 159248,
-          'http.transfer_size': 275,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 1,
@@ -309,7 +309,7 @@ describe('WaterfallModel', () => {
         data: {
           'http.decoded_response_content_length': 159248,
           'http.response_content_length': 159248,
-          'http.transfer_size': 275,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 2,
@@ -336,7 +336,7 @@ describe('WaterfallModel', () => {
         data: {
           'http.decoded_response_content_length': 159248,
           'http.response_content_length': 159248,
-          'http.transfer_size': 275,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 0,
@@ -363,7 +363,7 @@ describe('WaterfallModel', () => {
         data: {
           'http.decoded_response_content_length': 159248,
           'http.response_content_length': 159248,
-          'http.transfer_size': 275,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 0,
@@ -408,7 +408,7 @@ describe('WaterfallModel', () => {
         data: {
           'http.decoded_response_content_length': 159248,
           'http.response_content_length': 159248,
-          'http.transfer_size': 275,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 1,
@@ -435,7 +435,7 @@ describe('WaterfallModel', () => {
         data: {
           'http.decoded_response_content_length': 159248,
           'http.response_content_length': 159248,
-          'http.transfer_size': 275,
+          'http.response_transfer_size': 275,
         },
       },
       treeDepth: 2,
@@ -454,7 +454,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           numOfSpanChildren: 1,
@@ -481,7 +481,7 @@ describe('WaterfallModel', () => {
             data: {
               'http.decoded_response_content_length': 159248,
               'http.response_content_length': 159248,
-              'http.transfer_size': 275,
+              'http.response_transfer_size': 275,
             },
           },
           numOfSpanChildren: 1,
@@ -513,7 +513,7 @@ describe('WaterfallModel', () => {
         data: {
           'http.decoded_response_content_length': 159248,
           'http.response_content_length': 159248,
-          'http.transfer_size': 275,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 0,
