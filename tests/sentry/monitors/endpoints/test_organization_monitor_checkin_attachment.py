@@ -18,8 +18,10 @@ class OrganizationMonitorCheckInAttachmentEndpointTest(MonitorTestCase):
         file.putfile(ContentFile(b"some data!"))
 
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.IN_PROGRESS,
@@ -32,8 +34,10 @@ class OrganizationMonitorCheckInAttachmentEndpointTest(MonitorTestCase):
 
     def test_download_no_file(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.IN_PROGRESS,

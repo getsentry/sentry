@@ -161,10 +161,8 @@ def _process_message(wrapper: Dict) -> None:
                 signal_first_checkin(project, monitor)
 
             if check_in.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                monitor.mark_failed(start_time)
                 monitor_environment.mark_failed(start_time)
             else:
-                monitor.mark_ok(check_in, start_time)
                 monitor_environment.mark_ok(check_in, start_time)
 
             metrics.incr(

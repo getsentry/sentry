@@ -75,11 +75,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
             assert checkin.status == CheckInStatus.OK
 
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.status == MonitorStatus.OK
-            assert monitor.last_checkin == checkin.date_added
-            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin == checkin.date_added
@@ -109,11 +104,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
             assert checkin.status == CheckInStatus.ERROR
 
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.status == MonitorStatus.ERROR
-            assert monitor.last_checkin == checkin.date_added
-            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
@@ -131,11 +121,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
             assert checkin.status == CheckInStatus.ERROR
-
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.status == MonitorStatus.DISABLED
-            assert monitor.last_checkin == checkin.date_added
-            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.DISABLED

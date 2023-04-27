@@ -86,8 +86,6 @@ class MonitorSerializer(Serializer):
             "name": obj.name,
             "slug": obj.slug,
             "config": config,
-            "lastCheckIn": obj.last_checkin,
-            "nextCheckIn": obj.next_checkin,
             "dateCreated": obj.date_added,
             "project": attrs["project"],
             "environments": attrs["environments"],
@@ -102,8 +100,6 @@ class MonitorSerializerResponse(TypedDict):
     type: str
     config: Any
     dateCreated: datetime
-    lastCheckIn: datetime
-    nextCheckIn: datetime
     project: ProjectSerializerResponse
     environments: MonitorEnvironmentSerializerResponse
 

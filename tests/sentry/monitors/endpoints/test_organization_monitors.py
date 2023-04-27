@@ -105,10 +105,10 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self.check_valid_response(response, [monitor])
 
     def test_monitor_environment_include_new(self):
-        monitor = self._create_monitor(
-            status=MonitorStatus.OK, last_checkin=datetime.now() - timedelta(minutes=1)
+        monitor = self._create_monitor()
+        self._create_monitor_environment(
+            monitor, status=MonitorStatus.OK, last_checkin=datetime.now() - timedelta(minutes=1)
         )
-        self._create_monitor_environment(monitor)
 
         monitor_visible = self._create_monitor(name="visible")
 
