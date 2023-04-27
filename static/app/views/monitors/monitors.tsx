@@ -53,7 +53,7 @@ function NewMonitorButton(props: ButtonProps) {
   );
 }
 
-export default function MonitorsFC({location}: RouteComponentProps<{}, {}>) {
+export default function Monitors({location}: RouteComponentProps<{}, {}>) {
   const organization = useOrganization();
   const router = useRouter();
   const queryClient = useQueryClient();
