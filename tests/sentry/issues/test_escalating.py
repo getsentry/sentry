@@ -3,6 +3,8 @@ from typing import List, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
+from freezegun import freeze_time
+
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import (
     GroupsCountResponse,
@@ -47,6 +49,8 @@ class BaseGroupCounts(TestCase):  # type: ignore[misc]
                 "timestamp": (datetime_reset_zero - timedelta(minutes=minutes_ago)).timestamp(),
                 "fingerprint": [fingerprint],
             },
+            # Due to the use of freeze gun
+            assert_no_errors=False,
         )
 
 
@@ -174,7 +178,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
-        with self.feature("organizations:escalating-issues"):
+        with self.feature("organizations:escalating-issues"), freeze_time("2023-04-25 06:21:34"):
             # The group has 6 events today
             for i in range(7, 1, -1):
                 event = self._load_event_for_group(minutes_ago=i)
@@ -231,28 +235,35 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
     def test_daily_count_query(self) -> None:
         """Test the daily count query only aggregates events from today"""
-        # The group had 3 events two days ago
-        two_days_ago_mins = 48 * 60
-        for i in range(4, 1, -1):
-            event = self._load_event_for_group(minutes_ago=two_days_ago_mins + i)
+        # Do not create events more than 6 hours before or it would move to the previous day
+        with freeze_time("2023-04-25 06:21:34"):
+            # The group had 3 events two days ago
+            two_days_ago_mins = 48 * 60
+            for i in range(4, 1, -1):
+                event = self._load_event_for_group(minutes_ago=two_days_ago_mins + i)
 
-        # The group had 2 events yesterday
-        # Tests that events are aggregated in the daily count query by date, not by 24 hr periods
-        yesterday = datetime.now().date() - timedelta(days=1)
-        yesterday_midnight = datetime.combine(yesterday, datetime.min.time())
-        mins_since_yesterday_midnight = int(
-            ((datetime.now() - yesterday_midnight).total_seconds()) / 60
-        )
-        for i in range(3, 1, -1):
-            # Event occured i hours after yesterday midnight
-            event = self._load_event_for_group(minutes_ago=mins_since_yesterday_midnight + i * 60)
+            # The group had 2 events yesterday
+            # Tests that events are aggregated in the daily count query by date, not by 24 hr periods
+            yesterday = datetime.now().date() - timedelta(days=1)
+            yesterday_midnight = datetime.combine(yesterday, datetime.min.time())
+            mins_since_yesterday_midnight = int(
+                ((datetime.now() - yesterday_midnight).total_seconds()) / 60
+            )
+            for i in range(3, 1, -1):
+                # Event occured i hours after yesterday midnight
+                event = self._load_event_for_group(
+                    minutes_ago=mins_since_yesterday_midnight + i * 60
+                )
 
-        # The group has 1 event today
-        for i in range(2, 1, -1):
-            event = self._load_event_for_group(minutes_ago=i)
-            group = event.group
-        group.status = GroupStatus.IGNORED
-        group.substatus = GroupSubStatus.UNTIL_ESCALATING
-        group.save()
+            # The group has 1 event today
+            for i in range(2, 1, -1):
+                event = self._load_event_for_group(minutes_ago=i)
+                group = event.group
+            group.status = GroupStatus.IGNORED
+            group.substatus = GroupSubStatus.UNTIL_ESCALATING
+            group.save()
 
-        assert get_group_daily_count(group.project.organization.id, group.project.id, group.id) == 1
+            assert (
+                get_group_daily_count(group.project.organization.id, group.project.id, group.id)
+                == 1
+            )
