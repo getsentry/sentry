@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
@@ -84,8 +84,11 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             url = absolute_uri(relative_url, endpoint)
 
         accept = CHUNK_UPLOAD_ACCEPT
-        if features.has(
-            "organizations:artifact-bundles", organization=organization, actor=request.user
+        # We keep checking for the early adopter flag, since we don't want existing early adopters to have a time in
+        # which the system rolls back to release bundles, since we want to change the option after deploying.
+        if (
+            options.get("sourcemaps.enable-artifact-bundles") == 1.0
+            or organization.flags.early_adopter
         ):
             accept += ("artifact_bundles",)
 
