@@ -308,12 +308,22 @@ def test_parse_request_response_old_format_request_and_response():
 
 
 def test_get_testid():
-    # data-testid takes precedence.
-    assert _get_testid({"data-testid": "123", "data-test-id": "456"}) == "123"
-    assert _get_testid({"data-testid": "123", "data-test-id": ""}) == "123"
+    # Assert each test-id permutation is extracted.
+    assert _get_testid({"testId": "123"}) == "123"
     assert _get_testid({"data-testid": "123"}) == "123"
+    assert _get_testid({"data-test-id": "123"}) == "123"
+
+    # Assert no test-id is parsed as empty string
+    assert _get_testid({}) == ""
+
+    # testId takes precedence.
+    assert _get_testid({"testId": "123", "data-testid": "456", "data-test-id": "456"}) == "123"
+
+    # data-testid takes precedence.
+    assert _get_testid({"data-testid": "123", "data-test-id": ""}) == "123"
 
     # data-test-id is the fallback case.
+    assert _get_testid({"testId": "", "data-testid": "", "data-test-id": "456"}) == "456"
     assert _get_testid({"data-testid": "", "data-test-id": "456"}) == "456"
     assert _get_testid({"data-test-id": "456"}) == "456"
 
