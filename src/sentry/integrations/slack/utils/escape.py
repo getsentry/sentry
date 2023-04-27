@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 # TODO(scttcper): Might need to handle "*" bold, and "_" italics
 translator = str.maketrans({"&": "&amp;", "<": "&lt;", ">": "&gt;"})
 
 
-def escape_slack_text(txt: str) -> str:
+def escape_slack_text(txt: str | None) -> str:
+    if not txt:
+        return ""
     """
     When using user input inside slack links or slack "mrkdwn" special characters
     could break formatting.
