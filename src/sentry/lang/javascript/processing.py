@@ -185,7 +185,6 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules=modules,
         release=data.get("release"),
         dist=data.get("dist"),
-        allow_scraping=allow_scraping,
         scraping_config=scraping_config,
     )
 
