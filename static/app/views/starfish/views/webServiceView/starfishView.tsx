@@ -122,7 +122,11 @@ export function StarfishView(props: BasePerformanceViewProps) {
   }
 
   function renderThroughputChart() {
-    const query = new MutableSearch(['event.type:transaction']);
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'has:http.method',
+      'transaction.op:http.server',
+    ]);
 
     return (
       <EventsRequest
@@ -140,6 +144,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         end={eventView.end}
         organization={organization}
         yAxis="tpm()"
+        queryExtras={{dataset: 'metrics'}}
       >
         {({loading, timeseriesData}) => {
           const transformedData: Series[] | undefined = timeseriesData?.map(series => ({
