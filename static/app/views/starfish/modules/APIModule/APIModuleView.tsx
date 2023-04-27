@@ -13,6 +13,7 @@ import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
@@ -20,8 +21,6 @@ import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 import EndpointTable from './endpointTable';
 import HostTable from './hostTable';
 import {getEndpointDomainsQuery, getEndpointGraphQuery} from './queries';
-
-export const HOST = 'http://localhost:8080';
 
 const HTTP_ACTION_OPTIONS = [
   {value: '', label: 'All'},
