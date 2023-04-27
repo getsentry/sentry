@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -53,12 +54,11 @@ export default function FailureDetailPanel({
 
   return (
     <Detail detailKey={spike?.startTimestamp.toString()} onClose={onClose}>
-      <h2>{t('Error Spike Detail')}</h2>
-      <p>
-        {t(
-          'Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike. Detailed summary of failure rate spike.'
-        )}
-      </p>
+      <TimeRangeHeading>{`${moment(spike?.startTimestamp).format('LLL')} - ${moment(
+        spike?.endTimestamp
+      ).format('LLL')}`}</TimeRangeHeading>
+      <h3>{t('Error Spike Detail')}</h3>
+
       {spike && (
         <DiscoverQuery
           eventView={eventView}
@@ -98,4 +98,9 @@ export default function FailureDetailPanel({
 
 const Title = styled('h5')`
   margin-bottom: ${space(1)};
+`;
+
+const TimeRangeHeading = styled('div')`
+  color: ${p => p.theme.red300};
+  margin-bottom: ${space(4)};
 `;
