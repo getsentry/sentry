@@ -817,7 +817,6 @@ def _apply_cache_and_build_results(
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
-
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 
@@ -848,7 +847,7 @@ def _apply_cache_and_build_results(
 
     # Sort so that we get the results back in the original param list order
     results.sort()
-    # Drop the sort order val
+    # Drop the sort order valtests/snuba/api/endpoints/test_organization_event_details.py
     return [result[1] for result in results]
 
 
@@ -948,6 +947,8 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -> RawRe
     request, forward, reverse = query_data
     request.parent_api = parent_api
     assert isinstance(request, Request)
+    assert "organization_id" in request.tenant_ids
+    assert "referrer" in request.tenant_ids
     try:
         return _raw_snql_query(request, thread_hub, headers), forward, reverse
     except urllib3.exceptions.HTTPError as err:
