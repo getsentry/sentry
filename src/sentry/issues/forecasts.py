@@ -30,13 +30,13 @@ def save_forecast_per_group(
     """
     time = datetime.now()
     group_dict = {group.id: group for group in until_escalating_groups}
-    for group_id in group_counts.keys():
-        forecasts = generate_issue_forecast(group_counts[group_id], time)
+    for group_id, group_count in group_counts.items():
+        forecasts = generate_issue_forecast(group_count, time)
         forecasts_list = [forecast["forecasted_value"] for forecast in forecasts]
 
         if group_dict.get(group_id):
             escalating_group_forecast = EscalatingGroupForecast(
-                group_dict[group_id].project.id, group_id, forecasts_list, datetime.now()
+                group_dict[group_id].project.id, group_id, forecasts_list, time
             )
             escalating_group_forecast.save()
     logger.info(
