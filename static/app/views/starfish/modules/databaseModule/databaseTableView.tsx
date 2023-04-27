@@ -6,7 +6,7 @@ import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 
 type Props = {
@@ -28,8 +28,10 @@ export type DataRow = {
   firstSeen: string;
   formatted_desc: string;
   group_id: string;
+  lastSeen: string;
   newish: number;
   p75: number;
+  retired: number;
   total_time: number;
   transactions: number;
 };
@@ -94,17 +96,21 @@ export default function APIModuleView({
     }
     if (column.key === 'description') {
       const value = row[column.key];
+      let headerExtra = '';
+      if (row.newish === 1) {
+        headerExtra = `Query (First seen ${row.firstSeen})`;
+      } else if (row.retired === 1) {
+        headerExtra = `Query (Last seen ${row.lastSeen})`;
+      }
       return (
-        <Hovercard
-          header={`Query ${row.newish === 1 ? `(First seen ${row.firstSeen})` : ''}`}
-          body={value}
-        >
-          <Link style={rowStyle} onClick={() => onSelect(row, rowIndex)} to="">
+        <Hovercard header={headerExtra} body={value}>
+          <Link onClick={() => onSelect(row, rowIndex)} to="">
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
           </Link>
           {row?.newish === 1 && <StyledBadge type="new" text="new" />}
+          {row?.retired === 1 && <StyledBadge type="warning" text="old" />}
         </Hovercard>
       );
     }

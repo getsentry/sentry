@@ -8,7 +8,7 @@ import moment from 'moment';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -44,9 +44,14 @@ export type DataRow = {
 export default function APIModuleView({location, onSelect}: Props) {
   const themes = useTheme();
   const pageFilter = usePageFilters();
-  const [state, setState] = useState<{action: string; domain: string}>({
+  const [state, setState] = useState<{
+    action: string;
+    domain: string;
+    transaction: string;
+  }>({
     action: '',
     domain: '',
+    transaction: '',
   });
 
   const {isLoading: _isDomainsLoading, data: domains} = useQuery({
