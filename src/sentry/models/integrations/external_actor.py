@@ -45,7 +45,12 @@ class ExternalActor(DefaultFieldsModel):
         unique_together = (("organization", "provider", "external_name", "actor"),)
 
     def delete(self, **kwargs):
-        install = self.integration.get_installation(self.organization_id)
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        integration = integration_service.get_integration(organization_id=self.organization.id)
+        install = integration_service.get_installation(
+            integration=integration, organization_id=self.organization.id
+        )
 
         install.notify_remove_external_team(external_team=self, team=self.actor.resolve())
         notifications_service.remove_notification_settings(
