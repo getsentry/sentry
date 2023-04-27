@@ -620,17 +620,16 @@ def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_
             {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
         ],
     )
+
     assert generate_rules(default_project) == [
         {
             "condition": {
-                "inner": [
-                    {
-                        "name": "trace.replay_id",
-                        "op": "eq",
-                        "value": None,
-                        "options": {"ignoreCase": True},
-                    }
-                ],
+                "inner": {
+                    "name": "trace.replay_id",
+                    "op": "eq",
+                    "value": None,
+                    "options": {"ignoreCase": True},
+                },
                 "op": "not",
             },
             "id": 1005,

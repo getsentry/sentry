@@ -17,14 +17,12 @@ class BoostReplayIdBias(Bias):
                 "type": "trace",
                 "condition": {
                     "op": "not",
-                    "inner": [
-                        {
-                            "op": "eq",
-                            "name": "trace.replay_id",
-                            "value": None,
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
+                    "inner": {
+                        "op": "eq",
+                        "name": "trace.replay_id",
+                        "value": None,
+                        "options": {"ignoreCase": True},
+                    },
                 },
                 "id": RESERVED_IDS[RuleType.BOOST_REPLAY_ID_RULE],
             }
