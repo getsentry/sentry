@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Outcome} from 'sentry/types';
 
 /**

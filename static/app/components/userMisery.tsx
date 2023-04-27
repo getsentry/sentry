@@ -1,6 +1,6 @@
 import ScoreBar from 'sentry/components/scoreBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 

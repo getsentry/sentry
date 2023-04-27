@@ -5,7 +5,7 @@ import max from 'lodash/max';
 import {AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {DateString} from 'sentry/types';
 import {EChartClickHandler, Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
