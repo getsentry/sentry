@@ -6,6 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Project} from 'sentry/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   MEPSetting,
   MEPState,
@@ -70,6 +71,7 @@ function TestComponent({
 }
 
 describe('Performance > TransactionSummary', function () {
+  let eventStatsMock: jest.Mock;
   beforeEach(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
@@ -88,7 +90,7 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/tags/user.email/values/',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {data: [[123, []]]},
     });
@@ -100,6 +102,7 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/issues/?limit=5&project=2&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
@@ -159,6 +162,46 @@ describe('Performance > TransactionSummary', function () {
       match: [
         (_url, options) => {
           return options.query?.field?.includes('p95()');
+        },
+      ],
+    });
+    // [Metrics Enhanced] Events Mock totals for the sidebar and other summary data
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            'count()': 'number',
+            'apdex()': 'number',
+            'count_miserable_user()': 'number',
+            'user_misery()': 'number',
+            'count_unique_user()': 'number',
+            'p95()': 'number',
+            'failure_rate()': 'number',
+            'tpm()': 'number',
+            project_threshold_config: 'string',
+          },
+          isMetricsData: true,
+        },
+        data: [
+          {
+            'count()': 200,
+            'apdex()': 0.5,
+            'count_miserable_user()': 120,
+            'user_misery()': 0.1,
+            'count_unique_user()': 100,
+            'p95()': 731.3132,
+            'failure_rate()': 1,
+            'tpm()': 100,
+            project_threshold_config: ['duration', 300],
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          const isMetricsEnhanced =
+            options.query?.dataset === DiscoverDatasets.METRICS_ENHANCED;
+          return options.query?.field?.includes('p95()') && isMetricsEnhanced;
         },
       ],
     });
@@ -788,6 +831,178 @@ describe('Performance > TransactionSummary', function () {
           transactionCursor: '1:0:0',
         },
       });
+    });
+
+    it('does not use MEP dataset for stats query without features', async function () {
+      const {organization, router, routerContext} = initializeData({
+        query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
+        features: [''], // No 'dynamic-sampling' feature to indicate it can use metrics dataset or metrics enhanced.
+      });
+
+      render(<TestComponent router={router} location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      await screen.findByRole('heading', {name: 'Apdex'});
+      expect(await screen.findByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+
+      expect(eventStatsMock).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            interval: '30m',
+            partial: '1',
+            project: [2],
+            query:
+              'transaction.op:pageload event.type:transaction transaction:/performance',
+            referrer: 'api.performance.transaction-summary.duration-chart',
+            statsPeriod: '14d',
+            yAxis: ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'],
+          }),
+        })
+      );
+    });
+
+    it('uses MEP dataset for stats query', async function () {
+      const {organization, router, routerContext} = initializeData({
+        query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
+        features: ['dynamic-sampling'],
+      });
+
+      render(<TestComponent router={router} location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      // Renders Apdex widget
+      await screen.findByRole('heading', {name: 'Apdex'});
+      expect(await screen.findByTestId('apdex-summary-value')).toHaveTextContent('0.5');
+
+      expect(eventStatsMock).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query:
+              'transaction.op:pageload event.type:transaction transaction:/performance',
+            dataset: 'metricsEnhanced',
+          }),
+        })
+      );
+
+      // Renders Failure Rate widget
+      expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
+      expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
+
+      // Renders TPM widget
+      expect(
+        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
+        '100%'
+      );
+
+      expect(
+        screen.queryByTestId('search-metrics-fallback-warning')
+      ).not.toBeInTheDocument();
+    });
+
+    it('uses MEP dataset for stats query and shows fallback warning', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/?limit=5&project=2&query=has%3Anot-compatible%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          meta: {
+            fields: {
+              'count()': 'number',
+              'apdex()': 'number',
+              'count_miserable_user()': 'number',
+              'user_misery()': 'number',
+              'count_unique_user()': 'number',
+              'p95()': 'number',
+              'failure_rate()': 'number',
+              'tpm()': 'number',
+              project_threshold_config: 'string',
+            },
+            isMetricsData: false, // The total response is setting the metrics fallback behaviour.
+          },
+          data: [
+            {
+              'count()': 200,
+              'apdex()': 0.5,
+              'count_miserable_user()': 120,
+              'user_misery()': 0.1,
+              'count_unique_user()': 100,
+              'p95()': 731.3132,
+              'failure_rate()': 1,
+              'tpm()': 100,
+              project_threshold_config: ['duration', 300],
+            },
+          ],
+        },
+        match: [
+          (_url, options) => {
+            const isMetricsEnhanced =
+              options.query?.dataset === DiscoverDatasets.METRICS_ENHANCED;
+            return (
+              options.query?.field?.includes('p95()') &&
+              isMetricsEnhanced &&
+              options.query?.query?.includes('not-compatible')
+            );
+          },
+        ],
+      });
+      const {organization, router, routerContext} = initializeData({
+        query: {query: 'transaction.op:pageload has:not-compatible'}, // Adds incompatible w/ metrics tag
+        features: ['dynamic-sampling'],
+      });
+
+      render(<TestComponent router={router} location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      // Renders Apdex widget
+      await screen.findByRole('heading', {name: 'Apdex'});
+      expect(await screen.findByTestId('apdex-summary-value')).toHaveTextContent('0.5');
+
+      expect(eventStatsMock).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query:
+              'transaction.op:pageload has:not-compatible event.type:transaction transaction:/performance',
+            dataset: 'metricsEnhanced',
+          }),
+        })
+      );
+
+      // Renders Failure Rate widget
+      expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
+      expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
+
+      // Renders TPM widget
+      expect(
+        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
+        '100%'
+      );
+
+      expect(screen.getByTestId('search-metrics-fallback-warning')).toBeInTheDocument();
     });
   });
 });

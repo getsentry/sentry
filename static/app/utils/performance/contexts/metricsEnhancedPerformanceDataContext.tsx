@@ -55,7 +55,7 @@ export const useMEPDataContext = _useMEPDataContext;
 
 export function getIsMetricsDataFromResults(results: any, field = '') {
   const isMetricsData =
-    results?.meta.isMetricsData ??
+    results?.meta?.isMetricsData ??
     results?.seriesAdditionalInfo?.[field]?.isMetricsData ??
     results?.histograms?.meta?.isMetricsData ??
     results?.tableData?.meta?.isMetricsData ??

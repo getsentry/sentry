@@ -202,7 +202,11 @@ function SummaryContent({
                   'Based on your search criteria and sample rate, the events available may be limited.'
                 )}
               >
-                <StyledIconWarning size="sm" color="warningText" />
+                <StyledIconWarning
+                  data-test-id="search-metrics-fallback-warning"
+                  size="sm"
+                  color="warningText"
+                />
               </Tooltip>
             ),
             menuItem: {
