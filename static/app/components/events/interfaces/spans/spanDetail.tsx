@@ -61,7 +61,14 @@ import {
 
 const DEFAULT_ERRORS_VISIBLE = 5;
 
-const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
+const SIZE_DATA_KEYS = [
+  'Encoded Body Size',
+  'Decoded Body Size',
+  'Transfer Size',
+  'http.response_content_length',
+  'http.decoded_response_content_length',
+  'http.response_transfer_size',
+];
 
 type TransactionResult = {
   id: string;

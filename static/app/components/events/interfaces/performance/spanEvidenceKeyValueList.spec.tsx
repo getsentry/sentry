@@ -673,7 +673,7 @@ describe('SpanEvidenceKeyValueList', () => {
       description: 'https://example.com/resource.js',
       problemSpan: ProblemSpan.OFFENDER,
       data: {
-        'Encoded Body Size': 31041901,
+        'http.response_content_length': 31041901,
       },
     });
 
@@ -715,6 +715,45 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.duration-impact')
       ).toHaveTextContent('52% (487ms/931ms)');
     });
+
+    describe('With backwards compatible legacy keys', () => {
+      const legacyKeyBuilder = new TransactionEventBuilder(
+        'a1',
+        '/',
+        IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+        {
+          duration: 0.931, // in seconds
+        }
+      );
+      legacyKeyBuilder.getEvent().projectID = '123';
+
+      const offenderSpanWithLegacyKey = new MockSpan({
+        startTimestamp: 0,
+        endTimestamp: 0.487, // in seconds
+        op: 'resource.script',
+        description: 'https://example.com/resource.js',
+        problemSpan: ProblemSpan.OFFENDER,
+        data: {
+          'Encoded Body Size': 31041901,
+        },
+      });
+
+      legacyKeyBuilder.addSpan(offenderSpanWithLegacyKey);
+
+      it('Renders relevant fields', () => {
+        render(
+          <SpanEvidenceKeyValueList
+            event={legacyKeyBuilder.getEvent()}
+            projectSlug={projectSlug}
+          />
+        );
+
+        expect(screen.getByRole('cell', {name: 'Asset Size'})).toBeInTheDocument();
+        expect(
+          screen.getByTestId('span-evidence-key-value-list.asset-size')
+        ).toHaveTextContent('29.6 MiB (31041901 B)');
+      });
+    });
   });
 
   describe('Large HTTP Payload', () => {
@@ -732,7 +771,7 @@ describe('SpanEvidenceKeyValueList', () => {
       description: 'https://example.com/api/users',
       problemSpan: ProblemSpan.OFFENDER,
       data: {
-        'Encoded Body Size': 31041901,
+        'http.response_content_length': 31041901,
       },
     });
 
@@ -770,6 +809,41 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.payload-size')
       ).toHaveTextContent('29.6 MiB (31041901 B)');
+    });
+
+    describe('With backwards compatible legacy keys', () => {
+      const legacyKeyBuilder = new TransactionEventBuilder(
+        'a1',
+        '/',
+        IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD
+      );
+      legacyKeyBuilder.getEvent().projectID = '123';
+
+      const offenderSpanWithLegacyKey = new MockSpan({
+        startTimestamp: 0,
+        endTimestamp: 0.487, // in seconds
+        op: 'http.client',
+        description: 'https://example.com/api/users',
+        problemSpan: ProblemSpan.OFFENDER,
+        data: {
+          'Encoded Body Size': 31041901,
+        },
+      });
+
+      legacyKeyBuilder.addSpan(offenderSpanWithLegacyKey);
+      it('Renders relevant fields', () => {
+        render(
+          <SpanEvidenceKeyValueList
+            event={legacyKeyBuilder.getEvent()}
+            projectSlug={projectSlug}
+          />
+        );
+
+        expect(screen.getByRole('cell', {name: 'Payload Size'})).toBeInTheDocument();
+        expect(
+          screen.getByTestId('span-evidence-key-value-list.payload-size')
+        ).toHaveTextContent('29.6 MiB (31041901 B)');
+      });
     });
   });
 });
