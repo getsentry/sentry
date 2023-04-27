@@ -223,6 +223,7 @@ function Onboarding(props: Props) {
             organization,
             source,
           });
+          onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
         }}
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`

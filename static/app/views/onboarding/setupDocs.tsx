@@ -400,7 +400,7 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
                 project_index: projectIndex ?? 0,
               });
               onboardingContext.setData({
-                projects: {},
+                ...onboardingContext.data,
                 selectedSDK: undefined,
               });
               browserHistory.push(orgIssuesURL);
@@ -424,7 +424,7 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
               project_index: projectIndex ?? 0,
             });
             onboardingContext.setData({
-              projects: {},
+              ...onboardingContext.data,
               selectedSDK: undefined,
             });
             browserHistory.push(orgIssuesURL);
