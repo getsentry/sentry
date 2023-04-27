@@ -1,9 +1,12 @@
 from datetime import datetime
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 
 from sentry.monitors.models import (
+    MONITOR_ENVIRONMENT_LIMIT,
+    MONITOR_ORG_LIMIT,
     Monitor,
     MonitorEnvironment,
     MonitorFailure,
@@ -113,6 +116,30 @@ class MonitorTestCase(TestCase):
         )
 
         assert monitor.slug.startswith("my-awesome-monitor-")
+
+    def test_monitor_organization_limit(self):
+        for i in range(MONITOR_ORG_LIMIT + 1):
+            Monitor.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                type=MonitorType.CRON_JOB,
+                name=f"Unicron-{i}",
+                slug=f"unicron-{i}",
+                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            )
+
+        with pytest.raises(
+            Exception,
+            match=f"Organization has created the maximum number of Monitors: {MONITOR_ORG_LIMIT}",
+        ):
+            Monitor.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                type=MonitorType.CRON_JOB,
+                name=f"Unicron-{MONITOR_ORG_LIMIT + 1}",
+                slug=f"unicron-{MONITOR_ORG_LIMIT + 1}",
+                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            )
 
 
 @region_silo_test(stable=True)
@@ -252,3 +279,24 @@ class MonitorEnvironmentTestCase(TestCase):
                 "type": "default",
             },
         ) == dict(event)
+
+    def test_monitor_environment_limits(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="Unicron",
+            slug="unicron",
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        for i in range(MONITOR_ENVIRONMENT_LIMIT + 1):
+            MonitorEnvironment.objects.ensure_environment(self.project, monitor, f"space-{i}")
+
+        with pytest.raises(
+            Exception,
+            match=f"Monitor has created the maximum number of Monitor Environments: {MONITOR_ENVIRONMENT_LIMIT}",
+        ):
+            MonitorEnvironment.objects.ensure_environment(
+                self.project, monitor, f"space-{MONITOR_ENVIRONMENT_LIMIT + 1}"
+            )

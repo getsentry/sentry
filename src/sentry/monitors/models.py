@@ -8,6 +8,8 @@ from croniter import croniter
 from dateutil import rrule
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -29,6 +31,9 @@ from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
     from sentry.models import Project
+
+MONITOR_ORG_LIMIT = 50
+MONITOR_ENVIRONMENT_LIMIT = 50
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -230,6 +235,18 @@ class Monitor(Model):
         return "active"
 
 
+@receiver(pre_save, sender=Monitor)
+def check_organization_monitor_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(organization_id=instance.organization_id).count()
+        > MONITOR_ORG_LIMIT
+    ):
+        raise Exception(
+            f"Organization has created the maximum number of Monitors: {MONITOR_ORG_LIMIT}"
+        )
+
+
 @region_silo_only_model
 class MonitorCheckIn(Model):
     __include_in_export__ = False
@@ -395,3 +412,14 @@ class MonitorEnvironment(Model):
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+
+
+@receiver(pre_save, sender=MonitorEnvironment)
+def check_monitor_environment_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(monitor=instance.monitor).count() > MONITOR_ENVIRONMENT_LIMIT
+    ):
+        raise Exception(
+            f"Monitor has created the maximum number of Monitor Environments: {MONITOR_ENVIRONMENT_LIMIT}"
+        )
