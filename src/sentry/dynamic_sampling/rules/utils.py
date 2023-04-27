@@ -98,7 +98,7 @@ class GlobCondition(TypedDict):
 
 class Condition(TypedDict):
     op: Literal["and", "or", "not"]
-    inner: List[Union[EqCondition, GlobCondition]]
+    inner: Union[Union[EqCondition, GlobCondition], List[Union[EqCondition, GlobCondition]]]
 
 
 class Rule(TypedDict):
