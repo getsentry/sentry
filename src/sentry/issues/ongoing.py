@@ -13,35 +13,26 @@ from sentry.types.group import GroupSubStatus
 
 def transition_new_to_ongoing(group: Group) -> None:
     if group.status == GroupStatus.UNRESOLVED and group.substatus == GroupSubStatus.NEW:
-        group.substatus = GroupSubStatus.ONGOING
-        group.save(update_fields=["substatus"])
-
-        remove_group_from_inbox(group)
-
-        add_group_to_inbox(group, GroupInboxReason.ONGOING)
-
-        Activity.objects.create_group_activity(
-            group, ActivityType.AUTO_SET_ONGOING, send_notification=False
-        )
-
-        record_group_history_from_activity_type(
-            group, activity_type=ActivityType.AUTO_SET_ONGOING.value, actor=None
-        )
+        _transition_group_to_ongoing(group)
 
 
 def transition_regressed_to_ongoing(group: Group) -> None:
     if group.status == GroupStatus.UNRESOLVED and group.substatus == GroupSubStatus.REGRESSED:
-        group.substatus = GroupSubStatus.ONGOING
-        group.save(update_fields=["substatus"])
+        _transition_group_to_ongoing(group)
 
-        remove_group_from_inbox(group)
 
-        add_group_to_inbox(group, GroupInboxReason.ONGOING)
+def _transition_group_to_ongoing(group: Group) -> None:
+    group.substatus = GroupSubStatus.ONGOING
+    group.save(update_fields=["substatus"])
 
-        Activity.objects.create_group_activity(
-            group, ActivityType.AUTO_SET_ONGOING, send_notification=False
-        )
+    remove_group_from_inbox(group)
 
-        record_group_history_from_activity_type(
-            group, activity_type=ActivityType.AUTO_SET_ONGOING.value, actor=None
-        )
+    add_group_to_inbox(group, GroupInboxReason.ONGOING)
+
+    Activity.objects.create_group_activity(
+        group, ActivityType.AUTO_SET_ONGOING, send_notification=False
+    )
+
+    record_group_history_from_activity_type(
+        group, activity_type=ActivityType.AUTO_SET_ONGOING.value, actor=None
+    )

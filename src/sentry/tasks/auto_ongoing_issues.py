@@ -139,16 +139,16 @@ def auto_transition_issues_regressed_to_ongoing(
     if date_added_gte:
         queryset = queryset.filter(date_added__gte=datetime.fromtimestamp(date_added_gte, pytz.UTC))
 
-    new_inbox = queryset.order_by("date_added")[:chunk_size]
+    regressed_inbox = queryset.order_by("date_added")[:chunk_size]
 
-    for group in Group.objects.filter(id__in=list({inbox.group_id for inbox in new_inbox})):
+    for group in Group.objects.filter(id__in=list({inbox.group_id for inbox in regressed_inbox})):
         transition_regressed_to_ongoing(group)
 
-    if len(new_inbox) == chunk_size:
+    if len(regressed_inbox) == chunk_size:
         auto_transition_issues_regressed_to_ongoing.delay(
             project_id=project_id,
             date_added_lte=date_added_lte,
-            date_added_gte=new_inbox[chunk_size - 1].date_added.timestamp(),
+            date_added_gte=regressed_inbox[chunk_size - 1].date_added.timestamp(),
             chunk_size=chunk_size,
             expires=datetime.now(tz=pytz.UTC) + timedelta(hours=1),
         )
