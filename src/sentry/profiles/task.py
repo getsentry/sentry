@@ -12,6 +12,7 @@ from symbolic import ProguardMapper  # type: ignore
 
 from sentry import quotas
 from sentry.constants import DataCategory
+from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
 from sentry.models import EventError, Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
@@ -117,7 +118,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
 
             # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
             # See comments in the function for why this happens.
-            raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
+            raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(profile)
             modules, stacktraces, success = run_symbolicate(
                 project=project,
                 profile=profile,
@@ -127,7 +128,10 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
 
             if success:
                 _process_symbolicator_results(
-                    profile=profile, modules=modules, stacktraces=stacktraces
+                    profile=profile,
+                    modules=modules,
+                    stacktraces=stacktraces,
+                    frames_sent=frames_sent,
                 )
 
             profile["processed_by_symbolicator"] = True
@@ -229,9 +233,11 @@ def _normalize(profile: Profile, organization: Organization) -> None:
             profile["device_classification"] = classification
 
 
-def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
+def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any], List[int]]:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
         modules = profile["debug_meta"]["images"]
+        frames: List[Any] = []
+        frames_sent: List[int] = []
 
         # NOTE: the usage of `adjust_instruction_addr` assumes that all
         # the profilers on all the platforms are walking stacks right from a
@@ -239,7 +245,13 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 
         # in the sample format, we have a frames key containing all the frames
         if "version" in profile:
-            frames = profile["profile"]["frames"]
+            if profile["platform"] in ["javascript", "node"]:
+                for idx, f in enumerate(profile["profile"]["frames"]):
+                    if is_valid_javascript_frame(f):
+                        frames_sent.append(idx)
+                        frames.append(f)
+            else:
+                frames = profile["profile"]["frames"]
 
             for stack in profile["profile"]["stacks"]:
                 if len(stack) > 0:
@@ -252,7 +264,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
                     frames.append(frame)
                     stack[0] = len(frames) - 1
 
-            stacktraces = [{"registers": {}, "frames": frames}]
+            stacktraces = [{"frames": frames}]
         # in the original format, we need to gather frames from all samples
         else:
             stacktraces = []
@@ -264,17 +276,16 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 
                 stacktraces.append(
                     {
-                        "registers": {},
                         "frames": frames,
                     }
                 )
-        return (modules, stacktraces)
+        return (modules, stacktraces, frames_sent)
 
 
 def symbolicate(
     symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
 ) -> Any:
-    if profile["platform"] == "javascript":
+    if profile["platform"] in ["javascript", "node"]:
         return process_js_stacktraces(
             symbolicator=symbolicator, profile=profile, modules=modules, stacktraces=stacktraces
         )
@@ -346,14 +357,21 @@ def run_symbolicate(
 
 @metrics.wraps("process_profile.symbolicate.process")
 def _process_symbolicator_results(
-    profile: Profile, modules: List[Any], stacktraces: List[Any]
+    profile: Profile,
+    modules: List[Any],
+    stacktraces: List[Any],
+    frames_sent: list[int],
 ) -> None:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.process_results"):
         # update images with status after symbolication
         profile["debug_meta"]["images"] = modules
 
         if "version" in profile:
-            _process_symbolicator_results_for_sample(profile, stacktraces)
+            _process_symbolicator_results_for_sample(
+                profile,
+                stacktraces,
+                frames_sent,
+            )
             return
 
         if profile["platform"] == "rust":
@@ -365,8 +383,14 @@ def _process_symbolicator_results(
         profile["profile"] = profile.pop("sampled_profile")
 
 
-def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
-    profile["profile"]["frames"] = stacktraces[0]["frames"]
+def _process_symbolicator_results_for_sample(
+    profile: Profile, stacktraces: List[Any], frames_sent: list[int]
+) -> None:
+    if len(frames_sent) > 0:
+        for idx, f in zip(frames_sent, stacktraces[0]["frames"]):
+            profile["profile"]["frames"][idx] = f
+    else:
+        profile["profile"]["frames"] = stacktraces[0]["frames"]
 
     if profile["platform"] in SHOULD_SYMBOLICATE:
         for frame in profile["profile"]["frames"]:
