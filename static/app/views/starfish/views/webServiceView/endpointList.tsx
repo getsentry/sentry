@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -55,23 +55,23 @@ type Props = {
   dataset?: 'discover' | 'metrics';
 };
 
-type State = {
-  widths: number[];
-};
+function EndpointList({
+  eventView,
+  location,
+  onSelect,
+  organization,
+  setError,
+  columnTitles,
+  dataset,
+}: Props) {
+  const [widths, setWidths] = useState<number[]>([]);
 
-class EndpointList extends Component<Props, State> {
-  state: State = {
-    widths: [],
-  };
-
-  renderBodyCell(
+  function renderBodyCell(
     tableData: TableData | null,
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow,
     deltaColumnMap: Record<string, string>
   ): React.ReactNode {
-    const {onSelect, organization, location} = this.props;
-
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
@@ -177,7 +177,7 @@ class EndpointList extends Component<Props, State> {
     return rendered;
   }
 
-  renderBodyCellWithData = (tableData: TableData | null) => {
+  function renderBodyCellWithData(tableData: TableData | null) {
     const deltaColumnMap: Record<string, string> = {};
     if (tableData?.data?.[0]) {
       Object.keys(tableData.data[0]).forEach(col => {
@@ -194,16 +194,14 @@ class EndpointList extends Component<Props, State> {
     return (
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
-    ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow, deltaColumnMap);
-  };
+    ): React.ReactNode => renderBodyCell(tableData, column, dataRow, deltaColumnMap);
+  }
 
-  renderHeadCell(
+  function renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode
   ): React.ReactNode {
-    const {eventView, location} = this.props;
-
     // Hack to get equations to align and sort properly because
     // some of the functions called below aren't set up to handle
     // equations. Fudging code here to keep minimal footprint of
@@ -257,82 +255,79 @@ class EndpointList extends Component<Props, State> {
     return sortLink;
   }
 
-  renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
-    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES;
+  function renderHeadCellWithMeta(tableMeta: TableData['meta']) {
+    const newColumnTitles = columnTitles ?? COLUMN_TITLES;
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, columnTitles[index]);
-  };
+      renderHeadCell(tableMeta, column, newColumnTitles[index]);
+  }
 
-  handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
-    const widths: number[] = [...this.state.widths];
-    widths[columnIndex] = nextColumn.width
-      ? Number(nextColumn.width)
-      : COL_WIDTH_UNDEFINED;
-    this.setState({widths});
-  };
-
-  render() {
-    const {eventView, organization, location, setError} = this.props;
-    const {widths} = this.state;
-    const columnOrder = eventView
-      .getColumns()
-      .filter(
-        (col: TableColumn<React.ReactText>) =>
-          !col.name.startsWith('count_miserable') &&
-          !col.name.startsWith('percentile_range') &&
-          !col.name.startsWith('(percentile_range') &&
-          col.name !== 'project_threshold_config' &&
-          col.name !== 'project' &&
-          col.name !== 'http.method' &&
-          col.name !== 'total.transaction_duration' &&
-          col.name !== 'sum(transaction.duration)'
+  function handleResizeColumn(columnIndex: number, nextColumn: GridColumn) {
+    setWidths(prevWidths =>
+      prevWidths.map((width, index) =>
+        index === columnIndex ? Number(nextColumn.width ?? COL_WIDTH_UNDEFINED) : width
       )
-      .map((col: TableColumn<React.ReactText>, i: number) => {
-        if (typeof widths[i] === 'number') {
-          return {...col, width: widths[i]};
-        }
-        return col;
-      });
-
-    const columnSortBy = eventView.getSorts();
-
-    return (
-      <GuideAnchor target="performance_table" position="top-start">
-        <StyledSearchBar
-          placeholder={t('Search for endpoints')}
-          savedSearchType={SavedSearchType.EVENT}
-          onSearch={query => console.dir(query)}
-        />
-        <DiscoverQuery
-          eventView={eventView}
-          orgSlug={organization.slug}
-          location={location}
-          setError={error => setError(error?.message)}
-          referrer="api.starfish.endpoint-list"
-          queryExtras={{dataset: this.props.dataset ?? 'metrics'}}
-        >
-          {({pageLinks, isLoading, tableData}) => (
-            <Fragment>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData ? tableData.data : []}
-                columnOrder={columnOrder}
-                columnSortBy={columnSortBy}
-                grid={{
-                  onResizeColumn: this.handleResizeColumn,
-                  renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                  renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                }}
-                location={location}
-              />
-
-              <Pagination pageLinks={pageLinks} />
-            </Fragment>
-          )}
-        </DiscoverQuery>
-      </GuideAnchor>
     );
   }
+
+  const columnOrder = eventView
+    .getColumns()
+    .filter(
+      (col: TableColumn<React.ReactText>) =>
+        !col.name.startsWith('count_miserable') &&
+        !col.name.startsWith('percentile_range') &&
+        !col.name.startsWith('(percentile_range') &&
+        col.name !== 'project_threshold_config' &&
+        col.name !== 'project' &&
+        col.name !== 'http.method' &&
+        col.name !== 'total.transaction_duration' &&
+        col.name !== 'sum(transaction.duration)'
+    )
+    .map((col: TableColumn<React.ReactText>, i: number) => {
+      if (typeof widths[i] === 'number') {
+        return {...col, width: widths[i]};
+      }
+      return col;
+    });
+
+  const columnSortBy = eventView.getSorts();
+
+  return (
+    <GuideAnchor target="performance_table" position="top-start">
+      <StyledSearchBar
+        placeholder={t('Search for endpoints')}
+        savedSearchType={SavedSearchType.EVENT}
+        searchSource=""
+        onSearch={() => {}}
+      />
+      <DiscoverQuery
+        eventView={eventView}
+        orgSlug={organization.slug}
+        location={location}
+        setError={error => setError(error?.message)}
+        referrer="api.starfish.endpoint-list"
+        queryExtras={{dataset: dataset ?? 'metrics'}}
+      >
+        {({pageLinks, isLoading, tableData}) => (
+          <Fragment>
+            <GridEditable
+              isLoading={isLoading}
+              data={tableData ? tableData.data : []}
+              columnOrder={columnOrder}
+              columnSortBy={columnSortBy}
+              grid={{
+                onResizeColumn: handleResizeColumn,
+                renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
+                renderBodyCell: renderBodyCellWithData(tableData) as any,
+              }}
+              location={location}
+            />
+
+            <Pagination pageLinks={pageLinks} />
+          </Fragment>
+        )}
+      </DiscoverQuery>
+    </GuideAnchor>
+  );
 }
 
 export default EndpointList;
