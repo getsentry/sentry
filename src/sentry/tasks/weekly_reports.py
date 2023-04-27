@@ -2,6 +2,7 @@ import heapq
 import logging
 from datetime import timedelta
 from functools import partial, reduce
+from typing import MutableMapping
 
 import sentry_sdk
 from django.db.models import Count
@@ -16,6 +17,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
+from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.db.models.fields import PickledObjectField
@@ -24,6 +26,8 @@ from sentry.models import (
     Group,
     GroupHistory,
     GroupHistoryStatus,
+    GroupInbox,
+    GroupInboxReason,
     GroupStatus,
     Organization,
     OrganizationMember,
@@ -54,8 +58,8 @@ class OrganizationReportContext:
         self.start = to_datetime(timestamp - duration)
         self.end = to_datetime(timestamp)
 
-        self.organization = organization
-        self.projects = {}  # { project_id: ProjectContext }
+        self.organization: Organization = organization
+        self.projects: MutableMapping[str, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
@@ -71,10 +75,18 @@ class ProjectContext:
     accepted_transaction_count = 0
     dropped_transaction_count = 0
 
+    # Removed after organizations:escalating-issues GA
     all_issue_count = 0
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
+
+    # For organizations:escalating-issues
+    new_inbox_count = 0
+    ongoing_inbox_count = 0
+    escalating_inbox_count = 0
+    regression_inbox_count = 0
+    total_inbox_count = 0
 
     def __init__(self, project):
         self.project = project
@@ -163,6 +175,8 @@ def prepare_organization_report(
         project_event_counts_for_organization(ctx)
     with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
         organization_project_issue_summaries(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
+        organization_project_issue_inbox_summaries(ctx)
 
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
@@ -259,6 +273,9 @@ def project_event_counts_for_organization(ctx):
 
 
 def organization_project_issue_summaries(ctx):
+    if features.has("organizations:escalating-issues", ctx.organization):
+        return
+
     all_issues = Group.objects.exclude(status=GroupStatus.IGNORED)
     new_issue_counts = (
         all_issues.filter(
@@ -324,6 +341,35 @@ def organization_project_issue_summaries(ctx):
         )
 
 
+def organization_project_issue_inbox_summaries(ctx: OrganizationReportContext):
+    if not features.has("organizations:escalating-issues", ctx.organization):
+        return
+
+    inbox_counts = (
+        GroupInbox.objects.filter(
+            organization_id=ctx.organization.id,
+            reason__in=[
+                GroupInboxReason.NEW,
+                GroupInboxReason.ESCALATING,
+                GroupInboxReason.ONGOING,
+                GroupInboxReason.REGRESSION,
+            ],
+        )
+        .values("project_id", "reason")
+        .annotate(total=Count("reason"))
+    )
+    for count in inbox_counts:
+        if count["reason"] == GroupInboxReason.NEW.value:
+            ctx.projects[count["project_id"]].new_inbox_count = count["total"]
+        if count["reason"] == GroupInboxReason.ESCALATING.value:
+            ctx.projects[count["project_id"]].escalating_inbox_count = count["total"]
+        if count["reason"] == GroupInboxReason.ONGOING.value:
+            ctx.projects[count["project_id"]].ongoing_inbox_count = count["total"]
+        if count["reason"] == GroupInboxReason.REGRESSION.value:
+            ctx.projects[count["project_id"]].regression_inbox_count = count["total"]
+        ctx.projects[count["project_id"]].total_inbox_count += count["total"]
+
+
 # Project passes
 def project_key_errors(ctx, project):
     if not project.first_event:
@@ -378,6 +424,25 @@ def fetch_key_error_groups(ctx):
     )
     group_id_to_group_history = {g.group_id: g for g in group_history}
 
+    group_id_to_group_inbox = {}
+    if features.has("organizations:escalating-issues", ctx.organization):
+        group_inbox = (
+            GroupInboxReason.objects.filter(
+                group_id__in=all_key_error_group_ids,
+                organization_id=ctx.organization.id,
+                reason__in=[
+                    GroupInboxReason.NEW,
+                    GroupInboxReason.ESCALATING,
+                    GroupInboxReason.ONGOING,
+                    GroupInboxReason.REGRESSION,
+                ],
+            )
+            .order_by("group_id", "-date_added")
+            .distinct("group_id")
+            .all()
+        )
+        group_id_to_group_inbox = {g.group_id: g for g in group_inbox}
+
     for project_ctx in ctx.projects.values():
         # note Snuba might have groups that have since been deleted
         # we should just ignore those
@@ -388,6 +453,7 @@ def fetch_key_error_groups(ctx):
                     (
                         group_id_to_group.get(group_id),
                         group_id_to_group_history.get(group_id, None),
+                        group_id_to_group_inbox.get(group_id, None),
                         count,
                     )
                     for group_id, count in project_ctx.key_errors
@@ -618,10 +684,22 @@ group_status_to_color = {
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
 }
+group_inbox_to_color = {
+    GroupInboxReason.NEW: "rgba(245, 176, 0, 0.08)",
+    GroupInboxReason.REGRESSION: "rgba(108, 95, 199, 0.08)",
+    GroupInboxReason.ESCALATING: "rgba(245, 84, 89, 0.09)",
+    GroupInboxReason.ONGOING: "rgba(219, 214, 225, 1)",
+}
+group_inbox_to_color_border = {
+    GroupInboxReason.NEW: "rgba(245, 176, 0, 0.55)",
+    GroupInboxReason.REGRESSION: "rgba(108, 95, 199, 0.5)",
+    GroupInboxReason.ESCALATING: "rgba(245, 84, 89, 0.5)",
+    GroupInboxReason.ONGOING: "rgba(219, 214, 225, 1)",
+}
 
 
-# Serialize ctx for template, and calculate view parameters (like graph bar heights)
 def render_template_context(ctx, user):
+    # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
     if user and user.id in ctx.project_ownership:
@@ -784,7 +862,7 @@ def render_template_context(ctx, user):
                             "project_id": project_ctx.project.id,
                         },
                     )
-                for group, group_history, count in project_ctx.key_errors:
+                for group, group_history, group_inbox, count in project_ctx.key_errors:
                     if ctx.organization.slug == "sentry":
                         logger.info(
                             "render_template_context.all_key_errors.found_error",
@@ -803,6 +881,16 @@ def render_template_context(ctx, user):
                         "status_color": group_status_to_color[group_history.status]
                         if group_history
                         else group_status_to_color[GroupHistoryStatus.NEW],
+                        "inbox_text": group_inbox.reason if group_inbox else None,
+                        "inbox_reason": GroupInboxReason(group_inbox.reason).name.capitalize()
+                        if group_inbox
+                        else None,
+                        "inbox_color": group_inbox_to_color[group_inbox.reason]
+                        if group_inbox
+                        else group_inbox_to_color[GroupInboxReason.NEW],
+                        "inbox_color_border": group_inbox_to_color_border[group_inbox.reason]
+                        if group_inbox
+                        else group_inbox_to_color_border[GroupInboxReason.NEW],
                     }
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
@@ -849,16 +937,31 @@ def render_template_context(ctx, user):
         existing_issue_count = 0
         reopened_issue_count = 0
         new_issue_count = 0
+        new_inbox_count = 0
+        escalating_inbox_count = 0
+        ongoing_inbox_count = 0
+        regression_inbox_count = 0
+        total_inbox_count = 0
         for project_ctx in user_projects:
             all_issue_count += project_ctx.all_issue_count
             existing_issue_count += project_ctx.existing_issue_count
             reopened_issue_count += project_ctx.reopened_issue_count
             new_issue_count += project_ctx.new_issue_count
+            new_inbox_count += project_ctx.new_inbox_count
+            escalating_inbox_count += project_ctx.escalating_inbox_count
+            ongoing_inbox_count += project_ctx.ongoing_inbox_count
+            regression_inbox_count += project_ctx.regression_inbox_count
+            total_inbox_count += project_ctx.total_inbox_count
         return {
             "all_issue_count": all_issue_count,
             "existing_issue_count": existing_issue_count,
             "reopened_issue_count": reopened_issue_count,
             "new_issue_count": new_issue_count,
+            "new_inbox_count": new_inbox_count,
+            "escalating_inbox_count": escalating_inbox_count,
+            "ongoing_inbox_count": ongoing_inbox_count,
+            "regression_inbox_count": regression_inbox_count,
+            "total_inbox_count": total_inbox_count,
         }
 
     return {

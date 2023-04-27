@@ -11,11 +11,19 @@ from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import GroupStatus, OrganizationMember, Project, UserOption
+from sentry.models import (
+    GroupInboxReason,
+    GroupStatus,
+    OrganizationMember,
+    Project,
+    UserOption,
+    add_group_to_inbox,
+)
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
     deliver_reports,
+    organization_project_issue_inbox_summaries,
     organization_project_issue_summaries,
     prepare_organization_report,
     schedule_organizations,
@@ -167,6 +175,49 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.new_issue_count == 2
         assert project_ctx.existing_issue_count == 0
         assert project_ctx.all_issue_count == 2
+
+    @with_feature("organizations:escalating-issues")
+    def test_organization_project_issue_inbox_summaries(self):
+        self.login_as(user=self.user)
+
+        now = timezone.now()
+        min_ago = iso_format(now - timedelta(minutes=1))
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event1.group, GroupInboxReason.NEW)
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event2.group, GroupInboxReason.ONGOING)
+        timestamp = to_timestamp(now)
+
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        organization_project_issue_inbox_summaries(ctx)
+
+        project_ctx = ctx.projects[self.project.id]
+
+        assert project_ctx.new_inbox_count == 1
+        assert project_ctx.escalating_inbox_count == 0
+        assert project_ctx.ongoing_inbox_count == 1
+        assert project_ctx.regression_inbox_count == 0
+        assert project_ctx.total_inbox_count == 2
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_simple(self, message_builder):
