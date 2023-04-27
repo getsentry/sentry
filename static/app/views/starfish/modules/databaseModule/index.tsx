@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -50,6 +50,30 @@ function DatabaseModule() {
   const transactionFilter =
     transaction.length > 0 ? `transaction='${transaction}'` : null;
 
+  useEffect(() => {
+    function handleKeyDown({keyCode}) {
+      setRows(currentRow => {
+        if (currentRow.selected) {
+          if (currentRow.prev && keyCode === 37) {
+            return getUpdatedRows(currentRow.prev);
+          }
+          if (currentRow.next && keyCode === 39) {
+            return getUpdatedRows(currentRow.next);
+          }
+        }
+        return currentRow;
+      });
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Don't forget to clean up
+    return function cleanup() {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const {
     isLoading: isTableDataLoading,
     data: tableData,
@@ -71,11 +95,15 @@ function DatabaseModule() {
     initialData: [],
   });
 
-  const setSelectedRow = (row: DataRow, rowIndex?: number) => {
+  const getUpdatedRows = (row: DataRow, rowIndex?: number) => {
     rowIndex ??= tableData.findIndex(data => data.group_id === row.group_id);
     const prevRow = rowIndex > 0 ? tableData[rowIndex - 1] : undefined;
     const nextRow = rowIndex < tableData.length - 1 ? tableData[rowIndex + 1] : undefined;
-    setRows({selected: row, next: nextRow, prev: prevRow});
+    return {selected: row, next: nextRow, prev: prevRow};
+  };
+
+  const setSelectedRow = (row: DataRow, rowIndex?: number) => {
+    setRows(getUpdatedRows(row, rowIndex));
   };
 
   const unsetSelectedSpanGroup = () => setRows({selected: undefined});
