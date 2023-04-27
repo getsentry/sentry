@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry.eventstore.models import Event
@@ -172,7 +172,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         )
         escalating_forecast.save()
 
-    def test_is_escalating_issue(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_is_escalating_issue(self, record_mock: MagicMock) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
             # The group has 6 events today
@@ -193,6 +194,12 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert group_escalating.substatus == GroupSubStatus.ESCALATING
             assert group_escalating.status == GroupStatus.UNRESOLVED
             assert GroupInbox.objects.filter(group=group_escalating).exists()
+            record_mock.assert_called_with(
+                "issue.escalating",
+                organization_id=group_escalating.project.organization.id,
+                project_id=group_escalating.project.id,
+                group_id=group_escalating.id,
+            )
 
             # Test cache
             assert (
