@@ -8,7 +8,7 @@ import isNil from 'lodash/isNil';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';

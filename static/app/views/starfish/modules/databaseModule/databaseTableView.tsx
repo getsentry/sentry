@@ -6,7 +6,7 @@ import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
