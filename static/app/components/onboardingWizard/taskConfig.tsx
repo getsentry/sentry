@@ -35,11 +35,11 @@ type FirstEventWaiterProps = OnboardingSupplementComponentProps & {
 };
 
 type Options = {
-  onboardingContext: OnboardingContextProps;
   /**
    * The organization to show onboarding tasks for
    */
   organization: Organization;
+  onboardingContext?: OnboardingContextProps;
 
   /**
    * A list of the organizations projects. This is used for some onboarding
