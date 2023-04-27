@@ -1,13 +1,20 @@
 import {Component} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import DatabaseChartView from './databaseChartView';
 import DatabaseTableView, {DataRow} from './databaseTableView';
@@ -15,6 +22,7 @@ import QueryDetail from './panel';
 
 type Props = {
   location: Location;
+  organization: Organization;
 };
 
 type State = {
@@ -45,8 +53,9 @@ class DatabaseModule extends Component<Props, State> {
   }
 
   render() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
     const {table, action, transaction} = this.state;
+    const eventView = EventView.fromLocation(location);
     const setSelectedRow = (row: DataRow) => this.setState({selectedRow: row});
     const unsetSelectedSpanGroup = () => this.setState({selectedRow: undefined});
 
@@ -62,6 +71,9 @@ class DatabaseModule extends Component<Props, State> {
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageErrorAlert />
+              <FilterOptionsContainer>
+                <DatePageFilter alignDropdown="left" />
+              </FilterOptionsContainer>
               <DatabaseChartView
                 location={location}
                 action={action}
@@ -74,6 +86,12 @@ class DatabaseModule extends Component<Props, State> {
                     this.setState({table: val});
                   }
                 }}
+              />
+              <TransactionNameSearchBar
+                organization={organization}
+                eventView={eventView}
+                onSearch={(query: string) => this.handleSearch(query)}
+                query={transaction}
               />
               <DatabaseTableView
                 location={location}
@@ -94,4 +112,11 @@ class DatabaseModule extends Component<Props, State> {
   }
 }
 
-export default DatabaseModule;
+export default withOrganization(DatabaseModule);
+
+const FilterOptionsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
+`;

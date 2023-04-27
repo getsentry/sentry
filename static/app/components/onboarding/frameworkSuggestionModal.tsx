@@ -17,8 +17,8 @@ import Radio from 'sentry/components/radio';
 import categoryList from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {OnboardingSelectedPlatform, Organization} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {OnboardingSelectedSDK, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -50,10 +50,10 @@ export const languageDetails = {
 };
 
 type Props = ModalRenderProps & {
-  onConfigure: (selectedFramework: OnboardingSelectedPlatform) => void;
+  onConfigure: (selectedFramework: OnboardingSelectedSDK) => void;
   onSkip: () => void;
   organization: Organization;
-  selectedPlatform: OnboardingSelectedPlatform;
+  selectedPlatform: OnboardingSelectedSDK;
 };
 
 export function FrameworkSuggestionModal({
@@ -67,7 +67,7 @@ export function FrameworkSuggestionModal({
   organization,
 }: Props) {
   const [selectedFramework, setSelectedFramework] = useState<
-    OnboardingSelectedPlatform | undefined
+    OnboardingSelectedSDK | undefined
   >(undefined);
 
   const frameworks = platforms.filter(
