@@ -127,7 +127,7 @@ function QueryDetailBody({
 
   const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
     {
-      queryKey: ['dbQueryDetailsTable', row.description, pageFilter.selection.datetime],
+      queryKey: ['dbQueryDetailsTable', row.group_id, pageFilter.selection.datetime],
       queryFn: () =>
         fetch(`${HOST}/?query=${getPanelTableQuery(DATE_FILTERS, row)}`).then(res =>
           res.json()
@@ -138,11 +138,7 @@ function QueryDetailBody({
   );
 
   const {isLoading: isEventCountLoading, data: eventCountData} = useQuery({
-    queryKey: [
-      'dbQueryDetailsEventCount',
-      row.description,
-      pageFilter.selection.datetime,
-    ],
+    queryKey: ['dbQueryDetailsEventCount', row.group_id, pageFilter.selection.datetime],
     queryFn: () =>
       fetch(`${HOST}/?query=${getPanelEventCount(DATE_FILTERS, row)}`).then(res =>
         res.json()
