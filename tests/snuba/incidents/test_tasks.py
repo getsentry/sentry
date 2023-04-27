@@ -28,12 +28,11 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.runner.commands.run import DEFAULT_BLOCK_SIZE
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.query_subscription_consumer import (
-    get_query_subscription_consumer,
-    subscriber_registry,
-    topic_to_dataset,
-)
+from sentry.snuba.query_subscriptions.constants import topic_to_dataset
+from sentry.snuba.query_subscriptions.consumer import subscriber_registry
+from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
 from sentry.testutils import TestCase
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
@@ -122,7 +121,10 @@ class HandleSnubaQueryUpdateTest(TestCase):
             "version": 3,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "result": {"data": [{"some_col": 101}]},
+                "result": {
+                    "data": [{"some_col": 101}],
+                    "meta": [{"name": "count", "type": "UInt64"}],
+                },
                 "request": {
                     "some": "data",
                     "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY
@@ -179,5 +181,16 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     def test_arroyo(self):
         with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
-            consumer = get_query_subscription_consumer(self.topic, "hi", True, "earliest")
+            consumer = get_query_subscription_consumer(
+                self.topic,
+                "hi",
+                True,
+                "earliest",
+                1,
+                1,
+                1,
+                DEFAULT_BLOCK_SIZE,
+                DEFAULT_BLOCK_SIZE,
+                multi_proc=False,
+            )
             self.run_test(consumer)

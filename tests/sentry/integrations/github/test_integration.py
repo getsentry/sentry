@@ -5,6 +5,7 @@ import responses
 from django.urls import reverse
 
 import sentry
+from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, MINIMUM_REQUESTS, GitHubIntegrationProvider
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
@@ -257,7 +258,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "account_type": "Organization",
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -280,20 +281,29 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ),
             urlencode({"installation_id": self.installation_id}),
         )
-        resp = self.client.get(self.init_path_2)
-        assert (
-            b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
-            in resp.content
-        )
-        assert (
-            b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
-            in resp.content
-        )
+        with self.feature({"organizations:customer-domains": [self.organization_2.slug]}):
+            resp = self.client.get(self.init_path_2)
+            self.assertTemplateUsed(
+                resp, "sentry/integrations/github-integration-exists-on-another-org.html"
+            )
+            assert (
+                b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
+                in resp.content
+            )
+            assert (
+                b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
+                in resp.content
+            )
+            assert b'window.opener.postMessage({"success":false' in resp.content
+            assert (
+                f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
+                in resp.content
+            )
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
         OrganizationIntegration.objects.filter(
-            organization=self.organization, integration=integration
+            organization_id=self.organization.id, integration=integration
         ).delete()
         integration.delete()
 
@@ -303,7 +313,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
         assert OrganizationIntegration.objects.filter(
-            organization=self.organization_2, integration=integration
+            organization_id=self.organization_2.id, integration=integration
         ).exists()
 
     @responses.activate
@@ -551,7 +561,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         # set installation to pending deletion
         oi.status = ObjectStatus.PENDING_DELETION
@@ -562,12 +572,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
-        resp = self.client.get(
-            "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
-        )
+        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+            resp = self.client.get(
+                "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
+            )
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/integration-pending-deletion.html")
+
+        assert b'window.opener.postMessage({"success":false' in resp.content
+        assert f', "{generate_organization_url(self.organization.slug)}");'.encode() in resp.content
 
         # Assert payload returned to main window
         assert (
@@ -587,7 +601,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
         assert OrganizationIntegration.objects.filter(
-            organization=self.organization, integration=integration
+            organization_id=self.organization.id, integration=integration
         ).exists()
 
     def set_rate_limit(

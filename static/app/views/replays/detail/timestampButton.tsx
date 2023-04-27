@@ -40,20 +40,12 @@ const StyledButton = styled('button')`
   background: transparent;
   border: none;
   color: inherit;
-  font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
 
   display: flex;
   align-items: center;
   gap: ${space(0.25)};
   padding: 0;
-
-  & > svg {
-    visibility: hidden;
-  }
-  &:hover svg {
-    visibility: visible;
-  }
 `;
 
 export default TimestampButton;

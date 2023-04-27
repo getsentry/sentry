@@ -275,7 +275,7 @@ _path_patterns: List[Tuple[re.Pattern[str], str]] = [
     (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
     (re.compile(r"^\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
     (
-        re.compile(r"\/?(?:[^\/]+(?<!settings))\/([^\/]+)\/getting-started\/(.*)"),
+        re.compile(r"^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)"),
         r"/getting-started/\1/\2",
     ),
 ]

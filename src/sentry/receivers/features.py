@@ -23,6 +23,7 @@ from sentry.signals import (
     integration_added,
     integration_issue_created,
     integration_issue_linked,
+    issue_archived,
     issue_assigned,
     issue_deleted,
     issue_ignored,
@@ -31,7 +32,7 @@ from sentry.signals import (
     issue_unignored,
     issue_unresolved,
     member_joined,
-    monitor_failed,
+    monitor_environment_failed,
     ownership_rule_created,
     plugin_enabled,
     project_created,
@@ -211,6 +212,8 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         organization_id=organization_id,
         group_id=group.id,
         resolution_type=resolution_type,
+        issue_type=group.issue_type.slug,
+        issue_category=group.issue_category.name.lower(),
     )
 
 
@@ -470,6 +473,25 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
         )
 
 
+@issue_archived.connect(weak=False)
+def record_issue_archived(project, user, group_list, activity_data, **kwargs):
+    if user and user.is_authenticated:
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    for group in group_list:
+        analytics.record(
+            "issue.archived",
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            group_id=group.id,
+            until_escalating=activity_data.get("until_escalating"),
+        )
+
+
 @issue_unignored.connect(weak=False)
 def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
     if user_id is not None:
@@ -632,13 +654,14 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
     )
 
 
-@monitor_failed.connect(weak=False)
-def record_monitor_failure(monitor, **kwargs):
+@monitor_environment_failed.connect(weak=False)
+def record_monitor_failure(monitor_environment, **kwargs):
     analytics.record(
-        "monitor.mark_failed",
-        organization_id=monitor.organization_id,
-        monitor_id=monitor.guid,
-        project_id=monitor.project_id,
+        "monitor_environment.mark_failed",
+        organization_id=monitor_environment.monitor.organization_id,
+        monitor_id=monitor_environment.monitor.guid,
+        project_id=monitor_environment.monitor.project_id,
+        environment_id=monitor_environment.environment_id,
     )
 
 

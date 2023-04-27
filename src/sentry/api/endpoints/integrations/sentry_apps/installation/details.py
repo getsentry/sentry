@@ -11,6 +11,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppInstallationSerializer
 from sentry.mediators import InstallationNotifier
 from sentry.mediators.sentry_app_installations import Updater
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.functional import extract_lazy_object
 
@@ -18,14 +21,16 @@ from sentry.utils.functional import extract_lazy_object
 @control_silo_endpoint
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
     def get(self, request: Request, installation) -> Response:
-        return Response(serialize(installation))
+        return Response(serialize(SentryAppInstallation.objects.get(id=installation.id)))
 
     def delete(self, request: Request, installation) -> Response:
+        installation = SentryAppInstallation.objects.get(id=installation.id)
+        user = extract_lazy_object(request.user)
+        if isinstance(user, RpcUser):
+            user = User.objects.get(id=user.id)
         with transaction.atomic():
             try:
-                InstallationNotifier.run(
-                    install=installation, user=extract_lazy_object(request.user), action="deleted"
-                )
+                InstallationNotifier.run(install=installation, user=user, action="deleted")
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 sentry_sdk.capture_exception(exc)
@@ -51,9 +56,11 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            updated_installation = Updater.run(
+            Updater.run(
                 user=request.user, sentry_app_installation=installation, status=result.get("status")
             )
 
-            return Response(serialize(updated_installation, request.user))
+            return Response(
+                serialize(SentryAppInstallation.objects.get(id=installation.id), request.user)
+            )
         return Response(serializer.errors, status=400)

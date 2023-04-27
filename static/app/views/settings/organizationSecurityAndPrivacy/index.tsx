@@ -36,7 +36,6 @@ export default function OrganizationSecurityAndPrivacyContent() {
 
   const initialData = organization;
   const endpoint = `/organizations/${organization.slug}/`;
-  const access = new Set(organization.access);
   const features = new Set(organization.features);
   const relayPiiConfig = organization.relayPiiConfig;
   const title = t('Security & Privacy');
@@ -65,7 +64,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
         <JsonForm
           features={features}
           forms={organizationSecurityAndPrivacyGroups}
-          disabled={!access.has('org:write')}
+          disabled={!organization.access.includes('org:write')}
         />
       </Form>
       <DataScrubbing
@@ -73,7 +72,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
         endpoint={endpoint}
         relayPiiConfig={relayPiiConfig}
         organization={organization}
-        disabled={!access.has('org:write')}
+        disabled={!organization.access.includes('org:write')}
         onSubmitSuccess={data => handleUpdateOrganization({...organization, ...data})}
       />
     </Fragment>

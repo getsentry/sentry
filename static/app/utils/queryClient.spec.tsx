@@ -1,6 +1,8 @@
+import {Fragment} from 'react';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import * as useApi from 'sentry/utils/useApi';
 
@@ -18,21 +20,31 @@ describe('queryClient', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/some/test/path/',
         body: {value: 5},
+        headers: {'Custom-Header': 'header value'},
       });
 
-      const TestComponent = () => {
-        const {data} = useQuery<ResponseData>(['/some/test/path/'], {staleTime: 0});
+      function TestComponent() {
+        const {data, getResponseHeader} = useApiQuery<ResponseData>(
+          ['/some/test/path/'],
+          {staleTime: 0}
+        );
 
         if (!data) {
           return null;
         }
 
-        return <div>{data.value}</div>;
-      };
+        return (
+          <Fragment>
+            <div>{data.value}</div>
+            <div>{getResponseHeader?.('Custom-Header')}</div>
+          </Fragment>
+        );
+      }
 
       render(<TestComponent />);
 
       expect(await screen.findByText('5')).toBeInTheDocument();
+      expect(screen.getByText('header value')).toBeInTheDocument();
 
       expect(mock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
     });
@@ -43,8 +55,8 @@ describe('queryClient', function () {
         body: {value: 5},
       });
 
-      const TestComponent = () => {
-        const {data} = useQuery<ResponseData>(
+      function TestComponent() {
+        const {data} = useApiQuery<ResponseData>(
           ['/some/test/path/', {query: {filter: 'red'}}],
           {staleTime: 0}
         );
@@ -54,7 +66,7 @@ describe('queryClient', function () {
         }
 
         return <div>{data.value}</div>;
-      };
+      }
 
       render(<TestComponent />);
 
@@ -64,22 +76,6 @@ describe('queryClient', function () {
         '/some/test/path/',
         expect.objectContaining({query: {filter: 'red'}})
       );
-    });
-
-    it('can fetch with custom query function', async function () {
-      const TestComponent = () => {
-        const {data} = useQuery<ResponseData>(['some-key'], () => ({value: 5}));
-
-        if (!data) {
-          return null;
-        }
-
-        return <div>{data.value}</div>;
-      };
-
-      render(<TestComponent />);
-
-      expect(await screen.findByText('5')).toBeInTheDocument();
     });
 
     it('can return error state', async function () {
@@ -92,8 +88,8 @@ describe('queryClient', function () {
       jest.spyOn(useApi, 'default').mockReturnValue(api);
       jest.spyOn(api, 'requestPromise').mockRejectedValue(requestError);
 
-      const TestComponent = () => {
-        const {isError, error} = useQuery<ResponseData>(['/some/test/path'], {
+      function TestComponent() {
+        const {isError, error} = useApiQuery<ResponseData>(['/some/test/path'], {
           staleTime: 0,
         });
 
@@ -102,7 +98,7 @@ describe('queryClient', function () {
         }
 
         return <div>{error.message}</div>;
-      };
+      }
 
       render(<TestComponent />);
 

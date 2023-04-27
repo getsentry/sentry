@@ -50,13 +50,13 @@ function initialize(project, query, additionalFeatures: string[] = []) {
   };
 }
 
-const WrappedComponent = ({
+function WrappedComponent({
   organization,
   router,
   ...props
 }: React.ComponentProps<typeof SummaryContent> & {
   router: InjectedRouter<Record<string, string>, any>;
-}) => {
+}) {
   return (
     <OrganizationContext.Provider value={organization}>
       <RouteContext.Provider value={{router, ...router}}>
@@ -66,7 +66,7 @@ const WrappedComponent = ({
       </RouteContext.Provider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 describe('Transaction Summary Content', function () {
   beforeEach(function () {

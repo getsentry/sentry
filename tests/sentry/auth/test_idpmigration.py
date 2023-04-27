@@ -17,7 +17,7 @@ class IDPMigrationTests(TestCase):
         self.login_as(self.user)
         self.email = "test@example.com"
         self.org = self.create_organization()
-        self.provider = AuthProvider.objects.create(organization=self.org, provider="dummy")
+        self.provider = AuthProvider.objects.create(organization_id=self.org.id, provider="dummy")
 
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 

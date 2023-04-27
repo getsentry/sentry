@@ -6,7 +6,6 @@ import * as PropTypes from 'prop-types';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
-import {shouldDisplaySetupSourceMapsAlert} from 'sentry/components/events/interfaces/crashContent/exception/setupSourceMapsAlert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -19,7 +18,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   getAnalyticsDataForEvent,
@@ -148,7 +147,7 @@ class GroupDetails extends Component<Props, State> {
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {location, organization, router} = this.props;
+    const {location} = this.props;
     const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
       location.query;
 
@@ -164,14 +163,11 @@ class GroupDetails extends Component<Props, State> {
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-      has_setup_source_maps_alert: shouldDisplaySetupSourceMapsAlert(
-        organization,
-        router.location.query.project,
-        event
-      ),
       ref_fallback,
       // Will be updated by StacktraceLink if there is a stacktrace link
       stacktrace_link_viewed: false,
+      // Will be updated by IssueQuickTrace if there is a trace
+      trace_status: 'none',
     });
   }
 
@@ -532,7 +528,7 @@ class GroupDetails extends Component<Props, State> {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
+    trackAnalytics('issue_details.tab_changed', {
       organization,
       project_id: parseInt(project.id, 10),
       tab,
@@ -552,7 +548,7 @@ class GroupDetails extends Component<Props, State> {
           }, {})
       : {};
 
-    trackAdvancedAnalyticsEvent('issue_group_details.tab.clicked', {
+    trackAnalytics('issue_group_details.tab.clicked', {
       organization,
       tab,
       platform: project.platform,

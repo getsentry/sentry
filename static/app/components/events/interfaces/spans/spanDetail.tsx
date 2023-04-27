@@ -35,12 +35,13 @@ import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -60,7 +61,14 @@ import {
 
 const DEFAULT_ERRORS_VISIBLE = 5;
 
-const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
+const SIZE_DATA_KEYS = [
+  'Encoded Body Size',
+  'Decoded Body Size',
+  'Transfer Size',
+  'http.response_content_length',
+  'http.decoded_response_content_length',
+  'http.response_transfer_size',
+];
 
 type TransactionResult = {
   id: string;
@@ -77,7 +85,7 @@ type Props = {
   relatedErrors: TraceError[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
@@ -85,6 +93,8 @@ function SpanDetail(props: Props) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = useTransactionProfileId();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === props.event.projectID);
 
   useEffect(() => {
     // Run on mount.
@@ -94,7 +104,7 @@ function SpanDetail(props: Props) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('performance_views.event_details.open_span_details', {
+    trackAnalytics('performance_views.event_details.open_span_details', {
       organization,
       operation: span.op ?? 'undefined',
       project_platform: event.platform ?? 'undefined',
@@ -126,8 +136,6 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    const orgFeatures = new Set(organization.features);
-
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
       end: trace.traceEndTimestamp,
@@ -145,7 +153,7 @@ function SpanDetail(props: Props) {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
-      projects: orgFeatures.has('global-views')
+      projects: organization.features.includes('global-views')
         ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
       version: 2,
@@ -342,7 +350,7 @@ function SpanDetail(props: Props) {
   function renderProfileMessage() {
     const {organization, span, event} = props;
 
-    if (!organization.features.includes('profiling-span-previews') || isGapSpan(span)) {
+    if (!organization.features.includes('profiling') || isGapSpan(span)) {
       return null;
     }
 
@@ -355,7 +363,7 @@ function SpanDetail(props: Props) {
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
-          {organization.features.includes('profiling-previews') ? (
+          {organization.features.includes('profiling') ? (
             <GapSpanDetails
               event={event}
               span={span}
@@ -433,13 +441,13 @@ function SpanDetail(props: Props) {
               <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              {profileId && event.projectSlug && (
+              {profileId && project?.slug && (
                 <Row
                   title="Profile ID"
                   extra={
                     <TransactionToProfileButton
                       size="xs"
-                      projectSlug={event.projectSlug}
+                      projectSlug={project.slug}
                       query={{
                         spanId: span.span_id,
                       }}
@@ -576,14 +584,16 @@ const StyledText = styled('p')`
   margin: ${space(2)} ${space(0)};
 `;
 
-const TextTr = ({children}) => (
-  <tr>
-    <td className="key" />
-    <ValueTd className="value">
-      <StyledText>{children}</StyledText>
-    </ValueTd>
-  </tr>
-);
+function TextTr({children}) {
+  return (
+    <tr>
+      <td className="key" />
+      <ValueTd className="value">
+        <StyledText>{children}</StyledText>
+      </ValueTd>
+    </tr>
+  );
+}
 
 const ErrorToggle = styled(Button)`
   margin-top: ${space(0.75)};
@@ -603,7 +613,7 @@ const StyledIconLink = styled(IconLink)`
   margin-left: ${space(1)};
 `;
 
-export const Row = ({
+export function Row({
   title,
   keep,
   children,
@@ -613,7 +623,7 @@ export const Row = ({
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-}) => {
+}) {
   if (!keep && !children) {
     return null;
   }
@@ -631,9 +641,9 @@ export const Row = ({
       </ValueTd>
     </tr>
   );
-};
+}
 
-export const Tags = ({span}: {span: RawSpanType}) => {
+export function Tags({span}: {span: RawSpanType}) {
   const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
   if (!tags) {
@@ -658,7 +668,7 @@ export const Tags = ({span}: {span: RawSpanType}) => {
       </td>
     </tr>
   );
-};
+}
 
 function generateSlug(result: TransactionResult): string {
   return generateEventSlug({

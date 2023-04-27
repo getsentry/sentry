@@ -10,20 +10,22 @@ type Props = {
   showLastTriggered?: boolean;
 };
 
-const GroupListHeader = ({
+function GroupListHeader({
   withChart = true,
   narrowGroups = false,
   showLastTriggered = false,
-}: Props) => (
-  <PanelHeader disablePadding>
-    <IssueWrapper>{t('Issue')}</IssueWrapper>
-    {withChart && <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>}
-    <EventUserWrapper>{t('events')}</EventUserWrapper>
-    <EventUserWrapper>{t('users')}</EventUserWrapper>
-    <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
-    {showLastTriggered && <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>}
-  </PanelHeader>
-);
+}: Props) {
+  return (
+    <PanelHeader disablePadding>
+      <IssueWrapper>{t('Issue')}</IssueWrapper>
+      {withChart && <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>}
+      <EventUserWrapper>{t('events')}</EventUserWrapper>
+      <EventUserWrapper>{t('users')}</EventUserWrapper>
+      <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
+      {showLastTriggered && <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>}
+    </PanelHeader>
+  );
+}
 
 export default GroupListHeader;
 

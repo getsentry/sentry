@@ -1,6 +1,6 @@
+import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -43,25 +43,24 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
         const Menu = typeof createMenu === 'function' && createMenu;
         const hasMenu = !!Menu;
 
-        const CrumbItem = hasMenu
-          ? Menu
-          : () => (
-              <Crumb>
-                <CrumbLink to={recreateRoute(route, {routes, params})}>
-                  {pathTitle || route.name}{' '}
-                </CrumbLink>
-                <Divider isLast={isLast} />
-              </Crumb>
-            );
-
+        if (hasMenu) {
+          return (
+            <Menu
+              key={`${route.name}:${route.path}`}
+              routes={routes}
+              params={params}
+              route={route}
+              isLast={isLast}
+            />
+          );
+        }
         return (
-          <CrumbItem
-            key={`${route.name}:${route.path}`}
-            routes={routes}
-            params={params}
-            route={route}
-            isLast={isLast}
-          />
+          <Crumb key={`${route.name}:${route.path}`}>
+            <CrumbLink to={recreateRoute(route, {routes, params})}>
+              {pathTitle || route.name}
+            </CrumbLink>
+            <Divider isLast={isLast} />
+          </Crumb>
         );
       })}
     </Breadcrumbs>
@@ -70,7 +69,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
 
 export default SettingsBreadcrumb;
 
-const CrumbLink = styled(Link)`
+const CrumbLink = styled(RouterLink)`
   display: block;
 
   color: ${p => p.theme.subText};

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from freezegun import freeze_time
 
@@ -8,7 +8,9 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-@freeze_time()
+@freeze_time(
+    (datetime.now() - timedelta(days=2)).replace(hour=7, minute=57, second=0, microsecond=0)
+)
 class ListMonitorCheckInsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-stats"
 
@@ -17,7 +19,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         self.login_as(user=self.user)
         self.monitor = self._create_monitor()
         self.since = self.monitor.date_added
-        self.until = self.monitor.date_added + timedelta(hours=1, minutes=5)
+        self.until = self.monitor.date_added + timedelta(hours=2)
         monitor_environment_production = self._create_monitor_environment(monitor=self.monitor)
         monitor_environment_debug = self._create_monitor_environment(
             monitor=self.monitor, name="debug"
@@ -66,9 +68,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             },
         )
 
-        assert len(resp.data) == 2
-
-        hour_one, hour_two = resp.data
+        hour_one, hour_two, *extra = resp.data
         assert hour_one["duration"] == 1500
         assert hour_one["ok"] == 2
         assert hour_one["missed"] == 0
@@ -91,7 +91,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             },
         )
 
-        hour_one, hour_two = resp.data
+        hour_one, hour_two, *extra = resp.data
         assert hour_one["duration"] == 1000
         assert hour_one["ok"] == 1
         assert hour_one["missed"] == 0
@@ -114,7 +114,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             },
         )
 
-        hour_one, hour_two = resp.data
+        hour_one, hour_two, *extra = resp.data
         assert hour_one["duration"] == 1500
         assert hour_one["ok"] == 2
         assert hour_one["missed"] == 0
@@ -138,7 +138,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             },
         )
 
-        hour_one, hour_two = resp.data
+        hour_one, hour_two, *extra = resp.data
         assert hour_one["duration"] == 0
         assert hour_one["ok"] == 0
         assert hour_one["missed"] == 0

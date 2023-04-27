@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.models import Environment
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -20,62 +19,104 @@ from sentry.testutils.silo import region_silo_test
 class MonitorTestCase(TestCase):
     def test_next_run_crontab_implicit(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
-        monitor = Monitor(last_checkin=ts, config={"schedule": "* * * * *"})
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        monitor = Monitor(config={"schedule": "* * * * *"})
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
     def test_next_run_crontab_explicit(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
-            last_checkin=ts,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
     def test_next_run_crontab_explicit_timezone(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
-            last_checkin=ts,
             config={
                 "schedule": "0 12 * * *",
                 "schedule_type": ScheduleType.CRONTAB,
                 "timezone": "UTC",
             },
         )
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
     def test_next_run_interval(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
-            last_checkin=ts,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 2, 1, 1, 10, 20, tzinfo=timezone.utc
         )
 
+    def test_save_defaults_slug_to_name(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="My Awesome Monitor",
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        assert monitor.slug == "my-awesome-monitor"
+
+    def test_save_defaults_slug_unique(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="My Awesome Monitor",
+            slug="my-awesome-monitor",
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        assert monitor.slug == "my-awesome-monitor"
+
+        # Create another monitor with the same name
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="My Awesome Monitor",
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        assert monitor.slug.startswith("my-awesome-monitor-")
+
+
+@region_silo_test(stable=True)
+class MonitorEnvironmentTestCase(TestCase):
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_default_params(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -85,7 +126,12 @@ class MonitorTestCase(TestCase):
             type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
-        assert monitor.mark_failed()
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=monitor.status,
+        )
+        assert monitor_environment.mark_failed()
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
@@ -96,6 +142,7 @@ class MonitorTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
+                "environment": monitor_environment.environment.name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -123,7 +170,12 @@ class MonitorTestCase(TestCase):
             type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
-        assert monitor.mark_failed(reason=MonitorFailure.DURATION)
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=monitor.status,
+        )
+        assert monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
@@ -134,6 +186,7 @@ class MonitorTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
+                "environment": monitor_environment.environment.name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -161,10 +214,16 @@ class MonitorTestCase(TestCase):
             type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
-        assert monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=monitor.status,
+        )
+        assert monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
         monitor.refresh_from_db()
-        assert monitor.status == MonitorStatus.MISSED_CHECKIN
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.MISSED_CHECKIN
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
@@ -175,6 +234,7 @@ class MonitorTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
+                "environment": monitor_environment.environment.name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -192,50 +252,3 @@ class MonitorTestCase(TestCase):
                 "type": "default",
             },
         ) == dict(event)
-
-    def test_save_defaults_slug_to_guid(self):
-        monitor = Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-
-        assert str(monitor.guid) == monitor.slug
-
-    def test_save_defaults_slug_to_guid_only_on_create(self):
-        monitor = Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-
-        original_monitor_guid = monitor.guid
-
-        # Simulate existing monitors entries that don't have a slug set
-        monitor.slug = ""
-        monitor.name = "New name"
-        monitor.save()
-
-        assert monitor.guid == original_monitor_guid
-
-
-@region_silo_test(stable=True)
-class MonitorEnvironmentTestCase(TestCase):
-    def test_monitor_environment(self):
-        project = self.project
-        environment = Environment.get_or_create(project, "production")
-
-        monitor = Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-
-        production_monitor = MonitorEnvironment.objects.create(
-            monitor=monitor, environment=environment
-        )
-
-        assert type(production_monitor) == MonitorEnvironment

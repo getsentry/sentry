@@ -139,6 +139,9 @@ class JsonForm extends Component<Props, State> {
       renderFooter,
       renderHeader,
       location: _location,
+      params: _params,
+      router: _router,
+      routes: _routes,
       ...otherProps
     } = this.props;
 

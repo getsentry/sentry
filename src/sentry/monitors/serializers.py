@@ -48,9 +48,13 @@ class MonitorSerializer(Serializer):
         environment_data = {}
         if self.environments:
             monitor_environments = defaultdict(list)
-            for monitor_environment in MonitorEnvironment.objects.filter(
-                monitor__in=item_list, environment__in=self.environments
-            ).select_related("environment"):
+            for monitor_environment in (
+                MonitorEnvironment.objects.filter(
+                    monitor__in=item_list, environment__in=self.environments
+                )
+                .select_related("environment")
+                .order_by("-last_checkin")
+            ):
                 # individually serialize as related objects are prefetched
                 monitor_environments[monitor_environment.monitor_id].append(
                     serialize(
@@ -59,12 +63,14 @@ class MonitorSerializer(Serializer):
                     )
                 )
 
-            environment_data = {str(item.id): monitor_environments[item.id] for item in item_list}
+            environment_data = {
+                str(item.id): monitor_environments.get(item.id, []) for item in item_list
+            }
 
         return {
             item: {
                 "project": projects[str(item.project_id)] if item.project_id else None,
-                "environments": environment_data[str(item.id)] if self.environments else None,
+                "environments": environment_data[str(item.id)] if self.environments else [],
             }
             for item in item_list
         }
@@ -80,8 +86,6 @@ class MonitorSerializer(Serializer):
             "name": obj.name,
             "slug": obj.slug,
             "config": config,
-            "lastCheckIn": obj.last_checkin,
-            "nextCheckIn": obj.next_checkin,
             "dateCreated": obj.date_added,
             "project": attrs["project"],
             "environments": attrs["environments"],
@@ -96,8 +100,6 @@ class MonitorSerializerResponse(TypedDict):
     type: str
     config: Any
     dateCreated: datetime
-    lastCheckIn: datetime
-    nextCheckIn: datetime
     project: ProjectSerializerResponse
     environments: MonitorEnvironmentSerializerResponse
 

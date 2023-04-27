@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button, ButtonLabel} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
@@ -28,7 +28,7 @@ export function IssueSearchWithSavedSearches({
 
   function onSavedSearchesToggleClicked() {
     const newOpenState = !isSavedSearchesOpen;
-    trackAdvancedAnalyticsEvent('search.saved_search_sidebar_toggle_clicked', {
+    trackAnalytics('search.saved_search_sidebar_toggle_clicked', {
       organization,
       open: newOpenState,
     });

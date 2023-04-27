@@ -1,13 +1,24 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, MutableSet, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    MutableSet,
+    Optional,
+    Sequence,
+    Union,
+)
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
 from sentry import analytics
 from sentry.db.models.manager import BaseManager
+from sentry.models.actor import get_actor_id_for_user
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.helpers import (
     get_scope,
@@ -83,8 +94,17 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         scope_type: NotificationScopeType,
         scope_identifier: int,
         target_id: int,
+        user_id: Optional[int] = None,
+        team_id: Optional[int] = None,
     ) -> None:
         """Save a NotificationSettings row."""
+
+        defaults = {"value": value.value}
+        if user_id is not None:
+            defaults.update(user_id=user_id)
+        elif team_id is not None:
+            defaults.update(team_id=team_id)
+
         with configure_scope() as scope:
             with transaction.atomic():
                 setting, created = self.get_or_create(
@@ -93,7 +113,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     scope_type=scope_type.value,
                     scope_identifier=scope_identifier,
                     target_id=target_id,
-                    defaults={"value": value.value},
+                    defaults=defaults,
                 )
                 if not created and setting.value != value.value:
                     scope.set_tag("notif_setting_type", setting.type_str)
@@ -150,6 +170,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
         scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
+        id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
         self._update_settings(
             provider=provider,
             type=type,
@@ -157,6 +178,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             scope_type=scope_type,
             scope_identifier=scope_identifier,
             target_id=target_id,
+            **{id_key: actor.id},
         )
 
     def remove_settings(
@@ -383,8 +405,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
             else:
+                id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
                 self._update_settings(
-                    provider, type, value, scope_type, scope_identifier, target_id
+                    provider,
+                    type,
+                    value,
+                    scope_type,
+                    scope_identifier,
+                    target_id,
+                    **{id_key: actor.id},
                 )
         analytics.record(
             "notifications.settings_updated",
@@ -393,19 +422,17 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         )
 
     def remove_parent_settings_for_organization(
-        self, organization: Organization, provider: ExternalProviders | None = None
+        self, organization_id: int, project_ids: List[int], provider: ExternalProviders
     ) -> None:
         """Delete all parent-specific notification settings referencing this organization."""
         kwargs = {}
-        if provider:
-            kwargs["provider"] = provider.value
+        kwargs["provider"] = provider.value
 
-        project_ids = [project.id for project in organization.project_set.all()]
         self.filter(
             Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier__in=project_ids)
             | Q(
                 scope_type=NotificationScopeType.ORGANIZATION.value,
-                scope_identifier=organization.id,
+                scope_identifier=organization_id,
             ),
             **kwargs,
         ).delete()
@@ -426,7 +453,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     type=type.value,
                     scope_type=NotificationScopeType.USER.value,
                     scope_identifier=user.id,
-                    target_id=user.actor_id,
+                    target_id=get_actor_id_for_user(user),
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
 

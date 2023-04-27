@@ -4,11 +4,13 @@ import responses
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import PlatformExternalIssue
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestIssueLinkCreator(TestCase):
     def setUp(self):
         super().setUp()
@@ -22,9 +24,10 @@ class TestIssueLinkCreator(TestCase):
             name="foo", organization=self.org, webhook_url="https://example.com", scopes=()
         )
 
-        self.install = self.create_sentry_app_installation(
+        self.orm_install = self.create_sentry_app_installation(
             slug="foo", organization=self.org, user=self.user
         )
+        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
     @responses.activate
     def test_creates_external_issue(self):
@@ -48,7 +51,7 @@ class TestIssueLinkCreator(TestCase):
             action="create",
             uri="/link-issue",
             fields=fields,
-            user=self.user,
+            user=serialize_rpc_user(self.user),
         )
 
         external_issue = PlatformExternalIssue.objects.all()[0]
@@ -66,5 +69,5 @@ class TestIssueLinkCreator(TestCase):
                 action="doop",
                 uri="/link-issue",
                 fields={},
-                user=self.user,
+                user=serialize_rpc_user(self.user),
             )

@@ -1,15 +1,17 @@
 import {Fragment, isValidElement} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -21,7 +23,7 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-type Props = {
+export type SidebarItemProps = {
   /**
    * Icon to display
    */
@@ -42,7 +44,6 @@ type Props = {
    * Is this sidebar item active
    */
   active?: boolean;
-
   /**
    * Additional badge to display after label
    */
@@ -52,6 +53,13 @@ type Props = {
    * Is sidebar in a collapsed state
    */
   collapsed?: boolean;
+  /**
+   * Whether to use exact matching to detect active paths. If true, this item will only
+   * be active if the current router path exactly matches the `to` prop. If false
+   * (default), there will be a match for any router path that _starts with_ the `to`
+   * prop.
+   */
+  exact?: boolean;
   /**
    * Sidebar has a panel open
    */
@@ -79,11 +87,14 @@ type Props = {
    * The current organization. Useful for analytics.
    */
   organization?: Organization;
-
   to?: string;
+  /**
+   * Content to render at the end of the item.
+   */
+  trailingItems?: React.ReactNode;
 };
 
-const SidebarItem = ({
+function SidebarItem({
   id,
   href,
   to,
@@ -91,6 +102,7 @@ const SidebarItem = ({
   label,
   badge,
   active,
+  exact,
   hasPanel,
   isNew,
   isBeta,
@@ -101,8 +113,9 @@ const SidebarItem = ({
   isNewSeenKeySuffix,
   organization,
   onClick,
+  trailingItems,
   ...props
-}: Props) => {
+}: SidebarItemProps) {
   const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
@@ -116,7 +129,9 @@ const SidebarItem = ({
     (!hasPanel &&
       router &&
       toPathWithoutReferrer &&
-      location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer))) ||
+      (exact
+        ? location.pathname === normalizeUrl(toPathWithoutReferrer)
+        : location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer)))) ||
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
     (labelString === 'Dashboards' &&
       (location.pathname.includes('/dashboards/') ||
@@ -137,7 +152,7 @@ const SidebarItem = ({
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
   const recordAnalytics = () => {
-    trackAdvancedAnalyticsEvent('growth.clicked_sidebar', {
+    trackAnalytics('growth.clicked_sidebar', {
       item: id,
       organization: organization || null,
     });
@@ -145,9 +160,9 @@ const SidebarItem = ({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" noTooltip />}
-      {isBeta && <FeatureBadge type="beta" noTooltip />}
-      {isAlpha && <FeatureBadge type="alpha" noTooltip />}
+      {showIsNew && <FeatureBadge type="new" tooltipProps={{disabled: true}} />}
+      {isBeta && <FeatureBadge type="beta" tooltipProps={{disabled: true}} />}
+      {isAlpha && <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />}
     </Fragment>
   );
 
@@ -160,7 +175,7 @@ const SidebarItem = ({
   return (
     <Tooltip disabled={!collapsed} title={tooltipLabel} position={placement}>
       <StyledSidebarItem
-        data-test-id={props['data-test-id']}
+        {...props}
         id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
         to={(to ? to : href) || '#'}
@@ -172,7 +187,8 @@ const SidebarItem = ({
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
       >
-        <SidebarItemWrapper>
+        <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
+        <SidebarItemWrapper collapsed={collapsed}>
           <SidebarItemIcon>{icon}</SidebarItemIcon>
           {!collapsed && !isTop && (
             <SidebarItemLabel>
@@ -182,17 +198,36 @@ const SidebarItem = ({
               </LabelHook>
             </SidebarItemLabel>
           )}
-          {collapsed && showIsNew && <CollapsedFeatureBadge type="new" />}
-          {collapsed && isBeta && <CollapsedFeatureBadge type="beta" />}
-          {collapsed && isAlpha && <CollapsedFeatureBadge type="alpha" />}
+          {collapsed && showIsNew && (
+            <CollapsedFeatureBadge
+              type="new"
+              variant="indicator"
+              tooltipProps={{disabled: true}}
+            />
+          )}
+          {collapsed && isBeta && (
+            <CollapsedFeatureBadge
+              type="beta"
+              variant="indicator"
+              tooltipProps={{disabled: true}}
+            />
+          )}
+          {collapsed && isAlpha && (
+            <CollapsedFeatureBadge
+              type="alpha"
+              variant="indicator"
+              tooltipProps={{disabled: true}}
+            />
+          )}
           {badge !== undefined && badge > 0 && (
             <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
           )}
+          {trailingItems}
         </SidebarItemWrapper>
       </StyledSidebarItem>
     </Tooltip>
   );
-};
+}
 
 export default SidebarItem;
 
@@ -215,7 +250,9 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   `;
 };
 
-const StyledSidebarItem = styled(Link)`
+const StyledSidebarItem = styled(Link, {
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
+})`
   display: flex;
   color: inherit;
   position: relative;
@@ -223,15 +260,15 @@ const StyledSidebarItem = styled(Link)`
   font-size: 15px;
   height: 30px;
   flex-shrink: 0;
-
-  transition: 0.15s color linear;
+  border-radius: ${p => p.theme.borderRadius};
+  transition: none;
 
   &:before {
     display: block;
     content: '';
     position: absolute;
     top: 4px;
-    left: -20px;
+    left: calc(-${space(2)} - 1px);
     bottom: 6px;
     width: 5px;
     border-radius: 0 3px 3px 0;
@@ -240,12 +277,10 @@ const StyledSidebarItem = styled(Link)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin: 0 4px;
-
     &:before {
       top: auto;
       left: 5px;
-      bottom: -10px;
+      bottom: -12px;
       height: 5px;
       width: auto;
       right: 5px;
@@ -254,48 +289,51 @@ const StyledSidebarItem = styled(Link)`
   }
 
   &:hover,
-  &:focus {
+  &.focus-visible {
     color: ${p => p.theme.white};
+  }
+
+  &:focus {
+    outline: none;
   }
 
   &.focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px ${p => p.theme.purple300};
-    border-radius: ${p => p.theme.borderRadius};
-    padding: 0 ${space(1)} 0 ${space(0.25)};
-    margin: 0 -${space(1)} 0 -${space(0.25)};
-
-    &:before {
-      left: -18px;
-    }
   }
 
   ${getActiveStyle};
 `;
 
-const SidebarItemWrapper = styled('div')`
+const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
   display: flex;
   align-items: center;
+  justify-content: center;
   width: 100%;
+
+  ${p => !p.collapsed && `padding-right: ${space(1)};`}
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding-right: 0;
+  }
 `;
 
 const SidebarItemIcon = styled('span')`
-  content: '';
-  display: inline-flex;
-  width: 32px;
-  height: 22px;
-  font-size: 20px;
+  display: flex;
   align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 37px;
 
   svg {
     display: block;
     margin: 0 auto;
+    width: 18px;
+    height: 18px;
   }
 `;
 
 const SidebarItemLabel = styled('span')`
-  margin-left: 12px;
+  margin-left: 10px;
   white-space: nowrap;
   opacity: 1;
   flex: 1;
@@ -339,11 +377,6 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
 
 const CollapsedFeatureBadge = styled(FeatureBadge)`
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 2px;
+  right: 2px;
 `;
-
-CollapsedFeatureBadge.defaultProps = {
-  variant: 'indicator',
-  noTooltip: true,
-};

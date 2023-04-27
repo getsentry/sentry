@@ -69,9 +69,9 @@ class BoolType(Type):
         if isinstance(value, int):
             return bool(value)
         value = value.lower()
-        if value in ("y", "yes", "t", "true", "1", "on"):
+        if value in ("y", "yes", "t", "true", "True", "1", "on"):
             return True
-        if value in ("n", "no", "f", "false", "0", "off"):
+        if value in ("n", "no", "f", "false", "False", "0", "off"):
             return False
 
 

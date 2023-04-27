@@ -136,8 +136,8 @@ class SpanTree {
           parent.children.push(
             new SpanTreeNode(
               {
-                description: t('Missing instrumentation'),
-                op: 'missing instrumentation',
+                description: t('Missing span instrumentation'),
+                op: 'missing span instrumentation',
                 start_timestamp:
                   parent.children[parent.children.length - 1].span.timestamp,
                 timestamp: span.start_timestamp,

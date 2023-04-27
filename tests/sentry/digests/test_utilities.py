@@ -12,6 +12,7 @@ from sentry.digests.utils import (
 )
 from sentry.eventstore.models import Event
 from sentry.models import Project, ProjectOwnership
+from sentry.models.actor import Actor
 from sentry.notifications.types import ActionTargetType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import SnubaTestCase, TestCase
@@ -80,11 +81,12 @@ def assert_get_personalized_digests(
     )
     personalized_digests = get_personalized_digests(digest, participants_by_provider_by_event)
     for actor_id, user_digest in personalized_digests.items():
-        assert actor_id in expected_result
+        actor = Actor.objects.get(id=actor_id)
+        assert actor.user_id in expected_result
         assert {e.event_id for e in get_event_from_groups_in_digest(user_digest)} == {
-            e.event_id for e in expected_result[actor_id]
+            e.event_id for e in expected_result[actor.user_id]
         }
-        result_user_ids.append(actor_id)
+        result_user_ids.append(actor.user_id)
 
     assert sorted(expected_result.keys()) == sorted(result_user_ids)
 
@@ -185,10 +187,10 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {
-            self.user1.actor_id: set(self.team1_events),
-            self.user2.actor_id: set(self.team2_events),
-            self.user3.actor_id: set(self.team1_events + self.team2_events),
-            self.user4.actor_id: set(self.user4_events),
+            self.user1.id: set(self.team1_events),
+            self.user2.id: set(self.team2_events),
+            self.user3.id: set(self.team1_events + self.team2_events),
+            self.user4.id: set(self.user4_events),
         }
 
         with self.feature("organizations:notification-all-recipients"):
@@ -201,7 +203,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         records = [event_to_record(event, (rule,)) for event in self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
 
-        expected_result = {self.user1.actor_id: set(self.team1_events)}
+        expected_result = {self.user1.id: set(self.team1_events)}
         assert_get_personalized_digests(
             self.project, digest, expected_result, ActionTargetType.MEMBER, self.user1.id
         )
@@ -237,11 +239,11 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         records = [event_to_record(event, (rule,)) for event in events]
         digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
-            self.user1.actor_id: set(events),
-            self.user2.actor_id: set(events),
-            self.user3.actor_id: set(events),
-            self.user4.actor_id: set(events),
-            self.user5.actor_id: set(events),
+            self.user1.id: set(events),
+            self.user2.id: set(events),
+            self.user3.id: set(events),
+            self.user4.id: set(events),
+            self.user5.id: set(events),
         }
         assert_get_personalized_digests(self.project, digest, expected_result)
 
@@ -253,11 +255,11 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         records = [event_to_record(event, (rule,)) for event in events + self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
-            self.user1.actor_id: set(events + self.team1_events),
-            self.user2.actor_id: set(events),
-            self.user3.actor_id: set(events + self.team1_events),
-            self.user4.actor_id: set(events),
-            self.user5.actor_id: set(events),
+            self.user1.id: set(events + self.team1_events),
+            self.user2.id: set(events),
+            self.user3.id: set(events + self.team1_events),
+            self.user4.id: set(events),
+            self.user5.id: set(events),
         }
         with self.feature("organizations:notification-all-recipients"):
             assert_get_personalized_digests(self.project, digest, expected_result)

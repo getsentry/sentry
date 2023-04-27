@@ -35,9 +35,6 @@ function renderValue(
   value: number | string | undefined,
   profileGroup?: ProfileGroup
 ) {
-  if (key === 'durationNS' && typeof value === 'number') {
-    return nsFormatter(value);
-  }
   if (key === 'threads' && value === undefined) {
     return profileGroup?.profiles.length;
   }
@@ -58,7 +55,9 @@ interface ProfileDetailsProps {
 }
 
 export function ProfileDetails(props: ProfileDetailsProps) {
-  const [detailsTab, setDetailsTab] = useState<'device' | 'transaction'>('transaction');
+  const [detailsTab, setDetailsTab] = useState<'environment' | 'transaction'>(
+    'environment'
+  );
 
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -66,8 +65,8 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     p => p.id === String(props.profileGroup.metadata.projectID)
   );
 
-  const onDeviceTabClick = useCallback(() => {
-    setDetailsTab('device');
+  const onEnvironmentTabClick = useCallback(() => {
+    setDetailsTab('environment');
   }, []);
 
   const onTransactionTabClick = useCallback(() => {
@@ -131,15 +130,15 @@ export function ProfileDetails(props: ProfileDetailsProps) {
         </ProfilingDetailsListItem>
         <ProfilingDetailsListItem
           size="sm"
-          className={detailsTab === 'device' ? 'active' : undefined}
+          className={detailsTab === 'environment' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Device')}
+            data-title={t('Environment')}
             priority="link"
             size="zero"
-            onClick={onDeviceTabClick}
+            onClick={onEnvironmentTabClick}
           >
-            {t('Device')}
+            {t('Environment')}
           </Button>
         </ProfilingDetailsListItem>
         <ProfilingDetailsListItem
@@ -152,8 +151,8 @@ export function ProfileDetails(props: ProfileDetailsProps) {
         />
       </ProfilingDetailsFrameTabs>
 
-      {!props.transaction && detailsTab === 'device' && (
-        <ProfileDeviceDetails profileGroup={props.profileGroup} />
+      {!props.transaction && detailsTab === 'environment' && (
+        <ProfileEnvironmentDetails profileGroup={props.profileGroup} />
       )}
       {!props.transaction && detailsTab === 'transaction' && (
         <ProfileEventDetails
@@ -163,7 +162,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
           transaction={props.transaction}
         />
       )}
-      {props.transaction && detailsTab === 'device' && (
+      {props.transaction && detailsTab === 'environment' && (
         <TransactionDeviceDetails
           transaction={props.transaction}
           profileGroup={props.profileGroup}
@@ -317,7 +316,9 @@ function TransactionEventDetails({
       {
         key: 'duration',
         label: t('Duration'),
-        value: profileMetadata.durationNS && nsFormatter(profileMetadata.durationNS),
+        value: msFormatter(
+          (transaction.endTimestamp - transaction.startTimestamp) * 1000
+        ),
       },
       {
         key: 'threads',
@@ -341,10 +342,10 @@ function TransactionEventDetails({
   );
 }
 
-function ProfileDeviceDetails({profileGroup}: {profileGroup: ProfileGroup}) {
+function ProfileEnvironmentDetails({profileGroup}: {profileGroup: ProfileGroup}) {
   return (
     <DetailsContainer>
-      {Object.entries(DEVICE_DETAILS_KEY).map(([label, key]) => {
+      {Object.entries(ENVIRONMENT_DETAILS_KEY).map(([label, key]) => {
         const value = profileGroup.metadata[key];
         return (
           <DetailsRow key={key}>
@@ -474,7 +475,7 @@ function ProfileEventDetails({
   );
 }
 
-const nsFormatter = makeFormatter('nanoseconds');
+const msFormatter = makeFormatter('milliseconds');
 
 const PROFILE_DETAILS_KEY: Record<string, string> = {
   [t('transaction')]: 'transactionName',
@@ -484,11 +485,10 @@ const PROFILE_DETAILS_KEY: Record<string, string> = {
   [t('platform')]: 'platform',
   [t('release')]: 'release',
   [t('environment')]: 'environment',
-  [t('duration')]: 'durationNS',
   [t('threads')]: 'threads',
 };
 
-const DEVICE_DETAILS_KEY: Record<string, string> = {
+const ENVIRONMENT_DETAILS_KEY: Record<string, string> = {
   [t('model')]: 'deviceModel',
   [t('manufacturer')]: 'deviceManufacturer',
   [t('classification')]: 'deviceClassification',

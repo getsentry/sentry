@@ -4,6 +4,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.models import ProjectOption
 from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -60,7 +61,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -71,7 +72,16 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
                 evidence_display=[],
             )
         ]
@@ -95,7 +105,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -106,7 +116,16 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
                 evidence_display=[],
             )
         ]
@@ -164,5 +183,25 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         problem_2 = self.find_problems(create_event(spans))[0]
 
-        assert problem_2.fingerprint == "1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64"
+        assert problem_2.fingerprint == "1-1009-515a42c2614f98fa886b6d9ad1ddfe1929329f53"
         assert problem_1.fingerprint == problem_2.fingerprint
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = self.create_issue_event()
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveHTTPSpanDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"consecutive_http_spans_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveHTTPSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)

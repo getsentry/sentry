@@ -35,6 +35,7 @@ from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
+    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -65,6 +66,7 @@ from sentry.models import (
 )
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.http import is_using_customer_domain
 
@@ -191,6 +193,25 @@ class OrganizationSerializerResponse(TypedDict):
     features: Any  # TODO
     links: _Links
     hasAuthProvider: bool
+
+
+class ControlSiloOrganizationSerializerResponse(TypedDict):
+    # The control silo will not, cannot, should not contain most organization data.
+    # Therefore, we need a specialized, limited via of that data.
+    id: str
+    slug: str
+    name: str
+
+
+class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
+    def serialize(
+        self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
+    ) -> ControlSiloOrganizationSerializerResponse:
+        return dict(
+            id=str(obj.id),
+            slug=obj.slug,
+            name=obj.name,
+        )
 
 
 @register(Organization)
@@ -414,6 +435,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
+    aiSuggestedSolution: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -515,6 +537,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "codecovAccess": bool(obj.flags.codecov_access),
+                "aiSuggestedSolution": bool(
+                    obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
+                ),
             }
         )
 

@@ -16,6 +16,7 @@ from sentry.db.models import (
     ParanoidModel,
     control_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.types.region import find_regions_for_orgs
 
@@ -112,9 +113,7 @@ class SentryAppInstallation(ParanoidModel):
     # SentryApp's are installed and scoped to an Organization. They will have
     # access, defined by their scopes, to Teams, Projects, etc. under that
     # Organization, implicitly.
-    organization = FlexibleForeignKey(
-        "sentry.Organization", related_name="sentry_app_installations"
-    )
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
 
     # Each installation has a Grant that the integration can exchange for an
     # Access Token.

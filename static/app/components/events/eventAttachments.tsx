@@ -66,12 +66,12 @@ const attachmentPreviewIsOpen = (
   return attachmentPreviews[attachment.id] === true;
 };
 
-const InlineEventAttachment = ({
+function InlineEventAttachment({
   attachmentPreviews,
   attachment,
   projectSlug,
   event,
-}: InlineAttachmentsProps) => {
+}: InlineAttachmentsProps) {
   const organization = useOrganization();
   const AttachmentComponent = getInlineAttachmentRenderer(attachment);
 
@@ -89,9 +89,9 @@ const InlineEventAttachment = ({
       />
     </AttachmentPreviewWrapper>
   );
-};
+}
 
-const EventAttachmentsContent = ({event, projectSlug}: EventAttachmentsProps) => {
+function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
   const organization = useOrganization();
   const {
     data: attachments = [],
@@ -205,9 +205,9 @@ const EventAttachmentsContent = ({event, projectSlug}: EventAttachmentsProps) =>
       )}
     </EventDataSection>
   );
-};
+}
 
-export const EventAttachments = (props: EventAttachmentsProps) => {
+export function EventAttachments(props: EventAttachmentsProps) {
   const organization = useOrganization();
 
   if (!organization.features.includes('event-attachments')) {
@@ -215,7 +215,7 @@ export const EventAttachments = (props: EventAttachmentsProps) => {
   }
 
   return <EventAttachmentsContent {...props} />;
-};
+}
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr auto auto;

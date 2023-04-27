@@ -1,4 +1,4 @@
-from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -7,12 +7,12 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import Organization, Project
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
+from sentry.models import Environment, Organization
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, MonitorType
 from sentry.monitors.serializers import MonitorSerializer
+from sentry.monitors.utils import signal_first_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
-from sentry.signals import first_cron_monitor_created
 
 from .base import OrganizationMonitorPermission
 
@@ -37,7 +37,7 @@ DEFAULT_ORDERING = [
     MonitorStatus.DISABLED,
 ]
 
-DEFAULT_ORDERING_CASE = Case(
+MONITOR_ENVIRONMENT_ORDERING = Case(
     *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
     output_field=IntegerField(),
 )
@@ -60,28 +60,57 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return self.respond([])
 
-        queryset = (
-            Monitor.objects.filter(
-                organization_id=organization.id, project_id__in=filter_params["project_id"]
-            )
-            .annotate(status_order=DEFAULT_ORDERING_CASE)
-            .exclude(
-                status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
-            )
-        )
+        queryset = Monitor.objects.filter(
+            organization_id=organization.id, project_id__in=filter_params["project_id"]
+        ).exclude(status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS])
         query = request.GET.get("query")
 
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
-            queryset = queryset.filter(monitorenvironment__environment__in=environments)
+            if request.GET.get("includeNew"):
+                queryset = queryset.filter(
+                    Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
+                )
+            else:
+                queryset = queryset.filter(monitorenvironment__environment__in=environments)
+        else:
+            environments = list(Environment.objects.filter(organization_id=organization.id))
+
+        # sort monitors by top monitor environment, then by latest check-in
+        monitor_environments_query = MonitorEnvironment.objects.filter(
+            monitor__id=OuterRef("id"), environment__in=environments
+        )
+
+        queryset = queryset.annotate(
+            environment_status_ordering=Case(
+                When(status=MonitorStatus.DISABLED, then=Value(len(DEFAULT_ORDERING))),
+                default=Subquery(
+                    monitor_environments_query.annotate(
+                        status_ordering=MONITOR_ENVIRONMENT_ORDERING
+                    )
+                    .order_by("status_ordering")
+                    .values("status_ordering")[:1],
+                    output_field=IntegerField(),
+                ),
+            )
+        )
+
+        queryset = queryset.annotate(
+            last_checkin_monitorenvironment=Subquery(
+                monitor_environments_query.order_by("-last_checkin").values("last_checkin")[:1],
+                output_field=DateTimeField(),
+            )
+        )
 
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(id__iexact=value))
+                    queryset = queryset.filter(
+                        Q(name__icontains=value) | Q(id__iexact=value) | Q(slug__icontains=value)
+                    )
                 elif key == "id":
                     queryset = queryset.filter(in_iexact("id", value))
                 elif key == "name":
@@ -106,7 +135,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("status_order", "-last_checkin"),
+            order_by=("environment_status_ordering", "-last_checkin_monitorenvironment"),
             on_results=lambda x: serialize(
                 x, request.user, MonitorSerializer(environments=environments)
             ),
@@ -147,9 +176,6 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         )
 
         project = result["project"]
-        if not project.flags.has_cron_monitors:
-            first_cron_monitor_created.send_robust(
-                project=project, user=request.user, sender=Project
-            )
+        signal_first_monitor_created(project, request.user, False)
 
         return self.respond(serialize(monitor, request.user), status=201)

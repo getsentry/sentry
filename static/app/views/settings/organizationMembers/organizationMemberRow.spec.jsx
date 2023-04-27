@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
@@ -7,7 +7,7 @@ describe('OrganizationMemberRow', function () {
     id: '1',
     email: '',
     name: '',
-    role: 'member',
+    orgRole: 'member',
     roleName: 'Member',
     pending: false,
     flags: {
@@ -18,7 +18,24 @@ describe('OrganizationMemberRow', function () {
       has2fa: false,
       name: 'sentry@test.com',
     },
+    orgRolesFromTeams: [],
   };
+
+  const managerTeam = TestStubs.Team({
+    orgRole: 'manager',
+  });
+
+  const memberOnManagerTeam = TestStubs.Member({
+    id: '2',
+    orgRole: 'member',
+    teams: [managerTeam.slug],
+    orgRolesFromTeams: [
+      {
+        teamSlug: managerTeam.slug,
+        role: {name: 'Manager'},
+      },
+    ],
+  });
 
   const currentUser = {
     id: '2',
@@ -278,6 +295,46 @@ describe('OrganizationMemberRow', function () {
       render(<OrganizationMemberRow {...props} canRemoveMembers />);
 
       expect(removeButton()).toBeEnabled();
+    });
+  });
+
+  describe('render org role', function () {
+    it('renders org role without tooltip if no org roles from team membership', function () {
+      render(
+        <OrganizationMemberRow
+          {...defaultProps}
+          member={{
+            ...member,
+            user: {...member.user},
+          }}
+        />
+      );
+
+      expect(screen.getByText('Member')).toBeInTheDocument();
+
+      const questionTooltip = screen.queryByTestId('more-information');
+      expect(questionTooltip).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders org role info tooltip if member has org roles from team membership', async function () {
+    render(
+      <OrganizationMemberRow
+        {...defaultProps}
+        member={{
+          ...memberOnManagerTeam,
+          user: {...memberOnManagerTeam.user},
+        }}
+      />
+    );
+
+    const questionTooltip = screen.getByTestId('more-information');
+    expect(questionTooltip).toBeInTheDocument();
+
+    await userEvent.hover(questionTooltip);
+    await waitFor(() => {
+      expect(screen.getByText(`#${managerTeam.slug}`)).toBeInTheDocument();
+      expect(screen.getByText(': Manager')).toBeInTheDocument();
     });
   });
 });

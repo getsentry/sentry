@@ -52,7 +52,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
     def setUp(self):
         super().setUp()
         self.auth_provider = AuthProvider.objects.create(
-            provider=self.provider_name, organization=self.organization
+            provider=self.provider_name, organization_id=self.organization.id
         )
         AuthIdentity.objects.create(
             auth_provider=self.auth_provider,

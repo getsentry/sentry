@@ -94,11 +94,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.message_guid)
         assert checkin.status == CheckInStatus.OK
 
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
@@ -114,11 +109,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -136,11 +126,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
 
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.ERROR
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
@@ -156,11 +141,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.DISABLED
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.DISABLED
@@ -188,11 +168,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.environment.name == "jungle"
@@ -212,10 +187,15 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        monitor = Monitor.objects.get(slug="my-new-monitor")
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.monitor.name == "my-new-monitor"
+        assert monitor_environment.environment.name == "production"
+        assert monitor_environment.last_checkin == checkin.date_added
+        assert (
+            monitor_environment.next_checkin
+            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+        )
 
     @pytest.mark.django_db
     def test_monitor_update(self):
@@ -231,6 +211,28 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule"] == "13 * * * *"
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.last_checkin == checkin.date_added
+        assert (
+            monitor_environment.next_checkin
+            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+        )
+
+    def test_rate_limit(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        with mock.patch("sentry.monitors.consumers.check_in.CHECKIN_QUOTA_LIMIT", 1):
+            # Try to ingest two the second will be rate limited
+            _process_message(self.get_message("my-monitor"))
+            _process_message(self.get_message("my-monitor"))
+
+            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            assert len(checkins) == 1
+
+            # Same monitor, diff environments
+            _process_message(self.get_message("my-monitor", environment="dev"))
+
+            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            assert len(checkins) == 2

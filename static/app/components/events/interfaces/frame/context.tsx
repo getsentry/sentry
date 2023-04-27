@@ -4,7 +4,9 @@ import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ExceptionGroupContext} from 'sentry/components/events/interfaces/frame/exceptionGroupContext';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import {hasExceptionGroupTree} from 'sentry/components/events/interfaces/frame/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,6 +17,7 @@ import {
   LineCoverage,
   Organization,
   SentryAppComponent,
+  StackTraceMechanism,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -45,6 +48,9 @@ type Props = {
   hasContextSource?: boolean;
   hasContextVars?: boolean;
   isExpanded?: boolean;
+  isFirst?: boolean;
+  isNewestFrame?: boolean;
+  mechanism?: StackTraceMechanism | null;
   organization?: Organization;
   registersMeta?: Record<any, any>;
 };
@@ -64,7 +70,7 @@ export function getLineCoverage(
   return [lineCoverage, hasCoverage];
 }
 
-const Context = ({
+function Context({
   hasContextVars = false,
   hasContextSource = false,
   hasContextRegisters = false,
@@ -80,7 +86,9 @@ const Context = ({
   className,
   frameMeta,
   registersMeta,
-}: Props) => {
+  mechanism,
+  isNewestFrame,
+}: Props) {
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -127,12 +135,18 @@ const Context = ({
       : {}
   );
 
-  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
+  if (
+    !hasContextSource &&
+    !hasContextVars &&
+    !hasContextRegisters &&
+    !hasAssembly &&
+    !hasExceptionGroupTree({isNewestFrame, mechanism})
+  ) {
     return emptySourceNotation ? (
-      <div className="empty-context">
+      <EmptyContext>
         <StyledIconFlag size="xs" />
-        <p>{t('No additional details are available for this frame.')}</p>
-      </div>
+        {t('No additional details are available for this frame.')}
+      </EmptyContext>
     ) : null;
   }
 
@@ -148,6 +162,7 @@ const Context = ({
       start={startLineNo}
       startLineNo={startLineNo}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
+      data-test-id="frame-context"
     >
       {defined(frame.errors) && (
         <li className={expandable ? 'expandable error' : 'error'} key="errors">
@@ -192,6 +207,8 @@ const Context = ({
           );
         })}
 
+      <ExceptionGroupContext {...{event, isNewestFrame, mechanism}} />
+
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
           <FrameVariables data={frame.vars ?? {}} meta={frameMeta?.vars} />
@@ -206,12 +223,10 @@ const Context = ({
         />
       )}
 
-      {hasAssembly && (
-        <Assembly {...parseAssembly(frame.package)} filePath={frame.absPath} />
-      )}
+      {hasAssembly && <Assembly {...parseAssembly(frame.package)} />}
     </Wrapper>
   );
-};
+}
 
 export default withOrganization(Context);
 
@@ -229,4 +244,13 @@ const Wrapper = styled('ol')<{startLineNo: number}>`
   && {
     border-radius: 0 !important;
   }
+`;
+
+const EmptyContext = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding: 20px;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;

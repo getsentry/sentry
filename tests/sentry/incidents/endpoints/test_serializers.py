@@ -25,6 +25,7 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerSerializer,
 )
 from sentry.models import ACTOR_TYPES, Environment, Integration
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -648,6 +649,9 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
+        # Reload user for actor
+        with exempt_from_silo_limits():
+            self.user = User.objects.get(id=self.user.id)
         assert alert_rule.owner == self.user.actor
         assert alert_rule.owner.type == ACTOR_TYPES["user"]
 
