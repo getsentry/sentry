@@ -49,8 +49,15 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
 
         return f"[{project_slug}] {title}"
 
-    @staticmethod
+    @property
+    def escape_text(self):
+        """
+        Returns True if we need to escape the text in the message.
+        """
+        return False
+
     def _build(
+        self,
         text: str,
         title: str | None = None,
         title_link: str | None = None,
@@ -85,11 +92,16 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         if actions is not None:
             kwargs["actions"] = [get_slack_button(action) for action in actions]
 
-        return {
-            "text": escape_slack_text(
+        markdown_in = ["text"]
+        if self.escape_text:
+            text = escape_slack_text(
                 escape_slack_text(text)
-            ),  # Slack will un-escape so we have to double escape
-            "mrkdwn_in": [],
+            )  # Slack will un-escape so we have to double escape
+            markdown_in = []
+
+        return {
+            "text": text,
+            "mrkdwn_in": markdown_in,
             "color": LEVEL_TO_COLOR[color or "info"],
             **kwargs,
         }
