@@ -64,6 +64,7 @@ sentry-relay>=0.8.21
 sentry-sdk>=1.21.0
 snuba-sdk>=1.0.5
 simplejson>=3.17.6
+sqlparse>=0.4.4
 statsd>=3.3
 structlog>=22
 symbolic>=12.1.2
@@ -105,6 +106,5 @@ phabricator>=0.7.0
 # test dependencies, but unable to move to requirements-test until
 # sentry.utils.pytest and sentry.testutils are moved to tests/
 selenium>=4.1.5
-sqlparse>=0.2.4,<=0.3.0
 
 openai==0.27.0
