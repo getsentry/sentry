@@ -324,7 +324,15 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             sub_data = {}
             with exempt_from_silo_limits():
                 sub_data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+
+            assert delay.call_count == 2
+            delay.assert_any_call(
+                self.sentryFunction.external_id,
+                "issue.ignored",
+                self.issue.id,
+                sub_data,
+            )
+            delay.assert_any_call(
                 self.sentryFunction.external_id,
                 "issue.archived",
                 self.issue.id,
