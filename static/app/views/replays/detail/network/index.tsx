@@ -133,7 +133,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             showIcon
             type="info"
             trailingItems={
-              <StyledButton priority="link" size="sm" onClick={() => {}}>
+              <StyledButton priority="link" size="sm" onClick={dismiss}>
                 <IconClose color="gray500" size="sm" />
               </StyledButton>
             }
