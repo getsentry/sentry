@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -14,13 +14,10 @@ import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failure
 
 const EventsRequest = withApi(_EventsRequest);
 
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
@@ -28,7 +25,9 @@ import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
+import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
 import {MODULE_BREAKDOWN} from 'sentry/views/starfish/views/webServiceView/queries';
+import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
 
@@ -43,9 +42,9 @@ type BasePerformanceViewProps = {
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView, onSelect, location} = props;
+  const {organization, eventView, onSelect} = props;
   const theme = useTheme();
-  const [, setSelectedSpike] = useState<any | undefined>();
+  const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
 
   // Queries
   const {data: moduleBreakdown} = useQuery({
@@ -106,19 +105,12 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '16px',
                 bottom: '8px',
               }}
-              definedAxisTicks={4}
+              definedAxisTicks={2}
               handleSpikeAreaClick={e => {
                 if (e.componentType === 'markArea') {
-                  setSelectedSpike(e);
-                  const startTime = new Date(e.data.coord[0][0]);
-                  const endTime = new Date(e.data.coord[1][0]);
-                  browserHistory.push({
-                    pathname: `${location.pathname}failure-detail/`,
-                    query: {
-                      start: normalizeDateTimeString(startTime),
-                      end: normalizeDateTimeString(endTime),
-                      project: decodeList(location.query.project),
-                    },
+                  setSelectedSpike({
+                    startTimestamp: e.data.coord[0][0],
+                    endTimestamp: e.data.coord[1][0],
                   });
                 }
               }}
@@ -130,7 +122,11 @@ export function StarfishView(props: BasePerformanceViewProps) {
   }
 
   function renderThroughputChart() {
-    const query = new MutableSearch(['event.type:transaction']);
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'has:http.method',
+      'transaction.op:http.server',
+    ]);
 
     return (
       <EventsRequest
@@ -148,6 +144,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         end={eventView.end}
         organization={organization}
         yAxis="tpm()"
+        queryExtras={{dataset: 'metrics'}}
       >
         {({loading, timeseriesData}) => {
           const transformedData: Series[] | undefined = timeseriesData?.map(series => ({
@@ -190,7 +187,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      {/* <FailureDetailPanel onClose={handleClose} spikeObject={selectedSpike} /> */}
+      <FailureDetailPanel onClose={() => setSelectedSpike(null)} spike={selectedSpike} />
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>

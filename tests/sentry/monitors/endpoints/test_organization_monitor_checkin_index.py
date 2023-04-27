@@ -20,14 +20,18 @@ class ListMonitorCheckInsTest(MonitorTestCase):
 
     def test_simple(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -44,10 +48,12 @@ class ListMonitorCheckInsTest(MonitorTestCase):
 
     def test_statsperiod_constraints(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
 
         checkin = MonitorCheckIn.objects.create(
             project_id=self.project.id,
             monitor_id=monitor.id,
+            monitor_environment_id=monitor_environment.id,
             status=MonitorStatus.OK,
             date_added=timezone.now() - timedelta(hours=12),
         )
@@ -79,6 +85,8 @@ class ListMonitorCheckInsTest(MonitorTestCase):
 
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor, name="jungle")
+        monitor_environment_2 = self._create_monitor_environment(monitor, name="volcano")
+
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
@@ -88,6 +96,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         )
         MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment_2,
             project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -105,6 +114,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
 
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor, name="production")
+
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
@@ -114,6 +124,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         )
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=None,
             project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -128,7 +139,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             status=CheckInStatus.OK,
         )
 
-        # When querying for he production environment checkins all non
+        # When querying for the production environment checkins all non
         # environment checkins are included
         resp = self.get_success_response(
             self.organization.slug,

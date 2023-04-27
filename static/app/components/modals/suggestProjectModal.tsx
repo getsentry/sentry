@@ -162,7 +162,7 @@ class SuggestProjectModal extends Component<Props, State> {
           </ModalContainer>
         </Body>
         <Footer>
-          <Access organization={organization} access={['project:write']}>
+          <Access access={['project:write']}>
             {({hasAccess}) => (
               <ButtonBar gap={1}>
                 <Button

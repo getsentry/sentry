@@ -39,6 +39,8 @@ const getDomainSubquery = (date_filters, action) => {
 
 const getActionQuery = action => (action !== 'ALL' ? `and action = '${action}'` : '');
 
+const SEVEN_DAYS = 7 * 24 * 60 * 60;
+
 export const getOperations = date_filters => {
   return `
   select
@@ -115,7 +117,7 @@ export const getPanelTableQuery = (date_filters, row) => {
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
-    ORDER BY count DESC
+    ORDER BY ${ORDERBY}
     LIMIT 10
   `;
 };
@@ -147,16 +149,17 @@ export const getPanelEventCount = (date_filters, row) => {
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
+    ORDER BY ${ORDERBY}
    `;
 };
 
 export const getMainTable = (
+  startTime,
   date_filters,
+  endTime,
   transactionFilter,
   tableFilter,
-  actionFilter,
-  startTime,
-  endTime
+  actionFilter
 ) => {
   const filters = [
     DEFAULT_WHERE,
@@ -167,11 +170,17 @@ export const getMainTable = (
   ].filter(fil => !!fil);
   const duration = endTime.unix() - startTime.unix();
   const newColumn =
-    duration > 7 * 24 * 60 * 60
+    duration > SEVEN_DAYS
       ? `min(start_timestamp) > fromUnixTimestamp(${
-          endTime.unix() - duration / 2
+          startTime.unix() + duration / 10
         }) as newish`
       : '0 as newish';
+  const retiredColumn =
+    duration > SEVEN_DAYS
+      ? `max(start_timestamp) < fromUnixTimestamp(${
+          endTime.unix() - duration / 10
+        }) as retired`
+      : '0 as retired';
 
   return `
     select
@@ -186,7 +195,9 @@ export const getMainTable = (
       data_keys,
       data_values,
       min(start_timestamp) as firstSeen,
-      ${newColumn}
+      max(start_timestamp) as lastSeen,
+      ${newColumn},
+      ${retiredColumn}
     from default.spans_experimental_starfish
     where
       ${filters.join(' and ')}
