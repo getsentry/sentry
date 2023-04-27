@@ -87,6 +87,8 @@ class EndpointList extends Component<Props, State> {
 
       const row = {
         endpoint: `${prefix}${dataRow.transaction}`,
+        transaction: dataRow.transaction,
+        httpOp: dataRow['http.method'],
         aggregateDetails: {
           failureCount: dataRow['count_if(http.status_code,greaterOrEquals,500)'],
           p50: dataRow['p50()'],
