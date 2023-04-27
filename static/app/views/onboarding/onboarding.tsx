@@ -1,7 +1,6 @@
 import {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
 import {Button, ButtonProps} from 'sentry/components/button';
@@ -195,8 +194,8 @@ function Onboarding(props: Props) {
       );
 
       onboardingContext.setData({
+        ...onboardingContext.data,
         projects: newProjects,
-        selectedSDK: undefined,
       });
     }
 
@@ -233,17 +232,6 @@ function Onboarding(props: Props) {
       </SkipOnboardingLink>
     );
   };
-
-  const jumpToSetupProject = useCallback(() => {
-    const nextStep = onboardingSteps.find(({id}) => id === 'setup-docs');
-    if (!nextStep) {
-      Sentry.captureMessage(
-        'Missing step in onboarding: `setup-docs` when trying to jump there'
-      );
-      return;
-    }
-    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
-  }, [onboardingSteps, organization, props.router]);
 
   if (!stepObj || stepIndex === -1) {
     return (
@@ -291,7 +279,6 @@ function Onboarding(props: Props) {
                 route={props.route}
                 router={props.router}
                 location={props.location}
-                jumpToSetupProject={jumpToSetupProject}
                 selectedProjectSlug={selectedProjectSlug}
                 {...{
                   genSkipOnboardingLink,

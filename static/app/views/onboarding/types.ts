@@ -13,7 +13,6 @@ export type StepProps = Pick<
 > & {
   active: boolean;
   genSkipOnboardingLink: () => React.ReactNode;
-  jumpToSetupProject: () => void;
   onComplete: (selectedPlatforms?: OnboardingSelectedSDK) => void;
   orgId: string;
   search: string;

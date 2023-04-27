@@ -5,13 +5,10 @@ import {Location} from 'history';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
-import {} from 'sentry/components/text';
 import {t} from 'sentry/locale';
 
 type Props = {
   nextLocation: Location;
-  onboardingContext: OnboardingContextProps;
   router: RouteComponentProps<{}, {}>['router'];
 } & ModalRenderProps;
 
@@ -22,18 +19,15 @@ export function ChangeRouteModal({
   router,
   nextLocation,
   closeModal,
-  onboardingContext,
 }: Props) {
   const handleSetUpLater = useCallback(() => {
     closeModal();
-
-    onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
 
     router.push({
       ...nextLocation,
       query: nextLocation.query,
     });
-  }, [router, nextLocation, closeModal, onboardingContext]);
+  }, [router, nextLocation, closeModal]);
 
   return (
     <Fragment>

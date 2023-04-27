@@ -8,10 +8,7 @@ import {Location} from 'history';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {
-  OnboardingContext,
-  OnboardingContextProps,
-} from 'sentry/components/onboarding/onboardingContext';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconCheckmark, IconCircle, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
@@ -39,12 +36,10 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> 
 };
 
 async function openChangeRouteModal({
-  onboardingContext,
   nextLocation,
   router,
 }: {
   nextLocation: Location;
-  onboardingContext: OnboardingContextProps;
   router: RouteComponentProps<{}, {}>['router'];
 }) {
   const mod = await import('sentry/components/onboarding/changeRouteModal');
@@ -52,12 +47,7 @@ async function openChangeRouteModal({
   const {ChangeRouteModal} = mod;
 
   openModal(deps => (
-    <ChangeRouteModal
-      {...deps}
-      router={router}
-      nextLocation={nextLocation}
-      onboardingContext={onboardingContext}
-    />
+    <ChangeRouteModal {...deps} router={router} nextLocation={nextLocation} />
   ));
 }
 
@@ -231,15 +221,12 @@ export function FooterWithViewSampleErrorButton({
       pathname += `project=${selectedProjectId}&`;
     }
 
-    onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
-
     openChangeRouteModal({
       router,
       nextLocation: {
         ...router.location,
         pathname: (pathname += `referrer=onboarding-first-event-footer-skip`),
       },
-      onboardingContext,
     });
   }, [router, organization, onboardingContext, selectedProject, projectId]);
 
@@ -254,8 +241,6 @@ export function FooterWithViewSampleErrorButton({
       project_id: projectId,
       platform: selectedProject?.platform ?? 'other',
     });
-
-    onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
 
     router.push({
       ...router.location,
@@ -304,6 +289,7 @@ export function FooterWithViewSampleErrorButton({
               if (!projectId) {
                 return;
               }
+
               trackAnalytics('onboarding.view_sample_error_button_clicked', {
                 new_organization: !!newOrg,
                 project_id: projectId,

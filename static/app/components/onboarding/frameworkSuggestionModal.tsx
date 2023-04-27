@@ -91,7 +91,6 @@ export function FrameworkSuggestionModal({
       framework: selectedFramework.key,
       organization,
     });
-
     onConfigure(selectedFramework);
     closeModal();
   }, [selectedPlatform, selectedFramework, organization, onConfigure, closeModal]);

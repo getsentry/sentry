@@ -1,11 +1,10 @@
-import {Fragment, useContext} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -36,7 +35,6 @@ export default function FirstEventFooter({
   handleFirstIssueReceived,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
-  const onboardingContext = useContext(OnboardingContext);
 
   const getSecondaryCta = () => {
     // if hasn't sent first event, allow skiping.
@@ -83,7 +81,6 @@ export default function FirstEventFooter({
             organization,
             source,
           });
-          onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
         }}
         to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >

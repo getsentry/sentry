@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
@@ -205,7 +204,6 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
   const api = useApi();
   const organization = useOrganization();
   const {projects: rawProjects} = useProjects();
-  const onboardingContext = useContext(OnboardingContext);
 
   const {
     logExperiment: newFooterLogExperiment,
@@ -399,10 +397,6 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
                 platform: currentPlatform,
                 project_index: projectIndex ?? 0,
               });
-              onboardingContext.setData({
-                ...onboardingContext.data,
-                selectedSDK: undefined,
-              });
               browserHistory.push(orgIssuesURL);
             }}
             handleFirstIssueReceived={() => {
@@ -422,10 +416,6 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
               organization,
               platform: currentPlatform,
               project_index: projectIndex ?? 0,
-            });
-            onboardingContext.setData({
-              ...onboardingContext.data,
-              selectedSDK: undefined,
             });
             browserHistory.push(orgIssuesURL);
           }}

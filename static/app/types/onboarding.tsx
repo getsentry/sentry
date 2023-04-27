@@ -39,7 +39,7 @@ export type OnboardingSupplementComponentProps = {
 };
 
 export type OnboardingCustomComponentProps = {
-  onboardingContext: OnboardingContextProps | null;
+  onboardingContext: OnboardingContextProps;
   organization: Organization;
   projects: Project[];
   task: OnboardingTask;

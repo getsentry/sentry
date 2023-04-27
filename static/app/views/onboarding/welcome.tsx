@@ -48,7 +48,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
+function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
 
@@ -65,23 +65,6 @@ function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
       onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
     }
   }, [organization, onboardingContext]);
-
-  // Jump to setup project if project is already selected
-  useEffect(() => {
-    if (onboardingContext.data.selectedSDK) {
-      if (
-        Object.keys(onboardingContext.data.projects).find(
-          key =>
-            onboardingContext.data.projects[key].slug ===
-            onboardingContext.data.selectedSDK?.key
-        )
-      ) {
-        jumpToSetupProject();
-        return;
-      }
-      // TODO(Priscila): Add jump to select platforms here
-    }
-  }, [onboardingContext, jumpToSetupProject]);
 
   const handleComplete = useCallback(() => {
     trackAnalytics('growth.onboarding_clicked_instrument_app', {

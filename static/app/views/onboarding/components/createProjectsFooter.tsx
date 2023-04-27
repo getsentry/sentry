@@ -17,7 +17,12 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK, Organization} from 'sentry/types';
+import {
+  OnboardingProjectStatus,
+  OnboardingSelectedSDK,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -87,7 +92,7 @@ export function CreateProjectsFooter({
       try {
         addLoadingMessage(t('Creating project'));
 
-        const response = await createProject({
+        const response = (await createProject({
           api,
           orgSlug: organization.slug,
           team: teams[0].slug,
@@ -96,9 +101,20 @@ export function CreateProjectsFooter({
           options: {
             defaultRules: true,
           },
-        });
+        })) as Project;
 
         ProjectsStore.onCreateSuccess(response, organization.slug);
+
+        onboardingContext.setData({
+          selectedSDK: createProjectForPlatform,
+          projects: {
+            ...onboardingContext.data.projects,
+            [response.slug]: {
+              slug: response.slug,
+              status: OnboardingProjectStatus.WAITING,
+            },
+          },
+        });
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
