@@ -79,10 +79,8 @@ class HistoricGroupCounts(BaseGroupCounts):
 
     def test_pagination(self) -> None:
         group1_bucket1_event = self._create_events_for_group(count=2, hours_ago=1, group="group-1")
-        group2_bucket1_event = self._create_events_for_group(count=1, hours_ago=2, group="group-2")
-        group2_bucket2_event = self._create_events_for_group(count=2, hours_ago=1, group="group-2")
-        # Increases the count of event3
-        self._create_events_for_group(group="group-2", hours_ago=1)
+        group2_bucket1_event = self._create_events_for_group(count=1, hours_ago=1, group="group-2")
+        group2_bucket2_event = self._create_events_for_group(count=2, hours_ago=2, group="group-2")
 
         # This forces to test the iteration over the Snuba data
         with patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=2):
