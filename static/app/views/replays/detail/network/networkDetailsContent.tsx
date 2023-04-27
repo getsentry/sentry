@@ -116,8 +116,8 @@ function objectInspectorOrNotFound(data: any, notFoundText: string) {
 function keyValueTablOrNotFound(data: Record<string, string>, notFoundText: string) {
   return data ? (
     <StyledKeyValueTable noMargin>
-      {Object.entries(data).map(([key, values]) => (
-        <KeyValueTableRow key={key} keyName={key} value={values} />
+      {Object.entries(data).map(([key, value]) => (
+        <KeyValueTableRow key={key} keyName={key} value={<span>{value}</span>} />
       ))}
     </StyledKeyValueTable>
   ) : (
