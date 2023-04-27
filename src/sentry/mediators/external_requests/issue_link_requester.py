@@ -42,11 +42,11 @@ class IssueLinkRequester(Mediator):
     issue in the UI (i.e. <project>#<identifier>)
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     uri = Param((str,))
     group = Param("sentry.models.Group")
     fields = Param(object)
-    user = Param("sentry.models.User")
+    user = Param("sentry.services.hybrid_cloud.user.RpcUser")
     action = Param((str,))
 
     def call(self):

@@ -6,15 +6,17 @@ import pytest
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import ApiApplication, ApiGrant, SentryApp, SentryAppInstallation
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.testutils import TestCase
 
 
 class TestGrantExchanger(TestCase):
     def setUp(self):
-        self.install = self.create_sentry_app_installation(prevent_token_exchange=True)
-        self.code = self.install.api_grant.code
+        self.orm_install = self.create_sentry_app_installation(prevent_token_exchange=True)
+        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
+        self.code = self.orm_install.api_grant.code
         self.client_id = self.install.sentry_app.application.client_id
-        self.user = self.install.sentry_app.proxy_user
+        self.user = self.orm_install.sentry_app.proxy_user
 
         self.grant_exchanger = GrantExchanger(
             install=self.install, client_id=self.client_id, code=self.code, user=self.user
@@ -49,7 +51,7 @@ class TestGrantExchanger(TestCase):
             self.grant_exchanger.call()
 
     def test_grant_must_be_active(self):
-        self.install.api_grant.update(expires_at=(datetime.utcnow() - timedelta(hours=1)))
+        self.orm_install.api_grant.update(expires_at=(datetime.utcnow() - timedelta(hours=1)))
 
         with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()
@@ -71,7 +73,7 @@ class TestGrantExchanger(TestCase):
             self.grant_exchanger.call()
 
     def test_deletes_grant_on_successful_exchange(self):
-        grant_id = self.install.api_grant_id
+        grant_id = self.orm_install.api_grant_id
         self.grant_exchanger.call()
         assert not ApiGrant.objects.filter(id=grant_id)
 

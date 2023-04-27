@@ -1,6 +1,5 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import ValidationError
 
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import (
@@ -11,7 +10,7 @@ from sentry.api.bases import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
-from sentry.models import Project, SentryAppComponent, SentryAppInstallation
+from sentry.models import SentryAppComponent, SentryAppInstallation
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 
 
@@ -33,15 +32,6 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     @add_integration_platform_metric_tag
     def get(self, request: Request, organization) -> Response:
-        project_id = request.GET.get("projectId")
-        if not project_id:
-            raise ValidationError("Required parameter 'projectId' is missing")
-
-        try:
-            Project.objects.get(id=project_id, organization_id=organization.id)
-        except Project.DoesNotExist:
-            return Response([], status=404)
-
         components = []
         errors = []
 

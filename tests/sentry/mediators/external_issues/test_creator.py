@@ -1,5 +1,6 @@
 from sentry.mediators.external_issues import Creator
 from sentry.models import PlatformExternalIssue
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.testutils import TestCase
 
 
@@ -16,9 +17,10 @@ class TestCreator(TestCase):
             name="foo", organization=self.org, webhook_url="https://example.com", scopes=()
         )
 
-        self.install = self.create_sentry_app_installation(
+        self.orm_install = self.create_sentry_app_installation(
             slug="foo", organization=self.org, user=self.user
         )
+        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
     def test_creates_platform_external_issue(self):
         result = Creator.run(

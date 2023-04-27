@@ -22,7 +22,7 @@ class SelectRequester(Mediator):
     2. Validates and formats the response.
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     project_slug = Param(str, required=False)
     uri = Param((str,))
     query = Param((str,), required=False)
