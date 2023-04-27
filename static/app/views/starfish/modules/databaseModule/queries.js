@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
   span_operation != 'db.redis' and
@@ -156,12 +154,12 @@ export const getPanelEventCount = (date_filters, row) => {
 };
 
 export const getMainTable = (
-  startTime: moment.Moment,
-  date_filters: string,
-  endTime: moment.Moment,
-  transactionFilter?: string,
-  tableFilter?: string,
-  actionFilter?: string
+  startTime,
+  date_filters,
+  endTime,
+  transactionFilter,
+  tableFilter,
+  actionFilter
 ) => {
   const filters = [
     DEFAULT_WHERE,
