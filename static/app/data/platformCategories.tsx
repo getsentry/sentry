@@ -225,6 +225,7 @@ export const profiling: PlatformKey[] = [
   'node-koa',
   'node-connect',
   'javascript-nextjs',
+  'javascript-remix',
   // python
   'python',
   'python-django',
