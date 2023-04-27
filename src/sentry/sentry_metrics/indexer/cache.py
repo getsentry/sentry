@@ -5,6 +5,7 @@ from typing import Mapping, MutableMapping, Optional, Sequence, Set
 from django.conf import settings
 from django.core.cache import caches
 
+from sentry import options
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -41,6 +42,7 @@ class StringIndexerCache:
         hashed = md5_text(key).hexdigest()
         return f"indexer:{self.partition_key}:org:str:{cache_namespace}:{hashed}"
 
+    # TODO: Remove later once we are always writing new keys
     def make_new_cache_key(self, key: str, cache_namespace: str) -> str:
         if cache_namespace == "performance":
             new_namespace = "transactions"
@@ -91,6 +93,7 @@ class StringIndexerCache:
         )
         return self._format_results(keys, results, cache_namespace)
 
+    # TODO: Remove later once we are always writing new keys
     def set_many_new(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
         cache_key_values = {
             self.make_new_cache_key(k, cache_namespace): v for k, v in key_values.items()
@@ -158,16 +161,16 @@ class CachingIndexer(StringIndexer):
 
         db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
 
-        # We will temporarily change it to write new cache keys for all results
-
-        # DB key results
         self.cache.set_many(
             db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
         )
 
-        self.cache.set_many_new(
-            db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
-        )
+        double_write = options.get("sentry-metrics.indexer.cache-key-double-write")
+
+        if double_write:
+            self.cache.set_many_new(
+                db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+            )
 
         return cache_key_results.merge(db_record_key_results)
 
