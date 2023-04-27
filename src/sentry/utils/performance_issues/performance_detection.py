@@ -39,6 +39,12 @@ INTEGRATIONS_OF_INTEREST = [
     "sqlalchemy",
     "Mongo",  # Node
     "Postgres",  # Node
+    "Mysql",  # Node
+    "Prisma",  # Node
+    "GraphQL",  # Node
+]
+SDKS_OF_INTEREST = [
+    "sentry.javascript.node",
 ]
 
 
@@ -367,6 +373,9 @@ def report_metrics_for_detectors(
         detected_tags["integration_" + integration_name.lower()] = (
             integration_name in event_integrations
         )
+
+    for allowed_sdk_name in SDKS_OF_INTEREST:
+        detected_tags["sdk_" + allowed_sdk_name.lower()] = allowed_sdk_name == sdk_name
 
     for detector in detectors:
         detector_key = detector.type.value
