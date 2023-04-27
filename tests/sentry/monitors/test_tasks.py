@@ -37,7 +37,6 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors()
 
-        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.MISSED_CHECKIN).exists()
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
         ).exists()
@@ -66,7 +65,6 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors()
 
-        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.DISABLED).exists()
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.DISABLED
         ).exists()
@@ -92,7 +90,6 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors()
 
-        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.PENDING_DELETION).exists()
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.PENDING_DELETION
         ).exists()
@@ -118,9 +115,6 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors()
 
-        assert Monitor.objects.filter(
-            id=monitor.id, status=MonitorStatus.DELETION_IN_PROGRESS
-        ).exists()
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.DELETION_IN_PROGRESS
         ).exists()
@@ -149,7 +143,6 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors()
 
-        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.OK).exists()
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.OK
         ).exists()
@@ -163,8 +156,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=current_datetime + timedelta(hours=12, minutes=1),
-            last_checkin=current_datetime + timedelta(hours=12),
             type=MonitorType.CRON_JOB,
             config={"schedule": "0 0 * * *"},
             status=MonitorStatus.OK,
@@ -173,7 +164,8 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=current_datetime + timedelta(hours=12, minutes=1),
+            last_checkin=current_datetime + timedelta(hours=12),
             status=monitor.status,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -189,8 +181,8 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
-            date_added=monitor.last_checkin,
-            date_updated=monitor.last_checkin,
+            date_added=monitor_environment.last_checkin,
+            date_updated=monitor_environment.last_checkin,
         )
 
         assert checkin.date_added == checkin.date_updated == current_datetime
@@ -203,7 +195,6 @@ class CheckMonitorsTest(TestCase):
             id=checkin2.id, status=CheckInStatus.IN_PROGRESS
         ).exists()
 
-        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.ERROR).exists()
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.ERROR
         ).exists()
@@ -217,8 +208,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=current_datetime + timedelta(hours=12, minutes=1),
-            last_checkin=current_datetime + timedelta(hours=12),
             type=MonitorType.CRON_JOB,
             config={"schedule": "0 0 * * *"},
             status=MonitorStatus.OK,
@@ -227,7 +216,8 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=current_datetime + timedelta(hours=12, minutes=1),
+            last_checkin=current_datetime + timedelta(hours=12),
             status=monitor.status,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -243,8 +233,8 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.OK,
-            date_added=monitor.last_checkin,
-            date_updated=monitor.last_checkin,
+            date_added=monitor_environment.last_checkin,
+            date_updated=monitor_environment.last_checkin,
         )
 
         assert checkin.date_added == checkin.date_updated == current_datetime
@@ -255,7 +245,6 @@ class CheckMonitorsTest(TestCase):
 
         assert MonitorCheckIn.objects.filter(id=checkin2.id, status=CheckInStatus.OK).exists()
 
-        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.OK).exists()
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.OK
         ).exists()
@@ -269,8 +258,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=current_datetime + timedelta(hours=1, minutes=1),
-            last_checkin=current_datetime + timedelta(hours=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "0 0 * * *", "max_runtime": 60},
             status=MonitorStatus.OK,
@@ -279,7 +266,8 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=current_datetime + timedelta(hours=1, minutes=1),
+            last_checkin=current_datetime + timedelta(hours=1),
             status=monitor.status,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -297,7 +285,6 @@ class CheckMonitorsTest(TestCase):
 
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.ERROR).exists()
 
-        assert Monitor.objects.filter(id=monitor.id, status=MonitorStatus.ERROR).exists()
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.ERROR
         ).exists()
@@ -311,8 +298,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=current_datetime + timedelta(hours=12, minutes=1),
-            last_checkin=current_datetime + timedelta(hours=12),
             type=MonitorType.CRON_JOB,
             config={"schedule": "0 0 * * *"},
             status=MonitorStatus.OK,
@@ -321,7 +306,8 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=current_datetime + timedelta(hours=12, minutes=1),
+            last_checkin=current_datetime + timedelta(hours=12),
             status=monitor.status,
         )
         checkin = MonitorCheckIn.objects.create(

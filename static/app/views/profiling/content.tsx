@@ -309,7 +309,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}
-                    data={transactions.status === 'success' ? transactions.data[0] : null}
+                    data={transactions.status === 'success' ? transactions.data : null}
                     error={
                       transactions.status === 'error'
                         ? t('Unable to load profiles')
@@ -322,7 +322,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <Pagination
                     pageLinks={
                       transactions.status === 'success'
-                        ? transactions.data?.[2]?.getResponseHeader('Link') ?? null
+                        ? transactions.getResponseHeader?.('Link') ?? null
                         : null
                     }
                   />
@@ -345,7 +345,7 @@ function ProfilingBetaEndAlertBanner({organization}: {organization: Organization
   return (
     <StyledAlert system type="info">
       {t(
-        ' The beta program for Profiling is closed. Profiling will be generally available soon. Check out the What’s New tab for updates.'
+        "The beta program for Profiling is now closed, but Profiling will become generally available soon. If you weren't part of the beta program, any Profiles sent during this time won't appear in your dashboard. Check out the What’s New tab for updates."
       )}
     </StyledAlert>
   );

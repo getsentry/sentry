@@ -1,3 +1,11 @@
+export const MODULE_BREAKDOWN = `SELECT
+ sum(exclusive_time) as sum, module
+ FROM spans_experimental_starfish
+ WHERE module != 'none'
+ GROUP BY module
+ ORDER BY -sum
+`;
+
 export const TOP_DOMAINS = `SELECT
  quantile(0.75)(exclusive_time) as p75, domain,
  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
