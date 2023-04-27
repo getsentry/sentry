@@ -439,7 +439,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
         # The JsonCodec cannot be used since there are datetimes being passed here in unit tests which cannot
         # be properly encoded
 
-        JsonCodec(schema=schema).validate(data)
+        codec: JsonCodec[Any] = JsonCodec(schema=schema)
+
+        codec.validate(data)
 
         try:
             resp = snuba._snuba_pool.urlopen(
