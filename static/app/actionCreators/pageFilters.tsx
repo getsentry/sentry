@@ -245,7 +245,9 @@ export function initializeUrlState({
       // the organization slug is consistent with the URL param--Sentry will
       // get the first project from the organization that the user is a member
       // of.
-      newProject = [getProjectIdFromProject(memberProjects[0])];
+      newProject = memberProjects?.[0]
+        ? [getProjectIdFromProject(memberProjects[0])]
+        : [];
     }
   }
 
