@@ -40,7 +40,79 @@ describe('Access', function () {
       });
     });
 
-    it('handles no org/project', function () {
+    it('read access from team', function () {
+      const org = TestStubs.Organization({access: []});
+      const team1 = TestStubs.Team({access: []});
+
+      render(
+        <Access access={['team:admin']} organization={org} team={team1}>
+          {childrenMock}
+        </Access>,
+        {context: routerContext}
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
+
+      const team2 = TestStubs.Team({
+        access: ['team:read', 'team:write', 'team:admin'],
+      });
+
+      render(
+        <Access access={['team:admin']} organization={org} team={team2}>
+          {childrenMock}
+        </Access>,
+        {context: routerContext}
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasAccess: true,
+          hasSuperuser: false,
+        })
+      );
+    });
+
+    it('read access from project', function () {
+      const org = TestStubs.Organization({access: []});
+      const proj1 = TestStubs.Project({access: []});
+
+      render(
+        <Access access={['project:read']} organization={org} project={proj1}>
+          {childrenMock}
+        </Access>,
+        {context: routerContext}
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
+
+      const proj2 = TestStubs.Project({access: ['project:read']});
+
+      render(
+        <Access access={['project:read']} organization={org} project={proj2}>
+          {childrenMock}
+        </Access>,
+        {context: routerContext}
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasAccess: true,
+          hasSuperuser: false,
+        })
+      );
+    });
+
+    it('handles no org', function () {
       render(<Access access={['org:write']}>{childrenMock}</Access>, {
         context: routerContext,
         organization,
@@ -111,6 +183,17 @@ describe('Access', function () {
       expect(screen.getByText('The Child')).toBeInTheDocument();
     });
 
+    it('has no access', function () {
+      render(
+        <Access access={['org:write']}>
+          <p>The Child</p>
+        </Access>,
+        {context: routerContext, organization}
+      );
+
+      expect(screen.queryByText('The Child')).not.toBeInTheDocument();
+    });
+
     it('has superuser', function () {
       ConfigStore.config = {
         user: {isSuperuser: true},
@@ -123,17 +206,6 @@ describe('Access', function () {
       );
 
       expect(screen.getByText('The Child')).toBeInTheDocument();
-    });
-
-    it('has no access', function () {
-      render(
-        <Access access={['org:write']}>
-          <p>The Child</p>
-        </Access>,
-        {context: routerContext, organization}
-      );
-
-      expect(screen.queryByText('The Child')).not.toBeInTheDocument();
     });
 
     it('has no superuser', function () {
