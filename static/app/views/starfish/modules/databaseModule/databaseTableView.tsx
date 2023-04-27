@@ -104,7 +104,7 @@ export default function APIModuleView({
       }
       return (
         <Hovercard header={headerExtra} body={value}>
-          <Link onClick={() => onSelect(row, rowIndex)} to="">
+          <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
