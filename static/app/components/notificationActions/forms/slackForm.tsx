@@ -11,7 +11,7 @@ import Input from 'sentry/components/input';
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   AvailableNotificationAction,
   NotificationAction,

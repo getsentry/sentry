@@ -3,10 +3,16 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {t} from 'sentry/locale';
+import {IconClose, IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/networkDetails';
@@ -38,6 +44,8 @@ const cellMeasurer = {
 function NetworkList({networkSpans, startTimestampMs}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
+
+  const {dismiss, isDismissed} = useDismissAlert({key: 'replay-network-bodies'});
 
   const initialRequestDetailsHeight = useMemo(
     () => Math.max(150, window.innerHeight * 0.25),
@@ -113,6 +121,36 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
+      <Feature
+        features={['session-replay-network-details']}
+        organization={organization}
+        renderDisabled={false}
+      >
+        {isDismissed ? null : (
+          <StyledAlert
+            icon={<IconInfo />}
+            opaque={false}
+            showIcon
+            type="info"
+            trailingItems={
+              <StyledButton priority="link" size="sm" onClick={dismiss}>
+                <IconClose color="gray500" size="sm" />
+              </StyledButton>
+            }
+          >
+            {tct('Start collecting the body of requests and responses. [link]', {
+              link: (
+                <ExternalLink
+                  href="https://github.com/getsentry/sentry-javascript/issues/7103"
+                  onClick={dismiss}
+                >
+                  {t('Learn More')}
+                </ExternalLink>
+              ),
+            })}
+          </StyledAlert>
+        )}
+      </Feature>
       <NetworkTable>
         <FluidHeight>
           {networkSpans ? (
@@ -212,6 +250,14 @@ const NetworkTable = styled(OverflowHidden)`
     bottom: 0;
     width: 999999999%;
   }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${space(1)};
+`;
+
+const StyledButton = styled(Button)`
+  color: inherit;
 `;
 
 export default NetworkList;
