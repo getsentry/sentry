@@ -1,4 +1,4 @@
-import exportGlobals from 'sentry/bootstrap/exportGlobals';
+import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import {OnSentryInitConfiguration, SentryInitRenderReactComponent} from 'sentry/types';
 
 import {renderDom} from './renderDom';
@@ -65,7 +65,7 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
    * for downstream consumers to use.
    */
   if (initConfig.name === 'onReady' && typeof initConfig.onReady === 'function') {
-    initConfig.onReady(exportGlobals);
+    initConfig.onReady(exportedGlobals);
   }
 }
 

@@ -1,7 +1,7 @@
 import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
-import type exportGlobals from 'sentry/bootstrap/exportGlobals';
+import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
 import type {User} from './user';
 
@@ -27,7 +27,7 @@ export type OnSentryInitConfiguration =
     }
   | {
       name: 'onReady';
-      onReady: (globals: typeof exportGlobals) => void;
+      onReady: (globals: typeof exportedGlobals) => void;
     };
 
 declare global {
