@@ -37,6 +37,14 @@ def test_cache_many(use_case_id: str) -> None:
     indexer_cache.set_many(values, use_case_id)
     assert indexer_cache.get_many(list(values.keys()), use_case_id) == values
 
+    new_values = {"yes": 4, "no": 5}
+    assert indexer_cache.get_many(list(new_values.keys()), use_case_id) == {
+        "yes": None,
+        "no": None,
+    }
+    indexer_cache.set_many_new(new_values, use_case_id)
+    assert indexer_cache.get_many(list(new_values.keys()), use_case_id) == new_values
+
     indexer_cache.delete_many(list(values.keys()), use_case_id)
     assert indexer_cache.get_many(list(values.keys()), use_case_id) == {"hello": None, "bye": None}
 

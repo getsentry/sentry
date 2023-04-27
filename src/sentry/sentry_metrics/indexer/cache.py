@@ -14,6 +14,7 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResults,
     StringIndexer,
 )
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -41,16 +42,6 @@ class StringIndexerCache:
     def make_cache_key(self, key: str, cache_namespace: str) -> str:
         hashed = md5_text(key).hexdigest()
         return f"indexer:{self.partition_key}:org:str:{cache_namespace}:{hashed}"
-
-    # TODO: Remove later once we are always writing new keys
-    def make_new_cache_key(self, key: str, cache_namespace: str) -> str:
-        if cache_namespace == "performance":
-            new_namespace = "transactions"
-        else:
-            new_namespace = "sessions"
-
-        hashed = md5_text(key).hexdigest()
-        return f"indexer:{self.partition_key}:org:str:{new_namespace}:{hashed}"
 
     def _format_results(
         self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
@@ -95,9 +86,9 @@ class StringIndexerCache:
 
     # TODO: Remove later once we are always writing new keys
     def set_many_new(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
-        cache_key_values = {
-            self.make_new_cache_key(k, cache_namespace): v for k, v in key_values.items()
-        }
+        new_namespace = REVERSE_METRIC_PATH_MAPPING[UseCaseKey(cache_namespace)]
+
+        cache_key_values = {self.make_cache_key(k, new_namespace): v for k, v in key_values.items()}
         self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
 
     def set_many(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
