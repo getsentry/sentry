@@ -2134,16 +2134,22 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             different_frames = []
             for symbolicator_stacktrace, stacktrace_info in zip(
                 symbolicator_stacktraces,
-                filter(
+                (
+                    sinfo
+                    for sinfo in self.stacktrace_infos
                     # only include `stacktrace_infos` that have a stacktrace with frames
-                    lambda sinfo: get_path(sinfo.container, "stacktrace", "frames", filter=True),
-                    self.stacktrace_infos,
+                    if get_path(sinfo.container, "stacktrace", "frames", filter=True)
                 ),
             ):
                 python_stacktrace = stacktrace_info.container.get("stacktrace")
 
                 for symbolicator_frame, python_frame in zip(
-                    symbolicator_stacktrace, python_stacktrace["frames"]
+                    symbolicator_stacktrace,
+                    (
+                        frame
+                        for frame in python_stacktrace["frames"]
+                        if frame and frame.get("abs_path")
+                    ),
                 ):
                     symbolicator_frame = filtered_frame(symbolicator_frame)
                     python_frame = filtered_frame(python_frame)
