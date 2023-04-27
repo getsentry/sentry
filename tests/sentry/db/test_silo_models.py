@@ -10,8 +10,6 @@ from sentry.models import (
     User,
 )
 from sentry.models.integrations import (
-    ExternalActor,
-    ExternalIssue,
     Integration,
     OrganizationIntegration,
     PagerDutyService,
@@ -28,8 +26,6 @@ fk_exemptions = {
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
     (Integration, AlertRuleTriggerAction),
-    (Integration, ExternalActor),
-    (Integration, ExternalIssue),
     (OrganizationIntegration, PagerDutyService),
     (OrganizationIntegration, RepositoryProjectPathConfig),
     (NotificationSetting, Actor),
