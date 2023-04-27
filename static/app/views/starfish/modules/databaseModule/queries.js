@@ -115,7 +115,7 @@ export const getPanelTableQuery = (date_filters, row) => {
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
-    ORDER BY count DESC
+    ORDER BY ${ORDERBY}
     LIMIT 10
   `;
 };
@@ -147,6 +147,7 @@ export const getPanelEventCount = (date_filters, row) => {
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
+    ORDER BY ${ORDERBY}
    `;
 };
 
@@ -165,6 +166,13 @@ export const getMainTable = (
     tableFilter,
     actionFilter,
   ].filter(fil => !!fil);
+  const duration = endTime.unix() - startTime.unix();
+  const newColumn =
+    duration > 7 * 24 * 60 * 60
+      ? `min(start_timestamp) > fromUnixTimestamp(${
+          endTime.unix() - duration / 2
+        }) as newish`
+      : '0 as newish';
 
   return `
     select
@@ -177,7 +185,9 @@ export const getMainTable = (
       domain,
       action,
       data_keys,
-      data_values
+      data_values,
+      min(start_timestamp) as firstSeen,
+      ${newColumn}
     from default.spans_experimental_starfish
     where
       ${filters.join(' and ')}
