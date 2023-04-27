@@ -1360,7 +1360,6 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
             assert response.data["dynamicSamplingBiases"] == [
                 {"id": "boostEnvironments", "active": False},
-                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
                 {
                     "id": "boostLatestRelease",
                     "active": True,
