@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -66,6 +66,16 @@ function EndpointList({
 }: Props) {
   const [widths, setWidths] = useState<number[]>([]);
   const [_eventView, setEventView] = useState<EventView>(eventView);
+
+  // Effect to keep the parent eventView in sync with the child, so that chart zoom and time period can be accounted for.
+
+  useEffect(() => {
+    setEventView(prevEventView => {
+      const cloned = eventView.clone();
+      cloned.query = prevEventView.query;
+      return cloned;
+    });
+  }, [eventView]);
 
   function renderBodyCell(
     tableData: TableData | null,
