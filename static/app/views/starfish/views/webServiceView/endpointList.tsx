@@ -10,7 +10,7 @@ import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {Organization, Project, SavedSearchType} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -29,7 +29,7 @@ const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
+import BaseSearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
@@ -65,6 +65,7 @@ function EndpointList({
   dataset,
 }: Props) {
   const [widths, setWidths] = useState<number[]>([]);
+  const [_eventView, setEventView] = useState<EventView>(eventView);
 
   function renderBodyCell(
     tableData: TableData | null,
@@ -269,6 +270,14 @@ function EndpointList({
     );
   }
 
+  function handleSearch(query: string) {
+    const clonedEventView = eventView.clone();
+
+    // Default to fuzzy finding for now
+    clonedEventView.query += `transaction:*${query}*`;
+    setEventView(clonedEventView);
+  }
+
   const columnOrder = eventView
     .getColumns()
     .filter(
@@ -293,14 +302,9 @@ function EndpointList({
 
   return (
     <GuideAnchor target="performance_table" position="top-start">
-      <StyledSearchBar
-        placeholder={t('Search for endpoints')}
-        savedSearchType={SavedSearchType.EVENT}
-        searchSource=""
-        onSearch={() => {}}
-      />
+      <StyledSearchBar placeholder={t('Search for endpoints')} onSearch={handleSearch} />
       <DiscoverQuery
-        eventView={eventView}
+        eventView={_eventView}
         orgSlug={organization.slug}
         location={location}
         setError={error => setError(error?.message)}
@@ -342,6 +346,6 @@ const TrendingDuration = styled('div')<{trendDirection: 'good' | 'bad' | 'neutra
   float: right;
 `;
 
-const StyledSearchBar = styled(SmartSearchBar)`
+const StyledSearchBar = styled(BaseSearchBar)`
   margin-bottom: ${space(2)};
 `;
