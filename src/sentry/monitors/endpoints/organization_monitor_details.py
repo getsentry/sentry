@@ -37,6 +37,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
             MONITOR_PARAMS.MONITOR_SLUG,
+            GLOBAL_PARAMS.ENVIRONMENT,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
