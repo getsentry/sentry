@@ -38,8 +38,8 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         self.org_integration_id = org_integration_id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
-        subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET")
-        control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS")
+        subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
+        control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", None)
 
         if is_region_silo and subnet_secret and control_address:
             self.should_proxy_to_control = True
