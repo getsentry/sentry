@@ -110,10 +110,15 @@ export function FooterWithViewSampleErrorButton({
       return;
     }
 
-    onboardingContext.setProject({
-      id: projectId,
-      slug: projectSlug,
-      status: OnboardingProjectStatus.WAITING,
+    onboardingContext.setData({
+      ...onboardingContext.data,
+      projects: {
+        ...onboardingContext.data.projects,
+        [projectId]: {
+          slug: projectSlug,
+          status: OnboardingProjectStatus.WAITING,
+        },
+      },
     });
   }, [projectData, onboardingContext, projectSlug, projectId]);
 
@@ -137,10 +142,15 @@ export function FooterWithViewSampleErrorButton({
       platform: selectedProject?.platform ?? 'other',
     });
 
-    onboardingContext.setProject({
-      id: projectId,
-      slug: projectSlug,
-      status: OnboardingProjectStatus.PROCESSING,
+    onboardingContext.setData({
+      ...onboardingContext.data,
+      projects: {
+        ...onboardingContext.data.projects,
+        [projectId]: {
+          slug: projectSlug,
+          status: OnboardingProjectStatus.PROCESSING,
+        },
+      },
     });
 
     addSuccessMessage(t('First error received'));
@@ -175,11 +185,16 @@ export function FooterWithViewSampleErrorButton({
       platform: selectedProject?.platform ?? 'other',
     });
 
-    onboardingContext.setProject({
-      id: projectId,
-      slug: projectSlug,
-      firstIssueId: firstIssue.id,
-      status: OnboardingProjectStatus.PROCESSED,
+    onboardingContext.setData({
+      ...onboardingContext.data,
+      projects: {
+        ...onboardingContext.data.projects,
+        [projectId]: {
+          slug: projectSlug,
+          status: OnboardingProjectStatus.PROCESSED,
+          firstIssueId: firstIssue.id,
+        },
+      },
     });
 
     addSuccessMessage(t('First error processed'));

@@ -16,19 +16,15 @@ type Data = {
 
 export type OnboardingContextProps = {
   data: Data;
-  removeProject: (id: string) => void;
-  setProject: (props: Project & {id: string}) => void;
-  setSelectedSDK: (props: Data['selectedSDK']) => void;
+  setData: (data: Data) => void;
 };
 
 export const OnboardingContext = createContext<OnboardingContextProps>({
-  setProject: () => {},
-  setSelectedSDK: () => {},
-  removeProject: () => {},
   data: {
     projects: {},
     selectedSDK: undefined,
   },
+  setData: () => {},
 });
 
 type ProviderProps = {
@@ -41,57 +37,18 @@ export function OnboardingContextProvider({children}: ProviderProps) {
     selectedSDK: undefined,
   });
 
-  const setSelectedSDK = useCallback(
-    (selectedSDK: Data['selectedSDK']) => {
-      setSessionStorage({
-        ...sessionStorage,
-        selectedSDK,
-      });
+  const setData = useCallback(
+    (data: Data) => {
+      setSessionStorage(data);
     },
-    [setSessionStorage, sessionStorage]
-  );
-
-  const setProject = useCallback(
-    (props: Project & {id: string}) => {
-      setSessionStorage({
-        ...sessionStorage,
-        projects: {
-          ...sessionStorage.projects,
-          [props.id]: {
-            status: props.status,
-            firstIssueId: props.firstIssueId,
-            slug: props.slug,
-          },
-        },
-      });
-    },
-    [setSessionStorage, sessionStorage]
-  );
-
-  const removeProject = useCallback(
-    (id: string) => {
-      const newProjects = Object.keys(sessionStorage.projects).reduce((acc, key) => {
-        if (key !== id) {
-          acc[key] = sessionStorage.projects[key];
-        }
-        return acc;
-      }, {});
-
-      setSessionStorage({
-        ...sessionStorage,
-        projects: newProjects,
-      });
-    },
-    [setSessionStorage, sessionStorage]
+    [setSessionStorage]
   );
 
   return (
     <OnboardingContext.Provider
       value={{
         data: sessionStorage,
-        setProject,
-        removeProject,
-        setSelectedSDK,
+        setData,
       }}
     >
       {children}

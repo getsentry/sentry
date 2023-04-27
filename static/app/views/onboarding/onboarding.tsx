@@ -175,7 +175,7 @@ function Onboarding(props: Props) {
 
     // from selected platform to welcome
     if (onboardingSteps[stepIndex].id === 'select-platform') {
-      onboardingContext.setSelectedSDK(undefined);
+      onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
     }
 
     // from setup docs to selected platform
@@ -184,18 +184,20 @@ function Onboarding(props: Props) {
         return;
       }
 
-      // this most likely is going to be a single key array
-      const deleteProjectKeys = Object.keys(onboardingContext.data.projects).filter(
-        key =>
-          onboardingContext.data.projects[key].slug ===
-          onboardingContext.data.selectedSDK?.key
+      const newProjects = Object.keys(onboardingContext.data.projects).reduce(
+        (acc, key) => {
+          if (key !== onboardingContext.data.selectedSDK?.key) {
+            acc[key] = onboardingContext.data.projects[key];
+          }
+          return acc;
+        },
+        {}
       );
 
-      for (const key of deleteProjectKeys) {
-        onboardingContext.removeProject(key);
-      }
-
-      onboardingContext.setSelectedSDK(undefined);
+      onboardingContext.setData({
+        projects: newProjects,
+        selectedSDK: undefined,
+      });
     }
 
     props.router.replace(

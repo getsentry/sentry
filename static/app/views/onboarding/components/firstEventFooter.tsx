@@ -1,10 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -14,8 +15,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
-
-import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 
@@ -37,7 +36,7 @@ export default function FirstEventFooter({
   handleFirstIssueReceived,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
-  const [clientState, setClientState] = usePersistedOnboardingState();
+  const onboardingContext = useContext(OnboardingContext);
 
   const getSecondaryCta = () => {
     // if hasn't sent first event, allow skiping.
@@ -84,12 +83,7 @@ export default function FirstEventFooter({
             organization,
             source,
           });
-          if (clientState) {
-            setClientState({
-              ...clientState,
-              state: 'skipped',
-            });
-          }
+          onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
         }}
         to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >

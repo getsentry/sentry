@@ -24,7 +24,6 @@ import useProjects from 'sentry/utils/useProjects';
 import useTeams from 'sentry/utils/useTeams';
 
 import {OnboardingState} from '../types';
-import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 
@@ -49,7 +48,7 @@ export function CreateProjectsFooter({
 
   const api = useApi();
   const {teams} = useTeams();
-  const [clientState, setClientState] = usePersistedOnboardingState();
+  const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
 
   const createPlatformProject = useCallback(
