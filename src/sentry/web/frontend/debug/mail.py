@@ -560,6 +560,12 @@ def digest(request):
 
     rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
+
+    context["snooze_alert"] = True
+    context["snooze_alert_urls"] = {
+        rule.id: f"{rule.status_url}?{urlencode({'mute': '1'})}" for rule in rule_details
+    }
+
     add_unsubscribe_link(context)
 
     return MailPreview(

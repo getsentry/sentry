@@ -32,8 +32,11 @@
 
     <div class="rule">
       <div class="container">
-        {% with rule_details=rules_details|get_item:rule.id %}
-            You’re receiving this email because you’re subscribed to notifications for <a href="{% absolute_uri rule_details.status_url %}">{{ rule_details.label }}</a>
+        {% with rule_details=rules_details|get_item:rule.id snooze_alert_url=snooze_alert_urls|get_item:rule.id %}
+        {% if snooze_alert %}
+            <a class="mute" href="{% absolute_uri snooze_alert_url %}">Mute alert for me</a>
+        {% endif %}
+            This email was triggered by <a href="{% absolute_uri rule_details.status_url %}">{{ rule_details.label }}</a>
         {% endwith %}
       </div>
     </div>
