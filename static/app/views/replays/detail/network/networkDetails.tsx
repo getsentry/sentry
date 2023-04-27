@@ -1,4 +1,4 @@
-import {Fragment, MouseEvent, useCallback} from 'react';
+import {Fragment, MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -17,54 +17,26 @@ import NetworkDetailsTabs, {
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
-  initialHeight: number;
-  items: NetworkSpan[];
+  item: null | NetworkSpan;
+  onClose: () => void;
   startTimestampMs: number;
-};
+} & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
 
-function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) {
-  const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
-    'n_detail_row',
-    ''
-  );
+function NetworkRequestDetails({
+  isHeld,
+  item,
+  onClose,
+  onDoubleClick,
+  onMouseDown,
+  startTimestampMs,
+}: Props) {
   const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'details');
-  const itemIndex = getDetailRow();
 
-  const item = itemIndex ? (items[itemIndex] as NetworkSpan) : null;
-
-  // TODO(replay): the `useResizableDrawer` seems to measure mouse position in relation
-  // to the window with event.clientX and event.clientY
-  // We should be able to pass in another frame of reference so mouse movement
-  // is relative to some container instead.
-  const {
-    isHeld,
-    onDoubleClick,
-    onMouseDown,
-    size: containerSize,
-  } = useResizableDrawer({
-    direction: 'up',
-    initialSize: initialHeight,
-    min: 0,
-    onResize: () => {},
-  });
-
-  const onClose = useCallback(
-    (e: MouseEvent) => {
-      e.preventDefault();
-      setDetailRow('');
-    },
-    [setDetailRow]
-  );
+  if (!item) {
+    return null;
+  }
 
   const visibleTab = getDetailTab() as TabKey;
-
-  const tab = item ? (
-    <NetworkDetailsContent
-      visibleTab={visibleTab}
-      item={item}
-      startTimestampMs={startTimestampMs}
-    />
-  ) : null;
 
   return (
     <Fragment>
@@ -81,12 +53,21 @@ function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) 
             aria-label={t('Hide request details')}
             borderless
             icon={<IconClose isCircled size="sm" color="subText" />}
-            onClick={onClose}
+            onClick={(e: MouseEvent) => {
+              e.preventDefault();
+              onClose();
+            }}
             size="zero"
           />
         </CloseButtonWrapper>
       </StyledStacked>
-      <FluidHeight style={{height: containerSize}}>{tab}</FluidHeight>
+      <FluidHeight>
+        <NetworkDetailsContent
+          visibleTab={visibleTab}
+          item={item}
+          startTimestampMs={startTimestampMs}
+        />
+      </FluidHeight>
     </Fragment>
   );
 }
