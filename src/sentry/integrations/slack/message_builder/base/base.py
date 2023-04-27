@@ -6,6 +6,7 @@ from typing import Any, Mapping, MutableMapping, Sequence
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.message_builder import AbstractMessageBuilder
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
+from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
 from sentry.notifications.utils.actions import MessageAction
@@ -85,8 +86,10 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
             kwargs["actions"] = [get_slack_button(action) for action in actions]
 
         return {
-            "text": text,
-            "mrkdwn_in": ["text"],
+            "text": escape_slack_text(
+                escape_slack_text(text)
+            ),  # Slack will un-escape so we have to double escape
+            "mrkdwn_in": [],
             "color": LEVEL_TO_COLOR[color or "info"],
             **kwargs,
         }
