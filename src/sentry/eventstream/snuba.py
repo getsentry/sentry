@@ -194,7 +194,7 @@ class SnubaProtocolEventStream(EventStream):
                     # message but this is what snuba needs at the moment.
                     "message": event.search_message,
                     "platform": event.platform,
-                    "datetime": event.datetime,
+                    "datetime": event.datetime.strftime(DATETIME_FORMAT),
                     "data": event_data,
                     "primary_hash": primary_hash,
                     "retention_days": retention_days,
