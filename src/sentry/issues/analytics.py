@@ -18,3 +18,4 @@ class IssueEscalating(analytics.Event):
 
 
 analytics.register(IssueForecastSaved)
+analytics.register(IssueEscalating)
