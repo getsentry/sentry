@@ -44,6 +44,23 @@ export function OnboardingContextProvider({children}: ProviderProps) {
     [setSessionStorage]
   );
 
+  const removeProject = useCallback(
+    (id: string) => {
+      const newProjects = Object.keys(sessionStorage.projects).reduce((acc, key) => {
+        if (key !== id) {
+          acc[key] = sessionStorage.projects[key];
+        }
+        return acc;
+      }, {});
+
+      setSessionStorage({
+        ...sessionStorage,
+        projects: newProjects,
+      });
+    },
+    [setSessionStorage, sessionStorage]
+  );
+
   return (
     <OnboardingContext.Provider
       value={{

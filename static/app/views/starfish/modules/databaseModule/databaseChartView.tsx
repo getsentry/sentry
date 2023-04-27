@@ -2,13 +2,25 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {
+  getOperations,
+  getTables,
+  getTopOperationsChart,
+  getTopTablesChart,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
+const INTERVAL = 12;
 const HOST = 'http://localhost:8080';
 
 type Props = {
@@ -38,101 +50,55 @@ function parseOptions(options, label) {
 }
 
 export default function APIModuleView({action, table, onChange}: Props) {
-  const OPERATION_QUERY = `
-  select
-    action as key,
-    uniq(description) as value
-  from default.spans_experimental_starfish
-  where
-    startsWith(span_operation, 'db') and
-    span_operation != 'db.redis' and
-    action != ''
-  group by action
-  order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
-  `;
-  const actionQuery = action !== 'ALL' ? `and action = '${action}'` : '';
-  const TABLE_QUERY = `
-  select
-    domain as key,
-    quantile(0.75)(exclusive_time) as value
-  from default.spans_experimental_starfish
-  where
-    startsWith(span_operation, 'db') and
-    span_operation != 'db.redis' and
-    action != ''
-    ${actionQuery}
-  group by domain
-  order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
-  `;
-  const TOP_QUERY = `
-  select floor(quantile(0.75)(exclusive_time), 5) as p75, action,
-       toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
-  from default.spans_experimental_starfish
- where action in (
-        select action
-          from default.spans_experimental_starfish
-         where startsWith(span_operation, 'db') and
-              span_operation != 'db.redis' and
-              action != ''
-         group by action
-         order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
-         limit 5
-       )
- group by interval,
-          action
- order by interval,
-          action
-  `;
-  const TOP_TABLE_QUERY = `
-  select floor(quantile(0.75)(exclusive_time), 5) as p75, domain,
-       toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
-  from default.spans_experimental_starfish
- where domain in (
-        select domain
-          from default.spans_experimental_starfish
-         where startsWith(span_operation, 'db') and
-              span_operation != 'db.redis' and
-              domain != ''
-              ${actionQuery}
-         group by domain
-         order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
-         limit 5
-       )
- group by interval,
-          domain
- order by interval,
-          domain
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const DATE_FILTERS = `
+    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
   const {data: operationData} = useQuery({
-    queryKey: ['operation'],
-    queryFn: () => fetch(`${HOST}/?query=${OPERATION_QUERY}`).then(res => res.json()),
+    queryKey: ['operation', pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getOperations(DATE_FILTERS)}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
   const {data: tableData} = useQuery({
-    queryKey: ['table', action],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
+    queryKey: ['table', action, pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getTables(DATE_FILTERS, action)}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
   const {isLoading: isTopGraphLoading, data: topGraphData} = useQuery({
-    queryKey: ['topGraph'],
-    queryFn: () => fetch(`${HOST}/?query=${TOP_QUERY}`).then(res => res.json()),
+    queryKey: ['topGraph', pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getTopOperationsChart(DATE_FILTERS, INTERVAL)}`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
   const {isLoading: tableGraphLoading, data: tableGraphData} = useQuery({
-    queryKey: ['topTable', action],
-    queryFn: () => fetch(`${HOST}/?query=${TOP_TABLE_QUERY}`).then(res => res.json()),
+    queryKey: ['topTable', action, pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getTopTablesChart(DATE_FILTERS, action, INTERVAL)}`).then(
+        res => res.json()
+      ),
     retry: false,
     initialData: [],
   });
 
   const seriesByDomain: {[action: string]: Series} = {};
+  const tpmByDomain: {[action: string]: Series} = {};
   if (!tableGraphLoading) {
     tableGraphData.forEach(datum => {
       seriesByDomain[datum.domain] = {
+        seriesName: datum.domain,
+        data: [],
+      };
+      tpmByDomain[datum.domain] = {
         seriesName: datum.domain,
         data: [],
       };
@@ -143,15 +109,30 @@ export default function APIModuleView({action, table, onChange}: Props) {
         value: datum.p75,
         name: datum.interval,
       });
+      tpmByDomain[datum.domain].data.push({
+        value: datum.count,
+        name: datum.interval,
+      });
     });
   }
 
-  const topDomains = Object.values(seriesByDomain);
+  const topDomains = Object.values(seriesByDomain).map(series =>
+    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+  );
+  const tpmDomains = Object.values(tpmByDomain).map(series =>
+    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+  );
+
+  const tpmByQuery: {[query: string]: Series} = {};
 
   const seriesByQuery: {[action: string]: Series} = {};
   if (!isTopGraphLoading) {
     topGraphData.forEach(datum => {
       seriesByQuery[datum.action] = {
+        seriesName: datum.action,
+        data: [],
+      };
+      tpmByQuery[datum.action] = {
         seriesName: datum.action,
         data: [],
       };
@@ -162,55 +143,32 @@ export default function APIModuleView({action, table, onChange}: Props) {
         value: datum.p75,
         name: datum.interval,
       });
+      tpmByQuery[datum.action].data.push({
+        value: datum.count,
+        name: datum.interval,
+      });
     });
   }
 
-  const topData = Object.values(seriesByQuery);
+  const tpmData = Object.values(tpmByQuery).map(series =>
+    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+  );
+  const topData = Object.values(seriesByQuery).map(series =>
+    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+  );
 
   return (
     <Fragment>
-      <ChartPanel title={t('Slowest Operations')}>
-        <Chart
-          statsPeriod="24h"
-          height={180}
-          data={topData}
-          start=""
-          end=""
-          loading={isTopGraphLoading}
-          utc={false}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '16px',
-            bottom: '8px',
-          }}
-          disableMultiAxis
-          definedAxisTicks={4}
-          isLineChart
-          showLegend
-        />
-      </ChartPanel>
-      <Selectors>
-        Operation:
-        <CompactSelect
-          value={action}
-          options={parseOptions(operationData, 'query')}
-          menuTitle="Operation"
-          onChange={opt => onChange('action', opt.value)}
-        />
-      </Selectors>
-      {tableData.length === 1 && tableData[0].key === '' ? (
-        <Fragment />
-      ) : (
-        <Fragment>
-          <ChartPanel title={t('Slowest Tables')}>
+      <ChartsContainer>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Slowest Operations P75')}>
             <Chart
               statsPeriod="24h"
               height={180}
-              data={topDomains}
+              data={topData}
               start=""
               end=""
-              loading={tableGraphLoading}
+              loading={isTopGraphLoading}
               utc={false}
               grid={{
                 left: '0',
@@ -224,6 +182,92 @@ export default function APIModuleView({action, table, onChange}: Props) {
               showLegend
             />
           </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Operation Throughput')}>
+            <Chart
+              statsPeriod="24h"
+              height={180}
+              data={tpmData}
+              start=""
+              end=""
+              loading={isTopGraphLoading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '8px',
+              }}
+              disableMultiAxis
+              definedAxisTicks={4}
+              showLegend
+              isLineChart
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
+      </ChartsContainer>
+      <Selectors>
+        Operation:
+        <CompactSelect
+          value={action}
+          options={parseOptions(operationData, 'query')}
+          menuTitle="Operation"
+          onChange={opt => onChange('action', opt.value)}
+        />
+      </Selectors>
+      {tableData.length === 1 && tableData[0].key === '' ? (
+        <Fragment />
+      ) : (
+        <Fragment>
+          <ChartsContainer>
+            <ChartsContainerItem>
+              <ChartPanel title={t('Slowest Tables P75')}>
+                <Chart
+                  statsPeriod="24h"
+                  height={180}
+                  data={topDomains}
+                  start=""
+                  end=""
+                  loading={tableGraphLoading}
+                  utc={false}
+                  grid={{
+                    left: '0',
+                    right: '0',
+                    top: '16px',
+                    bottom: '8px',
+                  }}
+                  disableMultiAxis
+                  definedAxisTicks={4}
+                  isLineChart
+                  showLegend
+                />
+              </ChartPanel>
+            </ChartsContainerItem>
+            <ChartsContainerItem>
+              <ChartPanel title={t('Table Throughput')}>
+                <Chart
+                  statsPeriod="24h"
+                  height={180}
+                  data={tpmDomains}
+                  start=""
+                  end=""
+                  loading={isTopGraphLoading}
+                  utc={false}
+                  grid={{
+                    left: '0',
+                    right: '0',
+                    top: '16px',
+                    bottom: '8px',
+                  }}
+                  disableMultiAxis
+                  definedAxisTicks={4}
+                  showLegend
+                  isLineChart
+                />
+              </ChartPanel>
+            </ChartsContainerItem>
+          </ChartsContainer>
           <Selectors>
             Table:
             <CompactSelect
@@ -241,5 +285,16 @@ export default function APIModuleView({action, table, onChange}: Props) {
 
 const Selectors = styled(`div`)`
   display: flex;
-  margin-bottom: 16px;
+  margin-bottom: ${space(2)};
+`;
+
+const ChartsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1;
 `;

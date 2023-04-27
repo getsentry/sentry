@@ -470,8 +470,7 @@
     "geo": {
       "country_code": "AT",
       "city": "Enns",
-      "region": "Austria",
-      "subvision": "Linz-Land"
+      "region": "Austria"
     }
   },
   "version": "7"

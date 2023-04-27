@@ -1,15 +1,15 @@
 """
 A 'foreign key' which is not enforced in the local database, but triggers eventually consistent delete work in the
-presence of RegionTombstone ControlTombstone model objects through the tasks/deletion/hybrid_cloud.py logic.
+presence of either RegionTombstone or ControlTombstone model objects through the tasks/deletion/hybrid_cloud.py logic.
 
-It's main purpose to support columns in, say, region silos that refer to User or Integration objects (conversely
-also columns in the control silo that point to, say, organization) that do not actually exist in the local database,
+Its main purpose is to support foreign key columns in, say, region silos that refer to User or Integration objects (conversely
+also columns in the control silo that point to, say, Organization objects) that do not actually exist in the local database,
 or even the local network.
 
 Functionally, this field is just a dumb BigIntegerField. While it does support indexes, it does not support constraints.
-This means, for instance, you should absolutely expect identifiers in this column that do not necessarily exist.
-Eventually, if the related object is deleted and processed correctly, this column may be set null or cleaned up,
-but at any given time an integer in this column makes no guarantees about the existence of a related object.
+This means, for instance, you should absolutely expect identifiers in this column to not necessarily exist.
+Eventually, if the related object is deleted and processed correctly, this column may be set null or cleaned up;
+but at any given time an integer in this column makes no guarantees about the existence of the related object.
 
 Cascade behavior is provided to the application via tasks/deletion/hybrid_cloud.py jobs.  Again, to emphasize, this
 process is eventually consistent, and the timing of the completion of those process is a black box of systems
@@ -18,7 +18,7 @@ behavior, networking, and tuning.
 To add this field to a model, you need to do a few preparatory steps:
 
 1. Ensure that the 'model' pointed to by this field is in an opposing silo mode.  Tests *should*
-   fail for any usage of a HybridCloudForeignKey that points from and to models in the same silo mode.
+   fail for any usage of a HybridCloudForeignKey (HCFK) that points from and to models in the same silo mode.
 2. Ensure that the foreign model being referenced produces outboxes to sync tombstones in an atomic
    transaction. For most common cross silo models, there should be a custom delete method already that
    implements this. If not, it's ideal to first consult with the hybrid cloud team beforehand to
