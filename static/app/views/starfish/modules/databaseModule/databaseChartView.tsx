@@ -6,7 +6,7 @@ import moment from 'moment';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -53,8 +53,8 @@ export default function APIModuleView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const DATE_FILTERS = `
-    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
-    start_timestamp < fromUnixTimestamp(${endTime.unix()})
+    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
   const {data: operationData} = useQuery({

@@ -6,8 +6,10 @@ from django.utils import timezone
 from sentry.mediators import GrantTypes
 from sentry.models import ApiApplication, ApiToken
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
+@control_silo_test(stable=True)
 class TestSentryAppAuthorizations(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-authorizations"
     method = "post"
@@ -96,7 +98,8 @@ class TestSentryAppAuthorizations(APITestCase):
 
         url = reverse("sentry-api-0-organization-details", args=[self.organization.slug])
 
-        response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        with exempt_from_silo_limits():
+            response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.organization.id)
