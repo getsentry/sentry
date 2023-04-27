@@ -6,7 +6,7 @@ import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
@@ -19,6 +19,11 @@ type Props = {
   onSelect: (row: DataRow) => void;
   transaction: string;
   action?: string;
+  columns?: {
+    key: string;
+    name: string;
+    width: number;
+  }[];
   table?: string;
 };
 
@@ -30,8 +35,10 @@ export type DataRow = {
   firstSeen: string;
   formatted_desc: string;
   group_id: string;
+  lastSeen: string;
   newish: number;
   p75: number;
+  retired: number;
   total_time: number;
   transactions: number;
 };
@@ -71,6 +78,7 @@ export default function APIModuleView({
   transaction,
   onSelect,
   table,
+  columns,
 }: Props) {
   const transactionFilter =
     transaction.length > 0 ? `transaction='${transaction}'` : null;
@@ -80,8 +88,8 @@ export default function APIModuleView({
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const DATE_FILTERS = `
-    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
-    start_timestamp < fromUnixTimestamp(${endTime.unix()})
+    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
@@ -116,17 +124,21 @@ export default function APIModuleView({
     }
     if (column.key === 'description') {
       const value = row[column.key];
+      let headerExtra = '';
+      if (row.newish === 1) {
+        headerExtra = `Query (First seen ${row.firstSeen})`;
+      } else if (row.retired === 1) {
+        headerExtra = `Query (Last seen ${row.lastSeen})`;
+      }
       return (
-        <Hovercard
-          header={`Query ${row.newish === 1 ? `(First seen ${row.firstSeen})` : ''}`}
-          body={value}
-        >
+        <Hovercard header={headerExtra} body={value}>
           <Link onClick={() => onSelect(row)} to="">
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
           </Link>
           {row?.newish === 1 && <StyledBadge type="new" text="new" />}
+          {row?.retired === 1 && <StyledBadge type="warning" text="old" />}
         </Hovercard>
       );
     }
@@ -151,7 +163,7 @@ export default function APIModuleView({
     <GridEditable
       isLoading={areEndpointsLoading}
       data={endpointsData}
-      columnOrder={COLUMN_ORDER}
+      columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
         renderHeadCell,

@@ -11,11 +11,11 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
   OverflowEllipsisTextContainer,
   renderHeadCell,
@@ -25,6 +25,8 @@ import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 export type EndpointDataRow = {
@@ -82,17 +84,18 @@ export default function EndpointDetail({
 }
 
 function EndpointDetailBody({row}: EndpointDetailBodyProps) {
+  const pageFilter = usePageFilters();
   const location = useLocation();
   const seriesQuery = getEndpointDetailSeriesQuery({
     description: null,
     transactionName: null,
-    datetime: null,
+    datetime: pageFilter.selection.datetime,
     groupId: row.group_id,
   });
   const tableQuery = getEndpointDetailTableQuery({
     description: null,
     transactionName: null,
-    datetime: null,
+    datetime: pageFilter.selection.datetime,
     groupId: row.group_id,
   });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
@@ -107,9 +110,17 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     retry: false,
     initialData: [],
   });
+
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+
   const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
     endpointDetailDataToChartData(seriesData).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'))
+      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
     );
 
   return (

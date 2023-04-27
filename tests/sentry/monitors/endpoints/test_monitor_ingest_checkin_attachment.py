@@ -5,8 +5,14 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models import File
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorType
+from sentry.models import Environment, File
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorType,
+)
 from sentry.testutils import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -22,16 +28,31 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
             date_added=timezone.now() - timedelta(minutes=1),
         )
 
+    def _create_monitor_environment(self, monitor, name="production", **kwargs):
+        environment = Environment.get_or_create(project=self.project, name=name)
+
+        monitorenvironment_defaults = {
+            "status": monitor.status,
+            "next_checkin": timezone.now() - timedelta(minutes=1),
+            **kwargs,
+        }
+
+        return MonitorEnvironment.objects.create(
+            monitor=monitor, environment=environment, **monitorenvironment_defaults
+        )
+
     def test_upload(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.IN_PROGRESS,
@@ -60,8 +81,11 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
 
     def test_upload_no_file(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.IN_PROGRESS,
@@ -83,8 +107,11 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
     )
     def test_upload_file_too_big(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.IN_PROGRESS,
@@ -107,8 +134,11 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
 
     def test_duplicate_upload(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.IN_PROGRESS,
@@ -151,8 +181,11 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
 
     def test_invalid_file_upload(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.IN_PROGRESS,
