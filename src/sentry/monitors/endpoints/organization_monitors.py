@@ -1,4 +1,4 @@
-from django.db.models import Case, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -77,17 +77,31 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
-        # sort monitors by top monitor environment
-        monitorenvironment_top_status = Subquery(
-            MonitorEnvironment.objects.filter(
-                monitor__id=OuterRef("id"), environment__in=environments
-            )
-            .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
-            .order_by("status_ordering", "-last_checkin")
-            .values("status_ordering")[:1],
-            output_field=IntegerField(),
+        # sort monitors by top monitor environment, then by latest check-in
+        monitor_environments_query = MonitorEnvironment.objects.filter(
+            monitor__id=OuterRef("id"), environment__in=environments
         )
-        queryset = queryset.annotate(monitorenvironment_top_status=monitorenvironment_top_status)
+
+        queryset = queryset.annotate(
+            environment_status_ordering=Case(
+                When(status=MonitorStatus.DISABLED, then=Value(len(DEFAULT_ORDERING))),
+                default=Subquery(
+                    monitor_environments_query.annotate(
+                        status_ordering=MONITOR_ENVIRONMENT_ORDERING
+                    )
+                    .order_by("status_ordering")
+                    .values("status_ordering")[:1],
+                    output_field=IntegerField(),
+                ),
+            )
+        )
+
+        queryset = queryset.annotate(
+            last_checkin_monitorenvironment=Subquery(
+                monitor_environments_query.order_by("-last_checkin").values("last_checkin")[:1],
+                output_field=DateTimeField(),
+            )
+        )
 
         if query:
             tokens = tokenize_query(query)
@@ -121,7 +135,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("monitorenvironment_top_status", "-last_checkin"),
+            order_by=("environment_status_ordering", "-last_checkin_monitorenvironment"),
             on_results=lambda x: serialize(
                 x, request.user, MonitorSerializer(environments=environments)
             ),
