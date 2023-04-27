@@ -457,11 +457,9 @@ if ENVIRONMENT == "development":
 # Before enforcing Content Security Policy, we recommend creating a separate
 # Sentry project and collecting CSP violations in report only mode:
 # https://docs.sentry.io/product/security-policy-reporting/
+
 # Point this parameter to your Sentry installation:
 # CSP_REPORT_URI = "https://example.com/api/{PROJECT_ID}/security/?sentry_key={SENTRY_KEY}"
-CSP_REPORT_URI = (
-    "https://self-hosted.getsentry.net/api/6/security/?sentry_key=558f83a7208e4ab0a6e5646b3a5759af"
-)
 
 # To enforce CSP (block violated resources), update the following parameter to False
 CSP_REPORT_ONLY = True
