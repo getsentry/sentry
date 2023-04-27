@@ -8,7 +8,6 @@ import sentry_sdk
 
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
-from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackAttachment
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.models import Integration, Team, User
@@ -27,21 +26,13 @@ SLACK_TIMEOUT = 5
 
 class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
     def send_message(self, channel_id: str, message: str) -> None:
-        client = SlackClient()
-        token = self.metadata.get("user_access_token") or self.metadata["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
-        payload = {
-            "token": token,
-            "channel": channel_id,
-            "text": message,
-        }
+        payload = {"channel": channel_id, "text": message}
         try:
-            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+            self.get_client().post("/chat.postMessage", data=payload)
         except ApiError as e:
             message = str(e)
             if message != "Expired url":
                 logger.error("slack.slash-notify.response-error", extra={"error": message})
-        return
 
 
 def _get_attachments(
@@ -75,8 +66,6 @@ def _notify_recipient(
         # Make a local copy to which we can append.
         local_attachments = copy(attachments)
 
-        token: str = integration.metadata["access_token"]
-
         # Add optional billing related attachment.
         additional_attachment = get_additional_attachment(integration, notification.organization)
         if additional_attachment:
@@ -85,7 +74,6 @@ def _notify_recipient(
         # unfurl_links and unfurl_media are needed to preserve the intended message format
         # and prevent the app from replying with help text to the unfurl
         payload = {
-            "token": token,
             "channel": channel,
             "link_names": 1,
             "unfurl_links": False,
@@ -101,6 +89,7 @@ def _notify_recipient(
         }
         post_message.apply_async(
             kwargs={
+                "integration_id": integration.id,
                 "payload": payload,
                 "log_error_message": "notification.fail.slack_post",
                 "log_params": log_params,

@@ -15,7 +15,6 @@ from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequest
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.models import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -39,11 +38,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
     slack_request_class = SlackEventRequest
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
-        headers = {"Authorization": f"Bearer {self._get_access_token(slack_request.integration)}"}
         payload = {"channel": slack_request.channel_id, "text": message}
-        client = SlackClient()
+        client = SlackClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+            client.post("/chat.postMessage", data=payload)
         except ApiError as e:
             logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
@@ -54,17 +52,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
     def unlink_team(self, slack_request: SlackDMRequest) -> Response:
         return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
-
-    def _get_access_token(self, integration: Integration) -> str:
-        """
-        The classic bot tokens must use the user auth token for URL unfurling we
-        stored the user_access_token there but for workspace apps and new Slack
-        bot tokens, we can just use access_token.
-        """
-        access_token: str = (
-            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-        )
-        return access_token
 
     def on_url_verification(self, request: Request, data: Mapping[str, str]) -> Response:
         return self.respond({"challenge": data["challenge"]})
@@ -80,14 +67,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
             return
 
         payload = {
-            "token": self._get_access_token(slack_request.integration),
             "channel": slack_request.channel_id,
             "user": slack_request.user_id,
             "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
         }
 
-        client = SlackClient()
+        client = SlackClient(integration_id=slack_request.integration.id)
         try:
             client.post("/chat.postEphemeral", data=payload)
         except ApiError as e:
@@ -98,14 +84,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if slack_request.is_bot() or not command:
             return self.respond()
 
-        headers = {"Authorization": f"Bearer {self._get_access_token(slack_request.integration)}"}
         payload = {
             "channel": slack_request.channel_id,
             **SlackHelpMessageBuilder(command).as_payload(),
         }
-        client = SlackClient()
+        client = SlackClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+            client.post("/chat.postMessage", data=payload)
         except ApiError as e:
             logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
@@ -188,16 +173,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not results:
             return False
 
-        access_token = self._get_access_token(slack_request.integration)
-
         payload = {
-            "token": access_token,
             "channel": data["channel"],
             "ts": data["message_ts"],
             "unfurls": json.dumps(results),
         }
 
-        client = SlackClient()
+        client = SlackClient(integration_id=slack_request.integration.id)
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:

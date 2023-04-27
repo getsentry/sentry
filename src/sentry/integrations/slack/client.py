@@ -23,14 +23,17 @@ class SlackClient(IntegrationProxyClient):
 
     @control_silo_function
     def authorize_request(self, request: Request) -> Request:
-        if not self.org_integration_id:
-            return request
-
-        integration = Integration.objects.filter(
-            organizationintegration__id=self.org_integration_id,
-            provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-            status=ObjectStatus.ACTIVE,
-        ).first()
+        integration = None
+        base_qs = {
+            "provider": EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+            "status": ObjectStatus.ACTIVE,
+        }
+        if self.integration_id:
+            integration = Integration.objects.filter(id=self.integration_id, **base_qs).first()
+        elif self.org_integration_id:
+            integration = Integration.objects.filter(
+                organizationintegration__id=self.org_integration_id, **base_qs
+            ).first()
 
         if not integration:
             return request

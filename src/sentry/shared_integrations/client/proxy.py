@@ -29,8 +29,12 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
 
     should_proxy_to_control = False
 
-    def __init__(self, org_integration_id: int | None = None) -> None:
+    def __init__(
+        self, integration_id: int | None = None, org_integration_id: int | None = None
+    ) -> None:
         super().__init__()
+
+        self.integration_id = integration_id
         self.org_integration_id = org_integration_id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
