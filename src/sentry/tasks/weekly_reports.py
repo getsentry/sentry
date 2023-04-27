@@ -167,16 +167,20 @@ def prepare_organization_report(
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
+    has_escalating_issues = features.has("organizations:escalating-issues", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
         user_project_ownership(ctx)
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
         project_event_counts_for_organization(ctx)
-    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
-        organization_project_issue_summaries(ctx)
-    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
-        organization_project_issue_inbox_summaries(ctx)
+
+    if has_escalating_issues:
+        with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_inbox_summaries"):
+            organization_project_issue_inbox_summaries(ctx)
+    else:
+        with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
+            organization_project_issue_summaries(ctx)
 
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
@@ -273,9 +277,6 @@ def project_event_counts_for_organization(ctx):
 
 
 def organization_project_issue_summaries(ctx):
-    if features.has("organizations:escalating-issues", ctx.organization):
-        return
-
     all_issues = Group.objects.exclude(status=GroupStatus.IGNORED)
     new_issue_counts = (
         all_issues.filter(
@@ -342,17 +343,14 @@ def organization_project_issue_summaries(ctx):
 
 
 def organization_project_issue_inbox_summaries(ctx: OrganizationReportContext):
-    if not features.has("organizations:escalating-issues", ctx.organization):
-        return
-
     inbox_counts = (
         GroupInbox.objects.filter(
             organization_id=ctx.organization.id,
             reason__in=[
-                GroupInboxReason.NEW,
-                GroupInboxReason.ESCALATING,
-                GroupInboxReason.ONGOING,
-                GroupInboxReason.REGRESSION,
+                GroupInboxReason.NEW.value,
+                GroupInboxReason.ESCALATING.value,
+                GroupInboxReason.ONGOING.value,
+                GroupInboxReason.REGRESSION.value,
             ],
         )
         .values("project_id", "reason")
@@ -414,27 +412,18 @@ def fetch_key_error_groups(ctx):
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
-    group_history = (
-        GroupHistory.objects.filter(
-            group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
-        )
-        .order_by("group_id", "-date_added")
-        .distinct("group_id")
-        .all()
-    )
-    group_id_to_group_history = {g.group_id: g for g in group_history}
-
     group_id_to_group_inbox = {}
+    group_id_to_group_history = {}
     if features.has("organizations:escalating-issues", ctx.organization):
         group_inbox = (
-            GroupInboxReason.objects.filter(
+            GroupInbox.objects.filter(
                 group_id__in=all_key_error_group_ids,
                 organization_id=ctx.organization.id,
                 reason__in=[
-                    GroupInboxReason.NEW,
-                    GroupInboxReason.ESCALATING,
-                    GroupInboxReason.ONGOING,
-                    GroupInboxReason.REGRESSION,
+                    GroupInboxReason.NEW.value,
+                    GroupInboxReason.ESCALATING.value,
+                    GroupInboxReason.ONGOING.value,
+                    GroupInboxReason.REGRESSION.value,
                 ],
             )
             .order_by("group_id", "-date_added")
@@ -442,6 +431,16 @@ def fetch_key_error_groups(ctx):
             .all()
         )
         group_id_to_group_inbox = {g.group_id: g for g in group_inbox}
+    else:
+        group_history = (
+            GroupHistory.objects.filter(
+                group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
+            )
+            .order_by("group_id", "-date_added")
+            .distinct("group_id")
+            .all()
+        )
+        group_id_to_group_history = {g.group_id: g for g in group_history}
 
     for project_ctx in ctx.projects.values():
         # note Snuba might have groups that have since been deleted
@@ -872,6 +871,10 @@ def render_template_context(ctx, user):
                                 "project_id": project_ctx.project.id,
                             },
                         )
+
+                    group_inbox_reason = (
+                        GroupInboxReason(group_inbox.reason) if group_inbox else None
+                    )
                     yield {
                         "count": count,
                         "group": group,
@@ -881,15 +884,14 @@ def render_template_context(ctx, user):
                         "status_color": group_status_to_color[group_history.status]
                         if group_history
                         else group_status_to_color[GroupHistoryStatus.NEW],
-                        "inbox_text": group_inbox.reason if group_inbox else None,
-                        "inbox_reason": GroupInboxReason(group_inbox.reason).name.capitalize()
-                        if group_inbox
+                        "inbox_reason": group_inbox_reason.name.capitalize()
+                        if group_inbox_reason
                         else None,
-                        "inbox_color": group_inbox_to_color[group_inbox.reason]
-                        if group_inbox
+                        "inbox_color": group_inbox_to_color[group_inbox_reason]
+                        if group_inbox_reason
                         else group_inbox_to_color[GroupInboxReason.NEW],
-                        "inbox_color_border": group_inbox_to_color_border[group_inbox.reason]
-                        if group_inbox
+                        "inbox_color_border": group_inbox_to_color_border[group_inbox_reason]
+                        if group_inbox_reason
                         else group_inbox_to_color_border[GroupInboxReason.NEW],
                     }
 

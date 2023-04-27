@@ -303,6 +303,110 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "existing_issue_count": 0,
                 "new_issue_count": 2,
                 "reopened_issue_count": 0,
+                # New escalating-issues
+                "escalating_inbox_count": 0,
+                "new_inbox_count": 0,
+                "ongoing_inbox_count": 0,
+                "regression_inbox_count": 0,
+                "total_inbox_count": 0,
+            }
+            assert len(context["key_errors"]) == 2
+            assert context["trends"]["total_error_count"] == 2
+            assert context["trends"]["total_transaction_count"] == 10
+            assert "Weekly Report for" in message_params["subject"]
+
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @with_feature("organizations:escalating-issues")
+    def test_message_builder_inbox_simple(self, message_builder):
+        now = timezone.now()
+
+        two_days_ago = now - timedelta(days=2)
+        three_days_ago = now - timedelta(days=3)
+
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event1.group, GroupInboxReason.NEW)
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": three_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+        add_group_to_inbox(event2.group, GroupInboxReason.ONGOING)
+
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.TRANSACTION,
+                "timestamp": three_days_ago,
+                "key_id": 1,
+            },
+            num_times=10,
+        )
+
+        group1 = event1.group
+        group2 = event2.group
+
+        group1.status = GroupStatus.RESOLVED
+        group1.substatus = None
+        group1.resolved_at = two_days_ago
+        group1.save()
+
+        group2.status = GroupStatus.RESOLVED
+        group2.substatus = None
+        group2.resolved_at = two_days_ago
+        group2.save()
+
+        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert message_params["template"] == "sentry/emails/reports/body.txt"
+            assert message_params["html_template"] == "sentry/emails/reports/body.html"
+
+            assert context["organization"] == self.organization
+            assert context["issue_summary"] == {
+                "all_issue_count": 0,
+                "existing_issue_count": 0,
+                "new_issue_count": 0,
+                "reopened_issue_count": 0,
+                "escalating_inbox_count": 0,
+                "new_inbox_count": 1,
+                "ongoing_inbox_count": 1,
+                "regression_inbox_count": 0,
+                "total_inbox_count": 2,
             }
             assert len(context["key_errors"]) == 2
             assert context["trends"]["total_error_count"] == 2
