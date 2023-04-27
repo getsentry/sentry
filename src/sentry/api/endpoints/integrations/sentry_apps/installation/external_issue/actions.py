@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import Group, Project
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -36,7 +36,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         try:
             user = extract_lazy_object(request.user)
             if isinstance(user, User):
-                user = user_service.get_user(user_id=user.id)
+                user = serialize_rpc_user(user)
 
             external_issue = IssueLinkCreator.run(
                 install=installation,
