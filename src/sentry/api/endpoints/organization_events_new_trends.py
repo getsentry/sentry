@@ -87,7 +87,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 params=params,
                 rollup=rollup,
                 # high limit is set to validate the regression analysis
-                limit=2,
+                limit=50,
                 organization=organization,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
@@ -102,7 +102,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 request,
                 organization,
                 get_event_stats,
-                top_events=2,
+                top_events=50,
                 query_column=trend_function,
                 params=params,
                 query=query,
