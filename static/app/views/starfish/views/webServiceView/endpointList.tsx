@@ -31,7 +31,7 @@ import styled from '@emotion/styled';
 import Duration from 'sentry/components/duration';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
