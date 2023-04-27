@@ -46,7 +46,7 @@ export const StringWalker = memo(function StringWalker({urls}: StringProps) {
   );
 });
 
-function urlToCrumb(url: string) {
+function urlToCrumb(url: string): Crumb {
   return {
     type: BreadcrumbType.NAVIGATION,
     category: BreadcrumbType.NAVIGATION,
@@ -57,5 +57,5 @@ function urlToCrumb(url: string) {
     color: 'green300',
     timestamp: undefined,
     data: {to: url},
-  } as Crumb;
+  };
 }
