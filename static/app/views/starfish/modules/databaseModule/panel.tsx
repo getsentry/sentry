@@ -82,8 +82,8 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const DATE_FILTERS = `
-    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
-    start_timestamp < fromUnixTimestamp(${endTime.unix()})
+    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
   const {isLoading, data: graphData} = useQuery({
