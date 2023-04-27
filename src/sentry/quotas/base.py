@@ -90,7 +90,7 @@ class QuotaConfig:
                         {
                             "id": id,
                             "categories": categories,
-                            # "scope": scope,
+                            "scope": scope,
                             "scope_id": scope_id,
                             "limit": limit,
                             "window": window,
