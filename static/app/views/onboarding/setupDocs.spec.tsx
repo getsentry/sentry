@@ -100,7 +100,6 @@ describe('Onboarding Setup Docs', function () {
           location={router.location}
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
-          jumpToSetupProject={() => {}}
           search=""
           selectedProjectSlug="python"
         />
@@ -160,7 +159,6 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
             selectedProjectSlug="javascript-react"
           />
@@ -220,7 +218,6 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
             selectedProjectSlug="javascript-react"
           />
@@ -274,7 +271,6 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
             selectedProjectSlug="javascript-react"
           />
@@ -328,7 +324,6 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
             selectedProjectSlug="javascript-react"
           />
@@ -390,7 +385,6 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
             selectedProjectSlug="javascript"
           />
@@ -437,7 +431,6 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
             selectedProjectSlug="javascript"
           />
