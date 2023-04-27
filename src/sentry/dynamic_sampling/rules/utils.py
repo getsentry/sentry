@@ -216,7 +216,7 @@ def get_redis_client_for_ds() -> Any:
 
 
 def generate_cache_key_rebalance_factor(org_id: int) -> str:
-    return f"ds::o:{org_id}:rate_rebalance_factor"
+    return f"ds::o:{org_id}:rate_rebalance_factor2"
 
 
 def adjusted_factor(prev_factor: float, actual_rate: float, desired_sample_rate: float) -> float:

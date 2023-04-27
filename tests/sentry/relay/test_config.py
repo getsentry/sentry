@@ -287,7 +287,7 @@ def test_project_config_with_all_biases_enabled(
     # Set factor
     default_factor = 0.5
     redis_client.set(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor", default_factor
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2", default_factor
     )
 
     with Feature(

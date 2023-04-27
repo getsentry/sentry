@@ -608,7 +608,7 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     # Set factor
     default_factor = 0.5
     redis_client.set(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2",
         default_factor,
     )
     assert generate_rules(default_project) == [
