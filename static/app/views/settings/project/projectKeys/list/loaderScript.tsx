@@ -48,9 +48,9 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
 
         <HelpFooter>
           {tct(
-            'You can [configureLink] the Loader Script to enable/disable Performance, Replay, and more.',
+            'You can [configureLink:configure] the Loader Script to enable/disable Performance, Replay, and more.',
             {
-              configureLink: <Link to={editUrl}>{t('configure')}</Link>,
+              configureLink: <Link to={editUrl} />,
             }
           )}
         </HelpFooter>
