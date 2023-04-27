@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.dynamic_sampling import DEFAULT_BIASES
+from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.models import (
     ApiToken,
     AuditLogEntry,
@@ -1230,6 +1230,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             },
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostKeyTransactions", "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
         with Feature(
@@ -1340,14 +1341,13 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
                 {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
-            [
-                {"id": "boostEnvironments", "active": False},
-            ],
+            [{"id": "boostEnvironments", "active": False}],
         )
 
         with Feature(
@@ -1360,6 +1360,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
             assert response.data["dynamicSamplingBiases"] == [
                 {"id": "boostEnvironments", "active": False},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
                 {
                     "id": "boostLatestRelease",
                     "active": True,
@@ -1367,6 +1368,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
                 {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1380,6 +1382,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": False},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
         self.login_as(self.user)
@@ -1423,6 +1426,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
         self.login_as(self.user)
@@ -1446,6 +1450,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 data={
                     "dynamicSamplingBiases": [
                         {"id": "boostEnvironments", "active": False},
+                        {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
                     ]
                 },
             )
@@ -1485,6 +1490,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostKeyTransactions", "active": False},
             {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ]
         with Feature(
             {
