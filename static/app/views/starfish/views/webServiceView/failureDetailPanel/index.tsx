@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import {SectionHeading} from 'sentry/components/charts/styles';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -54,10 +55,26 @@ export default function FailureDetailPanel({
 
   return (
     <Detail detailKey={spike?.startTimestamp.toString()} onClose={onClose}>
-      <TimeRangeHeading>{`${moment(spike?.startTimestamp).format('LLL')} - ${moment(
-        spike?.endTimestamp
-      ).format('LLL')}`}</TimeRangeHeading>
-      <h3>{t('Error Spike Detail')}</h3>
+      <TimeRangeHeading>{`${moment(spike?.startTimestamp).format(
+        'MMMM Do YYYY, hh:mm:ss z'
+      )} - ${moment(spike?.endTimestamp).format(
+        'MMMM Do YYYY, hh:mm:ss z'
+      )}`}</TimeRangeHeading>
+      <h4>{t('Error Spike Detail')}</h4>
+      <OverviewStatsSection>
+        <StatBlock>
+          <SectionHeading>Events</SectionHeading>
+          <h4>6.2k</h4>
+        </StatBlock>
+        <StatBlock>
+          <SectionHeading>Users</SectionHeading>
+          <h4>1.2k</h4>
+        </StatBlock>
+        <StatBlock>
+          <SectionHeading>Crashes</SectionHeading>
+          <h4>885</h4>
+        </StatBlock>
+      </OverviewStatsSection>
 
       {spike && (
         <DiscoverQuery
@@ -103,4 +120,15 @@ const Title = styled('h5')`
 const TimeRangeHeading = styled('div')`
   color: ${p => p.theme.red300};
   margin-bottom: ${space(4)};
+`;
+
+const OverviewStatsSection = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
+const StatBlock = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-right: ${space(4)};
 `;
