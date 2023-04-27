@@ -19,10 +19,16 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 type Props = {
   initialHeight: number;
   items: NetworkSpan[];
+  scrollToRow: (row: number) => void;
   startTimestampMs: number;
 };
 
-function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) {
+function NetworkRequestDetails({
+  initialHeight,
+  items,
+  scrollToRow,
+  startTimestampMs,
+}: Props) {
   const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
     'n_detail_row',
     ''
@@ -62,6 +68,7 @@ function NetworkRequestDetails({initialHeight, items, startTimestampMs}: Props) 
     <NetworkDetailsContent
       visibleTab={visibleTab}
       item={item}
+      onScrollToRow={() => scrollToRow(Number(itemIndex))}
       startTimestampMs={startTimestampMs}
     />
   ) : null;

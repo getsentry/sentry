@@ -3,7 +3,9 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
+from urllib.parse import urlencode
 
+from sentry import features
 from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
@@ -97,12 +99,25 @@ class DigestNotification(ProjectNotification):
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
-        return DigestNotification.build_context(
-            self.digest,
-            self.project,
-            self.project.organization,
-            get_rules(list(self.digest.keys()), self.project.organization, self.project),
+        rule_details = get_rules(list(self.digest.keys()), self.project.organization, self.project)
+        context = DigestNotification.build_context(
+            self.digest, self.project, self.project.organization, rule_details
         )
+
+        sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
+
+        snooze_alert = (
+            features.has("organizations:mute-alerts", self.organization) and len(rule_details) > 0
+        )
+        snooze_alert_urls = {
+            rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
+            for rule in rule_details
+        }
+
+        context["snooze_alert"] = snooze_alert
+        context["snooze_alert_urls"] = snooze_alert_urls
+
+        return context
 
     @staticmethod
     def build_context(
