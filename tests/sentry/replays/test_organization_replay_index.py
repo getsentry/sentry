@@ -918,6 +918,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[alt=Alt]",
                 "click.selector:div[title=MyTitle]",
                 "click.selector:div[data-testid='1']",
+                "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
                 "click.selector:div#myid.class1.class2",
                 # Single quotes around attribute value.
