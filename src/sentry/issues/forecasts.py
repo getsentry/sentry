@@ -36,7 +36,7 @@ def save_forecast_per_group(
 
         if group_dict.get(group_id):
             escalating_group_forecast = EscalatingGroupForecast(
-                group_dict.get(group_id).project.id, group_id, forecasts_list, datetime.now()
+                group_dict[group_id].project.id, group_id, forecasts_list, datetime.now()
             )
             escalating_group_forecast.save()
     logger.info(
