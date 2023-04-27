@@ -88,7 +88,9 @@ class StringIndexerCache:
     def set_many_new(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
         new_namespace = REVERSE_METRIC_PATH_MAPPING[UseCaseKey(cache_namespace)]
 
-        cache_key_values = {self.make_cache_key(k, new_namespace): v for k, v in key_values.items()}
+        cache_key_values = {
+            self.make_cache_key(k, new_namespace.value): v for k, v in key_values.items()
+        }
         self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
 
     def set_many(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
