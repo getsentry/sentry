@@ -40,12 +40,12 @@ def test_cache_many(use_case_id: str) -> None:
 
     new_use_case_id = REVERSE_METRIC_PATH_MAPPING[UseCaseKey(use_case_id)]
     new_values = {"yes": 4, "no": 5}
-    assert indexer_cache.get_many(list(new_values.keys()), new_use_case_id) == {
+    assert indexer_cache.get_many(list(new_values.keys()), new_use_case_id.value) == {
         "yes": None,
         "no": None,
     }
     indexer_cache.set_many_new(new_values, use_case_id)
-    assert indexer_cache.get_many(list(new_values.keys()), new_use_case_id) == new_values
+    assert indexer_cache.get_many(list(new_values.keys()), new_use_case_id.value) == new_values
 
     indexer_cache.delete_many(list(values.keys()), use_case_id)
     assert indexer_cache.get_many(list(values.keys()), use_case_id) == {"hello": None, "bye": None}
