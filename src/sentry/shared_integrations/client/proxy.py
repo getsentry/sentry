@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.conf import settings
@@ -27,7 +29,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
 
     should_proxy_to_control = False
 
-    def __init__(self, org_integration_id: int) -> None:
+    def __init__(self, org_integration_id: int | None = None) -> None:
         super().__init__()
         self.org_integration_id = org_integration_id
 
@@ -41,6 +43,9 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
 
     @control_silo_function
     def authorize_request(self, request: Request) -> Request:
+        """
+        Used in the Control Silo to authorize all outgoing requests to the service provider.
+        """
         raise NotImplementedError(
             "'authorize_request' method must be implemented to safely proxy requests."
         )
