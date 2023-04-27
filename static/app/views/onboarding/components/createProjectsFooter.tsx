@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useContext} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {motion} from 'framer-motion';
@@ -13,6 +13,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {createProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
 import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
@@ -22,8 +23,6 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import useTeams from 'sentry/utils/useTeams';
-
-import {OnboardingState} from '../types';
 
 import GenericFooter from './genericFooter';
 
@@ -53,30 +52,28 @@ export function CreateProjectsFooter({
 
   const createPlatformProject = useCallback(
     async (selectedFramework?: OnboardingSelectedSDK) => {
-      if (!clientState || !selectedPlatform) {
-        // Do nothing if client state is not loaded yet.
+      if (!selectedPlatform) {
         return;
       }
 
-      const createProjectForPlatform = selectedFramework
-        ? projects.find(p => p.platform === selectedFramework.key)
+      let createProjectForPlatform: OnboardingSelectedSDK | undefined = undefined;
+
+      if (selectedFramework) {
+        createProjectForPlatform = projects.find(
+          p => p.platform === selectedFramework.key
+        )
           ? undefined
-          : selectedFramework
-        : projects.find(p => p.platform === selectedPlatform.key)
-        ? undefined
-        : clientState.platformToProjectIdMap[selectedPlatform.key]
-        ? undefined
-        : selectedPlatform;
+          : selectedFramework;
+      } else {
+        createProjectForPlatform = projects.find(
+          p => p.platform === onboardingContext.data.selectedSDK?.key
+        )
+          ? undefined
+          : onboardingContext.data.selectedSDK;
+      }
 
       if (!createProjectForPlatform) {
         const platform = selectedFramework ? selectedFramework : selectedPlatform;
-
-        setClientState({
-          platformToProjectIdMap: clientState.platformToProjectIdMap,
-          selectedPlatform: platform,
-          state: 'projects_selected',
-          url: 'setup-docs/',
-        });
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -101,18 +98,6 @@ export function CreateProjectsFooter({
           },
         });
 
-        const nextState: OnboardingState = {
-          platformToProjectIdMap: clientState.platformToProjectIdMap,
-          selectedPlatform: createProjectForPlatform,
-          state: 'projects_selected',
-          url: 'setup-docs/',
-        };
-
-        nextState.platformToProjectIdMap[createProjectForPlatform.key] =
-          createProjectForPlatform.key;
-
-        setClientState(nextState);
-
         ProjectsStore.onCreateSuccess(response, organization.slug);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
@@ -121,22 +106,13 @@ export function CreateProjectsFooter({
         });
 
         clearIndicators();
-        setTimeout(() => onComplete(createProjectForPlatform));
+        setTimeout(() => onComplete(createProjectForPlatform!));
       } catch (err) {
         addErrorMessage(t('Failed to create project'));
         Sentry.captureException(err);
       }
     },
-    [
-      clientState,
-      setClientState,
-      selectedPlatform,
-      api,
-      organization,
-      teams,
-      projects,
-      onComplete,
-    ]
+    [onboardingContext, selectedPlatform, api, organization, teams, projects, onComplete]
   );
 
   const handleProjectCreation = useCallback(async () => {

@@ -3,8 +3,8 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {PRODUCT} from 'sentry/components/onboarding/productSelection';
-import {PersistedStoreContext} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
@@ -90,24 +90,7 @@ describe('Onboarding Setup Docs', function () {
     renderMockRequests({project, orgSlug: organization.slug});
 
     render(
-      <PersistedStoreContext.Provider
-        value={[
-          {
-            onboarding: {
-              selectedPlatform: {
-                category: 'server',
-                key: 'python',
-                language: 'python',
-                type: 'language',
-              },
-              platformToProjectIdMap: {
-                python: 'python',
-              },
-            },
-          },
-          jest.fn(),
-        ]}
-      >
+      <OnboardingContextProvider>
         <SetupDocs
           active
           onComplete={() => {}}
@@ -121,7 +104,7 @@ describe('Onboarding Setup Docs', function () {
           search=""
           selectedProjectSlug="python"
         />
-      </PersistedStoreContext.Provider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
         organization,
@@ -167,24 +150,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript-react',
-                  language: 'javascript',
-                  type: 'framework',
-                },
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -198,7 +164,7 @@ describe('Onboarding Setup Docs', function () {
             search=""
             selectedProjectSlug="javascript-react"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -244,24 +210,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript-react',
-                  language: 'javascript',
-                  type: 'framework',
-                },
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -275,7 +224,7 @@ describe('Onboarding Setup Docs', function () {
             search=""
             selectedProjectSlug="javascript-react"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -315,24 +264,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript-react',
-                  language: 'javascript',
-                  type: 'framework',
-                },
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -346,7 +278,7 @@ describe('Onboarding Setup Docs', function () {
             search=""
             selectedProjectSlug="javascript-react"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -386,24 +318,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript-react',
-                  language: 'javascript',
-                  type: 'framework',
-                },
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -417,7 +332,7 @@ describe('Onboarding Setup Docs', function () {
             search=""
             selectedProjectSlug="javascript-react"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -465,24 +380,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       const {rerender} = render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript',
-                  language: 'javascript',
-                  type: 'language',
-                },
-                platformToProjectIdMap: {
-                  javascript: 'javascript',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -496,7 +394,7 @@ describe('Onboarding Setup Docs', function () {
             search=""
             selectedProjectSlug="javascript"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -529,24 +427,7 @@ describe('Onboarding Setup Docs', function () {
         product: [PRODUCT.SESSION_REPLAY],
       };
       rerender(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript',
-                  language: 'javascript',
-                  type: 'language',
-                },
-                platformToProjectIdMap: {
-                  javascript: 'javascript',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -560,7 +441,7 @@ describe('Onboarding Setup Docs', function () {
             search=""
             selectedProjectSlug="javascript"
           />
-        </PersistedStoreContext.Provider>
+        </OnboardingContextProvider>
       );
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);

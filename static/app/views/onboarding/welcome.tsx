@@ -59,9 +59,12 @@ function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
       organization,
       source,
     });
-    // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-    onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
-  });
+
+    if (onboardingContext.data.selectedSDK) {
+      // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
+      onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+    }
+  }, [organization, onboardingContext]);
 
   // Jump to setup project if project is already selected
   useEffect(() => {

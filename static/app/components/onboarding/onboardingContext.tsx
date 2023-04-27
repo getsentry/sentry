@@ -29,12 +29,13 @@ export const OnboardingContext = createContext<OnboardingContextProps>({
 
 type ProviderProps = {
   children: React.ReactNode;
+  value?: Data;
 };
 
-export function OnboardingContextProvider({children}: ProviderProps) {
+export function OnboardingContextProvider({children, value}: ProviderProps) {
   const [sessionStorage, setSessionStorage] = useSessionStorage<Data>('onboarding', {
-    projects: {},
-    selectedSDK: undefined,
+    projects: value?.projects ?? {},
+    selectedSDK: value?.selectedSDK,
   });
 
   const setData = useCallback(
