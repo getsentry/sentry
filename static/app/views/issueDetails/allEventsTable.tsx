@@ -144,8 +144,8 @@ const getPlatformColumns = (
     [PlatformCategory.BACKEND]: backendServerlessColumnInfo,
     [PlatformCategory.SERVERLESS]: backendServerlessColumnInfo,
     [PlatformCategory.FRONTEND]: {
-      fields: ['url', 'browser', ...replayField],
-      columnTitles: [t('url'), t('browser'), ...replayColumnTitle],
+      fields: ['url', 'browser'],
+      columnTitles: [t('url'), t('browser')],
     },
     [PlatformCategory.MOBILE]: {
       fields: ['url'],
@@ -163,6 +163,11 @@ const getPlatformColumns = (
 
   const platformCategory = platformToCategory(platform);
   const platformColumns = categoryToColumnMap[platformCategory];
+
+  if (options.isReplayEnabled) {
+    platformColumns.fields.push(...replayField);
+    platformColumns.columnTitles.push(...replayColumnTitle);
+  }
 
   if (options.isProfilingEnabled && platform && PROFILING_PLATFORMS.includes(platform)) {
     platformColumns.columnTitles.push(t('profile'));
