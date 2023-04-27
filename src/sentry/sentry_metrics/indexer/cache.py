@@ -40,7 +40,6 @@ class StringIndexerCache:
         return int(cache_ttl + jitter)
 
     def make_cache_key(self, key: str) -> str:
-        # slow rollout option will be used here
         use_case_id, org_id, string = key.split(":")
         org_string = org_id + ":" + string
         hashed = md5_text(org_string).hexdigest()
