@@ -65,10 +65,12 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         selected_columns = self.get_field_list(organization, request)
 
-        top_columns = ["tpm()", "transaction", "project"]
+        top_columns = ["count()", "transaction", "project"]
         query = request.GET.get("query")
 
-        request.yAxis = selected_columns.append(trend_function)
+        selected_columns.append(trend_function)
+        selected_columns.append("count()")
+        request.yAxis = selected_columns
 
         def get_event_stats(
             query_columns,
@@ -85,12 +87,12 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 params=params,
                 rollup=rollup,
                 # high limit is set to validate the regression analysis
-                limit=50,
+                limit=2,
                 organization=organization,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
                 zerofill_results=zerofill_results,
-                orderby=["-tpm()"],
+                orderby=["-count()"],
             )
 
             return results
@@ -100,10 +102,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 request,
                 organization,
                 get_event_stats,
-                top_events=50,
+                top_events=2,
                 query_column=trend_function,
                 params=params,
                 query=query,
+                additional_query_column="count()",
             )
 
             # handle empty response
@@ -133,8 +136,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             trends_request["data"] = response.data
 
             # get start and end from the first transaction
-            trends_request["start"] = response.data[list(response.data)[0]]["start"]
-            trends_request["end"] = response.data[list(response.data)[0]]["end"]
+            trends_request["start"] = response.data[list(response.data)[0]][trend_function]["start"]
+            trends_request["end"] = response.data[list(response.data)[0]][trend_function]["end"]
 
             # send the data to microservice
             trends = get_trends(trends_request)
