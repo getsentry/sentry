@@ -83,6 +83,12 @@ export interface ControlProps
    * If true, there will be a "Clear" button in the menu header.
    */
   clearable?: boolean;
+  /**
+   * Whether to disable the search input's filter function (applicable only when
+   * `searchable` is true). This is useful for implementing custom search behaviors,
+   * like fetching new options on search (via the onSearch() prop).
+   */
+  disableSearchFilter?: boolean;
   disabled?: boolean;
   /**
    * Message to be displayed when all options have been filtered out (via search).
@@ -192,6 +198,7 @@ export function Control({
   size = 'md',
   searchable = false,
   searchPlaceholder = 'Search…',
+  disableSearchFilter = false,
   onSearch,
   clearable = false,
   onClear,
@@ -218,13 +225,19 @@ export function Control({
    * Search/filter value, used to filter out the list of displayed elements
    */
   const [search, setSearch] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
   const updateSearch = useCallback(
     (newValue: string) => {
-      setSearch(newValue);
       onSearch?.(newValue);
+
+      setSearchInputValue(newValue);
+      if (!disableSearchFilter) {
+        setSearch(newValue);
+        return;
+      }
     },
-    [onSearch]
+    [onSearch, disableSearchFilter]
   );
 
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
@@ -297,7 +310,10 @@ export function Control({
 
       // On close
       onClose?.();
-      setSearch(''); // Clear search string
+
+      // Clear search string
+      setSearchInputValue('');
+      setSearch('');
 
       // Wait for overlay to appear/disappear
       await new Promise(resolve => resolve(null));
@@ -460,7 +476,7 @@ export function Control({
                 <SearchInput
                   ref={searchRef}
                   placeholder={searchPlaceholder}
-                  value={search}
+                  value={searchInputValue}
                   onFocus={onSearchFocus}
                   onBlur={onSearchBlur}
                   onChange={e => updateSearch(e.target.value)}
