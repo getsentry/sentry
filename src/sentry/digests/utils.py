@@ -6,6 +6,8 @@ from typing import Any
 from typing import Counter as CounterType
 from typing import Iterable, Mapping, Sequence
 
+from django.db.models import Q
+
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
 from sentry.models import Group, Project, ProjectOwnership, Rule, RuleSnooze
@@ -107,11 +109,14 @@ def build_custom_digest(
 ) -> Digest:
     """Given a digest and a set of events, filter the digest to only records that include the events."""
     user_digest: Digest = {}
+    rule_snoozes = RuleSnooze.objects.filter(
+        Q(Q(user_id=participant.id) | Q(user_id__isnull=True)), rule__in=original_digest.keys()
+    )
+
     for rule, rule_groups in original_digest.items():
         skip = False
-        rule_snoozes = RuleSnooze.objects.filter(rule=rule)
         for snooze in rule_snoozes:
-            if snooze.user_id is None or snooze.user_id == participant.id:
+            if snooze.rule == rule:
                 skip = True
                 break
         if skip:
