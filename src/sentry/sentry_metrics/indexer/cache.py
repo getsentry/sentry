@@ -109,6 +109,8 @@ class CachingIndexer(StringIndexer):
         cache_results = self.cache.get_many(cache_key_strs)
 
         hits = [k for k, v in cache_results.items() if v is not None]
+
+        # record all the cache hits we had
         metrics.incr(
             _INDEXER_CACHE_METRIC,
             tags={"cache_hit": "true", "caller": "get_many_ids"},
