@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Client} from 'sentry/api';
+import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
@@ -20,7 +21,6 @@ import {
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
-import {OnboardingState} from 'sentry/views/onboarding/types';
 
 import OnboardingProjectsCard from './onboardingProjectsCard';
 
@@ -35,11 +35,11 @@ type FirstEventWaiterProps = OnboardingSupplementComponentProps & {
 };
 
 type Options = {
+  onboardingContext: OnboardingContextProps;
   /**
    * The organization to show onboarding tasks for
    */
   organization: Organization;
-  onboardingState?: OnboardingState;
 
   /**
    * A list of the organizations projects. This is used for some onboarding
@@ -73,7 +73,7 @@ function getMetricAlertUrl({projects, organization}: Options) {
 export function getOnboardingTasks({
   organization,
   projects,
-  onboardingState,
+  onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
   if (isDemoWalkthrough()) {
     return [
@@ -356,7 +356,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: getIssueAlertUrl({projects, organization, onboardingState}),
+      location: getIssueAlertUrl({projects, organization, onboardingContext}),
       display: true,
     },
     {
@@ -368,7 +368,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
       actionType: 'app',
-      location: getMetricAlertUrl({projects, organization, onboardingState}),
+      location: getMetricAlertUrl({projects, organization, onboardingContext}),
       // Use `features?.` because getsentry has a different `Organization` type/payload
       display: organization.features?.includes('incidents'),
     },
@@ -386,8 +386,8 @@ export function getOnboardingTasks({
   ];
 }
 
-export function getMergedTasks({organization, projects, onboardingState}: Options) {
-  const taskDescriptors = getOnboardingTasks({organization, projects, onboardingState});
+export function getMergedTasks({organization, projects, onboardingContext}: Options) {
+  const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
   const serverTasks = organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects

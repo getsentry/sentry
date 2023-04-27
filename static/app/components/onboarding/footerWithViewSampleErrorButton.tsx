@@ -8,7 +8,10 @@ import {Location} from 'history';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {
+  OnboardingContext,
+  OnboardingContextProps,
+} from 'sentry/components/onboarding/onboardingContext';
 import {IconCheckmark, IconCircle, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
@@ -21,7 +24,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 export type OnboardingState = {
   status: OnboardingProjectStatus;
@@ -37,15 +39,13 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> 
 };
 
 async function openChangeRouteModal({
-  clientState,
+  onboardingContext,
   nextLocation,
   router,
-  setClientState,
 }: {
-  clientState: ReturnType<typeof usePersistedOnboardingState>[0];
   nextLocation: Location;
+  onboardingContext: OnboardingContextProps;
   router: RouteComponentProps<{}, {}>['router'];
-  setClientState: ReturnType<typeof usePersistedOnboardingState>[1];
 }) {
   const mod = await import('sentry/components/onboarding/changeRouteModal');
 
@@ -56,8 +56,7 @@ async function openChangeRouteModal({
       {...deps}
       router={router}
       nextLocation={nextLocation}
-      clientState={clientState}
-      setClientState={setClientState}
+      onboardingContext={onboardingContext}
     />
   ));
 }
@@ -72,7 +71,6 @@ export function FooterWithViewSampleErrorButton({
   const preferences = useLegacyStore(PreferencesStore);
   const [firstError, setFirstError] = useState<string | null>(null);
   const [firstIssue, setFirstIssue] = useState<Group | undefined>(undefined);
-  const [clientState, setClientState] = usePersistedOnboardingState();
   const {projects} = useProjects();
   const onboardingContext = useContext(OnboardingContext);
   const projectData = projectId ? onboardingContext.data.projects[projectId] : undefined;
@@ -239,18 +237,9 @@ export function FooterWithViewSampleErrorButton({
         ...router.location,
         pathname: (pathname += `referrer=onboarding-first-event-footer-skip`),
       },
-      setClientState,
-      clientState,
+      onboardingContext,
     });
-  }, [
-    router,
-    organization,
-    setClientState,
-    clientState,
-    selectedProject,
-    onboardingContext,
-    projectId,
-  ]);
+  }, [router, organization, onboardingContext, selectedProject, projectId]);
 
   const handleViewError = useCallback(() => {
     if (!projectId) {
@@ -264,27 +253,11 @@ export function FooterWithViewSampleErrorButton({
       platform: selectedProject?.platform ?? 'other',
     });
 
-    if (clientState) {
-      setClientState({
-        ...clientState,
-        state: 'finished',
-      });
-    }
-
     router.push({
       ...router.location,
       pathname: `/organizations/${organization.slug}/issues/${onboardingContext.data.projects[projectId].firstIssueId}/?referrer=onboarding-first-event-footer`,
     });
-  }, [
-    organization,
-    newOrg,
-    router,
-    clientState,
-    setClientState,
-    onboardingContext,
-    projectId,
-    selectedProject,
-  ]);
+  }, [organization, newOrg, router, onboardingContext, projectId, selectedProject]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
