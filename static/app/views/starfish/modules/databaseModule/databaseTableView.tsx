@@ -13,6 +13,7 @@ type Props = {
   isDataLoading: boolean;
   location: Location;
   onSelect: (row: DataRow, rowIndex: number) => void;
+  columns?: any;
   data?: DataRow[];
   selectedRow?: DataRow;
 };
@@ -71,6 +72,7 @@ export default function APIModuleView({
   onSelect,
   selectedRow,
   isDataLoading,
+  columns,
 }: Props) {
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return <span>{column.name}</span>;
@@ -135,7 +137,7 @@ export default function APIModuleView({
     <GridEditable
       isLoading={isDataLoading}
       data={data as any}
-      columnOrder={COLUMN_ORDER}
+      columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
         renderHeadCell,
