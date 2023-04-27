@@ -59,7 +59,8 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         If running as a region, we don't authorize and instead, send it to our proxy endpoint.
         """
         if not self.should_proxy_to_control or not prepared_request.url:
-            return self.authorize_request(prepared_request=prepared_request)
+            prepared_request = self.authorize_request(prepared_request=prepared_request)
+            return prepared_request
 
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
         proxy_path = trim_leading_slashes(prepared_request.url[len(self.base_url) :])
