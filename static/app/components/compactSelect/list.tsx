@@ -33,11 +33,6 @@ interface BaseListProps<Value extends React.Key>
     > {
   items: SelectOptionOrSectionWithKey<Value>[];
   /**
-   * Whether the menu should close upon selection/deselection. In general, only
-   * single-selection menus should close on select (this is the default behavior).
-   */
-  closeOnSelect?: boolean;
-  /**
    * This list's index number inside composite select menus.
    */
   compositeIndex?: number;
@@ -81,6 +76,11 @@ interface BaseListProps<Value extends React.Key>
 }
 
 export interface SingleListProps<Value extends React.Key> extends BaseListProps<Value> {
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected option and returns whether to close the menu.
+   */
+  closeOnSelect?: boolean | ((selectedOption: SelectOption<Value>) => boolean);
   defaultValue?: Value;
   multiple?: false;
   onChange?: (selectedOption: SelectOption<Value>) => void;
@@ -89,6 +89,11 @@ export interface SingleListProps<Value extends React.Key> extends BaseListProps<
 
 export interface MultipleListProps<Value extends React.Key> extends BaseListProps<Value> {
   multiple: true;
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected options and returns whether to close the menu.
+   */
+  closeOnSelect?: boolean | ((selectedOptions: SelectOption<Value>[]) => boolean);
   defaultValue?: Value[];
   onChange?: (selectedOptions: SelectOption<Value>[]) => void;
   value?: Value[];
@@ -151,7 +156,11 @@ function List<Value extends React.Key>({
           onChange?.(selectedOptions);
 
           // Close menu if closeOnSelect is true
-          if (closeOnSelect) {
+          if (
+            typeof closeOnSelect === 'function'
+              ? closeOnSelect(selectedOptions)
+              : closeOnSelect
+          ) {
             overlayState?.close();
           }
         },
@@ -174,7 +183,12 @@ function List<Value extends React.Key>({
 
         // Close menu if closeOnSelect is true or undefined (by default single-selection
         // menus will close on selection)
-        if (closeOnSelect || !defined(closeOnSelect)) {
+        if (
+          !defined(closeOnSelect) ||
+          (typeof closeOnSelect === 'function'
+            ? closeOnSelect(selectedOption)
+            : closeOnSelect)
+        ) {
           overlayState?.close();
         }
       },
