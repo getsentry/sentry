@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Sequence
 
 from django.db import models
-from django.db.models import F, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -25,9 +25,15 @@ class ExternalIssueManager(BaseManager):
     def get_for_integration(
         self, integration: RpcIntegration, external_issue_key: str | None = None
     ) -> QuerySet:
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
+
         kwargs = dict(
             integration_id=integration.id,
-            integration__organizationintegration__organization_id=F("organization_id"),
+            organization_id__in=[oi.organization_id for oi in org_integrations],
         )
 
         if external_issue_key is not None:
