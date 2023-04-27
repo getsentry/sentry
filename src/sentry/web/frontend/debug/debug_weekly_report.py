@@ -19,6 +19,8 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 
 from .mail import MailPreviewView
 
+DEBUG_ESCALATING_ISSUES = False
+
 
 def get_random(request):
     seed = request.GET.get("seed", str(time.time()))
@@ -78,32 +80,35 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.dropped_transaction_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
+            group_inbox = (
+                GroupInbox(reason=GroupInboxReason.ESCALATING) if DEBUG_ESCALATING_ISSUES else None
+            )
             project_context.key_errors = [
-                (g, None, GroupInbox(reason=GroupInboxReason.ESCALATING), random.randint(0, 1000))
-                for g in Group.objects.all()[:3]
+                (g, None, group_inbox, random.randint(0, 1000)) for g in Group.objects.all()[:3]
             ]
 
-            # Removed after organizations:escalating-issues GA
-            project_context.existing_issue_count = random.randint(0, 10000)
-            project_context.reopened_issue_count = random.randint(0, 1000)
-            project_context.new_issue_count = random.randint(0, 1000)
-            project_context.all_issue_count = (
-                project_context.existing_issue_count
-                + project_context.reopened_issue_count
-                + project_context.new_issue_count
-            )
-
-            # For organizations:escalating-issues
-            project_context.new_inbox_count = random.randint(5, 200)
-            project_context.escalating_inbox_count = random.randint(5, 200)
-            project_context.regression_inbox_count = random.randint(5, 200)
-            project_context.ongoing_inbox_count = random.randint(20, 3000)
-            project_context.total_inbox_count = (
-                project_context.new_inbox_count
-                + project_context.escalating_inbox_count
-                + project_context.regression_inbox_count
-                + project_context.ongoing_inbox_count
-            )
+            if DEBUG_ESCALATING_ISSUES:
+                # For organizations:escalating-issues
+                project_context.new_inbox_count = random.randint(5, 200)
+                project_context.escalating_inbox_count = random.randint(5, 200)
+                project_context.regression_inbox_count = random.randint(5, 200)
+                project_context.ongoing_inbox_count = random.randint(20, 3000)
+                project_context.total_inbox_count = (
+                    project_context.new_inbox_count
+                    + project_context.escalating_inbox_count
+                    + project_context.regression_inbox_count
+                    + project_context.ongoing_inbox_count
+                )
+            else:
+                # Removed after organizations:escalating-issues GA
+                project_context.existing_issue_count = random.randint(0, 10000)
+                project_context.reopened_issue_count = random.randint(0, 1000)
+                project_context.new_issue_count = random.randint(0, 1000)
+                project_context.all_issue_count = (
+                    project_context.existing_issue_count
+                    + project_context.reopened_issue_count
+                    + project_context.new_issue_count
+                )
 
             # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
             project_context.key_transactions = [
