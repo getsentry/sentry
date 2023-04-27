@@ -219,7 +219,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             renderDisabled={false}
           >
             <NetworkDetails
-
               {...resizableDrawerProps}
               item={detailItemIndex ? (items[detailItemIndex] as NetworkSpan) : null}
               onClose={() => setDetailRow('')}

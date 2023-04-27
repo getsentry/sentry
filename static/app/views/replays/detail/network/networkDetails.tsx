@@ -32,10 +32,6 @@ function NetworkRequestDetails({
   onScrollToRow,
   startTimestampMs,
 }: Props) {
-  const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
-    'n_detail_row',
-    ''
-  );
   const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'details');
 
   if (!item) {
