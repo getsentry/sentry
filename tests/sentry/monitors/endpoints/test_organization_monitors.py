@@ -49,13 +49,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             self._create_monitor_environment(
                 monitor,
                 name="jungle",
-                last_checkin=last_checkin - timedelta(seconds=30),
+                last_checkin=(date or last_checkin) - timedelta(seconds=30),
                 status=status,
             )
             self._create_monitor_environment(
                 monitor,
                 name="volcano",
-                last_checkin=last_checkin - timedelta(seconds=15),
+                last_checkin=(date or last_checkin) - timedelta(seconds=15),
                 status=getattr(MonitorStatus, "DISABLED"),
             )
             return monitor

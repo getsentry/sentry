@@ -713,7 +713,6 @@ CELERY_QUEUES = [
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
-    Queue("process_owner_assignments", routing_key="process_owner_assignments"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -746,6 +745,7 @@ CELERY_QUEUES = [
     ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
+    Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
 ]
 
 for queue in CELERY_QUEUES:

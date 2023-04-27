@@ -1,6 +1,8 @@
 """This module has the logic for querying Snuba for the hourly event count for a list of groups.
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
+
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Sequence, Tuple, TypedDict
@@ -19,10 +21,17 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.models import Group
+from sentry.models.group import GroupStatus
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.types.group import GroupSubStatus
+from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
@@ -30,6 +39,9 @@ REFERRER = "sentry.issues.escalating"
 ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
 BUCKETS_PER_GROUP = 7 * 24
+ONE_WEEK_DURATION = 7
+IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
+GROUP_DAILY_COUNT_TTL = 60
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -63,6 +75,7 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     proj_ids, group_ids = [], []
     processed_projects = 0
     total_projects_count = len(group_ids_by_project)
+    organization_id = groups[0].project.organization.id
 
     # This iteration guarantees that all groups for a project will be queried in the same call
     # and only one page where the groups could be mixed with groups from another project
@@ -82,7 +95,9 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
             continue
 
         # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
-        all_results += _query_with_pagination(proj_ids, group_ids, start_date, end_date)
+        all_results += _query_with_pagination(
+            organization_id, proj_ids, group_ids, start_date, end_date
+        )
         # We're ready for a new set of projects and ids
         proj_ids, group_ids = [], []
 
@@ -90,7 +105,11 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
 
 
 def _query_with_pagination(
-    project_ids: Sequence[int], group_ids: Sequence[int], start_date: datetime, end_date: datetime
+    organization_id: int,
+    project_ids: Sequence[int],
+    group_ids: Sequence[int],
+    start_date: datetime,
+    end_date: datetime,
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
@@ -98,7 +117,12 @@ def _query_with_pagination(
     offset = 0
     while True:
         query = _generate_query(project_ids, group_ids, offset, start_date, end_date)
-        request = Request(dataset=Dataset.Events.value, app_id=REFERRER, query=query)
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id=REFERRER,
+            query=query,
+            tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
+        )
         results = raw_snql_query(request, referrer=REFERRER)["data"]
         all_results += results
         offset += ELEMENTS_PER_SNUBA_PAGE
@@ -178,3 +202,52 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
         group_ids_by_project[group.project_id].append(group.id)
 
     return group_ids_by_project
+
+
+def get_group_daily_count(organization_id: int, project_id: int, group_id: int) -> int:
+    """Return the number of events a group has had today"""
+    key = f"daily-group-count:{project_id}:{group_id}"
+    daily_count = cache.get(key)
+
+    if daily_count is None:
+        today = datetime.now().date()
+        midnight = datetime.combine(today, datetime.min.time())
+        now = datetime.now()
+        query = Query(
+            match=Entity(EntityKey.Events.value),
+            select=[
+                Function("count", []),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("group_id"), Op.EQ, group_id),
+                Condition(Column("timestamp"), Op.GTE, midnight),
+                Condition(Column("timestamp"), Op.LT, now),
+            ],
+        )
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id=IS_ESCALATING_REFERRER,
+            query=query,
+            tenant_ids={"referrer": IS_ESCALATING_REFERRER, "organization_id": organization_id},
+        )
+        daily_count = int(
+            raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
+        )
+        cache.set(key, daily_count, GROUP_DAILY_COUNT_TTL)
+    return int(daily_count)
+
+
+def is_escalating(group: Group) -> bool:
+    """Return boolean depending on if the group is escalating or not"""
+    group_daily_count = get_group_daily_count(
+        group.project.organization.id, group.project.id, group.id
+    )
+    forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
+    # Check if current event occurance is greater than forecast for today's date
+    if group_daily_count > forecast_today:
+        group.substatus = GroupSubStatus.ESCALATING
+        group.status = GroupStatus.UNRESOLVED
+        add_group_to_inbox(group, GroupInboxReason.ESCALATING)
+        return True
+    return False

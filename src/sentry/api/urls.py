@@ -1,6 +1,7 @@
 from django.conf.urls import include, url
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -68,6 +69,7 @@ from sentry.monitors.endpoints.organization_monitor_details import (
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.monitors.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
+from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
@@ -1648,6 +1650,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-replay-count",
     ),
     url(
+        r"^(?P<organization_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/$",
+        OrganizationReplayDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-replay-details",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
         OrganizationReplayEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-replay-events-meta",
@@ -2528,6 +2535,12 @@ INTERNAL_URLS = [
         r"^project-config/$",
         AdminRelayProjectConfigsEndpoint.as_view(),
         name="sentry-api-0-internal-project-config",
+    ),
+    url(
+        # If modifying, ensure PROXY_BASE_PATH is updated as well
+        r"^integration-proxy/\S+$",
+        InternalIntegrationProxyEndpoint.as_view(),
+        name="sentry-api-0-internal-integration-proxy",
     ),
     url(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",

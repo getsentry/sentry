@@ -1,10 +1,16 @@
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
+import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
 const HOST = 'http://localhost:8080';
 
@@ -21,7 +27,10 @@ export type DataRow = {
   data_values: Array<string>;
   description: string;
   epm: number;
+  firstSeen: string;
   formatted_desc: string;
+  group_id: string;
+  newish: number;
   p75: number;
   total_time: number;
   transactions: number;
@@ -40,7 +49,7 @@ const COLUMN_ORDER = [
   },
   {
     key: 'epm',
-    name: 'tpm',
+    name: 'Tpm',
   },
   {
     key: 'p75',
@@ -68,34 +77,26 @@ export default function APIModuleView({
   const tableFilter = table ? `domain = '${table}'` : null;
   const actionFilter = action ? `action = '${action}'` : null;
 
-  const filters = [
-    `startsWith(span_operation, 'db')`,
-    `span_operation != 'db.redis'`,
-    transactionFilter,
-    tableFilter,
-    actionFilter,
-  ].filter(fil => !!fil);
-  const TABLE_LIST_QUERY = `select description, (divide(count(), divide(1209600.0, 60)) AS epm), quantile(0.75)(exclusive_time) as p75,
-    uniq(transaction) as transactions,
-    sum(exclusive_time) as total_time,
-    domain,
-    action,
-    data_keys,
-    data_values
-    from default.spans_experimental_starfish
-    where
-    ${filters.join(' and ')}
-    group by action, description, domain, data_keys, data_values
-    order by -pow(10, floor(log10(count()))), -quantile(0.5)(exclusive_time)
-    limit 100
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const DATE_FILTERS = `
+    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
-  console;
-
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints', action, transaction, table],
+    queryKey: ['endpoints', action, transaction, table, pageFilter.selection.datetime],
     queryFn: () =>
-      fetch(`${HOST}/?query=${TABLE_LIST_QUERY}&format=sql`).then(res => res.json()),
+      fetch(
+        `${HOST}/?query=${getMainTable(
+          DATE_FILTERS,
+          transactionFilter,
+          tableFilter,
+          actionFilter,
+          startTime,
+          endTime
+        )}&format=sql`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -116,16 +117,20 @@ export default function APIModuleView({
     if (column.key === 'description') {
       const value = row[column.key];
       return (
-        <Hovercard header="Query" body={value}>
+        <Hovercard
+          header={`Query ${row.newish === 1 ? `(First seen ${row.firstSeen})` : ''}`}
+          body={value}
+        >
           <Link onClick={() => onSelect(row)} to="">
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
           </Link>
+          {row?.newish === 1 && <StyledBadge type="new" text="new" />}
         </Hovercard>
       );
     }
-    if (column.key === 'p75') {
+    if (['p75', 'total_time'].includes(column.key.toString())) {
       return <span>{row[column.key].toFixed(2)}ms</span>;
     }
     if (column.key === 'conditions') {
@@ -156,3 +161,7 @@ export default function APIModuleView({
     />
   );
 }
+
+const StyledBadge = styled(Badge)`
+  margin-left: ${space(0.75)};
+`;

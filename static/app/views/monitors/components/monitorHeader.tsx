@@ -28,6 +28,7 @@ const statusToLabel: Record<MonitorStatus, string> = {
   disabled: t('Disabled'),
   active: t('Active'),
   missed_checkin: t('Missed'),
+  timeout: t('Timeout'),
 };
 
 function MonitorHeader({monitor, monitorEnv, orgId, onUpdate}: Props) {

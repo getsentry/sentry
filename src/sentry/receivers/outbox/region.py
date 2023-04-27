@@ -79,6 +79,7 @@ def process_team_updates(
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_UPDATE)
 def process_organization_updates(object_identifier: int, **kwds: Any):
     if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
+        organization_mapping_service.delete(organization_id=object_identifier)
         return
 
     update = update_organization_mapping_from_instance(org)

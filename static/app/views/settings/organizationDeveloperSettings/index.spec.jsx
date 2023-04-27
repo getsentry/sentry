@@ -235,7 +235,8 @@ describe('Organization Developer Settings', function () {
         <OrganizationDeveloperSettings
           organization={newOrg}
           location={{query: {type: 'public'}}}
-        />
+        />,
+        {organization: newOrg}
       );
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
@@ -246,7 +247,8 @@ describe('Organization Developer Settings', function () {
         <OrganizationDeveloperSettings
           organization={newOrg}
           location={{query: {type: 'public'}}}
-        />
+        />,
+        {organization: newOrg}
       );
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
       expect(publishButton).toHaveAttribute('aria-disabled', 'true');

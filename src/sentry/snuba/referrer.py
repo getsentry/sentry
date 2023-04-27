@@ -387,6 +387,7 @@ class ReferrerBase(Enum):
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
+    IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
@@ -518,6 +519,7 @@ class ReferrerBase(Enum):
         "snuba.sessions.check_releases_have_health_data"
     )
     SNUBA_SESSIONS_GET_PROJECT_RELEASES_COUNT = "snuba.sessions.get_project_releases_count"
+    SPIKE_PROJECTIONS = "getsentry.get_spike_projections"
     SRC_SENTRY_INGEST_TRANSACTION_CLUSTERER = "src.sentry.ingest.transaction_clusterer"
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"

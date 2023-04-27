@@ -228,7 +228,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
         sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=get_issue_tsdb_group_model(event.group.issue_category),
+            model=get_issue_tsdb_group_model(event.group.issue_category, event.group.project),
             keys=[event.group_id],
             start=start,
             end=end,
@@ -252,7 +252,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
         totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(event.group.issue_category),
+            model=get_issue_tsdb_user_group_model(event.group.issue_category, event.group.project),
             keys=[event.group_id],
             start=start,
             end=end,
@@ -361,7 +361,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
 
             issue_count = self.tsdb.get_sums(
-                model=get_issue_tsdb_group_model(event.group.issue_category),
+                model=get_issue_tsdb_group_model(event.group.issue_category, event.group.project),
                 keys=[event.group_id],
                 start=start,
                 end=end,

@@ -101,7 +101,7 @@ class GroupingInfo extends AsyncComponent<Props, State> {
 
   renderGroupInfo() {
     const {groupInfo, loading} = this.state;
-    const {showGroupingConfig} = this.props;
+    const {event, showGroupingConfig} = this.props;
 
     const variants = groupInfo
       ? Object.values(groupInfo).sort((a, b) =>
@@ -129,7 +129,11 @@ class GroupingInfo extends AsyncComponent<Props, State> {
         ) : (
           variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupVariant variant={variant} showGroupingConfig={showGroupingConfig} />
+              <GroupVariant
+                event={event}
+                variant={variant}
+                showGroupingConfig={showGroupingConfig}
+              />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
           ))
