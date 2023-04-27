@@ -138,7 +138,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
               </StyledButton>
             }
           >
-            {tct('You can now see the body of requests and responses. [link]', {
+            {tct('Start collecting the body of requests and responses. [link]', {
               link: (
                 <ExternalLink
                   href="https://github.com/getsentry/sentry-javascript/issues/7103"
