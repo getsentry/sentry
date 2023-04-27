@@ -172,9 +172,6 @@ function AssignedTo({
   const api = useApi();
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
   const hasProjectRead = useAccess({access: ['project:read']});
-  const hasStreamlineTargetingFeature = organization.features.includes(
-    'streamline-targeting-context'
-  );
   const {data} = useCommitters(
     {
       eventId: event?.id ?? '',
@@ -221,7 +218,7 @@ function AssignedTo({
     <SidebarSection.Wrap data-test-id="assigned-to">
       <StyledSidebarTitle>
         {t('Assigned To')}
-        {hasStreamlineTargetingFeature && hasProjectRead && (
+        {hasProjectRead && (
           <Button
             onClick={() => {
               openIssueOwnershipRuleModal({
