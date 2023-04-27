@@ -588,7 +588,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
 @pytest.mark.django_db
 @freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
+def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     get_blended_sample_rate, default_project
 ):
     get_blended_sample_rate.return_value = 0.1
@@ -607,9 +607,8 @@ def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
 
     # Set factor
     default_factor = 0.5
-    redis_client.hset(
+    redis_client.set(
         f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
-        f"{default_project.id}",
         default_factor,
     )
     assert generate_rules(default_project) == [
