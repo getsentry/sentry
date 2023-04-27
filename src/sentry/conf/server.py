@@ -942,9 +942,9 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule_auto_transition": {
         "task": "sentry.tasks.schedule_auto_transition",
-        # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
-        "options": {"expires": 60 * 25},
+        # Run job once a day at 00:30
+        "schedule": crontab(minute=30, hour="0"),
+        "options": {"expires": 3600},
     },
 }
 
