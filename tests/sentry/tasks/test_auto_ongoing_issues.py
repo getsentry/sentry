@@ -5,7 +5,7 @@ import pytz
 
 from sentry.models import Group, GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.tasks.auto_ongoing_issues import (
-    schedule_auto_transition,
+    schedule_auto_transition_new,
     schedule_auto_transition_regressed,
 )
 from sentry.testutils import TestCase
@@ -27,7 +27,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         group_inbox.save()
 
         with self.tasks():
-            schedule_auto_transition()
+            schedule_auto_transition_new()
 
         ongoing_inbox = GroupInbox.objects.filter(group=group).get()
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
@@ -48,7 +48,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         group_inbox.save()
 
         with self.tasks():
-            schedule_auto_transition()
+            schedule_auto_transition_new()
 
         ongoing_inbox = GroupInbox.objects.filter(group=group).get()
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
@@ -102,7 +102,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         ).count() == len(new_groups) + len(older_groups)
 
         with self.tasks():
-            schedule_auto_transition()
+            schedule_auto_transition_new()
 
         # after
         assert Group.objects.filter(project_id=project.id).count() == len(older_groups) + len(
@@ -159,7 +159,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         )
 
         with self.tasks():
-            schedule_auto_transition()
+            schedule_auto_transition_new()
 
         # after
         assert (

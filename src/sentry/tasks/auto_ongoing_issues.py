@@ -11,13 +11,13 @@ from sentry.tasks.base import instrumented_task
 
 
 @instrumented_task(
-    name="sentry.tasks.schedule_auto_transition",
+    name="sentry.tasks.schedule_auto_transition_new",
     queue="auto_transition_issue_states",
     time_limit=75,
     soft_time_limit=60,
 )  # type: ignore
-@monitor(monitor_slug="schedule_auto_transition")
-def schedule_auto_transition() -> None:
+@monitor(monitor_slug="schedule_auto_transition_new")
+def schedule_auto_transition_new() -> None:
     now = datetime.now(tz=pytz.UTC)
     three_days_past = now - timedelta(days=3)
 
