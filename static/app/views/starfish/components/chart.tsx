@@ -120,7 +120,7 @@ function Chart({
     value => aggregateOutputType(value.seriesName) === 'percentage'
   );
 
-  const dataMax = durationOnly
+  let dataMax = durationOnly
     ? computeAxisMax([...data, ...(scatterPlot ?? [])])
     : percentOnly
     ? computeMax(data)
