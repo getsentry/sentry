@@ -16,7 +16,7 @@ import Link from 'sentry/components/links/link';
 import SwitchButton from 'sentry/components/switchButton';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   PageErrorAlert,
   PageErrorProvider,

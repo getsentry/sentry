@@ -6,7 +6,7 @@ import moment from 'moment';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';

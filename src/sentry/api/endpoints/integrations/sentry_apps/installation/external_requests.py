@@ -1,13 +1,13 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import control_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.mediators import external_requests
 from sentry.models import Project
 
 
-@control_silo_endpoint
+@region_silo_endpoint
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
     def get(self, request: Request, installation) -> Response:
         try:

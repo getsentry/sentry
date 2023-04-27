@@ -8,7 +8,7 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
-import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
