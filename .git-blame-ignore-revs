@@ -57,11 +57,9 @@ f736793749a7e0a120a3d5f8630959864e553adb
 # chore(prettier): Apply prettier 2.1 (#21605)
 032754739fd210e1d12c076bad4ce8093cbae574
 
-
 # https://github.com/getsentry/sentry/pull/22104
 # build(eslint): Add `simple-import-sort` eslint plugin #22104
 b8bf85948d4c4832c60ab31e9f1a5a3c39fd53cf
-
 
 # https://github.com/getsentry/sentry/pull/30178
 # the below are all changing import alias `app` to `sentry`
