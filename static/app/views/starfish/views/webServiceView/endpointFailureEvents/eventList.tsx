@@ -8,7 +8,7 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {NewQuery, Organization} from 'sentry/types';
 import DiscoverQuery, {
   TableData,

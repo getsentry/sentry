@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';

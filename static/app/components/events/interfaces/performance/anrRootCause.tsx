@@ -8,7 +8,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';

@@ -11,7 +11,7 @@ import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 

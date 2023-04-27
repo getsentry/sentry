@@ -8,7 +8,7 @@ import Badge from 'sentry/components/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import space, {ValidSize} from 'sentry/styles/space';
+import {space, ValidSize} from 'sentry/styles/space';
 
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
