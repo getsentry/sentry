@@ -161,20 +161,21 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(self, stacktraces, modules, release, dist, allow_scraping=True):
+    def process_js(self, stacktraces, modules, release, dist, scraping_config=None):
         source = get_internal_artifact_lookup_source(self.project)
 
         json = {
             "source": source,
             "stacktraces": stacktraces,
             "modules": modules,
-            "allow_scraping": allow_scraping,
         }
 
         if release is not None:
             json["release"] = release
         if dist is not None:
             json["dist"] = dist
+        if scraping_config is not None:
+            json["scraping"] = scraping_config
 
         return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
 

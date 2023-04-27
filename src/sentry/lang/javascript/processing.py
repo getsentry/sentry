@@ -9,6 +9,7 @@ from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.utils.http import get_origins
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -146,6 +147,22 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
 
+    allowed_origins = []
+    scraping_headers = {}
+    if allow_scraping:
+        allowed_origins = list(get_origins(project))
+
+        token = project.get_option("sentry:token")
+        if token:
+            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+            scraping_headers[token_header] = token
+
+    scraping_config = {
+        "enabled": allow_scraping,
+        "headers": scraping_headers,
+        "allowed_origins": allowed_origins,
+    }
+
     modules = sourcemap_images_from_data(data)
 
     stacktrace_infos = find_stacktraces_in_data(data)
@@ -168,7 +185,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules=modules,
         release=data.get("release"),
         dist=data.get("dist"),
-        allow_scraping=allow_scraping,
+        scraping_config=scraping_config,
     )
 
     if not _handle_response_status(data, response):
