@@ -196,7 +196,6 @@ const cellColor = p => {
 const Cell = styled('div')<CellProps>`
   display: flex;
   align-items: center;
-  padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
@@ -215,6 +214,7 @@ const Text = styled('div')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  padding: ${space(0.75)} ${space(1.5)};
 `;
 
 export default NetworkTableCell;
