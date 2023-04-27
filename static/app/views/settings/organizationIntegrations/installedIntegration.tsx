@@ -109,7 +109,7 @@ export default class InstalledIntegration extends Component<Props> {
     );
 
     return (
-      <Access organization={organization} access={['org:integrations']}>
+      <Access access={['org:integrations']}>
         {({hasAccess}) => {
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
           return (
