@@ -3,14 +3,19 @@ import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useQuery} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
@@ -23,8 +28,11 @@ const HOST = 'http://localhost:8080';
 
 function DatabaseModule() {
   const location = useLocation();
+  const organization = useOrganization();
+  const eventView = EventView.fromLocation(location);
   const [action, setAction] = useState<string>('ALL');
   const [table, setTable] = useState<string>('ALL');
+  const [transaction, setTransaction] = useState<string>('');
   const [rows, setRows] = useState<{next?: DataRow; prev?: DataRow; selected?: DataRow}>({
     selected: undefined,
     next: undefined,
@@ -40,20 +48,22 @@ function DatabaseModule() {
   greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
   less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
 `;
+  const transactionFilter =
+    transaction.length > 0 ? `transaction='${transaction}'` : null;
 
   const {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
   } = useQuery<DataRow[]>({
-    queryKey: ['endpoints', action, table, pageFilter.selection.datetime],
+    queryKey: ['endpoints', action, table, pageFilter.selection.datetime, transaction],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getMainTable(
           startTime,
           DATE_FILTERS,
           endTime,
-          '',
+          transactionFilter,
           tableFilter,
           actionFilter
         )}&format=sql`
@@ -70,6 +80,21 @@ function DatabaseModule() {
   };
 
   const unsetSelectedSpanGroup = () => setRows({selected: undefined});
+
+  const handleSearch = (query: string) => {
+    const conditions = new MutableSearch(query);
+    const transactionValues = conditions.getFilterValues('transaction');
+    if (transactionValues.length) {
+      setTransaction(transactionValues[0]);
+      return;
+    }
+    if (conditions.freeText.length > 0) {
+      // so no need to wrap it here
+      setTransaction(conditions.freeText.join(' '));
+      return;
+    }
+    setTransaction('');
+  };
 
   return (
     <Layout.Page>
@@ -98,6 +123,12 @@ function DatabaseModule() {
                   setTable(val);
                 }
               }}
+            />
+            <TransactionNameSearchBar
+              organization={organization}
+              eventView={eventView}
+              onSearch={(query: string) => handleSearch(query)}
+              query={transaction}
             />
             <DatabaseTableView
               location={location}
