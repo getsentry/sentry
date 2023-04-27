@@ -12,7 +12,7 @@ interface Props
 
 function ProjectAlerts({children, organization}: Props) {
   return (
-    <Access organization={organization} access={['project:write']}>
+    <Access access={['project:write']}>
       {({hasAccess}) => (
         <Fragment>
           {isValidElement(children) &&

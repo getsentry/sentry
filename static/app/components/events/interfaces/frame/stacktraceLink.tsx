@@ -31,7 +31,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -74,7 +74,8 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
 
     // Update cached query data
     // Will set prompt to dismissed
-    queryClient.setQueryData<PromptResponse>(
+    setApiQueryData<PromptResponse>(
+      queryClient,
       makePromptsCheckQueryKey({
         feature: 'stacktrace_link',
         organizationId: organization.id,

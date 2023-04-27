@@ -46,7 +46,6 @@ PII_CONFIG = """
 }
 """
 
-
 DEFAULT_ENVIRONMENT_RULE = {
     "sampleRate": 1,
     "type": "trace",
@@ -287,10 +286,8 @@ def test_project_config_with_all_biases_enabled(
 
     # Set factor
     default_factor = 0.5
-    redis_client.hset(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
-        f"{default_project.id}",
-        default_factor,
+    redis_client.set(
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor", default_factor
     )
 
     with Feature(
@@ -311,12 +308,6 @@ def test_project_config_with_all_biases_enabled(
         "rules": [],
         "rulesV2": [
             {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1004,
-                "samplingValue": {"type": "factor", "value": default_factor},
-                "type": "trace",
-            },
-            {
                 "samplingValue": {"type": "sampleRate", "value": 0.02},
                 "type": "transaction",
                 "condition": {
@@ -330,6 +321,12 @@ def test_project_config_with_all_biases_enabled(
                     ],
                 },
                 "id": 1002,
+            },
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1004,
+                "samplingValue": {"type": "factor", "value": default_factor},
+                "type": "trace",
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
