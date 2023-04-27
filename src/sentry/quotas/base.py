@@ -1,7 +1,9 @@
+import logging
 import typing
 from enum import IntEnum, unique
 from typing import Optional
 
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
@@ -12,6 +14,9 @@ from sentry.utils.services import Service
 
 if typing.TYPE_CHECKING:
     from sentry.models import Project
+
+
+logger = logging.getLogger(__name__)
 
 
 @unique
@@ -77,6 +82,23 @@ class QuotaConfig:
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
             assert type(limit) == int, "limit must be an integer"
+
+            if limit >= 2**32:
+                with sentry_sdk.configure_scope() as sentry_scope:
+                    sentry_scope.set_context(
+                        "quota_limit",
+                        {
+                            "id": id,
+                            "categories": categories,
+                            # "scope": scope,
+                            "scope_id": scope_id,
+                            "limit": limit,
+                            "window": window,
+                            "reason_code": reason_code,
+                        },
+                    )
+                    logging.error("Quota limit too large for Relay to parse: %s", limit)
+                limit = 2**32 - 1
 
         if limit == 0:
             assert id is None, "reject-all quotas cannot be tracked"
