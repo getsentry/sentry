@@ -27,7 +27,7 @@ from snuba_sdk import (
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import METRIC_ID_MAPPING, UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve,
     resolve_tag_key,
@@ -1439,11 +1439,7 @@ class ResolveTagsTestCase(TestCase):
 
         for transaction in ["transaction"] + transactions:
             indexer.record(
-                use_case_id=(
-                    UseCaseID.SESSIONS
-                    if self.use_case_id is UseCaseKey.RELEASE_HEALTH
-                    else UseCaseID.TRANSACTIONS
-                ),
+                use_case_id=METRIC_ID_MAPPING[self.use_case_id],
                 org_id=self.org_id,
                 string=transaction,
             )
@@ -1503,20 +1499,12 @@ class ResolveTagsTestCase(TestCase):
 
         for transaction, platform in [("transaction", "platform")] + tags:
             indexer.record(
-                use_case_id=(
-                    UseCaseID.SESSIONS
-                    if self.use_case_id is UseCaseKey.RELEASE_HEALTH
-                    else UseCaseID.TRANSACTIONS
-                ),
+                use_case_id=METRIC_ID_MAPPING[self.use_case_id],
                 org_id=self.org_id,
                 string=transaction,
             )
             indexer.record(
-                use_case_id=(
-                    UseCaseID.SESSIONS
-                    if self.use_case_id is UseCaseKey.RELEASE_HEALTH
-                    else UseCaseID.TRANSACTIONS
-                ),
+                use_case_id=METRIC_ID_MAPPING[self.use_case_id],
                 org_id=self.org_id,
                 string=platform,
             )
@@ -1584,11 +1572,7 @@ class ResolveTagsTestCase(TestCase):
         tag_key = "transaction"
 
         indexer.record(
-            use_case_id=(
-                UseCaseID.SESSIONS
-                if self.use_case_id is UseCaseKey.RELEASE_HEALTH
-                else UseCaseID.TRANSACTIONS
-            ),
+            use_case_id=METRIC_ID_MAPPING[self.use_case_id],
             org_id=self.org_id,
             string=tag_key,
         )
@@ -1627,11 +1611,7 @@ class ResolveTagsTestCase(TestCase):
 
     def test_resolve_tags_with_match_and_filterable_tag(self):
         indexer.record(
-            use_case_id=(
-                UseCaseID.SESSIONS
-                if self.use_case_id is UseCaseKey.RELEASE_HEALTH
-                else UseCaseID.TRANSACTIONS
-            ),
+            use_case_id=METRIC_ID_MAPPING[self.use_case_id],
             org_id=self.org_id,
             string="environment",
         )
@@ -1670,11 +1650,7 @@ class ResolveTagsTestCase(TestCase):
 
     def test_resolve_tags_with_match_and_deep_filterable_tag(self):
         indexer.record(
-            use_case_id=(
-                UseCaseID.SESSIONS
-                if self.use_case_id is UseCaseKey.RELEASE_HEALTH
-                else UseCaseID.TRANSACTIONS
-            ),
+            use_case_id=METRIC_ID_MAPPING[self.use_case_id],
             org_id=self.org_id,
             string="environment",
         )
@@ -1718,11 +1694,7 @@ class ResolveTagsTestCase(TestCase):
 
     def test_resolve_tags_with_match_and_non_filterable_tag(self):
         indexer.record(
-            use_case_id=(
-                UseCaseID.SESSIONS
-                if self.use_case_id is UseCaseKey.RELEASE_HEALTH
-                else UseCaseID.TRANSACTIONS
-            ),
+            use_case_id=METRIC_ID_MAPPING[self.use_case_id],
             org_id=self.org_id,
             string="http_status_code",
         )
@@ -1752,11 +1724,7 @@ class ResolveTagsTestCase(TestCase):
 
     def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
         indexer.record(
-            use_case_id=(
-                UseCaseID.SESSIONS
-                if self.use_case_id is UseCaseKey.RELEASE_HEALTH
-                else UseCaseID.TRANSACTIONS
-            ),
+            use_case_id=METRIC_ID_MAPPING[self.use_case_id],
             org_id=self.org_id,
             string="http_status_code",
         )
