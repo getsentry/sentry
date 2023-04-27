@@ -220,6 +220,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       platform: selectedProject?.platform ?? 'other',
     });
 
+    onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+
     router.push({
       ...router.location,
       pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
@@ -249,6 +251,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     if (selectedProjectId) {
       pathname += `project=${selectedProjectId}&`;
     }
+
+    onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
 
     openChangeRouteModal({
       router,

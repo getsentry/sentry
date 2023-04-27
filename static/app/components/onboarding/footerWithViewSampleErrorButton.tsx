@@ -231,6 +231,8 @@ export function FooterWithViewSampleErrorButton({
       pathname += `project=${selectedProjectId}&`;
     }
 
+    onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+
     openChangeRouteModal({
       router,
       nextLocation: {
@@ -252,6 +254,8 @@ export function FooterWithViewSampleErrorButton({
       project_id: projectId,
       platform: selectedProject?.platform ?? 'other',
     });
+
+    onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
 
     router.push({
       ...router.location,
