@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
@@ -19,6 +20,9 @@ import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -136,6 +140,32 @@ function EndpointDetailBody({
     `transaction:${row.transaction}`,
     `http.method:${row.httpOp}`,
   ]);
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const DATE_FILTERS = `
+  greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+  less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
+`;
+  const transactionFilter =
+    row.transaction.length > 0 ? `transaction='${row.transaction}'` : null;
+
+  const {
+    isLoading: isTableDataLoading,
+    data: tableData,
+    isRefetching: isTableRefetching,
+  } = useQuery({
+    queryKey: ['endpoints', pageFilter.selection.datetime, row.transaction],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getMainTable(
+          startTime,
+          DATE_FILTERS,
+          endTime,
+          transactionFilter
+        )}&format=sql`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
   return (
     <div>
       <h2>{t('Endpoint Detail')}</h2>
@@ -250,7 +280,8 @@ function EndpointDetailBody({
             )}`
           );
         }}
-        transaction={row.transaction}
+        isDataLoading={isTableDataLoading || isTableRefetching}
+        data={tableData}
         columns={DATABASE_SPAN_COLUMN_ORDER}
       />
     </div>
