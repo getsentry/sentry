@@ -16,7 +16,7 @@ import {
 import {getIncidentDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentDiscoverUrl';
 
 describe('Alert utils', function () {
-  const {org, projects} = initializeOrg();
+  const {organization, projects} = initializeOrg();
 
   const mockStats: IncidentStats = {
     eventStats: {
@@ -44,7 +44,7 @@ describe('Alert utils', function () {
       } as Incident;
 
       const to = getIncidentDiscoverUrl({
-        orgSlug: org.slug,
+        orgSlug: organization.slug,
         projects,
         incident,
         stats: mockStats,
@@ -79,7 +79,7 @@ describe('Alert utils', function () {
       } as Incident;
 
       const to = getIncidentDiscoverUrl({
-        orgSlug: org.slug,
+        orgSlug: organization.slug,
         projects,
         incident,
         stats: mockStats,
