@@ -76,10 +76,7 @@ function FailureRateChart({
     tooltip: {
       trigger: 'axis',
 
-      valueFormatter: (value, label, series) => {
-        console.dir(value);
-        console.dir(label);
-        console.dir(series);
+      valueFormatter: value => {
         return tooltipFormatter(value, 'percentage');
       },
     },
@@ -94,6 +91,7 @@ function FailureRateChart({
         opacity: 0.2,
         width: 25,
       },
+      snap: false,
     },
   };
 
