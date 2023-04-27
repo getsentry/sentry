@@ -10,7 +10,7 @@ import {formatTime} from 'sentry/components/replays/utils';
 import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconCalendar, IconDelete, IconLocation} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';

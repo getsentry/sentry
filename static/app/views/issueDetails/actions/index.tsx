@@ -573,7 +573,6 @@ class Actions extends Component<Props> {
                 hasRelease={hasRelease}
                 latestRelease={project.latestRelease}
                 onUpdate={this.onUpdate}
-                orgSlug={organization.slug}
                 projectSlug={project.slug}
                 isResolved={isResolved}
                 isAutoResolved={isAutoResolved}

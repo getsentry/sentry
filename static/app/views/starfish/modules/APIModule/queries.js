@@ -16,7 +16,7 @@ export const getHostListQuery = () => {
  `;
 };
 
-export const getEndpointListQuery = ({domain, action, datetime}) => {
+export const getEndpointListQuery = ({domain, action, datetime, transaction}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
     description,
@@ -34,6 +34,7 @@ export const getEndpointListQuery = ({domain, action, datetime}) => {
     WHERE module = 'http'
     ${domain ? `AND domain = '${domain}'` : ''}
     ${action ? `AND action = '${action}'` : ''}
+    ${transaction ? `AND transaction = '${transaction}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY description, domain, action, group_id
@@ -128,16 +129,27 @@ export const getEndpointDetailTableQuery = ({
  `;
 };
 
-export const getSpanInTransactionQuery = ({groupId, transactionName, datetime}) => {
+export const getSpanInTransactionQuery = ({groupId, datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   // TODO - add back `module = <moudle> to filter data
   return `
     SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
     FROM spans_experimental_starfish
     WHERE group_id = '${groupId}'
-    ${transactionName ? `AND transaction = '${transactionName}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY span_operation
+ `;
+};
+
+export const getSpanFacetBreakdownQuery = ({groupId, datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  // TODO - add back `module = <moudle> to filter data
+  return `
+    SELECT transaction, user, domain
+    FROM spans_experimental_starfish
+    WHERE group_id = '${groupId}'
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
  `;
 };

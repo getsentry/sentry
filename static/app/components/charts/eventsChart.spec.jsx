@@ -21,7 +21,7 @@ jest.mock(
 );
 
 describe('EventsChart', function () {
-  const {router, routerContext, org} = initializeOrg();
+  const {router, routerContext, organization} = initializeOrg();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -32,7 +32,7 @@ describe('EventsChart', function () {
       <EventsChart
         api={new MockApiClient()}
         location={{query: {}}}
-        organization={org}
+        organization={organization}
         project={[]}
         environment={[]}
         period="14d"
