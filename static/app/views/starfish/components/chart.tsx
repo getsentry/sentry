@@ -4,8 +4,11 @@ import min from 'lodash/min';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
+import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
+import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {
@@ -34,6 +37,7 @@ type Props = {
   isLineChart?: boolean;
   log?: boolean;
   previousData?: Series[];
+  scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
 };
@@ -98,6 +102,7 @@ function Chart({
   log,
   hideYAxisSplitLine,
   showLegend,
+  scatterPlot,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -116,7 +121,7 @@ function Chart({
   );
 
   const dataMax = durationOnly
-    ? computeAxisMax(data)
+    ? computeAxisMax([...data, ...(scatterPlot ?? [])])
     : percentOnly
     ? computeMax(data)
     : undefined;
@@ -284,10 +289,9 @@ function Chart({
       {zoomRenderProps => {
         if (isLineChart) {
           return (
-            <LineChart
-              height={height}
+            <BaseChart
               {...zoomRenderProps}
-              series={series}
+              height={height}
               previousPeriod={previousData}
               xAxis={xAxis}
               yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
@@ -295,6 +299,26 @@ function Chart({
               colors={colors}
               grid={grid}
               legend={showLegend ? {top: 0, right: 0} : undefined}
+              series={[
+                ...series.map(({seriesName, data: seriesData, ...options}) =>
+                  LineSeries({
+                    ...options,
+                    name: seriesName,
+                    data: seriesData?.map(({value, name}) => [name, value]),
+                    animation: false,
+                    animationThreshold: 1,
+                    animationDuration: 0,
+                  })
+                ),
+                ...(scatterPlot ?? []).map(({seriesName, data: seriesData, ...options}) =>
+                  ScatterSeries({
+                    ...options,
+                    name: seriesName,
+                    data: seriesData?.map(({value, name}) => [name, value]),
+                    animation: false,
+                  })
+                ),
+              ]}
             />
           );
         }

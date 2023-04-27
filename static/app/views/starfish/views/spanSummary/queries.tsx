@@ -87,7 +87,9 @@ export const getSidebarAggregatesQuery = ({
     countIf(greaterOrEquals(status, 400) AND lessOrEquals(status, 599)) as failure_count,
     failure_count / count() as failure_rate,
     sum(exclusive_time) as total_exclusive_time,
-    count(DISTINCT transaction_id) as count_unique_transaction_id
+    count(DISTINCT transaction_id) as count_unique_transaction_id,
+    min(timestamp) as first_seen,
+    max(timestamp) as last_seen
     FROM spans_experimental_starfish
      WHERE module = '${module}'
     ${description ? `AND description = '${description}'` : ''}
