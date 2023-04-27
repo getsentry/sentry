@@ -159,6 +159,8 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
             ? tct('Missed [lastCheckin]', {lastCheckin})
             : monitorStatus === MonitorStatus.ERROR
             ? tct('Failed [lastCheckin]', {lastCheckin})
+            : monitorStatus === MonitorStatus.TIMEOUT
+            ? t('Timed out')
             : null}
         </TextOverflow>
       </MonitorColumn>

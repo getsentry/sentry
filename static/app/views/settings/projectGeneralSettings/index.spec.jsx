@@ -201,9 +201,12 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    routerContext.context.organization.access = ['org:read'];
+    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+    routerContext.context.organization = readOnlyOrg;
+
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
       context: routerContext,
+      organization: readOnlyOrg,
     });
 
     // no textboxes are enabled

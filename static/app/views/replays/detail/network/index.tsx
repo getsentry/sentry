@@ -3,11 +3,16 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {t} from 'sentry/locale';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import {IconClose, IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/networkDetails';
@@ -40,6 +45,8 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
 
+  const {dismiss, isDismissed} = useDismissAlert({key: 'replay-network-bodies'});
+
   const initialRequestDetailsHeight = useMemo(
     () => Math.max(150, window.innerHeight * 0.25),
     []
@@ -52,37 +59,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
-
-  const itemLookup = useMemo(
-    () =>
-      items &&
-      items
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
-        .sort(([a], [b]) => a - b),
-    [items]
-  );
-
-  const current = useMemo(
-    () =>
-      getPrevReplayEvent({
-        itemLookup,
-        items,
-        targetTimestampMs: startTimestampMs + currentTime,
-      }),
-    [itemLookup, items, currentTime, startTimestampMs]
-  );
-
-  const hovered = useMemo(
-    () =>
-      currentHoverTime
-        ? getPrevReplayEvent({
-            itemLookup,
-            items,
-            targetTimestampMs: startTimestampMs + currentHoverTime,
-          })
-        : null,
-    [itemLookup, items, currentHoverTime, startTimestampMs]
-  );
 
   const gridRef = useRef<MultiGrid>(null);
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
@@ -123,13 +99,13 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             />
           ) : (
             <NetworkTableCell
-              ref={e => e && registerChild?.(e)}
               columnIndex={columnIndex}
+              currentHoverTime={currentHoverTime}
+              currentTime={currentTime}
               handleClick={handleClick}
               handleMouseEnter={handleMouseEnter}
               handleMouseLeave={handleMouseLeave}
-              isCurrent={network.id === current?.id}
-              isHovered={network.id === hovered?.id}
+              ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               span={network}
@@ -145,6 +121,36 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
+      <Feature
+        features={['session-replay-network-details']}
+        organization={organization}
+        renderDisabled={false}
+      >
+        {isDismissed ? null : (
+          <StyledAlert
+            icon={<IconInfo />}
+            opaque={false}
+            showIcon
+            type="info"
+            trailingItems={
+              <StyledButton priority="link" size="sm" onClick={() => {}}>
+                <IconClose color="gray500" size="sm" />
+              </StyledButton>
+            }
+          >
+            {tct('Start collecting the body of requests and responses. [link]', {
+              link: (
+                <ExternalLink
+                  href="https://github.com/getsentry/sentry-javascript/issues/7103"
+                  onClick={dismiss}
+                >
+                  {t('Learn More')}
+                </ExternalLink>
+              ),
+            })}
+          </StyledAlert>
+        )}
+      </Feature>
       <NetworkTable>
         <FluidHeight>
           {networkSpans ? (
@@ -208,6 +214,50 @@ const OverflowHidden = styled('div')`
 const NetworkTable = styled(OverflowHidden)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+
+  .beforeHoverTime + .afterHoverTime:before {
+    border-top: 1px solid ${p => p.theme.purple200};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 999999999%;
+  }
+
+  .beforeHoverTime:last-child:before {
+    border-bottom: 1px solid ${p => p.theme.purple200};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 999999999%;
+  }
+
+  .beforeCurrentTime + .afterCurrentTime:before {
+    border-top: 1px solid ${p => p.theme.purple300};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 999999999%;
+  }
+
+  .beforeCurrentTime:last-child:before {
+    border-bottom: 1px solid ${p => p.theme.purple300};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 999999999%;
+  }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${space(1)};
+`;
+
+const StyledButton = styled(Button)`
+  color: inherit;
 `;
 
 export default NetworkList;

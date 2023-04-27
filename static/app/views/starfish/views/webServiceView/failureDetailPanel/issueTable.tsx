@@ -7,7 +7,6 @@ import {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {NewQuery, Organization} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
@@ -19,24 +18,37 @@ import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
+import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 type Props = {
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  transactionName: string;
+  spike: FailureSpike;
+  transactions: string[] | undefined;
 };
 
-export default function IssueList({organization, location, transactionName}: Props) {
+export default function IssueTable({organization, location, spike, transactions}: Props) {
   const COLUMN_ORDER = [
     {
       key: 'issue',
       name: 'Issue',
-      width: 200,
+      width: 120,
     },
     {
-      key: `count_if(transaction, equals, ${transactionName})`,
-      name: 'Event Count',
-      width: 200,
+      key: 'title',
+      name: 'Title',
+      width: 280,
+    },
+    {
+      key: 'count()',
+      name: 'Count',
+      width: 50,
+    },
+    {
+      key: 'count_unique(user)',
+      name: 'Users',
+      width: 50,
     },
   ];
 
@@ -64,66 +76,80 @@ export default function IssueList({organization, location, transactionName}: Pro
     return rendered;
   }
 
+  let searchQuery = 'event.type:error transaction:[';
+  transactions?.forEach(transaction => (searchQuery += `${transaction},`));
+  searchQuery = searchQuery.slice(0, searchQuery.length - 1) + ']';
+
   const {query} = location;
-  const hasStartAndEnd = query.start && query.end;
-  const aggregateAlias = getAggregateAlias(
-    `count_if(transaction, equals, ${transactionName})`
-  );
+  const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
+
   const newQuery: NewQuery = {
     name: t('Failure Detail Issues'),
     projects: [],
-    start: decodeScalar(query.start),
-    end: decodeScalar(query.end),
+    start: spike?.startTimestamp
+      ? new Date(spike?.startTimestamp).toUTCString()
+      : undefined,
+    end: spike?.endTimestamp ? new Date(spike?.endTimestamp).toUTCString() : undefined,
     range: !hasStartAndEnd
       ? decodeScalar(query.statsPeriod) || DEFAULT_STATS_PERIOD
       : undefined,
-    fields: ['issue', `count_if(transaction, equals, ${transactionName})`],
-    query: `event.type:error transaction:${transactionName}`,
-    orderby: `-${aggregateAlias}`,
+    fields: ['issue', 'title', 'count()', 'count_unique(user)'],
+    query: searchQuery,
+    orderby: `-${getAggregateAlias('count()')}`,
     version: 2,
   };
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  return (
-    <div>
-      <Title>{t('Related Issues')}</Title>
-      <DiscoverQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
+  if (!transactions) {
+    return (
+      <GridEditable
+        isLoading
+        data={[]}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={eventView.getSorts()}
+        grid={{}}
         location={location}
-        referrer="api.starfish.failure-issue-list"
-        queryExtras={{dataset: 'discover'}}
-        limit={5}
-      >
-        {({pageLinks, isLoading, tableData}) => (
-          <Fragment>
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData ? tableData.data : []}
-              columnOrder={COLUMN_ORDER}
-              columnSortBy={eventView.getSorts()}
-              grid={{
-                renderHeadCell: (column: GridColumnHeader) =>
-                  renderHeadCell(
-                    tableData?.meta,
-                    column as TableColumn<keyof TableDataRow>
-                  ),
-                renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
-                  renderBodyCell(
-                    tableData,
-                    column as TableColumn<keyof TableDataRow>,
-                    dataRow
-                  ) as any,
-              }}
-              location={location}
-            />
+      />
+    );
+  }
 
-            <Pagination pageLinks={pageLinks} />
-          </Fragment>
-        )}
-      </DiscoverQuery>
-    </div>
+  return (
+    <DiscoverQuery
+      eventView={eventView}
+      orgSlug={organization.slug}
+      location={location}
+      referrer="api.starfish.failure-issue-list"
+      queryExtras={{dataset: 'discover'}}
+      limit={5}
+    >
+      {({pageLinks, isLoading, tableData}) => (
+        <Fragment>
+          <GridEditable
+            isLoading={isLoading}
+            data={tableData ? tableData.data : []}
+            columnOrder={COLUMN_ORDER}
+            columnSortBy={eventView.getSorts()}
+            grid={{
+              renderHeadCell: (column: GridColumnHeader) =>
+                renderHeadCell(
+                  tableData?.meta,
+                  column as TableColumn<keyof TableDataRow>
+                ),
+              renderBodyCell: (column: GridColumnHeader, dataRow: TableDataRow) =>
+                renderBodyCell(
+                  tableData,
+                  column as TableColumn<keyof TableDataRow>,
+                  dataRow
+                ) as any,
+            }}
+            location={location}
+          />
+
+          <Pagination pageLinks={pageLinks} />
+        </Fragment>
+      )}
+    </DiscoverQuery>
   );
 }
 
@@ -132,8 +158,4 @@ const StyledNonLink = styled('div')<{align: Alignments}>`
   width: 100%;
   white-space: nowrap;
   ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
-`;
-
-const Title = styled('h5')`
-  margin-bottom: ${space(1)};
 `;
