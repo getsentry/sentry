@@ -16,7 +16,7 @@ from sentry.models import Project
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.UNIFORM_RULE}
 
 
-logger = logging.getLogger("dynamic-sampling")
+logger = logging.getLogger("sentry.dynamic_sampling")
 
 
 def get_guarded_blended_sample_rate(project: Project) -> float:
