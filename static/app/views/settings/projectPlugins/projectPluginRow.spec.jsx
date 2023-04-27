@@ -39,9 +39,7 @@ describe('ProjectPluginRow', function () {
     render(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
       {
-        context: TestStubs.routerContext([
-          {organization: TestStubs.Organization({access: []})},
-        ]),
+        organization: TestStubs.Organization({access: []}),
       }
     );
 

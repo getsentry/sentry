@@ -251,10 +251,6 @@ describe('ProjectFilters', function () {
   });
 
   it('disables configuration for non project:write users', function () {
-    const context = TestStubs.routerContext([
-      {organization: TestStubs.Organization({access: []})},
-    ]);
-
     render(
       <ProjectFilters
         organization={org}
@@ -262,7 +258,7 @@ describe('ProjectFilters', function () {
         params={{projectId: project.slug, orgId: org.slug}}
         project={project}
       />,
-      {context}
+      {organization: TestStubs.Organization({access: []})}
     );
 
     screen.getAllByRole('checkbox').forEach(checkbox => {
@@ -298,7 +294,6 @@ describe('ProjectFilters', function () {
       features: ['discard-groups'],
     });
     const discardOrg = TestStubs.Organization({access: [], features: ['discard-groups']});
-    const context = TestStubs.routerContext([{organization: discardOrg}]);
 
     render(
       <ProjectFilters
@@ -311,7 +306,7 @@ describe('ProjectFilters', function () {
         location={{}}
         project={discardProject}
       />,
-      {context}
+      {organization: discardOrg}
     );
 
     expect(await screen.findByRole('button', {name: 'Undiscard'})).toBeDisabled();

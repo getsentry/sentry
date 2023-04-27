@@ -55,7 +55,7 @@ function Actions({
   const actions = (
     <Role role={organization.debugFilesRole} organization={organization}>
       {({hasRole}) => (
-        <Access access={['project:write']} organization={organization}>
+        <Access access={['project:write']}>
           {({hasAccess}) => (
             <Fragment>
               <StyledDropdownLink

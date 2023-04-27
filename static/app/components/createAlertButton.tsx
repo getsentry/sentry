@@ -193,10 +193,10 @@ function CreateAlertButton({
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
 
   return (
-    <Access organization={organization} access={['alerts:write']}>
+    <Access access={['alerts:write']}>
       {({hasAccess}) =>
         showGuide ? (
-          <Access organization={organization} access={['org:write']}>
+          <Access access={['org:write']}>
             {({hasAccess: isOrgAdmin}) => (
               <GuideAnchor
                 target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}

@@ -34,7 +34,6 @@ describe('RepositoryRow', function () {
     const organization = TestStubs.Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays provider information', function () {
       render(
@@ -44,7 +43,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
       expect(screen.getByText(repository.name)).toBeInTheDocument();
       expect(screen.getByText('github.com/example/repo-name')).toBeInTheDocument();
@@ -64,7 +63,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Trash button should be disabled
@@ -80,7 +79,6 @@ describe('RepositoryRow', function () {
     const organization = TestStubs.Organization({
       access: ['org:write'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays disabled trash', function () {
       render(
@@ -90,7 +88,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Trash button should be disabled
@@ -105,7 +103,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Cancel should be disabled
@@ -117,7 +115,6 @@ describe('RepositoryRow', function () {
     const organization = TestStubs.Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('sends api request on delete', async function () {
       const deleteRepo = MockApiClient.addMockResponse({
@@ -134,7 +131,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
       renderGlobalModal();
       await userEvent.click(screen.getByRole('button', {name: 'delete'}));
@@ -150,7 +147,6 @@ describe('RepositoryRow', function () {
     const organization = TestStubs.Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('sends api request to cancel', async function () {
       const cancel = MockApiClient.addMockResponse({
@@ -167,7 +163,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
@@ -180,7 +176,6 @@ describe('RepositoryRow', function () {
       access: ['org:integrations'],
       features: ['integrations-custom-scm'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays edit button', function () {
       render(
@@ -190,7 +185,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Trash button should display enabled
@@ -210,7 +205,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Trash button should be disabled
