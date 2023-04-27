@@ -19,6 +19,7 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 type Props = {
   item: null | NetworkSpan;
   onClose: () => void;
+  onScrollToRow: () => void;
   startTimestampMs: number;
 } & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
 
@@ -28,8 +29,13 @@ function NetworkRequestDetails({
   onClose,
   onDoubleClick,
   onMouseDown,
+  onScrollToRow,
   startTimestampMs,
 }: Props) {
+  const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
+    'n_detail_row',
+    ''
+  );
   const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'details');
 
   if (!item) {
@@ -65,6 +71,7 @@ function NetworkRequestDetails({
         <NetworkDetailsContent
           visibleTab={visibleTab}
           item={item}
+          onScrollToRow={onScrollToRow}
           startTimestampMs={startTimestampMs}
         />
       </FluidHeight>

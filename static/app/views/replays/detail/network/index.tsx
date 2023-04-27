@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -47,6 +47,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
 
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
   const {dismiss, isDismissed} = useDismissAlert({key: 'replay-network-bodies'});
 
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
@@ -147,7 +148,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             showIcon
             type="info"
             trailingItems={
-              <StyledButton priority="link" size="sm" onClick={() => {}}>
+              <StyledButton priority="link" size="sm" onClick={dismiss}>
                 <IconClose color="gray500" size="sm" />
               </StyledButton>
             }
@@ -194,6 +195,12 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                       </NoRowRenderer>
                     )}
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
+                    onScroll={() => {
+                      if (scrollToRow !== undefined) {
+                        setScrollToRow(undefined);
+                      }
+                    }}
+                    scrollToRow={scrollToRow}
                     overscanColumnCount={COLUMN_COUNT}
                     overscanRowCount={5}
                     rowCount={items.length + 1}
@@ -212,9 +219,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             renderDisabled={false}
           >
             <NetworkDetails
+
               {...resizableDrawerProps}
               item={detailItemIndex ? (items[detailItemIndex] as NetworkSpan) : null}
               onClose={() => setDetailRow('')}
+              onScrollToRow={() => setScrollToRow(Number(detailItemIndex))}
               startTimestampMs={startTimestampMs}
             />
           </Feature>
