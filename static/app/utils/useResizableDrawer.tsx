@@ -48,9 +48,12 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   size: number;
 } {
   const rafIdRef = useRef<number | null>(null);
-  const currentMouseVectorRaf = useRef<[number, number] | null>(null);
+  const currentAxisPositionRaf = useRef<number | null>(null);
   const [size, setSize] = useState<number>(options.initialSize ?? 0);
   const [isHeld, setIsHeld] = useState(false);
+
+  const isXAxis = options.direction === 'left' || options.direction === 'right';
+  const isInverted = options.direction === 'down' || options.direction === 'left';
 
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
@@ -65,9 +68,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const onMouseMove = useCallback(
     (event: MouseEvent) => {
-      const isXAxis = options.direction === 'left' || options.direction === 'right';
-      const isInverted = options.direction === 'down' || options.direction === 'left';
-
       document.body.style.pointerEvents = 'none';
       document.body.style.userSelect = 'none';
 
@@ -80,20 +80,15 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       }
 
       rafIdRef.current = window.requestAnimationFrame(() => {
-        if (!currentMouseVectorRaf.current) {
+        if (currentAxisPositionRaf.current === null) {
           return;
         }
 
-        const newPositionVector: [number, number] = [event.clientX, event.clientY];
-        const newAxisPosition = isXAxis ? newPositionVector[0] : newPositionVector[1];
+        const newAxisPosition = isXAxis ? event.clientX : event.clientY;
 
-        const currentAxisPosition = isXAxis
-          ? currentMouseVectorRaf.current[0]
-          : currentMouseVectorRaf.current[1];
+        const positionDelta = currentAxisPositionRaf.current - newAxisPosition;
 
-        const positionDelta = currentAxisPosition - newAxisPosition;
-
-        currentMouseVectorRaf.current = newPositionVector;
+        currentAxisPositionRaf.current = newAxisPosition;
 
         // Round to 1px precision
         const newSize = Math.round(
@@ -104,7 +99,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
         setSize(newSize);
       });
     },
-    [options]
+    [isInverted, isXAxis, options]
   );
 
   const onMouseUp = useCallback(() => {
@@ -117,14 +112,15 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   }, [onMouseMove]);
 
   const onMouseDown = useCallback(
-    (evt: React.MouseEvent<HTMLElement>) => {
+    (event: React.MouseEvent<HTMLElement>) => {
       setIsHeld(true);
-      currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
+
+      currentAxisPositionRaf.current = isXAxis ? event.clientX : event.clientY;
 
       document.addEventListener('mousemove', onMouseMove, {passive: true});
       document.addEventListener('mouseup', onMouseUp);
     },
-    [onMouseMove, onMouseUp]
+    [isXAxis, onMouseMove, onMouseUp]
   );
 
   const onDoubleClick = useCallback(() => {
