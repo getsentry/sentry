@@ -53,14 +53,16 @@ export function MEPDataProvider({
 
 export const useMEPDataContext = _useMEPDataContext;
 
-export function getIsMetricsDataFromResults(results: any, field = '') {
+export function getIsMetricsDataFromResults(
+  results: any,
+  field = ''
+): boolean | undefined {
   const isMetricsData =
     results?.meta?.isMetricsData ??
     results?.seriesAdditionalInfo?.[field]?.isMetricsData ??
     results?.histograms?.meta?.isMetricsData ??
-    results?.tableData?.meta?.isMetricsData ??
-    true;
-  return !!isMetricsData;
+    results?.tableData?.meta?.isMetricsData;
+  return isMetricsData;
 }
 
 export function MEPTag() {
