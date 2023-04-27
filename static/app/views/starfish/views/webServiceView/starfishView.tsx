@@ -88,7 +88,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             return null;
           }
 
-          insertClickableAreasIntoSeries(transformedData, theme.red300);
+          // insertClickableAreasIntoSeries(transformedData, theme.red300);
 
           return (
             <FailureRateChart

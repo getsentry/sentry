@@ -1,5 +1,5 @@
 import {useTheme} from '@emotion/react';
-import {YAXisOption} from 'echarts/types/dist/shared';
+import {XAXisOption, YAXisOption} from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 
 import {AreaChartProps} from 'sentry/components/charts/areaChart';
@@ -75,11 +75,27 @@ function FailureRateChart({
     colors,
     tooltip: {
       trigger: 'axis',
-      valueFormatter: value => {
+
+      valueFormatter: (value, label, series) => {
+        console.dir(value);
+        console.dir(label);
+        console.dir(series);
         return tooltipFormatter(value, 'percentage');
       },
     },
   } as Omit<AreaChartProps, 'series'>;
+
+  const xAxis: XAXisOption = {
+    triggerEvent: true,
+    type: 'time',
+    axisPointer: {
+      lineStyle: {
+        color: theme.red300,
+        opacity: 0.2,
+        width: 25,
+      },
+    },
+  };
 
   if (loading) {
     return <LineChart height={height} series={[]} {...chartProps} />;
@@ -96,6 +112,7 @@ function FailureRateChart({
           previousPeriod={previousData}
           yAxis={yAxis}
           tooltip={chartProps.tooltip}
+          xAxis={xAxis}
         />
       )}
     </ChartZoom>
