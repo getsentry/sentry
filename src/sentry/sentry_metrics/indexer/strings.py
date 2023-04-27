@@ -125,10 +125,26 @@ SHARED_TAG_STRINGS = {
     "drop": PREFIX + 239,
     "decision": PREFIX + 240,
     "keep": PREFIX + 241,
+    # Spans
+    "span.op": PREFIX + 242,
+    "span.description": PREFIX + 243,
+    "span.module": PREFIX + 244,
+    "span.domain": PREFIX + 245,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
-SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
+
+# 300-399
+SPAN_METRICS_NAMES = {
+    "s:spans/user@none": PREFIX + 300,
+}
+
+SHARED_STRINGS = {
+    **SESSION_METRIC_NAMES,
+    **TRANSACTION_METRICS_NAMES,
+    **SPAN_METRICS_NAMES,
+    **SHARED_TAG_STRINGS,
+}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
 
 # Make sure there are no accidental duplicates
