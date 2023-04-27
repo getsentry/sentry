@@ -12,14 +12,14 @@ def alertruletriggeraction_migrations():
             model_name="alertruletriggeraction",
             name="integration",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                to="sentry.Integration", db_constraint=False, db_index=True, null=True
+                to="sentry.Integration", db_constraint=False, db_index=True, blank=True, null=True
             ),
         ),
         migrations.AlterField(
             model_name="alertruletriggeraction",
             name="sentry_app",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                to="sentry.SentryApp", db_constraint=False, db_index=True, null=True
+                to="sentry.SentryApp", db_constraint=False, db_index=True, blank=True, null=True
             ),
         ),
     ]
