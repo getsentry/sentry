@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -186,40 +185,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )}
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                {isProfilingGA ? (
-                  <ProfilingUpgradeButton
-                    organization={organization}
-                    size="sm"
-                    fallback={
-                      <Button onClick={onSetupProfilingClick} size="sm">
-                        {t('Set Up Profiling')}
-                      </Button>
-                    }
-                  >
-                    {t('Update plan')}
-                  </ProfilingUpgradeButton>
-                ) : (
-                  <Button size="sm" onClick={onSetupProfilingClick}>
-                    {t('Set Up Profiling')}
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  priority="primary"
-                  href="https://discord.gg/zrMjKA4Vnz"
-                  external
-                  onClick={() => {
-                    trackAnalytics('profiling_views.visit_discord_channel', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Join Discord')}
-                </Button>
-              </ButtonBar>
-            </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>
