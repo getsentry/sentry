@@ -9,11 +9,10 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {HOST} from 'sentry/views/starfish/utils/constants';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import {getEndpointListQuery} from './queries';
-
-export const HOST = 'http://localhost:8080';
 
 type Props = {
   filterOptions: {action: string; datetime: DateTimeObject; domain: string};

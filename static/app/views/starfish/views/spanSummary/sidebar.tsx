@@ -9,11 +9,11 @@ import space from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
-import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
@@ -27,6 +27,7 @@ export default function Sidebar({
   groupId,
   description,
   transactionName,
+  sampledSpanData,
 }) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
@@ -117,6 +118,11 @@ export default function Sidebar({
     ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
+  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
+    name: timestamp,
+    value: spanDuration,
+  }));
+
   return (
     <FlexContainer>
       <FlexItem>
@@ -157,6 +163,7 @@ export default function Sidebar({
           series={p50Series}
           isLoading={isLoadingSeriesData}
           chartColor={chartColors[1]}
+          sampledSpanDataSeries={sampledSpanDataSeries}
         />
       </FlexFullWidthItem>
       <FlexFullWidthItem>
@@ -168,6 +175,7 @@ export default function Sidebar({
           series={p95Series}
           isLoading={isLoadingSeriesData}
           chartColor={chartColors[2]}
+          sampledSpanDataSeries={sampledSpanDataSeries}
         />
       </FlexFullWidthItem>
       {
@@ -240,6 +248,9 @@ function SidebarChart(props) {
         top: '8px',
         bottom: '16px',
       }}
+      scatterPlot={[
+        {data: props.sampledSpanDataSeries, seriesName: 'Sampled Span Duration'},
+      ]}
     />
   );
 }

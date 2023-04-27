@@ -5,8 +5,6 @@ import ReactEChartsCore from 'echarts-for-react/lib/core';
 
 import {Series} from 'sentry/types/echarts';
 
-export const HOST = 'http://localhost:8080';
-
 type SparklineProps = {
   series: Series;
   color?: string | string[];

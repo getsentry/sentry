@@ -10,11 +10,10 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import {Series} from 'sentry/types/echarts';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import {getHostListQuery} from './queries';
-
-export const HOST = 'http://localhost:8080';
 
 type Props = {
   location: Location;
