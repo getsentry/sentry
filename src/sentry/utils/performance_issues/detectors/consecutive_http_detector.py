@@ -128,6 +128,11 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if any([x in description for x in ["_next/static/", "_next/data/"]]):
             return False
 
+        # If the event is from a JS SDK and the span ends after the LCP, we don't want to count this span
+        breakpoint()
+        # if platform.sdk == "sentry.javascript.browser" and LCP < end_time:
+        #     return False
+
         return True
 
     def _fingerprint(self) -> str:

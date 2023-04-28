@@ -205,3 +205,6 @@ class ConsecutiveDbDetectorTest(TestCase):
         detector = ConsecutiveHTTPSpanDetector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
+
+    def test_only_triggers_for_frontend_events_when_spans_are_before_lcp(self):
+        pass
