@@ -93,7 +93,7 @@ def check_monitors(current_datetime=None):
         )
         affected = MonitorCheckIn.objects.filter(
             id=checkin.id, status=CheckInStatus.IN_PROGRESS
-        ).update(status=CheckInStatus.ERROR)
+        ).update(status=CheckInStatus.TIMEOUT)
         if not affected:
             continue
 
