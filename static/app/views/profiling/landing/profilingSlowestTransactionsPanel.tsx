@@ -50,7 +50,7 @@ export function ProfilingSlowestTransactionsPanel() {
   const [openPanel, setOpenPanel] = useState<null | string>(null);
 
   const profilingTransactions = useMemo(
-    () => profilingTransactionsQuery.data?.[0].data ?? [],
+    () => profilingTransactionsQuery.data?.data ?? [],
     [profilingTransactionsQuery.data]
   );
 
@@ -106,7 +106,7 @@ export function ProfilingSlowestTransactionsPanel() {
               transaction={transaction}
               open={transaction.transaction === openPanel}
               onOpen={() => setOpenPanel(transaction.transaction as string)}
-              units={profilingTransactionsQuery.data?.[0].meta.units}
+              units={profilingTransactionsQuery.data?.meta.units}
             />
           );
         })}

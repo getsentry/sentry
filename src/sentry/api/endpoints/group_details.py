@@ -125,7 +125,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment_ids=environment_ids,
             tenant_ids={"organization_id": group.project.organization_id},
         )
-        model = get_issue_tsdb_group_model(group.issue_category)
+        model = get_issue_tsdb_group_model(group.issue_category, group.project)
         now = timezone.now()
         hourly_stats = tsdb.rollup(
             get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),

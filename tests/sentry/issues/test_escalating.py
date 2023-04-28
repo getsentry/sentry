@@ -3,6 +3,8 @@ from typing import List, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
+from freezegun import freeze_time
+
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import (
     GroupsCountResponse,
@@ -20,6 +22,8 @@ from sentry.testutils.factories import Factories
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
+
+TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
 class BaseGroupCounts(TestCase):  # type: ignore[misc]
@@ -47,6 +51,8 @@ class BaseGroupCounts(TestCase):  # type: ignore[misc]
                 "timestamp": (datetime_reset_zero - timedelta(minutes=minutes_ago)).timestamp(),
                 "fingerprint": [fingerprint],
             },
+            # Due to the use of freeze gun
+            assert_no_errors=False,
         )
 
 
@@ -172,12 +178,13 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         )
         escalating_forecast.save()
 
+    @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
             # The group has 6 events today
             for i in range(7, 1, -1):
-                event = self._load_event_for_group(fingerprint="group-escalating", minutes_ago=i)
+                event = self._load_event_for_group(minutes_ago=i)
                 group_escalating = event.group
             group_escalating.status = GroupStatus.IGNORED
             group_escalating.substatus = GroupSubStatus.UNTIL_ESCALATING
@@ -195,25 +202,19 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert GroupInbox.objects.filter(group=group_escalating).exists()
 
             # Test cache
-            fetch_escalating_forecast = EscalatingGroupForecast.fetch(
-                group_escalating.project.id, group_escalating.id
+            assert (
+                cache.get(f"daily-group-count:{group_escalating.project.id}:{group_escalating.id}")
+                == 6
             )
-            if fetch_escalating_forecast:
-                assert cache.get(f"escalating-forecast:{group_escalating.id}") == (
-                    fetch_escalating_forecast.date_added,
-                    fetch_escalating_forecast.forecast,
-                )
 
+    @freeze_time(TIME_YESTERDAY)
     def test_not_escalating_issue(self) -> None:
         """Test when an archived until escalating issue is not escalating"""
         with self.feature("organizations:escalating-issues"):
             # The group had 4 events yesterday
             one_day_ago_mins = 24 * 60
             for i in range(5, 1, -1):
-                event = self._load_event_for_group(
-                    fingerprint="group-escalating", minutes_ago=one_day_ago_mins + i
-                )
-                group = event.group
+                event = self._load_event_for_group(minutes_ago=one_day_ago_mins + i)
 
             # The group has 5 events today
             for i in range(6, 1, -1):
@@ -236,30 +237,31 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
 
+    @freeze_time(TIME_YESTERDAY)
     def test_daily_count_query(self) -> None:
         """Test the daily count query only aggregates events from today"""
         # The group had 3 events two days ago
         two_days_ago_mins = 48 * 60
         for i in range(4, 1, -1):
-            event = self._load_event_for_group(
-                fingerprint="group-query", minutes_ago=two_days_ago_mins + i
-            )
-            group = event.group
+            event = self._load_event_for_group(minutes_ago=two_days_ago_mins + i)
 
         # The group had 2 events yesterday
-        one_day_ago_mins = 24 * 60
+        # Tests that events are aggregated in the daily count query by date, not by 24 hr periods
+        yesterday = datetime.now().date() - timedelta(days=1)
+        yesterday_midnight = datetime.combine(yesterday, datetime.min.time())
+        mins_since_yesterday_midnight = int(
+            ((datetime.now() - yesterday_midnight).total_seconds()) / 60
+        )
         for i in range(3, 1, -1):
-            event = self._load_event_for_group(
-                fingerprint="group-query", minutes_ago=one_day_ago_mins + i
-            )
-            group = event.group
+            # Event occured i hours after yesterday midnight
+            event = self._load_event_for_group(minutes_ago=mins_since_yesterday_midnight + i * 60)
 
         # The group has 1 event today
         for i in range(2, 1, -1):
-            event = self._load_event_for_group(fingerprint="group-query", minutes_ago=i)
+            event = self._load_event_for_group(minutes_ago=i)
             group = event.group
         group.status = GroupStatus.IGNORED
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
 
-        assert get_group_daily_count(group.project.id, group.id) == 1
+        assert get_group_daily_count(group.project.organization.id, group.project.id, group.id) == 1
