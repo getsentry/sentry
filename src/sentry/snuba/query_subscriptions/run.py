@@ -63,7 +63,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 self.max_batch_time,
                 self.input_block_size,
                 self.output_block_size,
-                initializer=partial(initialize_consumer_state),
+                initializer=initialize_consumer_state,
             )
         else:
             return RunTask(callable, CommitOffsets(commit))
