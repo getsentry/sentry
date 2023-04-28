@@ -5,7 +5,7 @@ import Badge from 'sentry/components/badge';
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/trimSlug';
 
 interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
