@@ -7,6 +7,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -14,13 +15,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import FailureDetailTable from 'sentry/views/starfish/views/webServiceView/failureDetailPanel/failureDetailTable';
+import FocusedFailureRateChart from 'sentry/views/starfish/views/webServiceView/failureDetailPanel/focusedFailureRateChart';
 import IssueTable from 'sentry/views/starfish/views/webServiceView/failureDetailPanel/issueTable';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 export default function FailureDetailPanel({
+  chartData,
   spike,
   onClose,
 }: {
+  chartData: Series[];
   onClose: () => void;
   spike: FailureSpike;
 }) {
@@ -136,9 +140,9 @@ export default function FailureDetailPanel({
   return (
     <Detail detailKey={spike?.startTimestamp.toString()} onClose={onClose}>
       <TimeRangeHeading>{`${moment(spike?.startTimestamp).format(
-        'MMMM Do YYYY, hh:mm:ss z'
+        'MMMM Do YYYY, h:mm:ss a'
       )} - ${moment(spike?.endTimestamp).format(
-        'MMMM Do YYYY, hh:mm:ss z'
+        'MMMM Do YYYY, h:mm:ss a'
       )}`}</TimeRangeHeading>
       <h4>{t('Error Spike Detail')}</h4>
 
@@ -156,7 +160,7 @@ export default function FailureDetailPanel({
             return (
               <Fragment>
                 {renderStatsOverview()}
-
+                <FocusedFailureRateChart data={chartData} spike={spike} />
                 <Title>{t('Failing Endpoints')}</Title>
                 <FailureDetailTable
                   {...results}
