@@ -26,7 +26,7 @@ class BiasesCombinator(ABC):
     def __init__(self) -> None:
         self.biases: Dict[RuleType, OrderedBias] = {}
 
-    def add_if(self, rule_type: RuleType, bias: Bias, block: Callable[[], bool]):
+    def add_if(self, rule_type: RuleType, bias: Bias, block: Callable[[], bool]) -> None:
         if block():
             self.add(rule_type, bias)
 
