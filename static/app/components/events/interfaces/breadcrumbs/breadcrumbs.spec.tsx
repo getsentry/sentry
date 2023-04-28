@@ -6,7 +6,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
-  useHaveSelectedProjectsSentAnyReplayEvents,
+  useHasOrganizationSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -48,14 +48,14 @@ describe('Breadcrumbs', () => {
       typeof useReplayOnboardingSidebarPanel
     >;
 
-  const MockUseHaveSelectedProjectsSentAnyReplayEvents =
-    useHaveSelectedProjectsSentAnyReplayEvents as jest.MockedFunction<
-      typeof useHaveSelectedProjectsSentAnyReplayEvents
+  const MockUseHasOrganizationSentAnyReplayEvents =
+    useHasOrganizationSentAnyReplayEvents as jest.MockedFunction<
+      typeof useHasOrganizationSentAnyReplayEvents
     >;
 
   beforeEach(() => {
-    MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
-      hasSentOneReplay: false,
+    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
+      hasOrgSentReplays: false,
       fetching: false,
     });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
@@ -207,8 +207,8 @@ describe('Breadcrumbs', () => {
 
   describe('replay', () => {
     it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
-        hasSentOneReplay: false,
+      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
+        hasOrgSentReplays: false,
         fetching: false,
       });
       MockUseReplayOnboardingSidebarPanel.mockReturnValue({
@@ -233,8 +233,8 @@ describe('Breadcrumbs', () => {
     });
 
     it('should not render the replay inline onboarding component when the project is not JS', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
-        hasSentOneReplay: false,
+      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
+        hasOrgSentReplays: false,
         fetching: false,
       });
       MockUseReplayOnboardingSidebarPanel.mockReturnValue({
@@ -260,9 +260,9 @@ describe('Breadcrumbs', () => {
       expect(container).toSnapshot();
     });
 
-    it('should render a replay when there is a replayId', async function () {
-      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
-        hasSentOneReplay: true,
+    it('should render a replay when there is a replayId from tags', async function () {
+      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
+        hasOrgSentReplays: true,
         fetching: false,
       });
       MockUseReplayOnboardingSidebarPanel.mockReturnValue({
@@ -274,6 +274,37 @@ describe('Breadcrumbs', () => {
           event={TestStubs.Event({
             entries: [],
             tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            platform: 'javascript',
+          })}
+          organization={TestStubs.Organization({
+            features: ['session-replay'],
+          })}
+        />
+      );
+
+      expect(await screen.findByTestId('player-container')).toBeInTheDocument();
+      expect(container).toSnapshot();
+    });
+
+    it('should render a replay when there is a replay_id from contexts', async function () {
+      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
+        hasOrgSentReplays: true,
+        fetching: false,
+      });
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+        activateSidebar: jest.fn(),
+      });
+      const {container} = render(
+        <Breadcrumbs
+          {...props}
+          event={TestStubs.Event({
+            entries: [],
+            tags: [],
+            contexts: {
+              replay: {
+                replay_id: '761104e184c64d439ee1014b72b4d83b',
+              },
+            },
             platform: 'javascript',
           })}
           organization={TestStubs.Organization({
