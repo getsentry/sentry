@@ -169,6 +169,7 @@ def get_mock_groups_past_counts_response(
                             "group_id": group.id,
                             "hourBucket": hourly_time.strftime("%Y-%m-%dT%H:%M:%S%f") + "+00:00",
                             "count()": random.randint(1, 10),
+                            "project_id": group.project.id,
                         }
                     )
                 )

@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -29,7 +29,9 @@ const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
+import BaseSearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
@@ -53,23 +55,34 @@ type Props = {
   dataset?: 'discover' | 'metrics';
 };
 
-type State = {
-  widths: number[];
-};
+function EndpointList({
+  eventView,
+  location,
+  onSelect,
+  organization,
+  setError,
+  columnTitles,
+  dataset,
+}: Props) {
+  const [widths, setWidths] = useState<number[]>([]);
+  const [_eventView, setEventView] = useState<EventView>(eventView);
 
-class EndpointList extends Component<Props, State> {
-  state: State = {
-    widths: [],
-  };
+  // Effect to keep the parent eventView in sync with the child, so that chart zoom and time period can be accounted for.
 
-  renderBodyCell(
+  useEffect(() => {
+    setEventView(prevEventView => {
+      const cloned = eventView.clone();
+      cloned.query = prevEventView.query;
+      return cloned;
+    });
+  }, [eventView]);
+
+  function renderBodyCell(
     tableData: TableData | null,
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow,
     deltaColumnMap: Record<string, string>
   ): React.ReactNode {
-    const {onSelect, organization, location} = this.props;
-
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
@@ -87,6 +100,8 @@ class EndpointList extends Component<Props, State> {
 
       const row = {
         endpoint: `${prefix}${dataRow.transaction}`,
+        transaction: dataRow.transaction,
+        httpOp: dataRow['http.method'],
         aggregateDetails: {
           failureCount: dataRow['count_if(http.status_code,greaterOrEquals,500)'],
           p50: dataRow['p50()'],
@@ -147,13 +162,7 @@ class EndpointList extends Component<Props, State> {
           <TrendingDuration trendDirection={trendDirection}>
             {tct('([sign][delta])', {
               sign: deltaValue >= 0 ? '+' : '-',
-              delta: (
-                <Duration
-                  seconds={Math.abs(deltaValue) / 1000}
-                  fixedDigits={2}
-                  abbreviation
-                />
-              ),
+              delta: formatPercentage(Math.abs(deltaValue), 2),
             })}
           </TrendingDuration>
         </NumberContainer>
@@ -181,13 +190,13 @@ class EndpointList extends Component<Props, State> {
     return rendered;
   }
 
-  renderBodyCellWithData = (tableData: TableData | null) => {
+  function renderBodyCellWithData(tableData: TableData | null) {
     const deltaColumnMap: Record<string, string> = {};
     if (tableData?.data?.[0]) {
       Object.keys(tableData.data[0]).forEach(col => {
         if (
           col.startsWith(
-            'equation|percentile_range(transaction.duration,0.50,lessOrEquals'
+            'equation|(percentile_range(transaction.duration,0.50,lessOrEquals'
           )
         ) {
           deltaColumnMap['p50()'] = col;
@@ -198,16 +207,14 @@ class EndpointList extends Component<Props, State> {
     return (
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
-    ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow, deltaColumnMap);
-  };
+    ): React.ReactNode => renderBodyCell(tableData, column, dataRow, deltaColumnMap);
+  }
 
-  renderHeadCell(
+  function renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode
   ): React.ReactNode {
-    const {eventView, location} = this.props;
-
     // Hack to get equations to align and sort properly because
     // some of the functions called below aren't set up to handle
     // equations. Fudging code here to keep minimal footprint of
@@ -261,76 +268,82 @@ class EndpointList extends Component<Props, State> {
     return sortLink;
   }
 
-  renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
-    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES;
+  function renderHeadCellWithMeta(tableMeta: TableData['meta']) {
+    const newColumnTitles = columnTitles ?? COLUMN_TITLES;
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, columnTitles[index]);
-  };
+      renderHeadCell(tableMeta, column, newColumnTitles[index]);
+  }
 
-  handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
-    const widths: number[] = [...this.state.widths];
-    widths[columnIndex] = nextColumn.width
-      ? Number(nextColumn.width)
-      : COL_WIDTH_UNDEFINED;
-    this.setState({widths});
-  };
-
-  render() {
-    const {eventView, organization, location, setError} = this.props;
-    const {widths} = this.state;
-    const columnOrder = eventView
-      .getColumns()
-      .filter(
-        (col: TableColumn<React.ReactText>) =>
-          !col.name.startsWith('count_miserable') &&
-          !col.name.startsWith('percentile_range') &&
-          col.name !== 'project_threshold_config' &&
-          col.name !== 'project' &&
-          col.name !== 'http.method' &&
-          col.name !== 'total.transaction_duration' &&
-          col.name !== 'sum(transaction.duration)'
+  function handleResizeColumn(columnIndex: number, nextColumn: GridColumn) {
+    setWidths(prevWidths =>
+      prevWidths.map((width, index) =>
+        index === columnIndex ? Number(nextColumn.width ?? COL_WIDTH_UNDEFINED) : width
       )
-      .map((col: TableColumn<React.ReactText>, i: number) => {
-        if (typeof widths[i] === 'number') {
-          return {...col, width: widths[i]};
-        }
-        return col;
-      });
-
-    const columnSortBy = eventView.getSorts();
-
-    return (
-      <GuideAnchor target="performance_table" position="top-start">
-        <DiscoverQuery
-          eventView={eventView}
-          orgSlug={organization.slug}
-          location={location}
-          setError={error => setError(error?.message)}
-          referrer="api.starfish.endpoint-list"
-          queryExtras={{dataset: this.props.dataset ?? 'metrics'}}
-        >
-          {({pageLinks, isLoading, tableData}) => (
-            <Fragment>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData ? tableData.data : []}
-                columnOrder={columnOrder}
-                columnSortBy={columnSortBy}
-                grid={{
-                  onResizeColumn: this.handleResizeColumn,
-                  renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                  renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                }}
-                location={location}
-              />
-
-              <Pagination pageLinks={pageLinks} />
-            </Fragment>
-          )}
-        </DiscoverQuery>
-      </GuideAnchor>
     );
   }
+
+  function handleSearch(query: string) {
+    const clonedEventView = eventView.clone();
+
+    // Default to fuzzy finding for now
+    clonedEventView.query += `transaction:*${query}*`;
+    setEventView(clonedEventView);
+  }
+
+  const columnOrder = eventView
+    .getColumns()
+    .filter(
+      (col: TableColumn<React.ReactText>) =>
+        !col.name.startsWith('count_miserable') &&
+        !col.name.startsWith('percentile_range') &&
+        !col.name.startsWith('(percentile_range') &&
+        col.name !== 'project_threshold_config' &&
+        col.name !== 'project' &&
+        col.name !== 'http.method' &&
+        col.name !== 'total.transaction_duration' &&
+        col.name !== 'sum(transaction.duration)'
+    )
+    .map((col: TableColumn<React.ReactText>, i: number) => {
+      if (typeof widths[i] === 'number') {
+        return {...col, width: widths[i]};
+      }
+      return col;
+    });
+
+  const columnSortBy = eventView.getSorts();
+
+  return (
+    <GuideAnchor target="performance_table" position="top-start">
+      <StyledSearchBar placeholder={t('Search for endpoints')} onSearch={handleSearch} />
+      <DiscoverQuery
+        eventView={_eventView}
+        orgSlug={organization.slug}
+        location={location}
+        setError={error => setError(error?.message)}
+        referrer="api.starfish.endpoint-list"
+        queryExtras={{dataset: dataset ?? 'metrics'}}
+      >
+        {({pageLinks, isLoading, tableData}) => (
+          <Fragment>
+            <GridEditable
+              isLoading={isLoading}
+              data={tableData ? tableData.data : []}
+              columnOrder={columnOrder}
+              columnSortBy={columnSortBy}
+              grid={{
+                onResizeColumn: handleResizeColumn,
+                renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
+                renderBodyCell: renderBodyCellWithData(tableData) as any,
+              }}
+              location={location}
+            />
+
+            <Pagination pageLinks={pageLinks} />
+          </Fragment>
+        )}
+      </DiscoverQuery>
+    </GuideAnchor>
+  );
 }
 
 export default EndpointList;
@@ -343,4 +356,8 @@ const TrendingDuration = styled('div')<{trendDirection: 'good' | 'bad' | 'neutra
       ? p.theme.errorText
       : p.theme.subText};
   float: right;
+`;
+
+const StyledSearchBar = styled(BaseSearchBar)`
+  margin-bottom: ${space(2)};
 `;

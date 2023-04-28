@@ -70,7 +70,6 @@ def check_monitors(current_datetime=None):
             monitor_environment=monitor_environment,
             status=CheckInStatus.MISSED,
         )
-        monitor_environment.monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
         monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
     qs = (
@@ -106,5 +105,4 @@ def check_monitors(current_datetime=None):
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
         ).exists()
         if not has_newer_result:
-            monitor_environment.monitor.mark_failed(reason=MonitorFailure.DURATION)
             monitor_environment.mark_failed(reason=MonitorFailure.DURATION)

@@ -100,7 +100,11 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return False
 
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
-        encoded_body_size = data and data.get("Encoded Body Size", 0) or 0
+        encoded_body_size = (
+            data
+            and (data.get("http.response_content_length", 0) or data.get("Encoded Body Size", 0))
+            or 0
+        )
         if encoded_body_size < minimum_size_bytes or encoded_body_size > self.MAX_SIZE_BYTES:
             return False
 

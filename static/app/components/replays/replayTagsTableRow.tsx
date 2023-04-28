@@ -1,37 +1,36 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 
 interface Props {
   name: string;
-  values: string[];
-  generateUrl?: (name: string, value: string) => LocationDescriptor;
+  values: ReactNode[];
+  generateUrl?: (name: string, value: ReactNode) => LocationDescriptor;
 }
 
 function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   const renderTagValue = useMemo(() => {
     if (name === 'release') {
-      return values.map((value, index) => {
-        return (
-          <Fragment key={value}>
-            {index > 0 && ', '}
-            <Version key={index} version={value} anchor={false} withPackage />
-          </Fragment>
-        );
-      });
+      return values.map((value, index) => (
+        <Fragment key={`${name}-${index}-${value}`}>
+          {index > 0 && ', '}
+          <Version key={index} version={String(value)} anchor={false} withPackage />
+        </Fragment>
+      ));
     }
 
     return values.map((value, index) => {
       const target = generateUrl?.(name, value);
 
       return (
-        <Fragment key={value}>
+        <Fragment key={`${name}-${index}-${value}`}>
           {index > 0 && ', '}
           {target ? <Link to={target}>{value}</Link> : <AnnotatedText value={value} />}
         </Fragment>
@@ -42,14 +41,14 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   return (
     <KeyValueTableRow
       keyName={
-        <StyledTooltip title={name} showOnlyOnOverflow>
+        <KeyTooltip title={name} showOnlyOnOverflow>
           {name}
-        </StyledTooltip>
+        </KeyTooltip>
       }
       value={
-        <StyledTooltip title={renderTagValue} isHoverable showOnlyOnOverflow>
-          {renderTagValue}
-        </StyledTooltip>
+        <ValueTooltip title={renderTagValue} isHoverable showOnlyOnOverflow>
+          <TextOverflow ellipsisDirection="left">{renderTagValue}</TextOverflow>
+        </ValueTooltip>
       }
     />
   );
@@ -57,6 +56,11 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
 
 export default ReplayTagsTableRow;
 
-const StyledTooltip = styled(Tooltip)`
+const KeyTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
+`;
+
+const ValueTooltip = styled(Tooltip)`
+  display: flex;
+  justify-content: flex-end;
 `;

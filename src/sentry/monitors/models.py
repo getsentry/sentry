@@ -218,42 +218,16 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
-
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
-
-        affected = (
-            type(self)
-            .objects.filter(
-                Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
-            )
-            .update(
-                next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
-                status=new_status,
-                last_checkin=last_checkin,
-            )
-        )
-        if not affected:
-            return False
-
-        return True
-
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        params = {
-            "last_checkin": ts,
-            "next_checkin": self.get_next_scheduled_checkin(ts),
-        }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+    def get_status_display(self) -> str:
+        for status_id, display in MonitorStatus.as_choices():
+            if status_id in [
+                ObjectStatus.ACTIVE,
+                ObjectStatus.DISABLED,
+                ObjectStatus.PENDING_DELETION,
+                ObjectStatus.DELETION_IN_PROGRESS,
+            ]:
+                return display
+        return "active"
 
 
 @region_silo_only_model
@@ -361,6 +335,9 @@ class MonitorEnvironment(Model):
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
+    def get_audit_log_data(self):
+        return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
+
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
         from sentry.coreapi import insert_data_to_database_legacy
         from sentry.event_manager import EventManager
@@ -414,7 +391,7 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)

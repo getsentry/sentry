@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.models import ApiToken
 from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
@@ -21,6 +22,7 @@ class SentryInternalAppTokenTest(APITestCase):
         )
 
 
+@control_silo_test
 class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     def test_create_token(self):
         self.login_as(user=self.user)
@@ -62,6 +64,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert response.data == "Cannot generate more than 20 tokens for a single integration"
 
 
+@control_silo_test
 class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     def test_get_tokens(self):
         self.login_as(self.user)

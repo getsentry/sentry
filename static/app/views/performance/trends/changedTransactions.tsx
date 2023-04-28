@@ -239,7 +239,7 @@ function ChangedTransactions(props: Props) {
 
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
-  modifyTrendView(trendView, location, trendChangeType, projects);
+  modifyTrendView(trendView, location, trendChangeType, projects, organization);
 
   const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);

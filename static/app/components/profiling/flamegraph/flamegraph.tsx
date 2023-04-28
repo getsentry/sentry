@@ -451,7 +451,10 @@ function Flamegraph(): ReactElement {
       });
 
       // Initialize configView to whatever the flamegraph configView is
-      newView.setConfigView(flamegraphView.configView, {width: {min: 0}});
+      newView.setConfigView(
+        flamegraphView.configView.withHeight(newView.configView.height),
+        {width: {min: 0}}
+      );
       return newView;
     },
     [spanChart, spansCanvas, flamegraph.inverted, flamegraphView, flamegraphTheme.SIZES]
@@ -579,9 +582,10 @@ function Flamegraph(): ReactElement {
       if (!spansView) {
         return;
       }
+
       const newConfigView = computeConfigViewWithStrategy(
         strategy,
-        flamegraphView.configView,
+        spansView.configView,
         new Rect(span.start, span.depth, span.end - span.start, 1)
       ).transformRect(spansView.configSpaceTransform);
 
@@ -592,7 +596,9 @@ function Flamegraph(): ReactElement {
         );
       }
       flamegraphView.setConfigView(
-        newConfigView.withHeight(flamegraphView.configView.height)
+        newConfigView
+          .withHeight(flamegraphView.configView.height)
+          .withY(flamegraphView.configView.y)
       );
       canvasPoolManager.draw();
     };
