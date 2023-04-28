@@ -43,6 +43,14 @@ SCHEDULE_INTERVAL_MAP = {
 }
 
 
+class MonitorLimitsExceeded(Exception):
+    pass
+
+
+class MonitorEnvironmentLimitsExceeded(Exception):
+    pass
+
+
 def get_next_schedule(last_checkin, schedule_type, schedule):
     if schedule_type == ScheduleType.CRONTAB:
         itr = croniter(schedule, last_checkin)
@@ -240,7 +248,7 @@ def check_organization_monitor_limits(sender, instance, **kwargs):
         and sender.objects.filter(organization_id=instance.organization_id).count()
         > settings.MAX_MONITORS_PER_ORG
     ):
-        raise Exception(
+        raise MonitorLimitsExceeded(
             f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
         )
 
@@ -419,6 +427,6 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         and sender.objects.filter(monitor=instance.monitor).count()
         > settings.MAX_ENVIRONMENTS_PER_MONITOR
     ):
-        raise Exception(
+        raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
