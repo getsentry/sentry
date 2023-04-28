@@ -111,7 +111,6 @@ def map_symbolicator_process_js_errors(errors):
             mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
         elif ty == "missing_sourcemap" and not should_skip_missing_source_error(abs_path):
             mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
-        # TODO: Should we check for should_skip_missing_source_error here?
         elif ty == "scraping_disabled":
             mapped_errors.append({"type": EventError.JS_SCRAPING_DISABLED, "url": abs_path})
         elif ty == "malformed_sourcemap":
