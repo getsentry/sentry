@@ -153,7 +153,8 @@ export const getTopTablesChart = (date_filters, action, interval) => {
   `;
 };
 
-export const getPanelTableQuery = (date_filters, row) => {
+export const getPanelTableQuery = (date_filters, row, sortKey, sortDirection) => {
+  const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
   return `
     SELECT
       transaction,
@@ -165,9 +166,17 @@ export const getPanelTableQuery = (date_filters, row) => {
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
-    ORDER BY ${ORDERBY}
+    ORDER BY ${orderBy}
     LIMIT 10
   `;
+};
+
+const getOrderByFromKey = (sortKey, sortDirection) => {
+  if (!sortDirection || !sortKey) {
+    return undefined;
+  }
+  sortDirection ??= '';
+  return `${sortKey} ${sortDirection}`;
 };
 
 export const getPanelGraphQuery = (date_filters, row, interval) => {
