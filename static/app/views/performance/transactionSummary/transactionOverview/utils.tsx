@@ -22,7 +22,7 @@ export function canUseTransactionMetricsData(
     return false;
   }
 
-  if (!mepDataContext.isMetricsData) {
+  if (mepDataContext.isMetricsData === false) {
     return false;
   }
 
