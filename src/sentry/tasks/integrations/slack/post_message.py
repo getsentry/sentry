@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Any, Mapping
 
@@ -15,10 +17,10 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     max_retries=0,
 )
 def post_message(
-    integration_id: int,
     payload: Mapping[str, Any],
     log_error_message: str,
     log_params: Mapping[str, Any],
+    integration_id: int | None = None,
 ) -> None:
     client = SlackClient(integration_id=integration_id)
     try:
