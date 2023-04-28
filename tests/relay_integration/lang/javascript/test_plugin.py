@@ -119,6 +119,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "family": "Samsung SCH-R530U",
             "type": "device",
             "model": "SCH-R530U",
+            "name": "Galaxy S3",
             "brand": "Samsung",
         }
 
