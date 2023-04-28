@@ -3,6 +3,8 @@ from typing import List, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
+from freezegun import freeze_time
+
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import (
     GroupsCountResponse,
@@ -20,6 +22,8 @@ from sentry.testutils.factories import Factories
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
+
+TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
 class BaseGroupCounts(TestCase):  # type: ignore[misc]
@@ -47,6 +51,8 @@ class BaseGroupCounts(TestCase):  # type: ignore[misc]
                 "timestamp": (datetime_reset_zero - timedelta(minutes=minutes_ago)).timestamp(),
                 "fingerprint": [fingerprint],
             },
+            # Due to the use of freeze gun
+            assert_no_errors=False,
         )
 
 
@@ -172,6 +178,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         )
         escalating_forecast.save()
 
+    @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
@@ -200,6 +207,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 == 6
             )
 
+    @freeze_time(TIME_YESTERDAY)
     def test_not_escalating_issue(self) -> None:
         """Test when an archived until escalating issue is not escalating"""
         with self.feature("organizations:escalating-issues"):
@@ -229,6 +237,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
 
+    @freeze_time(TIME_YESTERDAY)
     def test_daily_count_query(self) -> None:
         """Test the daily count query only aggregates events from today"""
         # The group had 3 events two days ago
