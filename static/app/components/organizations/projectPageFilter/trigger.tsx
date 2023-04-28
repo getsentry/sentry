@@ -6,7 +6,7 @@ import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownBut
 import PlatformList from 'sentry/components/platformList';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 
