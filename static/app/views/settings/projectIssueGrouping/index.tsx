@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -13,6 +14,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import UpgradeGrouping from './upgradeGrouping';
 
@@ -58,7 +60,10 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
     const {groupingConfigs} = this.state;
     const {organization, project, params, location} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/`;
-    const access = new Set(organization.access);
+
+    const access = new Set(organization.access.concat(project.access));
+    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
@@ -66,7 +71,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
       },
       features: new Set(organization.features),
       access,
-      disabled: !access.has('project:write'),
+      disabled: !hasAccess,
     };
 
     return (
@@ -83,6 +88,8 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
             }
           )}
         </TextBlock>
+
+        <PermissionAlert access={['project:write']} project={project} />
 
         <Form
           saveOnBlur
