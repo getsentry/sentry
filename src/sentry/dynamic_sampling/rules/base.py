@@ -30,7 +30,7 @@ def get_guarded_blended_sample_rate(project: Project) -> float:
             project, default_sample_rate=float(sample_rate)
         )
 
-    return sample_rate
+    return float(sample_rate)
 
 
 def _get_rules_of_enabled_biases(
