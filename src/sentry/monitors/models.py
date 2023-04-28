@@ -78,6 +78,7 @@ class MonitorStatus(ObjectStatus):
     OK = 4
     ERROR = 5
     MISSED_CHECKIN = 6
+    TIMEOUT = 7
 
     @classmethod
     def as_choices(cls):
@@ -89,6 +90,7 @@ class MonitorStatus(ObjectStatus):
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
             (cls.MISSED_CHECKIN, "missed_checkin"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -108,7 +110,10 @@ class CheckInStatus:
     MISSED = 4
     """Monitor did not check in on time"""
 
-    FINISHED_VALUES = (OK, ERROR)
+    TIMEOUT = 5
+    """Checkin was left in-progress past max_runtime"""
+
+    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
     """Sentient values used to indicate a monitor is finished running"""
 
     @classmethod
@@ -119,6 +124,7 @@ class CheckInStatus:
             (cls.ERROR, "error"),
             (cls.IN_PROGRESS, "in_progress"),
             (cls.MISSED, "missed"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -353,6 +359,8 @@ class MonitorEnvironment(Model):
         new_status = MonitorStatus.ERROR
         if reason == MonitorFailure.MISSED_CHECKIN:
             new_status = MonitorStatus.MISSED_CHECKIN
+        elif reason == MonitorFailure.DURATION:
+            new_status = MonitorStatus.TIMEOUT
 
         affected = (
             type(self)
