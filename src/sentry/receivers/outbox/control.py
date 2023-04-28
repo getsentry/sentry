@@ -1,3 +1,10 @@
+"""
+This module contains signal handler for control silo outbox messages.
+
+These receivers are triggered on the control silo as outbox messages
+are drained. Receivers are expected to make local state changes (tombstones)
+and perform RPC calls to propagate changes to relevant region(s).
+"""
 from __future__ import annotations
 
 from typing import Any

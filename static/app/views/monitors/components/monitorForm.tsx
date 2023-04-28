@@ -17,7 +17,7 @@ import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
@@ -322,7 +322,7 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.checkin_margin"
-            placeholder="e.g. 30"
+            placeholder="Defaults to 0 minutes"
             stacked
             inline={false}
           />
@@ -336,7 +336,7 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.max_runtime"
-            placeholder="e.g. 30"
+            placeholder="Defaults to 30 minutes"
             stacked
             inline={false}
           />

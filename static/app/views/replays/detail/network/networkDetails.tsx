@@ -1,67 +1,44 @@
-import {Fragment, MouseEvent, useCallback, useMemo} from 'react';
+import {Fragment, MouseEvent} from 'react';
 import styled from '@emotion/styled';
-import queryString from 'query-string';
 
 import {Button} from 'sentry/components/button';
-import ObjectInspector from 'sentry/components/objectInspector';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
+import NetworkDetailsContent from 'sentry/views/replays/detail/network/networkDetailsContent';
 import NetworkDetailsTabs, {
   TabKey,
 } from 'sentry/views/replays/detail/network/networkDetailsTabs';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
-  items: NetworkSpan[];
-  initialHeight?: number;
-};
+  item: null | NetworkSpan;
+  onClose: () => void;
+  onScrollToRow: () => void;
+  startTimestampMs: number;
+} & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
 
-function NetworkRequestDetails({initialHeight = 100, items}: Props) {
-  const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
-    'n_detail_row',
-    ''
-  );
-  const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'request');
-  const itemIndex = getDetailRow();
+function NetworkRequestDetails({
+  isHeld,
+  item,
+  onClose,
+  onDoubleClick,
+  onMouseDown,
+  onScrollToRow,
+  startTimestampMs,
+}: Props) {
+  const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'details');
 
-  const item = itemIndex ? (items[itemIndex] as NetworkSpan) : null;
-
-  // TODO(replay): the `useResizableDrawer` seems to measure mouse position in relation
-  // to the window with event.clientX and event.clientY
-  // We should be able to pass in another frame of reference so mouse movement
-  // is relative to some container instead.
-  const {
-    isHeld,
-    onDoubleClick,
-    onMouseDown,
-    size: containerSize,
-  } = useResizableDrawer({
-    direction: 'up',
-    initialSize: initialHeight,
-    min: 0,
-    onResize: () => {},
-  });
-
-  const onClose = useCallback(
-    (e: MouseEvent) => {
-      e.preventDefault();
-      setDetailRow('');
-    },
-    [setDetailRow]
-  );
-
-  const data = useMemo(() => getData(item), [item]);
-  if (!data) {
+  if (!item) {
     return null;
   }
 
-  const visibleTab = getDetailTab();
-  const tabSections = data[visibleTab] ?? data.request;
+  const visibleTab = getDetailTab() as TabKey;
 
   return (
     <Fragment>
@@ -78,42 +55,24 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
             aria-label={t('Hide request details')}
             borderless
             icon={<IconClose isCircled size="sm" color="subText" />}
-            onClick={onClose}
+            onClick={(e: MouseEvent) => {
+              e.preventDefault();
+              onClose();
+            }}
             size="zero"
           />
         </CloseButtonWrapper>
       </StyledStacked>
-      <SectionList height={containerSize}>
-        {Object.entries(tabSections).map(([label, sectionData]) => (
-          <Fragment key={label}>
-            <SectionTitle>{label}</SectionTitle>
-            <SectionData>
-              <ObjectInspector data={sectionData} />
-            </SectionData>
-          </Fragment>
-        ))}
-      </SectionList>
+      <FluidHeight>
+        <NetworkDetailsContent
+          visibleTab={visibleTab}
+          item={item}
+          onScrollToRow={onScrollToRow}
+          startTimestampMs={startTimestampMs}
+        />
+      </FluidHeight>
     </Fragment>
   );
-}
-
-function getData(
-  span: NetworkSpan | null
-): undefined | Record<TabKey, Record<string, unknown>> {
-  if (!span) {
-    return undefined;
-  }
-
-  const queryParams = queryString.parse(span.description?.split('?')?.[1] ?? '');
-  return {
-    request: {
-      [t('Query String Parameters')]: queryParams,
-      [t('Request Payload')]: span.data?.request?.body,
-    },
-    response: {
-      [t('Response Body')]: span.data?.response?.body,
-    },
-  };
 }
 
 const StyledStacked = styled(Stacked)`
@@ -163,24 +122,6 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   :hover {
     z-index: ${p => p.theme.zIndex.initial + 1};
   }
-`;
-
-const SectionList = styled('dl')<{height: number}>`
-  height: ${p => p.height}px;
-  overflow: scroll;
-  padding: ${space(1)};
-`;
-
-const SectionTitle = styled('dt')`
-  ${p => p.theme.overflowEllipsis};
-  text-transform: capitalize;
-  font-weight: 600;
-  color: ${p => p.theme.gray400};
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const SectionData = styled('dd')`
-  margin-bottom: ${space(2)};
 `;
 
 export default NetworkRequestDetails;

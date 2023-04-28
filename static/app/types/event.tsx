@@ -41,9 +41,12 @@ export type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
+  cause_span_ids?: string[];
   offender_span_hashes?: string[];
+  offender_span_ids?: string[];
   op?: string;
   parent_span_hashes?: string[];
+  parent_span_ids?: string[];
 };
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
@@ -588,6 +591,10 @@ export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
 }
 
+export interface ReplayContext {
+  replay_id: string;
+  type: string;
+}
 export interface BrowserContext {
   name: string;
   version: string;
@@ -606,6 +613,7 @@ type EventContexts = {
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
+  replay?: ReplayContext;
   runtime?: RuntimeContext;
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;

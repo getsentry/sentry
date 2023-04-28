@@ -1,6 +1,5 @@
 from sentry.api.serializers.base import registry
-from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import Actor, NotificationSetting, OrganizationMember, SentryApp, User
+from sentry.models import Actor, NotificationSetting, OrganizationMember, User
 from sentry.models.integrations import ExternalActor, ExternalIssue, Integration
 from sentry.testutils.silo import (
     validate_models_have_silos,
@@ -9,14 +8,12 @@ from sentry.testutils.silo import (
 )
 
 decorator_exemptions = set()
-fk_emeptions = {
+fk_exemptions = {
     (OrganizationMember, User),
-    (Integration, AlertRuleTriggerAction),
     (Integration, ExternalActor),
     (Integration, ExternalIssue),
     (NotificationSetting, Actor),
     (User, Actor),
-    (AlertRuleTriggerAction, SentryApp),
 }
 
 
@@ -25,12 +22,12 @@ def test_models_have_silos():
 
 
 def test_silo_foreign_keys():
-    for unused in fk_emeptions - validate_no_cross_silo_foreign_keys(fk_emeptions):
+    for unused in fk_exemptions - validate_no_cross_silo_foreign_keys(fk_exemptions):
         raise ValueError(f"fk_exemptions includes non conflicting relation {unused!r}")
 
 
 def test_cross_silo_deletions():
-    validate_no_cross_silo_deletions(fk_emeptions)
+    validate_no_cross_silo_deletions(fk_exemptions)
 
 
 # We really should not be using api serializers with the hybrid cloud data classes.

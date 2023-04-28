@@ -10,6 +10,7 @@ from django.utils.http import urlencode
 
 from sentry.mediators.external_requests import SelectRequester
 from sentry.models import SentryAppComponent, SentryAppInstallation
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.utils import json
 
 
@@ -100,8 +101,11 @@ class SentryAppComponentPreparer:
                 field.update(self._request(field["uri"], dependent_data=dependant_data))
 
     def _request(self, uri: str, dependent_data: str | None = None) -> Any:
+        install = app_service.serialize_sentry_app_installation(
+            self.install, self.install.sentry_app
+        )
         return SelectRequester.run(
-            install=self.install,
+            install=install,
             project_slug=self.project_slug,
             uri=uri,
             dependent_data=dependent_data,

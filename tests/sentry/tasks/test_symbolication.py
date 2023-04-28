@@ -68,7 +68,7 @@ def mock_symbolicate_event_low_priority():
 
 @pytest.fixture
 def mock_get_symbolication_function():
-    with mock.patch("sentry.lang.native.processing.get_symbolication_function") as m:
+    with mock.patch("sentry.lang.native.processing.get_native_symbolication_function") as m:
         yield m
 
 
@@ -141,7 +141,7 @@ def test_move_to_symbolicate_event_low_priority(
 
 
 @pytest.mark.django_db
-def test_symbolicate_event_call_process_inline(
+def test_symbolicate_event_doesnt_call_process_inline(
     default_project,
     mock_event_processing_store,
     mock_process_event,
@@ -172,17 +172,8 @@ def test_symbolicate_event_call_process_inline(
     assert event == symbolicated_data
 
     assert mock_save_event.delay.call_count == 0
-    assert mock_process_event.delay.call_count == 0
-    mock_do_process_event.assert_called_once_with(
-        cache_key="e:1",
-        start_time=1,
-        event_id=EVENT_ID,
-        process_task=mock_process_event,
-        data=symbolicated_data,
-        data_has_changed=True,
-        from_symbolicate=True,
-        has_attachments=False,
-    )
+    assert mock_process_event.delay.call_count == 1
+    mock_do_process_event.assert_not_called()
 
 
 @pytest.fixture(params=["org", "project"])

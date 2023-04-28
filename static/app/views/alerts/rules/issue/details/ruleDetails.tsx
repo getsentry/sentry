@@ -3,12 +3,15 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
+import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
+import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -21,13 +24,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DateString, Member, Organization, Project} from 'sentry/types';
+import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 
-import AlertChart from './alertChart';
+import {IssueAlertDetailsChart} from './alertChart';
 import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
 
@@ -37,7 +40,6 @@ type Props = AsyncComponent['props'] & {
 } & RouteComponentProps<{projectId: string; ruleId: string}, {}>;
 
 type State = AsyncComponent['state'] & {
-  memberList: Member[];
   rule: IssueAlertRule | null;
 };
 
@@ -54,7 +56,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   componentDidMount() {
     const {organization, params} = this.props;
-    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
+    trackAnalytics('issue_alert_rule_details.viewed', {
       organization,
       rule_id: parseInt(params.ruleId, 10),
     });
@@ -77,7 +79,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       rule: null,
-      memberList: [],
     };
   }
 
@@ -90,11 +91,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         `/projects/${organization.slug}/${projectId}/rules/${ruleId}/`,
         {query: {expand: 'lastTriggered'}},
         {allowError: error => error.status === 404},
-      ],
-      [
-        'memberList',
-        `/organizations/${organization.slug}/users/`,
-        {query: {projectSlug: projectId}},
       ],
     ];
   }
@@ -156,6 +152,21 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       },
     });
   }
+
+  onSnooze = ({
+    snooze,
+    snoozeCreatedBy,
+    snoozeForEveryone,
+  }: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) => {
+    if (this.state.rule) {
+      const rule = {...this.state.rule, snooze, snoozeCreatedBy, snoozeForEveryone};
+      this.setState({rule});
+    }
+  };
 
   handleUpdateDatetime = (datetime: ChangeData) => {
     const {start, end, relative, utc} = datetime;
@@ -223,7 +234,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     const {ruleId, projectId} = params;
     const {cursor} = location.query;
     const {period, start, end, utc} = this.getDataDatetime();
-    const {rule, memberList} = this.state;
+    const {rule} = this.state;
 
     if (!rule) {
       return (
@@ -240,6 +251,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         />
       );
     }
+
+    const hasSnoozeFeature = organization.features.includes('mute-alerts');
+    const isSnoozed = rule.snooze;
 
     const duplicateLink = {
       pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
@@ -290,6 +304,19 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
+              {hasSnoozeFeature && (
+                <Access access={['alerts:write']}>
+                  {({hasAccess}) => (
+                    <SnoozeAlert
+                      isSnoozed={isSnoozed}
+                      onSnooze={this.onSnooze}
+                      ruleId={rule.id}
+                      projectSlug={projectId}
+                      hasAccess={hasAccess}
+                    />
+                  )}
+                </Access>
+              )}
               <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
                 {t('Duplicate')}
               </Button>
@@ -298,7 +325,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
                 icon={<IconEdit />}
                 to={`/organizations/${organization.slug}/alerts/rules/${projectId}/${ruleId}/`}
                 onClick={() =>
-                  trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
+                  trackAnalytics('issue_alert_rule_details.edit_clicked', {
                     organization,
                     rule_id: parseInt(ruleId, 10),
                   })
@@ -312,6 +339,17 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         <Layout.Body>
           <Layout.Main>
             {this.renderIncompatibleAlert()}
+            {hasSnoozeFeature && isSnoozed && (
+              <Alert showIcon>
+                {tct(
+                  "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                  {
+                    creator: rule.snoozeCreatedBy,
+                    forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                  }
+                )}
+              </Alert>
+            )}
             <StyledPageTimeRangeSelector
               organization={organization}
               relative={period ?? ''}
@@ -320,15 +358,16 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               utc={utc ?? null}
               onUpdate={this.handleUpdateDatetime}
             />
-            <AlertChart
-              organization={organization}
-              project={project}
-              rule={rule}
-              period={period ?? ''}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-            />
+            <ErrorBoundary>
+              <IssueAlertDetailsChart
+                project={project}
+                rule={rule}
+                period={period ?? ''}
+                start={start ?? null}
+                end={end ?? null}
+                utc={utc ?? null}
+              />
+            </ErrorBoundary>
             <AlertRuleIssuesList
               organization={organization}
               project={project}
@@ -341,7 +380,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             />
           </Layout.Main>
           <Layout.Side>
-            <Sidebar rule={rule} memberList={memberList} teams={project.teams} />
+            <Sidebar rule={rule} projectSlug={project.slug} teams={project.teams} />
           </Layout.Side>
         </Layout.Body>
       </PageFiltersContainer>

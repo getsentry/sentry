@@ -17,8 +17,7 @@ import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -369,7 +368,7 @@ function TableView(props: TableViewProps) {
               data-test-id="view-profile"
               to={target}
               onClick={() =>
-                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
                   source: 'discover.table',
                 })
@@ -390,7 +389,11 @@ function TableView(props: TableViewProps) {
 
     const fieldName = columnKey;
     const value = dataRow[fieldName];
-    if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (
+      tableData.meta[fieldName] === 'integer' &&
+      typeof value === 'number' &&
+      value > 999
+    ) {
       return (
         <Tooltip
           title={value.toLocaleString()}
@@ -458,7 +461,7 @@ function TableView(props: TableViewProps) {
       const query = new MutableSearch(eventView.query);
 
       let nextView = eventView.clone();
-      trackAdvancedAnalyticsEvent('discover_v2.results.cellaction', {
+      trackAnalytics('discover_v2.results.cellaction', {
         organization,
         action,
       });
@@ -504,7 +507,7 @@ function TableView(props: TableViewProps) {
         }
         case Actions.DRILLDOWN: {
           // count_unique(column) drilldown
-          trackAdvancedAnalyticsEvent('discover_v2.results.drilldown', {
+          trackAnalytics('discover_v2.results.drilldown', {
             organization,
           });
 
@@ -548,7 +551,7 @@ function TableView(props: TableViewProps) {
     const {organization, eventView, location, isHomepage} = props;
 
     // metrics
-    trackAdvancedAnalyticsEvent('discover_v2.update_columns', {
+    trackAnalytics('discover_v2.update_columns', {
       organization,
     });
 

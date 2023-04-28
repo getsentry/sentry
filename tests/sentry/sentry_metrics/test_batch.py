@@ -1,6 +1,8 @@
 import logging
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
+from enum import Enum
+from unittest.mock import patch
 
 import pytest
 import sentry_kafka_schemas
@@ -8,14 +10,21 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.utils import json
 
-pytestmark = pytest.mark.sentry_metrics
 
+class MockUseCaseID(Enum):
+    TRANSACTIONS = "transactions"
+    SESSIONS = "sessions"
+    USE_CASE_1 = "use_case_1"
+    USE_CASE_2 = "use_case_2"
+
+
+pytestmark = pytest.mark.sentry_metrics
+BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
     "name": SessionMRI.SESSION.value,
@@ -60,16 +69,18 @@ set_payload = {
 }
 
 extracted_string_output = {
-    1: {
-        "c:sessions/session@none",
-        "d:sessions/duration@second",
-        "environment",
-        "errored",
-        "healthy",
-        "init",
-        "production",
-        "s:sessions/error@none",
-        "session.status",
+    MockUseCaseID.SESSIONS: {
+        1: {
+            "c:sessions/session@none",
+            "d:sessions/duration@second",
+            "environment",
+            "errored",
+            "healthy",
+            "init",
+            "production",
+            "s:sessions/error@none",
+            "session.status",
+        }
     }
 }
 
@@ -85,7 +96,7 @@ def _construct_messages(payloads):
                     KafkaPayload(None, json.dumps(payload).encode("utf-8"), headers or []),
                     Partition(Topic("topic"), 0),
                     i,
-                    datetime.now(),
+                    BROKER_TIMESTAMP,
                 )
             )
         )
@@ -169,36 +180,41 @@ def _get_string_indexer_log_records(caplog):
     ]
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 @pytest.mark.parametrize(
     "should_index_tag_values, expected",
     [
         pytest.param(
             True,
             {
-                1: {
-                    "c:sessions/session@none",
-                    "d:sessions/duration@second",
-                    "environment",
-                    "errored",
-                    "healthy",
-                    "init",
-                    "production",
-                    "s:sessions/error@none",
-                    "session.status",
-                },
+                MockUseCaseID.SESSIONS: {
+                    1: {
+                        "c:sessions/session@none",
+                        "d:sessions/duration@second",
+                        "environment",
+                        "errored",
+                        "healthy",
+                        "init",
+                        "production",
+                        "s:sessions/error@none",
+                        "session.status",
+                    },
+                }
             },
             id="index tag values true",
         ),
         pytest.param(
             False,
             {
-                1: {
-                    "c:sessions/session@none",
-                    "d:sessions/duration@second",
-                    "environment",
-                    "s:sessions/error@none",
-                    "session.status",
-                },
+                MockUseCaseID.SESSIONS: {
+                    1: {
+                        "c:sessions/session@none",
+                        "d:sessions/duration@second",
+                        "environment",
+                        "s:sessions/error@none",
+                        "session.status",
+                    },
+                }
             },
             id="index tag values false",
         ),
@@ -217,7 +233,6 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
         ]
     )
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         should_index_tag_values,
         False,
@@ -227,6 +242,284 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
     assert batch.extract_strings() == expected
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_extract_strings_with_multiple_use_case_ids():
+    """
+    Verify that the extract string method can handle payloads that has multiple
+    (generic) uses cases
+    """
+    counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    distribution_payload = {
+        "name": "d:use_case_2/duration@second",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    set_payload = {
+        "name": "s:use_case_2/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
+    assert batch.extract_strings() == {
+        MockUseCaseID.USE_CASE_1: {
+            1: {
+                "c:use_case_1/session@none",
+                "environment",
+                "production",
+                "session.status",
+                "init",
+            }
+        },
+        MockUseCaseID.USE_CASE_2: {
+            1: {
+                "d:use_case_2/duration@second",
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
+                "s:use_case_2/error@none",
+                "environment",
+                "production",
+                "session.status",
+                "errored",
+            }
+        },
+    }
+
+
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_extract_strings_with_invalid_mri():
+    """
+    Verify that extract strings will drop payload that has invalid MRI in name field but continue processing the rest
+    """
+    bad_counter_payload = {
+        "name": "invalid_MRI",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 100,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    distribution_payload = {
+        "name": "d:use_case_2/duration@second",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    set_payload = {
+        "name": "s:use_case_2/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (bad_counter_payload, []),
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
+    assert batch.extract_strings() == {
+        MockUseCaseID.USE_CASE_1: {
+            1: {
+                "c:use_case_1/session@none",
+                "environment",
+                "production",
+                "session.status",
+                "init",
+            }
+        },
+        MockUseCaseID.USE_CASE_2: {
+            1: {
+                "d:use_case_2/duration@second",
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
+                "s:use_case_2/error@none",
+                "environment",
+                "production",
+                "session.status",
+                "errored",
+            }
+        },
+    }
+
+
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
+    """
+    Verify that the extract string method can handle payloads that has multiple
+    (generic) uses cases and from different orgs
+    """
+    custom_uc_counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    perf_distribution_payload = {
+        "name": TransactionMRI.MEASUREMENTS_FCP.value,
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    custom_uc_set_payload = {
+        "name": "s:use_case_1/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 2,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (custom_uc_counter_payload, []),
+            (perf_distribution_payload, []),
+            (custom_uc_set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        arroyo_input_codec=_INGEST_SCHEMA,
+    )
+    assert batch.extract_strings() == {
+        MockUseCaseID.USE_CASE_1: {
+            1: {
+                "c:use_case_1/session@none",
+                "environment",
+                "production",
+                "session.status",
+                "init",
+            },
+            2: {
+                "s:use_case_1/error@none",
+                "environment",
+                "production",
+                "session.status",
+                "errored",
+            },
+        },
+        MockUseCaseID.TRANSACTIONS: {
+            1: {
+                TransactionMRI.MEASUREMENTS_FCP.value,
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
+            }
+        },
+    }
+
+
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -238,7 +531,6 @@ def test_all_resolved(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         False,
@@ -246,16 +538,18 @@ def test_all_resolved(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -263,34 +557,39 @@ def test_all_resolved(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "c:sessions/session@none": 1,
-                "d:sessions/duration@second": 2,
-                "environment": 3,
-                "errored": 4,
-                "healthy": 5,
-                "init": 6,
-                "production": 7,
-                "s:sessions/error@none": 8,
-                "session.status": 9,
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": 1,
+                    "d:sessions/duration@second": 2,
+                    "environment": 3,
+                    "errored": 4,
+                    "healthy": 5,
+                    "init": 6,
+                    "production": 7,
+                    "s:sessions/error@none": 8,
+                    "session.status": 9,
+                }
             }
         },
         {
-            1: {
-                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-            }
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
+            },
         },
     )
 
     assert _get_string_indexer_log_records(caplog) == []
+
     assert _deconstruct_messages(snuba_payloads) == [
         (
             {
@@ -310,8 +609,9 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
@@ -333,8 +633,9 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
@@ -356,14 +657,16 @@ def test_all_resolved(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved_with_routing_information(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -375,7 +678,6 @@ def test_all_resolved_with_routing_information(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         True,
@@ -383,16 +685,18 @@ def test_all_resolved_with_routing_information(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -400,29 +704,33 @@ def test_all_resolved_with_routing_information(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "c:sessions/session@none": 1,
-                "d:sessions/duration@second": 2,
-                "environment": 3,
-                "errored": 4,
-                "healthy": 5,
-                "init": 6,
-                "production": 7,
-                "s:sessions/error@none": 8,
-                "session.status": 9,
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": 1,
+                    "d:sessions/duration@second": 2,
+                    "environment": 3,
+                    "errored": 4,
+                    "healthy": 5,
+                    "init": 6,
+                    "production": 7,
+                    "s:sessions/error@none": 8,
+                    "session.status": 9,
+                }
             }
         },
         {
-            1: {
-                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
             }
         },
     )
@@ -448,8 +756,9 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
@@ -472,10 +781,14 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [
+                ("mapping_sources", b"ch"),
+                ("metric_type", "d"),
+            ],
         ),
         (
             {"org_id": 1},
@@ -496,14 +809,16 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved_retention_days_honored(caplog, settings):
     """
     Tests that the indexer batch honors the incoming retention_days values
@@ -523,7 +838,6 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         False,
@@ -531,16 +845,18 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -548,29 +864,33 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "c:sessions/session@none": 1,
-                "d:sessions/duration@second": 2,
-                "environment": 3,
-                "errored": 4,
-                "healthy": 5,
-                "init": 6,
-                "production": 7,
-                "s:sessions/error@none": 8,
-                "session.status": 9,
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": 1,
+                    "d:sessions/duration@second": 2,
+                    "environment": 3,
+                    "errored": 4,
+                    "healthy": 5,
+                    "init": 6,
+                    "production": 7,
+                    "s:sessions/error@none": 8,
+                    "session.status": 9,
+                }
             }
         },
         {
-            1: {
-                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
             }
         },
     )
@@ -595,8 +915,9 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
@@ -618,8 +939,9 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
@@ -641,14 +963,16 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_batch_resolve_with_values_not_indexed(caplog, settings):
     """
     Tests that the indexer batch skips resolving tag values for indexing and
@@ -669,7 +993,6 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         False,
         False,
@@ -677,12 +1000,14 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "s:sessions/error@none",
-                "session.status",
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -690,21 +1015,25 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "c:sessions/session@none": 1,
-                "d:sessions/duration@second": 2,
-                "environment": 3,
-                "s:sessions/error@none": 4,
-                "session.status": 5,
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": 1,
+                    "d:sessions/duration@second": 2,
+                    "environment": 3,
+                    "s:sessions/error@none": 4,
+                    "session.status": 5,
+                }
             }
         },
         {
-            1: {
-                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+                }
             }
         },
     )
@@ -728,8 +1057,9 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "init"},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [("mapping_sources", b"c"), ("metric_type", "c")],
         ),
@@ -750,10 +1080,14 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "healthy"},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"c"), ("metric_type", "d")],
+            [
+                ("mapping_sources", b"c"),
+                ("metric_type", "d"),
+            ],
         ),
         (
             {
@@ -772,14 +1106,19 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "tags": {"3": "production", "5": "errored"},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"c"), ("metric_type", "s")],
+            [
+                ("mapping_sources", b"c"),
+                ("metric_type", "s"),
+            ],
         ),
     ]
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_metric_id_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -790,21 +1129,21 @@ def test_metric_id_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
-    )
+    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -812,35 +1151,39 @@ def test_metric_id_rate_limited(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "c:sessions/session@none": None,
-                "d:sessions/duration@second": None,
-                "environment": 3,
-                "errored": 4,
-                "healthy": 5,
-                "init": 6,
-                "production": 7,
-                "s:sessions/error@none": 8,
-                "session.status": 9,
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": None,
+                    "d:sessions/duration@second": None,
+                    "environment": 3,
+                    "errored": 4,
+                    "healthy": 5,
+                    "init": 6,
+                    "production": 7,
+                    "s:sessions/error@none": 8,
+                    "session.status": 9,
+                }
             }
         },
         {
-            1: {
-                "c:sessions/session@none": Metadata(
-                    id=None,
-                    fetch_type=FetchType.RATE_LIMITED,
-                    fetch_type_ext=FetchTypeExt(is_global=False),
-                ),
-                "d:sessions/duration@second": Metadata(
-                    id=None, fetch_type=FetchType.RATE_LIMITED, fetch_type_ext=None
-                ),
-                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=None, fetch_type=FetchType.DB_READ),
-                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": Metadata(
+                        id=None,
+                        fetch_type=FetchType.RATE_LIMITED,
+                        fetch_type_ext=FetchTypeExt(is_global=False),
+                    ),
+                    "d:sessions/duration@second": Metadata(
+                        id=None, fetch_type=FetchType.RATE_LIMITED, fetch_type_ext=None
+                    ),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=None, fetch_type=FetchType.DB_READ),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
             }
         },
     )
@@ -859,10 +1202,14 @@ def test_metric_id_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 4},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"cd"), ("metric_type", "s")],
+            [
+                ("mapping_sources", b"cd"),
+                ("metric_type", "s"),
+            ],
         ),
     ]
 
@@ -878,6 +1225,7 @@ def test_metric_id_rate_limited(caplog, settings):
     ]
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_tag_key_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -888,21 +1236,21 @@ def test_tag_key_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
-    )
+    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -910,33 +1258,37 @@ def test_tag_key_rate_limited(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "c:sessions/session@none": 1,
-                "d:sessions/duration@second": 2,
-                "environment": None,
-                "errored": 4,
-                "healthy": 5,
-                "init": 6,
-                "production": 7,
-                "s:sessions/error@none": 8,
-                "session.status": 9,
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": 1,
+                    "d:sessions/duration@second": 2,
+                    "environment": None,
+                    "errored": 4,
+                    "healthy": 5,
+                    "init": 6,
+                    "production": 7,
+                    "s:sessions/error@none": 8,
+                    "session.status": 9,
+                }
             }
         },
         {
-            1: {
-                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                "environment": Metadata(
-                    id=None,
-                    fetch_type=FetchType.RATE_LIMITED,
-                    fetch_type_ext=FetchTypeExt(is_global=False),
-                ),
-                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(
+                        id=None,
+                        fetch_type=FetchType.RATE_LIMITED,
+                        fetch_type_ext=FetchTypeExt(is_global=False),
+                    ),
+                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
             }
         },
     )
@@ -958,6 +1310,7 @@ def test_tag_key_rate_limited(caplog, settings):
     assert _deconstruct_messages(snuba_payloads) == []
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_tag_value_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -968,21 +1321,21 @@ def test_tag_value_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE, outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA
-    )
+    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "d:sessions/duration@second",
-                "environment",
-                "errored",
-                "healthy",
-                "init",
-                "production",
-                "s:sessions/error@none",
-                "session.status",
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
             }
         }
     )
@@ -990,33 +1343,37 @@ def test_tag_value_rate_limited(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "c:sessions/session@none": 1,
-                "d:sessions/duration@second": 2,
-                "environment": 3,
-                "errored": None,
-                "healthy": 5,
-                "init": 6,
-                "production": 7,
-                "s:sessions/error@none": 8,
-                "session.status": 9,
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": 1,
+                    "d:sessions/duration@second": 2,
+                    "environment": 3,
+                    "errored": None,
+                    "healthy": 5,
+                    "init": 6,
+                    "production": 7,
+                    "s:sessions/error@none": 8,
+                    "session.status": 9,
+                }
             }
         },
         {
-            1: {
-                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                "errored": Metadata(
-                    id=None,
-                    fetch_type=FetchType.RATE_LIMITED,
-                    fetch_type_ext=FetchTypeExt(is_global=False),
-                ),
-                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "errored": Metadata(
+                        id=None,
+                        fetch_type=FetchType.RATE_LIMITED,
+                        fetch_type_ext=FetchTypeExt(is_global=False),
+                    ),
+                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
             }
         },
     )
@@ -1046,10 +1403,14 @@ def test_tag_value_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 6},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "c")],
+            [
+                ("mapping_sources", b"ch"),
+                ("metric_type", "c"),
+            ],
         ),
         (
             {
@@ -1069,14 +1430,19 @@ def test_tag_value_rate_limited(caplog, settings):
                 "tags": {"3": 7, "9": 5},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [
+                ("mapping_sources", b"ch"),
+                ("metric_type", "d"),
+            ],
         ),
     ]
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_one_org_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -1087,7 +1453,6 @@ def test_one_org_limited(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         False,
@@ -1095,60 +1460,66 @@ def test_one_org_limited(caplog, settings):
     )
     assert batch.extract_strings() == (
         {
-            1: {
-                "c:sessions/session@none",
-                "environment",
-                "init",
-                "production",
-                "session.status",
-            },
-            2: {
-                "d:sessions/duration@second",
-                "environment",
-                "healthy",
-                "production",
-                "session.status",
-            },
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "environment",
+                    "init",
+                    "production",
+                    "session.status",
+                },
+                2: {
+                    "d:sessions/duration@second",
+                    "environment",
+                    "healthy",
+                    "production",
+                    "session.status",
+                },
+            }
         }
     )
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "c:sessions/session@none": 1,
-                "environment": None,
-                "init": 3,
-                "production": 4,
-                "session.status": 5,
-            },
-            2: {
-                "d:sessions/duration@second": 1,
-                "environment": 2,
-                "healthy": 3,
-                "production": 4,
-                "session.status": 5,
-            },
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": 1,
+                    "environment": None,
+                    "init": 3,
+                    "production": 4,
+                    "session.status": 5,
+                },
+                2: {
+                    "d:sessions/duration@second": 1,
+                    "environment": 2,
+                    "healthy": 3,
+                    "production": 4,
+                    "session.status": 5,
+                },
+            }
         },
         {
-            1: {
-                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "environment": Metadata(
-                    id=None,
-                    fetch_type=FetchType.RATE_LIMITED,
-                    fetch_type_ext=FetchTypeExt(is_global=False),
-                ),
-                "init": Metadata(id=3, fetch_type=FetchType.HARDCODED),
-                "production": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
-            },
-            2: {
-                "d:sessions/duration@second": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "environment": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                "healthy": Metadata(id=3, fetch_type=FetchType.HARDCODED),
-                "production": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
-            },
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(
+                        id=None,
+                        fetch_type=FetchType.RATE_LIMITED,
+                        fetch_type_ext=FetchTypeExt(is_global=False),
+                    ),
+                    "init": Metadata(id=3, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+                },
+                2: {
+                    "d:sessions/duration@second": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "healthy": Metadata(id=3, fetch_type=FetchType.HARDCODED),
+                    "production": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+                },
+            }
         },
     )
 
@@ -1178,14 +1549,19 @@ def test_one_org_limited(caplog, settings):
                 "tags": {"2": 4, "5": 3},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [4, 5, 6],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [
+                ("mapping_sources", b"ch"),
+                ("metric_type", "d"),
+            ],
         ),
     ]
 
 
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_cardinality_limiter(caplog, settings):
     """
     Test functionality of the indexer batch related to cardinality-limiting. More concretely, assert that `IndexerBatch.filter_messages`:
@@ -1206,7 +1582,6 @@ def test_cardinality_limiter(caplog, settings):
     )
 
     batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE,
         outer_message,
         True,
         False,
@@ -1221,34 +1596,40 @@ def test_cardinality_limiter(caplog, settings):
     ]
     batch.filter_messages(keys_to_remove)
     assert batch.extract_strings() == {
-        1: {
-            "environment",
-            "errored",
-            "production",
-            # Note, we only extracted one MRI, of the one metric that we didn't
-            # drop
-            "s:sessions/error@none",
-            "session.status",
-        },
+        MockUseCaseID.SESSIONS: {
+            1: {
+                "environment",
+                "errored",
+                "production",
+                # Note, we only extracted one MRI, of the one metric that we didn't
+                # drop
+                "s:sessions/error@none",
+                "session.status",
+            },
+        }
     }
 
     snuba_payloads = batch.reconstruct_messages(
         {
-            1: {
-                "environment": 1,
-                "errored": 2,
-                "production": 3,
-                "s:sessions/error@none": 4,
-                "session.status": 5,
-            },
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "environment": 1,
+                    "errored": 2,
+                    "production": 3,
+                    "s:sessions/error@none": 4,
+                    "session.status": 5,
+                },
+            }
         },
         {
-            1: {
-                "environment": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                "errored": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                "production": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "environment": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "errored": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "production": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+                }
             }
         },
     )
@@ -1272,8 +1653,9 @@ def test_cardinality_limiter(caplog, settings):
                 "tags": {"1": 3, "5": 2},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "performance",
+                "use_case_id": "sessions",
                 "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
                 ("mapping_sources", b"c"),

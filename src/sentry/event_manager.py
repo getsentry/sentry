@@ -132,6 +132,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -1786,6 +1787,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # at the value
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
         )
     )
     issue_unresolved.send_robust(
@@ -1798,6 +1800,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
+    group.substatus = GroupSubStatus.REGRESSED
 
     if is_regression and release:
         resolution = None

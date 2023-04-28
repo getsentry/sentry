@@ -16,6 +16,7 @@ import {TagCollection} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {FieldKind} from 'sentry/utils/fields';
 
+import {SearchInvalidTag} from './searchInvalidTag';
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
@@ -30,8 +31,10 @@ type Props = {
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
   className?: string;
+  customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   customPerformanceMetrics?: CustomMeasurementCollection;
   maxMenuHeight?: number;
+  mergeItemsWith?: Record<string, SearchItem>;
   onIconClick?: (value: string) => void;
   runShortcut?: (shortcut: Shortcut) => void;
   supportedTags?: TagCollection;
@@ -50,6 +53,8 @@ function SearchDropdown({
   onClick = () => {},
   customPerformanceMetrics,
   supportedTags,
+  customInvalidTagMessage,
+  mergeItemsWith,
 }: Props) {
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
@@ -70,7 +75,10 @@ function SearchDropdown({
                   item.children.map(child => (
                     <DropdownItem
                       key={getDropdownItemKey(child)}
-                      item={child}
+                      item={{
+                        ...child,
+                        ...mergeItemsWith?.[child.title!],
+                      }}
                       searchSubstring={searchSubstring}
                       onClick={onClick}
                       onIconClick={onIconClick}
@@ -80,6 +88,7 @@ function SearchDropdown({
                         ),
                         supportedTags,
                       }}
+                      customInvalidTagMessage={customInvalidTagMessage}
                     />
                   ))}
                 {isEmpty && <Info>{t('No items found')}</Info>}
@@ -114,7 +123,7 @@ function SearchDropdown({
           href="https://docs.sentry.io/product/sentry-basics/search/"
           external
         >
-          Read the docs
+          {t('Read the docs')}
         </Button>
       </DropdownFooter>
     </SearchDropdownOverlay>
@@ -226,6 +235,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
               hasSplit={words.length > 1}
             />
           )}
+          {item.titleBadge}
         </SearchItemTitleWrapper>
       );
     }
@@ -242,6 +252,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
           .{combinedRestWords}
         </RestOfWordsContainer>
       )}
+      {item.titleBadge}
     </SearchItemTitleWrapper>
   );
 }
@@ -275,6 +286,7 @@ type DropdownItemProps = {
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
   additionalSearchConfig?: Partial<SearchConfig>;
+  customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   isChild?: boolean;
   onIconClick?: any;
 };
@@ -286,6 +298,7 @@ function DropdownItem({
   onClick,
   onIconClick,
   additionalSearchConfig,
+  customInvalidTagMessage,
 }: DropdownItemProps) {
   const isDisabled = item.value === null;
 
@@ -293,13 +306,12 @@ function DropdownItem({
   if (item.type === ItemType.RECENT_SEARCH) {
     children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
   } else if (item.type === ItemType.INVALID_TAG) {
-    children = (
-      <Invalid>
-        {tct("The field [field] isn't supported here. ", {
+    children = customInvalidTagMessage?.(item) ?? (
+      <SearchInvalidTag
+        message={tct("The field [field] isn't supported here.", {
           field: <code>{item.desc}</code>,
         })}
-        <Highlight>{t('See all searchable properties in the docs.')}</Highlight>
-      </Invalid>
+      />
     );
   } else if (item.type === ItemType.LINK) {
     children = (
@@ -341,7 +353,11 @@ function DropdownItem({
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
-          !isDisabled ? item.callback ?? onClick.bind(null, item.value, item) : undefined
+          !isDisabled
+            ? item.type === ItemType.INVALID_TAG && !!customInvalidTagMessage
+              ? undefined
+              : item.callback ?? onClick.bind(null, item.value, item)
+            : undefined
         }
         ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
         isGrouped={isChild}
@@ -594,21 +610,6 @@ const IconWrapper = styled('span')`
     align-items: center;
     justify-content: center;
   }
-`;
-
-const Invalid = styled(`span`)`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.gray400};
-
-  code {
-    font-weight: bold;
-    padding: 0;
-  }
-`;
-
-const Highlight = styled(`strong`)`
-  color: ${p => p.theme.linkColor};
 `;
 
 const QueryItemWrapper = styled('span')`

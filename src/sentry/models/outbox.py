@@ -37,6 +37,7 @@ class OutboxScope(IntEnum):
     USER_IP_SCOPE = 4
     INTEGRATION_SCOPE = 5
     APP_SCOPE = 6
+    TEAM_SCOPE = 7
 
     def __str__(self):
         return self.name
@@ -58,7 +59,8 @@ class OutboxCategory(IntEnum):
     PROJECT_UPDATE = 8
     API_APPLICATION_UPDATE = 9
     SENTRY_APP_INSTALLATION_UPDATE = 10
-    ORGANIZATION_INTEGRATION_UPDATE = 11
+    TEAM_UPDATE = 11
+    ORGANIZATION_INTEGRATION_UPDATE = 12
 
     @classmethod
     def as_choices(cls):
@@ -175,6 +177,8 @@ class OutboxBase(Model):
         # result in a future processing, we should always converge on non stale values.
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
+
+        # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
             deleted_count, _ = (

@@ -27,15 +27,16 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
 class DeleteOrganizationTest(TransactionTestCase):
     def test_simple(self):
-        org = self.create_organization(name="test")
+        org = self.create_organization(name="test", no_mapping=True)
         org_mapping = self.create_organization_mapping(org)
-        org2 = self.create_organization(name="test2")
+        org2 = self.create_organization(name="test2", no_mapping=True)
         org_mapping2 = self.create_organization_mapping(org2)
         self.create_team(organization=org, name="test1")
         self.create_team(organization=org, name="test2")
@@ -94,7 +95,7 @@ class DeleteOrganizationTest(TransactionTestCase):
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             run_deletion(deletion.id)
 
         assert Organization.objects.filter(id=org2.id).exists()

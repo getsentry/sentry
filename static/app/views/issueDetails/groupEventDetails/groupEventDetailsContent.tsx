@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
-import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -17,7 +16,6 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
-import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
@@ -28,6 +26,7 @@ import {Event, Group, IssueCategory, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
 type GroupEventDetailsContentProps = {
   group: Group;
@@ -126,10 +125,13 @@ function GroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      <Resources {...{event, group}} />
-      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
+      <ResourcesAndMaybeSolutions
+        event={event}
+        projectSlug={project.slug}
+        group={group}
+      />
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
-      <AiSuggestedSolution event={event} projectSlug={project.slug} />
+      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />

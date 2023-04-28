@@ -7,9 +7,11 @@ from django.urls import reverse
 
 from sentry.models import ArtifactBundle, File, ProjectArtifactBundle
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
     @staticmethod
     def get_compressed_zip_file(artifact_name, files, type="artifact.bundle"):

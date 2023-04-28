@@ -47,8 +47,9 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:transaction-name-normalize",
+    "organizations:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
+    "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
@@ -155,10 +156,10 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
     try:
         computed_quotas = [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
     except BaseException:
-        metrics.incr("sentry.relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
+        metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
         raise
     else:
-        metrics.incr("sentry.relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
+        metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
         return computed_quotas
 
 

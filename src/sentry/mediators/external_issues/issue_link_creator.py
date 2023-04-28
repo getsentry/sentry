@@ -4,12 +4,12 @@ from sentry.utils.cache import memoize
 
 
 class IssueLinkCreator(Mediator):
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     group = Param("sentry.models.Group")
     action = Param((str,))
     fields = Param(object)
     uri = Param((str,))
-    user = Param("sentry.models.User")
+    user = Param("sentry.services.hybrid_cloud.user.RpcUser")
 
     def call(self):
         self._verify_action()
