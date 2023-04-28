@@ -27,7 +27,6 @@ from snuba_sdk import (
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve,
     resolve_tag_key,
@@ -252,7 +251,7 @@ def test_parse_query(query_string, expected):
     use_case_id = UseCaseKey.RELEASE_HEALTH
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
         # will be values 10000, 10001 respectively
-        indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=s)
+        indexer.record(use_case_id=use_case_id, org_id=org_id, string=s)
     parsed = resolve_tags(
         use_case_id,
         org_id,
@@ -1438,11 +1437,7 @@ class ResolveTagsTestCase(TestCase):
         transactions = ["/foo", "/bar"]
 
         for transaction in ["transaction"] + transactions:
-            indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
-                org_id=self.org_id,
-                string=transaction,
-            )
+            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=transaction)
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1498,16 +1493,8 @@ class ResolveTagsTestCase(TestCase):
         tags = [("/foo", "ios"), ("/bar", "android")]
 
         for transaction, platform in [("transaction", "platform")] + tags:
-            indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
-                org_id=self.org_id,
-                string=transaction,
-            )
-            indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
-                org_id=self.org_id,
-                string=platform,
-            )
+            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=transaction)
+            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=platform)
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1571,11 +1558,7 @@ class ResolveTagsTestCase(TestCase):
     def test_resolve_tags_with_has(self):
         tag_key = "transaction"
 
-        indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
-            org_id=self.org_id,
-            string=tag_key,
-        )
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=tag_key)
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1610,11 +1593,7 @@ class ResolveTagsTestCase(TestCase):
         )
 
     def test_resolve_tags_with_match_and_filterable_tag(self):
-        indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
-            org_id=self.org_id,
-            string="environment",
-        )
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="environment")
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1649,11 +1628,7 @@ class ResolveTagsTestCase(TestCase):
         )
 
     def test_resolve_tags_with_match_and_deep_filterable_tag(self):
-        indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
-            org_id=self.org_id,
-            string="environment",
-        )
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="environment")
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1693,11 +1668,7 @@ class ResolveTagsTestCase(TestCase):
         )
 
     def test_resolve_tags_with_match_and_non_filterable_tag(self):
-        indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
-            org_id=self.org_id,
-            string="http_status_code",
-        )
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="http_status_code")
 
         with pytest.raises(
             InvalidParams,
@@ -1723,11 +1694,7 @@ class ResolveTagsTestCase(TestCase):
             )
 
     def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
-        indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
-            org_id=self.org_id,
-            string="http_status_code",
-        )
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="http_status_code")
 
         with pytest.raises(
             InvalidParams,
