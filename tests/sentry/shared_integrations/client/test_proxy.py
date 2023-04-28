@@ -12,10 +12,7 @@ control_address = "https://sentry.io"
 secret = "hush-hush-im-invisible"
 
 
-@override_settings(
-    SENTRY_SUBNET_SECRET=secret,
-    SENTRY_CONTROL_ADDRESS=control_address,
-)
+@override_settings(SENTRY_SUBNET_SECRET=secret, SENTRY_CONTROL_ADDRESS=control_address)
 class IntegrationProxyClientTest(TestCase):
     def setUp(self):
         class TestClient(IntegrationProxyClient):

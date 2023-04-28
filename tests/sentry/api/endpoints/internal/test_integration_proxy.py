@@ -104,11 +104,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert self.endpoint_cls._validate_sender(self.valid_request)
 
     @patch.object(Integration, "get_installation")
-    @override_settings(
-        SENTRY_SUBNET_SECRET=secret,
-        SILO_MODE=SiloMode.CONTROL,
-        SENTRY_CONTROL_ADDRESS="https://sentry.io",
-    )
+    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
     def test__validate_request(self, mock_get_installation):
         # Missing header data
         request = self.factory.get(self.path)
