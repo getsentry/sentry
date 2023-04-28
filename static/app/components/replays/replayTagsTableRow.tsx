@@ -5,7 +5,6 @@ import {LocationDescriptor} from 'history';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
-import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 
@@ -41,14 +40,14 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   return (
     <KeyValueTableRow
       keyName={
-        <KeyTooltip title={name} showOnlyOnOverflow>
+        <StyledTooltip title={name} showOnlyOnOverflow>
           {name}
-        </KeyTooltip>
+        </StyledTooltip>
       }
       value={
-        <ValueTooltip title={renderTagValue} isHoverable showOnlyOnOverflow>
-          <TextOverflow ellipsisDirection="left">{renderTagValue}</TextOverflow>
-        </ValueTooltip>
+        <StyledTooltip title={renderTagValue} isHoverable showOnlyOnOverflow>
+          {renderTagValue}
+        </StyledTooltip>
       }
     />
   );
@@ -56,11 +55,6 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
 
 export default ReplayTagsTableRow;
 
-const KeyTooltip = styled(Tooltip)`
+const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
-`;
-
-const ValueTooltip = styled(Tooltip)`
-  display: flex;
-  justify-content: flex-end;
 `;
