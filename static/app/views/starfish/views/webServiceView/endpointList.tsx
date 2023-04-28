@@ -133,21 +133,18 @@ class EndpointList extends Component<Props, State> {
       );
     }
 
-    if (field === 'p50()') {
-      const deltaColName = deltaColumnMap[field];
-      const deltaValue = dataRow[deltaColName] as number;
+    if (
+      field.startsWith(
+        'equation|(percentile_range(transaction.duration,0.50,lessOrEquals,'
+      )
+    ) {
+      const deltaValue = dataRow[field] as number;
       const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
 
       return (
         <NumberContainer>
-          <Duration
-            seconds={(dataRow[field] as number) / 1000}
-            fixedDigits={2}
-            abbreviation
-          />
-          &nbsp;
           <TrendingDuration trendDirection={trendDirection}>
-            {tct('([sign][delta])', {
+            {tct('[sign][delta]', {
               sign: deltaValue >= 0 ? '+' : '-',
               delta: formatPercentage(Math.abs(deltaValue), 2),
             })}
@@ -280,7 +277,6 @@ class EndpointList extends Component<Props, State> {
         (col: TableColumn<React.ReactText>) =>
           !col.name.startsWith('count_miserable') &&
           !col.name.startsWith('percentile_range') &&
-          !col.name.startsWith('(percentile_range') &&
           col.name !== 'project_threshold_config' &&
           col.name !== 'project' &&
           col.name !== 'http.method' &&

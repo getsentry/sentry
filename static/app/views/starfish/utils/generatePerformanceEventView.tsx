@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import trimStart from 'lodash/trimStart';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
@@ -129,15 +130,26 @@ export function generateWebServiceEventView(
         : decodeScalar(query.statsPeriod),
   });
 
+  const deltaColName = `equation|(percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})-percentile_range(transaction.duration,0.50,greater,${middleTimestamp}))/percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})`;
+  let orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
+  const isDescending = orderby.startsWith('-');
+  orderby = trimStart(orderby, '-');
+  if (
+    orderby.startsWith(
+      'equation|(percentile_range(transaction.duration,0.50,lessOrEquals,'
+    )
+  ) {
+    orderby = isDescending ? `-${deltaColName}` : deltaColName;
+  }
+
   const fields = [
     'transaction',
     'http.method',
     'tpm()',
     'p50()',
-    'p95()',
+    deltaColName,
     'count_if(http.status_code,greaterOrEquals,500)',
     TIME_SPENT_IN_SERVICE,
-    `equation|(percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})-percentile_range(transaction.duration,0.50,greater,${middleTimestamp}))/percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})`,
     'total.transaction_duration',
     'sum(transaction.duration)',
     `percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})`,
@@ -160,7 +172,7 @@ export function generateWebServiceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = getDefaultStatsPeriod(organization);
   }
-  savedQuery.orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
+  savedQuery.orderby = orderby;
 
   const searchQuery = decodeScalar(query.query, '');
   savedQuery.query = `${savedQuery.query} ${prepareQueryForLandingPage(
