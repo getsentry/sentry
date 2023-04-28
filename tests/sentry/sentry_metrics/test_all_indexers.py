@@ -223,23 +223,25 @@ def test_already_created_plus_written_results(
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
 
-    v0 = raw_indexer.record(use_case_id, org_id, "v1.2.0")
-    v1 = raw_indexer.record(use_case_id, org_id, "v1.2.1")
-    v2 = raw_indexer.record(use_case_id, org_id, "v1.2.2")
+    v0 = raw_indexer.record(use_case_id, org_id, "v1.2.0:xyz")
+    v1 = raw_indexer.record(use_case_id, org_id, "v1.2.1:xyz")
+    v2 = raw_indexer.record(use_case_id, org_id, "v1.2.2:xyz")
 
-    expected_mapping = {"v1.2.0": v0, "v1.2.1": v1, "v1.2.2": v2}
+    expected_mapping = {"v1.2.0:xyz": v0, "v1.2.1:xyz": v1, "v1.2.2:xyz": v2}
 
-    results = indexer.bulk_record({use_case_id: {org_id: {"v1.2.0", "v1.2.1", "v1.2.2"}}})
+    results = indexer.bulk_record(
+        {use_case_id: {org_id: {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz"}}}
+    )
     assert len(results[use_case_id][org_id]) == len(expected_mapping) == 3
 
     for string, id in results[use_case_id][org_id].items():
         assert expected_mapping[string] == id
 
     results = indexer.bulk_record(
-        {use_case_id: {org_id: {"v1.2.0", "v1.2.1", "v1.2.2", "v1.2.3"}}},
+        {use_case_id: {org_id: {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz", "v1.2.3:xyz"}}},
     )
-    v3 = raw_indexer.resolve(use_case_key, org_id, "v1.2.3")
-    expected_mapping["v1.2.3"] = v3
+    v3 = raw_indexer.resolve(use_case_key, org_id, "v1.2.3:xyz")
+    expected_mapping["v1.2.3:xyz"] = v3
 
     assert len(results[use_case_id][org_id]) == len(expected_mapping) == 4
 
@@ -248,10 +250,12 @@ def test_already_created_plus_written_results(
 
     fetch_meta = results.get_fetch_metadata()
     assert_fetch_type_for_tag_string_set(
-        fetch_meta[use_case_id][org_id], FetchType.CACHE_HIT, {"v1.2.0", "v1.2.1", "v1.2.2"}
+        fetch_meta[use_case_id][org_id],
+        FetchType.CACHE_HIT,
+        {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz"},
     )
     assert_fetch_type_for_tag_string_set(
-        fetch_meta[use_case_id][org_id], FetchType.FIRST_SEEN, {"v1.2.3"}
+        fetch_meta[use_case_id][org_id], FetchType.FIRST_SEEN, {"v1.2.3:xyz"}
     )
 
 
