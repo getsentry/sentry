@@ -1,3 +1,4 @@
+import logging
 from typing import List, OrderedDict, Set
 
 import sentry_sdk
@@ -13,6 +14,9 @@ from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_e
 from sentry.models import Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.UNIFORM_RULE}
+
+
+logger = logging.getLogger("sentry.dynamic_sampling")
 
 
 def get_guarded_blended_sample_rate(project: Project) -> float:
@@ -40,7 +44,10 @@ def _get_rules_of_enabled_biases(
         if rule_type in ALWAYS_ALLOWED_RULE_TYPES or (
             rule_type.value in enabled_biases and 0.0 < base_sample_rate < 1.0
         ):
-            rules += bias.generate_rules(project, base_sample_rate)
+            try:
+                rules += bias.generate_rules(project, base_sample_rate)
+            except Exception:
+                logger.exception(f"Rule generator {rule_type} failed.")
 
     log_rules(project.organization.id, project.id, rules)
 
