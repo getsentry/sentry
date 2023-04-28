@@ -17,6 +17,7 @@ from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.utils import json
 
 ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
 
@@ -72,6 +73,8 @@ def handle_status_update(
             "ignoreUserWindow": status_details.get("ignoreUserWindow", None),
             "ignoreWindow": status_details.get("ignoreWindow", None),
         }
+        if activity_data["ignoreUntil"] is not None:
+            activity_data["ignoreUntil"] = json.datetime_to_str(activity_data["ignoreUntil"])
 
         groups_by_project_id = defaultdict(list)
         for group in group_list:
