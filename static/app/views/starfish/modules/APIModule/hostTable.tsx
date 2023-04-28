@@ -10,7 +10,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
