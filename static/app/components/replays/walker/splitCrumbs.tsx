@@ -106,9 +106,7 @@ function SummarySegment({
   );
 
   const label =
-    crumbs.length === 1
-      ? getUrl(crumbs[0])
-      : tn('%s Page', '%s Pages', crumbs.length);
+    crumbs.length === 1 ? getUrl(crumbs[0]) : tn('%s Page', '%s Pages', crumbs.length);
   return (
     <Span>
       <HalfPaddingHovercard body={summaryItems} position="right">
