@@ -44,7 +44,7 @@ describe('Key Settings', function () {
     );
 
     // Panel title
-    expect(screen.getByText('JavaScript Loader')).toBeInTheDocument();
+    expect(screen.getByText('JavaScript Loader Script')).toBeInTheDocument();
 
     // SDK loader options
     for (const key of Object.keys(sdkLoaderOptions)) {
