@@ -1,12 +1,16 @@
+import re
+
 import responses
 from django.test import override_settings
 from responses import matchers
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.silo.base import SiloMode
+from sentry.silo.util import PROXY_BASE_PATH
 from sentry.testutils import TestCase
 
-control_address = "https://sentry.io"
+control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
 
 
@@ -33,7 +37,7 @@ class SlackClientTest(TestCase):
         self.mock_not_authed_response = {"ok": True, "auth": None}
         base_response_kwargs = {
             "method": responses.POST,
-            "url": "https://slack.com/api/chat.postMessage",
+            "url": re.compile(r"\S+chat.postMessage$"),
             "status": 200,
             "content_type": "application/json",
         }
@@ -56,6 +60,37 @@ class SlackClientTest(TestCase):
             json=self.mock_not_authed_response,
             match=[matchers.header_matcher({})],
         )
+
+    @responses.activate
+    def test_integration_proxy_is_active(self):
+        class SlackProxyTestClient(SlackClient):
+            use_proxy_url_for_tests = True
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            client = SlackProxyTestClient(integration_id=self.integration.id)
+            client.post("/chat.postMessage", data=self.payload)
+            request_url = responses.calls[0].request.url
+
+            assert PROXY_BASE_PATH not in request_url
+            assert client.base_url in request_url
+
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            client = SlackProxyTestClient(integration_id=self.integration.id)
+            client.post("/chat.postMessage", data=self.payload)
+            request_url = responses.calls[0].request.url
+
+            assert PROXY_BASE_PATH not in request_url
+            assert client.base_url in request_url
+
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            client = SlackProxyTestClient(integration_id=self.integration.id)
+            client.post("/chat.postMessage", data=self.payload)
+            request_url = responses.calls[0].request.url
+
+            assert PROXY_BASE_PATH in request_url
+            assert client.base_url not in request_url
 
     @responses.activate
     def test_authorize_with_no_id_noop(self):
