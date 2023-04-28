@@ -28,6 +28,86 @@ export default function FailureDetailPanel({
   const organization = useOrganization();
 
   const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
+
+  function renderStatsOverview() {
+    const transactionCountQuery: NewQuery = {
+      name: t('Transaction Event Count'),
+      projects: [],
+      start: spike?.startTimestamp
+        ? new Date(spike?.startTimestamp).toUTCString()
+        : undefined,
+      end: spike?.endTimestamp ? new Date(spike?.endTimestamp).toUTCString() : undefined,
+      range: !hasStartAndEnd
+        ? decodeScalar(location.query.statsPeriod) || DEFAULT_STATS_PERIOD
+        : undefined,
+      fields: ['count_if(http.status_code,greaterOrEquals,500)'],
+      query: 'event.type:transaction',
+      version: 2,
+    };
+
+    const errorCountQuery: NewQuery = {
+      name: t('Error Event Count'),
+      projects: [],
+      start: spike?.startTimestamp
+        ? new Date(spike?.startTimestamp).toUTCString()
+        : undefined,
+      end: spike?.endTimestamp ? new Date(spike?.endTimestamp).toUTCString() : undefined,
+      range: !hasStartAndEnd
+        ? decodeScalar(location.query.statsPeriod) || DEFAULT_STATS_PERIOD
+        : undefined,
+      fields: ['count()'],
+      query: 'event.type:error',
+      version: 2,
+    };
+
+    return (
+      <OverviewStatsSection>
+        <StatBlock>
+          <SectionHeading>{t('Transaction Events')}</SectionHeading>
+          <DiscoverQuery
+            eventView={EventView.fromNewQueryWithLocation(
+              transactionCountQuery,
+              location
+            )}
+            orgSlug={organization.slug}
+            location={location}
+            referrer="api.starfish.failure-event-list"
+            queryExtras={{dataset: 'discover'}}
+          >
+            {({isLoading, tableData}) => (
+              <StatValue>
+                {isLoading
+                  ? '—'
+                  : tableData?.data[0]['count_if(http.status_code,greaterOrEquals,500)']}
+              </StatValue>
+            )}
+          </DiscoverQuery>
+        </StatBlock>
+        <StatBlock>
+          <SectionHeading>{t('Error Events')}</SectionHeading>
+          <DiscoverQuery
+            eventView={EventView.fromNewQueryWithLocation(errorCountQuery, location)}
+            orgSlug={organization.slug}
+            location={location}
+            referrer="api.starfish.failure-event-list"
+            queryExtras={{dataset: 'discover'}}
+          >
+            {({isLoading, tableData}) => (
+              <StatValue>{isLoading ? '—' : tableData?.data[0]['count()']}</StatValue>
+            )}
+          </DiscoverQuery>
+        </StatBlock>
+        <StatBlock>
+          <SectionHeading>{t('Users')}</SectionHeading>
+          {/** TODO: We need a count_unique_if() function to get the number of users who were affected by 5xx events
+           * Need to implement this in Discover in the future, let's do this later.
+           */}
+          <StatValue>—</StatValue>
+        </StatBlock>
+      </OverviewStatsSection>
+    );
+  }
+
   const newQuery: NewQuery = {
     name: t('Failure Sample'),
     projects: [],
@@ -61,20 +141,6 @@ export default function FailureDetailPanel({
         'MMMM Do YYYY, hh:mm:ss z'
       )}`}</TimeRangeHeading>
       <h4>{t('Error Spike Detail')}</h4>
-      <OverviewStatsSection>
-        <StatBlock>
-          <SectionHeading>Events</SectionHeading>
-          <h4>6.2k</h4>
-        </StatBlock>
-        <StatBlock>
-          <SectionHeading>Users</SectionHeading>
-          <h4>1.2k</h4>
-        </StatBlock>
-        <StatBlock>
-          <SectionHeading>Crashes</SectionHeading>
-          <h4>885</h4>
-        </StatBlock>
-      </OverviewStatsSection>
 
       {spike && (
         <DiscoverQuery
@@ -89,6 +155,8 @@ export default function FailureDetailPanel({
             const transactions = results?.tableData?.data.map(row => row.transaction);
             return (
               <Fragment>
+                {renderStatsOverview()}
+
                 <Title>{t('Failing Endpoints')}</Title>
                 <FailureDetailTable
                   {...results}
@@ -96,6 +164,7 @@ export default function FailureDetailPanel({
                   organization={organization}
                   eventView={eventView}
                 />
+
                 <Title>{t('Related Issues')}</Title>
                 <IssueTable
                   location={location}
@@ -125,10 +194,17 @@ const TimeRangeHeading = styled('div')`
 const OverviewStatsSection = styled('div')`
   display: flex;
   flex-direction: row;
+  margin-bottom: ${space(2)};
 `;
 
 const StatBlock = styled('div')`
   display: flex;
   flex-direction: column;
   margin-right: ${space(4)};
+  margin-bottom: 0;
+`;
+
+const StatValue = styled('div')`
+  font-weight: 400;
+  font-size: 22px;
 `;
