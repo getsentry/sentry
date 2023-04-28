@@ -41,6 +41,19 @@ const getActionQuery = action => (action !== 'ALL' ? `and action = '${action}'` 
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60;
 
+const getNewColumn = (duration, startTime) =>
+  duration > SEVEN_DAYS
+    ? `greater(min(start_timestamp), fromUnixTimestamp(${
+        startTime.unix() + duration / 10
+      })) as newish`
+    : '0 as newish';
+const getRetiredColumn = (duration, endTime) =>
+  duration > SEVEN_DAYS
+    ? `less(max(start_timestamp), fromUnixTimestamp(${
+        endTime.unix() - duration / 10
+      })) as retired`
+    : '0 as retired';
+
 export const getOperations = date_filters => {
   return `
   select
@@ -169,18 +182,8 @@ export const getMainTable = (
     actionFilter,
   ].filter(fil => !!fil);
   const duration = endTime.unix() - startTime.unix();
-  const newColumn =
-    duration > SEVEN_DAYS
-      ? `greater(min(start_timestamp), fromUnixTimestamp(${
-          startTime.unix() + duration / 10
-        })) as newish`
-      : '0 as newish';
-  const retiredColumn =
-    duration > SEVEN_DAYS
-      ? `less(max(start_timestamp), fromUnixTimestamp(${
-          endTime.unix() - duration / 10
-        })) as retired`
-      : '0 as retired';
+  const newColumn = getNewColumn(duration, startTime);
+  const retiredColumn = getRetiredColumn(duration, endTime);
 
   return `
     select
