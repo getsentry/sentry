@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import first from 'lodash/first';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
