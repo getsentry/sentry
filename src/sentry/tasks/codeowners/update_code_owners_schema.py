@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any, Iterable
+
 from sentry import features
 from sentry.models import Integration, Organization, Project
 from sentry.tasks.base import instrumented_task, load_model_from_db
@@ -9,7 +13,12 @@ from sentry.tasks.base import instrumented_task, load_model_from_db
     default_retry_delay=5,
     max_retries=5,
 )
-def update_code_owners_schema(organization, integration=None, projects=None, **kwargs):
+def update_code_owners_schema(
+    organization: Organization | int,
+    integration: Integration | int | None = None,
+    projects: Iterable[Project | int] | None = None,
+    **kwargs: Any,
+) -> None:
     from sentry.models import ProjectCodeOwners, RepositoryProjectPathConfig
 
     organization = load_model_from_db(Organization, organization)
