@@ -94,3 +94,29 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
         assert GroupHistory.objects.filter(
             group=self.group, status=GroupHistoryStatus.IGNORED
         ).exists()
+
+    @patch("sentry.signals.issue_ignored.send_robust")
+    def test_ignore_until_escalating(self, issue_ignored: Any) -> None:
+        self.create_issue(GroupStatus.UNRESOLVED)
+        handle_status_update(
+            self.group_list,
+            self.projects,
+            self.project_lookup,
+            acting_user=self.user,
+            new_status=GroupStatus.IGNORED,
+            new_substatus=None,
+            is_bulk=True,
+            status_details={"untilEscalating": True},
+            sender=self,
+            activity_type=None,
+        )
+
+        assert issue_ignored.called
+        activity = Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_IGNORED.value
+        ).first()
+        assert activity.data.get("ignoreUntilEscalating")
+
+        assert GroupHistory.objects.filter(
+            group=self.group, status=GroupHistoryStatus.IGNORED
+        ).exists()
