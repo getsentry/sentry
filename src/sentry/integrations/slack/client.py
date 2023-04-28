@@ -100,7 +100,7 @@ class SlackClient(IntegrationProxyClient):
         headers: Optional[Mapping[str, str]] = None,
         data: Optional[Mapping[str, Any]] = None,
         params: Optional[Mapping[str, Any]] = None,
-        json: bool = True,
+        json: bool = False,
         timeout: Optional[int] = None,
     ) -> BaseApiResponse:
         response: BaseApiResponse = self._request(

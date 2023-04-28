@@ -337,7 +337,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
-                slack_client.post(slack_request.callback_data["orig_response_url"], data=body)
+                slack_client.post(
+                    slack_request.callback_data["orig_response_url"], data=body, json=True
+                )
             except ApiError as e:
                 logger.error("slack.action.response-error", extra={"error": str(e)})
 

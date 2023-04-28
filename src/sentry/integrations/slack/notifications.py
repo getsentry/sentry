@@ -28,7 +28,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
     def send_message(self, channel_id: str, message: str) -> None:
         payload = {"channel": channel_id, "text": message}
         try:
-            self.get_client().post("/chat.postMessage", data=payload)
+            self.get_client().post("/chat.postMessage", data=payload, json=True)
         except ApiError as e:
             message = str(e)
             if message != "Expired url":

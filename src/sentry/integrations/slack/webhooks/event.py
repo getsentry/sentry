@@ -41,7 +41,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         payload = {"channel": slack_request.channel_id, "text": message}
         client = SlackClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postMessage", data=payload)
+            client.post("/chat.postMessage", data=payload, json=True)
         except ApiError as e:
             logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
@@ -90,7 +90,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
         client = SlackClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postMessage", data=payload)
+            client.post("/chat.postMessage", data=payload, json=True)
         except ApiError as e:
             logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
