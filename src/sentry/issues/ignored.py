@@ -37,7 +37,7 @@ def handle_archived_until_escalating(
     acting_user: User | None,
     projects: Sequence[Project],
     sender: Any,
-) -> None:
+) -> Dict[str, bool]:
     """
     Handle issues that are archived until escalating and create a forecast for them.
 
@@ -70,7 +70,7 @@ def handle_archived_until_escalating(
             sender=sender,
         )
 
-    return
+    return {"ignoreUntilEscalating": True}
 
 
 def handle_ignored(
