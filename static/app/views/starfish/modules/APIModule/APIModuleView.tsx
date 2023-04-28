@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -53,11 +53,16 @@ export default function APIModuleView({location, onSelect}: Props) {
     domain: '',
     transaction: '',
   });
+  const endpointTableRef = useRef<HTMLInputElement>(null);
 
   const {isLoading: _isDomainsLoading, data: domains} = useQuery({
     queryKey: ['domains'],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getEndpointDomainsQuery()}`).then(res => res.json()),
+      fetch(
+        `${HOST}/?query=${getEndpointDomainsQuery({
+          datetime: undefined,
+        })}`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -180,6 +185,19 @@ export default function APIModuleView({location, onSelect}: Props) {
           </ChartPanel>
         </ChartsContainerItem>
       </ChartsContainer>
+      <HostTable
+        location={location}
+        setDomainFilter={domain => {
+          setDomain(domain);
+          // TODO: Cheap way to scroll to the endpoints table without waiting for async request
+          setTimeout(() => {
+            endpointTableRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              inline: 'start',
+            });
+          }, 200);
+        }}
+      />
       <FilterOptionsContainer>
         <CompactSelect
           triggerProps={{prefix: t('Operation')}}
@@ -195,13 +213,13 @@ export default function APIModuleView({location, onSelect}: Props) {
         />
       </FilterOptionsContainer>
 
-      <EndpointTable
-        location={location}
-        onSelect={onSelect}
-        filterOptions={{...state, datetime: pageFilter.selection.datetime}}
-      />
-
-      <HostTable location={location} />
+      <div ref={endpointTableRef}>
+        <EndpointTable
+          location={location}
+          onSelect={onSelect}
+          filterOptions={{...state, datetime: pageFilter.selection.datetime}}
+        />
+      </div>
     </Fragment>
   );
 }
