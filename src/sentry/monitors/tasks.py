@@ -74,7 +74,7 @@ def check_monitors(current_datetime=None):
 
     qs = (
         MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS)
-        .select_related("monitor")
+        .select_related("monitor", "monitor_environment")
         .exclude(monitor_id__in=settings.SENTRY_MONITORS_IGNORED_MONITORS)[:CHECKINS_LIMIT]
     )
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
@@ -100,7 +100,7 @@ def check_monitors(current_datetime=None):
         # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
         # change
         has_newer_result = MonitorCheckIn.objects.filter(
-            monitor=monitor_environment.id,
+            monitor_environment=monitor_environment,
             date_added__gt=checkin.date_added,
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
         ).exists()
