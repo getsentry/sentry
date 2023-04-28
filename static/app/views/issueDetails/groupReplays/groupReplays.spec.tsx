@@ -131,7 +131,7 @@ describe('GroupReplays', () => {
                 'user',
               ],
               per_page: 50,
-              project: [],
+              project: ['2'],
               query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
               sort: '-started_at',
               statsPeriod: '14d',
