@@ -154,12 +154,12 @@ export const getPanelEventCount = (date_filters, row) => {
 };
 
 export const getMainTable = (
+  startTime,
   date_filters,
+  endTime,
   transactionFilter,
   tableFilter,
-  actionFilter,
-  startTime,
-  endTime
+  actionFilter
 ) => {
   const filters = [
     DEFAULT_WHERE,

@@ -2,10 +2,11 @@ import {Fragment, MouseEvent, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import ObjectInspector from 'sentry/components/objectInspector';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils';
@@ -16,17 +17,29 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type TabProps = {
   item: NetworkSpan;
+  onScrollToRow: () => void;
   startTimestampMs: number;
 };
 
-function DetailsTab({item, startTimestampMs}: TabProps) {
+function DetailsTab({item, onScrollToRow, startTimestampMs}: TabProps) {
   const {handleClick} = useCrumbHandlers(startTimestampMs);
 
   const startMs = item.startTimestamp * 1000;
   const endMs = item.endTimestamp * 1000;
 
   const data = {
-    [t('URL')]: item.description,
+    [t('URL')]: (
+      <Fragment>
+        {item.description}
+        <Button
+          aria-label={t('Scroll into view')}
+          borderless
+          icon={<IconShow color="gray500" size="xs" />}
+          onClick={onScrollToRow}
+          size="xs"
+        />
+      </Fragment>
+    ),
     [t('Type')]: item.op,
     [t('Method')]: item.data.method,
     [t('Status Code')]: item.data.statusCode,
