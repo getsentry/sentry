@@ -206,6 +206,14 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
+def get_artifact_bundle_with_release_cache_key(release_id, artifact_bundle_ident):
+    return f"artifactbundle:v1:{release_id}:{artifact_bundle_ident}"
+
+
+def get_artifact_bundle_with_release_cache_key_meta(release_id, artifact_bundle_ident):
+    return "meta:%s" % get_artifact_bundle_with_release_cache_key(release_id, artifact_bundle_ident)
+
+
 def get_artifact_bundle_cache_key(artifact_bundle_id):
     return f"artifactbundle:v1:{artifact_bundle_id}"
 
@@ -287,6 +295,18 @@ def get_cache_keys(filename, release, dist):
         release_id=release.id, releasefile_ident=releasefile_ident
     )
 
+    return cache_key, cache_key_meta
+
+
+def get_cache_keys_new(url, release, dist):
+    dist_name = dist and dist.name or None
+    artifact_bundle_ident = ArtifactBundle.get_ident(url, dist_name)
+    cache_key = get_artifact_bundle_with_release_cache_key(
+        release_id=release.id, artifact_bundle_ident=artifact_bundle_ident
+    )
+    cache_key_meta = get_artifact_bundle_with_release_cache_key_meta(
+        release_id=release.id, artifact_bundle_ident=artifact_bundle_ident
+    )
     return cache_key, cache_key_meta
 
 
@@ -1060,7 +1080,12 @@ class Fetcher:
         Pulls down the file indexed by url using the data in the ReleaseArtifactBundle table and returns a UrlResult
         object that "falsely" emulates an HTTP response connected to an HTTP request for fetching the file.
         """
-        result = None
+        cache_key, cache_key_meta = get_cache_keys_new(url, self.release, self.dist)
+        result = cache.get(cache_key)
+        if result == -1:  # Cached as unavailable
+            return None
+        if result:
+            return result_from_cache(url, result)
 
         # We want to first look for the file by url in the new tables ReleaseArtifactBundle and ArtifactBundle.
         with sentry_sdk.start_span(op="Fetcher.fetch_by_url_new._open_archive_by_url"):
@@ -1079,12 +1104,13 @@ class Fetcher:
                     result = fetch_and_cache_artifact(
                         url,
                         lambda: fp,
-                        None,
-                        None,
+                        cache_key,
+                        cache_key_meta,
                         headers,
                         compress_fn=compress,
                     )
                 except Exception as exc:
+                    cache.set(cache_key, -1, 60)
                     logger.debug(
                         "Failed to open file with base url %s in artifact bundle", url, exc_info=exc
                     )
