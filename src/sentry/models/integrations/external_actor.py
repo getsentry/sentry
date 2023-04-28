@@ -67,7 +67,10 @@ def process_resource_change(instance, **kwargs):
     def _spawn_task():
         try:
             update_code_owners_schema.apply_async(
-                kwargs={"organization": instance.organization, "integration": instance.integration}
+                kwargs={
+                    "organization": instance.organization,
+                    "integration": instance.integration_id,
+                }
             )
         except (Organization.DoesNotExist, Project.DoesNotExist):
             pass
