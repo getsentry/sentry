@@ -14,6 +14,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
+from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -434,7 +435,7 @@ class Fixtures:
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:
-            kwargs["actor"] = self.user.actor
+            kwargs["actor"] = Actor.objects.get(id=get_actor_id_for_user(self.user))
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):
