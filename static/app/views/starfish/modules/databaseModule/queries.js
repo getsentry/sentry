@@ -154,12 +154,12 @@ export const getPanelEventCount = (date_filters, row) => {
 };
 
 export const getMainTable = (
+  startTime,
   date_filters,
+  endTime,
   transactionFilter,
   tableFilter,
-  actionFilter,
-  startTime,
-  endTime
+  actionFilter
 ) => {
   const filters = [
     DEFAULT_WHERE,
@@ -171,15 +171,15 @@ export const getMainTable = (
   const duration = endTime.unix() - startTime.unix();
   const newColumn =
     duration > SEVEN_DAYS
-      ? `min(start_timestamp) > fromUnixTimestamp(${
+      ? `greater(min(start_timestamp), fromUnixTimestamp(${
           startTime.unix() + duration / 10
-        }) as newish`
+        })) as newish`
       : '0 as newish';
   const retiredColumn =
     duration > SEVEN_DAYS
-      ? `max(start_timestamp) < fromUnixTimestamp(${
+      ? `less(max(start_timestamp), fromUnixTimestamp(${
           endTime.unix() - duration / 10
-        }) as retired`
+        })) as retired`
       : '0 as retired';
 
   return `
