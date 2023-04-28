@@ -113,7 +113,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
     ) -> List[RpcNotificationSetting]:
         try:
-            user = User.objects.get(id=user_id)
+            User.objects.get(id=user_id)
         except User.DoesNotExist:
             return []
 
@@ -130,7 +130,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     scope_identifier=user_id,
                 ),
                 type=type.value,
-                target_id=user.actor_id,
+                user_id=user_id,
             )
         ]
 

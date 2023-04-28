@@ -9,7 +9,7 @@ from django.test import override_settings
 from rest_framework import status
 
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
-from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -65,7 +65,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         frequency: int | None = 30,
         **kwargs: Any,
     ):
-        owner = Actor.objects.get(id=get_actor_id_for_user(self.user)).get_actor_identifier()
+        owner = get_actor_for_user(self.user).get_actor_identifier()
         self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
         if "environment" in kwargs:
@@ -97,7 +97,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == name
-        assert rule.owner == self.user.actor
+        assert rule.owner == get_actor_for_user(self.user)
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
         assert rule.data["actions"] == actions
@@ -408,7 +408,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert not Rule.objects.filter(label=payload["name"]).exists()
         kwargs = {
             "name": payload["name"],
-            "owner": self.user.actor.id,
+            "owner": get_actor_id_for_user(self.user),
             "environment": payload.get("environment"),
             "action_match": payload["actionMatch"],
             "filter_match": payload.get("filterMatch"),

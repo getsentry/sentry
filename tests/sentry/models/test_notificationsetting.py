@@ -38,8 +38,8 @@ class NotificationSettingTest(TestCase):
         self.user = User.objects.get(id=self.user.id)
 
         # Deletion is deferred and tasks aren't run in tests.
-        self.user.delete()
-        self.user.actor.delete()
+        with outbox_runner():
+            self.user.delete()
 
         assert_no_notification_settings()
 

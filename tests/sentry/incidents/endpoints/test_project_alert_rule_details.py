@@ -16,6 +16,7 @@ from sentry.incidents.models import (
 )
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
+from sentry.models.actor import get_actor_for_user
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -514,9 +515,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
     def test_no_owner(self):
         alert_rule = self.alert_rule
-        alert_rule.owner = self.user.actor
+        alert_rule.owner = get_actor_for_user(self.user)
         alert_rule.save()
-        assert alert_rule.owner == self.user.actor
+        assert alert_rule.owner == get_actor_for_user(self.user)
 
         test_params = self.valid_params.copy()
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold

@@ -5,7 +5,7 @@ from sentry.testutils import TestCase
 class ActorTest(TestCase):
     def test_pre_save(self):
         user = self.create_user(email="test@pre_save.com")
-        assert user.actor is None
+        assert Actor.objects.filter(user_id=user.id).first() is None
 
         team = self.create_team(name="pre save team", organization=self.organization)
         assert team.actor is not None
