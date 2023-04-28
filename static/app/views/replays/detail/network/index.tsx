@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -58,6 +58,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<MultiGrid>(null);
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
@@ -69,13 +70,9 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       deps,
     });
 
-  const initialRequestDetailsHeight = useMemo(
-    () => Math.max(150, window.innerHeight * 0.25),
-    []
-  );
   const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
     direction: 'up',
-    initialSize: initialRequestDetailsHeight,
+    initialSize: Math.max(150, window.innerHeight * 0.4), // cannot depend on containerRef :(
     min: 0,
     onResize: () => {},
   });
@@ -83,8 +80,23 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
     'n_detail_row',
     ''
   );
-  const detailItemIndex = getDetailRow();
-  const splitSize = networkSpans && detailItemIndex ? containerSize : undefined;
+  const detailDataIndex = getDetailRow();
+  const detailRowIndex = Number(detailDataIndex) + 1;
+
+  const maxContainerHeight =
+    (containerRef.current?.clientHeight || window.innerHeight) - 90;
+  const splitSize =
+    networkSpans && detailDataIndex
+      ? Math.min(maxContainerHeight, containerSize)
+      : undefined;
+
+  const onClickCell = useCallback(
+    ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
+      setDetailRow(String(dataIndex));
+      setScrollToRow(rowIndex);
+    },
+    [setDetailRow]
+  );
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
@@ -117,9 +129,10 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
               columnIndex={columnIndex}
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
-              handleClick={handleClick}
               handleMouseEnter={handleMouseEnter}
               handleMouseLeave={handleMouseLeave}
+              onClickTimestamp={handleClick}
+              onClickCell={onClickCell}
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
@@ -166,7 +179,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
           </StyledAlert>
         )}
       </Feature>
-      <NetworkTable>
+      <NetworkTable ref={containerRef}>
         <SplitPanel
           style={{
             gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
@@ -220,9 +233,9 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
           >
             <NetworkDetails
               {...resizableDrawerProps}
-              item={detailItemIndex ? (items[detailItemIndex] as NetworkSpan) : null}
+              item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
               onClose={() => setDetailRow('')}
-              onScrollToRow={() => setScrollToRow(Number(detailItemIndex))}
+              onScrollToRow={() => setScrollToRow(detailRowIndex)}
               startTimestampMs={startTimestampMs}
             />
           </Feature>
