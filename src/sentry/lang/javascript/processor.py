@@ -2068,13 +2068,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 span.set_data("url", url)
                 if use_url_new:
                     result = self.fetcher.fetch_by_url_new(url)
-                    # In case we are fetching with url new we want to early return None in case we didn't find a match.
-                    if result is None:
-                        return None
                 else:
                     result = self.fetcher.fetch_by_url(url)
 
-            body = result.body
+                if result is None:
+                    return None
+
+                body = result.body
 
         try:
             with sentry_sdk.start_span(
