@@ -5,7 +5,7 @@ import logging
 import sys
 from collections import namedtuple
 from enum import Enum
-from typing import Any, Dict, FrozenSet, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Dict, FrozenSet, Mapping, MutableMapping, Optional, Sequence, Type
 from urllib.request import Request
 
 from sentry import audit_log
@@ -133,7 +133,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     metadata: Optional[IntegrationMetadata] = None
 
     # an Integration class that will manage the functionality once installed
-    integration_cls: Optional[Any] = None
+    integration_cls: Optional[Type[IntegrationInstallation]] = None
 
     # configuration for the setup dialog
     setup_dialog_config = {"width": 600, "height": 600}
@@ -157,7 +157,9 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     requires_feature_flag = False
 
     @classmethod
-    def get_installation(cls, model: M, organization_id: int, **kwargs: Any) -> Any:
+    def get_installation(
+        cls, model: M, organization_id: int, **kwargs: Any
+    ) -> IntegrationInstallation:
         if cls.integration_cls is None:
             raise NotImplementedError
 
