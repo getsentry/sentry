@@ -23,7 +23,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
 
-FREEZE_TIME = "2022-04-11 03:21:34"
+TIME_YESTERDAY = datetime.now() - timedelta(hours=24)
 
 
 class BaseGroupCounts(TestCase):  # type: ignore[misc]
@@ -177,10 +177,11 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         )
         escalating_forecast.save()
 
-    @freeze_time(FREEZE_TIME)
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
-        with self.feature("organizations:escalating-issues"):
+        with self.feature("organizations:escalating-issues"), freeze_time(
+            TIME_YESTERDAY.replace(hour=6)
+        ):
             # The group has 6 events today
             for i in range(7, 1, -1):
                 event = self._create_events_for_group(hours_ago=i)
@@ -206,7 +207,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 == 6
             )
 
-    @freeze_time(FREEZE_TIME)
     def test_not_escalating_issue(self) -> None:
         """Test when an archived until escalating issue is not escalating"""
         with self.feature("organizations:escalating-issues"):
@@ -238,8 +238,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
     def test_daily_count_query(self) -> None:
         """Test the daily count query only aggregates events from today"""
-        # Do not create events more than 6 hours before or it would move to the previous day
-        with freeze_time("2023-04-25 06:21:34"):
+        # Do not create events more than 6 hours before or it will move to the previous day
+        with freeze_time(TIME_YESTERDAY.replace(hour=6)):
             # The group had 3 events two days ago
             for i in range(4, 1, -1):
                 self._create_events_for_group(hours_ago=48 + i)
