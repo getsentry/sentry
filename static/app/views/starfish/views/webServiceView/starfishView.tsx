@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -122,7 +122,11 @@ export function StarfishView(props: BasePerformanceViewProps) {
   }
 
   function renderThroughputChart() {
-    const query = new MutableSearch(['event.type:transaction']);
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'has:http.method',
+      'transaction.op:http.server',
+    ]);
 
     return (
       <EventsRequest
@@ -140,6 +144,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         end={eventView.end}
         organization={organization}
         yAxis="tpm()"
+        queryExtras={{dataset: 'metrics'}}
       >
         {({loading, timeseriesData}) => {
           const transformedData: Series[] | undefined = timeseriesData?.map(series => ({

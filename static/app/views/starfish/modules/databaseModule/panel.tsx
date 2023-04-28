@@ -7,8 +7,11 @@ import values from 'lodash/values';
 import moment from 'moment';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
@@ -30,7 +33,11 @@ const INTERVAL = 12;
 const HOST = 'http://localhost:8080';
 
 type EndpointDetailBodyProps = {
+  isDataLoading: boolean;
+  onRowChange: (row: DataRow | undefined) => void;
   row: DataRow;
+  nextRow?: DataRow;
+  prevRow?: DataRow;
 };
 
 type TransactionListDataRow = {
@@ -67,16 +74,38 @@ const COLUMN_ORDER = [
 
 export default function QueryDetail({
   row,
+  nextRow,
+  prevRow,
+  isDataLoading,
   onClose,
-}: Partial<EndpointDetailBodyProps> & {onClose: () => void}) {
+  onRowChange,
+}: Partial<EndpointDetailBodyProps> & {
+  isDataLoading: boolean;
+  onClose: () => void;
+  onRowChange: (row: DataRow) => void;
+}) {
   return (
     <Detail detailKey={row?.description} onClose={onClose}>
-      {row && <QueryDetailBody row={row} />}
+      {row && (
+        <QueryDetailBody
+          onRowChange={onRowChange}
+          isDataLoading={isDataLoading}
+          row={row}
+          nextRow={nextRow}
+          prevRow={prevRow}
+        />
+      )}
     </Detail>
   );
 }
 
-function QueryDetailBody({row}: EndpointDetailBodyProps) {
+function QueryDetailBody({
+  row,
+  nextRow,
+  prevRow,
+  onRowChange,
+  isDataLoading: isRowLoading,
+}: EndpointDetailBodyProps) {
   const theme = useTheme();
   const location = useLocation();
   const pageFilter = usePageFilters();
@@ -98,7 +127,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
 
   const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
     {
-      queryKey: ['dbQueryDetailsTable', row.description, pageFilter.selection.datetime],
+      queryKey: ['dbQueryDetailsTable', row.group_id, pageFilter.selection.datetime],
       queryFn: () =>
         fetch(`${HOST}/?query=${getPanelTableQuery(DATE_FILTERS, row)}`).then(res =>
           res.json()
@@ -109,11 +138,7 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   );
 
   const {isLoading: isEventCountLoading, data: eventCountData} = useQuery({
-    queryKey: [
-      'dbQueryDetailsEventCount',
-      row.description,
-      pageFilter.selection.datetime,
-    ],
+    queryKey: ['dbQueryDetailsEventCount', row.group_id, pageFilter.selection.datetime],
     queryFn: () =>
       fetch(`${HOST}/?query=${getPanelEventCount(DATE_FILTERS, row)}`).then(res =>
         res.json()
@@ -122,7 +147,8 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
     initialData: [],
   });
 
-  const isDataLoading = isLoading || isTableLoading || isEventCountLoading;
+  const isDataLoading =
+    isLoading || isTableLoading || isEventCountLoading || isRowLoading;
   let avgP75 = 0;
   if (!isDataLoading) {
     avgP75 =
@@ -177,6 +203,12 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   return (
     <div>
       <h2>{t('Query Detail')}</h2>
+      <SimplePagination
+        disableLeft={!prevRow}
+        disableRight={!nextRow}
+        onLeftClick={() => onRowChange(prevRow)}
+        onRightClick={() => onRowChange(nextRow)}
+      />
       <p>
         {t(
           'Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans.'
@@ -239,6 +271,31 @@ function QueryDetailBody({row}: EndpointDetailBodyProps) {
   );
 }
 
+type SimplePaginationProps = {
+  disableLeft?: boolean;
+  disableRight?: boolean;
+  onLeftClick?: () => void;
+  onRightClick?: () => void;
+};
+
+function SimplePagination(props: SimplePaginationProps) {
+  return (
+    <ButtonBar merged>
+      <Button
+        icon={<IconChevron direction="left" size="sm" />}
+        aria-label={t('Previous')}
+        disabled={props.disableLeft}
+        onClick={props.onLeftClick}
+      />
+      <Button
+        icon={<IconChevron direction="right" size="sm" />}
+        aria-label={t('Next')}
+        onClick={props.onRightClick}
+        disabled={props.disableRight}
+      />
+    </ButtonBar>
+  );
+}
 const throughputQueryToChartData = (
   data: any,
   startTime: moment.Moment,
