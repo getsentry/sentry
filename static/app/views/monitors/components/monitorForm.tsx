@@ -42,6 +42,8 @@ const SCHEDULE_OPTIONS: RadioOption<string>[] = [
 const DEFAULT_MONITOR_TYPE = 'cron_job';
 const DEFAULT_CRONTAB = '0 0 * * *';
 
+export const DEFAULT_MAX_RUNTIME = 30;
+
 const getIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
   {value: 'hour', label: tn('hour', 'hours', n)},
@@ -336,7 +338,7 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.max_runtime"
-            placeholder="Defaults to 30 minutes"
+            placeholder={`Defaults to ${DEFAULT_MAX_RUNTIME} minutes`}
             stacked
             inline={false}
           />
