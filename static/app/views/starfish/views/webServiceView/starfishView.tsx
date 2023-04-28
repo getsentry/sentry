@@ -212,7 +212,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'endpoint',
           'tpm',
           'p50(duration)',
-          'p95(duration)',
+          'p50 change',
           'failure count',
           'cumulative time',
         ]}
