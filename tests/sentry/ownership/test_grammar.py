@@ -133,8 +133,10 @@ def test_matcher_test_url():
 
 
 def test_matcher_test_url_none():
-    for bad_data in (None, {}, {"request": None}, {"request": {"url": None}}):
-        assert not Matcher("url", "doesnt_matter").test(bad_data)
+    assert not Matcher("url", "doesnt_matter").test(None)
+    assert not Matcher("url", "doesnt_matter").test({})
+    assert not Matcher("url", "doesnt_matter").test({"request": None})
+    assert not Matcher("url", "doesnt_matter").test({"request": {"url": None}})
 
 
 def test_matcher_test_none():
