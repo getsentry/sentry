@@ -63,7 +63,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 self.max_batch_time,
                 self.input_block_size,
                 self.output_block_size,
-                initializer=partial(initialize_consumer_state, [initialize_metrics]),
+                initializer=partial(initialize_consumer_state),
             )
         else:
             return RunTask(callable, CommitOffsets(commit))
@@ -127,6 +127,9 @@ def get_query_subscription_consumer(
 
     cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
+
+    initialize_metrics()
+
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
             cluster_options,
