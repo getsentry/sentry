@@ -117,6 +117,8 @@ def get_actor_for_user(user: Union["User", RpcUser]):
         actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
         if not actor:
             actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
+            # TODO(hybridcloud) This RPC call should be removed once all reads to User.actor_id have
+            # been removed.
             user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
     return actor
 

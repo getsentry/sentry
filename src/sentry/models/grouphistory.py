@@ -235,7 +235,7 @@ def record_group_history_from_activity_type(
 def record_group_history(
     group: "Group",
     status: int,
-    actor: Optional[Union["RpcUser", "Team"]] = None,
+    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,
 ):
     from sentry.models import Team, User
