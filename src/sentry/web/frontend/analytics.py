@@ -11,7 +11,7 @@ class JsSdkLoaderRendered(analytics.Event):
         analytics.Attribute("has_replay"),
         analytics.Attribute("has_debug"),
         analytics.Attribute("sdk_version"),
-        analytics.Attribute("tmpl_instance"),
+        analytics.Attribute("tmpl"),
     )
 
 

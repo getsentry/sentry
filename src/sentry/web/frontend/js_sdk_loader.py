@@ -196,7 +196,7 @@ class JavaScriptSdkLoader(BaseView):
             has_replay=loader_config["hasReplay"],
             has_debug=loader_config["hasDebug"],
             sdk_version=sdk_version,
-            tmpl_instance=instance,
+            tmpl=tmpl,
         ) if key else None
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
