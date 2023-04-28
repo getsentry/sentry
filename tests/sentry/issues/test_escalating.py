@@ -120,7 +120,7 @@ class HistoricGroupCounts(BaseGroupCounts):
         event1 = self._load_event_for_group(project_id=proj_x.id)
         # This event has the same fingerprint as event1 but
         # should be different group IDs since they belong to different projects
-        event_y_1 = self._load_event_for_group(project_id=proj_y.id, hours_ago=2)
+        event_y_1 = self._load_event_for_group(project_id=proj_y.id, hours_ago=1)
         assert event1.group_id != event_y_1.group_id
 
         event_y_2 = self._load_event_for_group(project_id=proj_y.id, fingerprint="group-1")
@@ -138,8 +138,8 @@ class HistoricGroupCounts(BaseGroupCounts):
         org_b = Factories.create_organization()
         proj_b = Factories.create_project(org_b)
 
-        event1 = self._load_event_for_group(project_id=proj_a, hours_ago=2)
-        event_proj_org_b_1 = self._load_event_for_group(project_id=proj_b, hours_ago=2)
+        event1 = self._load_event_for_group(project_id=proj_a, hours_ago=1)
+        event_proj_org_b_1 = self._load_event_for_group(project_id=proj_b, hours_ago=1)
 
         # Since proj_org_b is created
         assert query_groups_past_counts(Group.objects.all()) == [
