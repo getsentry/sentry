@@ -2,11 +2,11 @@ from datetime import datetime
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
+from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.monitors.models import (
-    MONITOR_ENVIRONMENT_LIMIT,
-    MONITOR_ORG_LIMIT,
     Monitor,
     MonitorEnvironment,
     MonitorFailure,
@@ -117,8 +117,9 @@ class MonitorTestCase(TestCase):
 
         assert monitor.slug.startswith("my-awesome-monitor-")
 
+    @override_settings(MAX_MONITORS_PER_ORG=10)
     def test_monitor_organization_limit(self):
-        for i in range(MONITOR_ORG_LIMIT + 1):
+        for i in range(settings.MAX_MONITORS_PER_ORG + 1):
             Monitor.objects.create(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
@@ -130,14 +131,14 @@ class MonitorTestCase(TestCase):
 
         with pytest.raises(
             Exception,
-            match=f"Organization has created the maximum number of Monitors: {MONITOR_ORG_LIMIT}",
+            match=f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization",
         ):
             Monitor.objects.create(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 type=MonitorType.CRON_JOB,
-                name=f"Unicron-{MONITOR_ORG_LIMIT + 1}",
-                slug=f"unicron-{MONITOR_ORG_LIMIT + 1}",
+                name=f"Unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
+                slug=f"unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
                 config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
             )
 
@@ -280,6 +281,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
+    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=10)
     def test_monitor_environment_limits(self):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
@@ -290,13 +292,13 @@ class MonitorEnvironmentTestCase(TestCase):
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
-        for i in range(MONITOR_ENVIRONMENT_LIMIT + 1):
+        for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 1):
             MonitorEnvironment.objects.ensure_environment(self.project, monitor, f"space-{i}")
 
         with pytest.raises(
             Exception,
-            match=f"Monitor has created the maximum number of Monitor Environments: {MONITOR_ENVIRONMENT_LIMIT}",
+            match=f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor",
         ):
             MonitorEnvironment.objects.ensure_environment(
-                self.project, monitor, f"space-{MONITOR_ENVIRONMENT_LIMIT + 1}"
+                self.project, monitor, f"space-{settings.MAX_ENVIRONMENTS_PER_MONITOR + 1}"
             )

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pytz
 from croniter import croniter
 from dateutil import rrule
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import pre_save
@@ -31,9 +32,6 @@ from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
     from sentry.models import Project
-
-MONITOR_ORG_LIMIT = 50
-MONITOR_ENVIRONMENT_LIMIT = 50
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -240,10 +238,10 @@ def check_organization_monitor_limits(sender, instance, **kwargs):
     if (
         instance.pk is None
         and sender.objects.filter(organization_id=instance.organization_id).count()
-        > MONITOR_ORG_LIMIT
+        > settings.MAX_MONITORS_PER_ORG
     ):
         raise Exception(
-            f"Organization has created the maximum number of Monitors: {MONITOR_ORG_LIMIT}"
+            f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
         )
 
 
@@ -418,8 +416,9 @@ class MonitorEnvironment(Model):
 def check_monitor_environment_limits(sender, instance, **kwargs):
     if (
         instance.pk is None
-        and sender.objects.filter(monitor=instance.monitor).count() > MONITOR_ENVIRONMENT_LIMIT
+        and sender.objects.filter(monitor=instance.monitor).count()
+        > settings.MAX_ENVIRONMENTS_PER_MONITOR
     ):
         raise Exception(
-            f"Monitor has created the maximum number of Monitor Environments: {MONITOR_ENVIRONMENT_LIMIT}"
+            f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
