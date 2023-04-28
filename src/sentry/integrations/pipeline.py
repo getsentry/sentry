@@ -179,7 +179,7 @@ class IntegrationPipeline(Pipeline):
 
     def _dialog_response(self, data, success):
         document_origin = "document.origin"
-        if features.has("organizations:customer-domains", self.organization) or True:
+        if features.has("organizations:customer-domains", self.organization):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'
         context = {
             "payload": {"success": success, "data": data},
