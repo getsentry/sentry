@@ -947,8 +947,6 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -> RawRe
     request, forward, reverse = query_data
     request.parent_api = parent_api
     assert isinstance(request, Request)
-    assert "organization_id" in request.tenant_ids
-    assert "referrer" in request.tenant_ids
     try:
         return _raw_snql_query(request, thread_hub, headers), forward, reverse
     except urllib3.exceptions.HTTPError as err:
