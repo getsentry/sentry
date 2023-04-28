@@ -119,7 +119,7 @@ def get_access_by_project(
         if has_access:
             # Project can be the child of several Teams, and the User can join
             # several Teams and receive roles at each of them,
-            team_scopes = set().union(*[m.get_scopes() for m in member_teams])
+            team_scopes = team_scopes.union(*[m.get_scopes() for m in member_teams])
 
             # User may have elevated team-roles from their org-role
             top_org_role = org_roles[0] if org_roles else None
