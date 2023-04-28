@@ -289,7 +289,9 @@ class WidgetCard extends Component<Props, State> {
           <React.Fragment>
             <VisuallyCompleteWithData
               id="DashboardList-FirstWidgetCard"
-              hasData={(this.state.tableData?.length ?? 0) > 0}
+              hasData={
+                ((this.state.tableData?.length || this.state.seriesData?.length) ?? 0) > 0
+              }
               disabled={Number(this.props.index) !== 0}
             >
               <WidgetCardPanel isDragging={false}>
