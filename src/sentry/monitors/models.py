@@ -79,7 +79,6 @@ class MonitorStatus(ObjectStatus):
     ERROR = 5
     MISSED_CHECKIN = 6
 
-    # TODO(rjo100): holdover until we revert to ObjectStatus
     @classmethod
     def as_choices(cls):
         return (
@@ -87,9 +86,9 @@ class MonitorStatus(ObjectStatus):
             (cls.DISABLED, "disabled"),
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-            (cls.OK, "active"),
-            (cls.ERROR, "active"),
-            (cls.MISSED_CHECKIN, "active"),
+            (cls.OK, "ok"),
+            (cls.ERROR, "error"),
+            (cls.MISSED_CHECKIN, "missed_checkin"),
         )
 
 
@@ -218,6 +217,17 @@ class Monitor(Model):
             last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
+
+    def get_status_display(self) -> str:
+        for status_id, display in MonitorStatus.as_choices():
+            if status_id in [
+                MonitorStatus.ACTIVE,
+                MonitorStatus.DISABLED,
+                MonitorStatus.PENDING_DELETION,
+                MonitorStatus.DELETION_IN_PROGRESS,
+            ]:
+                return display
+        return "active"
 
 
 @region_silo_only_model
