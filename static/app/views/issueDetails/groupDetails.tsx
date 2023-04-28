@@ -85,7 +85,7 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    this.fetchData();
+    this.fetchData(true);
     this.updateReprocessingProgress();
 
     // Fetch environments early - used in GroupEventDetailsContainer
@@ -102,6 +102,19 @@ class GroupDetails extends Component<Props, State> {
     ) {
       // Skip tracking for other navigation events like switching events
       this.fetchData(globalSelectionReadyChanged);
+    }
+
+    if (prevProps.params?.eventId !== this.props.params?.eventId) {
+      // if we are loading events we should record analytics after it's loaded
+      this.getEvent().then(() => {
+        if (!this.state.group?.project) {
+          return;
+        }
+        const project = this.props.projects.find(
+          p => p.id === this.state.group?.project.id
+        );
+        project && this.trackView(project);
+      });
     }
   }
 
@@ -365,7 +378,7 @@ class GroupDetails extends Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
-  async fetchData(trackView = true) {
+  async fetchData(trackView = false) {
     const {api, isGlobalSelectionReady, organization, params} = this.props;
 
     // Need to wait for global selection store to be ready before making request
