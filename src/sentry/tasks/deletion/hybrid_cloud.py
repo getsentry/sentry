@@ -87,8 +87,8 @@ def chunk_watermark_batch(
 
     # cap to batch size so that query timeouts don't get us.
     capped = upper
-    # if upper >= batch_upper:
-    # capped = batch_upper
+    if upper >= batch_upper:
+        capped = batch_upper
 
     return WatermarkBatch(
         low=lower, up=capped, has_more=batch_upper < upper, transaction_id=transaction_id
