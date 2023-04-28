@@ -375,7 +375,8 @@ def report_metrics_for_detectors(
         )
 
     for allowed_sdk_name in SDKS_OF_INTEREST:
-        detected_tags["sdk_" + allowed_sdk_name.lower()] = allowed_sdk_name == sdk_name
+        if allowed_sdk_name == sdk_name:
+            detected_tags["sdk_" + allowed_sdk_name.lower()] = True
 
     for detector in detectors:
         detector_key = detector.type.value
