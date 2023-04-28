@@ -10,10 +10,10 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
-import NetworkDetailsContent from 'sentry/views/replays/detail/network/networkDetailsContent';
+import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
 import NetworkDetailsTabs, {
   TabKey,
-} from 'sentry/views/replays/detail/network/networkDetailsTabs';
+} from 'sentry/views/replays/detail/network/details/tabs';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
