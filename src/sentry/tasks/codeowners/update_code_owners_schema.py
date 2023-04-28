@@ -4,7 +4,6 @@ from typing import Any, Iterable
 
 from sentry import features
 from sentry.models import Integration, Organization, Project
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.tasks.base import instrumented_task, load_model_from_db
 
 
@@ -33,11 +32,11 @@ def update_code_owners_schema(
             projects = [load_model_from_db(Project, project) for project in projects]
             code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
 
-        integration = _load_integration_from_rpc(integration)
-        if integration:
+        integration_id = _unpack_integration_id(integration)
+        if integration_id is not None:
             code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
                 organization_integration__organization_id=organization.id,
-                organization_integration__integration_id=integration.id,
+                organization_integration__integration_id=integration_id,
             ).values_list("id", flat=True)
 
             code_owners = ProjectCodeOwners.objects.filter(
@@ -52,11 +51,7 @@ def update_code_owners_schema(
         return
 
 
-def _load_integration_from_rpc(
-    integration: Integration | int | None,
-) -> Integration | RpcIntegration | None:
-    if integration is None:
-        return None
+def _unpack_integration_id(integration: Integration | int | None) -> int | None:
     if isinstance(integration, Integration):
-        return integration
-    return integration_service.get_integration(integration_id=integration)
+        return integration.id
+    return integration
