@@ -47,8 +47,7 @@ class BaseGroupCounts(TestCase):  # type: ignore[misc]
 
         last_event = None
         for _ in range(count):
-            # At least a second ago in the past or the Snuba queries would not include them
-            data["timestamp"] = (base_time - timedelta(hours=hours_ago, seconds=1)).timestamp()
+            data["timestamp"] = (base_time - timedelta(hours=hours_ago)).timestamp()
             data["event_id"] = uuid4().hex
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = Factories.store_event(
@@ -78,8 +77,8 @@ class HistoricGroupCounts(BaseGroupCounts):
 
     def test_pagination(self) -> None:
         group1_bucket1_event = self._create_events_for_group(count=2, hours_ago=1, group="group-1")
-        group2_bucket1_event = self._create_events_for_group(count=1, hours_ago=1, group="group-2")
-        group2_bucket2_event = self._create_events_for_group(count=2, hours_ago=2, group="group-2")
+        group2_bucket1_event = self._create_events_for_group(count=1, hours_ago=2, group="group-2")
+        group2_bucket2_event = self._create_events_for_group(count=2, hours_ago=1, group="group-2")
 
         # This forces to test the iteration over the Snuba data
         with patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=2):
