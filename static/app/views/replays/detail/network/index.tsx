@@ -14,6 +14,8 @@ import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/networkDetails';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
@@ -48,11 +50,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
   const {dismiss, isDismissed} = useDismissAlert({key: 'replay-network-bodies'});
 
-  const initialRequestDetailsHeight = useMemo(
-    () => Math.max(150, window.innerHeight * 0.25),
-    []
-  );
-
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
@@ -71,6 +68,23 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       dynamicColumnIndex: 1,
       deps,
     });
+
+  const initialRequestDetailsHeight = useMemo(
+    () => Math.max(150, window.innerHeight * 0.25),
+    []
+  );
+  const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
+    direction: 'up',
+    initialSize: initialRequestDetailsHeight,
+    min: 0,
+    onResize: () => {},
+  });
+  const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
+    'n_detail_row',
+    ''
+  );
+  const detailItemIndex = getDetailRow();
+  const splitSize = networkSpans && detailItemIndex ? containerSize : undefined;
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
@@ -153,7 +167,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
         )}
       </Feature>
       <NetworkTable>
-        <FluidHeight>
+        <SplitPanel
+          style={{
+            gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
+          }}
+        >
           {networkSpans ? (
             <OverflowHidden>
               <AutoSizer onResize={onWrapperResize}>
@@ -201,17 +219,27 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             renderDisabled={false}
           >
             <NetworkDetails
-              initialHeight={initialRequestDetailsHeight}
-              items={items}
-              scrollToRow={setScrollToRow}
+              {...resizableDrawerProps}
+              item={detailItemIndex ? (items[detailItemIndex] as NetworkSpan) : null}
+              onClose={() => setDetailRow('')}
+              onScrollToRow={() => setScrollToRow(Number(detailItemIndex))}
               startTimestampMs={startTimestampMs}
             />
           </Feature>
-        </FluidHeight>
+        </SplitPanel>
       </NetworkTable>
     </FluidHeight>
   );
 }
+
+const SplitPanel = styled('div')`
+  width: 100%;
+  height: 100%;
+
+  position: relative;
+  display: grid;
+  overflow: auto;
+`;
 
 const OverflowHidden = styled('div')`
   position: relative;
@@ -219,7 +247,7 @@ const OverflowHidden = styled('div')`
   overflow: hidden;
 `;
 
-const NetworkTable = styled(OverflowHidden)`
+const NetworkTable = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 

@@ -21,6 +21,7 @@ import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import SearchBarAction from '../searchBarAction';
@@ -287,7 +288,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     };
   }
 
-  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
+  const replayId = getReplayIdFromEvent(event);
   const showReplay = !isShare && organization.features.includes('session-replay');
 
   const actions = (
