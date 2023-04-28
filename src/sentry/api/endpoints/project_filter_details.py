@@ -70,7 +70,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log_state,
-            data={"state": returned_state},
+            data={"state": list(returned_state)},
         )
 
         return Response(status=201)
