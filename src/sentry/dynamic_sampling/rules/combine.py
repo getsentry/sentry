@@ -1,4 +1,4 @@
-from sentry import options
+from sentry import features
 from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BoostEnvironmentsBias
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
 from sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule import (
@@ -11,9 +11,10 @@ from sentry.dynamic_sampling.rules.biases.uniform_bias import UniformBias
 from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
 from sentry.dynamic_sampling.rules.combinators.ordered_combinator import OrderedBiasesCombinator
 from sentry.dynamic_sampling.rules.utils import RuleType
+from sentry.models import Organization
 
 
-def get_relay_biases_combinator() -> BiasesCombinator:
+def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:
     default_combinator = OrderedBiasesCombinator()
 
     default_combinator.add(RuleType.IGNORE_HEALTH_CHECKS_RULE, IgnoreHealthChecksBias())
@@ -22,7 +23,7 @@ def get_relay_biases_combinator() -> BiasesCombinator:
     default_combinator.add_if(
         RuleType.RECALIBRATION_RULE,
         RecalibrationBias(),
-        lambda: not options.get("dynamic-sampling:sliding-window"),
+        lambda: not features.has("organizations:ds-sliding-window", organization, actor=None),
     )
     default_combinator.add(RuleType.BOOST_ENVIRONMENTS_RULE, BoostEnvironmentsBias())
     default_combinator.add(RuleType.BOOST_LATEST_RELEASES_RULE, BoostLatestReleasesBias())
