@@ -82,9 +82,8 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
     }
 
     if (hasEscalatingIssuesUi && data.ignoreUntilEscalating) {
-      return tct('[author] [action] this issue until it escalates', {
+      return tct('[author] archived this issue until it escalates', {
         author,
-        action: ignoredOrArchived,
       });
     }
 
