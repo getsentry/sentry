@@ -22,7 +22,7 @@ import {
   getPanelEventCount,
   getPanelGraphQuery,
   getPanelTableQuery,
-  useTopTransactionByP75Query,
+  useQueryTransactionByTPM,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -119,8 +119,8 @@ function QueryDetailBody({
     less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
-  const {isLoading: isP75GraphLoading, data: p75GraphData} =
-    useTopTransactionByP75Query(row);
+  const {isLoading: isP75GraphLoading, data: tpmTransactionGraphData} =
+    useQueryTransactionByTPM(row);
 
   const [sort, setSort] = useState<{
     direction: 'desc' | 'asc' | undefined;
@@ -201,8 +201,8 @@ function QueryDetailBody({
     endTime
   );
 
-  const p75PerTransactionSeries = p75TransactionQueryToChartData(
-    p75GraphData,
+  const tpmTransactionSeries = tpmTransactionQueryToChartData(
+    tpmTransactionGraphData,
     startTime,
     endTime
   );
@@ -322,20 +322,23 @@ function QueryDetailBody({
       </FlexRowContainer>
       <FlexRowContainer>
         <FlexRowItem>
-          <SubHeader>{t('Duration (P75) By Transaction')}</SubHeader>
+          <SubHeader>{t('Highest throughput transactions')}</SubHeader>
           <Chart
             statsPeriod="24h"
             height={140}
-            data={p75PerTransactionSeries}
+            data={tpmTransactionSeries}
             start=""
             end=""
             loading={isDataLoading}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '16px',
+              bottom: '8px',
+            }}
             utc={false}
-            chartColors={[theme.charts.getColorPalette(4)[3]]}
-            disableMultiAxis
-            stacked
-            isLineChart
             disableXAxis
+            isLineChart
             hideYAxisSplitLine
           />
         </FlexRowItem>
@@ -414,15 +417,15 @@ const throughputQueryToChartData = (
   ];
 };
 
-const p75TransactionQueryToChartData = (
-  data: {interval: string; p75: number; transaction: string}[],
+const tpmTransactionQueryToChartData = (
+  data: {count: number; interval: string; transaction: string}[],
   startTime: moment.Moment,
   endTime: moment.Moment
 ): Series[] => {
   const seriesMap: Record<string, Series> = {};
 
   data.forEach(row => {
-    const dataEntry = {value: row.p75, name: row.interval};
+    const dataEntry = {value: row.count, name: row.interval};
     if (!seriesMap[row.transaction]) {
       seriesMap[row.transaction] = {
         seriesName: row.transaction,

@@ -95,7 +95,7 @@ export const getTopOperationsChart = (date_filters, interval) => {
   `;
 };
 
-export const useTopTransactionByP75Query = row => {
+export const useQueryTransactionByTPM = row => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = `
@@ -106,7 +106,7 @@ export const useTopTransactionByP75Query = row => {
 
   const query = `
   select
-    floor(quantile(0.75)(exclusive_time), 5) as p75,
+    count() as count,
     transaction,
     toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
   FROM default.spans_experimental_starfish
@@ -120,7 +120,7 @@ export const useTopTransactionByP75Query = row => {
       FROM default.spans_experimental_starfish
       WHERE ${queryFilter}
       GROUP BY transaction
-      ORDER BY floor(quantile(0.75)(exclusive_time), 5) desc
+      ORDER BY count() desc
       LIMIT 5
     )
   group by transaction, interval
