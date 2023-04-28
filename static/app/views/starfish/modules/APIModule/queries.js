@@ -164,3 +164,17 @@ export const getSpanFacetBreakdownQuery = ({groupId, datetime}) => {
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
  `;
 };
+
+export const getHostStatusBreakdownQuery = ({domain, datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  return `
+    SELECT count() as count, status
+    FROM spans_experimental_starfish
+    WHERE module = 'http'
+    AND domain = '${domain}'
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+    GROUP BY status
+    ORDER BY count DESC
+  `;
+};
