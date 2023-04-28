@@ -47,7 +47,7 @@ class BaseGroupCounts(TestCase):  # type: ignore[misc]
 
         last_event = None
         for _ in range(count):
-            data["timestamp"] = (base_time - timedelta(hours=hours_ago)).timestamp()
+            data["timestamp"] = (base_time - timedelta(hours=hours_ago)).timestamp()  # type: ignore[assignment]
             data["event_id"] = uuid4().hex
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = Factories.store_event(
