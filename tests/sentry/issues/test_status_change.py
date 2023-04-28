@@ -106,7 +106,7 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
             new_status=GroupStatus.IGNORED,
             new_substatus=None,
             is_bulk=True,
-            status_details={"untilEscalating": True},
+            status_details={"ignoreUntilEscalating": True},
             sender=self,
             activity_type=None,
         )

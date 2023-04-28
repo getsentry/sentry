@@ -71,7 +71,7 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         assert not GroupInbox.objects.filter(group=self.group).exists()
         # Make sure we don't create a snooze for until_escalating
         assert not GroupSnooze.objects.filter(group=self.group).exists()
-        assert status_details == {"untilEscalating": True}
+        assert status_details == {"ignoreUntilEscalating": True}
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
         assert fetched_forecast is not None
@@ -100,7 +100,7 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         assert not GroupInbox.objects.filter(group=self.group).exists()
         # Make sure we don't create a snooze for until_escalating
         assert not GroupSnooze.objects.filter(group=self.group).exists()
-        assert status_details == {"untilEscalating": True}
+        assert status_details == {"ignoreUntilEscalating": True}
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
         assert fetched_forecast is not None
@@ -123,4 +123,4 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
             [self.group], self.user, [self.project], sender=self
         )
         assert mock_send_robust.called
-        assert status_details == {"untilEscalating": True}
+        assert status_details == {"ignoreUntilEscalating": True}

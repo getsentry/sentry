@@ -72,7 +72,7 @@ def handle_status_update(
             "ignoreUserCount": status_details.get("ignoreUserCount", None),
             "ignoreUserWindow": status_details.get("ignoreUserWindow", None),
             "ignoreWindow": status_details.get("ignoreWindow", None),
-            "ignoreUntilEscalating": status_details.get("untilEscalating", None),
+            "ignoreUntilEscalating": status_details.get("ignoreUntilEscalating", None),
         }
         if activity_data["ignoreUntil"] is not None:
             activity_data["ignoreUntil"] = json.datetime_to_str(activity_data["ignoreUntil"])
