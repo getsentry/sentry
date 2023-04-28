@@ -109,7 +109,7 @@ export function CreateProjectsFooter({
           selectedSDK: createProjectForPlatform,
           projects: {
             ...onboardingContext.data.projects,
-            [response.slug]: {
+            [response.id]: {
               slug: response.slug,
               status: OnboardingProjectStatus.WAITING,
             },

@@ -3,7 +3,9 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
+import {removeProject} from 'sentry/actionCreators/projects';
 import {Button, ButtonProps} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -14,9 +16,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingSelectedSDK} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
@@ -58,7 +63,9 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
 }
 
 function Onboarding(props: Props) {
+  const api = useApi();
   const organization = useOrganization();
+  const projects = useProjects();
   const onboardingContext = useContext(OnboardingContext);
   const selectedSDK = onboardingContext.data.selectedSDK;
   const selectedProjectSlug = selectedSDK?.key;
@@ -79,13 +86,43 @@ function Onboarding(props: Props) {
     'onboarding-heartbeat-footer'
   );
 
-  const projectDeletionOnBackClick = !!organization?.features.includes(
-    'onboarding-project-deletion-on-back-click'
-  );
+  // const projectDeletionOnBackClick = !!organization?.features.includes(
+  //   'onboarding-project-deletion-on-back-click'
+  // );
+
+  const projectDeletionOnBackClick = true;
 
   const onboardingSteps = getOrganizationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
+
+  const loadingProjects = !projects.initiallyLoaded;
+
+  const createdProjectId = Object.keys(onboardingContext.data.projects).find(
+    key =>
+      onboardingContext.data.projects[key].slug ===
+      onboardingContext.data.selectedSDK?.key
+  );
+
+  const recentCreatedProject =
+    !loadingProjects && createdProjectId
+      ? projects.projects.find(p => p.id === createdProjectId)
+      : undefined;
+
+  const shallProjectBeDeleted =
+    projectDeletionOnBackClick &&
+    onboardingSteps[stepIndex].id === 'setup-docs' &&
+    recentCreatedProject &&
+    // if the project has received a first error, we don't delete it
+    Boolean(recentCreatedProject.firstEvent) === false &&
+    // if the project has received a first transaction, we don't delete it
+    Boolean(recentCreatedProject.firstTransactionEvent) === false &&
+    // if the project has replays, we don't delete it
+    Boolean(recentCreatedProject.hasReplays) === false &&
+    // if the project has sessions, we don't delete it
+    Boolean(recentCreatedProject.hasSessions) === false;
+
+  console.log({shallProjectBeDeleted});
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
@@ -138,18 +175,32 @@ function Onboarding(props: Props) {
     [organization.slug, onboardingSteps, cornerVariantControl, props.router]
   );
 
-  // TODO(Priscila): will tackle this in a follow-up PR
-  // const deleteProject = useCallback(
-  //   async (projectSlug: string) => {
-  //     try {
-  //       await removeProject(api, organization.slug, projectSlug);
-  //     } catch (error) {
-  //       handleXhrErrorResponse(t('Unable to delete project'))(error);
-  //       // we don't give the user any feedback regarding this error as this shall be silent
-  //     }
-  //   },
-  //   [api, organization.slug]
-  // );
+  const deleteRecentCreatedProject = useCallback(async () => {
+    if (!recentCreatedProject?.slug) {
+      return;
+    }
+
+    const newProjects = Object.keys(onboardingContext.data.projects).reduce(
+      (acc, key) => {
+        if (key !== onboardingContext.data.selectedSDK?.key) {
+          acc[key] = onboardingContext.data.projects[key];
+        }
+        return acc;
+      },
+      {}
+    );
+
+    try {
+      await removeProject(api, organization.slug, recentCreatedProject.slug);
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        projects: newProjects,
+      });
+    } catch (error) {
+      handleXhrErrorResponse(t('Unable to delete project in onboarding'))(error);
+      // we don't give the user any feedback regarding this error as this shall be silent
+    }
+  }, [api, organization.slug, recentCreatedProject?.slug, onboardingContext]);
 
   const handleGoBack = useCallback(() => {
     if (!stepObj) {
@@ -175,28 +226,16 @@ function Onboarding(props: Props) {
     // from selected platform to welcome
     if (onboardingSteps[stepIndex].id === 'select-platform') {
       onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+
+      props.router.replace(
+        normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
+      );
+      return;
     }
 
     // from setup docs to selected platform
-    if (onboardingSteps[stepIndex].id === 'setup-docs' && projectDeletionOnBackClick) {
-      if (!onboardingContext.data.selectedSDK) {
-        return;
-      }
-
-      const newProjects = Object.keys(onboardingContext.data.projects).reduce(
-        (acc, key) => {
-          if (key !== onboardingContext.data.selectedSDK?.key) {
-            acc[key] = onboardingContext.data.projects[key];
-          }
-          return acc;
-        },
-        {}
-      );
-
-      onboardingContext.setData({
-        ...onboardingContext.data,
-        projects: newProjects,
-      });
+    if (onboardingSteps[stepIndex].id === 'setup-docs' && shallProjectBeDeleted) {
+      deleteRecentCreatedProject();
     }
 
     props.router.replace(
@@ -209,8 +248,9 @@ function Onboarding(props: Props) {
     organization,
     cornerVariantControl,
     props.router,
-    projectDeletionOnBackClick,
     onboardingContext,
+    shallProjectBeDeleted,
+    deleteRecentCreatedProject,
   ]);
 
   const genSkipOnboardingLink = () => {
@@ -261,7 +301,17 @@ function Onboarding(props: Props) {
         </UpsellWrapper>
       </Header>
       <Container hasFooter={containerHasFooter} heartbeatFooter={heartbeatFooter}>
-        <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} onClick={handleGoBack} />
+        <Confirm
+          bypass={!shallProjectBeDeleted}
+          message={t(
+            "Hey, just a heads up - we haven't received any data for this project yet and by going back all changes will be discarded. Are you sure you want to head back?"
+          )}
+          priority="danger"
+          confirmText={t("Yes I'm sure. Take me back")}
+          onConfirm={handleGoBack}
+        >
+          <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
+        </Confirm>
         <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
           <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
