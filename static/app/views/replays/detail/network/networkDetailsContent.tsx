@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 import queryString from 'query-string';
 
 import {Button} from 'sentry/components/button';
-import {KeyValueTable} from 'sentry/components/keyValueTable';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import ObjectInspector from 'sentry/components/objectInspector';
-import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {IconChevron, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -104,21 +103,27 @@ function ResponseTab({item}: TabProps) {
 
 function objectInspectorOrNotFound(data: any, notFoundText: string) {
   return data ? (
-    <ObjectInspector data={data} expandLevel={3} />
+    <Indent>
+      <ObjectInspector data={data} expandLevel={3} />
+    </Indent>
   ) : (
-    <NotFoundText>{notFoundText}</NotFoundText>
+    <Indent>
+      <NotFoundText>{notFoundText}</NotFoundText>
+    </Indent>
   );
 }
 
 function keyValueTablOrNotFound(data: Record<string, string>, notFoundText: string) {
   return data ? (
-    <KeyValueTable noMargin>
-      {Object.entries(data).map(([key, values]) => (
-        <ReplayTagsTableRow key={key} name={key} values={[values]} />
+    <StyledKeyValueTable noMargin>
+      {Object.entries(data).map(([key, value]) => (
+        <KeyValueTableRow key={key} keyName={key} value={<span>{value}</span>} />
       ))}
-    </KeyValueTable>
+    </StyledKeyValueTable>
   ) : (
-    <NotFoundText>{notFoundText}</NotFoundText>
+    <Indent>
+      <NotFoundText>{notFoundText}</NotFoundText>
+    </Indent>
   );
 }
 
@@ -141,55 +146,44 @@ const SectionList = styled('dl')`
   height: 100%;
   margin: 0;
   overflow: auto;
-  padding: ${space(1)};
 `;
 
-const SectionTitle = styled('dt')`
-  margin-top: ${space(1)};
-  &:first-child {
-    margin-top: 0;
-  }
-`;
+const SectionTitle = styled('dt')``;
 
 const SectionData = styled('dd')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
-
-  margin-bottom: ${space(1)};
-  &:last-child {
-    margin-bottom: 0;
-  }
 `;
 
 const ToggleButton = styled('button')`
   background: ${p => p.theme.background};
   border: 0;
   color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: ${p => p.theme.text.lineHeightBody};
 
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
+  justify-content: flex-start;
+  gap: ${space(0.75)};
 
-  padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} 0;
+  padding: ${space(0.5)} ${space(1.5)};
 
   :hover {
     background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
-function SectionItem({title, children}: {children: ReactNode; title: string}) {
+function SectionItem({children, title}: {children: ReactNode; title: string}) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
     <Fragment>
       <SectionTitle>
         <ToggleButton aria-label={t('toggle section')} onClick={() => setIsOpen(!isOpen)}>
-          {title}
           <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+          {title}
         </ToggleButton>
       </SectionTitle>
       <SectionData>{isOpen ? children : null}</SectionData>
@@ -197,8 +191,26 @@ function SectionItem({title, children}: {children: ReactNode; title: string}) {
   );
 }
 
-const NotFoundText = styled('code')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+const Indent = styled('div')`
+  padding-left: ${space(4)};
+`;
+
+const NotFoundText = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledKeyValueTable = styled(KeyValueTable)`
+  & > dt {
+    font-size: ${p => p.theme.fontSizeSmall};
+    padding-left: ${space(4)};
+  }
+  & > dd {
+    ${p => p.theme.overflowEllipsis};
+    font-size: ${p => p.theme.fontSizeSmall};
+    display: flex;
+    justify-content: flex-end;
+  }
 `;
 
 export default NetworkDetailsContent;
