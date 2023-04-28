@@ -21,6 +21,7 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOG
 from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -223,6 +224,18 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         attachments = SlackIssuesMessageBuilder(perf_group).build()
 
         assert attachments["color"] == "#2788CE"  # blue for info level
+
+    @with_feature("organizations:slack-escape-messages")
+    def test_escape_slack_message(self):
+        group = self.create_group(
+            project=self.project,
+            message="<https://example.com/|*Click Here*>",
+            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
+        )
+        assert (
+            SlackIssuesMessageBuilder(group, None).build()["text"]
+            == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
+        )
 
 
 class BuildIncidentAttachmentTest(TestCase):
