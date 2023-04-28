@@ -193,8 +193,17 @@ class DigestNotification(ProjectNotification):
 
         # Calculate the per-participant context.
         extra_context: Mapping[int, Mapping[str, Any]] = {}
-        if should_get_personalized_digests(self.target_type, self.project.id):
+        personalized_digests = should_get_personalized_digests(self.target_type, self.project.id)
+
+        if personalized_digests:
             extra_context = self.get_extra_context(participants_by_provider_by_event)
 
         for provider, participants in combined_participants_by_provider.items():
+            if personalized_digests:
+                # remove participants if the digest is empty
+                participants_to_remove = set()
+                for participant in participants:
+                    if participant.actor_id not in extra_context:
+                        participants_to_remove.add(participant)
+                participants -= participants_to_remove
             notify(provider, self, participants, shared_context, extra_context)

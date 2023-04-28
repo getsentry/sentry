@@ -6,9 +6,11 @@ from typing import Any
 from typing import Counter as CounterType
 from typing import Iterable, Mapping, Sequence
 
+from django.db.models import Q
+
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, Project, ProjectOwnership, Rule
+from sentry.models import Group, Project, ProjectOwnership, Rule, RuleSnooze
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -81,11 +83,16 @@ def get_personalized_digests(
     participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]],
 ) -> Mapping[int, Digest]:
     events_by_participant = get_events_by_participant(participants_by_provider_by_event)
-    return {
-        participant.actor_id: build_custom_digest(digest, events)
-        for participant, events in events_by_participant.items()
-        if participant.actor_id is not None
-    }
+
+    actor_id_to_digest = {}
+
+    for participant, events in events_by_participant.items():
+        if participant.actor_id is not None:
+            custom_digest = build_custom_digest(digest, events, participant)
+            if custom_digest:
+                actor_id_to_digest[participant.actor_id] = custom_digest
+
+    return actor_id_to_digest
 
 
 def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
@@ -97,10 +104,19 @@ def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
     }
 
 
-def build_custom_digest(original_digest: Digest, events: Iterable[Event]) -> Digest:
+def build_custom_digest(
+    original_digest: Digest, events: Iterable[Event], participant: RpcActor
+) -> Digest:
     """Given a digest and a set of events, filter the digest to only records that include the events."""
     user_digest: Digest = {}
+    rule_snoozes = RuleSnooze.objects.filter(
+        Q(user_id=participant.id) | Q(user_id__isnull=True), rule__in=original_digest.keys()
+    ).values_list("rule", flat=True)
+    snoozed_rule_ids = {rule for rule in rule_snoozes}
+
     for rule, rule_groups in original_digest.items():
+        if rule.id in snoozed_rule_ids:
+            continue
         user_rule_groups = {}
         for group, group_records in rule_groups.items():
             user_group_records = [
