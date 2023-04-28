@@ -189,14 +189,14 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors(current_datetime=current_datetime + timedelta(hours=12, minutes=1))
 
-        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.ERROR).exists()
+        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
 
         assert MonitorCheckIn.objects.filter(
             id=checkin2.id, status=CheckInStatus.IN_PROGRESS
         ).exists()
 
         assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.ERROR
+            id=monitor_environment.id, status=MonitorStatus.TIMEOUT
         ).exists()
 
     def test_timeout_with_future_complete_checkin(self):
@@ -241,7 +241,7 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors(current_datetime=current_datetime + timedelta(hours=12, minutes=1))
 
-        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.ERROR).exists()
+        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
 
         assert MonitorCheckIn.objects.filter(id=checkin2.id, status=CheckInStatus.OK).exists()
 
@@ -283,10 +283,10 @@ class CheckMonitorsTest(TestCase):
 
         check_monitors(current_datetime=current_datetime + timedelta(hours=1, minutes=1))
 
-        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.ERROR).exists()
+        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
 
         assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.ERROR
+            id=monitor_environment.id, status=MonitorStatus.TIMEOUT
         ).exists()
 
     def test_killswitch(self):
