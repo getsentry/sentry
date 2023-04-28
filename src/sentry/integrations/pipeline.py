@@ -185,4 +185,12 @@ class IntegrationPipeline(Pipeline):
             "payload": {"success": success, "data": data},
             "document_origin": document_origin,
         }
+        self.get_logger().info(
+            "dialog_response",
+            extra={
+                "document_origin": document_origin,
+                "success": success,
+                "organization_id": self.organization.id,
+            },
+        )
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
