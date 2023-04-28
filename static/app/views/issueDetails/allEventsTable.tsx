@@ -132,9 +132,6 @@ const getPlatformColumns = (
   platform: PlatformKey | undefined,
   options: {isProfilingEnabled: boolean; isReplayEnabled: boolean}
 ): ColumnInfo => {
-  const replayField = options.isReplayEnabled ? ['replayId'] : [];
-  const replayColumnTitle = options.isReplayEnabled ? [t('replay')] : [];
-
   const backendServerlessColumnInfo = {
     fields: ['url', 'runtime'],
     columnTitles: [t('url'), t('runtime')],
@@ -144,8 +141,8 @@ const getPlatformColumns = (
     [PlatformCategory.BACKEND]: backendServerlessColumnInfo,
     [PlatformCategory.SERVERLESS]: backendServerlessColumnInfo,
     [PlatformCategory.FRONTEND]: {
-      fields: ['url', 'browser', ...replayField],
-      columnTitles: [t('url'), t('browser'), ...replayColumnTitle],
+      fields: ['url', 'browser'],
+      columnTitles: [t('url'), t('browser')],
     },
     [PlatformCategory.MOBILE]: {
       fields: ['url'],
@@ -163,6 +160,11 @@ const getPlatformColumns = (
 
   const platformCategory = platformToCategory(platform);
   const platformColumns = categoryToColumnMap[platformCategory];
+
+  if (options.isReplayEnabled) {
+    platformColumns.fields.push('replayId');
+    platformColumns.columnTitles.push(t('replay'));
+  }
 
   if (options.isProfilingEnabled && platform && PROFILING_PLATFORMS.includes(platform)) {
     platformColumns.columnTitles.push(t('profile'));
