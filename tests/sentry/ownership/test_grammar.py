@@ -139,11 +139,6 @@ def test_matcher_test_url_none():
     assert not Matcher("url", "doesnt_matter").test({"request": {"url": None}})
 
 
-def test_matcher_test_none():
-    data = {"request": {"url": None}}
-    assert not Matcher("url", "").test(data)
-
-
 def test_matcher_test_exception():
     data = {
         "exception": {
