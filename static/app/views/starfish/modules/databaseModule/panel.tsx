@@ -348,14 +348,18 @@ function SimplePagination(props: SimplePaginationProps) {
   );
 }
 
+const HeaderWrapper = styled('div')`
+  cursor: pointer;
+`;
+
 function SortableHeader({title, direction, onClick}) {
   const arrow = !direction ? null : (
     <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
   );
   return (
-    <div onClick={onClick}>
+    <HeaderWrapper onClick={onClick}>
       {title} {arrow}
-    </div>
+    </HeaderWrapper>
   );
 }
 
