@@ -108,7 +108,7 @@ function SummarySegment({
 
   const label =
     crumbs.length === 1
-      ? getUrl(first(crumbs))
+      ? getUrl(crumbs[0])
       : tn('%s Page', '%s Pages', crumbs.length);
   return (
     <Span>
