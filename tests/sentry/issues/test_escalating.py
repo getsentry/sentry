@@ -23,7 +23,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
 
-TIME_YESTERDAY = datetime.now() - timedelta(hours=24)
+TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
 class BaseGroupCounts(TestCase):  # type: ignore[misc]
@@ -177,11 +177,10 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         )
         escalating_forecast.save()
 
+    @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
-        with self.feature("organizations:escalating-issues"), freeze_time(
-            TIME_YESTERDAY.replace(hour=6)
-        ):
+        with self.feature("organizations:escalating-issues"):
             # The group has 6 events today
             for i in range(7, 1, -1):
                 event = self._create_events_for_group(hours_ago=i)
@@ -207,6 +206,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 == 6
             )
 
+    @freeze_time(TIME_YESTERDAY)
     def test_not_escalating_issue(self) -> None:
         """Test when an archived until escalating issue is not escalating"""
         with self.feature("organizations:escalating-issues"):
@@ -236,28 +236,33 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
 
+    @freeze_time(TIME_YESTERDAY)
     def test_daily_count_query(self) -> None:
         """Test the daily count query only aggregates events from today"""
-        # Do not create events more than 6 hours before or it will move to the previous day
-        with freeze_time(TIME_YESTERDAY.replace(hour=6)):
-            # The group had 3 events two days ago
-            for i in range(4, 1, -1):
-                self._create_events_for_group(hours_ago=48 + i)
+        # The group had 3 events two days ago
+        two_days_ago_mins = 48 * 60
+        for i in range(4, 1, -1):
+            event = self._create_events_for_group(minutes_ago=two_days_ago_mins + i)
 
-            # The group had 2 events yesterday
-            # Tests that events are aggregated in the daily count query by date, not by 24 hr periods
-            for i in range(3, 1, -1):
-                self._create_events_for_group(hours_ago=24 + i)
-
-            # The group has 1 event today
-            group = self._create_events_for_group(hours_ago=1).group
-
-            # Mark it as archived until escalating so get_group_daily_count will consider it
-            group.status = GroupStatus.IGNORED
-            group.substatus = GroupSubStatus.UNTIL_ESCALATING
-            group.save()
-
-            assert (
-                get_group_daily_count(group.project.organization.id, group.project.id, group.id)
-                == 1
+        # The group had 2 events yesterday
+        # Tests that events are aggregated in the daily count query by date, not by 24 hr periods
+        yesterday = datetime.now().date() - timedelta(days=1)
+        yesterday_midnight = datetime.combine(yesterday, datetime.min.time())
+        mins_since_yesterday_midnight = int(
+            ((datetime.now() - yesterday_midnight).total_seconds()) / 60
+        )
+        for i in range(3, 1, -1):
+            # Event occured i hours after yesterday midnight
+            event = self._create_events_for_group(
+                minutes_ago=mins_since_yesterday_midnight + i * 60
             )
+
+        # The group has 1 event today
+        for i in range(2, 1, -1):
+            event = self._create_events_for_group(minutes_ago=i)
+            group = event.group
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+
+        assert get_group_daily_count(group.project.organization.id, group.project.id, group.id) == 1
