@@ -133,9 +133,9 @@ export function generateWebServiceEventView(
   const deltaColName = `equation|(percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})-percentile_range(transaction.duration,0.50,greater,${middleTimestamp}))/percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})`;
   let orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
   const isDescending = orderby.startsWith('-');
-  orderby = trimStart(orderby, '-');
+  const rawOrderby = trimStart(orderby, '-');
   if (
-    orderby.startsWith(
+    rawOrderby.startsWith(
       'equation|(percentile_range(transaction.duration,0.50,lessOrEquals,'
     )
   ) {
