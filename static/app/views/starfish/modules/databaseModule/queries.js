@@ -168,7 +168,9 @@ export const getMainTable = (
   endTime,
   transactionFilter,
   tableFilter,
-  actionFilter
+  actionFilter,
+  sortKey,
+  sortDirection
 ) => {
   const filters = [
     DEFAULT_WHERE,
@@ -190,6 +192,8 @@ export const getMainTable = (
           endTime.unix() - duration / 10
         })) as retired`
       : '0 as retired';
+
+  const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
 
   return `
     select
@@ -217,7 +221,7 @@ export const getMainTable = (
       domain,
       data_keys,
       data_values
-    order by ${ORDERBY}
+    order by ${orderBy}
     limit 100
   `;
 };
