@@ -128,17 +128,11 @@ def _do_symbolicate_event(
             return
 
     def _continue_to_process_event() -> None:
-        process_task = (
-            store.process_event_from_reprocessing
-            if task_kind.is_reprocessing
-            else store.process_event
-        )
-        store.do_process_event(
+        store.submit_process(
+            from_reprocessing=task_kind.is_reprocessing,
             cache_key=cache_key,
-            start_time=start_time,
             event_id=event_id,
-            process_task=process_task,
-            data=data,
+            start_time=start_time,
             data_has_changed=has_changed,
             from_symbolicate=True,
             has_attachments=has_attachments,
