@@ -760,7 +760,7 @@ class SnubaTSDB(BaseTSDB):
         return {k: sorted(result[k].items()) for k in result}
 
     def get_distinct_counts_series(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self, model, keys, start, end=None, rollup=None, environment_id=None, tenant_ids=None
     ):
         result = self.get_data(
             model,
@@ -771,6 +771,7 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation="uniq",
             group_on_time=True,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -806,7 +807,7 @@ class SnubaTSDB(BaseTSDB):
         )
 
     def get_distinct_counts_union(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self, model, keys, start, end=None, rollup=None, environment_id=None, tenant_ids=None
     ):
         return self.get_data(
             model,
@@ -817,10 +818,19 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation="uniq",
             group_on_model=False,
+            tenant_ids=tenant_ids,
         )
 
     def get_most_frequent(
-        self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        limit=10,
+        environment_id=None,
+        tenant_ids=None,
     ):
         aggregation = f"topK({limit})"
         result = self.get_data(
@@ -831,6 +841,7 @@ class SnubaTSDB(BaseTSDB):
             rollup,
             [environment_id] if environment_id is not None else None,
             aggregation=aggregation,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:[top1, ...]}
@@ -843,7 +854,15 @@ class SnubaTSDB(BaseTSDB):
         return result
 
     def get_most_frequent_series(
-        self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        limit=10,
+        environment_id=None,
+        tenant_ids=None,
     ):
         aggregation = f"topK({limit})"
         result = self.get_data(
@@ -855,6 +874,7 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation=aggregation,
             group_on_time=True,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:{timestamp:[top1, ...]}}
@@ -888,7 +908,9 @@ class SnubaTSDB(BaseTSDB):
         #    {group: [(timestamp, {agg: count, ...}), ...]}
         return {k: sorted(result[k].items()) for k in result}
 
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_totals(
+        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+    ):
         return self.get_data(
             model,
             items,
@@ -897,6 +919,7 @@ class SnubaTSDB(BaseTSDB):
             rollup,
             [environment_id] if environment_id is not None else None,
             aggregation="count()",
+            tenant_ids=tenant_ids,
         )
 
     def flatten_keys(self, items):
