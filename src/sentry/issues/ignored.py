@@ -70,7 +70,7 @@ def handle_archived_until_escalating(
             sender=sender,
         )
 
-    return
+    return {"untilEscalating": True}
 
 
 def handle_ignored(
