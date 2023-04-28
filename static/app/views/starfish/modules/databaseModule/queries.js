@@ -1,9 +1,17 @@
+import {useQuery} from '@tanstack/react-query';
+
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+
 const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
   span_operation != 'db.redis' and
   module = 'db' and
   action != ''
 `;
+
+const INTERVAL = 12;
 
 const ORDERBY = `
   -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
@@ -85,6 +93,46 @@ export const getTopOperationsChart = (date_filters, interval) => {
   group by action, interval
   order by action, interval
   `;
+};
+
+export const useTopTransactionByP75Query = row => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = `
+    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
+  `;
+  const queryFilter = `group_id = '${row.group_id}'`;
+
+  const query = `
+  select
+    floor(quantile(0.75)(exclusive_time), 5) as p75,
+    transaction,
+    toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
+  FROM default.spans_experimental_starfish
+  where
+    ${DEFAULT_WHERE} and
+    ${dateFilters} and
+    ${queryFilter}
+    and transaction IN (
+      SELECT
+        transaction
+      FROM default.spans_experimental_starfish
+      WHERE ${queryFilter}
+      GROUP BY transaction
+      ORDER BY floor(quantile(0.75)(exclusive_time), 5) desc
+      LIMIT 5
+    )
+  group by transaction, interval
+  order by transaction, interval
+  `;
+
+  return useQuery({
+    queryKey: ['p75PerTransaction', pageFilter.selection.datetime, row.group_id],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 };
 
 export const getTopTablesChart = (date_filters, action, interval) => {

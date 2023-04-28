@@ -23,6 +23,7 @@ import {
   getPanelEventCount,
   getPanelGraphQuery,
   getPanelTableQuery,
+  useTopTransactionByP75Query,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -115,6 +116,9 @@ function QueryDetailBody({
     less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
+  const {isLoading: isP75GraphLoading, data: p75GraphData} =
+    useTopTransactionByP75Query(row);
+
   const {isLoading, data: graphData} = useQuery({
     queryKey: ['dbQueryDetailsGraph', row.group_id, pageFilter.selection.datetime],
     queryFn: () =>
@@ -148,7 +152,11 @@ function QueryDetailBody({
   });
 
   const isDataLoading =
-    isLoading || isTableLoading || isEventCountLoading || isRowLoading;
+    isLoading ||
+    isTableLoading ||
+    isEventCountLoading ||
+    isRowLoading ||
+    isP75GraphLoading;
   let avgP75 = 0;
   if (!isDataLoading) {
     avgP75 =
@@ -161,6 +169,12 @@ function QueryDetailBody({
 
   const [countSeries, p75Series] = throughputQueryToChartData(
     graphData,
+    startTime,
+    endTime
+  );
+
+  const p75PerTransactionSeries = p75TransactionQueryToChartData(
+    p75GraphData,
     startTime,
     endTime
   );
@@ -255,6 +269,26 @@ function QueryDetailBody({
           />
         </FlexRowItem>
       </FlexRowContainer>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>{t('Duration (P75) By Transaction')}</SubHeader>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={p75PerTransactionSeries}
+            start=""
+            end=""
+            loading={isDataLoading}
+            utc={false}
+            chartColors={[theme.charts.getColorPalette(4)[3]]}
+            disableMultiAxis
+            stacked
+            isLineChart
+            disableXAxis
+            hideYAxisSplitLine
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
       <GridEditable
         isLoading={isDataLoading}
         data={mergedTableData}
@@ -311,6 +345,28 @@ const throughputQueryToChartData = (
     zeroFillSeries(countSeries, moment.duration(INTERVAL, 'hours'), startTime, endTime),
     zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
   ];
+};
+
+const p75TransactionQueryToChartData = (
+  data: {interval: string; p75: number; transaction: string}[],
+  startTime: moment.Moment,
+  endTime: moment.Moment
+): Series[] => {
+  const seriesMap: Record<string, Series> = {};
+
+  data.forEach(row => {
+    const dataEntry = {value: row.p75, name: row.interval};
+    if (!seriesMap[row.transaction]) {
+      seriesMap[row.transaction] = {
+        seriesName: row.transaction,
+        data: [],
+      };
+    }
+    seriesMap[row.transaction].data.push(dataEntry);
+  });
+  return Object.values(seriesMap).map(series =>
+    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+  );
 };
 
 const SubHeader = styled('h3')`
