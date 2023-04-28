@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project, Scope} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
@@ -41,7 +42,8 @@ function KeyRow({
   const controlActive = access.has('project:write');
 
   const platform = project.platform || 'other';
-  const isJsPlatform = platform === 'javascript' || platform.startsWith('javascript-');
+  const isBrowserJavaScript = platform === 'javascript';
+  const isJsPlatform = platform.startsWith('javascript');
 
   return (
     <Panel>
@@ -103,6 +105,15 @@ function KeyRow({
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}
           />
+
+          {isBrowserJavaScript && (
+            <LoaderScript
+              projectKey={data}
+              routes={routes}
+              location={location}
+              params={params}
+            />
+          )}
         </StyledPanelBody>
       </StyledClippedBox>
     </Panel>

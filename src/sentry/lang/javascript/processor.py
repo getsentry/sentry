@@ -801,18 +801,24 @@ class Fetcher:
             # and opened archive.
             # We do this under the assumption that the number of open archives for a single event is not very big,
             # considering that most frames will be resolved with the data from within the same artifact bundle.
-            cached_open_archive = self._lookup_in_open_archives(
-                lambda open_archive: open_archive.get_file_by_debug_id(debug_id, source_file_type)
-            )
-            if cached_open_archive:
-                return cached_open_archive
+            with sentry_sdk.start_span(op="Fetcher.fetch_by_debug_id._lookup_in_open_archives"):
+                cached_open_archive = self._lookup_in_open_archives(
+                    lambda open_archive: open_archive.get_file_by_debug_id(
+                        debug_id, source_file_type
+                    )
+                )
+                if cached_open_archive:
+                    return cached_open_archive
 
             # We want to run a query to determine the artifact bundle that contains the tuple
             # (debug_id, source_file_type).
-            artifact_bundle = self._get_artifact_bundle_entry_by_debug_id(
-                debug_id, source_file_type
-            )
-            artifact_bundle_id = artifact_bundle.id
+            with sentry_sdk.start_span(
+                op="Fetcher.fetch_by_debug_id._get_artifact_bundle_entry_by_debug_id"
+            ):
+                artifact_bundle = self._get_artifact_bundle_entry_by_debug_id(
+                    debug_id, source_file_type
+                )
+                artifact_bundle_id = artifact_bundle.id
 
             # Given an artifact bundle id we check in the local cache if we have the archive already opened.
             cached_open_archive = self.open_archives.get(artifact_bundle_id)
@@ -826,7 +832,8 @@ class Fetcher:
 
             # In case the local cache doesn't have the archive, we will try to load it from memcached and then directly
             # from the source.
-            artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
+            with sentry_sdk.start_span(op="Fetcher.fetch_by_debug_id._fetch_artifact_bundle_file"):
+                artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
         except Exception as exc:
             logger.debug(
                 "Failed to load the artifact bundle for debug_id %s and source_file_type %s",
@@ -844,8 +851,9 @@ class Fetcher:
             try:
                 # We load the entire bundle into an archive and cache it locally. It is very important that this opened
                 # archive is closed before the processing ends.
-                archive = ArtifactBundleArchive(artifact_bundle_file)
-                self.open_archives[artifact_bundle_id] = archive
+                with sentry_sdk.start_span(op="Fetcher.fetch_by_debug_id.ArtifactBundleArchive"):
+                    archive = ArtifactBundleArchive(artifact_bundle_file)
+                    self.open_archives[artifact_bundle_id] = archive
             except Exception as exc:
                 artifact_bundle_file.seek(0)
                 logger.debug(
@@ -964,11 +972,16 @@ class Fetcher:
 
         try:
             # We want to first lookup in all existing open archives, just to save us an expensive query.
-            cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
-            if cached_open_archive:
-                return cached_open_archive
+            with sentry_sdk.start_span(op="Fetcher.fetch_by_url_new._pre_lookup_in_open_archives"):
+                cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
+                if cached_open_archive:
+                    return cached_open_archive
 
-            artifact_bundles = self._get_artifact_bundle_entries_by_release_dist_pair()
+            with sentry_sdk.start_span(
+                op="Fetcher.fetch_by_url_new._get_artifact_bundle_entries_by_release_dist_pair"
+            ):
+                artifact_bundles = self._get_artifact_bundle_entries_by_release_dist_pair()
+
             for artifact_bundle in artifact_bundles:
                 cached_open_archive = self.open_archives.get(artifact_bundle.id)
 
@@ -984,8 +997,11 @@ class Fetcher:
                 try:
                     # In case we didn't find the archive in the cache, we want to fetch the artifact bundle to put later
                     # in the cache.
-                    artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
-                    artifact_bundle_files.append((artifact_bundle.id, artifact_bundle_file))
+                    with sentry_sdk.start_span(
+                        op="Fetcher.fetch_by_url_new._fetch_artifact_bundle_file"
+                    ):
+                        artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
+                        artifact_bundle_files.append((artifact_bundle.id, artifact_bundle_file))
                 except Exception as exc:
                     logger.debug(
                         "Failed to fetch artifact bundle %s", artifact_bundle.id, exc_info=exc
@@ -1015,8 +1031,9 @@ class Fetcher:
         else:
             for artifact_bundle_id, artifact_bundle_file in artifact_bundle_files:
                 try:
-                    archive = ArtifactBundleArchive(artifact_bundle_file)
-                    self.open_archives[artifact_bundle_id] = archive
+                    with sentry_sdk.start_span(op="Fetcher.fetch_by_url_new.ArtifactBundleArchive"):
+                        archive = ArtifactBundleArchive(artifact_bundle_file)
+                        self.open_archives[artifact_bundle_id] = archive
                 except Exception as exc:
                     artifact_bundle_file.seek(0)
                     logger.debug(
@@ -1031,9 +1048,10 @@ class Fetcher:
             # we could recursively implement this behavior but that would require the usage of a discriminator variable
             # that will immediately return if the lookup is not successful. The repetition of the lookup seems a more
             # explicit way to do the work.
-            cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
-            if cached_open_archive:
-                return cached_open_archive
+            with sentry_sdk.start_span(op="Fetcher.fetch_by_url_new._post_lookup_in_open_archives"):
+                cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
+                if cached_open_archive:
+                    return cached_open_archive
 
             return None
 
