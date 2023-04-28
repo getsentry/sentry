@@ -230,6 +230,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
         for e in (getattr(user, "useremails", None) or ())
     ]
 
+    avatar = None
     # Use eagerloaded attributes from _base_query() if available.
     if hasattr(user, "useravatar") and user.useravatar is not None:
         avatar_dict = user.useravatar[0]
@@ -241,13 +242,13 @@ def serialize_rpc_user(user: User) -> RpcUser:
             avatar_type=avatar_type_map.get(avatar_dict["avatar_type"], "letter_avatar"),
         )
     else:
-        avatar = user.avatar.first()
-        if avatar is not None:
+        orm_avatar = user.avatar.first()
+        if orm_avatar is not None:
             avatar = RpcAvatar(
-                id=avatar.id,
-                file_id=avatar.file_id,
-                ident=avatar.ident,
-                avatar_type=avatar.get_avatar_type_display(),
+                id=orm_avatar.id,
+                file_id=orm_avatar.file_id,
+                ident=orm_avatar.ident,
+                avatar_type=orm_avatar.get_avatar_type_display(),
             )
     args["avatar"] = avatar
 
